@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import waterAsset from "@/assets/water.mp3.asset.json";
 
@@ -25,10 +25,11 @@ export const Route = createFileRoute("/")({
 });
 
 // Gerstner-like sum of sines. Keep in sync with vertex shader.
-function waveHeight(x: number, z: number, t: number, amp: number, regular: boolean) {
+function waveHeight(x: number, z: number, t: number, amp: number, regular: boolean, cross: boolean) {
   if (regular) {
-    // Single, regular sine — jämna intervaller, ren våg-form.
-    return Math.sin(x * 0.12 + t * 0.9) * 2.6 * amp;
+    const rx = Math.sin(x * 0.12 + t * 0.9) * 2.6 * amp;
+    const rz = cross ? Math.sin(z * 0.09 + t * 0.7 + 1.1) * 1.4 * amp : 0;
+    return rx + rz;
   }
   const w1 = Math.sin(x * 0.12 + t * 0.9) * 1.0;
   const w2 = Math.sin(z * 0.17 + t * 0.7 + 1.3) * 0.75;
@@ -51,6 +52,7 @@ type Persisted = {
   bottomIdx: number;
   leanEnabled: boolean;
   regularWaves: boolean;
+  regularCross: boolean;
 };
 const WATER_TINTS: { name: string; rgb: [number, number, number] }[] = [
   { name: "Nordhav", rgb: [1, 1, 1] },
@@ -81,6 +83,7 @@ const DEFAULTS: Persisted = {
   bottomIdx: 2,
   leanEnabled: false,
   regularWaves: false,
+  regularCross: true,
 };
 function loadSettings(): Persisted {
   if (typeof window === "undefined") return DEFAULTS;
@@ -111,18 +114,22 @@ function Aquafulness() {
   const [bottomIdx, setBottomIdx] = useState(initial.bottomIdx);
   const [leanEnabled, setLeanEnabled] = useState(initial.leanEnabled);
   const [regularWaves, setRegularWaves] = useState(initial.regularWaves);
+  const [regularCross, setRegularCross] = useState(initial.regularCross);
+  // Rotation stick (yaw / pitch look) and wave-follow stick.
+  const [rotStick, setRotStick] = useState({ x: 0, y: 0 });
+  const [followStick, setFollowStick] = useState({ x: 0, y: 0 });
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Persist settings to localStorage whenever they change (SSR-safe, hydration-safe).
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, waterTintIdx, bottomIdx, leanEnabled, regularWaves };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, waterTintIdx, bottomIdx, leanEnabled, regularWaves]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -146,6 +153,12 @@ function Aquafulness() {
   const bottomIdxRef = useRef(bottomIdx);
   const leanRef = useRef(leanEnabled);
   const regularRef = useRef(regularWaves);
+  const regularCrossRef = useRef(regularCross);
+  const rotStickRef = useRef({ x: 0, y: 0 });
+  const followStickRef = useRef({ x: 0, y: 0 });
+  const yawRef = useRef(0);
+  const pitchRef = useRef(0);
+  const prevSurfaceRef = useRef<number | null>(null);
   useEffect(() => { ampRef.current = waveAmp; }, [waveAmp]);
   useEffect(() => { todRef.current = timeOfDay; }, [timeOfDay]);
   useEffect(() => { speedRef.current = waveSpeed; }, [waveSpeed]);
@@ -153,10 +166,13 @@ function Aquafulness() {
   useEffect(() => { buoyRef.current = buoyAmp; }, [buoyAmp]);
   useEffect(() => { heightRef.current = heightOffset; }, [heightOffset]);
   useEffect(() => { stickRef.current = stick; }, [stick]);
+  useEffect(() => { rotStickRef.current = rotStick; }, [rotStick]);
+  useEffect(() => { followStickRef.current = followStick; }, [followStick]);
   useEffect(() => { waterTintRef.current = waterTintIdx; }, [waterTintIdx]);
   useEffect(() => { bottomIdxRef.current = bottomIdx; }, [bottomIdx]);
   useEffect(() => { leanRef.current = leanEnabled; }, [leanEnabled]);
   useEffect(() => { regularRef.current = regularWaves; }, [regularWaves]);
+  useEffect(() => { regularCrossRef.current = regularCross; }, [regularCross]);
 
   const resetToDefaults = () => {
     setWaveAmp(DEFAULTS.waveAmp);
@@ -170,6 +186,7 @@ function Aquafulness() {
     setBottomIdx(DEFAULTS.bottomIdx);
     setLeanEnabled(DEFAULTS.leanEnabled);
     setRegularWaves(DEFAULTS.regularWaves);
+    setRegularCross(DEFAULTS.regularCross);
     // timeOfDay is intentionally left untouched.
   };
 
@@ -265,18 +282,23 @@ function Aquafulness() {
       uWaterTint: { value: new THREE.Vector3(1, 1, 1) },
       uUnderwater: { value: 0 },
       uRegular: { value: 0 },
+      uCross: { value: 1 },
     };
 
     const vertexShader = /* glsl */ `
       uniform float uTime;
       uniform float uAmp;
       uniform float uRegular;
+      uniform float uCross;
       varying vec3 vWorldPos;
       varying vec3 vNormal;
 
       float wave(vec3 p, float t, float amp) {
-        // Regular sine — jämn, periodisk vågform längs x-axeln.
-        float reg = sin(p.x * 0.12 + t * 0.9) * 2.6 * amp;
+        // Regular sine along x, with optional cross-axis sine so it doesn't
+        // look like a flat carpet when uRegular = 1.
+        float regX = sin(p.x * 0.12 + t * 0.9) * 2.6 * amp;
+        float regZ = sin(p.z * 0.09 + t * 0.7 + 1.1) * 1.4 * amp * uCross;
+        float reg = regX + regZ;
 
         // Large primary swell (chaotic sum of sines)
         float w1 = sin(p.x * 0.12 + t * 0.9) * 1.0;
@@ -523,6 +545,7 @@ function Aquafulness() {
       uniforms.uTime.value = t;
       uniforms.uAmp.value = ampRef.current;
       uniforms.uRegular.value += ((regularRef.current ? 1 : 0) - uniforms.uRegular.value) * Math.min(1, dt * 4);
+      uniforms.uCross.value += ((regularCrossRef.current ? 1 : 0) - uniforms.uCross.value) * Math.min(1, dt * 4);
 
       const p = palette(todRef.current);
       uniforms.uSunDir.value.copy(p.sunDir);
@@ -559,7 +582,7 @@ function Aquafulness() {
 
       const camX = posRef.current.x;
       const camZ = posRef.current.z;
-      const surfaceY = waveHeight(camX, camZ, t, ampRef.current, regularRef.current);
+      const surfaceY = waveHeight(camX, camZ, t, ampRef.current, regularRef.current, regularCrossRef.current);
       // Wave-synced buoyancy: camera is a damped spring pulled toward the
       // surface with gravity. Rising crests outrun the camera so it dips
       // below the surface ("pushed up through"); in the trough gravity
@@ -575,10 +598,33 @@ function Aquafulness() {
       const ay = k * (targetY - camYRef.current) - c * camVYRef.current - gravity;
       camVYRef.current += ay * dt;
       camYRef.current += camVYRef.current * dt;
-      camera.position.set(camX, camYRef.current, camZ);
+
+      // Wave-follow stick: feedforward on wave vertical velocity.
+      // y > 0 → rise above crests, sink below troughs (surf on top).
+      // y < 0 → counter-drag: lag under crests, lift over troughs.
+      // x adds a lateral coupling to the wave slope.
+      if (prevSurfaceRef.current === null) prevSurfaceRef.current = surfaceY;
+      const surfVel = (surfaceY - prevSurfaceRef.current) / Math.max(dt, 1e-4);
+      prevSurfaceRef.current = surfaceY;
+      const followY = followStickRef.current.y * surfVel * 0.35;
+      const eps = 0.4;
+      const slopeX = (waveHeight(camX + eps, camZ, t, amp, regularRef.current, regularCrossRef.current) - surfaceY) / eps;
+      const followX = followStickRef.current.x * slopeX * 1.2;
+
+      camera.position.set(camX + followX, camYRef.current + followY, camZ);
       const lookZ = camZ - 20;
-      const lookY = waveHeight(camX, lookZ, t, amp, regularRef.current) + 0.4;
-      camera.lookAt(camX, lookY, lookZ);
+      const lookY = waveHeight(camX, lookZ, t, amp, regularRef.current, regularCrossRef.current) + 0.4;
+      camera.lookAt(camX + followX, lookY, lookZ);
+
+      // Rotation stick: yaw (x) + pitch (y). Integrate stick as angular velocity.
+      const rotSpeed = 1.6; // rad/s at full deflection
+      yawRef.current -= rotStickRef.current.x * rotSpeed * dt;
+      pitchRef.current += rotStickRef.current.y * rotSpeed * dt;
+      const maxPitch = 1.2;
+      if (pitchRef.current > maxPitch) pitchRef.current = maxPitch;
+      if (pitchRef.current < -maxPitch) pitchRef.current = -maxPitch;
+      camera.rotateY(yawRef.current);
+      camera.rotateX(pitchRef.current);
 
       // Optional forward-leaning rotation: pitch into the direction of travel.
       // Default is a fixed forward horizon (no lean).
@@ -749,19 +795,39 @@ function Aquafulness() {
                 onDec={() => setRegularWaves(false)}
                 onInc={() => setRegularWaves(true)}
               />
+              <PadDial
+                label="KORSVÅG"
+                value={regularCross ? "PÅ" : "AV"}
+                onDec={() => setRegularCross(false)}
+                onInc={() => setRegularCross(true)}
+              />
             </div>
           </div>
         </div>
       )}
 
-      {/* Left joystick */}
-      <Joystick onChange={setStick} value={stick} />
+      {/* Movement joystick (left) */}
+      <Joystick
+        onChange={setStick}
+        value={stick}
+        label="NAV"
+        positionClass="bottom-6 left-6"
+      />
 
-      {/* Right D-pad — hold to drive forward / back */}
-      <DPad
-        onForward={() => setStick((s) => ({ ...s, y: 1 }))}
-        onBack={() => setStick((s) => ({ ...s, y: -1 }))}
-        onRelease={() => setStick((s) => ({ ...s, y: 0 }))}
+      {/* Look / rotation joystick (right of movement) */}
+      <Joystick
+        onChange={setRotStick}
+        value={rotStick}
+        label="LOOK"
+        positionClass="bottom-6 left-44"
+      />
+
+      {/* Wave-follow joystick (far right) */}
+      <Joystick
+        onChange={setFollowStick}
+        value={followStick}
+        label="VÅG-FÖLJ"
+        positionClass="bottom-6 right-6"
       />
     </main>
   );
@@ -807,13 +873,17 @@ function PadDial({
 function Joystick({
   onChange,
   value,
+  label = "NAV",
+  positionClass = "bottom-6 left-6",
 }: {
   onChange: (v: { x: number; y: number }) => void;
   value: { x: number; y: number };
+  label?: string;
+  positionClass?: string;
 }) {
   const baseRef = useRef<HTMLDivElement>(null);
   const activeId = useRef<number | null>(null);
-  const radius = 56;
+  const radius = 42;
 
   const setFromPointer = (clientX: number, clientY: number) => {
     const base = baseRef.current;
@@ -832,7 +902,7 @@ function Joystick({
   };
 
   return (
-    <div className="pointer-events-none absolute bottom-6 left-6 z-10 select-none">
+    <div className={`pointer-events-none absolute z-10 select-none ${positionClass}`}>
       <div
         ref={baseRef}
         onPointerDown={(e) => {
@@ -854,58 +924,20 @@ function Joystick({
           activeId.current = null;
           onChange({ x: 0, y: 0 });
         }}
-        className="pointer-events-auto relative h-32 w-32 touch-none rounded-full border border-white/20 bg-black/35 backdrop-blur-md"
+        className="pointer-events-auto relative h-24 w-24 touch-none rounded-full border border-white/20 bg-black/35 backdrop-blur-md"
         style={{ boxShadow: "inset 0 0 40px rgba(255,255,255,0.05)" }}
       >
         <div className="pointer-events-none absolute inset-3 rounded-full border border-white/10" />
         <div
-          className="pointer-events-none absolute left-1/2 top-1/2 h-12 w-12 rounded-full border border-white/30 bg-white/80 shadow-[0_0_24px_rgba(255,255,255,0.35)]"
+          className="pointer-events-none absolute left-1/2 top-1/2 h-9 w-9 rounded-full border border-white/30 bg-white/80 shadow-[0_0_24px_rgba(255,255,255,0.35)]"
           style={{
             transform: `translate(calc(-50% + ${value.x * radius}px), calc(-50% + ${-value.y * radius}px))`,
           }}
         />
-        <span className="pointer-events-none absolute inset-x-0 top-1 text-center text-[9px] font-light tracking-[0.3em] text-white/50">
-          NAV
+        <span className="pointer-events-none absolute inset-x-0 top-1 text-center text-[8px] font-light tracking-[0.28em] text-white/60">
+          {label}
         </span>
       </div>
-    </div>
-  );
-}
-
-function DPad({
-  onForward,
-  onBack,
-  onRelease,
-}: {
-  onForward: () => void;
-  onBack: () => void;
-  onRelease: () => void;
-}) {
-  const bind = (fn: () => void) => ({
-    onPointerDown: (e: ReactPointerEvent) => {
-      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-      fn();
-    },
-    onPointerUp: onRelease,
-    onPointerCancel: onRelease,
-  });
-  return (
-    <div className="pointer-events-none absolute bottom-6 right-6 z-10 flex select-none flex-col items-center gap-2">
-      <button
-        {...bind(onForward)}
-        className="pointer-events-auto h-14 w-14 touch-none rounded-full border border-white/20 bg-black/40 text-white backdrop-blur-md transition active:scale-95 active:bg-white/15"
-        aria-label="Framåt"
-      >
-        ▲
-      </button>
-      <span className="text-[9px] font-light tracking-[0.3em] text-white/50">DRIV</span>
-      <button
-        {...bind(onBack)}
-        className="pointer-events-auto h-14 w-14 touch-none rounded-full border border-white/20 bg-black/40 text-white backdrop-blur-md transition active:scale-95 active:bg-white/15"
-        aria-label="Bakåt"
-      >
-        ▼
-      </button>
     </div>
   );
 }
