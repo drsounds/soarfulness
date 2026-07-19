@@ -536,6 +536,10 @@ function Aquafulness() {
         a.lp.frequency.setTargetAtTime(lpFreq, now, 0.15);
       }
 
+      // Underwater tone-down factor: fades color/contrast as camera dips below surface.
+      const uw = depth > 0 ? Math.min(depth / 2.5, 1) : 0;
+      uniforms.uUnderwater.value += (uw - uniforms.uUnderwater.value) * Math.min(1, dt * 6);
+
       // Keep horizon level: no extra pitch/roll from buoyancy.
 
       sky.position.copy(camera.position);
