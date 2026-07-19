@@ -400,6 +400,18 @@ function Aquafulness() {
             onDec={() => setWaveSpeed((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
             onInc={() => setWaveSpeed((v) => Math.min(3, +(v + 0.1).toFixed(2)))}
           />
+          <PadDial
+            label="HÖJD"
+            value={`${heightOffset >= 0 ? "+" : ""}${heightOffset.toFixed(2)}m`}
+            onDec={() => setHeightOffset((v) => Math.max(-5, +(v - 0.2).toFixed(2)))}
+            onInc={() => setHeightOffset((v) => Math.min(5, +(v + 0.2).toFixed(2)))}
+          />
+          <PadDial
+            label="GUPP"
+            value={`${buoyAmp.toFixed(2)}×`}
+            onDec={() => setBuoyAmp((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
+            onInc={() => setBuoyAmp((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
+          />
         </div>
       </div>
 
