@@ -45,6 +45,7 @@ type Persisted = {
   audioVol: number;
   waterTintIdx: number;
   bottomIdx: number;
+  leanEnabled: boolean;
 };
 const WATER_TINTS: { name: string; rgb: [number, number, number] }[] = [
   { name: "Nordhav", rgb: [1, 1, 1] },
@@ -73,6 +74,7 @@ const DEFAULTS: Persisted = {
   audioVol: 0.8,
   waterTintIdx: 1,
   bottomIdx: 2,
+  leanEnabled: false,
 };
 function loadSettings(): Persisted {
   if (typeof window === "undefined") return DEFAULTS;
@@ -101,18 +103,19 @@ function Aquafulness() {
   const [audioVol, setAudioVol] = useState(initial.audioVol);
   const [waterTintIdx, setWaterTintIdx] = useState(initial.waterTintIdx);
   const [bottomIdx, setBottomIdx] = useState(initial.bottomIdx);
+  const [leanEnabled, setLeanEnabled] = useState(initial.leanEnabled);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Persist settings to localStorage whenever they change (SSR-safe, hydration-safe).
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, waterTintIdx, bottomIdx };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, waterTintIdx, bottomIdx, leanEnabled };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, waterTintIdx, bottomIdx]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, waterTintIdx, bottomIdx, leanEnabled]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -134,6 +137,7 @@ function Aquafulness() {
   const camVYRef = useRef(0);
   const waterTintRef = useRef(waterTintIdx);
   const bottomIdxRef = useRef(bottomIdx);
+  const leanRef = useRef(leanEnabled);
   useEffect(() => { ampRef.current = waveAmp; }, [waveAmp]);
   useEffect(() => { todRef.current = timeOfDay; }, [timeOfDay]);
   useEffect(() => { speedRef.current = waveSpeed; }, [waveSpeed]);
@@ -143,6 +147,7 @@ function Aquafulness() {
   useEffect(() => { stickRef.current = stick; }, [stick]);
   useEffect(() => { waterTintRef.current = waterTintIdx; }, [waterTintIdx]);
   useEffect(() => { bottomIdxRef.current = bottomIdx; }, [bottomIdx]);
+  useEffect(() => { leanRef.current = leanEnabled; }, [leanEnabled]);
 
   const resetToDefaults = () => {
     setWaveAmp(DEFAULTS.waveAmp);
@@ -154,6 +159,7 @@ function Aquafulness() {
     setAudioVol(DEFAULTS.audioVol);
     setWaterTintIdx(DEFAULTS.waterTintIdx);
     setBottomIdx(DEFAULTS.bottomIdx);
+    setLeanEnabled(DEFAULTS.leanEnabled);
     // timeOfDay is intentionally left untouched.
   };
 
@@ -558,6 +564,13 @@ function Aquafulness() {
       const lookY = waveHeight(camX, lookZ, t, amp) + 0.4;
       camera.lookAt(camX, lookY, lookZ);
 
+      // Optional forward-leaning rotation: pitch into the direction of travel.
+      // Default is a fixed forward horizon (no lean).
+      if (leanRef.current) {
+        const leanPitch = stickRef.current.y * 0.12;
+        camera.rotateX(leanPitch);
+      }
+
       // Sync audio intensity with depth below surface.
       const depth = surfaceY - camYRef.current; // positive when underwater
       const a = audioRef.current;
@@ -707,6 +720,12 @@ function Aquafulness() {
                 value={BOTTOM_OPTIONS[bottomIdx].name}
                 onDec={() => setBottomIdx((i) => (i - 1 + BOTTOM_OPTIONS.length) % BOTTOM_OPTIONS.length)}
                 onInc={() => setBottomIdx((i) => (i + 1) % BOTTOM_OPTIONS.length)}
+              />
+              <PadDial
+                label="ROTERING"
+                value={leanEnabled ? "FRAMÅTLUT" : "FIXERAD"}
+                onDec={() => setLeanEnabled(false)}
+                onInc={() => setLeanEnabled(true)}
               />
             </div>
           </div>
