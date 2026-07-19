@@ -156,6 +156,7 @@ function Aquafulness() {
   useEffect(() => { waterTintRef.current = waterTintIdx; }, [waterTintIdx]);
   useEffect(() => { bottomIdxRef.current = bottomIdx; }, [bottomIdx]);
   useEffect(() => { leanRef.current = leanEnabled; }, [leanEnabled]);
+  useEffect(() => { regularRef.current = regularWaves; }, [regularWaves]);
 
   const resetToDefaults = () => {
     setWaveAmp(DEFAULTS.waveAmp);
