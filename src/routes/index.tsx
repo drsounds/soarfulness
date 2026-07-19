@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import waterAsset from "@/assets/water.mp3.asset.json";
+import vanernBackdrop from "@/assets/vanern-backdrop.png.asset.json";
 
 export const Route = createFileRoute("/")({
   component: Aquafulness,
@@ -56,6 +57,7 @@ type Persisted = {
   regularWaves: boolean;
   regularCross: boolean;
   regularPeriod: number;
+  backdropIdx: number;
 };
 const WATER_TINTS: { name: string; rgb: [number, number, number] }[] = [
   { name: "Nordhav", rgb: [1, 1, 1] },
@@ -73,6 +75,10 @@ const BOTTOM_OPTIONS: { name: string; rgb: [number, number, number] | null }[] =
   { name: "Korall", rgb: [0.9, 0.5, 0.45] },
   { name: "Mörk botten", rgb: [0.08, 0.1, 0.12] },
 ];
+const BACKDROPS: { name: string; url: string | null }[] = [
+  { name: "AV", url: null },
+  { name: "Vänern", url: vanernBackdrop.url },
+];
 const DEFAULTS: Persisted = {
   waveAmp: 1.25,
   timeOfDay: 0.35,
@@ -88,6 +94,7 @@ const DEFAULTS: Persisted = {
   regularWaves: false,
   regularCross: true,
   regularPeriod: 1,
+  backdropIdx: 0,
 };
 function loadSettings(): Persisted {
   if (typeof window === "undefined") return DEFAULTS;
@@ -120,6 +127,7 @@ function Aquafulness() {
   const [regularWaves, setRegularWaves] = useState(initial.regularWaves);
   const [regularCross, setRegularCross] = useState(initial.regularCross);
   const [regularPeriod, setRegularPeriod] = useState(initial.regularPeriod);
+  const [backdropIdx, setBackdropIdx] = useState(initial.backdropIdx);
   // Rotation stick (yaw / pitch look) and wave-follow stick.
   const [rotStick, setRotStick] = useState({ x: 0, y: 0 });
   const [followStick, setFollowStick] = useState({ x: 0, y: 0 });
@@ -129,12 +137,12 @@ function Aquafulness() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, backdropIdx };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, backdropIdx]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -160,6 +168,7 @@ function Aquafulness() {
   const regularRef = useRef(regularWaves);
   const regularCrossRef = useRef(regularCross);
   const regularPeriodRef = useRef(regularPeriod);
+  const backdropRef = useRef(backdropIdx);
   const rotStickRef = useRef({ x: 0, y: 0 });
   const followStickRef = useRef({ x: 0, y: 0 });
   const yawRef = useRef(0);
@@ -180,6 +189,7 @@ function Aquafulness() {
   useEffect(() => { regularRef.current = regularWaves; }, [regularWaves]);
   useEffect(() => { regularCrossRef.current = regularCross; }, [regularCross]);
   useEffect(() => { regularPeriodRef.current = regularPeriod; }, [regularPeriod]);
+  useEffect(() => { backdropRef.current = backdropIdx; }, [backdropIdx]);
 
   const resetToDefaults = () => {
     setWaveAmp(DEFAULTS.waveAmp);
@@ -195,6 +205,7 @@ function Aquafulness() {
     setRegularWaves(DEFAULTS.regularWaves);
     setRegularCross(DEFAULTS.regularCross);
     setRegularPeriod(DEFAULTS.regularPeriod);
+    setBackdropIdx(DEFAULTS.backdropIdx);
     // timeOfDay is intentionally left untouched.
   };
 
@@ -257,7 +268,7 @@ function Aquafulness() {
     const mount = mountRef.current;
     if (!mount) return;
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(mount.clientWidth, mount.clientHeight);
     renderer.setClearColor(0x032033, 1);
@@ -666,6 +677,12 @@ function Aquafulness() {
 
       sky.position.copy(camera.position);
 
+      // Optional backdrop: hide sky dome & clear alpha so a DOM image
+      // shows through behind the WebGL scene.
+      const useBackdrop = backdropRef.current > 0;
+      sky.visible = !useBackdrop;
+      renderer.setClearColor(0x032033, useBackdrop ? 0 : 1);
+
       renderer.render(scene, camera);
       raf = requestAnimationFrame(animate);
       clock.getDelta();
@@ -701,6 +718,14 @@ function Aquafulness() {
 
   return (
     <main className="relative h-screen w-screen overflow-hidden bg-black">
+      {BACKDROPS[backdropIdx]?.url && (
+        <img
+          src={BACKDROPS[backdropIdx].url!}
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+        />
+      )}
       <div ref={mountRef} className="absolute inset-0" />
 
       {/* Settings toggle replaces the title */}
@@ -818,6 +843,12 @@ function Aquafulness() {
                 value={`${regularPeriod.toFixed(2)}x`}
                 onDec={() => setRegularPeriod((v) => Math.max(0.3, +(v - 0.1).toFixed(2)))}
                 onInc={() => setRegularPeriod((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
+              />
+              <PadDial
+                label="BAKGRUND"
+                value={BACKDROPS[backdropIdx].name}
+                onDec={() => setBackdropIdx((i) => (i - 1 + BACKDROPS.length) % BACKDROPS.length)}
+                onInc={() => setBackdropIdx((i) => (i + 1) % BACKDROPS.length)}
               />
             </div>
           </div>
