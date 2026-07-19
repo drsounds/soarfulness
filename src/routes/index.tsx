@@ -43,7 +43,25 @@ type Persisted = {
   heightOffset: number;
   audioOn: boolean;
   audioVol: number;
+  waterTintIdx: number;
+  bottomIdx: number;
 };
+const WATER_TINTS: { name: string; rgb: [number, number, number] }[] = [
+  { name: "Nordhav", rgb: [1, 1, 1] },
+  { name: "Tropisk", rgb: [0.55, 1.15, 1.25] },
+  { name: "Karibisk", rgb: [0.6, 1.35, 1.1] },
+  { name: "Medelhav", rgb: [0.8, 1.15, 1.3] },
+  { name: "Skärgård", rgb: [0.85, 1.0, 0.75] },
+  { name: "Djuphav", rgb: [0.55, 0.7, 1.15] },
+];
+const BOTTOM_OPTIONS: { name: string; rgb: [number, number, number] | null }[] = [
+  { name: "AV", rgb: null },
+  { name: "Sand", rgb: [0.85, 0.75, 0.5] },
+  { name: "Ljus sand", rgb: [0.95, 0.9, 0.72] },
+  { name: "Sten", rgb: [0.35, 0.32, 0.28] },
+  { name: "Korall", rgb: [0.9, 0.5, 0.45] },
+  { name: "Mörk botten", rgb: [0.08, 0.1, 0.12] },
+];
 const DEFAULTS: Persisted = {
   waveAmp: 0.6,
   timeOfDay: 0.35,
@@ -53,6 +71,8 @@ const DEFAULTS: Persisted = {
   heightOffset: 1.2,
   audioOn: false,
   audioVol: 0.6,
+  waterTintIdx: 0,
+  bottomIdx: 0,
 };
 function loadSettings(): Persisted {
   if (typeof window === "undefined") return DEFAULTS;
