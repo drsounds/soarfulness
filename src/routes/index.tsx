@@ -564,6 +564,13 @@ function Aquafulness() {
       const lookY = waveHeight(camX, lookZ, t, amp) + 0.4;
       camera.lookAt(camX, lookY, lookZ);
 
+      // Optional forward-leaning rotation: pitch into the direction of travel.
+      // Default is a fixed forward horizon (no lean).
+      if (leanRef.current) {
+        const leanPitch = stickRef.current.y * 0.12;
+        camera.rotateX(leanPitch);
+      }
+
       // Sync audio intensity with depth below surface.
       const depth = surfaceY - camYRef.current; // positive when underwater
       const a = audioRef.current;
