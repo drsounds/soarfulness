@@ -32,18 +32,63 @@ function waveHeight(x: number, z: number, t: number, amp: number) {
   return (w1 + w2 + w3 + w4) * amp;
 }
 
+const STORAGE_KEY = "aquafulness:settings:v1";
+type Persisted = {
+  waveAmp: number;
+  timeOfDay: number;
+  waveSpeed: number;
+  bobSpeed: number;
+  buoyAmp: number;
+  heightOffset: number;
+  audioOn: boolean;
+  audioVol: number;
+};
+const DEFAULTS: Persisted = {
+  waveAmp: 0.6,
+  timeOfDay: 0.35,
+  waveSpeed: 1,
+  bobSpeed: 1,
+  buoyAmp: 1,
+  heightOffset: 1.2,
+  audioOn: false,
+  audioVol: 0.6,
+};
+function loadSettings(): Persisted {
+  if (typeof window === "undefined") return DEFAULTS;
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return DEFAULTS;
+    const parsed = JSON.parse(raw);
+    return { ...DEFAULTS, ...parsed };
+  } catch {
+    return DEFAULTS;
+  }
+}
+
 function Aquafulness() {
   const mountRef = useRef<HTMLDivElement>(null);
-  const [waveAmp, setWaveAmp] = useState(0.6);
-  const [timeOfDay, setTimeOfDay] = useState(0.35);
-  const [waveSpeed, setWaveSpeed] = useState(1);
-  const [bobSpeed, setBobSpeed] = useState(1);
-  const [buoyAmp, setBuoyAmp] = useState(1);
-  const [heightOffset, setHeightOffset] = useState(1.2);
+  const initial = useRef<Persisted>(loadSettings()).current;
+  const [waveAmp, setWaveAmp] = useState(initial.waveAmp);
+  const [timeOfDay, setTimeOfDay] = useState(initial.timeOfDay);
+  const [waveSpeed, setWaveSpeed] = useState(initial.waveSpeed);
+  const [bobSpeed, setBobSpeed] = useState(initial.bobSpeed);
+  const [buoyAmp, setBuoyAmp] = useState(initial.buoyAmp);
+  const [heightOffset, setHeightOffset] = useState(initial.heightOffset);
   // Live joystick vector (visual state) — kept in state so the thumb renders.
   const [stick, setStick] = useState({ x: 0, y: 0 });
-  const [audioOn, setAudioOn] = useState(false);
-  const [audioVol, setAudioVol] = useState(0.6);
+  const [audioOn, setAudioOn] = useState(initial.audioOn);
+  const [audioVol, setAudioVol] = useState(initial.audioVol);
+
+  // Persist settings to localStorage whenever they change (SSR-safe, hydration-safe).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol };
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch {
+      /* quota or privacy mode — ignore */
+    }
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol]);
   const audioRef = useRef<{
     ctx: AudioContext;
     master: GainNode;
