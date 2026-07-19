@@ -92,7 +92,7 @@ const DEFAULTS: Persisted = {
   bottomIdx: 0,
   leanEnabled: false,
   regularWaves: true,
-  regularCross: true,
+  regularCross: false,
   regularPeriod: 1,
   backdropIdx: 0,
 };
