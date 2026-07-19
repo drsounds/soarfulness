@@ -193,7 +193,7 @@ function Aquafulness() {
     );
 
     // Ocean plane
-    const geo = new THREE.PlaneGeometry(600, 600, 220, 220);
+    const geo = new THREE.PlaneGeometry(600, 600, 320, 320);
     geo.rotateX(-Math.PI / 2);
 
     const uniforms = {
