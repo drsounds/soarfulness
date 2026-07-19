@@ -813,6 +813,12 @@ function Aquafulness() {
                 onDec={() => setRegularCross(false)}
                 onInc={() => setRegularCross(true)}
               />
+              <PadDial
+                label="VÅGPERIOD"
+                value={`${regularPeriod.toFixed(2)}x`}
+                onDec={() => setRegularPeriod((v) => Math.max(0.3, +(v - 0.1).toFixed(2)))}
+                onInc={() => setRegularPeriod((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
+              />
             </div>
           </div>
         </div>
