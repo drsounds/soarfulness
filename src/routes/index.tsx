@@ -12,10 +12,10 @@ export const Route = createFileRoute("/")({
         content:
           "A calming WebGL ocean where the camera drifts on the waves. Adjust swell, time of day, and wander across the sea.",
       },
-      { property: "og:title", content: "Aquafulness" },
+      { property: "og:title", content: "Aquafulness — Ocean Wave Meditation" },
       {
         property: "og:description",
-        content: "A calming WebGL ocean where the camera rides the swell.",
+        content: "A calming WebGL ocean where the camera drifts on the waves. Adjust swell, time of day, and wander across the sea.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

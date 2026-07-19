@@ -77,14 +77,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "Aquafulness — Ocean Wave Meditation" },
+      { name: "description", content: "A calming WebGL ocean where the camera drifts on the waves. Adjust swell, time of day, and wander across the sea." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "Aquafulness — Ocean Wave Meditation" },
+      { property: "og:description", content: "A calming WebGL ocean where the camera drifts on the waves. Adjust swell, time of day, and wander across the sea." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Aquafulness — Ocean Wave Meditation" },
+      { name: "twitter:description", content: "A calming WebGL ocean where the camera drifts on the waves. Adjust swell, time of day, and wander across the sea." },
     ],
     links: [
       {
