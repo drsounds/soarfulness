@@ -52,6 +52,8 @@ function Aquafulness() {
   const heightRef = useRef(heightOffset);
   const stickRef = useRef({ x: 0, y: 0 });
   const posRef = useRef({ x: 0, z: 0 });
+  const camYRef = useRef<number | null>(null);
+  const camVYRef = useRef(0);
   useEffect(() => { ampRef.current = waveAmp; }, [waveAmp]);
   useEffect(() => { todRef.current = timeOfDay; }, [timeOfDay]);
   useEffect(() => { speedRef.current = waveSpeed; }, [waveSpeed]);
@@ -315,17 +317,22 @@ function Aquafulness() {
       const camX = posRef.current.x;
       const camZ = posRef.current.z;
       const surfaceY = waveHeight(camX, camZ, t, ampRef.current);
-      // Buoyancy — extra bobbing/float on top of the wave surface.
-      // Faster, multi-frequency motion. Scaled by user-controlled buoyAmp.
+      // Wave-synced buoyancy: camera is a damped spring pulled toward the
+      // surface with gravity. Rising crests outrun the camera so it dips
+      // below the surface ("pushed up through"); in the trough gravity
+      // makes it fall past equilibrium and bounce back — like a real float.
       const amp = ampRef.current;
       const b = buoyRef.current;
-      const bt = t * bobSpeedRef.current; // buoyancy tempo independent of wave speed
-      const buoyBob =
-        (Math.sin(bt * 2.6) * 0.55 * (0.5 + amp) +
-          Math.sin(bt * 1.3 + 1.7) * 0.35 * (0.4 + amp) +
-          Math.sin(bt * 4.1 + 0.6) * 0.14) * b;
-      const eye = heightRef.current + buoyBob;
-      camera.position.set(camX, surfaceY + eye, camZ);
+      const targetY = surfaceY + heightRef.current;
+      if (camYRef.current === null) camYRef.current = targetY;
+      const k = 4 + 14 * bobSpeedRef.current; // stiffness (spring tempo)
+      const zeta = 0.32; // underdamped → visible bounce
+      const c = 2 * zeta * Math.sqrt(k);
+      const gravity = 1.6 * b * (0.6 + amp * 0.5); // pulls camera below crest
+      const ay = k * (targetY - camYRef.current) - c * camVYRef.current - gravity;
+      camVYRef.current += ay * dt;
+      camYRef.current += camVYRef.current * dt;
+      camera.position.set(camX, camYRef.current, camZ);
       const lookZ = camZ - 20;
       const lookY = waveHeight(camX, lookZ, t, amp) + 0.4;
       camera.lookAt(camX, lookY, lookZ);
