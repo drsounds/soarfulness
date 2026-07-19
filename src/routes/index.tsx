@@ -767,7 +767,13 @@ function Aquafulness() {
             <div className="flex flex-wrap justify-center gap-2">
               <PadDial
                 label="VÅG"
+                mode="number"
                 value={`${waveAmp.toFixed(2)}m`}
+                rawValue={waveAmp}
+                onSet={setWaveAmp}
+                min={0}
+                max={2}
+                step={0.05}
                 onDec={() => setWaveAmp((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
                 onInc={() => setWaveAmp((v) => Math.min(2, +(v + 0.05).toFixed(2)))}
               />
@@ -779,25 +785,49 @@ function Aquafulness() {
               />
               <PadDial
                 label="TEMPO"
+                mode="number"
                 value={`${waveSpeed.toFixed(2)}×`}
+                rawValue={waveSpeed}
+                onSet={setWaveSpeed}
+                min={0}
+                max={3}
+                step={0.1}
                 onDec={() => setWaveSpeed((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
                 onInc={() => setWaveSpeed((v) => Math.min(3, +(v + 0.1).toFixed(2)))}
               />
               <PadDial
                 label="HÖJD"
+                mode="number"
                 value={`${heightOffset >= 0 ? "+" : ""}${heightOffset.toFixed(2)}m`}
+                rawValue={heightOffset}
+                onSet={setHeightOffset}
+                min={-5}
+                max={5}
+                step={0.2}
                 onDec={() => setHeightOffset((v) => Math.max(-5, +(v - 0.2).toFixed(2)))}
                 onInc={() => setHeightOffset((v) => Math.min(5, +(v + 0.2).toFixed(2)))}
               />
               <PadDial
                 label="GUPP"
+                mode="number"
                 value={`${buoyAmp.toFixed(2)}×`}
+                rawValue={buoyAmp}
+                onSet={setBuoyAmp}
+                min={0}
+                max={4}
+                step={0.1}
                 onDec={() => setBuoyAmp((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
                 onInc={() => setBuoyAmp((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
               />
               <PadDial
                 label="GUPP TEMPO"
+                mode="number"
                 value={`${bobSpeed.toFixed(2)}×`}
+                rawValue={bobSpeed}
+                onSet={setBobSpeed}
+                min={0}
+                max={5}
+                step={0.1}
                 onDec={() => setBobSpeed((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
                 onInc={() => setBobSpeed((v) => Math.min(5, +(v + 0.1).toFixed(2)))}
               />
@@ -849,7 +879,13 @@ function Aquafulness() {
               />
               <PadDial
                 label="VÅGPERIOD"
+                mode="number"
                 value={`${regularPeriod.toFixed(2)}x`}
+                rawValue={regularPeriod}
+                onSet={setRegularPeriod}
+                min={0.3}
+                max={4}
+                step={0.1}
                 onDec={() => setRegularPeriod((v) => Math.max(0.3, +(v - 0.1).toFixed(2)))}
                 onInc={() => setRegularPeriod((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
               />
