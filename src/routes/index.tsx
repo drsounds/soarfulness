@@ -35,15 +35,17 @@ function waveHeight(x: number, z: number, t: number, amp: number) {
 function Aquafulness() {
   const mountRef = useRef<HTMLDivElement>(null);
   const [waveAmp, setWaveAmp] = useState(0.6);
-  const [timeOfDay, setTimeOfDay] = useState(0.35); // 0 night -> 0.5 noon -> 1 night
-  const [position, setPosition] = useState(0); // walking forward/back
+  const [timeOfDay, setTimeOfDay] = useState(0.35);
   const [waveSpeed, setWaveSpeed] = useState(1);
+  // Live joystick vector (visual state) — kept in state so the thumb renders.
+  const [stick, setStick] = useState({ x: 0, y: 0 });
 
-  // refs for live values in RAF
+  // Live values consumed inside the RAF loop.
   const ampRef = useRef(waveAmp);
   const todRef = useRef(timeOfDay);
-  const posRef = useRef(position);
   const speedRef = useRef(waveSpeed);
+  const stickRef = useRef({ x: 0, y: 0 });
+  const posRef = useRef({ x: 0, z: 0 });
   useEffect(() => {
     ampRef.current = waveAmp;
   }, [waveAmp]);
@@ -54,8 +56,8 @@ function Aquafulness() {
     speedRef.current = waveSpeed;
   }, [waveSpeed]);
   useEffect(() => {
-    posRef.current = position;
-  }, [position]);
+    stickRef.current = stick;
+  }, [stick]);
 
   useEffect(() => {
     const mount = mountRef.current;
