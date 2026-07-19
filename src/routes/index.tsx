@@ -37,6 +37,7 @@ function Aquafulness() {
   const [waveAmp, setWaveAmp] = useState(0.6);
   const [timeOfDay, setTimeOfDay] = useState(0.35);
   const [waveSpeed, setWaveSpeed] = useState(1);
+  const [bobSpeed, setBobSpeed] = useState(1);
   const [buoyAmp, setBuoyAmp] = useState(1);
   const [heightOffset, setHeightOffset] = useState(1.2);
   // Live joystick vector (visual state) — kept in state so the thumb renders.
@@ -46,6 +47,7 @@ function Aquafulness() {
   const ampRef = useRef(waveAmp);
   const todRef = useRef(timeOfDay);
   const speedRef = useRef(waveSpeed);
+  const bobSpeedRef = useRef(bobSpeed);
   const buoyRef = useRef(buoyAmp);
   const heightRef = useRef(heightOffset);
   const stickRef = useRef({ x: 0, y: 0 });
@@ -53,6 +55,7 @@ function Aquafulness() {
   useEffect(() => { ampRef.current = waveAmp; }, [waveAmp]);
   useEffect(() => { todRef.current = timeOfDay; }, [timeOfDay]);
   useEffect(() => { speedRef.current = waveSpeed; }, [waveSpeed]);
+  useEffect(() => { bobSpeedRef.current = bobSpeed; }, [bobSpeed]);
   useEffect(() => { buoyRef.current = buoyAmp; }, [buoyAmp]);
   useEffect(() => { heightRef.current = heightOffset; }, [heightOffset]);
   useEffect(() => { stickRef.current = stick; }, [stick]);
@@ -316,7 +319,7 @@ function Aquafulness() {
       // Faster, multi-frequency motion. Scaled by user-controlled buoyAmp.
       const amp = ampRef.current;
       const b = buoyRef.current;
-      const bt = t * speedRef.current; // buoyancy tempo tracks wave speed
+      const bt = t * bobSpeedRef.current; // buoyancy tempo independent of wave speed
       const buoyBob =
         (Math.sin(bt * 2.6) * 0.55 * (0.5 + amp) +
           Math.sin(bt * 1.3 + 1.7) * 0.35 * (0.4 + amp) +
@@ -403,6 +406,12 @@ function Aquafulness() {
             value={`${buoyAmp.toFixed(2)}×`}
             onDec={() => setBuoyAmp((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
             onInc={() => setBuoyAmp((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
+          />
+          <PadDial
+            label="GUPP TEMPO"
+            value={`${bobSpeed.toFixed(2)}×`}
+            onDec={() => setBobSpeed((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
+            onInc={() => setBobSpeed((v) => Math.min(5, +(v + 0.1).toFixed(2)))}
           />
         </div>
       </div>
