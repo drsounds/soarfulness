@@ -101,6 +101,7 @@ function Aquafulness() {
   const [audioVol, setAudioVol] = useState(initial.audioVol);
   const [waterTintIdx, setWaterTintIdx] = useState(initial.waterTintIdx);
   const [bottomIdx, setBottomIdx] = useState(initial.bottomIdx);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Persist settings to localStorage whenever they change (SSR-safe, hydration-safe).
   useEffect(() => {
