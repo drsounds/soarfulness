@@ -50,6 +50,7 @@ type Persisted = {
   waterTintIdx: number;
   bottomIdx: number;
   leanEnabled: boolean;
+  regularWaves: boolean;
 };
 const WATER_TINTS: { name: string; rgb: [number, number, number] }[] = [
   { name: "Nordhav", rgb: [1, 1, 1] },
