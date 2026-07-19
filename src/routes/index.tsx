@@ -299,29 +299,50 @@ function Aquafulness() {
         vec3 V = normalize(cameraPosition - vWorldPos);
         vec3 L = normalize(uSunDir);
 
-        // Fresnel
-        float fres = pow(1.0 - max(dot(N, V), 0.0), 4.0);
+        float NdotV = clamp(dot(N, V), 0.0, 1.0);
 
-        // Sky reflection color (mix horizon/sky by view angle)
-        float upDot = clamp(V.y, 0.0, 1.0);
-        vec3 skyRef = mix(uHorizonColor, uSkyColor, upDot);
+        // Schlick Fresnel with water's real F0 (~0.02) — grazing angles push
+        // reflectance to 1.0 for natural rim shimmer, straight-down stays dim.
+        float F0 = 0.02;
+        float fres = F0 + (1.0 - F0) * pow(1.0 - NdotV, 5.0);
 
-        // Water base — deeper where facing up (less fresnel), tinted by user hue
+        // Micro-shimmer: high-frequency normal perturbation for scale-fine
+        // sparkle that only shows up near the Fresnel rim / sun highlight.
+        float shim = sin(vWorldPos.x * 3.7 + vWorldPos.z * 4.3) *
+                     sin(vWorldPos.x * 5.1 - vWorldPos.z * 6.2);
+        vec3 Nshim = normalize(N + vec3(shim * 0.06, 0.0, shim * 0.05));
+
+        // Sky reflection — sample along the reflection vector so different
+        // camera angles pick different sky bands (horizon vs zenith).
+        vec3 R = reflect(-V, Nshim);
+        float rUp = clamp(R.y, 0.0, 1.0);
+        vec3 skyRef = mix(uHorizonColor, uSkyColor, pow(rUp, 0.65));
+
+        // Refraction tint — view-dependent transmitted color. Straight down
+        // we see into the deep hue; at grazing angles the shallow tint takes
+        // over just before Fresnel flips everything to reflection.
         vec3 deepT = uWaterDeep * uWaterTint;
         vec3 shalT = uWaterShallow * uWaterTint;
-        vec3 water = mix(deepT, shalT, 0.4 + 0.6 * max(N.y, 0.0));
+        float refrMix = mix(0.15, 0.85, pow(1.0 - NdotV, 1.6));
+        vec3 water = mix(deepT, shalT, refrMix);
 
         // Subsurface scattering — light bleeding through wave crests
         float height = clamp((vWorldPos.y + 1.0) / 3.0, 0.0, 1.0);
         vec3 sss = uSunColor * pow(height, 2.0) * 0.35 * clamp(uSunDir.y + 0.2, 0.0, 1.0);
         water += sss * uWaterTint;
 
-        // Specular sun glint — dampened when submerged
+        // Specular sun glint — Blinn-Phong with shimmer-perturbed normal so
+        // sparkle scatters realistically. Sharpen when sun is low (long glitter
+        // path across the surface), soften at noon.
         vec3 H = normalize(L + V);
-        float spec = pow(max(dot(N, H), 0.0), 90.0);
-        vec3 sun = uSunColor * spec * clamp(uSunDir.y + 0.2, 0.0, 1.0) * 2.5 * (1.0 - uUnderwater);
+        float sunElev = clamp(uSunDir.y, 0.0, 1.0);
+        float shin = mix(220.0, 80.0, sunElev);
+        float spec = pow(max(dot(Nshim, H), 0.0), shin);
+        float grazeBoost = 1.0 + (1.0 - NdotV) * 1.5;
+        vec3 sun = uSunColor * spec * clamp(uSunDir.y + 0.2, 0.0, 1.0)
+                   * 2.8 * grazeBoost * (1.0 - uUnderwater);
 
-        vec3 col = mix(water, skyRef, fres * (1.0 - uUnderwater * 0.8)) + sun;
+        vec3 col = mix(water, skyRef, fres * (1.0 - uUnderwater * 0.85)) + sun;
 
         // Fog to horizon
         float dist = length(cameraPosition - vWorldPos);
