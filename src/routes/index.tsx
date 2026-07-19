@@ -353,6 +353,19 @@ function Aquafulness() {
     const ocean = new THREE.Mesh(geo, mat);
     scene.add(ocean);
 
+    // Optional seafloor beneath the ocean plane.
+    const floorGeo = new THREE.PlaneGeometry(600, 600);
+    floorGeo.rotateX(-Math.PI / 2);
+    const floorMat = new THREE.MeshBasicMaterial({
+      color: 0xd8c078,
+      fog: true,
+      side: THREE.DoubleSide,
+    });
+    const floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.position.y = -14;
+    floor.visible = false;
+    scene.add(floor);
+
     // Sky dome
     const skyGeo = new THREE.SphereGeometry(800, 32, 32);
     const skyUniforms = {
