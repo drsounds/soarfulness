@@ -42,6 +42,15 @@ function Aquafulness() {
   const [heightOffset, setHeightOffset] = useState(1.2);
   // Live joystick vector (visual state) — kept in state so the thumb renders.
   const [stick, setStick] = useState({ x: 0, y: 0 });
+  const [audioOn, setAudioOn] = useState(false);
+  const [audioVol, setAudioVol] = useState(0.6);
+  const audioRef = useRef<{
+    ctx: AudioContext;
+    master: GainNode;
+    lfo: OscillatorNode;
+    lfoGain: GainNode;
+    swellGain: GainNode;
+  } | null>(null);
 
   // Live values consumed inside the RAF loop.
   const ampRef = useRef(waveAmp);
