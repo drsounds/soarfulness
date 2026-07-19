@@ -52,6 +52,8 @@ function Aquafulness() {
   const heightRef = useRef(heightOffset);
   const stickRef = useRef({ x: 0, y: 0 });
   const posRef = useRef({ x: 0, z: 0 });
+  const camYRef = useRef<number | null>(null);
+  const camVYRef = useRef(0);
   useEffect(() => { ampRef.current = waveAmp; }, [waveAmp]);
   useEffect(() => { todRef.current = timeOfDay; }, [timeOfDay]);
   useEffect(() => { speedRef.current = waveSpeed; }, [waveSpeed]);
