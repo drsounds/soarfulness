@@ -83,6 +83,7 @@ const DEFAULTS: Persisted = {
   bottomIdx: 2,
   leanEnabled: false,
   regularWaves: false,
+  regularCross: true,
 };
 function loadSettings(): Persisted {
   if (typeof window === "undefined") return DEFAULTS;
