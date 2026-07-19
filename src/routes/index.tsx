@@ -132,15 +132,19 @@ function Aquafulness() {
     const master = ctx.createGain();
     master.gain.value = 0;
 
+    // depth gain: multiplied by master, boosted when camera is below surface
+    const depthGain = ctx.createGain();
+    depthGain.gain.value = 1;
+
     noise.connect(hp).connect(lp).connect(swellGain).connect(master);
     noise.connect(foamHP).connect(foamGain).connect(master);
-    master.connect(ctx.destination);
+    master.connect(depthGain).connect(ctx.destination);
 
     noise.start();
     lfo.start();
     master.gain.setTargetAtTime(audioVol, ctx.currentTime, 0.6);
 
-    audioRef.current = { ctx, master, lfo, lfoGain, swellGain };
+    audioRef.current = { ctx, master, depthGain, lfo, lfoGain, swellGain, foamGain, lp };
     return () => {
       // cleanup handled by toggle-off branch
     };
