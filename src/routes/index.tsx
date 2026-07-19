@@ -99,17 +99,19 @@ function Aquafulness() {
   const [stick, setStick] = useState({ x: 0, y: 0 });
   const [audioOn, setAudioOn] = useState(initial.audioOn);
   const [audioVol, setAudioVol] = useState(initial.audioVol);
+  const [waterTintIdx, setWaterTintIdx] = useState(initial.waterTintIdx);
+  const [bottomIdx, setBottomIdx] = useState(initial.bottomIdx);
 
   // Persist settings to localStorage whenever they change (SSR-safe, hydration-safe).
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, waterTintIdx, bottomIdx };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, waterTintIdx, bottomIdx]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -129,6 +131,8 @@ function Aquafulness() {
   const posRef = useRef({ x: 0, z: 0 });
   const camYRef = useRef<number | null>(null);
   const camVYRef = useRef(0);
+  const waterTintRef = useRef(waterTintIdx);
+  const bottomIdxRef = useRef(bottomIdx);
   useEffect(() => { ampRef.current = waveAmp; }, [waveAmp]);
   useEffect(() => { todRef.current = timeOfDay; }, [timeOfDay]);
   useEffect(() => { speedRef.current = waveSpeed; }, [waveSpeed]);
@@ -136,6 +140,8 @@ function Aquafulness() {
   useEffect(() => { buoyRef.current = buoyAmp; }, [buoyAmp]);
   useEffect(() => { heightRef.current = heightOffset; }, [heightOffset]);
   useEffect(() => { stickRef.current = stick; }, [stick]);
+  useEffect(() => { waterTintRef.current = waterTintIdx; }, [waterTintIdx]);
+  useEffect(() => { bottomIdxRef.current = bottomIdx; }, [bottomIdx]);
 
   // Ocean sound: loop the recorded water track through a lowpass + depth gain
   // so we can still muffle & boost it based on how deep the camera is.
