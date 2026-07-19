@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import * as THREE from "three";
+import waterAsset from "@/assets/water.mp3.asset.json";
 
 export const Route = createFileRoute("/")({
   component: Aquafulness,
@@ -91,12 +92,9 @@ function Aquafulness() {
   }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol]);
   const audioRef = useRef<{
     ctx: AudioContext;
+    el: HTMLAudioElement;
     master: GainNode;
     depthGain: GainNode;
-    lfo: OscillatorNode;
-    lfoGain: GainNode;
-    swellGain: GainNode;
-    foamGain: GainNode;
     lp: BiquadFilterNode;
   } | null>(null);
 
@@ -119,95 +117,59 @@ function Aquafulness() {
   useEffect(() => { heightRef.current = heightOffset; }, [heightOffset]);
   useEffect(() => { stickRef.current = stick; }, [stick]);
 
-  // Ocean sound synthesis — filtered brown-ish noise + slow swell LFO
+  // Ocean sound: loop the recorded water track through a lowpass + depth gain
+  // so we can still muffle & boost it based on how deep the camera is.
   useEffect(() => {
     if (!audioOn) {
       if (audioRef.current) {
         const a = audioRef.current;
         a.master.gain.cancelScheduledValues(a.ctx.currentTime);
         a.master.gain.setTargetAtTime(0, a.ctx.currentTime, 0.4);
-        setTimeout(() => { a.ctx.close(); }, 600);
+        const dying = a;
+        setTimeout(() => {
+          try { dying.el.pause(); } catch { /* noop */ }
+          try { dying.ctx.close(); } catch { /* noop */ }
+        }, 600);
         audioRef.current = null;
       }
       return;
     }
     const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     const ctx = new Ctx();
-    // brown-ish noise buffer
-    const bufSize = 2 * ctx.sampleRate;
-    const buffer = ctx.createBuffer(1, bufSize, ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    let last = 0;
-    for (let i = 0; i < bufSize; i++) {
-      const white = Math.random() * 2 - 1;
-      last = (last + 0.02 * white) / 1.02;
-      data[i] = last * 3.5;
-    }
-    const noise = ctx.createBufferSource();
-    noise.buffer = buffer;
-    noise.loop = true;
 
-    // low shelf / hiss layer via two filters
+    const el = new Audio(waterAsset.url);
+    el.loop = true;
+    el.crossOrigin = "anonymous";
+    el.preload = "auto";
+
+    const src = ctx.createMediaElementSource(el);
+
     const lp = ctx.createBiquadFilter();
     lp.type = "lowpass";
-    lp.frequency.value = 900;
+    lp.frequency.value = 18000;
     lp.Q.value = 0.6;
-
-    const hp = ctx.createBiquadFilter();
-    hp.type = "highpass";
-    hp.frequency.value = 120;
-
-    // swell gain modulated by LFO for wave-like whoosh
-    const swellGain = ctx.createGain();
-    swellGain.gain.value = 0.5;
-
-    const lfo = ctx.createOscillator();
-    lfo.frequency.value = 0.25;
-    const lfoGain = ctx.createGain();
-    lfoGain.gain.value = 0.35;
-    lfo.connect(lfoGain).connect(swellGain.gain);
-
-    // subtle high hiss (foam) layer
-    const foamHP = ctx.createBiquadFilter();
-    foamHP.type = "highpass";
-    foamHP.frequency.value = 2400;
-    const foamGain = ctx.createGain();
-    foamGain.gain.value = 0.08;
 
     const master = ctx.createGain();
     master.gain.value = 0;
 
-    // depth gain: multiplied by master, boosted when camera is below surface
     const depthGain = ctx.createGain();
     depthGain.gain.value = 1;
 
-    noise.connect(hp).connect(lp).connect(swellGain).connect(master);
-    noise.connect(foamHP).connect(foamGain).connect(master);
-    master.connect(depthGain).connect(ctx.destination);
+    src.connect(lp).connect(master).connect(depthGain).connect(ctx.destination);
 
-    noise.start();
-    lfo.start();
+    el.play().catch(() => { /* user gesture required — will retry on next toggle */ });
     master.gain.setTargetAtTime(audioVol, ctx.currentTime, 0.6);
 
-    audioRef.current = { ctx, master, depthGain, lfo, lfoGain, swellGain, foamGain, lp };
-    return () => {
-      // cleanup handled by toggle-off branch
-    };
+    audioRef.current = { ctx, el, master, depthGain, lp };
   }, [audioOn]);
 
-  // React to volume + wave params
+  // React to volume changes
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
     a.master.gain.setTargetAtTime(audioVol, a.ctx.currentTime, 0.2);
   }, [audioVol]);
-  useEffect(() => {
-    const a = audioRef.current;
-    if (!a) return;
-    // sync swell tempo with wave speed, depth with amplitude
-    a.lfo.frequency.setTargetAtTime(0.15 + 0.4 * waveSpeed, a.ctx.currentTime, 0.3);
-    a.lfoGain.gain.setTargetAtTime(0.15 + 0.5 * Math.min(waveAmp, 2), a.ctx.currentTime, 0.3);
-  }, [waveSpeed, waveAmp]);
+
 
 
   useEffect(() => {
@@ -493,11 +455,9 @@ function Aquafulness() {
         // deeper -> louder (up to ~2.5x), faster ramp
         const depthMult = depth > 0 ? Math.min(1 + 0.35 * depth, 2.5) : 1;
         a.depthGain.gain.setTargetAtTime(depthMult, now, 0.12);
-        // deeper -> more muffled (lowpass closes), foam hiss fades
-        const lpFreq = depth > 0 ? Math.max(900 - 220 * depth, 260) : 900;
+        // deeper -> more muffled (lowpass closes)
+        const lpFreq = depth > 0 ? Math.max(18000 - 4000 * depth, 500) : 18000;
         a.lp.frequency.setTargetAtTime(lpFreq, now, 0.15);
-        const foamLevel = depth > 0 ? Math.max(0.08 - 0.04 * depth, 0) : 0.08;
-        a.foamGain.gain.setTargetAtTime(foamLevel, now, 0.15);
       }
 
       // Keep horizon level: no extra pitch/roll from buoyancy.
