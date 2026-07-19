@@ -37,6 +37,8 @@ function Aquafulness() {
   const [waveAmp, setWaveAmp] = useState(0.6);
   const [timeOfDay, setTimeOfDay] = useState(0.35);
   const [waveSpeed, setWaveSpeed] = useState(1);
+  const [buoyAmp, setBuoyAmp] = useState(1);
+  const [heightOffset, setHeightOffset] = useState(1.2);
   // Live joystick vector (visual state) — kept in state so the thumb renders.
   const [stick, setStick] = useState({ x: 0, y: 0 });
 
@@ -44,20 +46,16 @@ function Aquafulness() {
   const ampRef = useRef(waveAmp);
   const todRef = useRef(timeOfDay);
   const speedRef = useRef(waveSpeed);
+  const buoyRef = useRef(buoyAmp);
+  const heightRef = useRef(heightOffset);
   const stickRef = useRef({ x: 0, y: 0 });
   const posRef = useRef({ x: 0, z: 0 });
-  useEffect(() => {
-    ampRef.current = waveAmp;
-  }, [waveAmp]);
-  useEffect(() => {
-    todRef.current = timeOfDay;
-  }, [timeOfDay]);
-  useEffect(() => {
-    speedRef.current = waveSpeed;
-  }, [waveSpeed]);
-  useEffect(() => {
-    stickRef.current = stick;
-  }, [stick]);
+  useEffect(() => { ampRef.current = waveAmp; }, [waveAmp]);
+  useEffect(() => { todRef.current = timeOfDay; }, [timeOfDay]);
+  useEffect(() => { speedRef.current = waveSpeed; }, [waveSpeed]);
+  useEffect(() => { buoyRef.current = buoyAmp; }, [buoyAmp]);
+  useEffect(() => { heightRef.current = heightOffset; }, [heightOffset]);
+  useEffect(() => { stickRef.current = stick; }, [stick]);
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -183,6 +181,7 @@ function Aquafulness() {
       fragmentShader,
       transparent: true,
       depthWrite: false,
+      side: THREE.DoubleSide,
     });
     const ocean = new THREE.Mesh(geo, mat);
     scene.add(ocean);
@@ -313,15 +312,16 @@ function Aquafulness() {
       const camX = posRef.current.x;
       const camZ = posRef.current.z;
       const surfaceY = waveHeight(camX, camZ, t, ampRef.current);
-      // Buoyancy — extra bobbing/float on top of the wave surface,
-      // like a body being pushed up and pulled back by the water.
+      // Buoyancy — extra bobbing/float on top of the wave surface.
+      // Faster, multi-frequency motion. Scaled by user-controlled buoyAmp.
       const amp = ampRef.current;
-      // Stronger, multi-frequency buoyancy so it clearly feels like floating.
+      const b = buoyRef.current;
+      const bt = t * speedRef.current; // buoyancy tempo tracks wave speed
       const buoyBob =
-        Math.sin(t * 1.1) * 0.55 * (0.5 + amp) +
-        Math.sin(t * 0.47 + 1.7) * 0.35 * (0.4 + amp) +
-        Math.sin(t * 2.3 + 0.6) * 0.12;
-      const eye = 1.2 + buoyBob;
+        (Math.sin(bt * 2.6) * 0.55 * (0.5 + amp) +
+          Math.sin(bt * 1.3 + 1.7) * 0.35 * (0.4 + amp) +
+          Math.sin(bt * 4.1 + 0.6) * 0.14) * b;
+      const eye = heightRef.current + buoyBob;
       camera.position.set(camX, surfaceY + eye, camZ);
       const lookZ = camZ - 20;
       const lookY = waveHeight(camX, lookZ, t, amp) + 0.4;
@@ -399,6 +399,18 @@ function Aquafulness() {
             value={`${waveSpeed.toFixed(2)}×`}
             onDec={() => setWaveSpeed((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
             onInc={() => setWaveSpeed((v) => Math.min(3, +(v + 0.1).toFixed(2)))}
+          />
+          <PadDial
+            label="HÖJD"
+            value={`${heightOffset >= 0 ? "+" : ""}${heightOffset.toFixed(2)}m`}
+            onDec={() => setHeightOffset((v) => Math.max(-5, +(v - 0.2).toFixed(2)))}
+            onInc={() => setHeightOffset((v) => Math.min(5, +(v + 0.2).toFixed(2)))}
+          />
+          <PadDial
+            label="GUPP"
+            value={`${buoyAmp.toFixed(2)}×`}
+            onDec={() => setBuoyAmp((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
+            onInc={() => setBuoyAmp((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
           />
         </div>
       </div>
