@@ -114,6 +114,10 @@ function Aquafulness() {
   const [bottomIdx, setBottomIdx] = useState(initial.bottomIdx);
   const [leanEnabled, setLeanEnabled] = useState(initial.leanEnabled);
   const [regularWaves, setRegularWaves] = useState(initial.regularWaves);
+  const [regularCross, setRegularCross] = useState(initial.regularCross);
+  // Rotation stick (yaw / pitch look) and wave-follow stick.
+  const [rotStick, setRotStick] = useState({ x: 0, y: 0 });
+  const [followStick, setFollowStick] = useState({ x: 0, y: 0 });
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Persist settings to localStorage whenever they change (SSR-safe, hydration-safe).
