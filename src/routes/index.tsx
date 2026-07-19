@@ -91,12 +91,9 @@ function Aquafulness() {
   }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol]);
   const audioRef = useRef<{
     ctx: AudioContext;
+    el: HTMLAudioElement;
     master: GainNode;
     depthGain: GainNode;
-    lfo: OscillatorNode;
-    lfoGain: GainNode;
-    swellGain: GainNode;
-    foamGain: GainNode;
     lp: BiquadFilterNode;
   } | null>(null);
 
