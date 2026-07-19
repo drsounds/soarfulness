@@ -169,6 +169,7 @@ function Aquafulness() {
     setWaterTintIdx(DEFAULTS.waterTintIdx);
     setBottomIdx(DEFAULTS.bottomIdx);
     setLeanEnabled(DEFAULTS.leanEnabled);
+    setRegularWaves(DEFAULTS.regularWaves);
     // timeOfDay is intentionally left untouched.
   };
 
