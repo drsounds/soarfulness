@@ -137,6 +137,7 @@ function Aquafulness() {
   const camVYRef = useRef(0);
   const waterTintRef = useRef(waterTintIdx);
   const bottomIdxRef = useRef(bottomIdx);
+  const leanRef = useRef(leanEnabled);
   useEffect(() => { ampRef.current = waveAmp; }, [waveAmp]);
   useEffect(() => { todRef.current = timeOfDay; }, [timeOfDay]);
   useEffect(() => { speedRef.current = waveSpeed; }, [waveSpeed]);
@@ -146,6 +147,7 @@ function Aquafulness() {
   useEffect(() => { stickRef.current = stick; }, [stick]);
   useEffect(() => { waterTintRef.current = waterTintIdx; }, [waterTintIdx]);
   useEffect(() => { bottomIdxRef.current = bottomIdx; }, [bottomIdx]);
+  useEffect(() => { leanRef.current = leanEnabled; }, [leanEnabled]);
 
   const resetToDefaults = () => {
     setWaveAmp(DEFAULTS.waveAmp);
@@ -157,6 +159,7 @@ function Aquafulness() {
     setAudioVol(DEFAULTS.audioVol);
     setWaterTintIdx(DEFAULTS.waterTintIdx);
     setBottomIdx(DEFAULTS.bottomIdx);
+    setLeanEnabled(DEFAULTS.leanEnabled);
     // timeOfDay is intentionally left untouched.
   };
 
