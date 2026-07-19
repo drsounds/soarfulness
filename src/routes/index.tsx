@@ -25,7 +25,11 @@ export const Route = createFileRoute("/")({
 });
 
 // Gerstner-like sum of sines. Keep in sync with vertex shader.
-function waveHeight(x: number, z: number, t: number, amp: number) {
+function waveHeight(x: number, z: number, t: number, amp: number, regular: boolean) {
+  if (regular) {
+    // Single, regular sine — jämna intervaller, ren våg-form.
+    return Math.sin(x * 0.12 + t * 0.9) * 2.6 * amp;
+  }
   const w1 = Math.sin(x * 0.12 + t * 0.9) * 1.0;
   const w2 = Math.sin(z * 0.17 + t * 0.7 + 1.3) * 0.75;
   const w3 = Math.sin((x * 0.22 + z * 0.19) + t * 1.4 + 2.1) * 0.5;
@@ -46,6 +50,7 @@ type Persisted = {
   waterTintIdx: number;
   bottomIdx: number;
   leanEnabled: boolean;
+  regularWaves: boolean;
 };
 const WATER_TINTS: { name: string; rgb: [number, number, number] }[] = [
   { name: "Nordhav", rgb: [1, 1, 1] },
@@ -75,6 +80,7 @@ const DEFAULTS: Persisted = {
   waterTintIdx: 1,
   bottomIdx: 2,
   leanEnabled: false,
+  regularWaves: false,
 };
 function loadSettings(): Persisted {
   if (typeof window === "undefined") return DEFAULTS;
@@ -104,18 +110,19 @@ function Aquafulness() {
   const [waterTintIdx, setWaterTintIdx] = useState(initial.waterTintIdx);
   const [bottomIdx, setBottomIdx] = useState(initial.bottomIdx);
   const [leanEnabled, setLeanEnabled] = useState(initial.leanEnabled);
+  const [regularWaves, setRegularWaves] = useState(initial.regularWaves);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Persist settings to localStorage whenever they change (SSR-safe, hydration-safe).
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, waterTintIdx, bottomIdx, leanEnabled };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, waterTintIdx, bottomIdx, leanEnabled, regularWaves };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, waterTintIdx, bottomIdx, leanEnabled]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, waterTintIdx, bottomIdx, leanEnabled, regularWaves]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -138,6 +145,7 @@ function Aquafulness() {
   const waterTintRef = useRef(waterTintIdx);
   const bottomIdxRef = useRef(bottomIdx);
   const leanRef = useRef(leanEnabled);
+  const regularRef = useRef(regularWaves);
   useEffect(() => { ampRef.current = waveAmp; }, [waveAmp]);
   useEffect(() => { todRef.current = timeOfDay; }, [timeOfDay]);
   useEffect(() => { speedRef.current = waveSpeed; }, [waveSpeed]);
@@ -148,6 +156,7 @@ function Aquafulness() {
   useEffect(() => { waterTintRef.current = waterTintIdx; }, [waterTintIdx]);
   useEffect(() => { bottomIdxRef.current = bottomIdx; }, [bottomIdx]);
   useEffect(() => { leanRef.current = leanEnabled; }, [leanEnabled]);
+  useEffect(() => { regularRef.current = regularWaves; }, [regularWaves]);
 
   const resetToDefaults = () => {
     setWaveAmp(DEFAULTS.waveAmp);
@@ -160,6 +169,7 @@ function Aquafulness() {
     setWaterTintIdx(DEFAULTS.waterTintIdx);
     setBottomIdx(DEFAULTS.bottomIdx);
     setLeanEnabled(DEFAULTS.leanEnabled);
+    setRegularWaves(DEFAULTS.regularWaves);
     // timeOfDay is intentionally left untouched.
   };
 
@@ -254,16 +264,21 @@ function Aquafulness() {
       uFogColor: { value: new THREE.Color(0x88aacc) },
       uWaterTint: { value: new THREE.Vector3(1, 1, 1) },
       uUnderwater: { value: 0 },
+      uRegular: { value: 0 },
     };
 
     const vertexShader = /* glsl */ `
       uniform float uTime;
       uniform float uAmp;
+      uniform float uRegular;
       varying vec3 vWorldPos;
       varying vec3 vNormal;
 
       float wave(vec3 p, float t, float amp) {
-        // Large primary swell
+        // Regular sine — jämn, periodisk vågform längs x-axeln.
+        float reg = sin(p.x * 0.12 + t * 0.9) * 2.6 * amp;
+
+        // Large primary swell (chaotic sum of sines)
         float w1 = sin(p.x * 0.12 + t * 0.9) * 1.0;
         float w2 = sin(p.z * 0.17 + t * 0.7 + 1.3) * 0.75;
         float w3 = sin((p.x * 0.22 + p.z * 0.19) + t * 1.4 + 2.1) * 0.5;
@@ -276,9 +291,9 @@ function Aquafulness() {
         float r2 = sin(p.x * 0.55 - p.z * 0.95 + t * 3.1 + 1.7) * 0.05;
         float r3 = sin((p.x * 1.35 + p.z * 1.15) + t * 3.8 + 0.6) * 0.035;
         float r4 = sin((p.x * 1.9 - p.z * 1.6) + t * 4.7 + 2.3) * 0.022;
-        float ripples = r1 + r2 + r3 + r4;
+        float ripples = (r1 + r2 + r3 + r4) * (1.0 - uRegular);
 
-        return big + ripples;
+        return mix(big + ripples, reg, uRegular);
       }
 
       void main() {
@@ -507,6 +522,7 @@ function Aquafulness() {
       const t = waveT;
       uniforms.uTime.value = t;
       uniforms.uAmp.value = ampRef.current;
+      uniforms.uRegular.value += ((regularRef.current ? 1 : 0) - uniforms.uRegular.value) * Math.min(1, dt * 4);
 
       const p = palette(todRef.current);
       uniforms.uSunDir.value.copy(p.sunDir);
@@ -543,7 +559,7 @@ function Aquafulness() {
 
       const camX = posRef.current.x;
       const camZ = posRef.current.z;
-      const surfaceY = waveHeight(camX, camZ, t, ampRef.current);
+      const surfaceY = waveHeight(camX, camZ, t, ampRef.current, regularRef.current);
       // Wave-synced buoyancy: camera is a damped spring pulled toward the
       // surface with gravity. Rising crests outrun the camera so it dips
       // below the surface ("pushed up through"); in the trough gravity
@@ -561,7 +577,7 @@ function Aquafulness() {
       camYRef.current += camVYRef.current * dt;
       camera.position.set(camX, camYRef.current, camZ);
       const lookZ = camZ - 20;
-      const lookY = waveHeight(camX, lookZ, t, amp) + 0.4;
+      const lookY = waveHeight(camX, lookZ, t, amp, regularRef.current) + 0.4;
       camera.lookAt(camX, lookY, lookZ);
 
       // Optional forward-leaning rotation: pitch into the direction of travel.
@@ -726,6 +742,12 @@ function Aquafulness() {
                 value={leanEnabled ? "FRAMÅTLUT" : "FIXERAD"}
                 onDec={() => setLeanEnabled(false)}
                 onInc={() => setLeanEnabled(true)}
+              />
+              <PadDial
+                label="VÅGFORM"
+                value={regularWaves ? "REGELBUNDEN" : "SPRIDD"}
+                onDec={() => setRegularWaves(false)}
+                onInc={() => setRegularWaves(true)}
               />
             </div>
           </div>
