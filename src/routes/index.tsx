@@ -621,6 +621,14 @@ function Aquafulness() {
           <span className="text-[10px] font-light tracking-[0.4em] text-white/60">
             AQUAFULNESS
           </span>
+          <button
+            onClick={resetToDefaults}
+            className="pointer-events-auto rounded-full border border-white/20 bg-black/40 px-3 py-1 text-[9px] font-light tracking-wider text-white/80 backdrop-blur-md transition active:scale-95 active:bg-white/15"
+            aria-label="Återställ reglage till standardvärden"
+            title="Återställ reglage (tid på dygnet påverkas inte)"
+          >
+            ÅTERSTÄLL
+          </button>
         </div>
         <div className="pointer-events-auto flex flex-wrap justify-center gap-2">
           <PadDial
