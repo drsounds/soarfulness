@@ -143,6 +143,19 @@ function Aquafulness() {
   useEffect(() => { waterTintRef.current = waterTintIdx; }, [waterTintIdx]);
   useEffect(() => { bottomIdxRef.current = bottomIdx; }, [bottomIdx]);
 
+  const resetToDefaults = () => {
+    setWaveAmp(DEFAULTS.waveAmp);
+    setWaveSpeed(DEFAULTS.waveSpeed);
+    setBobSpeed(DEFAULTS.bobSpeed);
+    setBuoyAmp(DEFAULTS.buoyAmp);
+    setHeightOffset(DEFAULTS.heightOffset);
+    setAudioOn(DEFAULTS.audioOn);
+    setAudioVol(DEFAULTS.audioVol);
+    setWaterTintIdx(DEFAULTS.waterTintIdx);
+    setBottomIdx(DEFAULTS.bottomIdx);
+    // timeOfDay is intentionally left untouched.
+  };
+
   // Ocean sound: loop the recorded water track through a lowpass + depth gain
   // so we can still muffle & boost it based on how deep the camera is.
   useEffect(() => {
