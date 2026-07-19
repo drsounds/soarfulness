@@ -743,6 +743,12 @@ function Aquafulness() {
                 onDec={() => setLeanEnabled(false)}
                 onInc={() => setLeanEnabled(true)}
               />
+              <PadDial
+                label="VÅGFORM"
+                value={regularWaves ? "REGELBUNDEN" : "SPRIDD"}
+                onDec={() => setRegularWaves(false)}
+                onInc={() => setRegularWaves(true)}
+              />
             </div>
           </div>
         </div>
