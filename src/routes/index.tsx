@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import waterAsset from "@/assets/water.mp3.asset.json";
+import vanernBackdrop from "@/assets/vanern-backdrop.png.asset.json";
 
 export const Route = createFileRoute("/")({
   component: Aquafulness,
