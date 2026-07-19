@@ -844,6 +844,12 @@ function Aquafulness() {
                 onDec={() => setRegularPeriod((v) => Math.max(0.3, +(v - 0.1).toFixed(2)))}
                 onInc={() => setRegularPeriod((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
               />
+              <PadDial
+                label="BAKGRUND"
+                value={BACKDROPS[backdropIdx].name}
+                onDec={() => setBackdropIdx((i) => (i - 1 + BACKDROPS.length) % BACKDROPS.length)}
+                onInc={() => setBackdropIdx((i) => (i + 1) % BACKDROPS.length)}
+              />
             </div>
           </div>
         </div>
