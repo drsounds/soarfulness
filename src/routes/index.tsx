@@ -577,7 +577,7 @@ function Aquafulness() {
       camYRef.current += camVYRef.current * dt;
       camera.position.set(camX, camYRef.current, camZ);
       const lookZ = camZ - 20;
-      const lookY = waveHeight(camX, lookZ, t, amp) + 0.4;
+      const lookY = waveHeight(camX, lookZ, t, amp, regularRef.current) + 0.4;
       camera.lookAt(camX, lookY, lookZ);
 
       // Optional forward-leaning rotation: pitch into the direction of travel.
