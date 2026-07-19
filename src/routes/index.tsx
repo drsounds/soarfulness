@@ -374,6 +374,15 @@ function Aquafulness() {
               display={todLabel}
             />
             <Slider
+              label="Våghastighet"
+              value={waveSpeed}
+              min={0}
+              max={3}
+              step={0.01}
+              onChange={setWaveSpeed}
+              display={`${waveSpeed.toFixed(2)}×`}
+            />
+            <Slider
               label="Position i vattnet"
               value={position}
               min={-100}
