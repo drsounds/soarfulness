@@ -74,6 +74,10 @@ const BOTTOM_OPTIONS: { name: string; rgb: [number, number, number] | null }[] =
   { name: "Korall", rgb: [0.9, 0.5, 0.45] },
   { name: "Mörk botten", rgb: [0.08, 0.1, 0.12] },
 ];
+const BACKDROPS: { name: string; url: string | null }[] = [
+  { name: "AV", url: null },
+  { name: "Vänern", url: vanernBackdrop.url },
+];
 const DEFAULTS: Persisted = {
   waveAmp: 1.25,
   timeOfDay: 0.35,
