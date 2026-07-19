@@ -25,10 +25,11 @@ export const Route = createFileRoute("/")({
 });
 
 // Gerstner-like sum of sines. Keep in sync with vertex shader.
-function waveHeight(x: number, z: number, t: number, amp: number, regular: boolean) {
+function waveHeight(x: number, z: number, t: number, amp: number, regular: boolean, cross: boolean) {
   if (regular) {
-    // Single, regular sine — jämna intervaller, ren våg-form.
-    return Math.sin(x * 0.12 + t * 0.9) * 2.6 * amp;
+    const rx = Math.sin(x * 0.12 + t * 0.9) * 2.6 * amp;
+    const rz = cross ? Math.sin(z * 0.09 + t * 0.7 + 1.1) * 1.4 * amp : 0;
+    return rx + rz;
   }
   const w1 = Math.sin(x * 0.12 + t * 0.9) * 1.0;
   const w2 = Math.sin(z * 0.17 + t * 0.7 + 1.3) * 0.75;
