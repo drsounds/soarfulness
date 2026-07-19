@@ -43,7 +43,25 @@ type Persisted = {
   heightOffset: number;
   audioOn: boolean;
   audioVol: number;
+  waterTintIdx: number;
+  bottomIdx: number;
 };
+const WATER_TINTS: { name: string; rgb: [number, number, number] }[] = [
+  { name: "Nordhav", rgb: [1, 1, 1] },
+  { name: "Tropisk", rgb: [0.55, 1.15, 1.25] },
+  { name: "Karibisk", rgb: [0.6, 1.35, 1.1] },
+  { name: "Medelhav", rgb: [0.8, 1.15, 1.3] },
+  { name: "Skärgård", rgb: [0.85, 1.0, 0.75] },
+  { name: "Djuphav", rgb: [0.55, 0.7, 1.15] },
+];
+const BOTTOM_OPTIONS: { name: string; rgb: [number, number, number] | null }[] = [
+  { name: "AV", rgb: null },
+  { name: "Sand", rgb: [0.85, 0.75, 0.5] },
+  { name: "Ljus sand", rgb: [0.95, 0.9, 0.72] },
+  { name: "Sten", rgb: [0.35, 0.32, 0.28] },
+  { name: "Korall", rgb: [0.9, 0.5, 0.45] },
+  { name: "Mörk botten", rgb: [0.08, 0.1, 0.12] },
+];
 const DEFAULTS: Persisted = {
   waveAmp: 0.6,
   timeOfDay: 0.35,
@@ -53,6 +71,8 @@ const DEFAULTS: Persisted = {
   heightOffset: 1.2,
   audioOn: false,
   audioVol: 0.6,
+  waterTintIdx: 0,
+  bottomIdx: 0,
 };
 function loadSettings(): Persisted {
   if (typeof window === "undefined") return DEFAULTS;
@@ -79,17 +99,19 @@ function Aquafulness() {
   const [stick, setStick] = useState({ x: 0, y: 0 });
   const [audioOn, setAudioOn] = useState(initial.audioOn);
   const [audioVol, setAudioVol] = useState(initial.audioVol);
+  const [waterTintIdx, setWaterTintIdx] = useState(initial.waterTintIdx);
+  const [bottomIdx, setBottomIdx] = useState(initial.bottomIdx);
 
   // Persist settings to localStorage whenever they change (SSR-safe, hydration-safe).
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, waterTintIdx, bottomIdx };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, waterTintIdx, bottomIdx]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -109,6 +131,8 @@ function Aquafulness() {
   const posRef = useRef({ x: 0, z: 0 });
   const camYRef = useRef<number | null>(null);
   const camVYRef = useRef(0);
+  const waterTintRef = useRef(waterTintIdx);
+  const bottomIdxRef = useRef(bottomIdx);
   useEffect(() => { ampRef.current = waveAmp; }, [waveAmp]);
   useEffect(() => { todRef.current = timeOfDay; }, [timeOfDay]);
   useEffect(() => { speedRef.current = waveSpeed; }, [waveSpeed]);
@@ -116,6 +140,8 @@ function Aquafulness() {
   useEffect(() => { buoyRef.current = buoyAmp; }, [buoyAmp]);
   useEffect(() => { heightRef.current = heightOffset; }, [heightOffset]);
   useEffect(() => { stickRef.current = stick; }, [stick]);
+  useEffect(() => { waterTintRef.current = waterTintIdx; }, [waterTintIdx]);
+  useEffect(() => { bottomIdxRef.current = bottomIdx; }, [bottomIdx]);
 
   // Ocean sound: loop the recorded water track through a lowpass + depth gain
   // so we can still muffle & boost it based on how deep the camera is.
@@ -206,6 +232,8 @@ function Aquafulness() {
       uWaterShallow: { value: new THREE.Color(0x2a89b8) },
       uSunColor: { value: new THREE.Color(0xffe6b0) },
       uFogColor: { value: new THREE.Color(0x88aacc) },
+      uWaterTint: { value: new THREE.Vector3(1, 1, 1) },
+      uUnderwater: { value: 0 },
     };
 
     const vertexShader = /* glsl */ `
@@ -261,6 +289,8 @@ function Aquafulness() {
       uniform vec3 uWaterShallow;
       uniform vec3 uSunColor;
       uniform vec3 uFogColor;
+      uniform vec3 uWaterTint;
+      uniform float uUnderwater;
       varying vec3 vWorldPos;
       varying vec3 vNormal;
 
@@ -276,31 +306,41 @@ function Aquafulness() {
         float upDot = clamp(V.y, 0.0, 1.0);
         vec3 skyRef = mix(uHorizonColor, uSkyColor, upDot);
 
-        // Water base — deeper where facing up (less fresnel)
-        vec3 water = mix(uWaterDeep, uWaterShallow, 0.4 + 0.6 * max(N.y, 0.0));
+        // Water base — deeper where facing up (less fresnel), tinted by user hue
+        vec3 deepT = uWaterDeep * uWaterTint;
+        vec3 shalT = uWaterShallow * uWaterTint;
+        vec3 water = mix(deepT, shalT, 0.4 + 0.6 * max(N.y, 0.0));
 
         // Subsurface scattering — light bleeding through wave crests
         float height = clamp((vWorldPos.y + 1.0) / 3.0, 0.0, 1.0);
         vec3 sss = uSunColor * pow(height, 2.0) * 0.35 * clamp(uSunDir.y + 0.2, 0.0, 1.0);
-        water += sss;
+        water += sss * uWaterTint;
 
-        // Specular sun glint
+        // Specular sun glint — dampened when submerged
         vec3 H = normalize(L + V);
         float spec = pow(max(dot(N, H), 0.0), 90.0);
-        vec3 sun = uSunColor * spec * clamp(uSunDir.y + 0.2, 0.0, 1.0) * 2.5;
+        vec3 sun = uSunColor * spec * clamp(uSunDir.y + 0.2, 0.0, 1.0) * 2.5 * (1.0 - uUnderwater);
 
-        vec3 col = mix(water, skyRef, fres) + sun;
+        vec3 col = mix(water, skyRef, fres * (1.0 - uUnderwater * 0.8)) + sun;
 
         // Fog to horizon
         float dist = length(cameraPosition - vWorldPos);
         float fogF = 1.0 - exp(-dist * 0.008);
         col = mix(col, uFogColor, clamp(fogF, 0.0, 1.0));
 
+        // Underwater tone-down: desaturate + darken, pulled toward tinted deep hue.
+        if (uUnderwater > 0.0) {
+          float g = dot(col, vec3(0.299, 0.587, 0.114));
+          vec3 muted = mix(vec3(g), deepT * 1.1, 0.55) * (1.0 - 0.35 * uUnderwater);
+          col = mix(col, muted, clamp(uUnderwater, 0.0, 1.0));
+        }
+
         // Translucency — thinner (higher/steeper) crests let more light through
         float alpha = clamp(0.65 + fres * 0.35 - height * 0.35, 0.4, 1.0);
         gl_FragColor = vec4(col, alpha);
       }
     `;
+
 
     const mat = new THREE.ShaderMaterial({
       uniforms,
@@ -312,6 +352,19 @@ function Aquafulness() {
     });
     const ocean = new THREE.Mesh(geo, mat);
     scene.add(ocean);
+
+    // Optional seafloor beneath the ocean plane.
+    const floorGeo = new THREE.PlaneGeometry(600, 600);
+    floorGeo.rotateX(-Math.PI / 2);
+    const floorMat = new THREE.MeshBasicMaterial({
+      color: 0xd8c078,
+      fog: true,
+      side: THREE.DoubleSide,
+    });
+    const floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.position.y = -14;
+    floor.visible = false;
+    scene.add(floor);
 
     // Sky dome
     const skyGeo = new THREE.SphereGeometry(800, 32, 32);
@@ -431,6 +484,17 @@ function Aquafulness() {
       skyUniforms.uSunColor.value.copy(uniforms.uSunColor.value);
       (scene.fog as THREE.FogExp2).color.copy(uniforms.uFogColor.value);
 
+      // Water tint + optional seafloor
+      const tint = WATER_TINTS[waterTintRef.current] ?? WATER_TINTS[0];
+      uniforms.uWaterTint.value.set(tint.rgb[0], tint.rgb[1], tint.rgb[2]);
+      const bot = BOTTOM_OPTIONS[bottomIdxRef.current] ?? BOTTOM_OPTIONS[0];
+      if (bot.rgb) {
+        floor.visible = true;
+        floorMat.color.setRGB(bot.rgb[0], bot.rgb[1], bot.rgb[2]);
+      } else {
+        floor.visible = false;
+      }
+
       // Apply joystick velocity (game-pad style): stick.y up = forward (-z), x = strafe
       const walkSpeed = 8; // m/s at full deflection
       posRef.current.x += stickRef.current.x * walkSpeed * dt;
@@ -472,6 +536,10 @@ function Aquafulness() {
         a.lp.frequency.setTargetAtTime(lpFreq, now, 0.15);
       }
 
+      // Underwater tone-down factor: fades color/contrast as camera dips below surface.
+      const uw = depth > 0 ? Math.min(depth / 2.5, 1) : 0;
+      uniforms.uUnderwater.value += (uw - uniforms.uUnderwater.value) * Math.min(1, dt * 6);
+
       // Keep horizon level: no extra pitch/roll from buoyancy.
 
       sky.position.copy(camera.position);
@@ -488,6 +556,8 @@ function Aquafulness() {
       renderer.dispose();
       geo.dispose();
       mat.dispose();
+      floorGeo.dispose();
+      floorMat.dispose();
       skyGeo.dispose();
       skyMat.dispose();
       if (renderer.domElement.parentNode === mount) {
@@ -570,6 +640,18 @@ function Aquafulness() {
               if (!audioOn) { setAudioOn(true); return; }
               setAudioVol((v) => Math.min(1, +(v + 0.1).toFixed(2)));
             }}
+          />
+          <PadDial
+            label="VATTEN"
+            value={WATER_TINTS[waterTintIdx].name}
+            onDec={() => setWaterTintIdx((i) => (i - 1 + WATER_TINTS.length) % WATER_TINTS.length)}
+            onInc={() => setWaterTintIdx((i) => (i + 1) % WATER_TINTS.length)}
+          />
+          <PadDial
+            label="BOTTEN"
+            value={BOTTOM_OPTIONS[bottomIdx].name}
+            onDec={() => setBottomIdx((i) => (i - 1 + BOTTOM_OPTIONS.length) % BOTTOM_OPTIONS.length)}
+            onInc={() => setBottomIdx((i) => (i + 1) % BOTTOM_OPTIONS.length)}
           />
         </div>
       </div>
