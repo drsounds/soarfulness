@@ -312,14 +312,26 @@ function Aquafulness() {
       const camX = posRef.current.x;
       const camZ = posRef.current.z;
       const surfaceY = waveHeight(camX, camZ, t, ampRef.current);
-      camera.position.set(camX, surfaceY + 1.2, camZ);
+      // Buoyancy — extra bobbing/float on top of the wave surface,
+      // like a body being pushed up and pulled back by the water.
+      const amp = ampRef.current;
+      const buoyBob =
+        Math.sin(t * 1.15) * 0.18 * (0.4 + amp) +
+        Math.sin(t * 0.47 + 1.7) * 0.11 * (0.3 + amp) +
+        Math.sin(t * 2.3 + 0.6) * 0.045;
+      const eye = 1.2 + buoyBob;
+      camera.position.set(camX, surfaceY + eye, camZ);
       const lookZ = camZ - 20;
-      const lookY = waveHeight(camX, lookZ, t, ampRef.current) + 0.4;
+      const lookY = waveHeight(camX, lookZ, t, amp) + 0.4;
       camera.lookAt(camX, lookY, lookZ);
 
-      // gentle roll from waves + stick strafe lean
+      // gentle pitch + roll from buoyancy and swell + stick strafe lean
+      const pitch = Math.sin(t * 0.9 + 0.4) * 0.03 * (0.3 + amp);
+      camera.rotation.x += pitch;
       camera.rotation.z =
-        Math.sin(t * 0.6) * 0.02 * ampRef.current - stickRef.current.x * 0.08;
+        Math.sin(t * 0.6) * 0.035 * amp +
+        Math.cos(t * 0.83 + 1.1) * 0.02 * amp -
+        stickRef.current.x * 0.08;
 
       sky.position.copy(camera.position);
 
