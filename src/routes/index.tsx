@@ -159,6 +159,7 @@ function Aquafulness() {
   const leanRef = useRef(leanEnabled);
   const regularRef = useRef(regularWaves);
   const regularCrossRef = useRef(regularCross);
+  const regularPeriodRef = useRef(regularPeriod);
   const rotStickRef = useRef({ x: 0, y: 0 });
   const followStickRef = useRef({ x: 0, y: 0 });
   const yawRef = useRef(0);
