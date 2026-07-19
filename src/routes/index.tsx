@@ -327,15 +327,7 @@ function Aquafulness() {
       const lookY = waveHeight(camX, lookZ, t, amp) + 0.4;
       camera.lookAt(camX, lookY, lookZ);
 
-      // pitch + roll from buoyancy and swell + stick strafe lean
-      const pitch =
-        Math.sin(t * 0.9 + 0.4) * 0.06 * (0.4 + amp) +
-        Math.cos(t * 1.4 + 2.1) * 0.03 * (0.3 + amp);
-      camera.rotation.x += pitch;
-      camera.rotation.z =
-        Math.sin(t * 0.6) * 0.07 * amp +
-        Math.cos(t * 0.83 + 1.1) * 0.04 * amp -
-        stickRef.current.x * 0.08;
+      // Keep horizon level: no extra pitch/roll from buoyancy.
 
       sky.position.copy(camera.position);
 
