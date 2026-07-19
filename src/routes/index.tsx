@@ -37,17 +37,22 @@ function Aquafulness() {
   const [waveAmp, setWaveAmp] = useState(0.6);
   const [timeOfDay, setTimeOfDay] = useState(0.35); // 0 night -> 0.5 noon -> 1 night
   const [position, setPosition] = useState(0); // walking forward/back
+  const [waveSpeed, setWaveSpeed] = useState(1);
 
   // refs for live values in RAF
   const ampRef = useRef(waveAmp);
   const todRef = useRef(timeOfDay);
   const posRef = useRef(position);
+  const speedRef = useRef(waveSpeed);
   useEffect(() => {
     ampRef.current = waveAmp;
   }, [waveAmp]);
   useEffect(() => {
     todRef.current = timeOfDay;
   }, [timeOfDay]);
+  useEffect(() => {
+    speedRef.current = waveSpeed;
+  }, [waveSpeed]);
   useEffect(() => {
     posRef.current = position;
   }, [position]);
