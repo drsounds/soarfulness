@@ -264,6 +264,7 @@ function Aquafulness() {
       uFogColor: { value: new THREE.Color(0x88aacc) },
       uWaterTint: { value: new THREE.Vector3(1, 1, 1) },
       uUnderwater: { value: 0 },
+      uRegular: { value: 0 },
     };
 
     const vertexShader = /* glsl */ `
