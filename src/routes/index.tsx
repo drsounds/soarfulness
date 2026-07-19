@@ -94,6 +94,7 @@ const DEFAULTS: Persisted = {
   regularWaves: false,
   regularCross: true,
   regularPeriod: 1,
+  backdropIdx: 0,
 };
 function loadSettings(): Persisted {
   if (typeof window === "undefined") return DEFAULTS;
