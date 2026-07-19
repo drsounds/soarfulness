@@ -312,15 +312,16 @@ function Aquafulness() {
       const camX = posRef.current.x;
       const camZ = posRef.current.z;
       const surfaceY = waveHeight(camX, camZ, t, ampRef.current);
-      // Buoyancy — extra bobbing/float on top of the wave surface,
-      // like a body being pushed up and pulled back by the water.
+      // Buoyancy — extra bobbing/float on top of the wave surface.
+      // Faster, multi-frequency motion. Scaled by user-controlled buoyAmp.
       const amp = ampRef.current;
-      // Stronger, multi-frequency buoyancy so it clearly feels like floating.
+      const b = buoyRef.current;
+      const bt = t * speedRef.current; // buoyancy tempo tracks wave speed
       const buoyBob =
-        Math.sin(t * 1.1) * 0.55 * (0.5 + amp) +
-        Math.sin(t * 0.47 + 1.7) * 0.35 * (0.4 + amp) +
-        Math.sin(t * 2.3 + 0.6) * 0.12;
-      const eye = 1.2 + buoyBob;
+        (Math.sin(bt * 2.6) * 0.55 * (0.5 + amp) +
+          Math.sin(bt * 1.3 + 1.7) * 0.35 * (0.4 + amp) +
+          Math.sin(bt * 4.1 + 0.6) * 0.14) * b;
+      const eye = heightRef.current + buoyBob;
       camera.position.set(camX, surfaceY + eye, camZ);
       const lookZ = camZ - 20;
       const lookY = waveHeight(camX, lookZ, t, amp) + 0.4;
