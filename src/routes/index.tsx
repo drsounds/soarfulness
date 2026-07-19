@@ -37,17 +37,22 @@ function Aquafulness() {
   const [waveAmp, setWaveAmp] = useState(0.6);
   const [timeOfDay, setTimeOfDay] = useState(0.35); // 0 night -> 0.5 noon -> 1 night
   const [position, setPosition] = useState(0); // walking forward/back
+  const [waveSpeed, setWaveSpeed] = useState(1);
 
   // refs for live values in RAF
   const ampRef = useRef(waveAmp);
   const todRef = useRef(timeOfDay);
   const posRef = useRef(position);
+  const speedRef = useRef(waveSpeed);
   useEffect(() => {
     ampRef.current = waveAmp;
   }, [waveAmp]);
   useEffect(() => {
     todRef.current = timeOfDay;
   }, [timeOfDay]);
+  useEffect(() => {
+    speedRef.current = waveSpeed;
+  }, [waveSpeed]);
   useEffect(() => {
     posRef.current = position;
   }, [position]);
@@ -259,10 +264,15 @@ function Aquafulness() {
     };
 
     let raf = 0;
-    const start = performance.now();
+    let lastMs = performance.now();
+    let waveT = 0;
     const clock = new THREE.Clock();
     const animate = () => {
-      const t = (performance.now() - start) / 1000;
+      const now = performance.now();
+      const dt = Math.min((now - lastMs) / 1000, 0.1);
+      lastMs = now;
+      waveT += dt * speedRef.current;
+      const t = waveT;
       uniforms.uTime.value = t;
       uniforms.uAmp.value = ampRef.current;
 
@@ -362,6 +372,15 @@ function Aquafulness() {
               step={0.001}
               onChange={setTimeOfDay}
               display={todLabel}
+            />
+            <Slider
+              label="Våghastighet"
+              value={waveSpeed}
+              min={0}
+              max={3}
+              step={0.01}
+              onChange={setWaveSpeed}
+              display={`${waveSpeed.toFixed(2)}×`}
             />
             <Slider
               label="Position i vattnet"
