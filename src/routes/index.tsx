@@ -145,6 +145,7 @@ function Aquafulness() {
   const waterTintRef = useRef(waterTintIdx);
   const bottomIdxRef = useRef(bottomIdx);
   const leanRef = useRef(leanEnabled);
+  const regularRef = useRef(regularWaves);
   useEffect(() => { ampRef.current = waveAmp; }, [waveAmp]);
   useEffect(() => { todRef.current = timeOfDay; }, [timeOfDay]);
   useEffect(() => { speedRef.current = waveSpeed; }, [waveSpeed]);
