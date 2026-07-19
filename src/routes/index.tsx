@@ -270,11 +270,15 @@ function Aquafulness() {
     const vertexShader = /* glsl */ `
       uniform float uTime;
       uniform float uAmp;
+      uniform float uRegular;
       varying vec3 vWorldPos;
       varying vec3 vNormal;
 
       float wave(vec3 p, float t, float amp) {
-        // Large primary swell
+        // Regular sine — jämn, periodisk vågform längs x-axeln.
+        float reg = sin(p.x * 0.12 + t * 0.9) * 2.6 * amp;
+
+        // Large primary swell (chaotic sum of sines)
         float w1 = sin(p.x * 0.12 + t * 0.9) * 1.0;
         float w2 = sin(p.z * 0.17 + t * 0.7 + 1.3) * 0.75;
         float w3 = sin((p.x * 0.22 + p.z * 0.19) + t * 1.4 + 2.1) * 0.5;
@@ -287,9 +291,9 @@ function Aquafulness() {
         float r2 = sin(p.x * 0.55 - p.z * 0.95 + t * 3.1 + 1.7) * 0.05;
         float r3 = sin((p.x * 1.35 + p.z * 1.15) + t * 3.8 + 0.6) * 0.035;
         float r4 = sin((p.x * 1.9 - p.z * 1.6) + t * 4.7 + 2.3) * 0.022;
-        float ripples = r1 + r2 + r3 + r4;
+        float ripples = (r1 + r2 + r3 + r4) * (1.0 - uRegular);
 
-        return big + ripples;
+        return mix(big + ripples, reg, uRegular);
       }
 
       void main() {
