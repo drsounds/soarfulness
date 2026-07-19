@@ -181,6 +181,7 @@ function Aquafulness() {
       fragmentShader,
       transparent: true,
       depthWrite: false,
+      side: THREE.DoubleSide,
     });
     const ocean = new THREE.Mesh(geo, mat);
     scene.add(ocean);
