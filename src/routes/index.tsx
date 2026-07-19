@@ -620,7 +620,7 @@ function Aquafulness() {
       prevSurfaceRef.current = surfaceY;
       const followY = followStickRef.current.y * surfVel * 0.35;
       const eps = 0.4;
-      const slopeX = (waveHeight(camX + eps, camZ, t, amp, regularRef.current, regularCrossRef.current) - surfaceY) / eps;
+      const slopeX = (waveHeight(camX + eps, camZ, t, amp, regularRef.current, regularCrossRef.current, regularPeriodRef.current) - surfaceY) / eps;
       const followX = followStickRef.current.x * slopeX * 1.2;
 
       camera.position.set(camX + followX, camYRef.current + followY, camZ);
