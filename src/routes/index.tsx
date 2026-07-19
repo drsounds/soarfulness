@@ -47,9 +47,12 @@ function Aquafulness() {
   const audioRef = useRef<{
     ctx: AudioContext;
     master: GainNode;
+    depthGain: GainNode;
     lfo: OscillatorNode;
     lfoGain: GainNode;
     swellGain: GainNode;
+    foamGain: GainNode;
+    lp: BiquadFilterNode;
   } | null>(null);
 
   // Live values consumed inside the RAF loop.
