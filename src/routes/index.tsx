@@ -641,6 +641,18 @@ function Aquafulness() {
               setAudioVol((v) => Math.min(1, +(v + 0.1).toFixed(2)));
             }}
           />
+          <PadDial
+            label="VATTEN"
+            value={WATER_TINTS[waterTintIdx].name}
+            onDec={() => setWaterTintIdx((i) => (i - 1 + WATER_TINTS.length) % WATER_TINTS.length)}
+            onInc={() => setWaterTintIdx((i) => (i + 1) % WATER_TINTS.length)}
+          />
+          <PadDial
+            label="BOTTEN"
+            value={BOTTOM_OPTIONS[bottomIdx].name}
+            onDec={() => setBottomIdx((i) => (i - 1 + BOTTOM_OPTIONS.length) % BOTTOM_OPTIONS.length)}
+            onInc={() => setBottomIdx((i) => (i + 1) % BOTTOM_OPTIONS.length)}
+          />
         </div>
       </div>
 
