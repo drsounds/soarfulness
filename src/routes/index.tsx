@@ -295,18 +295,22 @@ function Aquafulness() {
       skyUniforms.uSunColor.value.copy(uniforms.uSunColor.value);
       (scene.fog as THREE.FogExp2).color.copy(uniforms.uFogColor.value);
 
-      // Camera position: walking along z, riding the wave
-      const camX = 0;
-      const camZ = posRef.current;
+      // Apply joystick velocity (game-pad style): stick.y up = forward (-z), x = strafe
+      const walkSpeed = 8; // m/s at full deflection
+      posRef.current.x += stickRef.current.x * walkSpeed * dt;
+      posRef.current.z -= stickRef.current.y * walkSpeed * dt;
+
+      const camX = posRef.current.x;
+      const camZ = posRef.current.z;
       const surfaceY = waveHeight(camX, camZ, t, ampRef.current);
       camera.position.set(camX, surfaceY + 1.2, camZ);
-      // Look slightly forward and toward the horizon, but bobbing with waves
       const lookZ = camZ - 20;
       const lookY = waveHeight(camX, lookZ, t, ampRef.current) + 0.4;
       camera.lookAt(camX, lookY, lookZ);
 
-      // gentle roll
-      camera.rotation.z = Math.sin(t * 0.6) * 0.02 * ampRef.current;
+      // gentle roll from waves + stick strafe lean
+      camera.rotation.z =
+        Math.sin(t * 0.6) * 0.02 * ampRef.current - stickRef.current.x * 0.08;
 
       sky.position.copy(camera.position);
 
