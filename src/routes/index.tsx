@@ -625,7 +625,7 @@ function Aquafulness() {
 
       camera.position.set(camX + followX, camYRef.current + followY, camZ);
       const lookZ = camZ - 20;
-      const lookY = waveHeight(camX, lookZ, t, amp, regularRef.current, regularCrossRef.current) + 0.4;
+      const lookY = waveHeight(camX, lookZ, t, amp, regularRef.current, regularCrossRef.current, regularPeriodRef.current) + 0.4;
       camera.lookAt(camX + followX, lookY, lookZ);
 
       // Rotation stick: yaw (x) + pitch (y). Integrate stick as angular velocity.
