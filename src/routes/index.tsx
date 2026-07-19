@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import * as THREE from "three";
 
 export const Route = createFileRoute("/")({
@@ -35,15 +35,17 @@ function waveHeight(x: number, z: number, t: number, amp: number) {
 function Aquafulness() {
   const mountRef = useRef<HTMLDivElement>(null);
   const [waveAmp, setWaveAmp] = useState(0.6);
-  const [timeOfDay, setTimeOfDay] = useState(0.35); // 0 night -> 0.5 noon -> 1 night
-  const [position, setPosition] = useState(0); // walking forward/back
+  const [timeOfDay, setTimeOfDay] = useState(0.35);
   const [waveSpeed, setWaveSpeed] = useState(1);
+  // Live joystick vector (visual state) — kept in state so the thumb renders.
+  const [stick, setStick] = useState({ x: 0, y: 0 });
 
-  // refs for live values in RAF
+  // Live values consumed inside the RAF loop.
   const ampRef = useRef(waveAmp);
   const todRef = useRef(timeOfDay);
-  const posRef = useRef(position);
   const speedRef = useRef(waveSpeed);
+  const stickRef = useRef({ x: 0, y: 0 });
+  const posRef = useRef({ x: 0, z: 0 });
   useEffect(() => {
     ampRef.current = waveAmp;
   }, [waveAmp]);
@@ -54,8 +56,8 @@ function Aquafulness() {
     speedRef.current = waveSpeed;
   }, [waveSpeed]);
   useEffect(() => {
-    posRef.current = position;
-  }, [position]);
+    stickRef.current = stick;
+  }, [stick]);
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -293,18 +295,22 @@ function Aquafulness() {
       skyUniforms.uSunColor.value.copy(uniforms.uSunColor.value);
       (scene.fog as THREE.FogExp2).color.copy(uniforms.uFogColor.value);
 
-      // Camera position: walking along z, riding the wave
-      const camX = 0;
-      const camZ = posRef.current;
+      // Apply joystick velocity (game-pad style): stick.y up = forward (-z), x = strafe
+      const walkSpeed = 8; // m/s at full deflection
+      posRef.current.x += stickRef.current.x * walkSpeed * dt;
+      posRef.current.z -= stickRef.current.y * walkSpeed * dt;
+
+      const camX = posRef.current.x;
+      const camZ = posRef.current.z;
       const surfaceY = waveHeight(camX, camZ, t, ampRef.current);
       camera.position.set(camX, surfaceY + 1.2, camZ);
-      // Look slightly forward and toward the horizon, but bobbing with waves
       const lookZ = camZ - 20;
       const lookY = waveHeight(camX, lookZ, t, ampRef.current) + 0.4;
       camera.lookAt(camX, lookY, lookZ);
 
-      // gentle roll
-      camera.rotation.z = Math.sin(t * 0.6) * 0.02 * ampRef.current;
+      // gentle roll from waves + stick strafe lean
+      camera.rotation.z =
+        Math.sin(t * 0.6) * 0.02 * ampRef.current - stickRef.current.x * 0.08;
 
       sky.position.copy(camera.position);
 
@@ -343,109 +349,187 @@ function Aquafulness() {
     <main className="relative h-screen w-screen overflow-hidden bg-black">
       <div ref={mountRef} className="absolute inset-0" />
 
-      {/* Title */}
-      <div className="pointer-events-none absolute left-0 right-0 top-0 flex flex-col items-center px-6 pt-6 text-white">
-        <h1 className="text-2xl font-light tracking-[0.3em] drop-shadow-lg">AQUAFULNESS</h1>
-        <p className="mt-1 text-xs font-light tracking-[0.25em] text-white/70 drop-shadow">
-          ANDAS · LYSSNA · DRIV
-        </p>
-      </div>
-
-      {/* Controls */}
-      <div className="absolute bottom-0 left-0 right-0 flex justify-center p-4 sm:p-6">
-        <div className="w-full max-w-md rounded-2xl border border-white/15 bg-black/35 p-4 backdrop-blur-md sm:p-5">
-          <div className="space-y-4 text-white">
-            <Slider
-              label="Våghöjd"
-              value={waveAmp}
-              min={0}
-              max={2}
-              step={0.01}
-              onChange={setWaveAmp}
-              display={`${waveAmp.toFixed(2)} m`}
-            />
-            <Slider
-              label="Tid på dygnet"
-              value={timeOfDay}
-              min={0}
-              max={1}
-              step={0.001}
-              onChange={setTimeOfDay}
-              display={todLabel}
-            />
-            <Slider
-              label="Våghastighet"
-              value={waveSpeed}
-              min={0}
-              max={3}
-              step={0.01}
-              onChange={setWaveSpeed}
-              display={`${waveSpeed.toFixed(2)}×`}
-            />
-            <Slider
-              label="Position i vattnet"
-              value={position}
-              min={-100}
-              max={100}
-              step={0.5}
-              onChange={setPosition}
-              display={`${position.toFixed(1)} m`}
-            />
-            <div className="flex gap-2 pt-1">
-              <button
-                onClick={() => setPosition((p) => p - 4)}
-                className="flex-1 rounded-lg border border-white/20 bg-white/5 py-2 text-sm font-light tracking-wider text-white/90 transition hover:bg-white/10 active:bg-white/15"
-              >
-                ← Bakåt
-              </button>
-              <button
-                onClick={() => setPosition((p) => p + 4)}
-                className="flex-1 rounded-lg border border-white/20 bg-white/5 py-2 text-sm font-light tracking-wider text-white/90 transition hover:bg-white/10 active:bg-white/15"
-              >
-                Framåt →
-              </button>
-            </div>
-          </div>
+      {/* Top HUD chips — game overlay style */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-col items-center gap-3 px-4 pt-4">
+        <div className="flex items-baseline gap-3 text-white drop-shadow">
+          <span className="text-[10px] font-light tracking-[0.4em] text-white/60">
+            AQUAFULNESS
+          </span>
+        </div>
+        <div className="pointer-events-auto flex flex-wrap justify-center gap-2">
+          <PadDial
+            label="VÅG"
+            value={`${waveAmp.toFixed(2)}m`}
+            onDec={() => setWaveAmp((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+            onInc={() => setWaveAmp((v) => Math.min(2, +(v + 0.05).toFixed(2)))}
+          />
+          <PadDial
+            label="TID"
+            value={todLabel}
+            onDec={() => setTimeOfDay((v) => (v - 0.02 + 1) % 1)}
+            onInc={() => setTimeOfDay((v) => (v + 0.02) % 1)}
+          />
+          <PadDial
+            label="TEMPO"
+            value={`${waveSpeed.toFixed(2)}×`}
+            onDec={() => setWaveSpeed((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
+            onInc={() => setWaveSpeed((v) => Math.min(3, +(v + 0.1).toFixed(2)))}
+          />
         </div>
       </div>
+
+      {/* Left joystick */}
+      <Joystick onChange={setStick} value={stick} />
+
+      {/* Right D-pad — hold to drive forward / back */}
+      <DPad
+        onForward={() => setStick((s) => ({ ...s, y: 1 }))}
+        onBack={() => setStick((s) => ({ ...s, y: -1 }))}
+        onRelease={() => setStick((s) => ({ ...s, y: 0 }))}
+      />
     </main>
   );
 }
 
-function Slider({
+function PadDial({
   label,
   value,
-  min,
-  max,
-  step,
-  onChange,
-  display,
+  onDec,
+  onInc,
 }: {
   label: string;
-  value: number;
-  min: number;
-  max: number;
-  step: number;
-  onChange: (v: number) => void;
-  display: string;
+  value: string;
+  onDec: () => void;
+  onInc: () => void;
 }) {
   return (
-    <label className="block">
-      <div className="mb-1.5 flex items-baseline justify-between">
-        <span className="text-xs font-light uppercase tracking-[0.2em] text-white/80">
+    <div className="flex items-center gap-1 rounded-full border border-white/15 bg-black/40 p-1 pl-3 backdrop-blur-md">
+      <div className="flex min-w-[86px] flex-col items-start leading-tight text-white">
+        <span className="text-[9px] font-light tracking-[0.28em] text-white/60">
           {label}
         </span>
-        <span className="text-xs font-light text-white/60">{display}</span>
+        <span className="text-xs font-medium tracking-wider">{value}</span>
       </div>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(e) => onChange(parseFloat(e.target.value))}
-        className="aqua-slider w-full"
-      />
-    </label>
+      <button
+        onClick={onDec}
+        className="h-7 w-7 rounded-full border border-white/20 bg-white/5 text-white/90 transition active:scale-95 active:bg-white/15"
+        aria-label={`${label} minska`}
+      >
+        −
+      </button>
+      <button
+        onClick={onInc}
+        className="h-7 w-7 rounded-full border border-white/20 bg-white/5 text-white/90 transition active:scale-95 active:bg-white/15"
+        aria-label={`${label} öka`}
+      >
+        +
+      </button>
+    </div>
+  );
+}
+
+function Joystick({
+  onChange,
+  value,
+}: {
+  onChange: (v: { x: number; y: number }) => void;
+  value: { x: number; y: number };
+}) {
+  const baseRef = useRef<HTMLDivElement>(null);
+  const activeId = useRef<number | null>(null);
+  const radius = 56;
+
+  const setFromPointer = (clientX: number, clientY: number) => {
+    const base = baseRef.current;
+    if (!base) return;
+    const rect = base.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    let dx = clientX - cx;
+    let dy = clientY - cy;
+    const dist = Math.hypot(dx, dy);
+    if (dist > radius) {
+      dx = (dx / dist) * radius;
+      dy = (dy / dist) * radius;
+    }
+    onChange({ x: dx / radius, y: -dy / radius });
+  };
+
+  return (
+    <div className="pointer-events-none absolute bottom-6 left-6 z-10 select-none">
+      <div
+        ref={baseRef}
+        onPointerDown={(e) => {
+          if (activeId.current !== null) return;
+          activeId.current = e.pointerId;
+          (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
+          setFromPointer(e.clientX, e.clientY);
+        }}
+        onPointerMove={(e) => {
+          if (activeId.current !== e.pointerId) return;
+          setFromPointer(e.clientX, e.clientY);
+        }}
+        onPointerUp={(e) => {
+          if (activeId.current !== e.pointerId) return;
+          activeId.current = null;
+          onChange({ x: 0, y: 0 });
+        }}
+        onPointerCancel={() => {
+          activeId.current = null;
+          onChange({ x: 0, y: 0 });
+        }}
+        className="pointer-events-auto relative h-32 w-32 touch-none rounded-full border border-white/20 bg-black/35 backdrop-blur-md"
+        style={{ boxShadow: "inset 0 0 40px rgba(255,255,255,0.05)" }}
+      >
+        <div className="pointer-events-none absolute inset-3 rounded-full border border-white/10" />
+        <div
+          className="pointer-events-none absolute left-1/2 top-1/2 h-12 w-12 rounded-full border border-white/30 bg-white/80 shadow-[0_0_24px_rgba(255,255,255,0.35)]"
+          style={{
+            transform: `translate(calc(-50% + ${value.x * radius}px), calc(-50% + ${-value.y * radius}px))`,
+          }}
+        />
+        <span className="pointer-events-none absolute inset-x-0 top-1 text-center text-[9px] font-light tracking-[0.3em] text-white/50">
+          NAV
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function DPad({
+  onForward,
+  onBack,
+  onRelease,
+}: {
+  onForward: () => void;
+  onBack: () => void;
+  onRelease: () => void;
+}) {
+  const bind = (fn: () => void) => ({
+    onPointerDown: (e: ReactPointerEvent) => {
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+      fn();
+    },
+    onPointerUp: onRelease,
+    onPointerCancel: onRelease,
+  });
+  return (
+    <div className="pointer-events-none absolute bottom-6 right-6 z-10 flex select-none flex-col items-center gap-2">
+      <button
+        {...bind(onForward)}
+        className="pointer-events-auto h-14 w-14 touch-none rounded-full border border-white/20 bg-black/40 text-white backdrop-blur-md transition active:scale-95 active:bg-white/15"
+        aria-label="Framåt"
+      >
+        ▲
+      </button>
+      <span className="text-[9px] font-light tracking-[0.3em] text-white/50">DRIV</span>
+      <button
+        {...bind(onBack)}
+        className="pointer-events-auto h-14 w-14 touch-none rounded-full border border-white/20 bg-black/40 text-white backdrop-blur-md transition active:scale-95 active:bg-white/15"
+        aria-label="Bakåt"
+      >
+        ▼
+      </button>
+    </div>
   );
 }
