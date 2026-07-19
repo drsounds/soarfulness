@@ -576,7 +576,7 @@ function Aquafulness() {
 
       const camX = posRef.current.x;
       const camZ = posRef.current.z;
-      const surfaceY = waveHeight(camX, camZ, t, ampRef.current, regularRef.current);
+      const surfaceY = waveHeight(camX, camZ, t, ampRef.current, regularRef.current, regularCrossRef.current);
       // Wave-synced buoyancy: camera is a damped spring pulled toward the
       // surface with gravity. Rising crests outrun the camera so it dips
       // below the surface ("pushed up through"); in the trough gravity
@@ -592,10 +592,33 @@ function Aquafulness() {
       const ay = k * (targetY - camYRef.current) - c * camVYRef.current - gravity;
       camVYRef.current += ay * dt;
       camYRef.current += camVYRef.current * dt;
-      camera.position.set(camX, camYRef.current, camZ);
+
+      // Wave-follow stick: feedforward on wave vertical velocity.
+      // y > 0 → rise above crests, sink below troughs (surf on top).
+      // y < 0 → counter-drag: lag under crests, lift over troughs.
+      // x adds a lateral coupling to the wave slope.
+      if (prevSurfaceRef.current === null) prevSurfaceRef.current = surfaceY;
+      const surfVel = (surfaceY - prevSurfaceRef.current) / Math.max(dt, 1e-4);
+      prevSurfaceRef.current = surfaceY;
+      const followY = followStickRef.current.y * surfVel * 0.35;
+      const eps = 0.4;
+      const slopeX = (waveHeight(camX + eps, camZ, t, amp, regularRef.current, regularCrossRef.current) - surfaceY) / eps;
+      const followX = followStickRef.current.x * slopeX * 1.2;
+
+      camera.position.set(camX + followX, camYRef.current + followY, camZ);
       const lookZ = camZ - 20;
-      const lookY = waveHeight(camX, lookZ, t, amp, regularRef.current) + 0.4;
-      camera.lookAt(camX, lookY, lookZ);
+      const lookY = waveHeight(camX, lookZ, t, amp, regularRef.current, regularCrossRef.current) + 0.4;
+      camera.lookAt(camX + followX, lookY, lookZ);
+
+      // Rotation stick: yaw (x) + pitch (y). Integrate stick as angular velocity.
+      const rotSpeed = 1.6; // rad/s at full deflection
+      yawRef.current -= rotStickRef.current.x * rotSpeed * dt;
+      pitchRef.current += rotStickRef.current.y * rotSpeed * dt;
+      const maxPitch = 1.2;
+      if (pitchRef.current > maxPitch) pitchRef.current = maxPitch;
+      if (pitchRef.current < -maxPitch) pitchRef.current = -maxPitch;
+      camera.rotateY(yawRef.current);
+      camera.rotateX(pitchRef.current);
 
       // Optional forward-leaning rotation: pitch into the direction of travel.
       // Default is a fixed forward horizon (no lean).
