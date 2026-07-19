@@ -516,6 +516,22 @@ function Aquafulness() {
             onDec={() => setBobSpeed((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
             onInc={() => setBobSpeed((v) => Math.min(5, +(v + 0.1).toFixed(2)))}
           />
+          <PadDial
+            label={audioOn ? "LJUD PÅ" : "LJUD AV"}
+            value={audioOn ? `${Math.round(audioVol * 100)}%` : "—"}
+            onDec={() => {
+              if (!audioOn) { setAudioOn(true); return; }
+              setAudioVol((v) => {
+                const next = +(v - 0.1).toFixed(2);
+                if (next <= 0) { setAudioOn(false); return 0; }
+                return next;
+              });
+            }}
+            onInc={() => {
+              if (!audioOn) { setAudioOn(true); return; }
+              setAudioVol((v) => Math.min(1, +(v + 0.1).toFixed(2)));
+            }}
+          />
         </div>
       </div>
 
