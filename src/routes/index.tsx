@@ -153,6 +153,11 @@ function Aquafulness() {
         // Water base — deeper where facing up (less fresnel)
         vec3 water = mix(uWaterDeep, uWaterShallow, 0.4 + 0.6 * max(N.y, 0.0));
 
+        // Subsurface scattering — light bleeding through wave crests
+        float height = clamp((vWorldPos.y + 1.0) / 3.0, 0.0, 1.0);
+        vec3 sss = uSunColor * pow(height, 2.0) * 0.35 * clamp(uSunDir.y + 0.2, 0.0, 1.0);
+        water += sss;
+
         // Specular sun glint
         vec3 H = normalize(L + V);
         float spec = pow(max(dot(N, H), 0.0), 90.0);
@@ -165,7 +170,9 @@ function Aquafulness() {
         float fogF = 1.0 - exp(-dist * 0.008);
         col = mix(col, uFogColor, clamp(fogF, 0.0, 1.0));
 
-        gl_FragColor = vec4(col, 1.0);
+        // Translucency — thinner (higher/steeper) crests let more light through
+        float alpha = clamp(0.72 + fres * 0.28 - height * 0.15, 0.55, 1.0);
+        gl_FragColor = vec4(col, alpha);
       }
     `;
 
@@ -173,6 +180,8 @@ function Aquafulness() {
       uniforms,
       vertexShader,
       fragmentShader,
+      transparent: true,
+      depthWrite: false,
     });
     const ocean = new THREE.Mesh(geo, mat);
     scene.add(ocean);
@@ -303,14 +312,26 @@ function Aquafulness() {
       const camX = posRef.current.x;
       const camZ = posRef.current.z;
       const surfaceY = waveHeight(camX, camZ, t, ampRef.current);
-      camera.position.set(camX, surfaceY + 1.2, camZ);
+      // Buoyancy — extra bobbing/float on top of the wave surface,
+      // like a body being pushed up and pulled back by the water.
+      const amp = ampRef.current;
+      const buoyBob =
+        Math.sin(t * 1.15) * 0.18 * (0.4 + amp) +
+        Math.sin(t * 0.47 + 1.7) * 0.11 * (0.3 + amp) +
+        Math.sin(t * 2.3 + 0.6) * 0.045;
+      const eye = 1.2 + buoyBob;
+      camera.position.set(camX, surfaceY + eye, camZ);
       const lookZ = camZ - 20;
-      const lookY = waveHeight(camX, lookZ, t, ampRef.current) + 0.4;
+      const lookY = waveHeight(camX, lookZ, t, amp) + 0.4;
       camera.lookAt(camX, lookY, lookZ);
 
-      // gentle roll from waves + stick strafe lean
+      // gentle pitch + roll from buoyancy and swell + stick strafe lean
+      const pitch = Math.sin(t * 0.9 + 0.4) * 0.03 * (0.3 + amp);
+      camera.rotation.x += pitch;
       camera.rotation.z =
-        Math.sin(t * 0.6) * 0.02 * ampRef.current - stickRef.current.x * 0.08;
+        Math.sin(t * 0.6) * 0.035 * amp +
+        Math.cos(t * 0.83 + 1.1) * 0.02 * amp -
+        stickRef.current.x * 0.08;
 
       sky.position.copy(camera.position);
 
