@@ -110,6 +110,7 @@ function Aquafulness() {
   const [waterTintIdx, setWaterTintIdx] = useState(initial.waterTintIdx);
   const [bottomIdx, setBottomIdx] = useState(initial.bottomIdx);
   const [leanEnabled, setLeanEnabled] = useState(initial.leanEnabled);
+  const [regularWaves, setRegularWaves] = useState(initial.regularWaves);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Persist settings to localStorage whenever they change (SSR-safe, hydration-safe).
