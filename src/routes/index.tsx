@@ -795,19 +795,39 @@ function Aquafulness() {
                 onDec={() => setRegularWaves(false)}
                 onInc={() => setRegularWaves(true)}
               />
+              <PadDial
+                label="KORSVÅG"
+                value={regularCross ? "PÅ" : "AV"}
+                onDec={() => setRegularCross(false)}
+                onInc={() => setRegularCross(true)}
+              />
             </div>
           </div>
         </div>
       )}
 
-      {/* Left joystick */}
-      <Joystick onChange={setStick} value={stick} />
+      {/* Movement joystick (left) */}
+      <Joystick
+        onChange={setStick}
+        value={stick}
+        label="NAV"
+        positionClass="bottom-6 left-6"
+      />
 
-      {/* Right D-pad — hold to drive forward / back */}
-      <DPad
-        onForward={() => setStick((s) => ({ ...s, y: 1 }))}
-        onBack={() => setStick((s) => ({ ...s, y: -1 }))}
-        onRelease={() => setStick((s) => ({ ...s, y: 0 }))}
+      {/* Look / rotation joystick (right of movement) */}
+      <Joystick
+        onChange={setRotStick}
+        value={rotStick}
+        label="LOOK"
+        positionClass="bottom-6 left-44"
+      />
+
+      {/* Wave-follow joystick (far right) */}
+      <Joystick
+        onChange={setFollowStick}
+        value={followStick}
+        label="VÅG-FÖLJ"
+        positionClass="bottom-6 right-6"
       />
     </main>
   );
