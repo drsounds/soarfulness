@@ -45,6 +45,7 @@ type Persisted = {
   audioVol: number;
   waterTintIdx: number;
   bottomIdx: number;
+  leanEnabled: boolean;
 };
 const WATER_TINTS: { name: string; rgb: [number, number, number] }[] = [
   { name: "Nordhav", rgb: [1, 1, 1] },
@@ -73,6 +74,7 @@ const DEFAULTS: Persisted = {
   audioVol: 0.8,
   waterTintIdx: 1,
   bottomIdx: 2,
+  leanEnabled: false,
 };
 function loadSettings(): Persisted {
   if (typeof window === "undefined") return DEFAULTS;
