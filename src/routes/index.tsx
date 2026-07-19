@@ -63,16 +63,16 @@ const BOTTOM_OPTIONS: { name: string; rgb: [number, number, number] | null }[] =
   { name: "Mörk botten", rgb: [0.08, 0.1, 0.12] },
 ];
 const DEFAULTS: Persisted = {
-  waveAmp: 0.6,
+  waveAmp: 1.25,
   timeOfDay: 0.35,
-  waveSpeed: 1,
-  bobSpeed: 1,
-  buoyAmp: 1,
-  heightOffset: 1.2,
-  audioOn: false,
-  audioVol: 0.6,
-  waterTintIdx: 0,
-  bottomIdx: 0,
+  waveSpeed: 3,
+  bobSpeed: 1.9,
+  buoyAmp: 2.9,
+  heightOffset: 0.4,
+  audioOn: true,
+  audioVol: 0.8,
+  waterTintIdx: 1,
+  bottomIdx: 2,
 };
 function loadSettings(): Persisted {
   if (typeof window === "undefined") return DEFAULTS;
