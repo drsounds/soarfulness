@@ -264,10 +264,15 @@ function Aquafulness() {
     };
 
     let raf = 0;
-    const start = performance.now();
+    let lastMs = performance.now();
+    let waveT = 0;
     const clock = new THREE.Clock();
     const animate = () => {
-      const t = (performance.now() - start) / 1000;
+      const now = performance.now();
+      const dt = Math.min((now - lastMs) / 1000, 0.1);
+      lastMs = now;
+      waveT += dt * speedRef.current;
+      const t = waveT;
       uniforms.uTime.value = t;
       uniforms.uAmp.value = ampRef.current;
 
