@@ -47,9 +47,12 @@ function Aquafulness() {
   const audioRef = useRef<{
     ctx: AudioContext;
     master: GainNode;
+    depthGain: GainNode;
     lfo: OscillatorNode;
     lfoGain: GainNode;
     swellGain: GainNode;
+    foamGain: GainNode;
+    lp: BiquadFilterNode;
   } | null>(null);
 
   // Live values consumed inside the RAF loop.
@@ -129,15 +132,19 @@ function Aquafulness() {
     const master = ctx.createGain();
     master.gain.value = 0;
 
+    // depth gain: multiplied by master, boosted when camera is below surface
+    const depthGain = ctx.createGain();
+    depthGain.gain.value = 1;
+
     noise.connect(hp).connect(lp).connect(swellGain).connect(master);
     noise.connect(foamHP).connect(foamGain).connect(master);
-    master.connect(ctx.destination);
+    master.connect(depthGain).connect(ctx.destination);
 
     noise.start();
     lfo.start();
     master.gain.setTargetAtTime(audioVol, ctx.currentTime, 0.6);
 
-    audioRef.current = { ctx, master, lfo, lfoGain, swellGain };
+    audioRef.current = { ctx, master, depthGain, lfo, lfoGain, swellGain, foamGain, lp };
     return () => {
       // cleanup handled by toggle-off branch
     };
@@ -432,6 +439,21 @@ function Aquafulness() {
       const lookZ = camZ - 20;
       const lookY = waveHeight(camX, lookZ, t, amp) + 0.4;
       camera.lookAt(camX, lookY, lookZ);
+
+      // Sync audio intensity with depth below surface.
+      const depth = surfaceY - camYRef.current; // positive when underwater
+      const a = audioRef.current;
+      if (a) {
+        const now = a.ctx.currentTime;
+        // deeper -> louder (up to ~2.5x), faster ramp
+        const depthMult = depth > 0 ? Math.min(1 + 0.35 * depth, 2.5) : 1;
+        a.depthGain.gain.setTargetAtTime(depthMult, now, 0.12);
+        // deeper -> more muffled (lowpass closes), foam hiss fades
+        const lpFreq = depth > 0 ? Math.max(900 - 220 * depth, 260) : 900;
+        a.lp.frequency.setTargetAtTime(lpFreq, now, 0.15);
+        const foamLevel = depth > 0 ? Math.max(0.08 - 0.04 * depth, 0) : 0.08;
+        a.foamGain.gain.setTargetAtTime(foamLevel, now, 0.15);
+      }
 
       // Keep horizon level: no extra pitch/roll from buoyancy.
 
