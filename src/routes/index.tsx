@@ -153,6 +153,11 @@ function Aquafulness() {
         // Water base — deeper where facing up (less fresnel)
         vec3 water = mix(uWaterDeep, uWaterShallow, 0.4 + 0.6 * max(N.y, 0.0));
 
+        // Subsurface scattering — light bleeding through wave crests
+        float height = clamp((vWorldPos.y + 1.0) / 3.0, 0.0, 1.0);
+        vec3 sss = uSunColor * pow(height, 2.0) * 0.35 * clamp(uSunDir.y + 0.2, 0.0, 1.0);
+        water += sss;
+
         // Specular sun glint
         vec3 H = normalize(L + V);
         float spec = pow(max(dot(N, H), 0.0), 90.0);
@@ -165,7 +170,9 @@ function Aquafulness() {
         float fogF = 1.0 - exp(-dist * 0.008);
         col = mix(col, uFogColor, clamp(fogF, 0.0, 1.0));
 
-        gl_FragColor = vec4(col, 1.0);
+        // Translucency — thinner (higher/steeper) crests let more light through
+        float alpha = clamp(0.72 + fres * 0.28 - height * 0.15, 0.55, 1.0);
+        gl_FragColor = vec4(col, alpha);
       }
     `;
 
