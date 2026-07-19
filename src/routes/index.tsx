@@ -153,6 +153,12 @@ function Aquafulness() {
   const bottomIdxRef = useRef(bottomIdx);
   const leanRef = useRef(leanEnabled);
   const regularRef = useRef(regularWaves);
+  const regularCrossRef = useRef(regularCross);
+  const rotStickRef = useRef({ x: 0, y: 0 });
+  const followStickRef = useRef({ x: 0, y: 0 });
+  const yawRef = useRef(0);
+  const pitchRef = useRef(0);
+  const prevSurfaceRef = useRef<number | null>(null);
   useEffect(() => { ampRef.current = waveAmp; }, [waveAmp]);
   useEffect(() => { todRef.current = timeOfDay; }, [timeOfDay]);
   useEffect(() => { speedRef.current = waveSpeed; }, [waveSpeed]);
@@ -160,6 +166,8 @@ function Aquafulness() {
   useEffect(() => { buoyRef.current = buoyAmp; }, [buoyAmp]);
   useEffect(() => { heightRef.current = heightOffset; }, [heightOffset]);
   useEffect(() => { stickRef.current = stick; }, [stick]);
+  useEffect(() => { rotStickRef.current = rotStick; }, [rotStick]);
+  useEffect(() => { followStickRef.current = followStick; }, [followStick]);
   useEffect(() => { waterTintRef.current = waterTintIdx; }, [waterTintIdx]);
   useEffect(() => { bottomIdxRef.current = bottomIdx; }, [bottomIdx]);
   useEffect(() => { leanRef.current = leanEnabled; }, [leanEnabled]);
