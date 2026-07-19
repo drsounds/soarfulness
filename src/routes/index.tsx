@@ -289,6 +289,8 @@ function Aquafulness() {
       uniform vec3 uWaterShallow;
       uniform vec3 uSunColor;
       uniform vec3 uFogColor;
+      uniform vec3 uWaterTint;
+      uniform float uUnderwater;
       varying vec3 vWorldPos;
       varying vec3 vNormal;
 
@@ -304,31 +306,41 @@ function Aquafulness() {
         float upDot = clamp(V.y, 0.0, 1.0);
         vec3 skyRef = mix(uHorizonColor, uSkyColor, upDot);
 
-        // Water base — deeper where facing up (less fresnel)
-        vec3 water = mix(uWaterDeep, uWaterShallow, 0.4 + 0.6 * max(N.y, 0.0));
+        // Water base — deeper where facing up (less fresnel), tinted by user hue
+        vec3 deepT = uWaterDeep * uWaterTint;
+        vec3 shalT = uWaterShallow * uWaterTint;
+        vec3 water = mix(deepT, shalT, 0.4 + 0.6 * max(N.y, 0.0));
 
         // Subsurface scattering — light bleeding through wave crests
         float height = clamp((vWorldPos.y + 1.0) / 3.0, 0.0, 1.0);
         vec3 sss = uSunColor * pow(height, 2.0) * 0.35 * clamp(uSunDir.y + 0.2, 0.0, 1.0);
-        water += sss;
+        water += sss * uWaterTint;
 
-        // Specular sun glint
+        // Specular sun glint — dampened when submerged
         vec3 H = normalize(L + V);
         float spec = pow(max(dot(N, H), 0.0), 90.0);
-        vec3 sun = uSunColor * spec * clamp(uSunDir.y + 0.2, 0.0, 1.0) * 2.5;
+        vec3 sun = uSunColor * spec * clamp(uSunDir.y + 0.2, 0.0, 1.0) * 2.5 * (1.0 - uUnderwater);
 
-        vec3 col = mix(water, skyRef, fres) + sun;
+        vec3 col = mix(water, skyRef, fres * (1.0 - uUnderwater * 0.8)) + sun;
 
         // Fog to horizon
         float dist = length(cameraPosition - vWorldPos);
         float fogF = 1.0 - exp(-dist * 0.008);
         col = mix(col, uFogColor, clamp(fogF, 0.0, 1.0));
 
+        // Underwater tone-down: desaturate + darken, pulled toward tinted deep hue.
+        if (uUnderwater > 0.0) {
+          float g = dot(col, vec3(0.299, 0.587, 0.114));
+          vec3 muted = mix(vec3(g), deepT * 1.1, 0.55) * (1.0 - 0.35 * uUnderwater);
+          col = mix(col, muted, clamp(uUnderwater, 0.0, 1.0));
+        }
+
         // Translucency — thinner (higher/steeper) crests let more light through
         float alpha = clamp(0.65 + fres * 0.35 - height * 0.35, 0.4, 1.0);
         gl_FragColor = vec4(col, alpha);
       }
     `;
+
 
     const mat = new THREE.ShaderMaterial({
       uniforms,
