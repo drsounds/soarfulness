@@ -232,6 +232,8 @@ function Aquafulness() {
       uWaterShallow: { value: new THREE.Color(0x2a89b8) },
       uSunColor: { value: new THREE.Color(0xffe6b0) },
       uFogColor: { value: new THREE.Color(0x88aacc) },
+      uWaterTint: { value: new THREE.Vector3(1, 1, 1) },
+      uUnderwater: { value: 0 },
     };
 
     const vertexShader = /* glsl */ `
