@@ -194,6 +194,7 @@ function Aquafulness() {
     setLeanEnabled(DEFAULTS.leanEnabled);
     setRegularWaves(DEFAULTS.regularWaves);
     setRegularCross(DEFAULTS.regularCross);
+    setRegularPeriod(DEFAULTS.regularPeriod);
     // timeOfDay is intentionally left untouched.
   };
 
