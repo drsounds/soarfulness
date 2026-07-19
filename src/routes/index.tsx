@@ -189,6 +189,7 @@ function Aquafulness() {
   useEffect(() => { regularRef.current = regularWaves; }, [regularWaves]);
   useEffect(() => { regularCrossRef.current = regularCross; }, [regularCross]);
   useEffect(() => { regularPeriodRef.current = regularPeriod; }, [regularPeriod]);
+  useEffect(() => { backdropRef.current = backdropIdx; }, [backdropIdx]);
 
   const resetToDefaults = () => {
     setWaveAmp(DEFAULTS.waveAmp);
