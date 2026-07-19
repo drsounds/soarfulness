@@ -25,10 +25,12 @@ export const Route = createFileRoute("/")({
 });
 
 // Gerstner-like sum of sines. Keep in sync with vertex shader.
-function waveHeight(x: number, z: number, t: number, amp: number, regular: boolean, cross: boolean) {
+function waveHeight(x: number, z: number, t: number, amp: number, regular: boolean, cross: boolean, period: number = 1) {
   if (regular) {
-    const rx = Math.sin(x * 0.12 + t * 0.9) * 2.6 * amp;
-    const rz = cross ? Math.sin(z * 0.09 + t * 0.7 + 1.1) * 1.4 * amp : 0;
+    const kx = 0.12 / period;
+    const kz = 0.09 / period;
+    const rx = Math.sin(x * kx + t * 0.9) * 2.6 * amp;
+    const rz = cross ? Math.sin(z * kz + t * 0.7 + 1.1) * 1.4 * amp : 0;
     return rx + rz;
   }
   const w1 = Math.sin(x * 0.12 + t * 0.9) * 1.0;
@@ -53,6 +55,7 @@ type Persisted = {
   leanEnabled: boolean;
   regularWaves: boolean;
   regularCross: boolean;
+  regularPeriod: number;
 };
 const WATER_TINTS: { name: string; rgb: [number, number, number] }[] = [
   { name: "Nordhav", rgb: [1, 1, 1] },
@@ -84,6 +87,7 @@ const DEFAULTS: Persisted = {
   leanEnabled: false,
   regularWaves: false,
   regularCross: true,
+  regularPeriod: 1,
 };
 function loadSettings(): Persisted {
   if (typeof window === "undefined") return DEFAULTS;
@@ -115,6 +119,7 @@ function Aquafulness() {
   const [leanEnabled, setLeanEnabled] = useState(initial.leanEnabled);
   const [regularWaves, setRegularWaves] = useState(initial.regularWaves);
   const [regularCross, setRegularCross] = useState(initial.regularCross);
+  const [regularPeriod, setRegularPeriod] = useState(initial.regularPeriod);
   // Rotation stick (yaw / pitch look) and wave-follow stick.
   const [rotStick, setRotStick] = useState({ x: 0, y: 0 });
   const [followStick, setFollowStick] = useState({ x: 0, y: 0 });
@@ -124,12 +129,12 @@ function Aquafulness() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -154,6 +159,7 @@ function Aquafulness() {
   const leanRef = useRef(leanEnabled);
   const regularRef = useRef(regularWaves);
   const regularCrossRef = useRef(regularCross);
+  const regularPeriodRef = useRef(regularPeriod);
   const rotStickRef = useRef({ x: 0, y: 0 });
   const followStickRef = useRef({ x: 0, y: 0 });
   const yawRef = useRef(0);
@@ -173,6 +179,7 @@ function Aquafulness() {
   useEffect(() => { leanRef.current = leanEnabled; }, [leanEnabled]);
   useEffect(() => { regularRef.current = regularWaves; }, [regularWaves]);
   useEffect(() => { regularCrossRef.current = regularCross; }, [regularCross]);
+  useEffect(() => { regularPeriodRef.current = regularPeriod; }, [regularPeriod]);
 
   const resetToDefaults = () => {
     setWaveAmp(DEFAULTS.waveAmp);
@@ -187,6 +194,7 @@ function Aquafulness() {
     setLeanEnabled(DEFAULTS.leanEnabled);
     setRegularWaves(DEFAULTS.regularWaves);
     setRegularCross(DEFAULTS.regularCross);
+    setRegularPeriod(DEFAULTS.regularPeriod);
     // timeOfDay is intentionally left untouched.
   };
 
@@ -283,6 +291,7 @@ function Aquafulness() {
       uUnderwater: { value: 0 },
       uRegular: { value: 0 },
       uCross: { value: 1 },
+      uPeriod: { value: 1 },
     };
 
     const vertexShader = /* glsl */ `
@@ -290,14 +299,16 @@ function Aquafulness() {
       uniform float uAmp;
       uniform float uRegular;
       uniform float uCross;
+      uniform float uPeriod;
       varying vec3 vWorldPos;
       varying vec3 vNormal;
 
       float wave(vec3 p, float t, float amp) {
         // Regular sine along x, with optional cross-axis sine so it doesn't
-        // look like a flat carpet when uRegular = 1.
-        float regX = sin(p.x * 0.12 + t * 0.9) * 2.6 * amp;
-        float regZ = sin(p.z * 0.09 + t * 0.7 + 1.1) * 1.4 * amp * uCross;
+        // look like a flat carpet when uRegular = 1. uPeriod scales the
+        // spatial wavelength (higher = longer, calmer swells).
+        float regX = sin(p.x * (0.12 / uPeriod) + t * 0.9) * 2.6 * amp;
+        float regZ = sin(p.z * (0.09 / uPeriod) + t * 0.7 + 1.1) * 1.4 * amp * uCross;
         float reg = regX + regZ;
 
         // Large primary swell (chaotic sum of sines)
@@ -546,6 +557,7 @@ function Aquafulness() {
       uniforms.uAmp.value = ampRef.current;
       uniforms.uRegular.value += ((regularRef.current ? 1 : 0) - uniforms.uRegular.value) * Math.min(1, dt * 4);
       uniforms.uCross.value += ((regularCrossRef.current ? 1 : 0) - uniforms.uCross.value) * Math.min(1, dt * 4);
+      uniforms.uPeriod.value += (regularPeriodRef.current - uniforms.uPeriod.value) * Math.min(1, dt * 4);
 
       const p = palette(todRef.current);
       uniforms.uSunDir.value.copy(p.sunDir);
@@ -582,7 +594,7 @@ function Aquafulness() {
 
       const camX = posRef.current.x;
       const camZ = posRef.current.z;
-      const surfaceY = waveHeight(camX, camZ, t, ampRef.current, regularRef.current, regularCrossRef.current);
+      const surfaceY = waveHeight(camX, camZ, t, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current);
       // Wave-synced buoyancy: camera is a damped spring pulled toward the
       // surface with gravity. Rising crests outrun the camera so it dips
       // below the surface ("pushed up through"); in the trough gravity
@@ -608,12 +620,12 @@ function Aquafulness() {
       prevSurfaceRef.current = surfaceY;
       const followY = followStickRef.current.y * surfVel * 0.35;
       const eps = 0.4;
-      const slopeX = (waveHeight(camX + eps, camZ, t, amp, regularRef.current, regularCrossRef.current) - surfaceY) / eps;
+      const slopeX = (waveHeight(camX + eps, camZ, t, amp, regularRef.current, regularCrossRef.current, regularPeriodRef.current) - surfaceY) / eps;
       const followX = followStickRef.current.x * slopeX * 1.2;
 
       camera.position.set(camX + followX, camYRef.current + followY, camZ);
       const lookZ = camZ - 20;
-      const lookY = waveHeight(camX, lookZ, t, amp, regularRef.current, regularCrossRef.current) + 0.4;
+      const lookY = waveHeight(camX, lookZ, t, amp, regularRef.current, regularCrossRef.current, regularPeriodRef.current) + 0.4;
       camera.lookAt(camX + followX, lookY, lookZ);
 
       // Rotation stick: yaw (x) + pitch (y). Integrate stick as angular velocity.
@@ -800,6 +812,12 @@ function Aquafulness() {
                 value={regularCross ? "PÅ" : "AV"}
                 onDec={() => setRegularCross(false)}
                 onInc={() => setRegularCross(true)}
+              />
+              <PadDial
+                label="VÅGPERIOD"
+                value={`${regularPeriod.toFixed(2)}x`}
+                onDec={() => setRegularPeriod((v) => Math.max(0.3, +(v - 0.1).toFixed(2)))}
+                onInc={() => setRegularPeriod((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
               />
             </div>
           </div>
