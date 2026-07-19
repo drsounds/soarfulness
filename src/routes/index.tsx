@@ -484,6 +484,17 @@ function Aquafulness() {
       skyUniforms.uSunColor.value.copy(uniforms.uSunColor.value);
       (scene.fog as THREE.FogExp2).color.copy(uniforms.uFogColor.value);
 
+      // Water tint + optional seafloor
+      const tint = WATER_TINTS[waterTintRef.current] ?? WATER_TINTS[0];
+      uniforms.uWaterTint.value.set(tint.rgb[0], tint.rgb[1], tint.rgb[2]);
+      const bot = BOTTOM_OPTIONS[bottomIdxRef.current] ?? BOTTOM_OPTIONS[0];
+      if (bot.rgb) {
+        floor.visible = true;
+        floorMat.color.setRGB(bot.rgb[0], bot.rgb[1], bot.rgb[2]);
+      } else {
+        floor.visible = false;
+      }
+
       // Apply joystick velocity (game-pad style): stick.y up = forward (-z), x = strafe
       const walkSpeed = 8; // m/s at full deflection
       posRef.current.x += stickRef.current.x * walkSpeed * dt;
