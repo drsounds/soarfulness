@@ -66,6 +66,7 @@ function Aquafulness() {
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(mount.clientWidth, mount.clientHeight);
+    renderer.setClearColor(0x032033, 1);
     mount.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
@@ -171,7 +172,7 @@ function Aquafulness() {
         col = mix(col, uFogColor, clamp(fogF, 0.0, 1.0));
 
         // Translucency — thinner (higher/steeper) crests let more light through
-        float alpha = clamp(0.72 + fres * 0.28 - height * 0.15, 0.55, 1.0);
+        float alpha = clamp(0.65 + fres * 0.35 - height * 0.35, 0.4, 1.0);
         gl_FragColor = vec4(col, alpha);
       }
     `;
@@ -315,22 +316,25 @@ function Aquafulness() {
       // Buoyancy — extra bobbing/float on top of the wave surface,
       // like a body being pushed up and pulled back by the water.
       const amp = ampRef.current;
+      // Stronger, multi-frequency buoyancy so it clearly feels like floating.
       const buoyBob =
-        Math.sin(t * 1.15) * 0.18 * (0.4 + amp) +
-        Math.sin(t * 0.47 + 1.7) * 0.11 * (0.3 + amp) +
-        Math.sin(t * 2.3 + 0.6) * 0.045;
+        Math.sin(t * 1.1) * 0.55 * (0.5 + amp) +
+        Math.sin(t * 0.47 + 1.7) * 0.35 * (0.4 + amp) +
+        Math.sin(t * 2.3 + 0.6) * 0.12;
       const eye = 1.2 + buoyBob;
       camera.position.set(camX, surfaceY + eye, camZ);
       const lookZ = camZ - 20;
       const lookY = waveHeight(camX, lookZ, t, amp) + 0.4;
       camera.lookAt(camX, lookY, lookZ);
 
-      // gentle pitch + roll from buoyancy and swell + stick strafe lean
-      const pitch = Math.sin(t * 0.9 + 0.4) * 0.03 * (0.3 + amp);
+      // pitch + roll from buoyancy and swell + stick strafe lean
+      const pitch =
+        Math.sin(t * 0.9 + 0.4) * 0.06 * (0.4 + amp) +
+        Math.cos(t * 1.4 + 2.1) * 0.03 * (0.3 + amp);
       camera.rotation.x += pitch;
       camera.rotation.z =
-        Math.sin(t * 0.6) * 0.035 * amp +
-        Math.cos(t * 0.83 + 1.1) * 0.02 * amp -
+        Math.sin(t * 0.6) * 0.07 * amp +
+        Math.cos(t * 0.83 + 1.1) * 0.04 * amp -
         stickRef.current.x * 0.08;
 
       sky.position.copy(camera.position);
