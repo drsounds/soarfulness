@@ -455,11 +455,9 @@ function Aquafulness() {
         // deeper -> louder (up to ~2.5x), faster ramp
         const depthMult = depth > 0 ? Math.min(1 + 0.35 * depth, 2.5) : 1;
         a.depthGain.gain.setTargetAtTime(depthMult, now, 0.12);
-        // deeper -> more muffled (lowpass closes), foam hiss fades
-        const lpFreq = depth > 0 ? Math.max(900 - 220 * depth, 260) : 900;
+        // deeper -> more muffled (lowpass closes)
+        const lpFreq = depth > 0 ? Math.max(18000 - 4000 * depth, 500) : 18000;
         a.lp.frequency.setTargetAtTime(lpFreq, now, 0.15);
-        const foamLevel = depth > 0 ? Math.max(0.08 - 0.04 * depth, 0) : 0.08;
-        a.foamGain.gain.setTargetAtTime(foamLevel, now, 0.15);
       }
 
       // Keep horizon level: no extra pitch/roll from buoyancy.
