@@ -506,7 +506,7 @@ function DPad({
   onRelease: () => void;
 }) {
   const bind = (fn: () => void) => ({
-    onPointerDown: (e: React.PointerEvent) => {
+    onPointerDown: (e: ReactPointerEvent) => {
       (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
       fn();
     },
