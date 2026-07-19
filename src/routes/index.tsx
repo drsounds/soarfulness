@@ -71,6 +71,93 @@ function Aquafulness() {
   useEffect(() => { heightRef.current = heightOffset; }, [heightOffset]);
   useEffect(() => { stickRef.current = stick; }, [stick]);
 
+  // Ocean sound synthesis — filtered brown-ish noise + slow swell LFO
+  useEffect(() => {
+    if (!audioOn) {
+      if (audioRef.current) {
+        const a = audioRef.current;
+        a.master.gain.cancelScheduledValues(a.ctx.currentTime);
+        a.master.gain.setTargetAtTime(0, a.ctx.currentTime, 0.4);
+        setTimeout(() => { a.ctx.close(); }, 600);
+        audioRef.current = null;
+      }
+      return;
+    }
+    const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const ctx = new Ctx();
+    // brown-ish noise buffer
+    const bufSize = 2 * ctx.sampleRate;
+    const buffer = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < bufSize; i++) {
+      const white = Math.random() * 2 - 1;
+      last = (last + 0.02 * white) / 1.02;
+      data[i] = last * 3.5;
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+    noise.loop = true;
+
+    // low shelf / hiss layer via two filters
+    const lp = ctx.createBiquadFilter();
+    lp.type = "lowpass";
+    lp.frequency.value = 900;
+    lp.Q.value = 0.6;
+
+    const hp = ctx.createBiquadFilter();
+    hp.type = "highpass";
+    hp.frequency.value = 120;
+
+    // swell gain modulated by LFO for wave-like whoosh
+    const swellGain = ctx.createGain();
+    swellGain.gain.value = 0.5;
+
+    const lfo = ctx.createOscillator();
+    lfo.frequency.value = 0.25;
+    const lfoGain = ctx.createGain();
+    lfoGain.gain.value = 0.35;
+    lfo.connect(lfoGain).connect(swellGain.gain);
+
+    // subtle high hiss (foam) layer
+    const foamHP = ctx.createBiquadFilter();
+    foamHP.type = "highpass";
+    foamHP.frequency.value = 2400;
+    const foamGain = ctx.createGain();
+    foamGain.gain.value = 0.08;
+
+    const master = ctx.createGain();
+    master.gain.value = 0;
+
+    noise.connect(hp).connect(lp).connect(swellGain).connect(master);
+    noise.connect(foamHP).connect(foamGain).connect(master);
+    master.connect(ctx.destination);
+
+    noise.start();
+    lfo.start();
+    master.gain.setTargetAtTime(audioVol, ctx.currentTime, 0.6);
+
+    audioRef.current = { ctx, master, lfo, lfoGain, swellGain };
+    return () => {
+      // cleanup handled by toggle-off branch
+    };
+  }, [audioOn]);
+
+  // React to volume + wave params
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a) return;
+    a.master.gain.setTargetAtTime(audioVol, a.ctx.currentTime, 0.2);
+  }, [audioVol]);
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a) return;
+    // sync swell tempo with wave speed, depth with amplitude
+    a.lfo.frequency.setTargetAtTime(0.15 + 0.4 * waveSpeed, a.ctx.currentTime, 0.3);
+    a.lfoGain.gain.setTargetAtTime(0.15 + 0.5 * Math.min(waveAmp, 2), a.ctx.currentTime, 0.3);
+  }, [waveSpeed, waveAmp]);
+
+
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
