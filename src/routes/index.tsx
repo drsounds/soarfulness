@@ -103,18 +103,19 @@ function Aquafulness() {
   const [audioVol, setAudioVol] = useState(initial.audioVol);
   const [waterTintIdx, setWaterTintIdx] = useState(initial.waterTintIdx);
   const [bottomIdx, setBottomIdx] = useState(initial.bottomIdx);
+  const [leanEnabled, setLeanEnabled] = useState(initial.leanEnabled);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Persist settings to localStorage whenever they change (SSR-safe, hydration-safe).
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, waterTintIdx, bottomIdx };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, waterTintIdx, bottomIdx, leanEnabled };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, waterTintIdx, bottomIdx]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, waterTintIdx, bottomIdx, leanEnabled]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
