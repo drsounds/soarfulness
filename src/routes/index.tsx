@@ -559,7 +559,7 @@ function Aquafulness() {
 
       const camX = posRef.current.x;
       const camZ = posRef.current.z;
-      const surfaceY = waveHeight(camX, camZ, t, ampRef.current);
+      const surfaceY = waveHeight(camX, camZ, t, ampRef.current, regularRef.current);
       // Wave-synced buoyancy: camera is a damped spring pulled toward the
       // surface with gravity. Rising crests outrun the camera so it dips
       // below the surface ("pushed up through"); in the trough gravity
