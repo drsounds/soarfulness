@@ -80,6 +80,7 @@ const DEFAULTS: Persisted = {
   waterTintIdx: 1,
   bottomIdx: 2,
   leanEnabled: false,
+  regularWaves: false,
 };
 function loadSettings(): Persisted {
   if (typeof window === "undefined") return DEFAULTS;
