@@ -66,6 +66,7 @@ function Aquafulness() {
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(mount.clientWidth, mount.clientHeight);
+    renderer.setClearColor(0x032033, 1);
     mount.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
