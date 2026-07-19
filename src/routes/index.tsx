@@ -522,6 +522,7 @@ function Aquafulness() {
       const t = waveT;
       uniforms.uTime.value = t;
       uniforms.uAmp.value = ampRef.current;
+      uniforms.uRegular.value += ((regularRef.current ? 1 : 0) - uniforms.uRegular.value) * Math.min(1, dt * 4);
 
       const p = palette(todRef.current);
       uniforms.uSunDir.value.copy(p.sunDir);
