@@ -556,6 +556,8 @@ function Aquafulness() {
       renderer.dispose();
       geo.dispose();
       mat.dispose();
+      floorGeo.dispose();
+      floorMat.dispose();
       skyGeo.dispose();
       skyMat.dispose();
       if (renderer.domElement.parentNode === mount) {
