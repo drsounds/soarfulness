@@ -282,6 +282,7 @@ function Aquafulness() {
       uWaterTint: { value: new THREE.Vector3(1, 1, 1) },
       uUnderwater: { value: 0 },
       uRegular: { value: 0 },
+      uCross: { value: 1 },
     };
 
     const vertexShader = /* glsl */ `
