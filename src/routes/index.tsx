@@ -721,6 +721,12 @@ function Aquafulness() {
                 onDec={() => setBottomIdx((i) => (i - 1 + BOTTOM_OPTIONS.length) % BOTTOM_OPTIONS.length)}
                 onInc={() => setBottomIdx((i) => (i + 1) % BOTTOM_OPTIONS.length)}
               />
+              <PadDial
+                label="ROTERING"
+                value={leanEnabled ? "FRAMÅTLUT" : "FIXERAD"}
+                onDec={() => setLeanEnabled(false)}
+                onInc={() => setLeanEnabled(true)}
+              />
             </div>
           </div>
         </div>
