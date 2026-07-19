@@ -873,13 +873,17 @@ function PadDial({
 function Joystick({
   onChange,
   value,
+  label = "NAV",
+  positionClass = "bottom-6 left-6",
 }: {
   onChange: (v: { x: number; y: number }) => void;
   value: { x: number; y: number };
+  label?: string;
+  positionClass?: string;
 }) {
   const baseRef = useRef<HTMLDivElement>(null);
   const activeId = useRef<number | null>(null);
-  const radius = 56;
+  const radius = 42;
 
   const setFromPointer = (clientX: number, clientY: number) => {
     const base = baseRef.current;
@@ -898,7 +902,7 @@ function Joystick({
   };
 
   return (
-    <div className="pointer-events-none absolute bottom-6 left-6 z-10 select-none">
+    <div className={`pointer-events-none absolute z-10 select-none ${positionClass}`}>
       <div
         ref={baseRef}
         onPointerDown={(e) => {
@@ -920,18 +924,18 @@ function Joystick({
           activeId.current = null;
           onChange({ x: 0, y: 0 });
         }}
-        className="pointer-events-auto relative h-32 w-32 touch-none rounded-full border border-white/20 bg-black/35 backdrop-blur-md"
+        className="pointer-events-auto relative h-24 w-24 touch-none rounded-full border border-white/20 bg-black/35 backdrop-blur-md"
         style={{ boxShadow: "inset 0 0 40px rgba(255,255,255,0.05)" }}
       >
         <div className="pointer-events-none absolute inset-3 rounded-full border border-white/10" />
         <div
-          className="pointer-events-none absolute left-1/2 top-1/2 h-12 w-12 rounded-full border border-white/30 bg-white/80 shadow-[0_0_24px_rgba(255,255,255,0.35)]"
+          className="pointer-events-none absolute left-1/2 top-1/2 h-9 w-9 rounded-full border border-white/30 bg-white/80 shadow-[0_0_24px_rgba(255,255,255,0.35)]"
           style={{
             transform: `translate(calc(-50% + ${value.x * radius}px), calc(-50% + ${-value.y * radius}px))`,
           }}
         />
-        <span className="pointer-events-none absolute inset-x-0 top-1 text-center text-[9px] font-light tracking-[0.3em] text-white/50">
-          NAV
+        <span className="pointer-events-none absolute inset-x-0 top-1 text-center text-[8px] font-light tracking-[0.28em] text-white/60">
+          {label}
         </span>
       </div>
     </div>
