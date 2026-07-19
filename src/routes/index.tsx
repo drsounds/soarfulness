@@ -81,7 +81,7 @@ const BACKDROPS: { name: string; url: string | null }[] = [
 ];
 const DEFAULTS: Persisted = {
   waveAmp: 1.25,
-  timeOfDay: 0.35,
+  timeOfDay: 0.5,
   waveSpeed: 3,
   bobSpeed: 2.8,
   buoyAmp: 2.8,
