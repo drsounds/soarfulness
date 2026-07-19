@@ -343,14 +343,22 @@ function Aquafulness() {
       void main() {
         vec3 p = position;
         vec4 wpBase = modelMatrix * vec4(p, 1.0);
-        float h = wave(wpBase.xyz, uTime, uAmp);
+
+        // Distance-based amplitude falloff — far triangles get very thin at
+        // grazing angles and alias into jagged spikes on the horizon. Fade
+        // waves smoothly to flat before they hit the plane edge / fog wall.
+        float distXZ = length(wpBase.xz - cameraPosition.xz);
+        float ampFade = 1.0 - smoothstep(60.0, 220.0, distXZ);
+        float ampF = uAmp * ampFade;
+
+        float h = wave(wpBase.xyz, uTime, ampF);
         p.y += h;
 
         // approximate normal via finite differences — small epsilon so
         // the ripples contribute crisp shading.
         float e = 0.22;
-        float hx = wave(wpBase.xyz + vec3(e, 0.0, 0.0), uTime, uAmp);
-        float hz = wave(wpBase.xyz + vec3(0.0, 0.0, e), uTime, uAmp);
+        float hx = wave(wpBase.xyz + vec3(e, 0.0, 0.0), uTime, ampF);
+        float hz = wave(wpBase.xyz + vec3(0.0, 0.0, e), uTime, ampF);
         vec3 n = normalize(vec3(h - hx, e, h - hz));
 
         vec4 wp = modelMatrix * vec4(p, 1.0);
@@ -358,6 +366,7 @@ function Aquafulness() {
         vNormal = n;
         gl_Position = projectionMatrix * viewMatrix * wp;
       }
+
     `;
 
     const fragmentShader = /* glsl */ `
