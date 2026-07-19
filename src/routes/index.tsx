@@ -37,6 +37,8 @@ function Aquafulness() {
   const [waveAmp, setWaveAmp] = useState(0.6);
   const [timeOfDay, setTimeOfDay] = useState(0.35);
   const [waveSpeed, setWaveSpeed] = useState(1);
+  const [buoyAmp, setBuoyAmp] = useState(1);
+  const [heightOffset, setHeightOffset] = useState(1.2);
   // Live joystick vector (visual state) — kept in state so the thumb renders.
   const [stick, setStick] = useState({ x: 0, y: 0 });
 
@@ -44,20 +46,16 @@ function Aquafulness() {
   const ampRef = useRef(waveAmp);
   const todRef = useRef(timeOfDay);
   const speedRef = useRef(waveSpeed);
+  const buoyRef = useRef(buoyAmp);
+  const heightRef = useRef(heightOffset);
   const stickRef = useRef({ x: 0, y: 0 });
   const posRef = useRef({ x: 0, z: 0 });
-  useEffect(() => {
-    ampRef.current = waveAmp;
-  }, [waveAmp]);
-  useEffect(() => {
-    todRef.current = timeOfDay;
-  }, [timeOfDay]);
-  useEffect(() => {
-    speedRef.current = waveSpeed;
-  }, [waveSpeed]);
-  useEffect(() => {
-    stickRef.current = stick;
-  }, [stick]);
+  useEffect(() => { ampRef.current = waveAmp; }, [waveAmp]);
+  useEffect(() => { todRef.current = timeOfDay; }, [timeOfDay]);
+  useEffect(() => { speedRef.current = waveSpeed; }, [waveSpeed]);
+  useEffect(() => { buoyRef.current = buoyAmp; }, [buoyAmp]);
+  useEffect(() => { heightRef.current = heightOffset; }, [heightOffset]);
+  useEffect(() => { stickRef.current = stick; }, [stick]);
 
   useEffect(() => {
     const mount = mountRef.current;
