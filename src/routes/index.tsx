@@ -215,11 +215,22 @@ function Aquafulness() {
       varying vec3 vNormal;
 
       float wave(vec3 p, float t, float amp) {
+        // Large primary swell
         float w1 = sin(p.x * 0.12 + t * 0.9) * 1.0;
         float w2 = sin(p.z * 0.17 + t * 0.7 + 1.3) * 0.75;
         float w3 = sin((p.x * 0.22 + p.z * 0.19) + t * 1.4 + 2.1) * 0.5;
         float w4 = sin((p.x * 0.31 - p.z * 0.11) + t * 1.8 + 0.4) * 0.35;
-        return (w1 + w2 + w3 + w4) * amp;
+        float big = (w1 + w2 + w3 + w4) * amp;
+
+        // Small ripples on top of the swell — independent of amp so they
+        // stay as fine surface texture rather than growing with the waves.
+        float r1 = sin(p.x * 0.85 + p.z * 0.42 + t * 2.6) * 0.06;
+        float r2 = sin(p.x * 0.55 - p.z * 0.95 + t * 3.1 + 1.7) * 0.05;
+        float r3 = sin((p.x * 1.35 + p.z * 1.15) + t * 3.8 + 0.6) * 0.035;
+        float r4 = sin((p.x * 1.9 - p.z * 1.6) + t * 4.7 + 2.3) * 0.022;
+        float ripples = r1 + r2 + r3 + r4;
+
+        return big + ripples;
       }
 
       void main() {
@@ -228,8 +239,9 @@ function Aquafulness() {
         float h = wave(wpBase.xyz, uTime, uAmp);
         p.y += h;
 
-        // approximate normal via finite differences
-        float e = 0.5;
+        // approximate normal via finite differences — small epsilon so
+        // the ripples contribute crisp shading.
+        float e = 0.22;
         float hx = wave(wpBase.xyz + vec3(e, 0.0, 0.0), uTime, uAmp);
         float hz = wave(wpBase.xyz + vec3(0.0, 0.0, e), uTime, uAmp);
         vec3 n = normalize(vec3(h - hx, e, h - hz));
