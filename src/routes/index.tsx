@@ -718,6 +718,14 @@ function Aquafulness() {
 
   return (
     <main className="relative h-screen w-screen overflow-hidden bg-black">
+      {BACKDROPS[backdropIdx]?.url && (
+        <img
+          src={BACKDROPS[backdropIdx].url!}
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+        />
+      )}
       <div ref={mountRef} className="absolute inset-0" />
 
       {/* Settings toggle replaces the title */}
