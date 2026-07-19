@@ -289,12 +289,16 @@ function Aquafulness() {
       uniform float uTime;
       uniform float uAmp;
       uniform float uRegular;
+      uniform float uCross;
       varying vec3 vWorldPos;
       varying vec3 vNormal;
 
       float wave(vec3 p, float t, float amp) {
-        // Regular sine — jämn, periodisk vågform längs x-axeln.
-        float reg = sin(p.x * 0.12 + t * 0.9) * 2.6 * amp;
+        // Regular sine along x, with optional cross-axis sine so it doesn't
+        // look like a flat carpet when uRegular = 1.
+        float regX = sin(p.x * 0.12 + t * 0.9) * 2.6 * amp;
+        float regZ = sin(p.z * 0.09 + t * 0.7 + 1.1) * 1.4 * amp * uCross;
+        float reg = regX + regZ;
 
         // Large primary swell (chaotic sum of sines)
         float w1 = sin(p.x * 0.12 + t * 0.9) * 1.0;
