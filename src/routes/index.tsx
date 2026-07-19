@@ -677,6 +677,12 @@ function Aquafulness() {
 
       sky.position.copy(camera.position);
 
+      // Optional backdrop: hide sky dome & clear alpha so a DOM image
+      // shows through behind the WebGL scene.
+      const useBackdrop = backdropRef.current > 0;
+      sky.visible = !useBackdrop;
+      renderer.setClearColor(0x032033, useBackdrop ? 0 : 1);
+
       renderer.render(scene, camera);
       raf = requestAnimationFrame(animate);
       clock.getDelta();
