@@ -172,7 +172,7 @@ function Aquafulness() {
         col = mix(col, uFogColor, clamp(fogF, 0.0, 1.0));
 
         // Translucency — thinner (higher/steeper) crests let more light through
-        float alpha = clamp(0.72 + fres * 0.28 - height * 0.15, 0.55, 1.0);
+        float alpha = clamp(0.65 + fres * 0.35 - height * 0.35, 0.4, 1.0);
         gl_FragColor = vec4(col, alpha);
       }
     `;
