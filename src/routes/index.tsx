@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import waterAsset from "@/assets/water.mp3.asset.json";
 
@@ -938,44 +938,6 @@ function Joystick({
           {label}
         </span>
       </div>
-    </div>
-  );
-}
-
-function DPad({
-  onForward,
-  onBack,
-  onRelease,
-}: {
-  onForward: () => void;
-  onBack: () => void;
-  onRelease: () => void;
-}) {
-  const bind = (fn: () => void) => ({
-    onPointerDown: (e: ReactPointerEvent) => {
-      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-      fn();
-    },
-    onPointerUp: onRelease,
-    onPointerCancel: onRelease,
-  });
-  return (
-    <div className="pointer-events-none absolute bottom-6 right-6 z-10 flex select-none flex-col items-center gap-2">
-      <button
-        {...bind(onForward)}
-        className="pointer-events-auto h-14 w-14 touch-none rounded-full border border-white/20 bg-black/40 text-white backdrop-blur-md transition active:scale-95 active:bg-white/15"
-        aria-label="Framåt"
-      >
-        ▲
-      </button>
-      <span className="text-[9px] font-light tracking-[0.3em] text-white/50">DRIV</span>
-      <button
-        {...bind(onBack)}
-        className="pointer-events-auto h-14 w-14 touch-none rounded-full border border-white/20 bg-black/40 text-white backdrop-blur-md transition active:scale-95 active:bg-white/15"
-        aria-label="Bakåt"
-      >
-        ▼
-      </button>
     </div>
   );
 }
