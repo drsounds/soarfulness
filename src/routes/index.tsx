@@ -616,88 +616,102 @@ function Aquafulness() {
     <main className="relative h-screen w-screen overflow-hidden bg-black">
       <div ref={mountRef} className="absolute inset-0" />
 
-      {/* Top HUD chips — game overlay style */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-col items-center gap-3 px-4 pt-4">
-        <div className="flex items-baseline gap-3 text-white drop-shadow">
-          <span className="text-[10px] font-light tracking-[0.4em] text-white/60">
-            AQUAFULNESS
-          </span>
-          <button
-            onClick={resetToDefaults}
-            className="pointer-events-auto rounded-full border border-white/20 bg-black/40 px-3 py-1 text-[9px] font-light tracking-wider text-white/80 backdrop-blur-md transition active:scale-95 active:bg-white/15"
-            aria-label="Återställ reglage till standardvärden"
-            title="Återställ reglage (tid på dygnet påverkas inte)"
-          >
-            ÅTERSTÄLL
-          </button>
-        </div>
-        <div className="pointer-events-auto flex flex-wrap justify-center gap-2">
-          <PadDial
-            label="VÅG"
-            value={`${waveAmp.toFixed(2)}m`}
-            onDec={() => setWaveAmp((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
-            onInc={() => setWaveAmp((v) => Math.min(2, +(v + 0.05).toFixed(2)))}
-          />
-          <PadDial
-            label="TID"
-            value={todLabel}
-            onDec={() => setTimeOfDay((v) => (v - 0.02 + 1) % 1)}
-            onInc={() => setTimeOfDay((v) => (v + 0.02) % 1)}
-          />
-          <PadDial
-            label="TEMPO"
-            value={`${waveSpeed.toFixed(2)}×`}
-            onDec={() => setWaveSpeed((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
-            onInc={() => setWaveSpeed((v) => Math.min(3, +(v + 0.1).toFixed(2)))}
-          />
-          <PadDial
-            label="HÖJD"
-            value={`${heightOffset >= 0 ? "+" : ""}${heightOffset.toFixed(2)}m`}
-            onDec={() => setHeightOffset((v) => Math.max(-5, +(v - 0.2).toFixed(2)))}
-            onInc={() => setHeightOffset((v) => Math.min(5, +(v + 0.2).toFixed(2)))}
-          />
-          <PadDial
-            label="GUPP"
-            value={`${buoyAmp.toFixed(2)}×`}
-            onDec={() => setBuoyAmp((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
-            onInc={() => setBuoyAmp((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
-          />
-          <PadDial
-            label="GUPP TEMPO"
-            value={`${bobSpeed.toFixed(2)}×`}
-            onDec={() => setBobSpeed((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
-            onInc={() => setBobSpeed((v) => Math.min(5, +(v + 0.1).toFixed(2)))}
-          />
-          <PadDial
-            label={audioOn ? "LJUD PÅ" : "LJUD AV"}
-            value={audioOn ? `${Math.round(audioVol * 100)}%` : "—"}
-            onDec={() => {
-              if (!audioOn) { setAudioOn(true); return; }
-              setAudioVol((v) => {
-                const next = +(v - 0.1).toFixed(2);
-                if (next <= 0) { setAudioOn(false); return 0; }
-                return next;
-              });
-            }}
-            onInc={() => {
-              if (!audioOn) { setAudioOn(true); return; }
-              setAudioVol((v) => Math.min(1, +(v + 0.1).toFixed(2)));
-            }}
-          />
-          <PadDial
-            label="VATTEN"
-            value={WATER_TINTS[waterTintIdx].name}
-            onDec={() => setWaterTintIdx((i) => (i - 1 + WATER_TINTS.length) % WATER_TINTS.length)}
-            onInc={() => setWaterTintIdx((i) => (i + 1) % WATER_TINTS.length)}
-          />
-          <PadDial
-            label="BOTTEN"
-            value={BOTTOM_OPTIONS[bottomIdx].name}
-            onDec={() => setBottomIdx((i) => (i - 1 + BOTTOM_OPTIONS.length) % BOTTOM_OPTIONS.length)}
-            onInc={() => setBottomIdx((i) => (i + 1) % BOTTOM_OPTIONS.length)}
-          />
-        </div>
+      {/* Settings toggle replaces the title */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-col items-center px-4 pt-4">
+        <button
+          onClick={() => setSettingsOpen((s) => !s)}
+          className="pointer-events-auto rounded-full border border-white/20 bg-black/40 px-5 py-2 text-[10px] font-light tracking-[0.35em] text-white/90 backdrop-blur-md transition active:scale-95 active:bg-white/15"
+          aria-label={settingsOpen ? "Stäng inställningar" : "Öppna inställningar"}
+          aria-expanded={settingsOpen}
+        >
+          {settingsOpen ? "STÄNG" : "SETTINGS"}
+        </button>
       </div>
+
+      {/* Collapsible settings panel */}
+      {settingsOpen && (
+        <div className="pointer-events-auto absolute inset-x-0 top-14 z-20 mx-auto max-w-2xl px-4">
+          <div className="max-h-[70vh] overflow-y-auto rounded-3xl border border-white/15 bg-black/60 p-4 shadow-2xl backdrop-blur-xl">
+            <div className="mb-3 flex items-center justify-between text-white/90">
+              <span className="text-[10px] font-light tracking-[0.4em] text-white/60">INSTÄLLNINGAR</span>
+              <button
+                onClick={resetToDefaults}
+                className="rounded-full border border-white/20 bg-white/5 px-3 py-1 text-[9px] font-light tracking-wider text-white/80 transition active:scale-95 active:bg-white/15"
+                aria-label="Återställ reglage till standardvärden"
+                title="Återställ reglage (tid på dygnet påverkas inte)"
+              >
+                ÅTERSTÄLL
+              </button>
+            </div>
+            <div className="flex flex-wrap justify-center gap-2">
+              <PadDial
+                label="VÅG"
+                value={`${waveAmp.toFixed(2)}m`}
+                onDec={() => setWaveAmp((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                onInc={() => setWaveAmp((v) => Math.min(2, +(v + 0.05).toFixed(2)))}
+              />
+              <PadDial
+                label="TID"
+                value={todLabel}
+                onDec={() => setTimeOfDay((v) => (v - 0.02 + 1) % 1)}
+                onInc={() => setTimeOfDay((v) => (v + 0.02) % 1)}
+              />
+              <PadDial
+                label="TEMPO"
+                value={`${waveSpeed.toFixed(2)}×`}
+                onDec={() => setWaveSpeed((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
+                onInc={() => setWaveSpeed((v) => Math.min(3, +(v + 0.1).toFixed(2)))}
+              />
+              <PadDial
+                label="HÖJD"
+                value={`${heightOffset >= 0 ? "+" : ""}${heightOffset.toFixed(2)}m`}
+                onDec={() => setHeightOffset((v) => Math.max(-5, +(v - 0.2).toFixed(2)))}
+                onInc={() => setHeightOffset((v) => Math.min(5, +(v + 0.2).toFixed(2)))}
+              />
+              <PadDial
+                label="GUPP"
+                value={`${buoyAmp.toFixed(2)}×`}
+                onDec={() => setBuoyAmp((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
+                onInc={() => setBuoyAmp((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
+              />
+              <PadDial
+                label="GUPP TEMPO"
+                value={`${bobSpeed.toFixed(2)}×`}
+                onDec={() => setBobSpeed((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
+                onInc={() => setBobSpeed((v) => Math.min(5, +(v + 0.1).toFixed(2)))}
+              />
+              <PadDial
+                label={audioOn ? "LJUD PÅ" : "LJUD AV"}
+                value={audioOn ? `${Math.round(audioVol * 100)}%` : "—"}
+                onDec={() => {
+                  if (!audioOn) { setAudioOn(true); return; }
+                  setAudioVol((v) => {
+                    const next = +(v - 0.1).toFixed(2);
+                    if (next <= 0) { setAudioOn(false); return 0; }
+                    return next;
+                  });
+                }}
+                onInc={() => {
+                  if (!audioOn) { setAudioOn(true); return; }
+                  setAudioVol((v) => Math.min(1, +(v + 0.1).toFixed(2)));
+                }}
+              />
+              <PadDial
+                label="VATTEN"
+                value={WATER_TINTS[waterTintIdx].name}
+                onDec={() => setWaterTintIdx((i) => (i - 1 + WATER_TINTS.length) % WATER_TINTS.length)}
+                onInc={() => setWaterTintIdx((i) => (i + 1) % WATER_TINTS.length)}
+              />
+              <PadDial
+                label="BOTTEN"
+                value={BOTTOM_OPTIONS[bottomIdx].name}
+                onDec={() => setBottomIdx((i) => (i - 1 + BOTTOM_OPTIONS.length) % BOTTOM_OPTIONS.length)}
+                onInc={() => setBottomIdx((i) => (i + 1) % BOTTOM_OPTIONS.length)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Left joystick */}
       <Joystick onChange={setStick} value={stick} />
