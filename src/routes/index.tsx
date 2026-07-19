@@ -268,7 +268,7 @@ function Aquafulness() {
     const mount = mountRef.current;
     if (!mount) return;
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(mount.clientWidth, mount.clientHeight);
     renderer.setClearColor(0x032033, 1);
