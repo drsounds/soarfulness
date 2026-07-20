@@ -285,22 +285,27 @@ function Aquafulness() {
   }, [audioSyncSpeed, waveSpeed]);
 
   // Screen Wake Lock: keep the display awake while the app is active.
-  // We re-request when the tab becomes visible again, because the lock is
-  // automatically released by the browser when the page is hidden.
+  // The lock is automatically released when the page is hidden, so we
+  // re-request it when the tab becomes visible again.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const nav = navigator as Navigator & { wakeLock?: { request: (type: "screen") => Promise<WakeLockSentinel> } };
     if (!nav.wakeLock) return;
 
     let sentinel: WakeLockSentinel | null = null;
-    let cancelled = false;
+    let active = true;
 
     const request = async () => {
-      if (!wakeLockRef.current || sentinel || document.hidden) return;
+      if (!wakeLock || document.hidden) return;
       try {
-        sentinel = await nav.wakeLock!.request("screen");
-        sentinel.addEventListener("release", () => {
-          if (!cancelled) sentinel = null;
+        const s = await nav.wakeLock!.request("screen");
+        if (!active) {
+          s.release().catch(() => { /* noop */ });
+          return;
+        }
+        sentinel = s;
+        s.addEventListener("release", () => {
+          sentinel = null;
         });
       } catch {
         // User gesture or permission may be missing — silently fail.
@@ -326,23 +331,10 @@ function Aquafulness() {
     document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
-      cancelled = true;
+      active = false;
       document.removeEventListener("visibilitychange", handleVisibility);
       release();
     };
-  }, []);
-
-  // Re-request or release wake lock when the user toggles the setting.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const nav = navigator as Navigator & { wakeLock?: { request: (type: "screen") => Promise<WakeLockSentinel> } };
-    if (!nav.wakeLock) return;
-    if (wakeLock) {
-      nav.wakeLock.request("screen").catch(() => { /* noop */ });
-    } else {
-      // The browser only exposes the active sentinel via a fresh request,
-      // so we rely on the main effect above to track and release it.
-    }
   }, [wakeLock]);
 
 
