@@ -314,6 +314,9 @@ function Aquafulness() {
     setWaveDir(DEFAULTS.waveDir);
     setFloorDepth(DEFAULTS.floorDepth);
     setFloorTexture(DEFAULTS.floorTexture);
+    setVortexMode(DEFAULTS.vortexMode);
+    setVortexOpening(DEFAULTS.vortexOpening);
+    setVortexRadius(DEFAULTS.vortexRadius);
     // timeOfDay is intentionally left untouched.
   };
 
