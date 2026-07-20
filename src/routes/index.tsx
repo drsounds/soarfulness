@@ -725,8 +725,10 @@ function Aquafulness() {
       const followX = followStickRef.current.x * slopeX * 1.2;
 
       camera.position.set(camX + followX, camYRef.current + followY, camZ);
+      // Keep the look direction perfectly level so wave crests in front of
+      // the camera don't tilt the horizon up/down when riding a swell.
       const lookZ = camZ - 20;
-      const lookY = waveHeight(camX, lookZ, t, amp, regularRef.current, regularCrossRef.current, regularPeriodRef.current) + 0.4;
+      const lookY = camera.position.y;
       camera.lookAt(camX + followX, lookY, lookZ);
 
       // Rotation stick: yaw (x) + pitch (y). Integrate stick as angular velocity.
