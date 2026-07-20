@@ -1374,6 +1374,42 @@ function Aquafulness() {
                 onInc={() => setFloorTexture(true)}
               />
               <PadDial
+                label="LJUS"
+                mode="number"
+                value={`${floorBrightness.toFixed(2)}x`}
+                rawValue={floorBrightness}
+                onSet={(v) => setFloorBrightness(Math.max(0.1, Math.min(2.5, v)))}
+                min={0.1}
+                max={2.5}
+                step={0.05}
+                onDec={() => setFloorBrightness((v) => Math.max(0.1, +(v - 0.05).toFixed(2)))}
+                onInc={() => setFloorBrightness((v) => Math.min(2.5, +(v + 0.05).toFixed(2)))}
+              />
+              <PadDial
+                label="TINT"
+                mode="number"
+                value={floorTint.toFixed(2)}
+                rawValue={floorTint}
+                onSet={(v) => setFloorTint(Math.max(0, Math.min(2, v)))}
+                min={0}
+                max={2}
+                step={0.05}
+                onDec={() => setFloorTint((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                onInc={() => setFloorTint((v) => Math.min(2, +(v + 0.05).toFixed(2)))}
+              />
+              <PadDial
+                label="TON"
+                mode="number"
+                value={`${floorHue.toFixed(0)}°`}
+                rawValue={floorHue}
+                onSet={(v) => setFloorHue(Math.max(-180, Math.min(180, v)))}
+                min={-180}
+                max={180}
+                step={5}
+                onDec={() => setFloorHue((v) => Math.max(-180, +(v - 5).toFixed(0)))}
+                onInc={() => setFloorHue((v) => Math.min(180, +(v + 5).toFixed(0)))}
+              />
+              <PadDial
                 label="ROTERING"
                 value={leanEnabled ? "FRAMÅTLUT" : "FIXERAD"}
                 onDec={() => setLeanEnabled(false)}
