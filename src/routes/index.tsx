@@ -508,6 +508,53 @@ function Aquafulness() {
     };
   }, [wakeLock]);
 
+  // Idle UI fade: hide overlays after inactivity, restore on any pointer input.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const IDLE_MS = 3500;
+    const bump = () => {
+      setUiVisible(true);
+      if (idleTimerRef.current) window.clearTimeout(idleTimerRef.current);
+      idleTimerRef.current = window.setTimeout(() => setUiVisible(false), IDLE_MS);
+    };
+    bump();
+    const opts: AddEventListenerOptions = { passive: true };
+    window.addEventListener("pointerdown", bump, opts);
+    window.addEventListener("pointermove", bump, opts);
+    window.addEventListener("touchstart", bump, opts);
+    window.addEventListener("keydown", bump);
+    return () => {
+      if (idleTimerRef.current) window.clearTimeout(idleTimerRef.current);
+      window.removeEventListener("pointerdown", bump);
+      window.removeEventListener("pointermove", bump);
+      window.removeEventListener("touchstart", bump);
+      window.removeEventListener("keydown", bump);
+    };
+  }, []);
+
+  // While settings panel is open, keep UI visible.
+  useEffect(() => {
+    if (settingsOpen) setUiVisible(true);
+  }, [settingsOpen]);
+
+  // Fullscreen state tracking.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const sync = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", sync);
+    return () => document.removeEventListener("fullscreenchange", sync);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (typeof document === "undefined") return;
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen?.().catch(() => { /* noop */ });
+    } else {
+      document.exitFullscreen?.().catch(() => { /* noop */ });
+    }
+  };
+
+
 
 
   useEffect(() => {
