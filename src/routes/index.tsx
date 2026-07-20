@@ -1398,12 +1398,12 @@ function Aquafulness() {
                 mode="number"
                 value={`${vortexSpeed.toFixed(2)}x`}
                 rawValue={vortexSpeed}
-                onSet={(v) => setVortexSpeed(Math.max(-3, Math.min(3, v)))}
+                onSet={(v) => setVortexSpeed(Math.max(-3, Math.min(10, v)))}
                 min={-3}
-                max={3}
+                max={10}
                 step={0.1}
                 onDec={() => setVortexSpeed((v) => Math.max(-3, +(v - 0.1).toFixed(2)))}
-                onInc={() => setVortexSpeed((v) => Math.min(3, +(v + 0.1).toFixed(2)))}
+                onInc={() => setVortexSpeed((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
               />
               <PadDial
                 label="BAKGRUND"
