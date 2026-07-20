@@ -1207,13 +1207,15 @@ function Aquafulness() {
         positionClass="bottom-6 left-44"
       />
 
-      {/* Wave-follow joystick (far right) */}
+      {/* Wave-follow joystick (far right) — sticky: håller sitt läge tills du drar tillbaka eller dubbelklickar */}
       <Joystick
         onChange={setFollowStick}
         value={followStick}
         label="VÅG-FÖLJ"
         positionClass="bottom-6 right-6"
+        sticky
       />
+
     </main>
   );
 }
