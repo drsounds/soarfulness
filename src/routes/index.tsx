@@ -783,10 +783,13 @@ function Aquafulness() {
         floor.visible = false;
       }
 
-      // Apply joystick velocity (game-pad style): stick.y up = forward (-z), x = strafe
+      // Apply joystick velocity (game-pad style): stick.y up = forward (-z), x = strafe.
+      // STRÖM-spaken lägger till en konstant drivkraft (drift) så kameran bärs
+      // med strömmen även när NAV är i vila.
       const walkSpeed = 8; // m/s at full deflection
-      posRef.current.x += stickRef.current.x * walkSpeed * dt;
-      posRef.current.z -= stickRef.current.y * walkSpeed * dt;
+      const driftSpeed = 2.2; // m/s at full deflection — mjukare än aktiv rörelse
+      posRef.current.x += (stickRef.current.x * walkSpeed + driftStickRef.current.x * driftSpeed) * dt;
+      posRef.current.z -= (stickRef.current.y * walkSpeed + driftStickRef.current.y * driftSpeed) * dt;
 
       const camX = posRef.current.x;
       const camZ = posRef.current.z;
