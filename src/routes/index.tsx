@@ -194,6 +194,7 @@ function Aquafulness() {
   const regularRef = useRef(regularWaves);
   const regularCrossRef = useRef(regularCross);
   const regularPeriodRef = useRef(regularPeriod);
+  const wavePeakRef = useRef(wavePeak);
   const backdropRef = useRef(backdropIdx);
   const wakeLockRef = useRef(wakeLock);
   const audioSpatialRef = useRef(audioSpatial);
