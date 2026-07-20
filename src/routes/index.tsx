@@ -90,6 +90,7 @@ type Persisted = {
   vortexMode: boolean;
   vortexOpening: number;
   vortexRadius: number;
+  vortexSpeed: number;
 };
 const WATER_TINTS: { name: string; rgb: [number, number, number] }[] = [
   { name: "Nordhav", rgb: [1, 1, 1] },
@@ -141,6 +142,7 @@ const DEFAULTS: Persisted = {
   vortexMode: false,
   vortexOpening: 14,
   vortexRadius: 26,
+  vortexSpeed: 1,
 };
 function loadSettings(): Persisted {
   if (typeof window === "undefined") return DEFAULTS;
