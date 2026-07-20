@@ -813,19 +813,14 @@ function Aquafulness() {
           vec3 base = uColor;
           if (uTextured > 0.001) {
             vec2 uv0 = vWorld.xz * uSandScale;
-            // Två oktaver – detaljerat lager + grovare roterat lager för att bryta tile-repetitionen.
             vec3 s1 = texture2D(uSandTex, uv0).rgb;
             mat2 rot = mat2(0.8, -0.6, 0.6, 0.8);
             vec3 s2 = texture2D(uSandTex, rot * uv0 * 0.25 + 0.13).rgb;
-            // Genomsnitt bevarar sandens naturliga ljushet (undviker mörk multiplikation).
             vec3 sand = (s1 + s2) * 0.5;
-            // Mild kontrast så kornen syns utan att gå ner i choklad-toner.
             sand = (sand - 0.5) * 1.15 + 0.55;
-            // Tint mot vald bottenfärg: mjuk multiplikation runt neutralton (mean ~0.5 i linjär sRGB).
-            sand *= uColor * 1.9;
-            // Lyft klarheten en aning så det känns som soligt bottenskikt.
+            // Tint styrs av uTintStrength: 0 = neutral sand, 1 = normal färg, 2 = kraftig.
+            sand *= mix(vec3(1.0), uColor * 1.9, clamp(uTintStrength, 0.0, 2.0));
             sand = clamp(sand, 0.0, 1.6);
-            // Kaustik-flimmer från vågorna ovanför.
             vec2 p = vWorld.xz;
             float caustic = 0.0;
             caustic += sin(p.x*0.9 + uTime*0.7 + vnoise(p*0.4)*4.0);
@@ -833,8 +828,14 @@ function Aquafulness() {
             caustic = pow(max(0.0, caustic*0.5 + 0.5), 3.0);
             sand += vec3(0.95, 0.88, 0.7) * caustic * 0.22;
             base = mix(uColor, sand, clamp(uTextured, 0.0, 1.0));
+          } else {
+            // Untextured: applicera tint-styrka som blend mot grå.
+            base = mix(vec3(0.5), uColor, clamp(uTintStrength, 0.0, 2.0));
           }
+          base = hueShift(base, uHueShift);
+          base *= uBrightness;
           gl_FragColor = vec4(base, 1.0);
+
           #include <fog_fragment>
         }
       `,
