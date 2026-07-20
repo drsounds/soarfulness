@@ -1113,8 +1113,14 @@ function Aquafulness() {
       const lift = floatLiftRef.current;
       // Dynamic dive uses the anticipated velocity so the camera starts
       // sinking as soon as the wave begins to rise (not mid-crest).
-      const diveOffset = Math.max(0, anticipVel) * sub * 0.6 * (0.6 + amp * 0.6);
-      const liftOffset = anticipVel * lift * 0.35 * (0.6 + amp * 0.6);
+      const sink = sinkDampRef.current;
+      const upVel = Math.max(0, anticipVel);
+      const downVel = Math.min(0, anticipVel);
+      // Dive on rising crests (unchanged). SJUNK scales how much the FLYT
+      // "lift" term also drags the camera down in the trough — 0 = no sink,
+      // 1 = symmetrical (previous behavior).
+      const diveOffset = upVel * sub * 0.6 * (0.6 + amp * 0.6);
+      const liftOffset = (upVel + downVel * sink) * lift * 0.35 * (0.6 + amp * 0.6);
       const targetY = surfaceY + heightRef.current - diveOffset + liftOffset;
       if (camYRef.current === null) camYRef.current = targetY;
       const k = 4 + 14 * bobSpeedRef.current; // stiffness (spring tempo)
