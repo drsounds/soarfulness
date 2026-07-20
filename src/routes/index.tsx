@@ -165,6 +165,8 @@ function Aquafulness() {
   const [backdropIdx, setBackdropIdx] = useState(initial.backdropIdx);
   const [wakeLock, setWakeLock] = useState(initial.wakeLock);
   // Rotation stick (yaw / pitch look) and wave-follow stick.
+  const [camFov, setCamFov] = useState(initial.camFov);
+  const [camNear, setCamNear] = useState(initial.camNear);
   const [rotStick, setRotStick] = useState({ x: 0, y: 0 });
   const [followStick, setFollowStick] = useState({ x: 0, y: 0 });
   const [settingsOpen, setSettingsOpen] = useState(false);
