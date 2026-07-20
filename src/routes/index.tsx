@@ -296,6 +296,10 @@ function Aquafulness() {
   useEffect(() => { waveDirRef.current = waveDir; }, [waveDir]);
   useEffect(() => { floorDepthRef.current = floorDepth; }, [floorDepth]);
   useEffect(() => { floorTextureRef.current = floorTexture; }, [floorTexture]);
+  useEffect(() => { floorBrightnessRef.current = floorBrightness; }, [floorBrightness]);
+  useEffect(() => { floorTintRef.current = floorTint; }, [floorTint]);
+  useEffect(() => { floorHueRef.current = floorHue; }, [floorHue]);
+
   useEffect(() => { vortexModeRef.current = vortexMode; }, [vortexMode]);
   useEffect(() => { vortexOpeningRef.current = vortexOpening; }, [vortexOpening]);
   useEffect(() => { vortexRadiusRef.current = vortexRadius; }, [vortexRadius]);
