@@ -211,6 +211,7 @@ function Aquafulness() {
     setAudioOn(DEFAULTS.audioOn);
     setAudioVol(DEFAULTS.audioVol);
     setAudioSyncSpeed(DEFAULTS.audioSyncSpeed);
+    setAudioSpatial(DEFAULTS.audioSpatial);
     setWaterTintIdx(DEFAULTS.waterTintIdx);
     setBottomIdx(DEFAULTS.bottomIdx);
     setLeanEnabled(DEFAULTS.leanEnabled);
