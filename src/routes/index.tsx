@@ -561,12 +561,34 @@ function Aquafulness() {
         float h = wave(wpBase.xyz, uTime, ampF, rippleFade);
         p.y += h;
 
+        float h = wave(wpBase.xyz, uTime, ampF, rippleFade);
+        p.y += h;
+
         // approximate normal via finite differences — small epsilon so
         // the ripples contribute crisp shading.
         float e = 0.22;
         float hx = wave(wpBase.xyz + vec3(e, 0.0, 0.0), uTime, ampF, rippleFade);
         float hz = wave(wpBase.xyz + vec3(0.0, 0.0, e), uTime, ampF, rippleFade);
         vec3 n = normalize(vec3(h - hx, e, h - hz));
+
+        // Vortex funnel: sink the mesh toward the center with a Gaussian well.
+        // Depth of the pit scales with the opening so the walls stay steep but
+        // proportional. Wave amplitude is damped inside the throat because the
+        // water there is "sucked down" and can't crest normally.
+        if (uVortex > 0.001) {
+          vec2 rvec = wpBase.xz - uVortexCenter;
+          float r = length(rvec);
+          float op = max(1.0, uVortexOpening);
+          float g = exp(-(r*r) / (op*op));
+          float pit = -op * 1.6 * g;
+          // Damp wave contribution in the throat so the funnel shape is clean.
+          p.y = mix(p.y, pit + h * (1.0 - g * 0.85), uVortex);
+          // Tilt the surface normal toward the center so shading follows the
+          // funnel walls (radial gradient of the Gaussian well).
+          float dg = -2.0 * g / (op * op);
+          vec3 nv = normalize(vec3(-rvec.x * dg * op * 1.6, 1.0, -rvec.y * dg * op * 1.6));
+          n = normalize(mix(n, nv, uVortex * 0.8));
+        }
 
         vec4 wp = modelMatrix * vec4(p, 1.0);
         vWorldPos = wp.xyz;
