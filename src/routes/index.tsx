@@ -74,6 +74,10 @@ type Persisted = {
   audioSyncSpeed: boolean;
   audioSpatial: boolean;
   waterTintIdx: number;
+  waterOpacity: number;
+  waterHue: number;
+  waterSat: number;
+  waterBright: number;
   bottomIdx: number;
   leanEnabled: boolean;
   regularWaves: boolean;
@@ -126,6 +130,10 @@ const DEFAULTS: Persisted = {
   audioSyncSpeed: false,
   audioSpatial: false,
   waterTintIdx: 1,
+  waterOpacity: 1,
+  waterHue: 0,
+  waterSat: 1,
+  waterBright: 1,
   bottomIdx: 0,
   leanEnabled: false,
   regularWaves: true,
