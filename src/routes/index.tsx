@@ -84,6 +84,8 @@ type Persisted = {
   camFov: number;
   camNear: number;
   waveDir: number;
+  floorDepth: number;
+  floorTexture: boolean;
 };
 const WATER_TINTS: { name: string; rgb: [number, number, number] }[] = [
   { name: "Nordhav", rgb: [1, 1, 1] },
@@ -130,6 +132,8 @@ const DEFAULTS: Persisted = {
   camFov: 65,
   camNear: 0.1,
   waveDir: 0,
+  floorDepth: 14,
+  floorTexture: false,
 };
 function loadSettings(): Persisted {
   if (typeof window === "undefined") return DEFAULTS;
@@ -173,6 +177,8 @@ function Aquafulness() {
   const [camFov, setCamFov] = useState(initial.camFov);
   const [camNear, setCamNear] = useState(initial.camNear);
   const [waveDir, setWaveDir] = useState(initial.waveDir);
+  const [floorDepth, setFloorDepth] = useState(initial.floorDepth);
+  const [floorTexture, setFloorTexture] = useState(initial.floorTexture);
   const [rotStick, setRotStick] = useState({ x: 0, y: 0 });
   const [driftStick, setDriftStick] = useState({ x: 0, y: 0 });
   const [waveDirStick, setWaveDirStick] = useState({ x: 0, y: 0 });
@@ -182,12 +188,12 @@ function Aquafulness() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -227,6 +233,8 @@ function Aquafulness() {
   const camFovRef = useRef(camFov);
   const camNearRef = useRef(camNear);
   const waveDirRef = useRef(waveDir);
+  const floorDepthRef = useRef(floorDepth);
+  const floorTextureRef = useRef(floorTexture);
   useEffect(() => { ampRef.current = waveAmp; }, [waveAmp]);
   useEffect(() => { todRef.current = timeOfDay; }, [timeOfDay]);
   useEffect(() => { speedRef.current = waveSpeed; }, [waveSpeed]);
@@ -251,6 +259,8 @@ function Aquafulness() {
   useEffect(() => { camFovRef.current = camFov; }, [camFov]);
   useEffect(() => { camNearRef.current = camNear; }, [camNear]);
   useEffect(() => { waveDirRef.current = waveDir; }, [waveDir]);
+  useEffect(() => { floorDepthRef.current = floorDepth; }, [floorDepth]);
+  useEffect(() => { floorTextureRef.current = floorTexture; }, [floorTexture]);
   // Håll VÅGRIKT-spakens visuella läge synkat med waveDir (t.ex. när dialen ändras
   // eller vid uppstart), men bara när spaken själv står i vila.
   useEffect(() => {
@@ -285,6 +295,8 @@ function Aquafulness() {
     setCamFov(DEFAULTS.camFov);
     setCamNear(DEFAULTS.camNear);
     setWaveDir(DEFAULTS.waveDir);
+    setFloorDepth(DEFAULTS.floorDepth);
+    setFloorTexture(DEFAULTS.floorTexture);
     // timeOfDay is intentionally left untouched.
   };
 
@@ -632,13 +644,90 @@ function Aquafulness() {
     const ocean = new THREE.Mesh(geo, mat);
     scene.add(ocean);
 
-    // Optional seafloor beneath the ocean plane.
-    const floorGeo = new THREE.PlaneGeometry(600, 600);
+    // Optional seafloor beneath the ocean plane. ShaderMaterial gör den
+    // procedurellt strukturerad (sandbankar, småsten, kaustik) när uTextured=1.
+    const floorGeo = new THREE.PlaneGeometry(600, 600, 32, 32);
     floorGeo.rotateX(-Math.PI / 2);
-    const floorMat = new THREE.MeshBasicMaterial({
-      color: 0xd8c078,
+    const floorUniforms = {
+      uColor: { value: new THREE.Color(0xd8c078) },
+      uTextured: { value: 0 },
+      uTime: { value: 0 },
+      uSunDir: { value: uniforms.uSunDir.value },
+      uFogColor: { value: uniforms.uFogColor.value },
+    };
+    const floorMat = new THREE.ShaderMaterial({
+      uniforms: floorUniforms,
       fog: true,
       side: THREE.DoubleSide,
+      transparent: false,
+      vertexShader: `
+        varying vec2 vUv;
+        varying vec3 vWorld;
+        #include <fog_pars_vertex>
+        void main() {
+          vUv = uv;
+          vec4 wp = modelMatrix * vec4(position, 1.0);
+          vWorld = wp.xyz;
+          vec4 mv = viewMatrix * wp;
+          gl_Position = projectionMatrix * mv;
+          #include <fog_vertex>
+        }
+      `,
+      fragmentShader: `
+        precision highp float;
+        varying vec2 vUv;
+        varying vec3 vWorld;
+        uniform vec3 uColor;
+        uniform float uTextured;
+        uniform float uTime;
+        uniform vec3 uSunDir;
+        #include <fog_pars_fragment>
+
+        // Cheap value-noise + fbm for procedural sand.
+        float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453123); }
+        float vnoise(vec2 p){
+          vec2 i = floor(p); vec2 f = fract(p);
+          float a = hash(i);
+          float b = hash(i + vec2(1.0,0.0));
+          float c = hash(i + vec2(0.0,1.0));
+          float d = hash(i + vec2(1.0,1.0));
+          vec2 u = f*f*(3.0-2.0*f);
+          return mix(a,b,u.x) + (c-a)*u.y*(1.0-u.x) + (d-b)*u.x*u.y;
+        }
+        float fbm(vec2 p){
+          float v = 0.0; float a = 0.5;
+          for (int i=0; i<5; i++){ v += a*vnoise(p); p *= 2.03; a *= 0.5; }
+          return v;
+        }
+
+        void main(){
+          vec3 base = uColor;
+          if (uTextured > 0.001) {
+            vec2 p = vWorld.xz;
+            // Longa sandbankar / ripples
+            float ripple = sin(p.x * 0.35 + fbm(p*0.12)*3.0) * 0.5 + 0.5;
+            ripple = pow(ripple, 2.2);
+            // Fina korn
+            float grain = fbm(p * 3.5);
+            // Storskaliga fläckar (mörkare partier, tång/skugga)
+            float patch = fbm(p * 0.06);
+            // Kaustik-flimmer från vågorna ovanför
+            float caustic = 0.0;
+            caustic += sin(p.x*0.9 + uTime*0.7 + fbm(p*0.4)*4.0);
+            caustic += sin(p.y*0.85 - uTime*0.55 + fbm(p*0.35 + 3.1)*4.0);
+            caustic = pow(max(0.0, caustic*0.5 + 0.5), 3.0);
+
+            vec3 lightSand = uColor * 1.18;
+            vec3 darkSand  = uColor * 0.55;
+            vec3 col = mix(darkSand, lightSand, ripple * 0.55 + grain * 0.6);
+            col = mix(col, col * 0.65, smoothstep(0.55, 0.85, patch));
+            col += vec3(0.9, 0.85, 0.7) * caustic * 0.22;
+            base = mix(uColor, col, clamp(uTextured, 0.0, 1.0));
+          }
+          gl_FragColor = vec4(base, 1.0);
+          #include <fog_fragment>
+        }
+      `,
     });
     const floor = new THREE.Mesh(floorGeo, floorMat);
     floor.position.y = -14;
@@ -787,7 +876,12 @@ function Aquafulness() {
       const bot = BOTTOM_OPTIONS[bottomIdxRef.current] ?? BOTTOM_OPTIONS[0];
       if (bot.rgb) {
         floor.visible = true;
-        floorMat.color.setRGB(bot.rgb[0], bot.rgb[1], bot.rgb[2]);
+        floorUniforms.uColor.value.setRGB(bot.rgb[0], bot.rgb[1], bot.rgb[2]);
+        floor.position.y = -floorDepthRef.current;
+        floorUniforms.uTime.value = t;
+        // Smooth blend av textur på/av så tonen inte snappar.
+        const target = floorTextureRef.current ? 1 : 0;
+        floorUniforms.uTextured.value += (target - floorUniforms.uTextured.value) * Math.min(1, dt * 4);
       } else {
         floor.visible = false;
       }
@@ -1101,6 +1195,24 @@ function Aquafulness() {
                 value={BOTTOM_OPTIONS[bottomIdx].name}
                 onDec={() => setBottomIdx((i) => (i - 1 + BOTTOM_OPTIONS.length) % BOTTOM_OPTIONS.length)}
                 onInc={() => setBottomIdx((i) => (i + 1) % BOTTOM_OPTIONS.length)}
+              />
+              <PadDial
+                label="DJUP"
+                mode="number"
+                value={`${floorDepth.toFixed(1)}m`}
+                rawValue={floorDepth}
+                onSet={(v) => setFloorDepth(Math.max(1, Math.min(60, v)))}
+                min={1}
+                max={60}
+                step={0.5}
+                onDec={() => setFloorDepth((v) => Math.max(1, +(v - 0.5).toFixed(2)))}
+                onInc={() => setFloorDepth((v) => Math.min(60, +(v + 0.5).toFixed(2)))}
+              />
+              <PadDial
+                label="TEXTUR"
+                value={floorTexture ? "PÅ" : "AV"}
+                onDec={() => setFloorTexture(false)}
+                onInc={() => setFloorTexture(true)}
               />
               <PadDial
                 label="ROTERING"
