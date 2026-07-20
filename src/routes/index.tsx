@@ -251,6 +251,15 @@ function Aquafulness() {
   useEffect(() => { camFovRef.current = camFov; }, [camFov]);
   useEffect(() => { camNearRef.current = camNear; }, [camNear]);
   useEffect(() => { waveDirRef.current = waveDir; }, [waveDir]);
+  // Håll VÅGRIKT-spakens visuella läge synkat med waveDir (t.ex. när dialen ändras
+  // eller vid uppstart), men bara när spaken själv står i vila.
+  useEffect(() => {
+    setWaveDirStick((s) => {
+      if (Math.hypot(s.x, s.y) > 0.15) return s;
+      const rad = (waveDir * Math.PI) / 180;
+      return { x: Math.sin(rad), y: Math.cos(rad) };
+    });
+  }, [waveDir]);
 
   const resetToDefaults = () => {
     setWaveAmp(DEFAULTS.waveAmp);
