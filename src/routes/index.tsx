@@ -25,13 +25,18 @@ export const Route = createFileRoute("/")({
   }),
 });
 
-// Trochoidal phase warp: p=1 → pure sine, p>1 → sharper crest / flatter trough
-// on the SAME wave (Gerstner-style vertical profile). Smooth everywhere, mean
-// stays at 0, and neighbouring wave components no longer create jagged
-// interference — only the crest of each individual wave gets pointier.
+// Rounded Gaussian crest boost: p=1 → pure sine, p>1 → a fuller, pointier
+// crest on the wave top only. Unlike the previous phase warp this does not
+// bunch the horizontal phase into near-vertical faces, which caused jagged
+// side-view artifacts at grazing camera angles.
 function shapedWave(theta: number, p: number) {
-  const q = Math.min(0.92, (p - 1) * 0.18);
-  return Math.sin(theta - q * Math.sin(theta));
+  const amount = Math.max(0, p - 1) * 0.16;
+  if (amount <= 0) return Math.sin(theta);
+  const wrapped = Math.atan2(Math.sin(theta - Math.PI / 2), Math.cos(theta - Math.PI / 2));
+  const width = 0.72;
+  const crest = Math.exp(-(wrapped * wrapped) / (2 * width * width));
+  const mean = 0.29;
+  return (Math.sin(theta) + amount * (crest - mean)) / (1 + amount * 0.28);
 }
 
 // Gerstner-like sum of sines. Keep in sync with vertex shader.
@@ -424,12 +429,15 @@ function Aquafulness() {
       varying vec3 vWorldPos;
       varying vec3 vNormal;
 
-      // Trochoidal phase warp — sharpens the crest of each individual wave
-      // without distorting the rest of the curve, so summed waves stay smooth
-      // instead of turning into jagged interference.
+      // Rounded Gaussian crest boost — sharpens the wave top without creating
+      // near-vertical phase-bunched faces that alias when viewed from the side.
       float shp(float theta) {
-        float q = min(0.92, (uPeak - 1.0) * 0.18);
-        return sin(theta - q * sin(theta));
+        float amount = max(0.0, uPeak - 1.0) * 0.16;
+        float wrapped = atan(sin(theta - 1.57079632679), cos(theta - 1.57079632679));
+        float width = 0.72;
+        float crest = exp(-(wrapped * wrapped) / (2.0 * width * width));
+        float mean = 0.29;
+        return (sin(theta) + amount * (crest - mean)) / (1.0 + amount * 0.28);
       }
 
       float wave(vec3 p, float t, float amp, float rippleFade) {
@@ -579,9 +587,10 @@ function Aquafulness() {
       vertexShader,
       fragmentShader,
       transparent: true,
-      depthWrite: false,
+      depthWrite: true,
       side: THREE.DoubleSide,
     });
+    mat.forceSinglePass = true;
     const ocean = new THREE.Mesh(geo, mat);
     scene.add(ocean);
 
