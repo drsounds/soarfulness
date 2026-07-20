@@ -340,6 +340,10 @@ function Aquafulness() {
     setWaveDir(DEFAULTS.waveDir);
     setFloorDepth(DEFAULTS.floorDepth);
     setFloorTexture(DEFAULTS.floorTexture);
+    setFloorBrightness(DEFAULTS.floorBrightness);
+    setFloorTint(DEFAULTS.floorTint);
+    setFloorHue(DEFAULTS.floorHue);
+
     setVortexMode(DEFAULTS.vortexMode);
     setVortexOpening(DEFAULTS.vortexOpening);
     setVortexRadius(DEFAULTS.vortexRadius);
