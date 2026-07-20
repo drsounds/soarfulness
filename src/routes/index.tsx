@@ -789,7 +789,8 @@ function Aquafulness() {
 
       const camX = posRef.current.x;
       const camZ = posRef.current.z;
-      const surfaceY = waveHeight(camX, camZ, t, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current);
+      const dirRad = (waveDirRef.current * Math.PI) / 180;
+      const surfaceY = waveHeight(camX, camZ, t, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad);
 
       // Compute wave vertical velocity first so buoyancy can react to it.
       if (prevSurfaceRef.current === null) prevSurfaceRef.current = surfaceY;
