@@ -243,6 +243,7 @@ function Aquafulness() {
     setRegularWaves(DEFAULTS.regularWaves);
     setRegularCross(DEFAULTS.regularCross);
     setRegularPeriod(DEFAULTS.regularPeriod);
+    setWavePeak(DEFAULTS.wavePeak);
     setBackdropIdx(DEFAULTS.backdropIdx);
     setWakeLock(DEFAULTS.wakeLock);
     // timeOfDay is intentionally left untouched.
