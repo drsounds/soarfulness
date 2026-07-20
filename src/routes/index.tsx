@@ -129,6 +129,7 @@ const DEFAULTS: Persisted = {
   wakeLock: false,
   camFov: 65,
   camNear: 0.1,
+  waveDir: 0,
 };
 function loadSettings(): Persisted {
   if (typeof window === "undefined") return DEFAULTS;
