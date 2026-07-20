@@ -11,6 +11,8 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { registerAppServiceWorker } from "../lib/register-sw";
+
 
 function NotFoundComponent() {
   return (
@@ -76,16 +78,21 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Ocean Wave Meditation" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+      { name: "theme-color", content: "#050b16" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-title", content: "Aquafulness" },
+      { title: "Aquafulness — Ocean Wave Meditation" },
       { name: "description", content: "A calming WebGL ocean where the camera drifts on the waves. Adjust swell, time of day, and wander across the sea." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Ocean Wave Meditation" },
+      { property: "og:title", content: "Aquafulness — Ocean Wave Meditation" },
       { property: "og:description", content: "A calming WebGL ocean where the camera drifts on the waves. Adjust swell, time of day, and wander across the sea." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@Lovable" },
-      { name: "twitter:title", content: "Ocean Wave Meditation" },
+      { name: "twitter:title", content: "Aquafulness — Ocean Wave Meditation" },
       { name: "twitter:description", content: "A calming WebGL ocean where the camera drifts on the waves. Adjust swell, time of day, and wander across the sea." },
     ],
     links: [
@@ -93,7 +100,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
+      { rel: "manifest", href: "/manifest.webmanifest" },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "apple-touch-icon", href: "/pwa-192.png" },
     ],
   }),
   shellComponent: RootShell,
@@ -118,6 +127,10 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    registerAppServiceWorker();
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
