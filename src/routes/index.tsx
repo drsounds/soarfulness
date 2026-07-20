@@ -59,6 +59,25 @@ function waveHeight(x: number, z: number, t: number, amp: number, regular: boole
   return (w1 + w2 + w3 + w4) * amp;
 }
 
+function smoothstep(edge0: number, edge1: number, x: number) {
+  const v = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
+  return v * v * (3 - 2 * v);
+}
+
+// Pure radial sine surface used in vortex mode. Keep in sync with the shader's
+// vortex block so the camera rides the same even wave that is rendered.
+function vortexSurfaceHeight(x: number, z: number, t: number, amp: number, period: number, opening: number) {
+  const op = Math.max(1, opening);
+  const r = Math.hypot(x, z);
+  const g = Math.exp(-(r * r) / (op * op));
+  const pit = -op * 1.6 * g;
+  const stableFade = 1 - smoothstep(220, 520, r);
+  const kR = 0.12 / period;
+  const phase = r * kR - t * 0.9;
+  const ring = Math.sin(phase) * 2.6 * amp * stableFade * (1 - g * 0.85);
+  return pit + ring;
+}
+
 const STORAGE_KEY = "aquafulness:settings:v1";
 type Persisted = {
   waveAmp: number;
