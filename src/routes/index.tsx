@@ -240,6 +240,8 @@ function Aquafulness() {
   useEffect(() => { backdropRef.current = backdropIdx; }, [backdropIdx]);
   useEffect(() => { wakeLockRef.current = wakeLock; }, [wakeLock]);
   useEffect(() => { audioSpatialRef.current = audioSpatial; }, [audioSpatial]);
+  useEffect(() => { camFovRef.current = camFov; }, [camFov]);
+  useEffect(() => { camNearRef.current = camNear; }, [camNear]);
 
   const resetToDefaults = () => {
     setWaveAmp(DEFAULTS.waveAmp);
