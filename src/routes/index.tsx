@@ -25,19 +25,25 @@ export const Route = createFileRoute("/")({
   }),
 });
 
+// Peaking shaper: p=1 → pure sine, p<1 → sharp peaks / flat troughs (Gerstner-ish).
+function shapeSine(s: number, p: number) {
+  const n = 0.5 + 0.5 * s;
+  return Math.pow(n, p) * 2 - 1;
+}
+
 // Gerstner-like sum of sines. Keep in sync with vertex shader.
-function waveHeight(x: number, z: number, t: number, amp: number, regular: boolean, cross: boolean, period: number = 1) {
+function waveHeight(x: number, z: number, t: number, amp: number, regular: boolean, cross: boolean, period: number = 1, peak: number = 1) {
   if (regular) {
     const kx = 0.12 / period;
     const kz = 0.09 / period;
-    const rx = Math.sin(x * kx + t * 0.9) * 2.6 * amp;
-    const rz = cross ? Math.sin(z * kz + t * 0.7 + 1.1) * 1.4 * amp : 0;
+    const rx = shapeSine(Math.sin(x * kx + t * 0.9), peak) * 2.6 * amp;
+    const rz = cross ? shapeSine(Math.sin(z * kz + t * 0.7 + 1.1), peak) * 1.4 * amp : 0;
     return rx + rz;
   }
-  const w1 = Math.sin(x * 0.12 + t * 0.9) * 1.0;
-  const w2 = Math.sin(z * 0.17 + t * 0.7 + 1.3) * 0.75;
-  const w3 = Math.sin((x * 0.22 + z * 0.19) + t * 1.4 + 2.1) * 0.5;
-  const w4 = Math.sin((x * 0.31 - z * 0.11) + t * 1.8 + 0.4) * 0.35;
+  const w1 = shapeSine(Math.sin(x * 0.12 + t * 0.9), peak) * 1.0;
+  const w2 = shapeSine(Math.sin(z * 0.17 + t * 0.7 + 1.3), peak) * 0.75;
+  const w3 = shapeSine(Math.sin((x * 0.22 + z * 0.19) + t * 1.4 + 2.1), peak) * 0.5;
+  const w4 = shapeSine(Math.sin((x * 0.31 - z * 0.11) + t * 1.8 + 0.4), peak) * 0.35;
   return (w1 + w2 + w3 + w4) * amp;
 }
 
