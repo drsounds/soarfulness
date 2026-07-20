@@ -408,6 +408,7 @@ function Aquafulness() {
       uRegular: { value: 0 },
       uCross: { value: 1 },
       uPeriod: { value: 1 },
+      uPeak: { value: 1 },
     };
 
     const vertexShader = /* glsl */ `
@@ -416,22 +417,29 @@ function Aquafulness() {
       uniform float uRegular;
       uniform float uCross;
       uniform float uPeriod;
+      uniform float uPeak;
       varying vec3 vWorldPos;
       varying vec3 vNormal;
+
+      // Sharpened sine: uPeak=1 → pure sine, uPeak<1 → peaked crests / flat troughs.
+      float shp(float s) {
+        float n = 0.5 + 0.5 * s;
+        return pow(n, uPeak) * 2.0 - 1.0;
+      }
 
       float wave(vec3 p, float t, float amp) {
         // Regular sine along x, with optional cross-axis sine so it doesn't
         // look like a flat carpet when uRegular = 1. uPeriod scales the
         // spatial wavelength (higher = longer, calmer swells).
-        float regX = sin(p.x * (0.12 / uPeriod) + t * 0.9) * 2.6 * amp;
-        float regZ = sin(p.z * (0.09 / uPeriod) + t * 0.7 + 1.1) * 1.4 * amp * uCross;
+        float regX = shp(sin(p.x * (0.12 / uPeriod) + t * 0.9)) * 2.6 * amp;
+        float regZ = shp(sin(p.z * (0.09 / uPeriod) + t * 0.7 + 1.1)) * 1.4 * amp * uCross;
         float reg = regX + regZ;
 
         // Large primary swell (chaotic sum of sines)
-        float w1 = sin(p.x * 0.12 + t * 0.9) * 1.0;
-        float w2 = sin(p.z * 0.17 + t * 0.7 + 1.3) * 0.75;
-        float w3 = sin((p.x * 0.22 + p.z * 0.19) + t * 1.4 + 2.1) * 0.5;
-        float w4 = sin((p.x * 0.31 - p.z * 0.11) + t * 1.8 + 0.4) * 0.35;
+        float w1 = shp(sin(p.x * 0.12 + t * 0.9)) * 1.0;
+        float w2 = shp(sin(p.z * 0.17 + t * 0.7 + 1.3)) * 0.75;
+        float w3 = shp(sin((p.x * 0.22 + p.z * 0.19) + t * 1.4 + 2.1)) * 0.5;
+        float w4 = shp(sin((p.x * 0.31 - p.z * 0.11) + t * 1.8 + 0.4)) * 0.35;
         float big = (w1 + w2 + w3 + w4) * amp;
 
         // Small ripples on top of the swell — independent of amp so they
