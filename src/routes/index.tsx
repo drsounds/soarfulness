@@ -1174,6 +1174,18 @@ function Aquafulness() {
                 onDec={() => setCamNear((v) => Math.max(0.001, +(v - 0.01).toFixed(3)))}
                 onInc={() => setCamNear((v) => Math.min(2, +(v + 0.01).toFixed(3)))}
               />
+              <PadDial
+                label="VÅGRIKTNING"
+                mode="number"
+                value={`${Math.round(((waveDir % 360) + 360) % 360)}°`}
+                rawValue={waveDir}
+                onSet={(v) => setWaveDir(((v % 360) + 360) % 360)}
+                min={0}
+                max={360}
+                step={5}
+                onDec={() => setWaveDir((v) => (((v - 15) % 360) + 360) % 360)}
+                onInc={() => setWaveDir((v) => (((v + 15) % 360) + 360) % 360)}
+              />
             </div>
           </div>
         </div>
