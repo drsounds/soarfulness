@@ -84,6 +84,8 @@ type Persisted = {
   camFov: number;
   camNear: number;
   waveDir: number;
+  floorDepth: number;
+  floorTexture: boolean;
 };
 const WATER_TINTS: { name: string; rgb: [number, number, number] }[] = [
   { name: "Nordhav", rgb: [1, 1, 1] },
