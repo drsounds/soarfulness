@@ -721,16 +721,19 @@ function Aquafulness() {
       const amp = ampRef.current;
       const b = buoyRef.current;
       const sub = submergeRef.current;
-      // Dynamic dive: target sinks below surface proportional to how fast
-      // the crest is rising. This is what DYK primarily controls.
+      const lift = floatLiftRef.current;
+      // Dynamic dive: rising crest pushes camera under (DYK). Float lift (FLYT)
+      // adds a positive feedforward on wave velocity so higher lift makes
+      // the camera ride ON the crest instead of getting dunked.
       const diveOffset = Math.max(0, surfVel) * sub * 0.6 * (0.6 + amp * 0.6);
-      const targetY = surfaceY + heightRef.current - diveOffset;
+      const liftOffset = surfVel * lift * 0.35 * (0.6 + amp * 0.6);
+      const targetY = surfaceY + heightRef.current - diveOffset + liftOffset;
       if (camYRef.current === null) camYRef.current = targetY;
       const k = 4 + 14 * bobSpeedRef.current; // stiffness (spring tempo)
       const zeta = 0.32; // underdamped → visible bounce
       const c = 2 * zeta * Math.sqrt(k);
-      // Steady gravity also scales with DYK so equilibrium sits lower overall.
-      const gravity = (1.2 + 3 * amp) * b * sub;
+      // Steady gravity scales with DYK (pulls down) and is countered by FLYT.
+      const gravity = (1.2 + 3 * amp) * b * sub - (1.0 + 2 * amp) * b * lift;
       const ay = k * (targetY - camYRef.current) - c * camVYRef.current - gravity;
       camVYRef.current += ay * dt;
       camYRef.current += camVYRef.current * dt;
