@@ -9,13 +9,13 @@ export const Route = createFileRoute("/")({
   component: Aquafulness,
   head: () => ({
     meta: [
-      { title: "Aquafulness — Ocean Wave Meditation" },
+      { title: "Ocean Wave Meditation" },
       {
         name: "description",
         content:
           "A calming WebGL ocean where the camera drifts on the waves. Adjust swell, time of day, and wander across the sea.",
       },
-      { property: "og:title", content: "Aquafulness — Ocean Wave Meditation" },
+      { property: "og:title", content: "Ocean Wave Meditation" },
       {
         property: "og:description",
         content: "A calming WebGL ocean where the camera drifts on the waves. Adjust swell, time of day, and wander across the sea.",
@@ -87,10 +87,6 @@ type Persisted = {
   waveDir: number;
   floorDepth: number;
   floorTexture: boolean;
-  floorBrightness: number;
-  floorTint: number;
-  floorHue: number;
-
   vortexMode: boolean;
   vortexOpening: number;
   vortexRadius: number;
@@ -143,10 +139,6 @@ const DEFAULTS: Persisted = {
   waveDir: 0,
   floorDepth: 14,
   floorTexture: false,
-  floorBrightness: 1,
-  floorTint: 1,
-  floorHue: 0,
-
   vortexMode: false,
   vortexOpening: 14,
   vortexRadius: 26,
@@ -196,10 +188,6 @@ function Aquafulness() {
   const [waveDir, setWaveDir] = useState(initial.waveDir);
   const [floorDepth, setFloorDepth] = useState(initial.floorDepth);
   const [floorTexture, setFloorTexture] = useState(initial.floorTexture);
-  const [floorBrightness, setFloorBrightness] = useState(initial.floorBrightness);
-  const [floorTint, setFloorTint] = useState(initial.floorTint);
-  const [floorHue, setFloorHue] = useState(initial.floorHue);
-
   const [vortexMode, setVortexMode] = useState(initial.vortexMode);
   const [vortexOpening, setVortexOpening] = useState(initial.vortexOpening);
   const [vortexRadius, setVortexRadius] = useState(initial.vortexRadius);
@@ -213,13 +201,12 @@ function Aquafulness() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, floorBrightness, floorTint, floorHue, vortexMode, vortexOpening, vortexRadius, vortexSpeed };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, floorBrightness, floorTint, floorHue, vortexMode, vortexOpening, vortexRadius, vortexSpeed]);
-
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -261,10 +248,6 @@ function Aquafulness() {
   const waveDirRef = useRef(waveDir);
   const floorDepthRef = useRef(floorDepth);
   const floorTextureRef = useRef(floorTexture);
-  const floorBrightnessRef = useRef(floorBrightness);
-  const floorTintRef = useRef(floorTint);
-  const floorHueRef = useRef(floorHue);
-
   const vortexModeRef = useRef(vortexMode);
   const vortexOpeningRef = useRef(vortexOpening);
   const vortexRadiusRef = useRef(vortexRadius);
@@ -296,10 +279,6 @@ function Aquafulness() {
   useEffect(() => { waveDirRef.current = waveDir; }, [waveDir]);
   useEffect(() => { floorDepthRef.current = floorDepth; }, [floorDepth]);
   useEffect(() => { floorTextureRef.current = floorTexture; }, [floorTexture]);
-  useEffect(() => { floorBrightnessRef.current = floorBrightness; }, [floorBrightness]);
-  useEffect(() => { floorTintRef.current = floorTint; }, [floorTint]);
-  useEffect(() => { floorHueRef.current = floorHue; }, [floorHue]);
-
   useEffect(() => { vortexModeRef.current = vortexMode; }, [vortexMode]);
   useEffect(() => { vortexOpeningRef.current = vortexOpening; }, [vortexOpening]);
   useEffect(() => { vortexRadiusRef.current = vortexRadius; }, [vortexRadius]);
@@ -340,10 +319,6 @@ function Aquafulness() {
     setWaveDir(DEFAULTS.waveDir);
     setFloorDepth(DEFAULTS.floorDepth);
     setFloorTexture(DEFAULTS.floorTexture);
-    setFloorBrightness(DEFAULTS.floorBrightness);
-    setFloorTint(DEFAULTS.floorTint);
-    setFloorHue(DEFAULTS.floorHue);
-
     setVortexMode(DEFAULTS.vortexMode);
     setVortexOpening(DEFAULTS.vortexOpening);
     setVortexRadius(DEFAULTS.vortexRadius);
@@ -745,10 +720,6 @@ function Aquafulness() {
       uFogColor: { value: uniforms.uFogColor.value },
       uSandTex: { value: sandTex },
       uSandScale: { value: 0.35 }, // ~1 tile per 2.9 m så kornen syns
-      uBrightness: { value: 1 },
-      uTintStrength: { value: 1 },
-      uHueShift: { value: 0 },
-
     };
     const floorMat = new THREE.ShaderMaterial({
       uniforms: floorUniforms,
@@ -778,25 +749,7 @@ function Aquafulness() {
         uniform vec3 uSunDir;
         uniform sampler2D uSandTex;
         uniform float uSandScale;
-        uniform float uBrightness;
-        uniform float uTintStrength;
-        uniform float uHueShift;
         #include <fog_pars_fragment>
-
-        // Hue-rotate an RGB color around the luma axis (approx).
-        vec3 hueShift(vec3 c, float h){
-          const mat3 toYIQ = mat3(0.299, 0.587, 0.114,
-                                  0.596,-0.274,-0.322,
-                                  0.211,-0.523, 0.312);
-          const mat3 toRGB = mat3(1.0, 0.956, 0.621,
-                                  1.0,-0.272,-0.647,
-                                  1.0,-1.106, 1.703);
-          vec3 yiq = toYIQ * c;
-          float cs = cos(h), sn = sin(h);
-          vec3 rot = vec3(yiq.x, yiq.y*cs - yiq.z*sn, yiq.y*sn + yiq.z*cs);
-          return toRGB * rot;
-        }
-
 
         float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453123); }
         float vnoise(vec2 p){
@@ -813,14 +766,19 @@ function Aquafulness() {
           vec3 base = uColor;
           if (uTextured > 0.001) {
             vec2 uv0 = vWorld.xz * uSandScale;
+            // Två oktaver – detaljerat lager + grovare roterat lager för att bryta tile-repetitionen.
             vec3 s1 = texture2D(uSandTex, uv0).rgb;
             mat2 rot = mat2(0.8, -0.6, 0.6, 0.8);
             vec3 s2 = texture2D(uSandTex, rot * uv0 * 0.25 + 0.13).rgb;
+            // Genomsnitt bevarar sandens naturliga ljushet (undviker mörk multiplikation).
             vec3 sand = (s1 + s2) * 0.5;
+            // Mild kontrast så kornen syns utan att gå ner i choklad-toner.
             sand = (sand - 0.5) * 1.15 + 0.55;
-            // Tint styrs av uTintStrength: 0 = neutral sand, 1 = normal färg, 2 = kraftig.
-            sand *= mix(vec3(1.0), uColor * 1.9, clamp(uTintStrength, 0.0, 2.0));
+            // Tint mot vald bottenfärg: mjuk multiplikation runt neutralton (mean ~0.5 i linjär sRGB).
+            sand *= uColor * 1.9;
+            // Lyft klarheten en aning så det känns som soligt bottenskikt.
             sand = clamp(sand, 0.0, 1.6);
+            // Kaustik-flimmer från vågorna ovanför.
             vec2 p = vWorld.xz;
             float caustic = 0.0;
             caustic += sin(p.x*0.9 + uTime*0.7 + vnoise(p*0.4)*4.0);
@@ -828,14 +786,8 @@ function Aquafulness() {
             caustic = pow(max(0.0, caustic*0.5 + 0.5), 3.0);
             sand += vec3(0.95, 0.88, 0.7) * caustic * 0.22;
             base = mix(uColor, sand, clamp(uTextured, 0.0, 1.0));
-          } else {
-            // Untextured: applicera tint-styrka som blend mot grå.
-            base = mix(vec3(0.5), uColor, clamp(uTintStrength, 0.0, 2.0));
           }
-          base = hueShift(base, uHueShift);
-          base *= uBrightness;
           gl_FragColor = vec4(base, 1.0);
-
           #include <fog_fragment>
         }
       `,
@@ -998,10 +950,6 @@ function Aquafulness() {
         // Smooth blend av textur på/av så tonen inte snappar.
         const target = floorTextureRef.current ? 1 : 0;
         floorUniforms.uTextured.value += (target - floorUniforms.uTextured.value) * Math.min(1, dt * 4);
-        floorUniforms.uBrightness.value = floorBrightnessRef.current;
-        floorUniforms.uTintStrength.value = floorTintRef.current;
-        floorUniforms.uHueShift.value = (floorHueRef.current * Math.PI) / 180;
-
       } else {
         floor.visible = false;
       }
@@ -1372,42 +1320,6 @@ function Aquafulness() {
                 value={floorTexture ? "PÅ" : "AV"}
                 onDec={() => setFloorTexture(false)}
                 onInc={() => setFloorTexture(true)}
-              />
-              <PadDial
-                label="LJUS"
-                mode="number"
-                value={`${floorBrightness.toFixed(2)}x`}
-                rawValue={floorBrightness}
-                onSet={(v) => setFloorBrightness(Math.max(0.1, Math.min(2.5, v)))}
-                min={0.1}
-                max={2.5}
-                step={0.05}
-                onDec={() => setFloorBrightness((v) => Math.max(0.1, +(v - 0.05).toFixed(2)))}
-                onInc={() => setFloorBrightness((v) => Math.min(2.5, +(v + 0.05).toFixed(2)))}
-              />
-              <PadDial
-                label="TINT"
-                mode="number"
-                value={floorTint.toFixed(2)}
-                rawValue={floorTint}
-                onSet={(v) => setFloorTint(Math.max(0, Math.min(2, v)))}
-                min={0}
-                max={2}
-                step={0.05}
-                onDec={() => setFloorTint((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
-                onInc={() => setFloorTint((v) => Math.min(2, +(v + 0.05).toFixed(2)))}
-              />
-              <PadDial
-                label="TON"
-                mode="number"
-                value={`${floorHue.toFixed(0)}°`}
-                rawValue={floorHue}
-                onSet={(v) => setFloorHue(Math.max(-180, Math.min(180, v)))}
-                min={-180}
-                max={180}
-                step={5}
-                onDec={() => setFloorHue((v) => Math.max(-180, +(v - 5).toFixed(0)))}
-                onInc={() => setFloorHue((v) => Math.min(180, +(v + 5).toFixed(0)))}
               />
               <PadDial
                 label="ROTERING"
