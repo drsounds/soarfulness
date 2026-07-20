@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import waterAsset from "@/assets/water.mp3.asset.json";
 import vanernBackdrop from "@/assets/vanern-backdrop.png.asset.json";
+import sandTextureAsset from "@/assets/sand_cc0_512.jpg.asset.json";
 
 export const Route = createFileRoute("/")({
   component: Aquafulness,
