@@ -1306,17 +1306,61 @@ function Aquafulness() {
       )}
       <div ref={mountRef} className="absolute inset-0" />
 
-      {/* Settings toggle replaces the title */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-col items-center px-4 pt-4">
-        <button
-          onClick={() => setSettingsOpen((s) => !s)}
-          className="pointer-events-auto rounded-full border border-white/20 bg-black/40 px-5 py-2 text-[10px] font-light tracking-[0.35em] text-white/90 backdrop-blur-md transition active:scale-95 active:bg-white/15"
-          aria-label={settingsOpen ? "Stäng inställningar" : "Öppna inställningar"}
-          aria-expanded={settingsOpen}
-        >
-          {settingsOpen ? "STÄNG" : "SETTINGS"}
-        </button>
-      </div>
+      {/* HUD overlay — fades out on inactivity, back in on any touch. */}
+      <div
+        className={`absolute inset-0 z-10 transition-opacity duration-700 ${uiVisible ? "opacity-100" : "pointer-events-none opacity-0"}`}
+      >
+        {/* Top bar: settings + speaker toggle + fullscreen */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between px-4 pt-4">
+          <button
+            onClick={() => setAudioOn((v) => !v)}
+            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white/90 backdrop-blur-md transition active:scale-95 active:bg-white/15"
+            aria-label={audioOn ? "Stäng av ljud" : "Slå på ljud"}
+            aria-pressed={audioOn}
+            title={audioOn ? "Ljud på" : "Ljud av"}
+          >
+            {audioOn ? (
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M4 10v4h3l5 4V6L7 10H4z" />
+                <path d="M16 8.5a4 4 0 010 7" />
+                <path d="M18.5 6a7 7 0 010 12" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M4 10v4h3l5 4V6L7 10H4z" />
+                <path d="M22 9l-6 6M16 9l6 6" />
+              </svg>
+            )}
+          </button>
+
+          <button
+            onClick={() => setSettingsOpen((s) => !s)}
+            className="pointer-events-auto rounded-full border border-white/20 bg-black/40 px-5 py-2 text-[10px] font-light tracking-[0.35em] text-white/90 backdrop-blur-md transition active:scale-95 active:bg-white/15"
+            aria-label={settingsOpen ? "Stäng inställningar" : "Öppna inställningar"}
+            aria-expanded={settingsOpen}
+          >
+            {settingsOpen ? "STÄNG" : "SETTINGS"}
+          </button>
+
+          <button
+            onClick={toggleFullscreen}
+            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white/90 backdrop-blur-md transition active:scale-95 active:bg-white/15"
+            aria-label={isFullscreen ? "Avsluta helskärm" : "Helskärm"}
+            aria-pressed={isFullscreen}
+            title={isFullscreen ? "Avsluta helskärm" : "Helskärm"}
+          >
+            {isFullscreen ? (
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M9 4v4H5M15 4v4h4M9 20v-4H5M15 20v-4h4" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+              </svg>
+            )}
+          </button>
+        </div>
+
 
       {/* Collapsible settings panel */}
       {settingsOpen && (
