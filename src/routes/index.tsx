@@ -241,6 +241,10 @@ function Aquafulness() {
   const camYRef = useRef<number | null>(null);
   const camVYRef = useRef(0);
   const waterTintRef = useRef(waterTintIdx);
+  const waterOpacityRef = useRef(waterOpacity);
+  const waterHueRef = useRef(waterHue);
+  const waterSatRef = useRef(waterSat);
+  const waterBrightRef = useRef(waterBright);
   const bottomIdxRef = useRef(bottomIdx);
   const leanRef = useRef(leanEnabled);
   const regularRef = useRef(regularWaves);
