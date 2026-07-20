@@ -220,6 +220,7 @@ function Aquafulness() {
   useEffect(() => { regularRef.current = regularWaves; }, [regularWaves]);
   useEffect(() => { regularCrossRef.current = regularCross; }, [regularCross]);
   useEffect(() => { regularPeriodRef.current = regularPeriod; }, [regularPeriod]);
+  useEffect(() => { wavePeakRef.current = wavePeak; }, [wavePeak]);
   useEffect(() => { backdropRef.current = backdropIdx; }, [backdropIdx]);
   useEffect(() => { wakeLockRef.current = wakeLock; }, [wakeLock]);
   useEffect(() => { audioSpatialRef.current = audioSpatial; }, [audioSpatial]);
