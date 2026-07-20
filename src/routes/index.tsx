@@ -128,6 +128,7 @@ function Aquafulness() {
   const [audioOn, setAudioOn] = useState(initial.audioOn);
   const [audioVol, setAudioVol] = useState(initial.audioVol);
   const [audioSyncSpeed, setAudioSyncSpeed] = useState(initial.audioSyncSpeed);
+  const [audioSpatial, setAudioSpatial] = useState(initial.audioSpatial);
   const [waterTintIdx, setWaterTintIdx] = useState(initial.waterTintIdx);
   const [bottomIdx, setBottomIdx] = useState(initial.bottomIdx);
   const [leanEnabled, setLeanEnabled] = useState(initial.leanEnabled);
