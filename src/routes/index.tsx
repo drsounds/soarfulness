@@ -1064,11 +1064,11 @@ function Aquafulness() {
                 value={`${wavePeak.toFixed(2)}`}
                 rawValue={wavePeak}
                 onSet={setWavePeak}
-                min={0.1}
-                max={1}
-                step={0.05}
-                onDec={() => setWavePeak((v) => Math.max(0.1, +(v - 0.05).toFixed(2)))}
-                onInc={() => setWavePeak((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+                min={1}
+                max={6}
+                step={0.25}
+                onDec={() => setWavePeak((v) => Math.max(1, +(v - 0.25).toFixed(2)))}
+                onInc={() => setWavePeak((v) => Math.min(6, +(v + 0.25).toFixed(2)))}
               />
               <PadDial
                 label="BAKGRUND"
