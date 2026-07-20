@@ -976,6 +976,12 @@ function Aquafulness() {
                 onDec={() => setBackdropIdx((i) => (i - 1 + BACKDROPS.length) % BACKDROPS.length)}
                 onInc={() => setBackdropIdx((i) => (i + 1) % BACKDROPS.length)}
               />
+              <PadDial
+                label="VAKEN"
+                value={wakeLock ? "PÅ" : "AV"}
+                onDec={() => setWakeLock(false)}
+                onInc={() => setWakeLock(true)}
+              />
             </div>
           </div>
         </div>
