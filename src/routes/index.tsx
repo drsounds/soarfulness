@@ -712,6 +712,12 @@ function Aquafulness() {
     let waveT = 0;
     const clock = new THREE.Clock();
     const animate = () => {
+      // Sync camera lens (FOV / near clip) with live settings.
+      if (camera.fov !== camFovRef.current || camera.near !== camNearRef.current) {
+        camera.fov = camFovRef.current;
+        camera.near = camNearRef.current;
+        camera.updateProjectionMatrix();
+      }
       const now = performance.now();
       const dt = Math.min((now - lastMs) / 1000, 0.1);
       lastMs = now;
