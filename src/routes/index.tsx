@@ -87,6 +87,9 @@ type Persisted = {
   waveDir: number;
   floorDepth: number;
   floorTexture: boolean;
+  vortexMode: boolean;
+  vortexOpening: number;
+  vortexRadius: number;
 };
 const WATER_TINTS: { name: string; rgb: [number, number, number] }[] = [
   { name: "Nordhav", rgb: [1, 1, 1] },
