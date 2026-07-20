@@ -713,7 +713,7 @@ function Aquafulness() {
       const k = 4 + 14 * bobSpeedRef.current; // stiffness (spring tempo)
       const zeta = 0.32; // underdamped → visible bounce
       const c = 2 * zeta * Math.sqrt(k);
-      const gravity = 1.6 * b * (0.6 + amp * 0.5); // pulls camera below crest
+      const gravity = 1.6 * b * (0.6 + amp * 0.5) * submergeRef.current; // pulls camera below crest
       const ay = k * (targetY - camYRef.current) - c * camVYRef.current - gravity;
       camVYRef.current += ay * dt;
       camYRef.current += camVYRef.current * dt;
