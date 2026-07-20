@@ -567,8 +567,6 @@ function Aquafulness() {
         float h = wave(wpBase.xyz, uTime, ampF, rippleFade);
         p.y += h;
 
-        float h = wave(wpBase.xyz, uTime, ampF, rippleFade);
-        p.y += h;
 
         // approximate normal via finite differences — small epsilon so
         // the ripples contribute crisp shading.
