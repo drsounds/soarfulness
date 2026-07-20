@@ -202,6 +202,7 @@ function Aquafulness() {
   useEffect(() => { regularPeriodRef.current = regularPeriod; }, [regularPeriod]);
   useEffect(() => { backdropRef.current = backdropIdx; }, [backdropIdx]);
   useEffect(() => { wakeLockRef.current = wakeLock; }, [wakeLock]);
+  useEffect(() => { audioSpatialRef.current = audioSpatial; }, [audioSpatial]);
 
   const resetToDefaults = () => {
     setWaveAmp(DEFAULTS.waveAmp);
