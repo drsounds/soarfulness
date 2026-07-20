@@ -1339,6 +1339,18 @@ function Aquafulness() {
                 onInc={() => setFloatLift((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
               />
               <PadDial
+                label="SJUNK"
+                mode="number"
+                value={`${sinkDamp.toFixed(2)}×`}
+                rawValue={sinkDamp}
+                onSet={setSinkDamp}
+                min={0}
+                max={1.5}
+                step={0.05}
+                onDec={() => setSinkDamp((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                onInc={() => setSinkDamp((v) => Math.min(1.5, +(v + 0.05).toFixed(2)))}
+              />
+              <PadDial
                 label="GUPP"
                 mode="number"
                 value={`${buoyAmp.toFixed(2)}×`}
