@@ -639,14 +639,36 @@ function Aquafulness() {
       uniform vec3 uSunColor;
       uniform vec3 uFogColor;
       uniform vec3 uWaterTint;
+      uniform float uOpacity;
+      uniform float uTintHue;
+      uniform float uTintSat;
+      uniform float uTintBright;
       uniform float uUnderwater;
       varying vec3 vWorldPos;
       varying vec3 vNormal;
+
+      // Hue rotation in RGB space (angle in radians).
+      mat3 hueRotate(float angle) {
+        float c = cos(angle), s = sin(angle);
+        float oneThird = 1.0 / 3.0;
+        float root3inv = 0.57735026919;
+        return mat3(
+          c + oneThird * (1.0 - c),         -root3inv * s + oneThird * (1.0 - c),  root3inv * s + oneThird * (1.0 - c),
+          root3inv * s + oneThird * (1.0 - c), c + oneThird * (1.0 - c),          -root3inv * s + oneThird * (1.0 - c),
+          -root3inv * s + oneThird * (1.0 - c), root3inv * s + oneThird * (1.0 - c), c + oneThird * (1.0 - c)
+        );
+      }
 
       void main() {
         vec3 N = normalize(vNormal);
         vec3 V = normalize(cameraPosition - vWorldPos);
         vec3 L = normalize(uSunDir);
+
+        // Apply user color adjustments on top of the water-tint preset.
+        vec3 tint = uWaterTint * uTintBright;
+        tint = hueRotate(uTintHue) * tint;
+        vec3 gray = vec3(dot(tint, vec3(0.299, 0.587, 0.114)));
+        tint = mix(gray, tint, uTintSat);
 
         float NdotV = clamp(dot(N, V), 0.0, 1.0);
 
@@ -670,15 +692,15 @@ function Aquafulness() {
         // Refraction tint — view-dependent transmitted color. Straight down
         // we see into the deep hue; at grazing angles the shallow tint takes
         // over just before Fresnel flips everything to reflection.
-        vec3 deepT = uWaterDeep * uWaterTint;
-        vec3 shalT = uWaterShallow * uWaterTint;
+        vec3 deepT = uWaterDeep * tint;
+        vec3 shalT = uWaterShallow * tint;
         float refrMix = mix(0.15, 0.85, pow(1.0 - NdotV, 1.6));
         vec3 water = mix(deepT, shalT, refrMix);
 
         // Subsurface scattering — light bleeding through wave crests
         float height = clamp((vWorldPos.y + 1.0) / 3.0, 0.0, 1.0);
         vec3 sss = uSunColor * pow(height, 2.0) * 0.35 * clamp(uSunDir.y + 0.2, 0.0, 1.0);
-        water += sss * uWaterTint;
+        water += sss * tint;
 
         // Specular sun glint — Blinn-Phong with shimmer-perturbed normal so
         // sparkle scatters realistically. Sharpen when sun is low (long glitter
@@ -705,8 +727,9 @@ function Aquafulness() {
           col = mix(col, muted, clamp(uUnderwater, 0.0, 1.0));
         }
 
-        // Translucency — thinner (higher/steeper) crests let more light through
-        float alpha = clamp(0.65 + fres * 0.35 - height * 0.35, 0.4, 1.0);
+        // Translucency — thinner (higher/steeper) crests let more light through.
+        // uOpacity scales the final water transparency independently.
+        float alpha = clamp(0.65 + fres * 0.35 - height * 0.35, 0.4, 1.0) * uOpacity;
         gl_FragColor = vec4(col, alpha);
       }
     `;
