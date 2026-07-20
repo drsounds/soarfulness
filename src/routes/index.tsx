@@ -174,7 +174,8 @@ function Aquafulness() {
   const [camNear, setCamNear] = useState(initial.camNear);
   const [waveDir, setWaveDir] = useState(initial.waveDir);
   const [rotStick, setRotStick] = useState({ x: 0, y: 0 });
-  const [followStick, setFollowStick] = useState({ x: 0, y: 0 });
+  const [driftStick, setDriftStick] = useState({ x: 0, y: 0 });
+  const [waveDirStick, setWaveDirStick] = useState({ x: 0, y: 0 });
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Persist settings to localStorage whenever they change (SSR-safe, hydration-safe).
