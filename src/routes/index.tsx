@@ -585,11 +585,16 @@ function Aquafulness() {
         // grazing angles and alias into jagged spikes on the horizon. Fade
         // waves smoothly to flat well before they hit the plane edge.
         float distXZ = length(wpBase.xz - cameraPosition.xz);
-        float ampFade = 1.0 - smoothstep(40.0, 180.0, distXZ);
-        // High-frequency ripples must fade much sooner than the big swell —
-        // their wavelength is close to the triangle spacing, so any surviving
-        // amplitude at distance produces jaggy grazing-angle artifacts.
-        float rippleFade = 1.0 - smoothstep(18.0, 70.0, distXZ);
+        // In vortex mode the camera orbits near the throat, so far water is
+        // in view around the funnel. Push the fade out much further so the
+        // surrounding sea stays alive instead of looking like a lone tornado
+        // on a mirror-flat plane.
+        float fadeNear = mix(40.0, 180.0, uVortex);
+        float fadeFar  = mix(180.0, 500.0, uVortex);
+        float ampFade = 1.0 - smoothstep(fadeNear, fadeFar, distXZ);
+        float rippleNear = mix(18.0, 60.0, uVortex);
+        float rippleFar  = mix(70.0, 220.0, uVortex);
+        float rippleFade = 1.0 - smoothstep(rippleNear, rippleFar, distXZ);
         float ampF = uAmp * ampFade;
 
         float h = wave(wpBase.xyz, uTime, ampF, rippleFade);
