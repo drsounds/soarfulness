@@ -778,7 +778,25 @@ function Aquafulness() {
         uniform vec3 uSunDir;
         uniform sampler2D uSandTex;
         uniform float uSandScale;
+        uniform float uBrightness;
+        uniform float uTintStrength;
+        uniform float uHueShift;
         #include <fog_pars_fragment>
+
+        // Hue-rotate an RGB color around the luma axis (approx).
+        vec3 hueShift(vec3 c, float h){
+          const mat3 toYIQ = mat3(0.299, 0.587, 0.114,
+                                  0.596,-0.274,-0.322,
+                                  0.211,-0.523, 0.312);
+          const mat3 toRGB = mat3(1.0, 0.956, 0.621,
+                                  1.0,-0.272,-0.647,
+                                  1.0,-1.106, 1.703);
+          vec3 yiq = toYIQ * c;
+          float cs = cos(h), sn = sin(h);
+          vec3 rot = vec3(yiq.x, yiq.y*cs - yiq.z*sn, yiq.y*sn + yiq.z*cs);
+          return toRGB * rot;
+        }
+
 
         float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453123); }
         float vnoise(vec2 p){
