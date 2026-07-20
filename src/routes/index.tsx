@@ -1148,6 +1148,7 @@ function Aquafulness() {
                 step={0.01}
                 onDec={() => setCamNear((v) => Math.max(0.001, +(v - 0.01).toFixed(3)))}
                 onInc={() => setCamNear((v) => Math.min(2, +(v + 0.01).toFixed(3)))}
+              />
             </div>
           </div>
         </div>
