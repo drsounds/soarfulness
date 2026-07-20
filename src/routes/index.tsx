@@ -432,7 +432,7 @@ function Aquafulness() {
         return sin(theta - q * sin(theta));
       }
 
-      float wave(vec3 p, float t, float amp) {
+      float wave(vec3 p, float t, float amp, float rippleFade) {
         // Regular sine along x, with optional cross-axis sine so it doesn't
         // look like a flat carpet when uRegular = 1. uPeriod scales the
         // spatial wavelength (higher = longer, calmer swells).
@@ -447,13 +447,14 @@ function Aquafulness() {
         float w4 = shp((p.x * 0.31 - p.z * 0.11) + t * 1.8 + 0.4) * 0.35;
         float big = (w1 + w2 + w3 + w4) * amp;
 
-        // Small ripples on top of the swell — independent of amp so they
-        // stay as fine surface texture rather than growing with the waves.
+        // Small ripples on top of the swell — high frequency, so they must
+        // fade with distance well before the mesh becomes under-sampled or
+        // they alias into jagged spikes at grazing angles.
         float r1 = sin(p.x * 0.85 + p.z * 0.42 + t * 2.6) * 0.06;
         float r2 = sin(p.x * 0.55 - p.z * 0.95 + t * 3.1 + 1.7) * 0.05;
         float r3 = sin((p.x * 1.35 + p.z * 1.15) + t * 3.8 + 0.6) * 0.035;
         float r4 = sin((p.x * 1.9 - p.z * 1.6) + t * 4.7 + 2.3) * 0.022;
-        float ripples = (r1 + r2 + r3 + r4) * (1.0 - uRegular);
+        float ripples = (r1 + r2 + r3 + r4) * (1.0 - uRegular) * rippleFade;
 
         return mix(big + ripples, reg, uRegular);
       }
