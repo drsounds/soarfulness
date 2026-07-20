@@ -801,7 +801,7 @@ function Aquafulness() {
       // reacts at the *start* of a wave rise (trough) rather than mid-rise.
       // t is already wave-time (scaled by wave speed).
       const lead = 0.35;
-      const futureSurf = waveHeight(camX, camZ, t + lead, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current);
+      const futureSurf = waveHeight(camX, camZ, t + lead, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad);
       const anticipVel = (futureSurf - surfaceY) / lead;
 
       // Wave-synced buoyancy: camera is a damped spring pulled toward the
