@@ -828,21 +828,14 @@ function Aquafulness() {
       camVYRef.current += ay * dt;
       camYRef.current += camVYRef.current * dt;
 
-      // Wave-follow stick: feedforward on wave vertical velocity.
-      // y > 0 → rise above crests, sink below troughs (surf on top).
-      // y < 0 → counter-drag: lag under crests, lift over troughs.
-      // x adds a lateral coupling to the wave slope.
-      const followY = followStickRef.current.y * surfVel * 0.35;
-      const eps = 0.4;
-      const slopeX = (waveHeight(camX + eps, camZ, t, amp, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad) - surfaceY) / eps;
-      const followX = followStickRef.current.x * slopeX * 1.2;
-
-      camera.position.set(camX + followX, camYRef.current + followY, camZ);
+      // (Drift-strömmen appliceras redan tidigare på posRef så kameran driver
+      // med hela vågsystemet i stället för att bara koppla till ytans hastighet.)
+      camera.position.set(camX, camYRef.current, camZ);
       // Keep the look direction perfectly level so wave crests in front of
       // the camera don't tilt the horizon up/down when riding a swell.
       const lookZ = camZ - 20;
       const lookY = camera.position.y;
-      camera.lookAt(camX + followX, lookY, lookZ);
+      camera.lookAt(camX, lookY, lookZ);
 
       // Rotation stick: yaw (x) + pitch (y). Integrate stick as angular velocity.
       const rotSpeed = 1.6; // rad/s at full deflection
