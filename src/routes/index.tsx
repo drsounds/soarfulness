@@ -261,6 +261,10 @@ function Aquafulness() {
   const waveDirRef = useRef(waveDir);
   const floorDepthRef = useRef(floorDepth);
   const floorTextureRef = useRef(floorTexture);
+  const floorBrightnessRef = useRef(floorBrightness);
+  const floorTintRef = useRef(floorTint);
+  const floorHueRef = useRef(floorHue);
+
   const vortexModeRef = useRef(vortexMode);
   const vortexOpeningRef = useRef(vortexOpening);
   const vortexRadiusRef = useRef(vortexRadius);
