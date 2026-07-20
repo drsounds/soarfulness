@@ -2,6 +2,18 @@
 @source "../src";
 @import "tw-animate-css";
 
+@font-face {
+  font-family: "Bungalow Sans";
+  src: url("/__l5e/assets-v1/29cf3f2c-f0dd-4e46-844e-a3dcd96e72e0/Bungalow_Sans.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+html, body {
+  font-family: "Bungalow Sans", system-ui, -apple-system, sans-serif;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 /*
