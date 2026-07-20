@@ -78,6 +78,8 @@ type Persisted = {
   wavePeak: number;
   backdropIdx: number;
   wakeLock: boolean;
+  camFov: number;
+  camNear: number;
 };
 const WATER_TINTS: { name: string; rgb: [number, number, number] }[] = [
   { name: "Nordhav", rgb: [1, 1, 1] },
@@ -121,6 +123,8 @@ const DEFAULTS: Persisted = {
   wavePeak: 1,
   backdropIdx: 0,
   wakeLock: false,
+  camFov: 65,
+  camNear: 0.1,
 };
 function loadSettings(): Persisted {
   if (typeof window === "undefined") return DEFAULTS;
@@ -161,6 +165,8 @@ function Aquafulness() {
   const [backdropIdx, setBackdropIdx] = useState(initial.backdropIdx);
   const [wakeLock, setWakeLock] = useState(initial.wakeLock);
   // Rotation stick (yaw / pitch look) and wave-follow stick.
+  const [camFov, setCamFov] = useState(initial.camFov);
+  const [camNear, setCamNear] = useState(initial.camNear);
   const [rotStick, setRotStick] = useState({ x: 0, y: 0 });
   const [followStick, setFollowStick] = useState({ x: 0, y: 0 });
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -169,12 +175,12 @@ function Aquafulness() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -211,6 +217,8 @@ function Aquafulness() {
   const yawRef = useRef(0);
   const pitchRef = useRef(0);
   const prevSurfaceRef = useRef<number | null>(null);
+  const camFovRef = useRef(camFov);
+  const camNearRef = useRef(camNear);
   useEffect(() => { ampRef.current = waveAmp; }, [waveAmp]);
   useEffect(() => { todRef.current = timeOfDay; }, [timeOfDay]);
   useEffect(() => { speedRef.current = waveSpeed; }, [waveSpeed]);
@@ -232,6 +240,8 @@ function Aquafulness() {
   useEffect(() => { backdropRef.current = backdropIdx; }, [backdropIdx]);
   useEffect(() => { wakeLockRef.current = wakeLock; }, [wakeLock]);
   useEffect(() => { audioSpatialRef.current = audioSpatial; }, [audioSpatial]);
+  useEffect(() => { camFovRef.current = camFov; }, [camFov]);
+  useEffect(() => { camNearRef.current = camNear; }, [camNear]);
 
   const resetToDefaults = () => {
     setWaveAmp(DEFAULTS.waveAmp);
@@ -254,6 +264,8 @@ function Aquafulness() {
     setWavePeak(DEFAULTS.wavePeak);
     setBackdropIdx(DEFAULTS.backdropIdx);
     setWakeLock(DEFAULTS.wakeLock);
+    setCamFov(DEFAULTS.camFov);
+    setCamNear(DEFAULTS.camNear);
     // timeOfDay is intentionally left untouched.
   };
 
@@ -391,9 +403,9 @@ function Aquafulness() {
     scene.fog = new THREE.FogExp2(0x88aacc, 0.008);
 
     const camera = new THREE.PerspectiveCamera(
-      65,
+      camFovRef.current,
       mount.clientWidth / mount.clientHeight,
-      0.1,
+      camNearRef.current,
       2000,
     );
 
@@ -700,6 +712,12 @@ function Aquafulness() {
     let waveT = 0;
     const clock = new THREE.Clock();
     const animate = () => {
+      // Sync camera lens (FOV / near clip) with live settings.
+      if (camera.fov !== camFovRef.current || camera.near !== camNearRef.current) {
+        camera.fov = camFovRef.current;
+        camera.near = camNearRef.current;
+        camera.updateProjectionMatrix();
+      }
       const now = performance.now();
       const dt = Math.min((now - lastMs) / 1000, 0.1);
       lastMs = now;
@@ -1106,6 +1124,30 @@ function Aquafulness() {
                 value={wakeLock ? "PÅ" : "AV"}
                 onDec={() => setWakeLock(false)}
                 onInc={() => setWakeLock(true)}
+              />
+              <PadDial
+                label="FOV"
+                mode="number"
+                value={`${camFov.toFixed(0)}°`}
+                rawValue={camFov}
+                onSet={(v) => setCamFov(Math.max(20, Math.min(140, v)))}
+                min={20}
+                max={140}
+                step={1}
+                onDec={() => setCamFov((v) => Math.max(20, +(v - 1).toFixed(0)))}
+                onInc={() => setCamFov((v) => Math.min(140, +(v + 1).toFixed(0)))}
+              />
+              <PadDial
+                label="NÄRA"
+                mode="number"
+                value={`${camNear.toFixed(3)}`}
+                rawValue={camNear}
+                onSet={(v) => setCamNear(Math.max(0.001, Math.min(2, v)))}
+                min={0.001}
+                max={2}
+                step={0.01}
+                onDec={() => setCamNear((v) => Math.max(0.001, +(v - 0.01).toFixed(3)))}
+                onInc={() => setCamNear((v) => Math.min(2, +(v + 0.01).toFixed(3)))}
               />
             </div>
           </div>
