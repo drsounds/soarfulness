@@ -953,15 +953,44 @@ function Aquafulness() {
       // Apply joystick velocity (game-pad style): stick.y up = forward (-z), x = strafe.
       // STRÖM-spaken lägger till en konstant drivkraft (drift) så kameran bärs
       // med strömmen även när NAV är i vila.
+      // I VIRVEL-läge tolkas NAV om: stick.y = närmare/längre bort från
+      // virvelns centrum, stick.x = vridriktning kring virveln.
+      const inVortex = vortexModeRef.current;
       const walkSpeed = 8; // m/s at full deflection
       const driftSpeed = 2.2; // m/s at full deflection — mjukare än aktiv rörelse
-      posRef.current.x += (stickRef.current.x * walkSpeed + driftStickRef.current.x * driftSpeed) * dt;
-      posRef.current.z -= (stickRef.current.y * walkSpeed + driftStickRef.current.y * driftSpeed) * dt;
-
-      const camX = posRef.current.x;
-      const camZ = posRef.current.z;
+      let camX: number, camZ: number;
+      if (inVortex) {
+        // Orbit around origin. NAV.y in/ut, NAV.x tangent.
+        const op = vortexOpeningRef.current;
+        // Base angular speed scales gently with wave speed so tempo affects swirl.
+        const baseOmega = 0.35 + 0.04 * speedRef.current;
+        const stickOmega = stickRef.current.x * 1.4; // extra swirl from NAV.x
+        vortexAngleRef.current += (baseOmega + stickOmega) * dt;
+        // Move in/out along the radius (STRÖM.y also nudges drift in/out).
+        const radialVel = -stickRef.current.y * walkSpeed - driftStickRef.current.y * driftSpeed;
+        const minR = Math.max(op * 0.55, 3); // don't dive into the throat
+        const maxR = 220;
+        vortexRadiusRef.current = Math.max(minR, Math.min(maxR, vortexRadiusRef.current + radialVel * dt));
+        setVortexRadius(vortexRadiusRef.current);
+        const ang = vortexAngleRef.current;
+        camX = Math.cos(ang) * vortexRadiusRef.current;
+        camZ = Math.sin(ang) * vortexRadiusRef.current;
+      } else {
+        posRef.current.x += (stickRef.current.x * walkSpeed + driftStickRef.current.x * driftSpeed) * dt;
+        posRef.current.z -= (stickRef.current.y * walkSpeed + driftStickRef.current.y * driftSpeed) * dt;
+        camX = posRef.current.x;
+        camZ = posRef.current.z;
+      }
       const dirRad = (waveDirRef.current * Math.PI) / 180;
-      const surfaceY = waveHeight(camX, camZ, t, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad);
+      // Funnel dip at the camera's XZ position (matches the shader Gaussian).
+      const funnelY = (() => {
+        if (!inVortex) return 0;
+        const op = Math.max(1, vortexOpeningRef.current);
+        const r2 = camX * camX + camZ * camZ;
+        return -op * 1.6 * Math.exp(-r2 / (op * op));
+      })();
+      const waveSurf = waveHeight(camX, camZ, t, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad);
+      const surfaceY = waveSurf + funnelY;
 
       // Compute wave vertical velocity first so buoyancy can react to it.
       if (prevSurfaceRef.current === null) prevSurfaceRef.current = surfaceY;
@@ -972,7 +1001,7 @@ function Aquafulness() {
       // reacts at the *start* of a wave rise (trough) rather than mid-rise.
       // t is already wave-time (scaled by wave speed).
       const lead = 0.35;
-      const futureSurf = waveHeight(camX, camZ, t + lead, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad);
+      const futureSurf = waveHeight(camX, camZ, t + lead, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad) + funnelY;
       const anticipVel = (futureSurf - surfaceY) / lead;
 
       // Wave-synced buoyancy: camera is a damped spring pulled toward the
@@ -998,14 +1027,21 @@ function Aquafulness() {
       camVYRef.current += ay * dt;
       camYRef.current += camVYRef.current * dt;
 
-      // (Drift-strömmen appliceras redan tidigare på posRef så kameran driver
-      // med hela vågsystemet i stället för att bara koppla till ytans hastighet.)
       camera.position.set(camX, camYRef.current, camZ);
-      // Keep the look direction perfectly level so wave crests in front of
-      // the camera don't tilt the horizon up/down when riding a swell.
-      const lookZ = camZ - 20;
+      // Look direction: HAV = level forward; VIRVEL = mot centrum (så kameran
+      // följer med runt virveln och naturligt tittar ner mot öppningen).
       const lookY = camera.position.y;
-      camera.lookAt(camX, lookY, lookZ);
+      let lookX: number, lookZ: number;
+      if (inVortex) {
+        // Aim at the vortex center, slightly below the camera so the throat
+        // is visible without the horizon tilting.
+        lookX = 0;
+        lookZ = 0;
+      } else {
+        lookX = camX;
+        lookZ = camZ - 20;
+      }
+      camera.lookAt(lookX, lookY, lookZ);
 
       // Rotation stick: yaw (x) + pitch (y). Integrate stick as angular velocity.
       const rotSpeed = 1.6; // rad/s at full deflection
