@@ -1014,6 +1014,7 @@ function Aquafulness() {
       mat.dispose();
       floorGeo.dispose();
       floorMat.dispose();
+      sandTex.dispose();
       skyGeo.dispose();
       skyMat.dispose();
       if (renderer.domElement.parentNode === mount) {
