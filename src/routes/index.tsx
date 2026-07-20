@@ -40,18 +40,21 @@ function shapedWave(theta: number, p: number) {
 }
 
 // Gerstner-like sum of sines. Keep in sync with vertex shader.
-function waveHeight(x: number, z: number, t: number, amp: number, regular: boolean, cross: boolean, period: number = 1, peak: number = 1) {
+function waveHeight(x: number, z: number, t: number, amp: number, regular: boolean, cross: boolean, period: number = 1, peak: number = 1, dir: number = 0) {
+  const c = Math.cos(dir), s = Math.sin(dir);
+  const xr = c * x + s * z;
+  const zr = -s * x + c * z;
   if (regular) {
     const kx = 0.12 / period;
     const kz = 0.09 / period;
-    const rx = shapedWave(x * kx + t * 0.9, peak) * 2.6 * amp;
-    const rz = cross ? shapedWave(z * kz + t * 0.7 + 1.1, peak) * 1.4 * amp : 0;
+    const rx = shapedWave(xr * kx + t * 0.9, peak) * 2.6 * amp;
+    const rz = cross ? shapedWave(zr * kz + t * 0.7 + 1.1, peak) * 1.4 * amp : 0;
     return rx + rz;
   }
-  const w1 = shapedWave(x * 0.12 + t * 0.9, peak) * 1.0;
-  const w2 = shapedWave(z * 0.17 + t * 0.7 + 1.3, peak) * 0.75;
-  const w3 = shapedWave((x * 0.22 + z * 0.19) + t * 1.4 + 2.1, peak) * 0.5;
-  const w4 = shapedWave((x * 0.31 - z * 0.11) + t * 1.8 + 0.4, peak) * 0.35;
+  const w1 = shapedWave(xr * 0.12 + t * 0.9, peak) * 1.0;
+  const w2 = shapedWave(zr * 0.17 + t * 0.7 + 1.3, peak) * 0.75;
+  const w3 = shapedWave((xr * 0.22 + zr * 0.19) + t * 1.4 + 2.1, peak) * 0.5;
+  const w4 = shapedWave((xr * 0.31 - zr * 0.11) + t * 1.8 + 0.4, peak) * 0.35;
   return (w1 + w2 + w3 + w4) * amp;
 }
 
