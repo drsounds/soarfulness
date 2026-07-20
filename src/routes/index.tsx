@@ -932,6 +932,18 @@ function Aquafulness() {
                 onInc={() => setSubmergeAmp((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
               />
               <PadDial
+                label="FLYT"
+                mode="number"
+                value={`${floatLift.toFixed(2)}×`}
+                rawValue={floatLift}
+                onSet={setFloatLift}
+                min={0}
+                max={4}
+                step={0.1}
+                onDec={() => setFloatLift((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
+                onInc={() => setFloatLift((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
+              />
+              <PadDial
                 label="GUPP"
                 mode="number"
                 value={`${buoyAmp.toFixed(2)}×`}
