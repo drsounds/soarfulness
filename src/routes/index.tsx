@@ -50,6 +50,7 @@ type Persisted = {
   buoyAmp: number;
   heightOffset: number;
   submergeAmp: number;
+  floatLift: number;
   audioOn: boolean;
   audioVol: number;
   audioSyncSpeed: boolean;
