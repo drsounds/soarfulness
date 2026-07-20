@@ -110,6 +110,7 @@ const DEFAULTS: Persisted = {
   regularWaves: true,
   regularCross: false,
   regularPeriod: 1,
+  wavePeak: 1,
   backdropIdx: 0,
   wakeLock: false,
 };
