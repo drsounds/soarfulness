@@ -481,6 +481,9 @@ function Aquafulness() {
       uPeriod: { value: 1 },
       uPeak: { value: 1 },
       uDir: { value: 0 },
+      uVortex: { value: 0 },
+      uVortexOpening: { value: 14 },
+      uVortexCenter: { value: new THREE.Vector2(0, 0) },
     };
 
     const vertexShader = /* glsl */ `
