@@ -182,7 +182,6 @@ function Aquafulness() {
   useEffect(() => { speedRef.current = waveSpeed; }, [waveSpeed]);
   useEffect(() => { bobSpeedRef.current = bobSpeed; }, [bobSpeed]);
   useEffect(() => { buoyRef.current = buoyAmp; }, [buoyAmp]);
-  useEffect(() => { /* audioSyncSpeed is read from state in its own effect */ }, [audioSyncSpeed]);
   useEffect(() => { heightRef.current = heightOffset; }, [heightOffset]);
   useEffect(() => { stickRef.current = stick; }, [stick]);
   useEffect(() => { rotStickRef.current = rotStick; }, [rotStick]);
