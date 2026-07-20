@@ -656,7 +656,7 @@ function Aquafulness() {
       uFogColor: { value: uniforms.uFogColor.value },
     };
     const floorMat = new THREE.ShaderMaterial({
-      uniforms: floorUniforms,
+      uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, floorUniforms]),
       fog: true,
       side: THREE.DoubleSide,
       transparent: false,
