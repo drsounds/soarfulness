@@ -51,6 +51,7 @@ type Persisted = {
   heightOffset: number;
   audioOn: boolean;
   audioVol: number;
+  audioSyncSpeed: boolean;
   waterTintIdx: number;
   bottomIdx: number;
   leanEnabled: boolean;
@@ -88,6 +89,7 @@ const DEFAULTS: Persisted = {
   heightOffset: 0.4,
   audioOn: true,
   audioVol: 0.8,
+  audioSyncSpeed: false,
   waterTintIdx: 1,
   bottomIdx: 0,
   leanEnabled: false,
@@ -121,6 +123,7 @@ function Aquafulness() {
   const [stick, setStick] = useState({ x: 0, y: 0 });
   const [audioOn, setAudioOn] = useState(initial.audioOn);
   const [audioVol, setAudioVol] = useState(initial.audioVol);
+  const [audioSyncSpeed, setAudioSyncSpeed] = useState(initial.audioSyncSpeed);
   const [waterTintIdx, setWaterTintIdx] = useState(initial.waterTintIdx);
   const [bottomIdx, setBottomIdx] = useState(initial.bottomIdx);
   const [leanEnabled, setLeanEnabled] = useState(initial.leanEnabled);
@@ -137,12 +140,12 @@ function Aquafulness() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, backdropIdx };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, audioSyncSpeed, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, backdropIdx };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, backdropIdx]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, audioSyncSpeed, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, backdropIdx]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -199,6 +202,7 @@ function Aquafulness() {
     setHeightOffset(DEFAULTS.heightOffset);
     setAudioOn(DEFAULTS.audioOn);
     setAudioVol(DEFAULTS.audioVol);
+    setAudioSyncSpeed(DEFAULTS.audioSyncSpeed);
     setWaterTintIdx(DEFAULTS.waterTintIdx);
     setBottomIdx(DEFAULTS.bottomIdx);
     setLeanEnabled(DEFAULTS.leanEnabled);
@@ -233,6 +237,10 @@ function Aquafulness() {
     el.loop = true;
     el.crossOrigin = "anonymous";
     el.preload = "auto";
+    // By default the recorded water sound keeps its original speed regardless
+    // of wave tempo. The user can opt-in to sync it below.
+    el.playbackRate = audioSyncSpeed ? Math.max(0.2, Math.min(5, waveSpeed)) : 1;
+    el.preservesPitch = true;
 
     const src = ctx.createMediaElementSource(el);
 
@@ -261,6 +269,14 @@ function Aquafulness() {
     if (!a) return;
     a.master.gain.setTargetAtTime(audioVol, a.ctx.currentTime, 0.2);
   }, [audioVol]);
+
+  // React to tempo-sync option: only change audio speed when explicitly enabled.
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a) return;
+    a.el.playbackRate = audioSyncSpeed ? Math.max(0.2, Math.min(5, waveSpeed)) : 1;
+    a.el.preservesPitch = true;
+  }, [audioSyncSpeed, waveSpeed]);
 
 
 
@@ -846,6 +862,12 @@ function Aquafulness() {
                   if (!audioOn) { setAudioOn(true); return; }
                   setAudioVol((v) => Math.min(1, +(v + 0.1).toFixed(2)));
                 }}
+              />
+              <PadDial
+                label="LJUDSYNK"
+                value={audioSyncSpeed ? "PÅ" : "AV"}
+                onDec={() => setAudioSyncSpeed(false)}
+                onInc={() => setAudioSyncSpeed(true)}
               />
               <PadDial
                 label="VATTEN"
