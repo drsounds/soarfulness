@@ -90,6 +90,7 @@ type Persisted = {
   vortexMode: boolean;
   vortexOpening: number;
   vortexRadius: number;
+  vortexSpeed: number;
 };
 const WATER_TINTS: { name: string; rgb: [number, number, number] }[] = [
   { name: "Nordhav", rgb: [1, 1, 1] },
@@ -141,6 +142,7 @@ const DEFAULTS: Persisted = {
   vortexMode: false,
   vortexOpening: 14,
   vortexRadius: 26,
+  vortexSpeed: 1,
 };
 function loadSettings(): Persisted {
   if (typeof window === "undefined") return DEFAULTS;
@@ -189,6 +191,7 @@ function Aquafulness() {
   const [vortexMode, setVortexMode] = useState(initial.vortexMode);
   const [vortexOpening, setVortexOpening] = useState(initial.vortexOpening);
   const [vortexRadius, setVortexRadius] = useState(initial.vortexRadius);
+  const [vortexSpeed, setVortexSpeed] = useState(initial.vortexSpeed);
   const [rotStick, setRotStick] = useState({ x: 0, y: 0 });
   const [driftStick, setDriftStick] = useState({ x: 0, y: 0 });
   const [waveDirStick, setWaveDirStick] = useState({ x: 0, y: 0 });
@@ -198,12 +201,12 @@ function Aquafulness() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -248,6 +251,7 @@ function Aquafulness() {
   const vortexModeRef = useRef(vortexMode);
   const vortexOpeningRef = useRef(vortexOpening);
   const vortexRadiusRef = useRef(vortexRadius);
+  const vortexSpeedRef = useRef(vortexSpeed);
   const vortexAngleRef = useRef(0);
   useEffect(() => { ampRef.current = waveAmp; }, [waveAmp]);
   useEffect(() => { todRef.current = timeOfDay; }, [timeOfDay]);
@@ -278,6 +282,7 @@ function Aquafulness() {
   useEffect(() => { vortexModeRef.current = vortexMode; }, [vortexMode]);
   useEffect(() => { vortexOpeningRef.current = vortexOpening; }, [vortexOpening]);
   useEffect(() => { vortexRadiusRef.current = vortexRadius; }, [vortexRadius]);
+  useEffect(() => { vortexSpeedRef.current = vortexSpeed; }, [vortexSpeed]);
   // Håll VÅGRIKT-spakens visuella läge synkat med waveDir (t.ex. när dialen ändras
   // eller vid uppstart), men bara när spaken själv står i vila.
   useEffect(() => {
@@ -317,6 +322,7 @@ function Aquafulness() {
     setVortexMode(DEFAULTS.vortexMode);
     setVortexOpening(DEFAULTS.vortexOpening);
     setVortexRadius(DEFAULTS.vortexRadius);
+    setVortexSpeed(DEFAULTS.vortexSpeed);
     // timeOfDay is intentionally left untouched.
   };
 
@@ -962,8 +968,10 @@ function Aquafulness() {
       if (inVortex) {
         // Orbit around origin. NAV.y in/ut, NAV.x tangent.
         const op = vortexOpeningRef.current;
-        // Base angular speed scales gently with wave speed so tempo affects swirl.
-        const baseOmega = 0.35 + 0.04 * speedRef.current;
+        // Base angular speed scales with the dedicated vortex speed dial
+        // (plus a gentle touch of wave tempo) so the swirl is independently
+        // adjustable. Negative values reverse the orbit direction.
+        const baseOmega = (0.25 + 0.03 * speedRef.current) * vortexSpeedRef.current;
         const stickOmega = stickRef.current.x * 1.4; // extra swirl from NAV.x
         vortexAngleRef.current += (baseOmega + stickOmega) * dt;
         // Move in/out along the radius (STRÖM.y also nudges drift in/out).
@@ -1386,6 +1394,18 @@ function Aquafulness() {
                 step={1}
                 onDec={() => setVortexRadius((v) => Math.max(3, +(v - 1).toFixed(2)))}
                 onInc={() => setVortexRadius((v) => Math.min(220, +(v + 1).toFixed(2)))}
+              />
+              <PadDial
+                label="VIRVEL TEMPO"
+                mode="number"
+                value={`${vortexSpeed.toFixed(2)}x`}
+                rawValue={vortexSpeed}
+                onSet={(v) => setVortexSpeed(Math.max(-3, Math.min(3, v)))}
+                min={-3}
+                max={3}
+                step={0.1}
+                onDec={() => setVortexSpeed((v) => Math.max(-3, +(v - 0.1).toFixed(2)))}
+                onInc={() => setVortexSpeed((v) => Math.min(3, +(v + 0.1).toFixed(2)))}
               />
               <PadDial
                 label="BAKGRUND"
