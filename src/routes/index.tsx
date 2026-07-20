@@ -605,21 +605,30 @@ function Aquafulness() {
 
         // Vortex funnel: sink the mesh toward the center with a Gaussian well.
         // Depth of the pit scales with the opening so the walls stay steep but
-        // proportional. Wave amplitude is damped inside the throat because the
-        // water there is "sucked down" and can't crest normally.
+        // proportional. Inside the vortex we swap the directional swell for a
+        // concentric radial wave — from an orbiting camera that reads as even,
+        // uniform ripples rolling around the funnel instead of a directional
+        // chop that appears to change direction as you circle.
         if (uVortex > 0.001) {
           vec2 rvec = wpBase.xz - uVortexCenter;
           float r = length(rvec);
           float op = max(1.0, uVortexOpening);
           float g = exp(-(r*r) / (op*op));
           float pit = -op * 1.6 * g;
-          // Damp wave contribution in the throat so the funnel shape is clean.
-          p.y = mix(p.y, pit + h * (1.0 - g * 0.85), uVortex);
-          // Tilt the surface normal toward the center so shading follows the
-          // funnel walls (radial gradient of the Gaussian well).
+          // Radial wave — analytic so the normal stays clean.
+          float kR = 0.12 / uPeriod;
+          float phase = r * kR - uTime * 0.9;
+          float hR = shp(phase) * 2.6 * ampF;
+          // dHr/dr for the radial normal
+          float dHr = cos(phase) * kR * 2.6 * ampF;
+          float pyRad = pit + hR * (1.0 - g * 0.85);
+          p.y = mix(p.y, pyRad, uVortex);
+          // Combined normal: funnel wall + radial ripple slope along rvec.
           float dg = -2.0 * g / (op * op);
-          vec3 nv = normalize(vec3(-rvec.x * dg * op * 1.6, 1.0, -rvec.y * dg * op * 1.6));
-          n = normalize(mix(n, nv, uVortex * 0.8));
+          vec2 rn = r > 0.0001 ? rvec / r : vec2(0.0);
+          float slopeR = dHr * (1.0 - g * 0.85) + (-op * 1.6) * dg * r; // d(pyRad)/dr
+          vec3 nv = normalize(vec3(-rn.x * slopeR, 1.0, -rn.y * slopeR));
+          n = normalize(mix(n, nv, uVortex));
         }
 
         vec4 wp = modelMatrix * vec4(p, 1.0);
@@ -1024,7 +1033,8 @@ function Aquafulness() {
         // Base angular speed scales with the dedicated vortex speed dial
         // (plus a gentle touch of wave tempo) so the swirl is independently
         // adjustable. Negative values reverse the orbit direction.
-        const baseOmega = (0.25 + 0.03 * speedRef.current) * vortexSpeedRef.current;
+        // Purely driven by the vortex-tempo dial so wave speed stays independent.
+        const baseOmega = 0.35 * vortexSpeedRef.current;
         const stickOmega = stickRef.current.x * 1.4; // extra swirl from NAV.x
         vortexAngleRef.current += (baseOmega + stickOmega) * dt;
         // Move in/out along the radius (STRÖM.y also nudges drift in/out).
