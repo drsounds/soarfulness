@@ -49,6 +49,7 @@ type Persisted = {
   bobSpeed: number;
   buoyAmp: number;
   heightOffset: number;
+  submergeAmp: number;
   audioOn: boolean;
   audioVol: number;
   audioSyncSpeed: boolean;
@@ -89,6 +90,7 @@ const DEFAULTS: Persisted = {
   bobSpeed: 2.8,
   buoyAmp: 2.8,
   heightOffset: 0.4,
+  submergeAmp: 1,
   audioOn: true,
   audioVol: 0.8,
   audioSyncSpeed: false,
@@ -123,6 +125,7 @@ function Aquafulness() {
   const [bobSpeed, setBobSpeed] = useState(initial.bobSpeed);
   const [buoyAmp, setBuoyAmp] = useState(initial.buoyAmp);
   const [heightOffset, setHeightOffset] = useState(initial.heightOffset);
+  const [submergeAmp, setSubmergeAmp] = useState(initial.submergeAmp);
   // Live joystick vector (visual state) — kept in state so the thumb renders.
   const [stick, setStick] = useState({ x: 0, y: 0 });
   const [audioOn, setAudioOn] = useState(initial.audioOn);
@@ -146,12 +149,12 @@ function Aquafulness() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, backdropIdx, wakeLock };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, backdropIdx, wakeLock };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, backdropIdx, wakeLock]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, backdropIdx, wakeLock]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -167,6 +170,7 @@ function Aquafulness() {
   const bobSpeedRef = useRef(bobSpeed);
   const buoyRef = useRef(buoyAmp);
   const heightRef = useRef(heightOffset);
+  const submergeRef = useRef(submergeAmp);
   const stickRef = useRef({ x: 0, y: 0 });
   const posRef = useRef({ x: 0, z: 0 });
   const camYRef = useRef<number | null>(null);
@@ -191,6 +195,7 @@ function Aquafulness() {
   useEffect(() => { bobSpeedRef.current = bobSpeed; }, [bobSpeed]);
   useEffect(() => { buoyRef.current = buoyAmp; }, [buoyAmp]);
   useEffect(() => { heightRef.current = heightOffset; }, [heightOffset]);
+  useEffect(() => { submergeRef.current = submergeAmp; }, [submergeAmp]);
   useEffect(() => { stickRef.current = stick; }, [stick]);
   useEffect(() => { rotStickRef.current = rotStick; }, [rotStick]);
   useEffect(() => { followStickRef.current = followStick; }, [followStick]);
@@ -210,6 +215,7 @@ function Aquafulness() {
     setBobSpeed(DEFAULTS.bobSpeed);
     setBuoyAmp(DEFAULTS.buoyAmp);
     setHeightOffset(DEFAULTS.heightOffset);
+    setSubmergeAmp(DEFAULTS.submergeAmp);
     setAudioOn(DEFAULTS.audioOn);
     setAudioVol(DEFAULTS.audioVol);
     setAudioSyncSpeed(DEFAULTS.audioSyncSpeed);
@@ -707,7 +713,7 @@ function Aquafulness() {
       const k = 4 + 14 * bobSpeedRef.current; // stiffness (spring tempo)
       const zeta = 0.32; // underdamped → visible bounce
       const c = 2 * zeta * Math.sqrt(k);
-      const gravity = 1.6 * b * (0.6 + amp * 0.5); // pulls camera below crest
+      const gravity = 1.6 * b * (0.6 + amp * 0.5) * submergeRef.current; // pulls camera below crest
       const ay = k * (targetY - camYRef.current) - c * camVYRef.current - gravity;
       camVYRef.current += ay * dt;
       camYRef.current += camVYRef.current * dt;
@@ -725,8 +731,10 @@ function Aquafulness() {
       const followX = followStickRef.current.x * slopeX * 1.2;
 
       camera.position.set(camX + followX, camYRef.current + followY, camZ);
+      // Keep the look direction perfectly level so wave crests in front of
+      // the camera don't tilt the horizon up/down when riding a swell.
       const lookZ = camZ - 20;
-      const lookY = waveHeight(camX, lookZ, t, amp, regularRef.current, regularCrossRef.current, regularPeriodRef.current) + 0.4;
+      const lookY = camera.position.y;
       camera.lookAt(camX + followX, lookY, lookZ);
 
       // Rotation stick: yaw (x) + pitch (y). Integrate stick as angular velocity.
@@ -893,6 +901,18 @@ function Aquafulness() {
                 step={0.2}
                 onDec={() => setHeightOffset((v) => Math.max(-5, +(v - 0.2).toFixed(2)))}
                 onInc={() => setHeightOffset((v) => Math.min(5, +(v + 0.2).toFixed(2)))}
+              />
+              <PadDial
+                label="DYK"
+                mode="number"
+                value={`${submergeAmp.toFixed(2)}×`}
+                rawValue={submergeAmp}
+                onSet={setSubmergeAmp}
+                min={0}
+                max={4}
+                step={0.1}
+                onDec={() => setSubmergeAmp((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
+                onInc={() => setSubmergeAmp((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
               />
               <PadDial
                 label="GUPP"
