@@ -88,7 +88,9 @@ type Persisted = {
   heightOffset: number;
   submergeAmp: number;
   floatLift: number;
-  sinkDamp: number;
+  camOffX: number;
+  camOffY: number;
+  camOffZ: number;
   audioOn: boolean;
   audioVol: number;
   audioSyncSpeed: boolean;
@@ -145,7 +147,9 @@ const DEFAULTS: Persisted = {
   heightOffset: 0,
   submergeAmp: 0,
   floatLift: 0,
-  sinkDamp: 0.5,
+  camOffX: 0,
+  camOffY: 0,
+  camOffZ: 0,
   audioOn: true,
   audioVol: 0.8,
   audioSyncSpeed: false,
@@ -196,7 +200,9 @@ function Aquafulness() {
   const [heightOffset, setHeightOffset] = useState(initial.heightOffset);
   const [submergeAmp, setSubmergeAmp] = useState(initial.submergeAmp);
   const [floatLift, setFloatLift] = useState(initial.floatLift);
-  const [sinkDamp, setSinkDamp] = useState(initial.sinkDamp);
+  const [camOffX, setCamOffX] = useState(initial.camOffX);
+  const [camOffY, setCamOffY] = useState(initial.camOffY);
+  const [camOffZ, setCamOffZ] = useState(initial.camOffZ);
   // Live joystick vector (visual state) — kept in state so the thumb renders.
   const [stick, setStick] = useState({ x: 0, y: 0 });
   const [audioOn, setAudioOn] = useState(initial.audioOn);
@@ -235,12 +241,12 @@ function Aquafulness() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, sinkDamp, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, sinkDamp, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -258,7 +264,9 @@ function Aquafulness() {
   const heightRef = useRef(heightOffset);
   const submergeRef = useRef(submergeAmp);
   const floatLiftRef = useRef(floatLift);
-  const sinkDampRef = useRef(sinkDamp);
+  const camOffXRef = useRef(camOffX);
+  const camOffYRef = useRef(camOffY);
+  const camOffZRef = useRef(camOffZ);
   const stickRef = useRef({ x: 0, y: 0 });
   const posRef = useRef({ x: 0, z: 0 });
   const camYRef = useRef<number | null>(null);
@@ -300,7 +308,9 @@ function Aquafulness() {
   useEffect(() => { heightRef.current = heightOffset; }, [heightOffset]);
   useEffect(() => { submergeRef.current = submergeAmp; }, [submergeAmp]);
   useEffect(() => { floatLiftRef.current = floatLift; }, [floatLift]);
-  useEffect(() => { sinkDampRef.current = sinkDamp; }, [sinkDamp]);
+  useEffect(() => { camOffXRef.current = camOffX; }, [camOffX]);
+  useEffect(() => { camOffYRef.current = camOffY; }, [camOffY]);
+  useEffect(() => { camOffZRef.current = camOffZ; }, [camOffZ]);
   useEffect(() => { stickRef.current = stick; }, [stick]);
   useEffect(() => { rotStickRef.current = rotStick; }, [rotStick]);
   useEffect(() => { driftStickRef.current = driftStick; }, [driftStick]);
@@ -345,7 +355,9 @@ function Aquafulness() {
     setHeightOffset(DEFAULTS.heightOffset);
     setSubmergeAmp(DEFAULTS.submergeAmp);
     setFloatLift(DEFAULTS.floatLift);
-    setSinkDamp(DEFAULTS.sinkDamp);
+    setCamOffX(DEFAULTS.camOffX);
+    setCamOffY(DEFAULTS.camOffY);
+    setCamOffZ(DEFAULTS.camOffZ);
     setAudioOn(DEFAULTS.audioOn);
     setAudioVol(DEFAULTS.audioVol);
     setAudioSyncSpeed(DEFAULTS.audioSyncSpeed);
@@ -1113,14 +1125,8 @@ function Aquafulness() {
       const lift = floatLiftRef.current;
       // Dynamic dive uses the anticipated velocity so the camera starts
       // sinking as soon as the wave begins to rise (not mid-crest).
-      const sink = sinkDampRef.current;
-      const upVel = Math.max(0, anticipVel);
-      const downVel = Math.min(0, anticipVel);
-      // Dive on rising crests (unchanged). SJUNK scales how much the FLYT
-      // "lift" term also drags the camera down in the trough — 0 = no sink,
-      // 1 = symmetrical (previous behavior).
-      const diveOffset = upVel * sub * 0.6 * (0.6 + amp * 0.6);
-      const liftOffset = (upVel + downVel * sink) * lift * 0.35 * (0.6 + amp * 0.6);
+      const diveOffset = Math.max(0, anticipVel) * sub * 0.6 * (0.6 + amp * 0.6);
+      const liftOffset = anticipVel * lift * 0.35 * (0.6 + amp * 0.6);
       const targetY = surfaceY + heightRef.current - diveOffset + liftOffset;
       if (camYRef.current === null) camYRef.current = targetY;
       const k = 4 + 14 * bobSpeedRef.current; // stiffness (spring tempo)
@@ -1132,18 +1138,13 @@ function Aquafulness() {
       camVYRef.current += ay * dt;
       camYRef.current += camVYRef.current * dt;
 
-      // Hard floor relative to the wave surface so the camera can't overshoot
-      // deep below the trough at high FLYT. SJUNK controls how much dip is
-      // allowed (0 = ride the trough surface, higher = more submersion allowed).
-      // DYK still adds its own submergence on rising crests, independent of this.
-      const maxDipBelow = 0.15 + sink * 6.0;
-      const floorY = surfaceY - maxDipBelow;
-      if (camYRef.current < floorY) {
-        camYRef.current = floorY;
-        if (camVYRef.current < 0) camVYRef.current = 0;
-      }
-
-      camera.position.set(camX, camYRef.current, camZ);
+      // Manual XYZ camera offset (POS X/Y/Z dials) — applied after physics so
+      // the user can nudge the viewpoint without disturbing the buoyancy loop.
+      camera.position.set(
+        camX + camOffXRef.current,
+        camYRef.current + camOffYRef.current,
+        camZ + camOffZRef.current,
+      );
       // Look direction: HAV = level forward; VIRVEL = mot centrum (så kameran
       // följer med runt virveln och naturligt tittar ner mot öppningen).
       const lookY = camera.position.y;
@@ -1350,16 +1351,40 @@ function Aquafulness() {
                 onInc={() => setFloatLift((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
               />
               <PadDial
-                label="SJUNK"
+                label="POS X"
                 mode="number"
-                value={`${sinkDamp.toFixed(2)}×`}
-                rawValue={sinkDamp}
-                onSet={setSinkDamp}
-                min={0}
-                max={1.5}
-                step={0.05}
-                onDec={() => setSinkDamp((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
-                onInc={() => setSinkDamp((v) => Math.min(1.5, +(v + 0.05).toFixed(2)))}
+                value={`${camOffX.toFixed(2)}m`}
+                rawValue={camOffX}
+                onSet={setCamOffX}
+                min={-10}
+                max={10}
+                step={0.1}
+                onDec={() => setCamOffX((v) => Math.max(-10, +(v - 0.1).toFixed(2)))}
+                onInc={() => setCamOffX((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
+              />
+              <PadDial
+                label="POS Y"
+                mode="number"
+                value={`${camOffY.toFixed(2)}m`}
+                rawValue={camOffY}
+                onSet={setCamOffY}
+                min={-10}
+                max={10}
+                step={0.1}
+                onDec={() => setCamOffY((v) => Math.max(-10, +(v - 0.1).toFixed(2)))}
+                onInc={() => setCamOffY((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
+              />
+              <PadDial
+                label="POS Z"
+                mode="number"
+                value={`${camOffZ.toFixed(2)}m`}
+                rawValue={camOffZ}
+                onSet={setCamOffZ}
+                min={-10}
+                max={10}
+                step={0.1}
+                onDec={() => setCamOffZ((v) => Math.max(-10, +(v - 0.1).toFixed(2)))}
+                onInc={() => setCamOffZ((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
               />
               <PadDial
                 label="GUPP"
