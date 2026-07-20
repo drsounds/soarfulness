@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import waterAsset from "@/assets/water.mp3.asset.json";
 import vanernBackdrop from "@/assets/vanern-backdrop.png.asset.json";
+import sandTextureAsset from "@/assets/sand_cc0_512.jpg.asset.json";
 
 export const Route = createFileRoute("/")({
   component: Aquafulness,
@@ -648,6 +649,14 @@ function Aquafulness() {
     // procedurellt strukturerad (sandbankar, småsten, kaustik) när uTextured=1.
     const floorGeo = new THREE.PlaneGeometry(600, 600, 32, 32);
     floorGeo.rotateX(-Math.PI / 2);
+    // Real CC0 sand photo (ambientCG Ground054, 512px) – loaded lazily so the
+    // scene renders even if the CDN request is slow.
+    const sandTex = new THREE.TextureLoader().load(sandTextureAsset.url);
+    sandTex.wrapS = THREE.RepeatWrapping;
+    sandTex.wrapT = THREE.RepeatWrapping;
+    sandTex.anisotropy = renderer.capabilities.getMaxAnisotropy?.() ?? 4;
+    sandTex.colorSpace = THREE.SRGBColorSpace;
+
     const floorUniforms = {
       fogColor: { value: new THREE.Color(0x000000) },
       fogDensity: { value: 0 },
@@ -658,6 +667,8 @@ function Aquafulness() {
       uTime: { value: 0 },
       uSunDir: { value: uniforms.uSunDir.value },
       uFogColor: { value: uniforms.uFogColor.value },
+      uSandTex: { value: sandTex },
+      uSandScale: { value: 0.08 }, // 1 tile per ~12.5 m
     };
     const floorMat = new THREE.ShaderMaterial({
       uniforms: floorUniforms,
@@ -685,9 +696,10 @@ function Aquafulness() {
         uniform float uTextured;
         uniform float uTime;
         uniform vec3 uSunDir;
+        uniform sampler2D uSandTex;
+        uniform float uSandScale;
         #include <fog_pars_fragment>
 
-        // Cheap value-noise + fbm for procedural sand.
         float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453123); }
         float vnoise(vec2 p){
           vec2 i = floor(p); vec2 f = fract(p);
@@ -698,35 +710,26 @@ function Aquafulness() {
           vec2 u = f*f*(3.0-2.0*f);
           return mix(a,b,u.x) + (c-a)*u.y*(1.0-u.x) + (d-b)*u.x*u.y;
         }
-        float fbm(vec2 p){
-          float v = 0.0; float a = 0.5;
-          for (int i=0; i<5; i++){ v += a*vnoise(p); p *= 2.03; a *= 0.5; }
-          return v;
-        }
 
         void main(){
           vec3 base = uColor;
           if (uTextured > 0.001) {
+            vec2 uv0 = vWorld.xz * uSandScale;
+            // Två oktaver i olika skala/vridning för att dölja tile-repetition.
+            vec3 s1 = texture2D(uSandTex, uv0).rgb;
+            mat2 rot = mat2(0.8, -0.6, 0.6, 0.8);
+            vec3 s2 = texture2D(uSandTex, rot * uv0 * 0.37 + 0.13).rgb;
+            vec3 sand = mix(s1, s2, 0.5);
+            // Tona in botten-färgen så användaren fortfarande styr grundtonen.
+            sand *= (uColor / max(vec3(0.35), vec3(0.65)));
+            // Kaustik-flimmer från vågorna ovanför.
             vec2 p = vWorld.xz;
-            // Longa sandbankar / ripples
-            float ripple = sin(p.x * 0.35 + fbm(p*0.12)*3.0) * 0.5 + 0.5;
-            ripple = pow(ripple, 2.2);
-            // Fina korn
-            float grain = fbm(p * 3.5);
-            // Storskaliga fläckar (mörkare partier, tång/skugga)
-            float patch = fbm(p * 0.06);
-            // Kaustik-flimmer från vågorna ovanför
             float caustic = 0.0;
-            caustic += sin(p.x*0.9 + uTime*0.7 + fbm(p*0.4)*4.0);
-            caustic += sin(p.y*0.85 - uTime*0.55 + fbm(p*0.35 + 3.1)*4.0);
+            caustic += sin(p.x*0.9 + uTime*0.7 + vnoise(p*0.4)*4.0);
+            caustic += sin(p.y*0.85 - uTime*0.55 + vnoise(p*0.35 + 3.1)*4.0);
             caustic = pow(max(0.0, caustic*0.5 + 0.5), 3.0);
-
-            vec3 lightSand = uColor * 1.18;
-            vec3 darkSand  = uColor * 0.55;
-            vec3 col = mix(darkSand, lightSand, ripple * 0.55 + grain * 0.6);
-            col = mix(col, col * 0.65, smoothstep(0.55, 0.85, patch));
-            col += vec3(0.9, 0.85, 0.7) * caustic * 0.22;
-            base = mix(uColor, col, clamp(uTextured, 0.0, 1.0));
+            sand += vec3(0.9, 0.85, 0.7) * caustic * 0.18;
+            base = mix(uColor, sand, clamp(uTextured, 0.0, 1.0));
           }
           gl_FragColor = vec4(base, 1.0);
           #include <fog_fragment>
@@ -1011,6 +1014,7 @@ function Aquafulness() {
       mat.dispose();
       floorGeo.dispose();
       floorMat.dispose();
+      sandTex.dispose();
       skyGeo.dispose();
       skyMat.dispose();
       if (renderer.domElement.parentNode === mount) {
