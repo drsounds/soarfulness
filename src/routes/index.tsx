@@ -88,7 +88,9 @@ type Persisted = {
   heightOffset: number;
   submergeAmp: number;
   floatLift: number;
-  sinkDamp: number;
+  camOffX: number;
+  camOffY: number;
+  camOffZ: number;
   audioOn: boolean;
   audioVol: number;
   audioSyncSpeed: boolean;
