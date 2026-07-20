@@ -1358,6 +1358,36 @@ function Aquafulness() {
                 onInc={() => setWavePeak((v) => Math.min(6, +(v + 0.25).toFixed(2)))}
               />
               <PadDial
+                label="LÄGE"
+                value={vortexMode ? "VIRVEL" : "HAV"}
+                onDec={() => setVortexMode(false)}
+                onInc={() => setVortexMode(true)}
+              />
+              <PadDial
+                label="ÖPPNING"
+                mode="number"
+                value={`${vortexOpening.toFixed(1)}m`}
+                rawValue={vortexOpening}
+                onSet={(v) => setVortexOpening(Math.max(3, Math.min(60, v)))}
+                min={3}
+                max={60}
+                step={0.5}
+                onDec={() => setVortexOpening((v) => Math.max(3, +(v - 0.5).toFixed(2)))}
+                onInc={() => setVortexOpening((v) => Math.min(60, +(v + 0.5).toFixed(2)))}
+              />
+              <PadDial
+                label="AVSTÅND"
+                mode="number"
+                value={`${vortexRadius.toFixed(1)}m`}
+                rawValue={vortexRadius}
+                onSet={(v) => setVortexRadius(Math.max(3, Math.min(220, v)))}
+                min={3}
+                max={220}
+                step={1}
+                onDec={() => setVortexRadius((v) => Math.max(3, +(v - 1).toFixed(2)))}
+                onInc={() => setVortexRadius((v) => Math.min(220, +(v + 1).toFixed(2)))}
+              />
+              <PadDial
                 label="BAKGRUND"
                 value={BACKDROPS[backdropIdx].name}
                 onDec={() => setBackdropIdx((i) => (i - 1 + BACKDROPS.length) % BACKDROPS.length)}
