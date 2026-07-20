@@ -295,6 +295,8 @@ function Aquafulness() {
     setCamFov(DEFAULTS.camFov);
     setCamNear(DEFAULTS.camNear);
     setWaveDir(DEFAULTS.waveDir);
+    setFloorDepth(DEFAULTS.floorDepth);
+    setFloorTexture(DEFAULTS.floorTexture);
     // timeOfDay is intentionally left untouched.
   };
 
