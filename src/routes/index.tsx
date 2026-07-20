@@ -1132,6 +1132,17 @@ function Aquafulness() {
       camVYRef.current += ay * dt;
       camYRef.current += camVYRef.current * dt;
 
+      // Hard floor relative to the wave surface so the camera can't overshoot
+      // deep below the trough at high FLYT. SJUNK controls how much dip is
+      // allowed (0 = ride the trough surface, higher = more submersion allowed).
+      // DYK still adds its own submergence on rising crests, independent of this.
+      const maxDipBelow = 0.15 + sink * 6.0;
+      const floorY = surfaceY - maxDipBelow;
+      if (camYRef.current < floorY) {
+        camYRef.current = floorY;
+        if (camVYRef.current < 0) camVYRef.current = 0;
+      }
+
       camera.position.set(camX, camYRef.current, camZ);
       // Look direction: HAV = level forward; VIRVEL = mot centrum (så kameran
       // följer med runt virveln och naturligt tittar ner mot öppningen).
