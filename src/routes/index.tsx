@@ -1351,16 +1351,40 @@ function Aquafulness() {
                 onInc={() => setFloatLift((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
               />
               <PadDial
-                label="SJUNK"
+                label="POS X"
                 mode="number"
-                value={`${sinkDamp.toFixed(2)}×`}
-                rawValue={sinkDamp}
-                onSet={setSinkDamp}
-                min={0}
-                max={1.5}
-                step={0.05}
-                onDec={() => setSinkDamp((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
-                onInc={() => setSinkDamp((v) => Math.min(1.5, +(v + 0.05).toFixed(2)))}
+                value={`${camOffX.toFixed(2)}m`}
+                rawValue={camOffX}
+                onSet={setCamOffX}
+                min={-10}
+                max={10}
+                step={0.1}
+                onDec={() => setCamOffX((v) => Math.max(-10, +(v - 0.1).toFixed(2)))}
+                onInc={() => setCamOffX((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
+              />
+              <PadDial
+                label="POS Y"
+                mode="number"
+                value={`${camOffY.toFixed(2)}m`}
+                rawValue={camOffY}
+                onSet={setCamOffY}
+                min={-10}
+                max={10}
+                step={0.1}
+                onDec={() => setCamOffY((v) => Math.max(-10, +(v - 0.1).toFixed(2)))}
+                onInc={() => setCamOffY((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
+              />
+              <PadDial
+                label="POS Z"
+                mode="number"
+                value={`${camOffZ.toFixed(2)}m`}
+                rawValue={camOffZ}
+                onSet={setCamOffZ}
+                min={-10}
+                max={10}
+                step={0.1}
+                onDec={() => setCamOffZ((v) => Math.max(-10, +(v - 0.1).toFixed(2)))}
+                onInc={() => setCamOffZ((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
               />
               <PadDial
                 label="GUPP"
