@@ -833,7 +833,7 @@ function Aquafulness() {
       // x adds a lateral coupling to the wave slope.
       const followY = followStickRef.current.y * surfVel * 0.35;
       const eps = 0.4;
-      const slopeX = (waveHeight(camX + eps, camZ, t, amp, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current) - surfaceY) / eps;
+      const slopeX = (waveHeight(camX + eps, camZ, t, amp, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad) - surfaceY) / eps;
       const followX = followStickRef.current.x * slopeX * 1.2;
 
       camera.position.set(camX + followX, camYRef.current + followY, camZ);
