@@ -139,12 +139,12 @@ function Aquafulness() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, backdropIdx };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, audioSyncSpeed, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, backdropIdx };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, backdropIdx]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, audioSyncSpeed, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, backdropIdx]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
