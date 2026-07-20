@@ -87,6 +87,10 @@ type Persisted = {
   waveDir: number;
   floorDepth: number;
   floorTexture: boolean;
+  floorBrightness: number;
+  floorTint: number;
+  floorHue: number;
+
   vortexMode: boolean;
   vortexOpening: number;
   vortexRadius: number;
