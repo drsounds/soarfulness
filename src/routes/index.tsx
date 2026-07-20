@@ -52,6 +52,7 @@ type Persisted = {
   audioOn: boolean;
   audioVol: number;
   audioSyncSpeed: boolean;
+  audioSpatial: boolean;
   waterTintIdx: number;
   bottomIdx: number;
   leanEnabled: boolean;
@@ -91,6 +92,7 @@ const DEFAULTS: Persisted = {
   audioOn: true,
   audioVol: 0.8,
   audioSyncSpeed: false,
+  audioSpatial: false,
   waterTintIdx: 1,
   bottomIdx: 0,
   leanEnabled: false,
@@ -126,6 +128,7 @@ function Aquafulness() {
   const [audioOn, setAudioOn] = useState(initial.audioOn);
   const [audioVol, setAudioVol] = useState(initial.audioVol);
   const [audioSyncSpeed, setAudioSyncSpeed] = useState(initial.audioSyncSpeed);
+  const [audioSpatial, setAudioSpatial] = useState(initial.audioSpatial);
   const [waterTintIdx, setWaterTintIdx] = useState(initial.waterTintIdx);
   const [bottomIdx, setBottomIdx] = useState(initial.bottomIdx);
   const [leanEnabled, setLeanEnabled] = useState(initial.leanEnabled);
@@ -143,12 +146,12 @@ function Aquafulness() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, audioSyncSpeed, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, backdropIdx, wakeLock };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, backdropIdx, wakeLock };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, audioSyncSpeed, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, backdropIdx, wakeLock]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, backdropIdx, wakeLock]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -176,6 +179,7 @@ function Aquafulness() {
   const regularPeriodRef = useRef(regularPeriod);
   const backdropRef = useRef(backdropIdx);
   const wakeLockRef = useRef(wakeLock);
+  const audioSpatialRef = useRef(audioSpatial);
   const rotStickRef = useRef({ x: 0, y: 0 });
   const followStickRef = useRef({ x: 0, y: 0 });
   const yawRef = useRef(0);
@@ -198,6 +202,7 @@ function Aquafulness() {
   useEffect(() => { regularPeriodRef.current = regularPeriod; }, [regularPeriod]);
   useEffect(() => { backdropRef.current = backdropIdx; }, [backdropIdx]);
   useEffect(() => { wakeLockRef.current = wakeLock; }, [wakeLock]);
+  useEffect(() => { audioSpatialRef.current = audioSpatial; }, [audioSpatial]);
 
   const resetToDefaults = () => {
     setWaveAmp(DEFAULTS.waveAmp);
@@ -208,6 +213,7 @@ function Aquafulness() {
     setAudioOn(DEFAULTS.audioOn);
     setAudioVol(DEFAULTS.audioVol);
     setAudioSyncSpeed(DEFAULTS.audioSyncSpeed);
+    setAudioSpatial(DEFAULTS.audioSpatial);
     setWaterTintIdx(DEFAULTS.waterTintIdx);
     setBottomIdx(DEFAULTS.bottomIdx);
     setLeanEnabled(DEFAULTS.leanEnabled);
@@ -740,17 +746,23 @@ function Aquafulness() {
         camera.rotateX(leanPitch);
       }
 
-      // Sync audio intensity with depth below surface.
+      // Sync audio intensity with depth below surface — only when spatial
+      // audio is enabled. Default: constant volume with no filtering.
       const depth = surfaceY - camYRef.current; // positive when underwater
       const a = audioRef.current;
       if (a) {
         const now = a.ctx.currentTime;
-        // deeper -> louder (up to ~2.5x), faster ramp
-        const depthMult = depth > 0 ? Math.min(1 + 0.35 * depth, 2.5) : 1;
-        a.depthGain.gain.setTargetAtTime(depthMult, now, 0.12);
-        // deeper -> more muffled (lowpass closes)
-        const lpFreq = depth > 0 ? Math.max(18000 - 4000 * depth, 500) : 18000;
-        a.lp.frequency.setTargetAtTime(lpFreq, now, 0.15);
+        if (audioSpatialRef.current) {
+          // deeper -> louder (up to ~2.5x), faster ramp
+          const depthMult = depth > 0 ? Math.min(1 + 0.35 * depth, 2.5) : 1;
+          a.depthGain.gain.setTargetAtTime(depthMult, now, 0.12);
+          // deeper -> more muffled (lowpass closes)
+          const lpFreq = depth > 0 ? Math.max(18000 - 4000 * depth, 500) : 18000;
+          a.lp.frequency.setTargetAtTime(lpFreq, now, 0.15);
+        } else {
+          a.depthGain.gain.setTargetAtTime(1, now, 0.2);
+          a.lp.frequency.setTargetAtTime(18000, now, 0.2);
+        }
       }
 
       // Underwater tone-down factor: fades color/contrast as camera dips below surface.
@@ -927,6 +939,12 @@ function Aquafulness() {
                 value={audioSyncSpeed ? "PÅ" : "AV"}
                 onDec={() => setAudioSyncSpeed(false)}
                 onInc={() => setAudioSyncSpeed(true)}
+              />
+              <PadDial
+                label="SPATIAL"
+                value={audioSpatial ? "PÅ" : "AV"}
+                onDec={() => setAudioSpatial(false)}
+                onInc={() => setAudioSpatial(true)}
               />
               <PadDial
                 label="VATTEN"
