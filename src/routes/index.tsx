@@ -745,6 +745,10 @@ function Aquafulness() {
       uFogColor: { value: uniforms.uFogColor.value },
       uSandTex: { value: sandTex },
       uSandScale: { value: 0.35 }, // ~1 tile per 2.9 m så kornen syns
+      uBrightness: { value: 1 },
+      uTintStrength: { value: 1 },
+      uHueShift: { value: 0 },
+
     };
     const floorMat = new THREE.ShaderMaterial({
       uniforms: floorUniforms,
