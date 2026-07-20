@@ -876,7 +876,12 @@ function Aquafulness() {
       const bot = BOTTOM_OPTIONS[bottomIdxRef.current] ?? BOTTOM_OPTIONS[0];
       if (bot.rgb) {
         floor.visible = true;
-        floorMat.color.setRGB(bot.rgb[0], bot.rgb[1], bot.rgb[2]);
+        floorUniforms.uColor.value.setRGB(bot.rgb[0], bot.rgb[1], bot.rgb[2]);
+        floor.position.y = -floorDepthRef.current;
+        floorUniforms.uTime.value = t;
+        // Smooth blend av textur på/av så tonen inte snappar.
+        const target = floorTextureRef.current ? 1 : 0;
+        floorUniforms.uTextured.value += (target - floorUniforms.uTextured.value) * Math.min(1, dt * 4);
       } else {
         floor.visible = false;
       }
