@@ -683,8 +683,8 @@ function Aquafulness() {
           vUv = uv;
           vec4 wp = modelMatrix * vec4(position, 1.0);
           vWorld = wp.xyz;
-          vec4 mv = viewMatrix * wp;
-          gl_Position = projectionMatrix * mv;
+          vec4 mvPosition = viewMatrix * wp;
+          gl_Position = projectionMatrix * mvPosition;
           #include <fog_vertex>
         }
       `,
