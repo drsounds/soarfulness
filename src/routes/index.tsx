@@ -59,6 +59,7 @@ type Persisted = {
   regularCross: boolean;
   regularPeriod: number;
   backdropIdx: number;
+  wakeLock: boolean;
 };
 const WATER_TINTS: { name: string; rgb: [number, number, number] }[] = [
   { name: "Nordhav", rgb: [1, 1, 1] },
@@ -97,6 +98,7 @@ const DEFAULTS: Persisted = {
   regularCross: false,
   regularPeriod: 1,
   backdropIdx: 0,
+  wakeLock: false,
 };
 function loadSettings(): Persisted {
   if (typeof window === "undefined") return DEFAULTS;
@@ -131,6 +133,7 @@ function Aquafulness() {
   const [regularCross, setRegularCross] = useState(initial.regularCross);
   const [regularPeriod, setRegularPeriod] = useState(initial.regularPeriod);
   const [backdropIdx, setBackdropIdx] = useState(initial.backdropIdx);
+  const [wakeLock, setWakeLock] = useState(initial.wakeLock);
   // Rotation stick (yaw / pitch look) and wave-follow stick.
   const [rotStick, setRotStick] = useState({ x: 0, y: 0 });
   const [followStick, setFollowStick] = useState({ x: 0, y: 0 });
@@ -140,12 +143,12 @@ function Aquafulness() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, audioSyncSpeed, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, backdropIdx };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, audioSyncSpeed, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, backdropIdx, wakeLock };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, audioSyncSpeed, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, backdropIdx]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, audioOn, audioVol, audioSyncSpeed, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, backdropIdx, wakeLock]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -172,6 +175,7 @@ function Aquafulness() {
   const regularCrossRef = useRef(regularCross);
   const regularPeriodRef = useRef(regularPeriod);
   const backdropRef = useRef(backdropIdx);
+  const wakeLockRef = useRef(wakeLock);
   const rotStickRef = useRef({ x: 0, y: 0 });
   const followStickRef = useRef({ x: 0, y: 0 });
   const yawRef = useRef(0);
@@ -193,6 +197,7 @@ function Aquafulness() {
   useEffect(() => { regularCrossRef.current = regularCross; }, [regularCross]);
   useEffect(() => { regularPeriodRef.current = regularPeriod; }, [regularPeriod]);
   useEffect(() => { backdropRef.current = backdropIdx; }, [backdropIdx]);
+  useEffect(() => { wakeLockRef.current = wakeLock; }, [wakeLock]);
 
   const resetToDefaults = () => {
     setWaveAmp(DEFAULTS.waveAmp);
@@ -210,6 +215,7 @@ function Aquafulness() {
     setRegularCross(DEFAULTS.regularCross);
     setRegularPeriod(DEFAULTS.regularPeriod);
     setBackdropIdx(DEFAULTS.backdropIdx);
+    setWakeLock(DEFAULTS.wakeLock);
     // timeOfDay is intentionally left untouched.
   };
 
@@ -277,6 +283,59 @@ function Aquafulness() {
     a.el.playbackRate = audioSyncSpeed ? Math.max(0.2, Math.min(5, waveSpeed)) : 1;
     a.el.preservesPitch = true;
   }, [audioSyncSpeed, waveSpeed]);
+
+  // Screen Wake Lock: keep the display awake while the app is active.
+  // The lock is automatically released when the page is hidden, so we
+  // re-request it when the tab becomes visible again.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const nav = navigator as Navigator & { wakeLock?: { request: (type: "screen") => Promise<WakeLockSentinel> } };
+    if (!nav.wakeLock) return;
+
+    let sentinel: WakeLockSentinel | null = null;
+    let active = true;
+
+    const request = async () => {
+      if (!wakeLock || document.hidden) return;
+      try {
+        const s = await nav.wakeLock!.request("screen");
+        if (!active) {
+          s.release().catch(() => { /* noop */ });
+          return;
+        }
+        sentinel = s;
+        s.addEventListener("release", () => {
+          sentinel = null;
+        });
+      } catch {
+        // User gesture or permission may be missing — silently fail.
+      }
+    };
+
+    const release = () => {
+      if (sentinel) {
+        sentinel.release().catch(() => { /* noop */ });
+        sentinel = null;
+      }
+    };
+
+    const handleVisibility = () => {
+      if (document.hidden) {
+        release();
+      } else {
+        request();
+      }
+    };
+
+    request();
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      active = false;
+      document.removeEventListener("visibilitychange", handleVisibility);
+      release();
+    };
+  }, [wakeLock]);
 
 
 
@@ -916,6 +975,12 @@ function Aquafulness() {
                 value={BACKDROPS[backdropIdx].name}
                 onDec={() => setBackdropIdx((i) => (i - 1 + BACKDROPS.length) % BACKDROPS.length)}
                 onInc={() => setBackdropIdx((i) => (i + 1) % BACKDROPS.length)}
+              />
+              <PadDial
+                label="VAKEN"
+                value={wakeLock ? "PÅ" : "AV"}
+                onDec={() => setWakeLock(false)}
+                onInc={() => setWakeLock(true)}
               />
             </div>
           </div>
