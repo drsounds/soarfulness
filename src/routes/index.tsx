@@ -1197,6 +1197,24 @@ function Aquafulness() {
                 onInc={() => setBottomIdx((i) => (i + 1) % BOTTOM_OPTIONS.length)}
               />
               <PadDial
+                label="DJUP"
+                mode="number"
+                value={`${floorDepth.toFixed(1)}m`}
+                rawValue={floorDepth}
+                onSet={(v) => setFloorDepth(Math.max(1, Math.min(60, v)))}
+                min={1}
+                max={60}
+                step={0.5}
+                onDec={() => setFloorDepth((v) => Math.max(1, +(v - 0.5).toFixed(2)))}
+                onInc={() => setFloorDepth((v) => Math.min(60, +(v + 0.5).toFixed(2)))}
+              />
+              <PadDial
+                label="TEXTUR"
+                value={floorTexture ? "PÅ" : "AV"}
+                onDec={() => setFloorTexture(false)}
+                onInc={() => setFloorTexture(true)}
+              />
+              <PadDial
                 label="ROTERING"
                 value={leanEnabled ? "FRAMÅTLUT" : "FIXERAD"}
                 onDec={() => setLeanEnabled(false)}
