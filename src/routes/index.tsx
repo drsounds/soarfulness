@@ -1207,13 +1207,15 @@ function Aquafulness() {
         positionClass="bottom-6 left-44"
       />
 
-      {/* Wave-follow joystick (far right) */}
+      {/* Wave-follow joystick (far right) — sticky: håller sitt läge tills du drar tillbaka eller dubbelklickar */}
       <Joystick
         onChange={setFollowStick}
         value={followStick}
         label="VÅG-FÖLJ"
         positionClass="bottom-6 right-6"
+        sticky
       />
+
     </main>
   );
 }
@@ -1339,11 +1341,13 @@ function Joystick({
   value,
   label = "NAV",
   positionClass = "bottom-6 left-6",
+  sticky = false,
 }: {
   onChange: (v: { x: number; y: number }) => void;
   value: { x: number; y: number };
   label?: string;
   positionClass?: string;
+  sticky?: boolean;
 }) {
   const baseRef = useRef<HTMLDivElement>(null);
   const activeId = useRef<number | null>(null);
@@ -1369,6 +1373,9 @@ function Joystick({
     <div className={`pointer-events-none absolute z-10 select-none ${positionClass}`}>
       <div
         ref={baseRef}
+        onDoubleClick={() => {
+          if (sticky) onChange({ x: 0, y: 0 });
+        }}
         onPointerDown={(e) => {
           if (activeId.current !== null) return;
           activeId.current = e.pointerId;
@@ -1382,11 +1389,11 @@ function Joystick({
         onPointerUp={(e) => {
           if (activeId.current !== e.pointerId) return;
           activeId.current = null;
-          onChange({ x: 0, y: 0 });
+          if (!sticky) onChange({ x: 0, y: 0 });
         }}
         onPointerCancel={() => {
           activeId.current = null;
-          onChange({ x: 0, y: 0 });
+          if (!sticky) onChange({ x: 0, y: 0 });
         }}
         className="pointer-events-auto relative h-24 w-24 touch-none rounded-full border border-white/20 bg-black/35 backdrop-blur-md"
         style={{ boxShadow: "inset 0 0 40px rgba(255,255,255,0.05)" }}
