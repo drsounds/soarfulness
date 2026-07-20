@@ -83,6 +83,7 @@ type Persisted = {
   wakeLock: boolean;
   camFov: number;
   camNear: number;
+  waveDir: number;
 };
 const WATER_TINTS: { name: string; rgb: [number, number, number] }[] = [
   { name: "Nordhav", rgb: [1, 1, 1] },
