@@ -174,7 +174,8 @@ function Aquafulness() {
   const [camNear, setCamNear] = useState(initial.camNear);
   const [waveDir, setWaveDir] = useState(initial.waveDir);
   const [rotStick, setRotStick] = useState({ x: 0, y: 0 });
-  const [followStick, setFollowStick] = useState({ x: 0, y: 0 });
+  const [driftStick, setDriftStick] = useState({ x: 0, y: 0 });
+  const [waveDirStick, setWaveDirStick] = useState({ x: 0, y: 0 });
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Persist settings to localStorage whenever they change (SSR-safe, hydration-safe).
@@ -219,7 +220,7 @@ function Aquafulness() {
   const wakeLockRef = useRef(wakeLock);
   const audioSpatialRef = useRef(audioSpatial);
   const rotStickRef = useRef({ x: 0, y: 0 });
-  const followStickRef = useRef({ x: 0, y: 0 });
+  const driftStickRef = useRef({ x: 0, y: 0 });
   const yawRef = useRef(0);
   const pitchRef = useRef(0);
   const prevSurfaceRef = useRef<number | null>(null);
@@ -236,7 +237,7 @@ function Aquafulness() {
   useEffect(() => { floatLiftRef.current = floatLift; }, [floatLift]);
   useEffect(() => { stickRef.current = stick; }, [stick]);
   useEffect(() => { rotStickRef.current = rotStick; }, [rotStick]);
-  useEffect(() => { followStickRef.current = followStick; }, [followStick]);
+  useEffect(() => { driftStickRef.current = driftStick; }, [driftStick]);
   useEffect(() => { waterTintRef.current = waterTintIdx; }, [waterTintIdx]);
   useEffect(() => { bottomIdxRef.current = bottomIdx; }, [bottomIdx]);
   useEffect(() => { leanRef.current = leanEnabled; }, [leanEnabled]);
@@ -250,6 +251,15 @@ function Aquafulness() {
   useEffect(() => { camFovRef.current = camFov; }, [camFov]);
   useEffect(() => { camNearRef.current = camNear; }, [camNear]);
   useEffect(() => { waveDirRef.current = waveDir; }, [waveDir]);
+  // Håll VÅGRIKT-spakens visuella läge synkat med waveDir (t.ex. när dialen ändras
+  // eller vid uppstart), men bara när spaken själv står i vila.
+  useEffect(() => {
+    setWaveDirStick((s) => {
+      if (Math.hypot(s.x, s.y) > 0.15) return s;
+      const rad = (waveDir * Math.PI) / 180;
+      return { x: Math.sin(rad), y: Math.cos(rad) };
+    });
+  }, [waveDir]);
 
   const resetToDefaults = () => {
     setWaveAmp(DEFAULTS.waveAmp);
@@ -782,10 +792,13 @@ function Aquafulness() {
         floor.visible = false;
       }
 
-      // Apply joystick velocity (game-pad style): stick.y up = forward (-z), x = strafe
+      // Apply joystick velocity (game-pad style): stick.y up = forward (-z), x = strafe.
+      // STRÖM-spaken lägger till en konstant drivkraft (drift) så kameran bärs
+      // med strömmen även när NAV är i vila.
       const walkSpeed = 8; // m/s at full deflection
-      posRef.current.x += stickRef.current.x * walkSpeed * dt;
-      posRef.current.z -= stickRef.current.y * walkSpeed * dt;
+      const driftSpeed = 2.2; // m/s at full deflection — mjukare än aktiv rörelse
+      posRef.current.x += (stickRef.current.x * walkSpeed + driftStickRef.current.x * driftSpeed) * dt;
+      posRef.current.z -= (stickRef.current.y * walkSpeed + driftStickRef.current.y * driftSpeed) * dt;
 
       const camX = posRef.current.x;
       const camZ = posRef.current.z;
@@ -827,21 +840,14 @@ function Aquafulness() {
       camVYRef.current += ay * dt;
       camYRef.current += camVYRef.current * dt;
 
-      // Wave-follow stick: feedforward on wave vertical velocity.
-      // y > 0 → rise above crests, sink below troughs (surf on top).
-      // y < 0 → counter-drag: lag under crests, lift over troughs.
-      // x adds a lateral coupling to the wave slope.
-      const followY = followStickRef.current.y * surfVel * 0.35;
-      const eps = 0.4;
-      const slopeX = (waveHeight(camX + eps, camZ, t, amp, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad) - surfaceY) / eps;
-      const followX = followStickRef.current.x * slopeX * 1.2;
-
-      camera.position.set(camX + followX, camYRef.current + followY, camZ);
+      // (Drift-strömmen appliceras redan tidigare på posRef så kameran driver
+      // med hela vågsystemet i stället för att bara koppla till ytans hastighet.)
+      camera.position.set(camX, camYRef.current, camZ);
       // Keep the look direction perfectly level so wave crests in front of
       // the camera don't tilt the horizon up/down when riding a swell.
       const lookZ = camZ - 20;
       const lookY = camera.position.y;
-      camera.lookAt(camX + followX, lookY, lookZ);
+      camera.lookAt(camX, lookY, lookZ);
 
       // Rotation stick: yaw (x) + pitch (y). Integrate stick as angular velocity.
       const rotSpeed = 1.6; // rad/s at full deflection
@@ -1191,28 +1197,41 @@ function Aquafulness() {
         </div>
       )}
 
-      {/* Movement joystick (left) */}
+      {/* PS-liknande layout:
+          Vänster sida: NAV (rörelse, momentan) längst ned, STRÖM (drift, sticky) ovanför.
+          Höger sida: LOOK (rotation, momentan) längst ned, VÅGRIKT (sticky) ovanför.
+          Dubbelklicka en sticky-spak för att nolla den. */}
       <Joystick
         onChange={setStick}
         value={stick}
         label="NAV"
         positionClass="bottom-6 left-6"
       />
-
-      {/* Look / rotation joystick (right of movement) */}
+      <Joystick
+        onChange={setDriftStick}
+        value={driftStick}
+        label="STRÖM"
+        positionClass="bottom-36 left-6"
+        sticky
+      />
       <Joystick
         onChange={setRotStick}
         value={rotStick}
         label="LOOK"
-        positionClass="bottom-6 left-44"
-      />
-
-      {/* Wave-follow joystick (far right) — sticky: håller sitt läge tills du drar tillbaka eller dubbelklickar */}
-      <Joystick
-        onChange={setFollowStick}
-        value={followStick}
-        label="VÅG-FÖLJ"
         positionClass="bottom-6 right-6"
+      />
+      <Joystick
+        onChange={(v) => {
+          setWaveDirStick(v);
+          const m = Math.hypot(v.x, v.y);
+          if (m > 0.15) {
+            const deg = (Math.atan2(v.x, v.y) * 180) / Math.PI;
+            setWaveDir(((deg % 360) + 360) % 360);
+          }
+        }}
+        value={waveDirStick}
+        label="VÅGRIKT"
+        positionClass="bottom-36 right-6"
         sticky
       />
 
