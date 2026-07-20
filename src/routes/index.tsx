@@ -98,6 +98,7 @@ const DEFAULTS: Persisted = {
   regularCross: false,
   regularPeriod: 1,
   backdropIdx: 0,
+  wakeLock: false,
 };
 function loadSettings(): Persisted {
   if (typeof window === "undefined") return DEFAULTS;
