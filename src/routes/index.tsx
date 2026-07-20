@@ -40,18 +40,21 @@ function shapedWave(theta: number, p: number) {
 }
 
 // Gerstner-like sum of sines. Keep in sync with vertex shader.
-function waveHeight(x: number, z: number, t: number, amp: number, regular: boolean, cross: boolean, period: number = 1, peak: number = 1) {
+function waveHeight(x: number, z: number, t: number, amp: number, regular: boolean, cross: boolean, period: number = 1, peak: number = 1, dir: number = 0) {
+  const c = Math.cos(dir), s = Math.sin(dir);
+  const xr = c * x + s * z;
+  const zr = -s * x + c * z;
   if (regular) {
     const kx = 0.12 / period;
     const kz = 0.09 / period;
-    const rx = shapedWave(x * kx + t * 0.9, peak) * 2.6 * amp;
-    const rz = cross ? shapedWave(z * kz + t * 0.7 + 1.1, peak) * 1.4 * amp : 0;
+    const rx = shapedWave(xr * kx + t * 0.9, peak) * 2.6 * amp;
+    const rz = cross ? shapedWave(zr * kz + t * 0.7 + 1.1, peak) * 1.4 * amp : 0;
     return rx + rz;
   }
-  const w1 = shapedWave(x * 0.12 + t * 0.9, peak) * 1.0;
-  const w2 = shapedWave(z * 0.17 + t * 0.7 + 1.3, peak) * 0.75;
-  const w3 = shapedWave((x * 0.22 + z * 0.19) + t * 1.4 + 2.1, peak) * 0.5;
-  const w4 = shapedWave((x * 0.31 - z * 0.11) + t * 1.8 + 0.4, peak) * 0.35;
+  const w1 = shapedWave(xr * 0.12 + t * 0.9, peak) * 1.0;
+  const w2 = shapedWave(zr * 0.17 + t * 0.7 + 1.3, peak) * 0.75;
+  const w3 = shapedWave((xr * 0.22 + zr * 0.19) + t * 1.4 + 2.1, peak) * 0.5;
+  const w4 = shapedWave((xr * 0.31 - zr * 0.11) + t * 1.8 + 0.4, peak) * 0.35;
   return (w1 + w2 + w3 + w4) * amp;
 }
 
@@ -80,6 +83,7 @@ type Persisted = {
   wakeLock: boolean;
   camFov: number;
   camNear: number;
+  waveDir: number;
 };
 const WATER_TINTS: { name: string; rgb: [number, number, number] }[] = [
   { name: "Nordhav", rgb: [1, 1, 1] },
@@ -125,6 +129,7 @@ const DEFAULTS: Persisted = {
   wakeLock: false,
   camFov: 65,
   camNear: 0.1,
+  waveDir: 0,
 };
 function loadSettings(): Persisted {
   if (typeof window === "undefined") return DEFAULTS;
@@ -167,6 +172,7 @@ function Aquafulness() {
   // Rotation stick (yaw / pitch look) and wave-follow stick.
   const [camFov, setCamFov] = useState(initial.camFov);
   const [camNear, setCamNear] = useState(initial.camNear);
+  const [waveDir, setWaveDir] = useState(initial.waveDir);
   const [rotStick, setRotStick] = useState({ x: 0, y: 0 });
   const [followStick, setFollowStick] = useState({ x: 0, y: 0 });
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -175,12 +181,12 @@ function Aquafulness() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -219,6 +225,7 @@ function Aquafulness() {
   const prevSurfaceRef = useRef<number | null>(null);
   const camFovRef = useRef(camFov);
   const camNearRef = useRef(camNear);
+  const waveDirRef = useRef(waveDir);
   useEffect(() => { ampRef.current = waveAmp; }, [waveAmp]);
   useEffect(() => { todRef.current = timeOfDay; }, [timeOfDay]);
   useEffect(() => { speedRef.current = waveSpeed; }, [waveSpeed]);
@@ -242,6 +249,7 @@ function Aquafulness() {
   useEffect(() => { audioSpatialRef.current = audioSpatial; }, [audioSpatial]);
   useEffect(() => { camFovRef.current = camFov; }, [camFov]);
   useEffect(() => { camNearRef.current = camNear; }, [camNear]);
+  useEffect(() => { waveDirRef.current = waveDir; }, [waveDir]);
 
   const resetToDefaults = () => {
     setWaveAmp(DEFAULTS.waveAmp);
@@ -266,6 +274,7 @@ function Aquafulness() {
     setWakeLock(DEFAULTS.wakeLock);
     setCamFov(DEFAULTS.camFov);
     setCamNear(DEFAULTS.camNear);
+    setWaveDir(DEFAULTS.waveDir);
     // timeOfDay is intentionally left untouched.
   };
 
@@ -429,6 +438,7 @@ function Aquafulness() {
       uCross: { value: 1 },
       uPeriod: { value: 1 },
       uPeak: { value: 1 },
+      uDir: { value: 0 },
     };
 
     const vertexShader = /* glsl */ `
@@ -438,6 +448,7 @@ function Aquafulness() {
       uniform float uCross;
       uniform float uPeriod;
       uniform float uPeak;
+      uniform float uDir;
       varying vec3 vWorldPos;
       varying vec3 vNormal;
 
@@ -452,7 +463,12 @@ function Aquafulness() {
         return (sin(theta) + amount * (crest - mean)) / (1.0 + amount * 0.28);
       }
 
-      float wave(vec3 p, float t, float amp, float rippleFade) {
+      float wave(vec3 pIn, float t, float amp, float rippleFade) {
+        // Rotate horizontal coords by uDir so wave crests advance in the
+        // chosen direction. Small ripples stay in world space so they still
+        // sparkle from every angle.
+        float cd = cos(uDir), sd = sin(uDir);
+        vec3 p = vec3(cd * pIn.x + sd * pIn.z, pIn.y, -sd * pIn.x + cd * pIn.z);
         // Regular sine along x, with optional cross-axis sine so it doesn't
         // look like a flat carpet when uRegular = 1. uPeriod scales the
         // spatial wavelength (higher = longer, calmer swells).
@@ -729,6 +745,14 @@ function Aquafulness() {
       uniforms.uCross.value += ((regularCrossRef.current ? 1 : 0) - uniforms.uCross.value) * Math.min(1, dt * 4);
       uniforms.uPeriod.value += (regularPeriodRef.current - uniforms.uPeriod.value) * Math.min(1, dt * 4);
       uniforms.uPeak.value += (wavePeakRef.current - uniforms.uPeak.value) * Math.min(1, dt * 4);
+      // Wave direction stored in degrees; smoothly interpolate the shortest
+      // angular path so wrapping around 360° doesn't spin the ocean.
+      {
+        const targetRad = (waveDirRef.current * Math.PI) / 180;
+        let delta = targetRad - uniforms.uDir.value;
+        delta = Math.atan2(Math.sin(delta), Math.cos(delta));
+        uniforms.uDir.value += delta * Math.min(1, dt * 4);
+      }
 
       const p = palette(todRef.current);
       uniforms.uSunDir.value.copy(p.sunDir);
@@ -765,7 +789,8 @@ function Aquafulness() {
 
       const camX = posRef.current.x;
       const camZ = posRef.current.z;
-      const surfaceY = waveHeight(camX, camZ, t, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current);
+      const dirRad = (waveDirRef.current * Math.PI) / 180;
+      const surfaceY = waveHeight(camX, camZ, t, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad);
 
       // Compute wave vertical velocity first so buoyancy can react to it.
       if (prevSurfaceRef.current === null) prevSurfaceRef.current = surfaceY;
@@ -776,7 +801,7 @@ function Aquafulness() {
       // reacts at the *start* of a wave rise (trough) rather than mid-rise.
       // t is already wave-time (scaled by wave speed).
       const lead = 0.35;
-      const futureSurf = waveHeight(camX, camZ, t + lead, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current);
+      const futureSurf = waveHeight(camX, camZ, t + lead, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad);
       const anticipVel = (futureSurf - surfaceY) / lead;
 
       // Wave-synced buoyancy: camera is a damped spring pulled toward the
@@ -808,7 +833,7 @@ function Aquafulness() {
       // x adds a lateral coupling to the wave slope.
       const followY = followStickRef.current.y * surfVel * 0.35;
       const eps = 0.4;
-      const slopeX = (waveHeight(camX + eps, camZ, t, amp, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current) - surfaceY) / eps;
+      const slopeX = (waveHeight(camX + eps, camZ, t, amp, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad) - surfaceY) / eps;
       const followX = followStickRef.current.x * slopeX * 1.2;
 
       camera.position.set(camX + followX, camYRef.current + followY, camZ);
@@ -1148,6 +1173,18 @@ function Aquafulness() {
                 step={0.01}
                 onDec={() => setCamNear((v) => Math.max(0.001, +(v - 0.01).toFixed(3)))}
                 onInc={() => setCamNear((v) => Math.min(2, +(v + 0.01).toFixed(3)))}
+              />
+              <PadDial
+                label="VÅGRIKTNING"
+                mode="number"
+                value={`${Math.round(((waveDir % 360) + 360) % 360)}°`}
+                rawValue={waveDir}
+                onSet={(v) => setWaveDir(((v % 360) + 360) % 360)}
+                min={0}
+                max={360}
+                step={5}
+                onDec={() => setWaveDir((v) => (((v - 15) % 360) + 360) % 360)}
+                onInc={() => setWaveDir((v) => (((v + 15) % 360) + 360) % 360)}
               />
             </div>
           </div>
