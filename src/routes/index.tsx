@@ -89,6 +89,7 @@ const DEFAULTS: Persisted = {
   heightOffset: 0.4,
   audioOn: true,
   audioVol: 0.8,
+  audioSyncSpeed: false,
   waterTintIdx: 1,
   bottomIdx: 0,
   leanEnabled: false,
