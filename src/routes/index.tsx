@@ -138,6 +138,9 @@ const DEFAULTS: Persisted = {
   waveDir: 0,
   floorDepth: 14,
   floorTexture: false,
+  vortexMode: false,
+  vortexOpening: 14,
+  vortexRadius: 26,
 };
 function loadSettings(): Persisted {
   if (typeof window === "undefined") return DEFAULTS;
