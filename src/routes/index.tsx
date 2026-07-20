@@ -25,10 +25,12 @@ export const Route = createFileRoute("/")({
   }),
 });
 
-// Peaking shaper: p=1 → pure sine, p<1 → sharp peaks / flat troughs (Gerstner-ish).
+// Peaking shaper: p=1 → pure sine, p>1 → sharp crests / flat troughs (trochoidal).
+// Centered so the mean stays near zero regardless of p.
 function shapeSine(s: number, p: number) {
   const n = 0.5 + 0.5 * s;
-  return Math.pow(n, p) * 2 - 1;
+  const m = 1 / Math.sqrt(Math.PI * p); // approx mean of n^p over a full period
+  return (Math.pow(n, p) - m) / (1 - m);
 }
 
 // Gerstner-like sum of sines. Keep in sync with vertex shader.
@@ -421,10 +423,12 @@ function Aquafulness() {
       varying vec3 vWorldPos;
       varying vec3 vNormal;
 
-      // Sharpened sine: uPeak=1 → pure sine, uPeak<1 → peaked crests / flat troughs.
+      // Sharpened sine: uPeak=1 → pure sine, uPeak>1 → sharp crests / flat troughs.
+      // Centered so the mean stays near zero regardless of uPeak.
       float shp(float s) {
         float n = 0.5 + 0.5 * s;
-        return pow(n, uPeak) * 2.0 - 1.0;
+        float m = 1.0 / sqrt(3.14159265 * uPeak);
+        return (pow(n, uPeak) - m) / (1.0 - m);
       }
 
       float wave(vec3 p, float t, float amp) {
@@ -1064,11 +1068,11 @@ function Aquafulness() {
                 value={`${wavePeak.toFixed(2)}`}
                 rawValue={wavePeak}
                 onSet={setWavePeak}
-                min={0.1}
-                max={1}
-                step={0.05}
-                onDec={() => setWavePeak((v) => Math.max(0.1, +(v - 0.05).toFixed(2)))}
-                onInc={() => setWavePeak((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+                min={1}
+                max={6}
+                step={0.25}
+                onDec={() => setWavePeak((v) => Math.max(1, +(v - 0.25).toFixed(2)))}
+                onInc={() => setWavePeak((v) => Math.min(6, +(v + 0.25).toFixed(2)))}
               />
               <PadDial
                 label="BAKGRUND"
