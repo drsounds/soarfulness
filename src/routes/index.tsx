@@ -150,7 +150,7 @@ const DEFAULTS: Persisted = {
   camOffX: 0,
   camOffY: 0,
   camOffZ: 0,
-  audioOn: true,
+  audioOn: false,
   audioVol: 0.8,
   audioSyncSpeed: false,
   audioSpatial: false,
@@ -166,7 +166,7 @@ const DEFAULTS: Persisted = {
   regularPeriod: 1,
   wavePeak: 1,
   backdropIdx: 0,
-  wakeLock: false,
+  wakeLock: true,
   camFov: 65,
   camNear: 0.1,
   waveDir: 0,
@@ -236,6 +236,9 @@ function Aquafulness() {
   const [driftStick, setDriftStick] = useState({ x: 0, y: 0 });
   const [waveDirStick, setWaveDirStick] = useState({ x: 0, y: 0 });
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [uiVisible, setUiVisible] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const idleTimerRef = useRef<number | null>(null);
 
   // Persist settings to localStorage whenever they change (SSR-safe, hydration-safe).
   useEffect(() => {
@@ -504,6 +507,53 @@ function Aquafulness() {
       release();
     };
   }, [wakeLock]);
+
+  // Idle UI fade: hide overlays after inactivity, restore on any pointer input.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const IDLE_MS = 3500;
+    const bump = () => {
+      setUiVisible(true);
+      if (idleTimerRef.current) window.clearTimeout(idleTimerRef.current);
+      idleTimerRef.current = window.setTimeout(() => setUiVisible(false), IDLE_MS);
+    };
+    bump();
+    const opts: AddEventListenerOptions = { passive: true };
+    window.addEventListener("pointerdown", bump, opts);
+    window.addEventListener("pointermove", bump, opts);
+    window.addEventListener("touchstart", bump, opts);
+    window.addEventListener("keydown", bump);
+    return () => {
+      if (idleTimerRef.current) window.clearTimeout(idleTimerRef.current);
+      window.removeEventListener("pointerdown", bump);
+      window.removeEventListener("pointermove", bump);
+      window.removeEventListener("touchstart", bump);
+      window.removeEventListener("keydown", bump);
+    };
+  }, []);
+
+  // While settings panel is open, keep UI visible.
+  useEffect(() => {
+    if (settingsOpen) setUiVisible(true);
+  }, [settingsOpen]);
+
+  // Fullscreen state tracking.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const sync = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", sync);
+    return () => document.removeEventListener("fullscreenchange", sync);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (typeof document === "undefined") return;
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen?.().catch(() => { /* noop */ });
+    } else {
+      document.exitFullscreen?.().catch(() => { /* noop */ });
+    }
+  };
+
 
 
 
@@ -1256,17 +1306,61 @@ function Aquafulness() {
       )}
       <div ref={mountRef} className="absolute inset-0" />
 
-      {/* Settings toggle replaces the title */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-col items-center px-4 pt-4">
-        <button
-          onClick={() => setSettingsOpen((s) => !s)}
-          className="pointer-events-auto rounded-full border border-white/20 bg-black/40 px-5 py-2 text-[10px] font-light tracking-[0.35em] text-white/90 backdrop-blur-md transition active:scale-95 active:bg-white/15"
-          aria-label={settingsOpen ? "Stäng inställningar" : "Öppna inställningar"}
-          aria-expanded={settingsOpen}
-        >
-          {settingsOpen ? "STÄNG" : "SETTINGS"}
-        </button>
-      </div>
+      {/* HUD overlay — fades out on inactivity, back in on any touch. */}
+      <div
+        className={`absolute inset-0 z-10 transition-opacity duration-700 ${uiVisible ? "opacity-100" : "pointer-events-none opacity-0"}`}
+      >
+        {/* Top bar: settings + speaker toggle + fullscreen */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between px-4 pt-4">
+          <button
+            onClick={() => setAudioOn((v) => !v)}
+            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white/90 backdrop-blur-md transition active:scale-95 active:bg-white/15"
+            aria-label={audioOn ? "Stäng av ljud" : "Slå på ljud"}
+            aria-pressed={audioOn}
+            title={audioOn ? "Ljud på" : "Ljud av"}
+          >
+            {audioOn ? (
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M4 10v4h3l5 4V6L7 10H4z" />
+                <path d="M16 8.5a4 4 0 010 7" />
+                <path d="M18.5 6a7 7 0 010 12" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M4 10v4h3l5 4V6L7 10H4z" />
+                <path d="M22 9l-6 6M16 9l6 6" />
+              </svg>
+            )}
+          </button>
+
+          <button
+            onClick={() => setSettingsOpen((s) => !s)}
+            className="pointer-events-auto rounded-full border border-white/20 bg-black/40 px-5 py-2 text-[10px] font-light tracking-[0.35em] text-white/90 backdrop-blur-md transition active:scale-95 active:bg-white/15"
+            aria-label={settingsOpen ? "Stäng inställningar" : "Öppna inställningar"}
+            aria-expanded={settingsOpen}
+          >
+            {settingsOpen ? "STÄNG" : "SETTINGS"}
+          </button>
+
+          <button
+            onClick={toggleFullscreen}
+            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white/90 backdrop-blur-md transition active:scale-95 active:bg-white/15"
+            aria-label={isFullscreen ? "Avsluta helskärm" : "Helskärm"}
+            aria-pressed={isFullscreen}
+            title={isFullscreen ? "Avsluta helskärm" : "Helskärm"}
+          >
+            {isFullscreen ? (
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M9 4v4H5M15 4v4h4M9 20v-4H5M15 20v-4h4" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+              </svg>
+            )}
+          </button>
+        </div>
+
 
       {/* Collapsible settings panel */}
       {settingsOpen && (
@@ -1690,7 +1784,7 @@ function Aquafulness() {
         positionClass="bottom-36 right-6"
         sticky
       />
-
+      </div>
     </main>
   );
 }
