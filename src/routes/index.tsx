@@ -1059,6 +1059,18 @@ function Aquafulness() {
                 onInc={() => setRegularPeriod((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
               />
               <PadDial
+                label="SPETS"
+                mode="number"
+                value={`${wavePeak.toFixed(2)}`}
+                rawValue={wavePeak}
+                onSet={setWavePeak}
+                min={0.1}
+                max={1}
+                step={0.05}
+                onDec={() => setWavePeak((v) => Math.max(0.1, +(v - 0.05).toFixed(2)))}
+                onInc={() => setWavePeak((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+              />
+              <PadDial
                 label="BAKGRUND"
                 value={BACKDROPS[backdropIdx].name}
                 onDec={() => setBackdropIdx((i) => (i - 1 + BACKDROPS.length) % BACKDROPS.length)}
