@@ -1079,15 +1079,9 @@ function Aquafulness() {
         camZ = posRef.current.z;
       }
       const dirRad = (waveDirRef.current * Math.PI) / 180;
-      // Funnel dip at the camera's XZ position (matches the shader Gaussian).
-      const funnelY = (() => {
-        if (!inVortex) return 0;
-        const op = Math.max(1, vortexOpeningRef.current);
-        const r2 = camX * camX + camZ * camZ;
-        return -op * 1.6 * Math.exp(-r2 / (op * op));
-      })();
-      const waveSurf = waveHeight(camX, camZ, t, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad);
-      const surfaceY = waveSurf + funnelY;
+      const surfaceY = inVortex
+        ? vortexSurfaceHeight(camX, camZ, t, ampRef.current, regularPeriodRef.current, vortexOpeningRef.current)
+        : waveHeight(camX, camZ, t, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad);
 
       // Compute wave vertical velocity first so buoyancy can react to it.
       if (prevSurfaceRef.current === null) prevSurfaceRef.current = surfaceY;
@@ -1098,7 +1092,9 @@ function Aquafulness() {
       // reacts at the *start* of a wave rise (trough) rather than mid-rise.
       // t is already wave-time (scaled by wave speed).
       const lead = 0.35;
-      const futureSurf = waveHeight(camX, camZ, t + lead, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad) + funnelY;
+      const futureSurf = inVortex
+        ? vortexSurfaceHeight(camX, camZ, t + lead, ampRef.current, regularPeriodRef.current, vortexOpeningRef.current)
+        : waveHeight(camX, camZ, t + lead, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad);
       const anticipVel = (futureSurf - surfaceY) / lead;
 
       // Wave-synced buoyancy: camera is a damped spring pulled toward the
