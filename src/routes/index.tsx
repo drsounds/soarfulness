@@ -236,6 +236,9 @@ function Aquafulness() {
   const [driftStick, setDriftStick] = useState({ x: 0, y: 0 });
   const [waveDirStick, setWaveDirStick] = useState({ x: 0, y: 0 });
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [uiVisible, setUiVisible] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const idleTimerRef = useRef<number | null>(null);
 
   // Persist settings to localStorage whenever they change (SSR-safe, hydration-safe).
   useEffect(() => {
