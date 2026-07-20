@@ -74,6 +74,10 @@ type Persisted = {
   audioSyncSpeed: boolean;
   audioSpatial: boolean;
   waterTintIdx: number;
+  waterOpacity: number;
+  waterHue: number;
+  waterSat: number;
+  waterBright: number;
   bottomIdx: number;
   leanEnabled: boolean;
   regularWaves: boolean;
@@ -126,6 +130,10 @@ const DEFAULTS: Persisted = {
   audioSyncSpeed: false,
   audioSpatial: false,
   waterTintIdx: 1,
+  waterOpacity: 1,
+  waterHue: 0,
+  waterSat: 1,
+  waterBright: 1,
   bottomIdx: 0,
   leanEnabled: false,
   regularWaves: true,
@@ -174,6 +182,10 @@ function Aquafulness() {
   const [audioSyncSpeed, setAudioSyncSpeed] = useState(initial.audioSyncSpeed);
   const [audioSpatial, setAudioSpatial] = useState(initial.audioSpatial);
   const [waterTintIdx, setWaterTintIdx] = useState(initial.waterTintIdx);
+  const [waterOpacity, setWaterOpacity] = useState(initial.waterOpacity);
+  const [waterHue, setWaterHue] = useState(initial.waterHue);
+  const [waterSat, setWaterSat] = useState(initial.waterSat);
+  const [waterBright, setWaterBright] = useState(initial.waterBright);
   const [bottomIdx, setBottomIdx] = useState(initial.bottomIdx);
   const [leanEnabled, setLeanEnabled] = useState(initial.leanEnabled);
   const [regularWaves, setRegularWaves] = useState(initial.regularWaves);
@@ -201,12 +213,12 @@ function Aquafulness() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -229,6 +241,10 @@ function Aquafulness() {
   const camYRef = useRef<number | null>(null);
   const camVYRef = useRef(0);
   const waterTintRef = useRef(waterTintIdx);
+  const waterOpacityRef = useRef(waterOpacity);
+  const waterHueRef = useRef(waterHue);
+  const waterSatRef = useRef(waterSat);
+  const waterBrightRef = useRef(waterBright);
   const bottomIdxRef = useRef(bottomIdx);
   const leanRef = useRef(leanEnabled);
   const regularRef = useRef(regularWaves);
@@ -265,6 +281,10 @@ function Aquafulness() {
   useEffect(() => { rotStickRef.current = rotStick; }, [rotStick]);
   useEffect(() => { driftStickRef.current = driftStick; }, [driftStick]);
   useEffect(() => { waterTintRef.current = waterTintIdx; }, [waterTintIdx]);
+  useEffect(() => { waterOpacityRef.current = waterOpacity; }, [waterOpacity]);
+  useEffect(() => { waterHueRef.current = waterHue; }, [waterHue]);
+  useEffect(() => { waterSatRef.current = waterSat; }, [waterSat]);
+  useEffect(() => { waterBrightRef.current = waterBright; }, [waterBright]);
   useEffect(() => { bottomIdxRef.current = bottomIdx; }, [bottomIdx]);
   useEffect(() => { leanRef.current = leanEnabled; }, [leanEnabled]);
   useEffect(() => { regularRef.current = regularWaves; }, [regularWaves]);
@@ -306,6 +326,10 @@ function Aquafulness() {
     setAudioSyncSpeed(DEFAULTS.audioSyncSpeed);
     setAudioSpatial(DEFAULTS.audioSpatial);
     setWaterTintIdx(DEFAULTS.waterTintIdx);
+    setWaterOpacity(DEFAULTS.waterOpacity);
+    setWaterHue(DEFAULTS.waterHue);
+    setWaterSat(DEFAULTS.waterSat);
+    setWaterBright(DEFAULTS.waterBright);
     setBottomIdx(DEFAULTS.bottomIdx);
     setLeanEnabled(DEFAULTS.leanEnabled);
     setRegularWaves(DEFAULTS.regularWaves);
@@ -481,6 +505,10 @@ function Aquafulness() {
       uSunColor: { value: new THREE.Color(0xffe6b0) },
       uFogColor: { value: new THREE.Color(0x88aacc) },
       uWaterTint: { value: new THREE.Vector3(1, 1, 1) },
+      uOpacity: { value: 1 },
+      uTintHue: { value: 0 },
+      uTintSat: { value: 1 },
+      uTintBright: { value: 1 },
       uUnderwater: { value: 0 },
       uRegular: { value: 0 },
       uCross: { value: 1 },
@@ -611,14 +639,36 @@ function Aquafulness() {
       uniform vec3 uSunColor;
       uniform vec3 uFogColor;
       uniform vec3 uWaterTint;
+      uniform float uOpacity;
+      uniform float uTintHue;
+      uniform float uTintSat;
+      uniform float uTintBright;
       uniform float uUnderwater;
       varying vec3 vWorldPos;
       varying vec3 vNormal;
+
+      // Hue rotation in RGB space (angle in radians).
+      mat3 hueRotate(float angle) {
+        float c = cos(angle), s = sin(angle);
+        float oneThird = 1.0 / 3.0;
+        float root3inv = 0.57735026919;
+        return mat3(
+          c + oneThird * (1.0 - c),         -root3inv * s + oneThird * (1.0 - c),  root3inv * s + oneThird * (1.0 - c),
+          root3inv * s + oneThird * (1.0 - c), c + oneThird * (1.0 - c),          -root3inv * s + oneThird * (1.0 - c),
+          -root3inv * s + oneThird * (1.0 - c), root3inv * s + oneThird * (1.0 - c), c + oneThird * (1.0 - c)
+        );
+      }
 
       void main() {
         vec3 N = normalize(vNormal);
         vec3 V = normalize(cameraPosition - vWorldPos);
         vec3 L = normalize(uSunDir);
+
+        // Apply user color adjustments on top of the water-tint preset.
+        vec3 tint = uWaterTint * uTintBright;
+        tint = hueRotate(uTintHue) * tint;
+        vec3 gray = vec3(dot(tint, vec3(0.299, 0.587, 0.114)));
+        tint = mix(gray, tint, uTintSat);
 
         float NdotV = clamp(dot(N, V), 0.0, 1.0);
 
@@ -642,15 +692,15 @@ function Aquafulness() {
         // Refraction tint — view-dependent transmitted color. Straight down
         // we see into the deep hue; at grazing angles the shallow tint takes
         // over just before Fresnel flips everything to reflection.
-        vec3 deepT = uWaterDeep * uWaterTint;
-        vec3 shalT = uWaterShallow * uWaterTint;
+        vec3 deepT = uWaterDeep * tint;
+        vec3 shalT = uWaterShallow * tint;
         float refrMix = mix(0.15, 0.85, pow(1.0 - NdotV, 1.6));
         vec3 water = mix(deepT, shalT, refrMix);
 
         // Subsurface scattering — light bleeding through wave crests
         float height = clamp((vWorldPos.y + 1.0) / 3.0, 0.0, 1.0);
         vec3 sss = uSunColor * pow(height, 2.0) * 0.35 * clamp(uSunDir.y + 0.2, 0.0, 1.0);
-        water += sss * uWaterTint;
+        water += sss * tint;
 
         // Specular sun glint — Blinn-Phong with shimmer-perturbed normal so
         // sparkle scatters realistically. Sharpen when sun is low (long glitter
@@ -677,8 +727,9 @@ function Aquafulness() {
           col = mix(col, muted, clamp(uUnderwater, 0.0, 1.0));
         }
 
-        // Translucency — thinner (higher/steeper) crests let more light through
-        float alpha = clamp(0.65 + fres * 0.35 - height * 0.35, 0.4, 1.0);
+        // Translucency — thinner (higher/steeper) crests let more light through.
+        // uOpacity scales the final water transparency independently.
+        float alpha = clamp(0.65 + fres * 0.35 - height * 0.35, 0.4, 1.0) * uOpacity;
         gl_FragColor = vec4(col, alpha);
       }
     `;
@@ -941,6 +992,10 @@ function Aquafulness() {
       // Water tint + optional seafloor
       const tint = WATER_TINTS[waterTintRef.current] ?? WATER_TINTS[0];
       uniforms.uWaterTint.value.set(tint.rgb[0], tint.rgb[1], tint.rgb[2]);
+      uniforms.uOpacity.value += (waterOpacityRef.current - uniforms.uOpacity.value) * Math.min(1, dt * 6);
+      uniforms.uTintHue.value += (waterHueRef.current * 0.01745329252 - uniforms.uTintHue.value) * Math.min(1, dt * 6);
+      uniforms.uTintSat.value += (waterSatRef.current - uniforms.uTintSat.value) * Math.min(1, dt * 6);
+      uniforms.uTintBright.value += (waterBrightRef.current - uniforms.uTintBright.value) * Math.min(1, dt * 6);
       const bot = BOTTOM_OPTIONS[bottomIdxRef.current] ?? BOTTOM_OPTIONS[0];
       if (bot.rgb) {
         floor.visible = true;
@@ -1296,6 +1351,54 @@ function Aquafulness() {
                 value={WATER_TINTS[waterTintIdx].name}
                 onDec={() => setWaterTintIdx((i) => (i - 1 + WATER_TINTS.length) % WATER_TINTS.length)}
                 onInc={() => setWaterTintIdx((i) => (i + 1) % WATER_TINTS.length)}
+              />
+              <PadDial
+                label="OPACITET"
+                mode="number"
+                value={`${Math.round(waterOpacity * 100)}%`}
+                rawValue={waterOpacity}
+                onSet={setWaterOpacity}
+                min={0.1}
+                max={1}
+                step={0.05}
+                onDec={() => setWaterOpacity((v) => Math.max(0.1, +(v - 0.05).toFixed(2)))}
+                onInc={() => setWaterOpacity((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+              />
+              <PadDial
+                label="TON"
+                mode="number"
+                value={`${Math.round(waterHue)}°`}
+                rawValue={waterHue}
+                onSet={setWaterHue}
+                min={-180}
+                max={180}
+                step={5}
+                onDec={() => setWaterHue((v) => Math.max(-180, +(v - 5).toFixed(0)))}
+                onInc={() => setWaterHue((v) => Math.min(180, +(v + 5).toFixed(0)))}
+              />
+              <PadDial
+                label="MÄTTNAD"
+                mode="number"
+                value={`${waterSat.toFixed(2)}x`}
+                rawValue={waterSat}
+                onSet={setWaterSat}
+                min={0}
+                max={2}
+                step={0.05}
+                onDec={() => setWaterSat((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                onInc={() => setWaterSat((v) => Math.min(2, +(v + 0.05).toFixed(2)))}
+              />
+              <PadDial
+                label="LJUSSTYRKA"
+                mode="number"
+                value={`${waterBright.toFixed(2)}x`}
+                rawValue={waterBright}
+                onSet={setWaterBright}
+                min={0.1}
+                max={2.5}
+                step={0.05}
+                onDec={() => setWaterBright((v) => Math.max(0.1, +(v - 0.05).toFixed(2)))}
+                onInc={() => setWaterBright((v) => Math.min(2.5, +(v + 0.05).toFixed(2)))}
               />
               <PadDial
                 label="BOTTEN"
