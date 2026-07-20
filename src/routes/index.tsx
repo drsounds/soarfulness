@@ -133,6 +133,7 @@ function Aquafulness() {
   const [regularCross, setRegularCross] = useState(initial.regularCross);
   const [regularPeriod, setRegularPeriod] = useState(initial.regularPeriod);
   const [backdropIdx, setBackdropIdx] = useState(initial.backdropIdx);
+  const [wakeLock, setWakeLock] = useState(initial.wakeLock);
   // Rotation stick (yaw / pitch look) and wave-follow stick.
   const [rotStick, setRotStick] = useState({ x: 0, y: 0 });
   const [followStick, setFollowStick] = useState({ x: 0, y: 0 });
