@@ -746,17 +746,23 @@ function Aquafulness() {
         camera.rotateX(leanPitch);
       }
 
-      // Sync audio intensity with depth below surface.
+      // Sync audio intensity with depth below surface — only when spatial
+      // audio is enabled. Default: constant volume with no filtering.
       const depth = surfaceY - camYRef.current; // positive when underwater
       const a = audioRef.current;
       if (a) {
         const now = a.ctx.currentTime;
-        // deeper -> louder (up to ~2.5x), faster ramp
-        const depthMult = depth > 0 ? Math.min(1 + 0.35 * depth, 2.5) : 1;
-        a.depthGain.gain.setTargetAtTime(depthMult, now, 0.12);
-        // deeper -> more muffled (lowpass closes)
-        const lpFreq = depth > 0 ? Math.max(18000 - 4000 * depth, 500) : 18000;
-        a.lp.frequency.setTargetAtTime(lpFreq, now, 0.15);
+        if (audioSpatialRef.current) {
+          // deeper -> louder (up to ~2.5x), faster ramp
+          const depthMult = depth > 0 ? Math.min(1 + 0.35 * depth, 2.5) : 1;
+          a.depthGain.gain.setTargetAtTime(depthMult, now, 0.12);
+          // deeper -> more muffled (lowpass closes)
+          const lpFreq = depth > 0 ? Math.max(18000 - 4000 * depth, 500) : 18000;
+          a.lp.frequency.setTargetAtTime(lpFreq, now, 0.15);
+        } else {
+          a.depthGain.gain.setTargetAtTime(1, now, 0.2);
+          a.lp.frequency.setTargetAtTime(18000, now, 0.2);
+        }
       }
 
       // Underwater tone-down factor: fades color/contrast as camera dips below surface.
