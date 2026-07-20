@@ -998,6 +998,10 @@ function Aquafulness() {
         // Smooth blend av textur på/av så tonen inte snappar.
         const target = floorTextureRef.current ? 1 : 0;
         floorUniforms.uTextured.value += (target - floorUniforms.uTextured.value) * Math.min(1, dt * 4);
+        floorUniforms.uBrightness.value = floorBrightnessRef.current;
+        floorUniforms.uTintStrength.value = floorTintRef.current;
+        floorUniforms.uHueShift.value = (floorHueRef.current * Math.PI) / 180;
+
       } else {
         floor.visible = false;
       }
