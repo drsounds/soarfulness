@@ -1307,6 +1307,22 @@ function Aquafulness() {
       )}
       <div ref={mountRef} className="absolute inset-0" />
 
+      {/* Persistent brand mark — inverted (white), semi-transparent, 24pt, 5pt margin */}
+      <img
+        src={appIconAsset.url}
+        alt="Aquafulness"
+        aria-hidden="true"
+        className="pointer-events-none absolute z-30"
+        style={{
+          top: "5pt",
+          right: "5pt",
+          width: "24pt",
+          height: "24pt",
+          filter: "invert(1)",
+          opacity: 0.5,
+        }}
+      />
+
       {/* HUD overlay — fades out on inactivity, back in on any touch. */}
       <div
         className={`absolute inset-0 z-10 transition-opacity duration-700 ${uiVisible ? "opacity-100" : "pointer-events-none opacity-0"}`}
