@@ -249,6 +249,7 @@ function Aquafulness() {
   useEffect(() => { audioSpatialRef.current = audioSpatial; }, [audioSpatial]);
   useEffect(() => { camFovRef.current = camFov; }, [camFov]);
   useEffect(() => { camNearRef.current = camNear; }, [camNear]);
+  useEffect(() => { waveDirRef.current = waveDir; }, [waveDir]);
 
   const resetToDefaults = () => {
     setWaveAmp(DEFAULTS.waveAmp);
