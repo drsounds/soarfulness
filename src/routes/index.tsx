@@ -87,6 +87,9 @@ type Persisted = {
   waveDir: number;
   floorDepth: number;
   floorTexture: boolean;
+  vortexMode: boolean;
+  vortexOpening: number;
+  vortexRadius: number;
 };
 const WATER_TINTS: { name: string; rgb: [number, number, number] }[] = [
   { name: "Nordhav", rgb: [1, 1, 1] },
@@ -135,6 +138,9 @@ const DEFAULTS: Persisted = {
   waveDir: 0,
   floorDepth: 14,
   floorTexture: false,
+  vortexMode: false,
+  vortexOpening: 14,
+  vortexRadius: 26,
 };
 function loadSettings(): Persisted {
   if (typeof window === "undefined") return DEFAULTS;
@@ -180,6 +186,9 @@ function Aquafulness() {
   const [waveDir, setWaveDir] = useState(initial.waveDir);
   const [floorDepth, setFloorDepth] = useState(initial.floorDepth);
   const [floorTexture, setFloorTexture] = useState(initial.floorTexture);
+  const [vortexMode, setVortexMode] = useState(initial.vortexMode);
+  const [vortexOpening, setVortexOpening] = useState(initial.vortexOpening);
+  const [vortexRadius, setVortexRadius] = useState(initial.vortexRadius);
   const [rotStick, setRotStick] = useState({ x: 0, y: 0 });
   const [driftStick, setDriftStick] = useState({ x: 0, y: 0 });
   const [waveDirStick, setWaveDirStick] = useState({ x: 0, y: 0 });
@@ -189,12 +198,12 @@ function Aquafulness() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -236,6 +245,10 @@ function Aquafulness() {
   const waveDirRef = useRef(waveDir);
   const floorDepthRef = useRef(floorDepth);
   const floorTextureRef = useRef(floorTexture);
+  const vortexModeRef = useRef(vortexMode);
+  const vortexOpeningRef = useRef(vortexOpening);
+  const vortexRadiusRef = useRef(vortexRadius);
+  const vortexAngleRef = useRef(0);
   useEffect(() => { ampRef.current = waveAmp; }, [waveAmp]);
   useEffect(() => { todRef.current = timeOfDay; }, [timeOfDay]);
   useEffect(() => { speedRef.current = waveSpeed; }, [waveSpeed]);
@@ -262,6 +275,9 @@ function Aquafulness() {
   useEffect(() => { waveDirRef.current = waveDir; }, [waveDir]);
   useEffect(() => { floorDepthRef.current = floorDepth; }, [floorDepth]);
   useEffect(() => { floorTextureRef.current = floorTexture; }, [floorTexture]);
+  useEffect(() => { vortexModeRef.current = vortexMode; }, [vortexMode]);
+  useEffect(() => { vortexOpeningRef.current = vortexOpening; }, [vortexOpening]);
+  useEffect(() => { vortexRadiusRef.current = vortexRadius; }, [vortexRadius]);
   // Håll VÅGRIKT-spakens visuella läge synkat med waveDir (t.ex. när dialen ändras
   // eller vid uppstart), men bara när spaken själv står i vila.
   useEffect(() => {
@@ -298,6 +314,9 @@ function Aquafulness() {
     setWaveDir(DEFAULTS.waveDir);
     setFloorDepth(DEFAULTS.floorDepth);
     setFloorTexture(DEFAULTS.floorTexture);
+    setVortexMode(DEFAULTS.vortexMode);
+    setVortexOpening(DEFAULTS.vortexOpening);
+    setVortexRadius(DEFAULTS.vortexRadius);
     // timeOfDay is intentionally left untouched.
   };
 
@@ -462,6 +481,9 @@ function Aquafulness() {
       uPeriod: { value: 1 },
       uPeak: { value: 1 },
       uDir: { value: 0 },
+      uVortex: { value: 0 },
+      uVortexOpening: { value: 14 },
+      uVortexCenter: { value: new THREE.Vector2(0, 0) },
     };
 
     const vertexShader = /* glsl */ `
@@ -472,6 +494,9 @@ function Aquafulness() {
       uniform float uPeriod;
       uniform float uPeak;
       uniform float uDir;
+      uniform float uVortex;
+      uniform float uVortexOpening;
+      uniform vec2 uVortexCenter;
       varying vec3 vWorldPos;
       varying vec3 vNormal;
 
@@ -536,12 +561,34 @@ function Aquafulness() {
         float h = wave(wpBase.xyz, uTime, ampF, rippleFade);
         p.y += h;
 
+        float h = wave(wpBase.xyz, uTime, ampF, rippleFade);
+        p.y += h;
+
         // approximate normal via finite differences — small epsilon so
         // the ripples contribute crisp shading.
         float e = 0.22;
         float hx = wave(wpBase.xyz + vec3(e, 0.0, 0.0), uTime, ampF, rippleFade);
         float hz = wave(wpBase.xyz + vec3(0.0, 0.0, e), uTime, ampF, rippleFade);
         vec3 n = normalize(vec3(h - hx, e, h - hz));
+
+        // Vortex funnel: sink the mesh toward the center with a Gaussian well.
+        // Depth of the pit scales with the opening so the walls stay steep but
+        // proportional. Wave amplitude is damped inside the throat because the
+        // water there is "sucked down" and can't crest normally.
+        if (uVortex > 0.001) {
+          vec2 rvec = wpBase.xz - uVortexCenter;
+          float r = length(rvec);
+          float op = max(1.0, uVortexOpening);
+          float g = exp(-(r*r) / (op*op));
+          float pit = -op * 1.6 * g;
+          // Damp wave contribution in the throat so the funnel shape is clean.
+          p.y = mix(p.y, pit + h * (1.0 - g * 0.85), uVortex);
+          // Tilt the surface normal toward the center so shading follows the
+          // funnel walls (radial gradient of the Gaussian well).
+          float dg = -2.0 * g / (op * op);
+          vec3 nv = normalize(vec3(-rvec.x * dg * op * 1.6, 1.0, -rvec.y * dg * op * 1.6));
+          n = normalize(mix(n, nv, uVortex * 0.8));
+        }
 
         vec4 wp = modelMatrix * vec4(p, 1.0);
         vWorldPos = wp.xyz;
@@ -865,6 +912,11 @@ function Aquafulness() {
         uniforms.uDir.value += delta * Math.min(1, dt * 4);
       }
 
+      // Smoothly blend the vortex funnel in/out (also drives camera behaviour).
+      const vortexTarget = vortexModeRef.current ? 1 : 0;
+      uniforms.uVortex.value += (vortexTarget - uniforms.uVortex.value) * Math.min(1, dt * 3);
+      uniforms.uVortexOpening.value += (vortexOpeningRef.current - uniforms.uVortexOpening.value) * Math.min(1, dt * 4);
+
       const p = palette(todRef.current);
       uniforms.uSunDir.value.copy(p.sunDir);
       uniforms.uSkyColor.value.setRGB(p.top[0], p.top[1], p.top[2]);
@@ -901,15 +953,44 @@ function Aquafulness() {
       // Apply joystick velocity (game-pad style): stick.y up = forward (-z), x = strafe.
       // STRÖM-spaken lägger till en konstant drivkraft (drift) så kameran bärs
       // med strömmen även när NAV är i vila.
+      // I VIRVEL-läge tolkas NAV om: stick.y = närmare/längre bort från
+      // virvelns centrum, stick.x = vridriktning kring virveln.
+      const inVortex = vortexModeRef.current;
       const walkSpeed = 8; // m/s at full deflection
       const driftSpeed = 2.2; // m/s at full deflection — mjukare än aktiv rörelse
-      posRef.current.x += (stickRef.current.x * walkSpeed + driftStickRef.current.x * driftSpeed) * dt;
-      posRef.current.z -= (stickRef.current.y * walkSpeed + driftStickRef.current.y * driftSpeed) * dt;
-
-      const camX = posRef.current.x;
-      const camZ = posRef.current.z;
+      let camX: number, camZ: number;
+      if (inVortex) {
+        // Orbit around origin. NAV.y in/ut, NAV.x tangent.
+        const op = vortexOpeningRef.current;
+        // Base angular speed scales gently with wave speed so tempo affects swirl.
+        const baseOmega = 0.35 + 0.04 * speedRef.current;
+        const stickOmega = stickRef.current.x * 1.4; // extra swirl from NAV.x
+        vortexAngleRef.current += (baseOmega + stickOmega) * dt;
+        // Move in/out along the radius (STRÖM.y also nudges drift in/out).
+        const radialVel = -stickRef.current.y * walkSpeed - driftStickRef.current.y * driftSpeed;
+        const minR = Math.max(op * 0.55, 3); // don't dive into the throat
+        const maxR = 220;
+        vortexRadiusRef.current = Math.max(minR, Math.min(maxR, vortexRadiusRef.current + radialVel * dt));
+        setVortexRadius(vortexRadiusRef.current);
+        const ang = vortexAngleRef.current;
+        camX = Math.cos(ang) * vortexRadiusRef.current;
+        camZ = Math.sin(ang) * vortexRadiusRef.current;
+      } else {
+        posRef.current.x += (stickRef.current.x * walkSpeed + driftStickRef.current.x * driftSpeed) * dt;
+        posRef.current.z -= (stickRef.current.y * walkSpeed + driftStickRef.current.y * driftSpeed) * dt;
+        camX = posRef.current.x;
+        camZ = posRef.current.z;
+      }
       const dirRad = (waveDirRef.current * Math.PI) / 180;
-      const surfaceY = waveHeight(camX, camZ, t, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad);
+      // Funnel dip at the camera's XZ position (matches the shader Gaussian).
+      const funnelY = (() => {
+        if (!inVortex) return 0;
+        const op = Math.max(1, vortexOpeningRef.current);
+        const r2 = camX * camX + camZ * camZ;
+        return -op * 1.6 * Math.exp(-r2 / (op * op));
+      })();
+      const waveSurf = waveHeight(camX, camZ, t, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad);
+      const surfaceY = waveSurf + funnelY;
 
       // Compute wave vertical velocity first so buoyancy can react to it.
       if (prevSurfaceRef.current === null) prevSurfaceRef.current = surfaceY;
@@ -920,7 +1001,7 @@ function Aquafulness() {
       // reacts at the *start* of a wave rise (trough) rather than mid-rise.
       // t is already wave-time (scaled by wave speed).
       const lead = 0.35;
-      const futureSurf = waveHeight(camX, camZ, t + lead, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad);
+      const futureSurf = waveHeight(camX, camZ, t + lead, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad) + funnelY;
       const anticipVel = (futureSurf - surfaceY) / lead;
 
       // Wave-synced buoyancy: camera is a damped spring pulled toward the
@@ -946,14 +1027,21 @@ function Aquafulness() {
       camVYRef.current += ay * dt;
       camYRef.current += camVYRef.current * dt;
 
-      // (Drift-strömmen appliceras redan tidigare på posRef så kameran driver
-      // med hela vågsystemet i stället för att bara koppla till ytans hastighet.)
       camera.position.set(camX, camYRef.current, camZ);
-      // Keep the look direction perfectly level so wave crests in front of
-      // the camera don't tilt the horizon up/down when riding a swell.
-      const lookZ = camZ - 20;
+      // Look direction: HAV = level forward; VIRVEL = mot centrum (så kameran
+      // följer med runt virveln och naturligt tittar ner mot öppningen).
       const lookY = camera.position.y;
-      camera.lookAt(camX, lookY, lookZ);
+      let lookX: number, lookZ: number;
+      if (inVortex) {
+        // Aim at the vortex center, slightly below the camera so the throat
+        // is visible without the horizon tilting.
+        lookX = 0;
+        lookZ = 0;
+      } else {
+        lookX = camX;
+        lookZ = camZ - 20;
+      }
+      camera.lookAt(lookX, lookY, lookZ);
 
       // Rotation stick: yaw (x) + pitch (y). Integrate stick as angular velocity.
       const rotSpeed = 1.6; // rad/s at full deflection
@@ -1268,6 +1356,36 @@ function Aquafulness() {
                 step={0.25}
                 onDec={() => setWavePeak((v) => Math.max(1, +(v - 0.25).toFixed(2)))}
                 onInc={() => setWavePeak((v) => Math.min(6, +(v + 0.25).toFixed(2)))}
+              />
+              <PadDial
+                label="LÄGE"
+                value={vortexMode ? "VIRVEL" : "HAV"}
+                onDec={() => setVortexMode(false)}
+                onInc={() => setVortexMode(true)}
+              />
+              <PadDial
+                label="ÖPPNING"
+                mode="number"
+                value={`${vortexOpening.toFixed(1)}m`}
+                rawValue={vortexOpening}
+                onSet={(v) => setVortexOpening(Math.max(3, Math.min(60, v)))}
+                min={3}
+                max={60}
+                step={0.5}
+                onDec={() => setVortexOpening((v) => Math.max(3, +(v - 0.5).toFixed(2)))}
+                onInc={() => setVortexOpening((v) => Math.min(60, +(v + 0.5).toFixed(2)))}
+              />
+              <PadDial
+                label="AVSTÅND"
+                mode="number"
+                value={`${vortexRadius.toFixed(1)}m`}
+                rawValue={vortexRadius}
+                onSet={(v) => setVortexRadius(Math.max(3, Math.min(220, v)))}
+                min={3}
+                max={220}
+                step={1}
+                onDec={() => setVortexRadius((v) => Math.max(3, +(v - 1).toFixed(2)))}
+                onInc={() => setVortexRadius((v) => Math.min(220, +(v + 1).toFixed(2)))}
               />
               <PadDial
                 label="BAKGRUND"
