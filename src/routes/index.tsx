@@ -264,7 +264,9 @@ function Aquafulness() {
   const heightRef = useRef(heightOffset);
   const submergeRef = useRef(submergeAmp);
   const floatLiftRef = useRef(floatLift);
-  const sinkDampRef = useRef(sinkDamp);
+  const camOffXRef = useRef(camOffX);
+  const camOffYRef = useRef(camOffY);
+  const camOffZRef = useRef(camOffZ);
   const stickRef = useRef({ x: 0, y: 0 });
   const posRef = useRef({ x: 0, z: 0 });
   const camYRef = useRef<number | null>(null);
