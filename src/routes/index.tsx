@@ -754,6 +754,13 @@ function Aquafulness() {
       const surfVel = (surfaceY - prevSurfaceRef.current) / Math.max(dt, 1e-4);
       prevSurfaceRef.current = surfaceY;
 
+      // Anticipatory velocity: peek slightly into the future so buoyancy
+      // reacts at the *start* of a wave rise (trough) rather than mid-rise.
+      // t is already wave-time (scaled by wave speed).
+      const lead = 0.35;
+      const futureSurf = waveHeight(camX, camZ, t + lead, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current);
+      const anticipVel = (futureSurf - surfaceY) / lead;
+
       // Wave-synced buoyancy: camera is a damped spring pulled toward the
       // surface with gravity. Rising crests push the camera underwater
       // (DYK controls how deep), and gravity makes it fall past equilibrium
@@ -762,11 +769,10 @@ function Aquafulness() {
       const b = buoyRef.current;
       const sub = submergeRef.current;
       const lift = floatLiftRef.current;
-      // Dynamic dive: rising crest pushes camera under (DYK). Float lift (FLYT)
-      // adds a positive feedforward on wave velocity so higher lift makes
-      // the camera ride ON the crest instead of getting dunked.
-      const diveOffset = Math.max(0, surfVel) * sub * 0.6 * (0.6 + amp * 0.6);
-      const liftOffset = surfVel * lift * 0.35 * (0.6 + amp * 0.6);
+      // Dynamic dive uses the anticipated velocity so the camera starts
+      // sinking as soon as the wave begins to rise (not mid-crest).
+      const diveOffset = Math.max(0, anticipVel) * sub * 0.6 * (0.6 + amp * 0.6);
+      const liftOffset = anticipVel * lift * 0.35 * (0.6 + amp * 0.6);
       const targetY = surfaceY + heightRef.current - diveOffset + liftOffset;
       if (camYRef.current === null) camYRef.current = targetY;
       const k = 4 + 14 * bobSpeedRef.current; // stiffness (spring tempo)
