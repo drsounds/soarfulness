@@ -238,6 +238,10 @@ function Aquafulness() {
     el.loop = true;
     el.crossOrigin = "anonymous";
     el.preload = "auto";
+    // By default the recorded water sound keeps its original speed regardless
+    // of wave tempo. The user can opt-in to sync it below.
+    el.playbackRate = audioSyncSpeed ? Math.max(0.2, Math.min(5, waveSpeed)) : 1;
+    el.preservesPitch = true;
 
     const src = ctx.createMediaElementSource(el);
 
@@ -266,6 +270,14 @@ function Aquafulness() {
     if (!a) return;
     a.master.gain.setTargetAtTime(audioVol, a.ctx.currentTime, 0.2);
   }, [audioVol]);
+
+  // React to tempo-sync option: only change audio speed when explicitly enabled.
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a) return;
+    a.el.playbackRate = audioSyncSpeed ? Math.max(0.2, Math.min(5, waveSpeed)) : 1;
+    a.el.preservesPitch = true;
+  }, [audioSyncSpeed, waveSpeed]);
 
 
 
