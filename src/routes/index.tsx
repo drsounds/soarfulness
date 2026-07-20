@@ -51,6 +51,7 @@ type Persisted = {
   heightOffset: number;
   audioOn: boolean;
   audioVol: number;
+  audioSyncSpeed: boolean;
   waterTintIdx: number;
   bottomIdx: number;
   leanEnabled: boolean;
