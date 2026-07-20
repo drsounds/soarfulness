@@ -25,12 +25,13 @@ export const Route = createFileRoute("/")({
   }),
 });
 
-// Peaking shaper: p=1 → pure sine, p>1 → sharp crests / flat troughs (trochoidal).
-// Centered so the mean stays near zero regardless of p.
-function shapeSine(s: number, p: number) {
-  const n = 0.5 + 0.5 * s;
-  const m = 1 / Math.sqrt(Math.PI * p); // approx mean of n^p over a full period
-  return (Math.pow(n, p) - m) / (1 - m);
+// Trochoidal phase warp: p=1 → pure sine, p>1 → sharper crest / flatter trough
+// on the SAME wave (Gerstner-style vertical profile). Smooth everywhere, mean
+// stays at 0, and neighbouring wave components no longer create jagged
+// interference — only the crest of each individual wave gets pointier.
+function shapedWave(theta: number, p: number) {
+  const q = Math.min(0.92, (p - 1) * 0.18);
+  return Math.sin(theta - q * Math.sin(theta));
 }
 
 // Gerstner-like sum of sines. Keep in sync with vertex shader.
@@ -38,14 +39,14 @@ function waveHeight(x: number, z: number, t: number, amp: number, regular: boole
   if (regular) {
     const kx = 0.12 / period;
     const kz = 0.09 / period;
-    const rx = shapeSine(Math.sin(x * kx + t * 0.9), peak) * 2.6 * amp;
-    const rz = cross ? shapeSine(Math.sin(z * kz + t * 0.7 + 1.1), peak) * 1.4 * amp : 0;
+    const rx = shapedWave(x * kx + t * 0.9, peak) * 2.6 * amp;
+    const rz = cross ? shapedWave(z * kz + t * 0.7 + 1.1, peak) * 1.4 * amp : 0;
     return rx + rz;
   }
-  const w1 = shapeSine(Math.sin(x * 0.12 + t * 0.9), peak) * 1.0;
-  const w2 = shapeSine(Math.sin(z * 0.17 + t * 0.7 + 1.3), peak) * 0.75;
-  const w3 = shapeSine(Math.sin((x * 0.22 + z * 0.19) + t * 1.4 + 2.1), peak) * 0.5;
-  const w4 = shapeSine(Math.sin((x * 0.31 - z * 0.11) + t * 1.8 + 0.4), peak) * 0.35;
+  const w1 = shapedWave(x * 0.12 + t * 0.9, peak) * 1.0;
+  const w2 = shapedWave(z * 0.17 + t * 0.7 + 1.3, peak) * 0.75;
+  const w3 = shapedWave((x * 0.22 + z * 0.19) + t * 1.4 + 2.1, peak) * 0.5;
+  const w4 = shapedWave((x * 0.31 - z * 0.11) + t * 1.8 + 0.4, peak) * 0.35;
   return (w1 + w2 + w3 + w4) * amp;
 }
 
@@ -423,27 +424,27 @@ function Aquafulness() {
       varying vec3 vWorldPos;
       varying vec3 vNormal;
 
-      // Sharpened sine: uPeak=1 → pure sine, uPeak>1 → sharp crests / flat troughs.
-      // Centered so the mean stays near zero regardless of uPeak.
-      float shp(float s) {
-        float n = 0.5 + 0.5 * s;
-        float m = 1.0 / sqrt(3.14159265 * uPeak);
-        return (pow(n, uPeak) - m) / (1.0 - m);
+      // Trochoidal phase warp — sharpens the crest of each individual wave
+      // without distorting the rest of the curve, so summed waves stay smooth
+      // instead of turning into jagged interference.
+      float shp(float theta) {
+        float q = min(0.92, (uPeak - 1.0) * 0.18);
+        return sin(theta - q * sin(theta));
       }
 
       float wave(vec3 p, float t, float amp) {
         // Regular sine along x, with optional cross-axis sine so it doesn't
         // look like a flat carpet when uRegular = 1. uPeriod scales the
         // spatial wavelength (higher = longer, calmer swells).
-        float regX = shp(sin(p.x * (0.12 / uPeriod) + t * 0.9)) * 2.6 * amp;
-        float regZ = shp(sin(p.z * (0.09 / uPeriod) + t * 0.7 + 1.1)) * 1.4 * amp * uCross;
+        float regX = shp(p.x * (0.12 / uPeriod) + t * 0.9) * 2.6 * amp;
+        float regZ = shp(p.z * (0.09 / uPeriod) + t * 0.7 + 1.1) * 1.4 * amp * uCross;
         float reg = regX + regZ;
 
         // Large primary swell (chaotic sum of sines)
-        float w1 = shp(sin(p.x * 0.12 + t * 0.9)) * 1.0;
-        float w2 = shp(sin(p.z * 0.17 + t * 0.7 + 1.3)) * 0.75;
-        float w3 = shp(sin((p.x * 0.22 + p.z * 0.19) + t * 1.4 + 2.1)) * 0.5;
-        float w4 = shp(sin((p.x * 0.31 - p.z * 0.11) + t * 1.8 + 0.4)) * 0.35;
+        float w1 = shp(p.x * 0.12 + t * 0.9) * 1.0;
+        float w2 = shp(p.z * 0.17 + t * 0.7 + 1.3) * 0.75;
+        float w3 = shp((p.x * 0.22 + p.z * 0.19) + t * 1.4 + 2.1) * 0.5;
+        float w4 = shp((p.x * 0.31 - p.z * 0.11) + t * 1.8 + 0.4) * 0.35;
         float big = (w1 + w2 + w3 + w4) * amp;
 
         // Small ripples on top of the swell — independent of amp so they
