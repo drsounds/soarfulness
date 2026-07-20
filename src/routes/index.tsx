@@ -912,6 +912,11 @@ function Aquafulness() {
         uniforms.uDir.value += delta * Math.min(1, dt * 4);
       }
 
+      // Smoothly blend the vortex funnel in/out (also drives camera behaviour).
+      const vortexTarget = vortexModeRef.current ? 1 : 0;
+      uniforms.uVortex.value += (vortexTarget - uniforms.uVortex.value) * Math.min(1, dt * 3);
+      uniforms.uVortexOpening.value += (vortexOpeningRef.current - uniforms.uVortexOpening.value) * Math.min(1, dt * 4);
+
       const p = palette(todRef.current);
       uniforms.uSunDir.value.copy(p.sunDir);
       uniforms.uSkyColor.value.setRGB(p.top[0], p.top[1], p.top[2]);
