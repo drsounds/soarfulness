@@ -494,6 +494,9 @@ function Aquafulness() {
       uniform float uPeriod;
       uniform float uPeak;
       uniform float uDir;
+      uniform float uVortex;
+      uniform float uVortexOpening;
+      uniform vec2 uVortexCenter;
       varying vec3 vWorldPos;
       varying vec3 vNormal;
 
