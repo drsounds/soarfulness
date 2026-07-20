@@ -274,6 +274,7 @@ function Aquafulness() {
     setWakeLock(DEFAULTS.wakeLock);
     setCamFov(DEFAULTS.camFov);
     setCamNear(DEFAULTS.camNear);
+    setWaveDir(DEFAULTS.waveDir);
     // timeOfDay is intentionally left untouched.
   };
 
