@@ -403,9 +403,9 @@ function Aquafulness() {
     scene.fog = new THREE.FogExp2(0x88aacc, 0.008);
 
     const camera = new THREE.PerspectiveCamera(
-      65,
+      camFovRef.current,
       mount.clientWidth / mount.clientHeight,
-      0.1,
+      camNearRef.current,
       2000,
     );
 
