@@ -432,7 +432,7 @@ function Aquafulness() {
         return sin(theta - q * sin(theta));
       }
 
-      float wave(vec3 p, float t, float amp) {
+      float wave(vec3 p, float t, float amp, float rippleFade) {
         // Regular sine along x, with optional cross-axis sine so it doesn't
         // look like a flat carpet when uRegular = 1. uPeriod scales the
         // spatial wavelength (higher = longer, calmer swells).
@@ -447,13 +447,14 @@ function Aquafulness() {
         float w4 = shp((p.x * 0.31 - p.z * 0.11) + t * 1.8 + 0.4) * 0.35;
         float big = (w1 + w2 + w3 + w4) * amp;
 
-        // Small ripples on top of the swell — independent of amp so they
-        // stay as fine surface texture rather than growing with the waves.
+        // Small ripples on top of the swell — high frequency, so they must
+        // fade with distance well before the mesh becomes under-sampled or
+        // they alias into jagged spikes at grazing angles.
         float r1 = sin(p.x * 0.85 + p.z * 0.42 + t * 2.6) * 0.06;
         float r2 = sin(p.x * 0.55 - p.z * 0.95 + t * 3.1 + 1.7) * 0.05;
         float r3 = sin((p.x * 1.35 + p.z * 1.15) + t * 3.8 + 0.6) * 0.035;
         float r4 = sin((p.x * 1.9 - p.z * 1.6) + t * 4.7 + 2.3) * 0.022;
-        float ripples = (r1 + r2 + r3 + r4) * (1.0 - uRegular);
+        float ripples = (r1 + r2 + r3 + r4) * (1.0 - uRegular) * rippleFade;
 
         return mix(big + ripples, reg, uRegular);
       }
@@ -464,19 +465,23 @@ function Aquafulness() {
 
         // Distance-based amplitude falloff — far triangles get very thin at
         // grazing angles and alias into jagged spikes on the horizon. Fade
-        // waves smoothly to flat before they hit the plane edge / fog wall.
+        // waves smoothly to flat well before they hit the plane edge.
         float distXZ = length(wpBase.xz - cameraPosition.xz);
-        float ampFade = 1.0 - smoothstep(60.0, 220.0, distXZ);
+        float ampFade = 1.0 - smoothstep(40.0, 180.0, distXZ);
+        // High-frequency ripples must fade much sooner than the big swell —
+        // their wavelength is close to the triangle spacing, so any surviving
+        // amplitude at distance produces jaggy grazing-angle artifacts.
+        float rippleFade = 1.0 - smoothstep(18.0, 70.0, distXZ);
         float ampF = uAmp * ampFade;
 
-        float h = wave(wpBase.xyz, uTime, ampF);
+        float h = wave(wpBase.xyz, uTime, ampF, rippleFade);
         p.y += h;
 
         // approximate normal via finite differences — small epsilon so
         // the ripples contribute crisp shading.
         float e = 0.22;
-        float hx = wave(wpBase.xyz + vec3(e, 0.0, 0.0), uTime, ampF);
-        float hz = wave(wpBase.xyz + vec3(0.0, 0.0, e), uTime, ampF);
+        float hx = wave(wpBase.xyz + vec3(e, 0.0, 0.0), uTime, ampF, rippleFade);
+        float hz = wave(wpBase.xyz + vec3(0.0, 0.0, e), uTime, ampF, rippleFade);
         vec3 n = normalize(vec3(h - hx, e, h - hz));
 
         vec4 wp = modelMatrix * vec4(p, 1.0);
