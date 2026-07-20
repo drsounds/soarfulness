@@ -1784,7 +1784,7 @@ function Aquafulness() {
         positionClass="bottom-36 right-6"
         sticky
       />
-
+      </div>
     </main>
   );
 }
