@@ -59,6 +59,7 @@ type Persisted = {
   regularCross: boolean;
   regularPeriod: number;
   backdropIdx: number;
+  wakeLock: boolean;
 };
 const WATER_TINTS: { name: string; rgb: [number, number, number] }[] = [
   { name: "Nordhav", rgb: [1, 1, 1] },
