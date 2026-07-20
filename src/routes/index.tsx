@@ -200,6 +200,7 @@ function Aquafulness() {
   useEffect(() => { buoyRef.current = buoyAmp; }, [buoyAmp]);
   useEffect(() => { heightRef.current = heightOffset; }, [heightOffset]);
   useEffect(() => { submergeRef.current = submergeAmp; }, [submergeAmp]);
+  useEffect(() => { floatLiftRef.current = floatLift; }, [floatLift]);
   useEffect(() => { stickRef.current = stick; }, [stick]);
   useEffect(() => { rotStickRef.current = rotStick; }, [rotStick]);
   useEffect(() => { followStickRef.current = followStick; }, [followStick]);
