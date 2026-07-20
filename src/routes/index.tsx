@@ -1185,28 +1185,41 @@ function Aquafulness() {
         </div>
       )}
 
-      {/* Movement joystick (left) */}
+      {/* PS-liknande layout:
+          Vänster sida: NAV (rörelse, momentan) längst ned, STRÖM (drift, sticky) ovanför.
+          Höger sida: LOOK (rotation, momentan) längst ned, VÅGRIKT (sticky) ovanför.
+          Dubbelklicka en sticky-spak för att nolla den. */}
       <Joystick
         onChange={setStick}
         value={stick}
         label="NAV"
         positionClass="bottom-6 left-6"
       />
-
-      {/* Look / rotation joystick (right of movement) */}
+      <Joystick
+        onChange={setDriftStick}
+        value={driftStick}
+        label="STRÖM"
+        positionClass="bottom-36 left-6"
+        sticky
+      />
       <Joystick
         onChange={setRotStick}
         value={rotStick}
         label="LOOK"
-        positionClass="bottom-6 left-44"
-      />
-
-      {/* Wave-follow joystick (far right) — sticky: håller sitt läge tills du drar tillbaka eller dubbelklickar */}
-      <Joystick
-        onChange={setFollowStick}
-        value={followStick}
-        label="VÅG-FÖLJ"
         positionClass="bottom-6 right-6"
+      />
+      <Joystick
+        onChange={(v) => {
+          setWaveDirStick(v);
+          const m = Math.hypot(v.x, v.y);
+          if (m > 0.15) {
+            const deg = (Math.atan2(v.x, v.y) * 180) / Math.PI;
+            setWaveDir(((deg % 360) + 360) % 360);
+          }
+        }}
+        value={waveDirStick}
+        label="VÅGRIKT"
+        positionClass="bottom-36 right-6"
         sticky
       />
 
