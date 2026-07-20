@@ -649,7 +649,10 @@ function Aquafulness() {
     const floorGeo = new THREE.PlaneGeometry(600, 600, 32, 32);
     floorGeo.rotateX(-Math.PI / 2);
     const floorUniforms = {
-      ...THREE.UniformsUtils.clone(THREE.UniformsLib.fog),
+      fogColor: { value: new THREE.Color(0x000000) },
+      fogDensity: { value: 0 },
+      fogNear: { value: 1 },
+      fogFar: { value: 1000 },
       uColor: { value: new THREE.Color(0xd8c078) },
       uTextured: { value: 0 },
       uTime: { value: 0 },
