@@ -745,6 +745,14 @@ function Aquafulness() {
       uniforms.uCross.value += ((regularCrossRef.current ? 1 : 0) - uniforms.uCross.value) * Math.min(1, dt * 4);
       uniforms.uPeriod.value += (regularPeriodRef.current - uniforms.uPeriod.value) * Math.min(1, dt * 4);
       uniforms.uPeak.value += (wavePeakRef.current - uniforms.uPeak.value) * Math.min(1, dt * 4);
+      // Wave direction stored in degrees; smoothly interpolate the shortest
+      // angular path so wrapping around 360° doesn't spin the ocean.
+      {
+        const targetRad = (waveDirRef.current * Math.PI) / 180;
+        let delta = targetRad - uniforms.uDir.value;
+        delta = Math.atan2(Math.sin(delta), Math.cos(delta));
+        uniforms.uDir.value += delta * Math.min(1, dt * 4);
+      }
 
       const p = palette(todRef.current);
       uniforms.uSunDir.value.copy(p.sunDir);
