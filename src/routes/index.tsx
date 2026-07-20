@@ -1125,6 +1125,29 @@ function Aquafulness() {
                 onDec={() => setWakeLock(false)}
                 onInc={() => setWakeLock(true)}
               />
+              <PadDial
+                label="FOV"
+                mode="number"
+                value={`${camFov.toFixed(0)}°`}
+                rawValue={camFov}
+                onSet={(v) => setCamFov(Math.max(20, Math.min(140, v)))}
+                min={20}
+                max={140}
+                step={1}
+                onDec={() => setCamFov((v) => Math.max(20, +(v - 1).toFixed(0)))}
+                onInc={() => setCamFov((v) => Math.min(140, +(v + 1).toFixed(0)))}
+              />
+              <PadDial
+                label="NÄRA"
+                mode="number"
+                value={`${camNear.toFixed(3)}`}
+                rawValue={camNear}
+                onSet={(v) => setCamNear(Math.max(0.001, Math.min(2, v)))}
+                min={0.001}
+                max={2}
+                step={0.01}
+                onDec={() => setCamNear((v) => Math.max(0.001, +(v - 0.01).toFixed(3)))}
+                onInc={() => setCamNear((v) => Math.min(2, +(v + 0.01).toFixed(3)))}
             </div>
           </div>
         </div>
