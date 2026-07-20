@@ -644,18 +644,91 @@ function Aquafulness() {
     const ocean = new THREE.Mesh(geo, mat);
     scene.add(ocean);
 
-    // Optional seafloor beneath the ocean plane.
-    const floorGeo = new THREE.PlaneGeometry(600, 600);
+    // Optional seafloor beneath the ocean plane. ShaderMaterial gör den
+    // procedurellt strukturerad (sandbankar, småsten, kaustik) när uTextured=1.
+    const floorGeo = new THREE.PlaneGeometry(600, 600, 32, 32);
     floorGeo.rotateX(-Math.PI / 2);
-    const floorMat = new THREE.MeshBasicMaterial({
-      color: 0xd8c078,
+    const floorUniforms = {
+      uColor: { value: new THREE.Color(0xd8c078) },
+      uTextured: { value: 0 },
+      uTime: { value: 0 },
+      uSunDir: { value: uniforms.uSunDir.value },
+      uFogColor: { value: uniforms.uFogColor.value },
+    };
+    const floorMat = new THREE.ShaderMaterial({
+      uniforms: floorUniforms,
       fog: true,
       side: THREE.DoubleSide,
+      transparent: false,
+      vertexShader: `
+        varying vec2 vUv;
+        varying vec3 vWorld;
+        #include <fog_pars_vertex>
+        void main() {
+          vUv = uv;
+          vec4 wp = modelMatrix * vec4(position, 1.0);
+          vWorld = wp.xyz;
+          vec4 mv = viewMatrix * wp;
+          gl_Position = projectionMatrix * mv;
+          #include <fog_vertex>
+        }
+      `,
+      fragmentShader: `
+        precision highp float;
+        varying vec2 vUv;
+        varying vec3 vWorld;
+        uniform vec3 uColor;
+        uniform float uTextured;
+        uniform float uTime;
+        uniform vec3 uSunDir;
+        #include <fog_pars_fragment>
+
+        // Cheap value-noise + fbm for procedural sand.
+        float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453123); }
+        float vnoise(vec2 p){
+          vec2 i = floor(p); vec2 f = fract(p);
+          float a = hash(i);
+          float b = hash(i + vec2(1.0,0.0));
+          float c = hash(i + vec2(0.0,1.0));
+          float d = hash(i + vec2(1.0,1.0));
+          vec2 u = f*f*(3.0-2.0*f);
+          return mix(a,b,u.x) + (c-a)*u.y*(1.0-u.x) + (d-b)*u.x*u.y;
+        }
+        float fbm(vec2 p){
+          float v = 0.0; float a = 0.5;
+          for (int i=0; i<5; i++){ v += a*vnoise(p); p *= 2.03; a *= 0.5; }
+          return v;
+        }
+
+        void main(){
+          vec3 base = uColor;
+          if (uTextured > 0.001) {
+            vec2 p = vWorld.xz;
+            // Longa sandbankar / ripples
+            float ripple = sin(p.x * 0.35 + fbm(p*0.12)*3.0) * 0.5 + 0.5;
+            ripple = pow(ripple, 2.2);
+            // Fina korn
+            float grain = fbm(p * 3.5);
+            // Storskaliga fläckar (mörkare partier, tång/skugga)
+            float patch = fbm(p * 0.06);
+            // Kaustik-flimmer från vågorna ovanför
+            float caustic = 0.0;
+            caustic += sin(p.x*0.9 + uTime*0.7 + fbm(p*0.4)*4.0);
+            caustic += sin(p.y*0.85 - uTime*0.55 + fbm(p*0.35 + 3.1)*4.0);
+            caustic = pow(max(0.0, caustic*0.5 + 0.5), 3.0);
+
+            vec3 lightSand = uColor * 1.18;
+            vec3 darkSand  = uColor * 0.55;
+            vec3 col = mix(darkSand, lightSand, ripple * 0.55 + grain * 0.6);
+            col = mix(col, col * 0.65, smoothstep(0.55, 0.85, patch));
+            col += vec3(0.9, 0.85, 0.7) * caustic * 0.22;
+            base = mix(uColor, col, clamp(uTextured, 0.0, 1.0));
+          }
+          gl_FragColor = vec4(base, 1.0);
+          #include <fog_fragment>
+        }
+      `,
     });
-    const floor = new THREE.Mesh(floorGeo, floorMat);
-    floor.position.y = -14;
-    floor.visible = false;
-    scene.add(floor);
 
     // Sky dome
     const skyGeo = new THREE.SphereGeometry(800, 32, 32);
