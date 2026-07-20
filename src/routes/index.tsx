@@ -284,6 +284,67 @@ function Aquafulness() {
     a.el.preservesPitch = true;
   }, [audioSyncSpeed, waveSpeed]);
 
+  // Screen Wake Lock: keep the display awake while the app is active.
+  // We re-request when the tab becomes visible again, because the lock is
+  // automatically released by the browser when the page is hidden.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const nav = navigator as Navigator & { wakeLock?: { request: (type: "screen") => Promise<WakeLockSentinel> } };
+    if (!nav.wakeLock) return;
+
+    let sentinel: WakeLockSentinel | null = null;
+    let cancelled = false;
+
+    const request = async () => {
+      if (!wakeLockRef.current || sentinel || document.hidden) return;
+      try {
+        sentinel = await nav.wakeLock!.request("screen");
+        sentinel.addEventListener("release", () => {
+          if (!cancelled) sentinel = null;
+        });
+      } catch {
+        // User gesture or permission may be missing — silently fail.
+      }
+    };
+
+    const release = () => {
+      if (sentinel) {
+        sentinel.release().catch(() => { /* noop */ });
+        sentinel = null;
+      }
+    };
+
+    const handleVisibility = () => {
+      if (document.hidden) {
+        release();
+      } else {
+        request();
+      }
+    };
+
+    request();
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", handleVisibility);
+      release();
+    };
+  }, []);
+
+  // Re-request or release wake lock when the user toggles the setting.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const nav = navigator as Navigator & { wakeLock?: { request: (type: "screen") => Promise<WakeLockSentinel> } };
+    if (!nav.wakeLock) return;
+    if (wakeLock) {
+      nav.wakeLock.request("screen").catch(() => { /* noop */ });
+    } else {
+      // The browser only exposes the active sentinel via a fresh request,
+      // so we rely on the main effect above to track and release it.
+    }
+  }, [wakeLock]);
+
 
 
   useEffect(() => {
