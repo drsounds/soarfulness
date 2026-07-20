@@ -668,7 +668,7 @@ function Aquafulness() {
       uSunDir: { value: uniforms.uSunDir.value },
       uFogColor: { value: uniforms.uFogColor.value },
       uSandTex: { value: sandTex },
-      uSandScale: { value: 0.08 }, // 1 tile per ~12.5 m
+      uSandScale: { value: 0.35 }, // ~1 tile per 2.9 m så kornen syns
     };
     const floorMat = new THREE.ShaderMaterial({
       uniforms: floorUniforms,
@@ -715,13 +715,16 @@ function Aquafulness() {
           vec3 base = uColor;
           if (uTextured > 0.001) {
             vec2 uv0 = vWorld.xz * uSandScale;
-            // Två oktaver i olika skala/vridning för att dölja tile-repetition.
+            // Detaljerad oktav + grovare vridet lager för att bryta tile-repetition.
             vec3 s1 = texture2D(uSandTex, uv0).rgb;
             mat2 rot = mat2(0.8, -0.6, 0.6, 0.8);
-            vec3 s2 = texture2D(uSandTex, rot * uv0 * 0.37 + 0.13).rgb;
-            vec3 sand = mix(s1, s2, 0.5);
-            // Tona in botten-färgen så användaren fortfarande styr grundtonen.
-            sand *= (uColor / max(vec3(0.35), vec3(0.65)));
+            vec3 s2 = texture2D(uSandTex, rot * uv0 * 0.25 + 0.13).rgb;
+            // Overlay-blandning bevarar kornstruktur istället för att medelvärdesbilda.
+            vec3 sand = s1 * (s2 * 1.6 + 0.2);
+            // Höj kontrasten så kornen syns även vid ljusa bottenfärger.
+            sand = (sand - 0.5) * 1.35 + 0.5;
+            // Tona mot den valda bottenfärgen (normaliserat mot texturens medelton ~0.55).
+            sand *= uColor / 0.55;
             // Kaustik-flimmer från vågorna ovanför.
             vec2 p = vWorld.xz;
             float caustic = 0.0;
