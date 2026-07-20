@@ -67,6 +67,7 @@ type Persisted = {
   regularWaves: boolean;
   regularCross: boolean;
   regularPeriod: number;
+  wavePeak: number;
   backdropIdx: number;
   wakeLock: boolean;
 };
