@@ -25,19 +25,25 @@ export const Route = createFileRoute("/")({
   }),
 });
 
+// Peaking shaper: p=1 → pure sine, p<1 → sharp peaks / flat troughs (Gerstner-ish).
+function shapeSine(s: number, p: number) {
+  const n = 0.5 + 0.5 * s;
+  return Math.pow(n, p) * 2 - 1;
+}
+
 // Gerstner-like sum of sines. Keep in sync with vertex shader.
-function waveHeight(x: number, z: number, t: number, amp: number, regular: boolean, cross: boolean, period: number = 1) {
+function waveHeight(x: number, z: number, t: number, amp: number, regular: boolean, cross: boolean, period: number = 1, peak: number = 1) {
   if (regular) {
     const kx = 0.12 / period;
     const kz = 0.09 / period;
-    const rx = Math.sin(x * kx + t * 0.9) * 2.6 * amp;
-    const rz = cross ? Math.sin(z * kz + t * 0.7 + 1.1) * 1.4 * amp : 0;
+    const rx = shapeSine(Math.sin(x * kx + t * 0.9), peak) * 2.6 * amp;
+    const rz = cross ? shapeSine(Math.sin(z * kz + t * 0.7 + 1.1), peak) * 1.4 * amp : 0;
     return rx + rz;
   }
-  const w1 = Math.sin(x * 0.12 + t * 0.9) * 1.0;
-  const w2 = Math.sin(z * 0.17 + t * 0.7 + 1.3) * 0.75;
-  const w3 = Math.sin((x * 0.22 + z * 0.19) + t * 1.4 + 2.1) * 0.5;
-  const w4 = Math.sin((x * 0.31 - z * 0.11) + t * 1.8 + 0.4) * 0.35;
+  const w1 = shapeSine(Math.sin(x * 0.12 + t * 0.9), peak) * 1.0;
+  const w2 = shapeSine(Math.sin(z * 0.17 + t * 0.7 + 1.3), peak) * 0.75;
+  const w3 = shapeSine(Math.sin((x * 0.22 + z * 0.19) + t * 1.4 + 2.1), peak) * 0.5;
+  const w4 = shapeSine(Math.sin((x * 0.31 - z * 0.11) + t * 1.8 + 0.4), peak) * 0.35;
   return (w1 + w2 + w3 + w4) * amp;
 }
 
@@ -61,6 +67,7 @@ type Persisted = {
   regularWaves: boolean;
   regularCross: boolean;
   regularPeriod: number;
+  wavePeak: number;
   backdropIdx: number;
   wakeLock: boolean;
 };
@@ -103,6 +110,7 @@ const DEFAULTS: Persisted = {
   regularWaves: true,
   regularCross: false,
   regularPeriod: 1,
+  wavePeak: 1,
   backdropIdx: 0,
   wakeLock: false,
 };
@@ -141,6 +149,7 @@ function Aquafulness() {
   const [regularWaves, setRegularWaves] = useState(initial.regularWaves);
   const [regularCross, setRegularCross] = useState(initial.regularCross);
   const [regularPeriod, setRegularPeriod] = useState(initial.regularPeriod);
+  const [wavePeak, setWavePeak] = useState(initial.wavePeak);
   const [backdropIdx, setBackdropIdx] = useState(initial.backdropIdx);
   const [wakeLock, setWakeLock] = useState(initial.wakeLock);
   // Rotation stick (yaw / pitch look) and wave-follow stick.
@@ -152,12 +161,12 @@ function Aquafulness() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, backdropIdx, wakeLock };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, backdropIdx, wakeLock]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -185,6 +194,7 @@ function Aquafulness() {
   const regularRef = useRef(regularWaves);
   const regularCrossRef = useRef(regularCross);
   const regularPeriodRef = useRef(regularPeriod);
+  const wavePeakRef = useRef(wavePeak);
   const backdropRef = useRef(backdropIdx);
   const wakeLockRef = useRef(wakeLock);
   const audioSpatialRef = useRef(audioSpatial);
@@ -210,6 +220,7 @@ function Aquafulness() {
   useEffect(() => { regularRef.current = regularWaves; }, [regularWaves]);
   useEffect(() => { regularCrossRef.current = regularCross; }, [regularCross]);
   useEffect(() => { regularPeriodRef.current = regularPeriod; }, [regularPeriod]);
+  useEffect(() => { wavePeakRef.current = wavePeak; }, [wavePeak]);
   useEffect(() => { backdropRef.current = backdropIdx; }, [backdropIdx]);
   useEffect(() => { wakeLockRef.current = wakeLock; }, [wakeLock]);
   useEffect(() => { audioSpatialRef.current = audioSpatial; }, [audioSpatial]);
@@ -232,6 +243,7 @@ function Aquafulness() {
     setRegularWaves(DEFAULTS.regularWaves);
     setRegularCross(DEFAULTS.regularCross);
     setRegularPeriod(DEFAULTS.regularPeriod);
+    setWavePeak(DEFAULTS.wavePeak);
     setBackdropIdx(DEFAULTS.backdropIdx);
     setWakeLock(DEFAULTS.wakeLock);
     // timeOfDay is intentionally left untouched.
@@ -396,6 +408,7 @@ function Aquafulness() {
       uRegular: { value: 0 },
       uCross: { value: 1 },
       uPeriod: { value: 1 },
+      uPeak: { value: 1 },
     };
 
     const vertexShader = /* glsl */ `
@@ -404,22 +417,29 @@ function Aquafulness() {
       uniform float uRegular;
       uniform float uCross;
       uniform float uPeriod;
+      uniform float uPeak;
       varying vec3 vWorldPos;
       varying vec3 vNormal;
+
+      // Sharpened sine: uPeak=1 → pure sine, uPeak<1 → peaked crests / flat troughs.
+      float shp(float s) {
+        float n = 0.5 + 0.5 * s;
+        return pow(n, uPeak) * 2.0 - 1.0;
+      }
 
       float wave(vec3 p, float t, float amp) {
         // Regular sine along x, with optional cross-axis sine so it doesn't
         // look like a flat carpet when uRegular = 1. uPeriod scales the
         // spatial wavelength (higher = longer, calmer swells).
-        float regX = sin(p.x * (0.12 / uPeriod) + t * 0.9) * 2.6 * amp;
-        float regZ = sin(p.z * (0.09 / uPeriod) + t * 0.7 + 1.1) * 1.4 * amp * uCross;
+        float regX = shp(sin(p.x * (0.12 / uPeriod) + t * 0.9)) * 2.6 * amp;
+        float regZ = shp(sin(p.z * (0.09 / uPeriod) + t * 0.7 + 1.1)) * 1.4 * amp * uCross;
         float reg = regX + regZ;
 
         // Large primary swell (chaotic sum of sines)
-        float w1 = sin(p.x * 0.12 + t * 0.9) * 1.0;
-        float w2 = sin(p.z * 0.17 + t * 0.7 + 1.3) * 0.75;
-        float w3 = sin((p.x * 0.22 + p.z * 0.19) + t * 1.4 + 2.1) * 0.5;
-        float w4 = sin((p.x * 0.31 - p.z * 0.11) + t * 1.8 + 0.4) * 0.35;
+        float w1 = shp(sin(p.x * 0.12 + t * 0.9)) * 1.0;
+        float w2 = shp(sin(p.z * 0.17 + t * 0.7 + 1.3)) * 0.75;
+        float w3 = shp(sin((p.x * 0.22 + p.z * 0.19) + t * 1.4 + 2.1)) * 0.5;
+        float w4 = shp(sin((p.x * 0.31 - p.z * 0.11) + t * 1.8 + 0.4)) * 0.35;
         float big = (w1 + w2 + w3 + w4) * amp;
 
         // Small ripples on top of the swell — independent of amp so they
@@ -671,6 +691,7 @@ function Aquafulness() {
       uniforms.uRegular.value += ((regularRef.current ? 1 : 0) - uniforms.uRegular.value) * Math.min(1, dt * 4);
       uniforms.uCross.value += ((regularCrossRef.current ? 1 : 0) - uniforms.uCross.value) * Math.min(1, dt * 4);
       uniforms.uPeriod.value += (regularPeriodRef.current - uniforms.uPeriod.value) * Math.min(1, dt * 4);
+      uniforms.uPeak.value += (wavePeakRef.current - uniforms.uPeak.value) * Math.min(1, dt * 4);
 
       const p = palette(todRef.current);
       uniforms.uSunDir.value.copy(p.sunDir);
@@ -707,7 +728,7 @@ function Aquafulness() {
 
       const camX = posRef.current.x;
       const camZ = posRef.current.z;
-      const surfaceY = waveHeight(camX, camZ, t, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current);
+      const surfaceY = waveHeight(camX, camZ, t, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current);
 
       // Compute wave vertical velocity first so buoyancy can react to it.
       if (prevSurfaceRef.current === null) prevSurfaceRef.current = surfaceY;
@@ -744,7 +765,7 @@ function Aquafulness() {
       // x adds a lateral coupling to the wave slope.
       const followY = followStickRef.current.y * surfVel * 0.35;
       const eps = 0.4;
-      const slopeX = (waveHeight(camX + eps, camZ, t, amp, regularRef.current, regularCrossRef.current, regularPeriodRef.current) - surfaceY) / eps;
+      const slopeX = (waveHeight(camX + eps, camZ, t, amp, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current) - surfaceY) / eps;
       const followX = followStickRef.current.x * slopeX * 1.2;
 
       camera.position.set(camX + followX, camYRef.current + followY, camZ);
@@ -1036,6 +1057,18 @@ function Aquafulness() {
                 step={0.1}
                 onDec={() => setRegularPeriod((v) => Math.max(0.3, +(v - 0.1).toFixed(2)))}
                 onInc={() => setRegularPeriod((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
+              />
+              <PadDial
+                label="SPETS"
+                mode="number"
+                value={`${wavePeak.toFixed(2)}`}
+                rawValue={wavePeak}
+                onSet={setWavePeak}
+                min={0.1}
+                max={1}
+                step={0.05}
+                onDec={() => setWavePeak((v) => Math.max(0.1, +(v - 0.05).toFixed(2)))}
+                onInc={() => setWavePeak((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
               />
               <PadDial
                 label="BAKGRUND"
