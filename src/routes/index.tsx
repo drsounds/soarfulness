@@ -125,6 +125,7 @@ function Aquafulness() {
   const [bobSpeed, setBobSpeed] = useState(initial.bobSpeed);
   const [buoyAmp, setBuoyAmp] = useState(initial.buoyAmp);
   const [heightOffset, setHeightOffset] = useState(initial.heightOffset);
+  const [submergeAmp, setSubmergeAmp] = useState(initial.submergeAmp);
   // Live joystick vector (visual state) — kept in state so the thumb renders.
   const [stick, setStick] = useState({ x: 0, y: 0 });
   const [audioOn, setAudioOn] = useState(initial.audioOn);
