@@ -355,7 +355,9 @@ function Aquafulness() {
     setHeightOffset(DEFAULTS.heightOffset);
     setSubmergeAmp(DEFAULTS.submergeAmp);
     setFloatLift(DEFAULTS.floatLift);
-    setSinkDamp(DEFAULTS.sinkDamp);
+    setCamOffX(DEFAULTS.camOffX);
+    setCamOffY(DEFAULTS.camOffY);
+    setCamOffZ(DEFAULTS.camOffZ);
     setAudioOn(DEFAULTS.audioOn);
     setAudioVol(DEFAULTS.audioVol);
     setAudioSyncSpeed(DEFAULTS.audioSyncSpeed);
