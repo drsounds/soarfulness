@@ -186,6 +186,9 @@ function Aquafulness() {
   const [waveDir, setWaveDir] = useState(initial.waveDir);
   const [floorDepth, setFloorDepth] = useState(initial.floorDepth);
   const [floorTexture, setFloorTexture] = useState(initial.floorTexture);
+  const [vortexMode, setVortexMode] = useState(initial.vortexMode);
+  const [vortexOpening, setVortexOpening] = useState(initial.vortexOpening);
+  const [vortexRadius, setVortexRadius] = useState(initial.vortexRadius);
   const [rotStick, setRotStick] = useState({ x: 0, y: 0 });
   const [driftStick, setDriftStick] = useState({ x: 0, y: 0 });
   const [waveDirStick, setWaveDirStick] = useState({ x: 0, y: 0 });
