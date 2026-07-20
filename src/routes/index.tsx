@@ -448,6 +448,7 @@ function Aquafulness() {
       uniform float uCross;
       uniform float uPeriod;
       uniform float uPeak;
+      uniform float uDir;
       varying vec3 vWorldPos;
       varying vec3 vNormal;
 
