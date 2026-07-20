@@ -438,6 +438,7 @@ function Aquafulness() {
       uCross: { value: 1 },
       uPeriod: { value: 1 },
       uPeak: { value: 1 },
+      uDir: { value: 0 },
     };
 
     const vertexShader = /* glsl */ `
