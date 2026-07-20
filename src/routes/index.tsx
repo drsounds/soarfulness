@@ -237,7 +237,7 @@ function Aquafulness() {
   useEffect(() => { floatLiftRef.current = floatLift; }, [floatLift]);
   useEffect(() => { stickRef.current = stick; }, [stick]);
   useEffect(() => { rotStickRef.current = rotStick; }, [rotStick]);
-  useEffect(() => { followStickRef.current = followStick; }, [followStick]);
+  useEffect(() => { driftStickRef.current = driftStick; }, [driftStick]);
   useEffect(() => { waterTintRef.current = waterTintIdx; }, [waterTintIdx]);
   useEffect(() => { bottomIdxRef.current = bottomIdx; }, [bottomIdx]);
   useEffect(() => { leanRef.current = leanEnabled; }, [leanEnabled]);
