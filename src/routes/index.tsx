@@ -1353,6 +1353,54 @@ function Aquafulness() {
                 onInc={() => setWaterTintIdx((i) => (i + 1) % WATER_TINTS.length)}
               />
               <PadDial
+                label="OPACITET"
+                mode="number"
+                value={`${Math.round(waterOpacity * 100)}%`}
+                rawValue={waterOpacity}
+                onSet={setWaterOpacity}
+                min={0.1}
+                max={1}
+                step={0.05}
+                onDec={() => setWaterOpacity((v) => Math.max(0.1, +(v - 0.05).toFixed(2)))}
+                onInc={() => setWaterOpacity((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+              />
+              <PadDial
+                label="TON"
+                mode="number"
+                value={`${Math.round(waterHue)}°`}
+                rawValue={waterHue}
+                onSet={setWaterHue}
+                min={-180}
+                max={180}
+                step={5}
+                onDec={() => setWaterHue((v) => Math.max(-180, +(v - 5).toFixed(0)))}
+                onInc={() => setWaterHue((v) => Math.min(180, +(v + 5).toFixed(0)))}
+              />
+              <PadDial
+                label="MÄTTNAD"
+                mode="number"
+                value={`${waterSat.toFixed(2)}x`}
+                rawValue={waterSat}
+                onSet={setWaterSat}
+                min={0}
+                max={2}
+                step={0.05}
+                onDec={() => setWaterSat((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                onInc={() => setWaterSat((v) => Math.min(2, +(v + 0.05).toFixed(2)))}
+              />
+              <PadDial
+                label="LJUSSTYRKA"
+                mode="number"
+                value={`${waterBright.toFixed(2)}x`}
+                rawValue={waterBright}
+                onSet={setWaterBright}
+                min={0.1}
+                max={2.5}
+                step={0.05}
+                onDec={() => setWaterBright((v) => Math.max(0.1, +(v - 0.05).toFixed(2)))}
+                onInc={() => setWaterBright((v) => Math.min(2.5, +(v + 0.05).toFixed(2)))}
+              />
+              <PadDial
                 label="BOTTEN"
                 value={BOTTOM_OPTIONS[bottomIdx].name}
                 onDec={() => setBottomIdx((i) => (i - 1 + BOTTOM_OPTIONS.length) % BOTTOM_OPTIONS.length)}
