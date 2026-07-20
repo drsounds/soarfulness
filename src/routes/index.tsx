@@ -865,6 +865,12 @@ function Aquafulness() {
                 }}
               />
               <PadDial
+                label="LJUDSYNK"
+                value={audioSyncSpeed ? "PÅ" : "AV"}
+                onDec={() => setAudioSyncSpeed(false)}
+                onInc={() => setAudioSyncSpeed(true)}
+              />
+              <PadDial
                 label="VATTEN"
                 value={WATER_TINTS[waterTintIdx].name}
                 onDec={() => setWaterTintIdx((i) => (i - 1 + WATER_TINTS.length) % WATER_TINTS.length)}
