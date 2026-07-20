@@ -4,6 +4,7 @@ import * as THREE from "three";
 import waterAsset from "@/assets/water.mp3.asset.json";
 import vanernBackdrop from "@/assets/vanern-backdrop.png.asset.json";
 import sandTextureAsset from "@/assets/sand_cc0_512.jpg.asset.json";
+import appIconAsset from "@/assets/AppIconBlack.png.asset.json";
 
 export const Route = createFileRoute("/")({
   component: Aquafulness,
@@ -1305,6 +1306,22 @@ function Aquafulness() {
         />
       )}
       <div ref={mountRef} className="absolute inset-0" />
+
+      {/* Persistent brand mark — inverted (white), semi-transparent, 24pt, 5pt margin */}
+      <img
+        src={appIconAsset.url}
+        alt="Aquafulness"
+        aria-hidden="true"
+        className="pointer-events-none absolute z-30"
+        style={{
+          top: "5pt",
+          right: "5pt",
+          width: "24pt",
+          height: "24pt",
+          filter: "invert(1)",
+          opacity: 0.5,
+        }}
+      />
 
       {/* HUD overlay — fades out on inactivity, back in on any touch. */}
       <div
