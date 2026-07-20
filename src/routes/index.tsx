@@ -715,23 +715,25 @@ function Aquafulness() {
           vec3 base = uColor;
           if (uTextured > 0.001) {
             vec2 uv0 = vWorld.xz * uSandScale;
-            // Detaljerad oktav + grovare vridet lager för att bryta tile-repetition.
+            // Två oktaver – detaljerat lager + grovare roterat lager för att bryta tile-repetitionen.
             vec3 s1 = texture2D(uSandTex, uv0).rgb;
             mat2 rot = mat2(0.8, -0.6, 0.6, 0.8);
             vec3 s2 = texture2D(uSandTex, rot * uv0 * 0.25 + 0.13).rgb;
-            // Overlay-blandning bevarar kornstruktur istället för att medelvärdesbilda.
-            vec3 sand = s1 * (s2 * 1.6 + 0.2);
-            // Höj kontrasten så kornen syns även vid ljusa bottenfärger.
-            sand = (sand - 0.5) * 1.35 + 0.5;
-            // Tona mot den valda bottenfärgen (normaliserat mot texturens medelton ~0.55).
-            sand *= uColor / 0.55;
+            // Genomsnitt bevarar sandens naturliga ljushet (undviker mörk multiplikation).
+            vec3 sand = (s1 + s2) * 0.5;
+            // Mild kontrast så kornen syns utan att gå ner i choklad-toner.
+            sand = (sand - 0.5) * 1.15 + 0.55;
+            // Tint mot vald bottenfärg: mjuk multiplikation runt neutralton (mean ~0.5 i linjär sRGB).
+            sand *= uColor * 1.9;
+            // Lyft klarheten en aning så det känns som soligt bottenskikt.
+            sand = clamp(sand, 0.0, 1.6);
             // Kaustik-flimmer från vågorna ovanför.
             vec2 p = vWorld.xz;
             float caustic = 0.0;
             caustic += sin(p.x*0.9 + uTime*0.7 + vnoise(p*0.4)*4.0);
             caustic += sin(p.y*0.85 - uTime*0.55 + vnoise(p*0.35 + 3.1)*4.0);
             caustic = pow(max(0.0, caustic*0.5 + 0.5), 3.0);
-            sand += vec3(0.9, 0.85, 0.7) * caustic * 0.18;
+            sand += vec3(0.95, 0.88, 0.7) * caustic * 0.22;
             base = mix(uColor, sand, clamp(uTextured, 0.0, 1.0));
           }
           gl_FragColor = vec4(base, 1.0);
