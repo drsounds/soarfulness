@@ -790,10 +790,10 @@ function Aquafulness() {
                 rawValue={waveSpeed}
                 onSet={setWaveSpeed}
                 min={0}
-                max={3}
+                max={10}
                 step={0.1}
                 onDec={() => setWaveSpeed((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
-                onInc={() => setWaveSpeed((v) => Math.min(3, +(v + 0.1).toFixed(2)))}
+                onInc={() => setWaveSpeed((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
               />
               <PadDial
                 label="HÖJD"
