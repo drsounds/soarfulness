@@ -463,7 +463,12 @@ function Aquafulness() {
         return (sin(theta) + amount * (crest - mean)) / (1.0 + amount * 0.28);
       }
 
-      float wave(vec3 p, float t, float amp, float rippleFade) {
+      float wave(vec3 pIn, float t, float amp, float rippleFade) {
+        // Rotate horizontal coords by uDir so wave crests advance in the
+        // chosen direction. Small ripples stay in world space so they still
+        // sparkle from every angle.
+        float cd = cos(uDir), sd = sin(uDir);
+        vec3 p = vec3(cd * pIn.x + sd * pIn.z, pIn.y, -sd * pIn.x + cd * pIn.z);
         // Regular sine along x, with optional cross-axis sine so it doesn't
         // look like a flat carpet when uRegular = 1. uPeriod scales the
         // spatial wavelength (higher = longer, calmer swells).
