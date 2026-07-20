@@ -221,6 +221,7 @@ function Aquafulness() {
     setBuoyAmp(DEFAULTS.buoyAmp);
     setHeightOffset(DEFAULTS.heightOffset);
     setSubmergeAmp(DEFAULTS.submergeAmp);
+    setFloatLift(DEFAULTS.floatLift);
     setAudioOn(DEFAULTS.audioOn);
     setAudioVol(DEFAULTS.audioVol);
     setAudioSyncSpeed(DEFAULTS.audioSyncSpeed);
