@@ -992,6 +992,10 @@ function Aquafulness() {
       // Water tint + optional seafloor
       const tint = WATER_TINTS[waterTintRef.current] ?? WATER_TINTS[0];
       uniforms.uWaterTint.value.set(tint.rgb[0], tint.rgb[1], tint.rgb[2]);
+      uniforms.uOpacity.value += (waterOpacityRef.current - uniforms.uOpacity.value) * Math.min(1, dt * 6);
+      uniforms.uTintHue.value += (waterHueRef.current * 0.01745329252 - uniforms.uTintHue.value) * Math.min(1, dt * 6);
+      uniforms.uTintSat.value += (waterSatRef.current - uniforms.uTintSat.value) * Math.min(1, dt * 6);
+      uniforms.uTintBright.value += (waterBrightRef.current - uniforms.uTintBright.value) * Math.min(1, dt * 6);
       const bot = BOTTOM_OPTIONS[bottomIdxRef.current] ?? BOTTOM_OPTIONS[0];
       if (bot.rgb) {
         floor.visible = true;
