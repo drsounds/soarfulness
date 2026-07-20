@@ -1024,7 +1024,8 @@ function Aquafulness() {
         // Base angular speed scales with the dedicated vortex speed dial
         // (plus a gentle touch of wave tempo) so the swirl is independently
         // adjustable. Negative values reverse the orbit direction.
-        const baseOmega = (0.25 + 0.03 * speedRef.current) * vortexSpeedRef.current;
+        // Purely driven by the vortex-tempo dial so wave speed stays independent.
+        const baseOmega = 0.35 * vortexSpeedRef.current;
         const stickOmega = stickRef.current.x * 1.4; // extra swirl from NAV.x
         vortexAngleRef.current += (baseOmega + stickOmega) * dt;
         // Move in/out along the radius (STRÖM.y also nudges drift in/out).
