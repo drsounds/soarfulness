@@ -465,19 +465,23 @@ function Aquafulness() {
 
         // Distance-based amplitude falloff — far triangles get very thin at
         // grazing angles and alias into jagged spikes on the horizon. Fade
-        // waves smoothly to flat before they hit the plane edge / fog wall.
+        // waves smoothly to flat well before they hit the plane edge.
         float distXZ = length(wpBase.xz - cameraPosition.xz);
-        float ampFade = 1.0 - smoothstep(60.0, 220.0, distXZ);
+        float ampFade = 1.0 - smoothstep(40.0, 180.0, distXZ);
+        // High-frequency ripples must fade much sooner than the big swell —
+        // their wavelength is close to the triangle spacing, so any surviving
+        // amplitude at distance produces jaggy grazing-angle artifacts.
+        float rippleFade = 1.0 - smoothstep(18.0, 70.0, distXZ);
         float ampF = uAmp * ampFade;
 
-        float h = wave(wpBase.xyz, uTime, ampF);
+        float h = wave(wpBase.xyz, uTime, ampF, rippleFade);
         p.y += h;
 
         // approximate normal via finite differences — small epsilon so
         // the ripples contribute crisp shading.
         float e = 0.22;
-        float hx = wave(wpBase.xyz + vec3(e, 0.0, 0.0), uTime, ampF);
-        float hz = wave(wpBase.xyz + vec3(0.0, 0.0, e), uTime, ampF);
+        float hx = wave(wpBase.xyz + vec3(e, 0.0, 0.0), uTime, ampF, rippleFade);
+        float hz = wave(wpBase.xyz + vec3(0.0, 0.0, e), uTime, ampF, rippleFade);
         vec3 n = normalize(vec3(h - hx, e, h - hz));
 
         vec4 wp = modelMatrix * vec4(p, 1.0);
