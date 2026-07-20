@@ -729,6 +729,10 @@ function Aquafulness() {
         }
       `,
     });
+    const floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.position.y = -14;
+    floor.visible = false;
+    scene.add(floor);
 
     // Sky dome
     const skyGeo = new THREE.SphereGeometry(800, 32, 32);
