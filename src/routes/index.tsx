@@ -308,7 +308,9 @@ function Aquafulness() {
   useEffect(() => { heightRef.current = heightOffset; }, [heightOffset]);
   useEffect(() => { submergeRef.current = submergeAmp; }, [submergeAmp]);
   useEffect(() => { floatLiftRef.current = floatLift; }, [floatLift]);
-  useEffect(() => { sinkDampRef.current = sinkDamp; }, [sinkDamp]);
+  useEffect(() => { camOffXRef.current = camOffX; }, [camOffX]);
+  useEffect(() => { camOffYRef.current = camOffY; }, [camOffY]);
+  useEffect(() => { camOffZRef.current = camOffZ; }, [camOffZ]);
   useEffect(() => { stickRef.current = stick; }, [stick]);
   useEffect(() => { rotStickRef.current = rotStick; }, [rotStick]);
   useEffect(() => { driftStickRef.current = driftStick; }, [driftStick]);
