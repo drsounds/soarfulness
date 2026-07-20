@@ -90,6 +90,7 @@ const DEFAULTS: Persisted = {
   bobSpeed: 2.8,
   buoyAmp: 2.8,
   heightOffset: 0.4,
+  submergeAmp: 1,
   audioOn: true,
   audioVol: 0.8,
   audioSyncSpeed: false,
