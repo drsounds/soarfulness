@@ -220,7 +220,7 @@ function Aquafulness() {
   const wakeLockRef = useRef(wakeLock);
   const audioSpatialRef = useRef(audioSpatial);
   const rotStickRef = useRef({ x: 0, y: 0 });
-  const followStickRef = useRef({ x: 0, y: 0 });
+  const driftStickRef = useRef({ x: 0, y: 0 });
   const yawRef = useRef(0);
   const pitchRef = useRef(0);
   const prevSurfaceRef = useRef<number | null>(null);
