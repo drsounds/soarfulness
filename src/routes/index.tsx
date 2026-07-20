@@ -233,6 +233,8 @@ function Aquafulness() {
   const camFovRef = useRef(camFov);
   const camNearRef = useRef(camNear);
   const waveDirRef = useRef(waveDir);
+  const floorDepthRef = useRef(floorDepth);
+  const floorTextureRef = useRef(floorTexture);
   useEffect(() => { ampRef.current = waveAmp; }, [waveAmp]);
   useEffect(() => { todRef.current = timeOfDay; }, [timeOfDay]);
   useEffect(() => { speedRef.current = waveSpeed; }, [waveSpeed]);
