@@ -175,6 +175,7 @@ function Aquafulness() {
   const regularCrossRef = useRef(regularCross);
   const regularPeriodRef = useRef(regularPeriod);
   const backdropRef = useRef(backdropIdx);
+  const wakeLockRef = useRef(wakeLock);
   const rotStickRef = useRef({ x: 0, y: 0 });
   const followStickRef = useRef({ x: 0, y: 0 });
   const yawRef = useRef(0);
