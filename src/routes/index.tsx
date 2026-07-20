@@ -50,6 +50,7 @@ type Persisted = {
   buoyAmp: number;
   heightOffset: number;
   submergeAmp: number;
+  floatLift: number;
   audioOn: boolean;
   audioVol: number;
   audioSyncSpeed: boolean;
@@ -91,6 +92,7 @@ const DEFAULTS: Persisted = {
   buoyAmp: 2.8,
   heightOffset: 0.4,
   submergeAmp: 1,
+  floatLift: 1,
   audioOn: true,
   audioVol: 0.8,
   audioSyncSpeed: false,
@@ -126,6 +128,7 @@ function Aquafulness() {
   const [buoyAmp, setBuoyAmp] = useState(initial.buoyAmp);
   const [heightOffset, setHeightOffset] = useState(initial.heightOffset);
   const [submergeAmp, setSubmergeAmp] = useState(initial.submergeAmp);
+  const [floatLift, setFloatLift] = useState(initial.floatLift);
   // Live joystick vector (visual state) — kept in state so the thumb renders.
   const [stick, setStick] = useState({ x: 0, y: 0 });
   const [audioOn, setAudioOn] = useState(initial.audioOn);
@@ -149,12 +152,12 @@ function Aquafulness() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, backdropIdx, wakeLock };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, backdropIdx, wakeLock };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, backdropIdx, wakeLock]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, backdropIdx, wakeLock]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -171,6 +174,7 @@ function Aquafulness() {
   const buoyRef = useRef(buoyAmp);
   const heightRef = useRef(heightOffset);
   const submergeRef = useRef(submergeAmp);
+  const floatLiftRef = useRef(floatLift);
   const stickRef = useRef({ x: 0, y: 0 });
   const posRef = useRef({ x: 0, z: 0 });
   const camYRef = useRef<number | null>(null);
@@ -196,6 +200,7 @@ function Aquafulness() {
   useEffect(() => { buoyRef.current = buoyAmp; }, [buoyAmp]);
   useEffect(() => { heightRef.current = heightOffset; }, [heightOffset]);
   useEffect(() => { submergeRef.current = submergeAmp; }, [submergeAmp]);
+  useEffect(() => { floatLiftRef.current = floatLift; }, [floatLift]);
   useEffect(() => { stickRef.current = stick; }, [stick]);
   useEffect(() => { rotStickRef.current = rotStick; }, [rotStick]);
   useEffect(() => { followStickRef.current = followStick; }, [followStick]);
@@ -216,6 +221,7 @@ function Aquafulness() {
     setBuoyAmp(DEFAULTS.buoyAmp);
     setHeightOffset(DEFAULTS.heightOffset);
     setSubmergeAmp(DEFAULTS.submergeAmp);
+    setFloatLift(DEFAULTS.floatLift);
     setAudioOn(DEFAULTS.audioOn);
     setAudioVol(DEFAULTS.audioVol);
     setAudioSyncSpeed(DEFAULTS.audioSyncSpeed);
@@ -715,16 +721,19 @@ function Aquafulness() {
       const amp = ampRef.current;
       const b = buoyRef.current;
       const sub = submergeRef.current;
-      // Dynamic dive: target sinks below surface proportional to how fast
-      // the crest is rising. This is what DYK primarily controls.
+      const lift = floatLiftRef.current;
+      // Dynamic dive: rising crest pushes camera under (DYK). Float lift (FLYT)
+      // adds a positive feedforward on wave velocity so higher lift makes
+      // the camera ride ON the crest instead of getting dunked.
       const diveOffset = Math.max(0, surfVel) * sub * 0.6 * (0.6 + amp * 0.6);
-      const targetY = surfaceY + heightRef.current - diveOffset;
+      const liftOffset = surfVel * lift * 0.35 * (0.6 + amp * 0.6);
+      const targetY = surfaceY + heightRef.current - diveOffset + liftOffset;
       if (camYRef.current === null) camYRef.current = targetY;
       const k = 4 + 14 * bobSpeedRef.current; // stiffness (spring tempo)
       const zeta = 0.32; // underdamped → visible bounce
       const c = 2 * zeta * Math.sqrt(k);
-      // Steady gravity also scales with DYK so equilibrium sits lower overall.
-      const gravity = (1.2 + 3 * amp) * b * sub;
+      // Steady gravity scales with DYK (pulls down) and is countered by FLYT.
+      const gravity = (1.2 + 3 * amp) * b * sub - (1.0 + 2 * amp) * b * lift;
       const ay = k * (targetY - camYRef.current) - c * camVYRef.current - gravity;
       camVYRef.current += ay * dt;
       camYRef.current += camVYRef.current * dt;
@@ -921,6 +930,18 @@ function Aquafulness() {
                 step={0.1}
                 onDec={() => setSubmergeAmp((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
                 onInc={() => setSubmergeAmp((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
+              />
+              <PadDial
+                label="FLYT"
+                mode="number"
+                value={`${floatLift.toFixed(2)}×`}
+                rawValue={floatLift}
+                onSet={setFloatLift}
+                min={0}
+                max={4}
+                step={0.1}
+                onDec={() => setFloatLift((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
+                onInc={() => setFloatLift((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
               />
               <PadDial
                 label="GUPP"
