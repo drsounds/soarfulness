@@ -322,6 +322,7 @@ function Aquafulness() {
     setVortexMode(DEFAULTS.vortexMode);
     setVortexOpening(DEFAULTS.vortexOpening);
     setVortexRadius(DEFAULTS.vortexRadius);
+    setVortexSpeed(DEFAULTS.vortexSpeed);
     // timeOfDay is intentionally left untouched.
   };
 
@@ -967,8 +968,10 @@ function Aquafulness() {
       if (inVortex) {
         // Orbit around origin. NAV.y in/ut, NAV.x tangent.
         const op = vortexOpeningRef.current;
-        // Base angular speed scales gently with wave speed so tempo affects swirl.
-        const baseOmega = 0.35 + 0.04 * speedRef.current;
+        // Base angular speed scales with the dedicated vortex speed dial
+        // (plus a gentle touch of wave tempo) so the swirl is independently
+        // adjustable. Negative values reverse the orbit direction.
+        const baseOmega = (0.25 + 0.03 * speedRef.current) * vortexSpeedRef.current;
         const stickOmega = stickRef.current.x * 1.4; // extra swirl from NAV.x
         vortexAngleRef.current += (baseOmega + stickOmega) * dt;
         // Move in/out along the radius (STRÖM.y also nudges drift in/out).
