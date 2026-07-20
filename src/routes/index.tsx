@@ -145,6 +145,7 @@ const DEFAULTS: Persisted = {
   heightOffset: 0,
   submergeAmp: 0,
   floatLift: 0,
+  sinkDamp: 0.5,
   audioOn: true,
   audioVol: 0.8,
   audioSyncSpeed: false,
