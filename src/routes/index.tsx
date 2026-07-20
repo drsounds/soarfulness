@@ -259,6 +259,8 @@ function Aquafulness() {
   useEffect(() => { camFovRef.current = camFov; }, [camFov]);
   useEffect(() => { camNearRef.current = camNear; }, [camNear]);
   useEffect(() => { waveDirRef.current = waveDir; }, [waveDir]);
+  useEffect(() => { floorDepthRef.current = floorDepth; }, [floorDepth]);
+  useEffect(() => { floorTextureRef.current = floorTexture; }, [floorTexture]);
   // Håll VÅGRIKT-spakens visuella läge synkat med waveDir (t.ex. när dialen ändras
   // eller vid uppstart), men bara när spaken själv står i vila.
   useEffect(() => {
