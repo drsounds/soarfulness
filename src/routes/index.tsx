@@ -59,6 +59,25 @@ function waveHeight(x: number, z: number, t: number, amp: number, regular: boole
   return (w1 + w2 + w3 + w4) * amp;
 }
 
+function smoothstep(edge0: number, edge1: number, x: number) {
+  const v = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
+  return v * v * (3 - 2 * v);
+}
+
+// Pure radial sine surface used in vortex mode. Keep in sync with the shader's
+// vortex block so the camera rides the same even wave that is rendered.
+function vortexSurfaceHeight(x: number, z: number, t: number, amp: number, period: number, opening: number) {
+  const op = Math.max(1, opening);
+  const r = Math.hypot(x, z);
+  const g = Math.exp(-(r * r) / (op * op));
+  const pit = -op * 1.6 * g;
+  const stableFade = 1 - smoothstep(220, 520, r);
+  const kR = 0.12 / period;
+  const phase = r * kR - t * 0.9;
+  const ring = Math.sin(phase) * 2.6 * amp * stableFade * (1 - g * 0.85);
+  return pit + ring;
+}
+
 const STORAGE_KEY = "aquafulness:settings:v1";
 type Persisted = {
   waveAmp: number;
@@ -623,7 +642,9 @@ function Aquafulness() {
           // Radial wave — analytic so the normal stays clean.
           float kR = 0.12 / uPeriod;
           float phase = r * kR - uTime * 0.9;
-          float hR = shp(phase) * 2.6 * ampF;
+          // Vortex waves must be an even sine wave: ignore SPETS/chaos/cross-wave
+          // shaping here so the orbit never produces uneven jumps.
+          float hR = sin(phase) * 2.6 * ampF;
           // dHr/dr for the radial normal
           float dHr = cos(phase) * kR * 2.6 * ampF;
           float pyRad = pit + hR * (1.0 - g * 0.85);
@@ -1058,15 +1079,9 @@ function Aquafulness() {
         camZ = posRef.current.z;
       }
       const dirRad = (waveDirRef.current * Math.PI) / 180;
-      // Funnel dip at the camera's XZ position (matches the shader Gaussian).
-      const funnelY = (() => {
-        if (!inVortex) return 0;
-        const op = Math.max(1, vortexOpeningRef.current);
-        const r2 = camX * camX + camZ * camZ;
-        return -op * 1.6 * Math.exp(-r2 / (op * op));
-      })();
-      const waveSurf = waveHeight(camX, camZ, t, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad);
-      const surfaceY = waveSurf + funnelY;
+      const surfaceY = inVortex
+        ? vortexSurfaceHeight(camX, camZ, t, ampRef.current, regularPeriodRef.current, vortexOpeningRef.current)
+        : waveHeight(camX, camZ, t, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad);
 
       // Compute wave vertical velocity first so buoyancy can react to it.
       if (prevSurfaceRef.current === null) prevSurfaceRef.current = surfaceY;
@@ -1077,7 +1092,9 @@ function Aquafulness() {
       // reacts at the *start* of a wave rise (trough) rather than mid-rise.
       // t is already wave-time (scaled by wave speed).
       const lead = 0.35;
-      const futureSurf = waveHeight(camX, camZ, t + lead, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad) + funnelY;
+      const futureSurf = inVortex
+        ? vortexSurfaceHeight(camX, camZ, t + lead, ampRef.current, regularPeriodRef.current, vortexOpeningRef.current)
+        : waveHeight(camX, camZ, t + lead, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad);
       const anticipVel = (futureSurf - surfaceY) / lead;
 
       // Wave-synced buoyancy: camera is a damped spring pulled toward the
