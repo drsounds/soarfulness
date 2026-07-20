@@ -251,6 +251,7 @@ function Aquafulness() {
   const vortexModeRef = useRef(vortexMode);
   const vortexOpeningRef = useRef(vortexOpening);
   const vortexRadiusRef = useRef(vortexRadius);
+  const vortexSpeedRef = useRef(vortexSpeed);
   const vortexAngleRef = useRef(0);
   useEffect(() => { ampRef.current = waveAmp; }, [waveAmp]);
   useEffect(() => { todRef.current = timeOfDay; }, [timeOfDay]);
@@ -281,6 +282,7 @@ function Aquafulness() {
   useEffect(() => { vortexModeRef.current = vortexMode; }, [vortexMode]);
   useEffect(() => { vortexOpeningRef.current = vortexOpening; }, [vortexOpening]);
   useEffect(() => { vortexRadiusRef.current = vortexRadius; }, [vortexRadius]);
+  useEffect(() => { vortexSpeedRef.current = vortexSpeed; }, [vortexSpeed]);
   // Håll VÅGRIKT-spakens visuella läge synkat med waveDir (t.ex. när dialen ändras
   // eller vid uppstart), men bara när spaken själv står i vila.
   useEffect(() => {
