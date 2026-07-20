@@ -1113,14 +1113,8 @@ function Aquafulness() {
       const lift = floatLiftRef.current;
       // Dynamic dive uses the anticipated velocity so the camera starts
       // sinking as soon as the wave begins to rise (not mid-crest).
-      const sink = sinkDampRef.current;
-      const upVel = Math.max(0, anticipVel);
-      const downVel = Math.min(0, anticipVel);
-      // Dive on rising crests (unchanged). SJUNK scales how much the FLYT
-      // "lift" term also drags the camera down in the trough — 0 = no sink,
-      // 1 = symmetrical (previous behavior).
-      const diveOffset = upVel * sub * 0.6 * (0.6 + amp * 0.6);
-      const liftOffset = (upVel + downVel * sink) * lift * 0.35 * (0.6 + amp * 0.6);
+      const diveOffset = Math.max(0, anticipVel) * sub * 0.6 * (0.6 + amp * 0.6);
+      const liftOffset = anticipVel * lift * 0.35 * (0.6 + amp * 0.6);
       const targetY = surfaceY + heightRef.current - diveOffset + liftOffset;
       if (camYRef.current === null) camYRef.current = targetY;
       const k = 4 + 14 * bobSpeedRef.current; // stiffness (spring tempo)
@@ -1132,18 +1126,13 @@ function Aquafulness() {
       camVYRef.current += ay * dt;
       camYRef.current += camVYRef.current * dt;
 
-      // Hard floor relative to the wave surface so the camera can't overshoot
-      // deep below the trough at high FLYT. SJUNK controls how much dip is
-      // allowed (0 = ride the trough surface, higher = more submersion allowed).
-      // DYK still adds its own submergence on rising crests, independent of this.
-      const maxDipBelow = 0.15 + sink * 6.0;
-      const floorY = surfaceY - maxDipBelow;
-      if (camYRef.current < floorY) {
-        camYRef.current = floorY;
-        if (camVYRef.current < 0) camVYRef.current = 0;
-      }
-
-      camera.position.set(camX, camYRef.current, camZ);
+      // Manual XYZ camera offset (POS X/Y/Z dials) — applied after physics so
+      // the user can nudge the viewpoint without disturbing the buoyancy loop.
+      camera.position.set(
+        camX + camOffXRef.current,
+        camYRef.current + camOffYRef.current,
+        camZ + camOffZRef.current,
+      );
       // Look direction: HAV = level forward; VIRVEL = mot centrum (så kameran
       // följer med runt virveln och naturligt tittar ner mot öppningen).
       const lookY = camera.position.y;
