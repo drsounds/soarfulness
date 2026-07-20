@@ -275,6 +275,9 @@ function Aquafulness() {
   useEffect(() => { waveDirRef.current = waveDir; }, [waveDir]);
   useEffect(() => { floorDepthRef.current = floorDepth; }, [floorDepth]);
   useEffect(() => { floorTextureRef.current = floorTexture; }, [floorTexture]);
+  useEffect(() => { vortexModeRef.current = vortexMode; }, [vortexMode]);
+  useEffect(() => { vortexOpeningRef.current = vortexOpening; }, [vortexOpening]);
+  useEffect(() => { vortexRadiusRef.current = vortexRadius; }, [vortexRadius]);
   // Håll VÅGRIKT-spakens visuella läge synkat med waveDir (t.ex. när dialen ändras
   // eller vid uppstart), men bara när spaken själv står i vila.
   useEffect(() => {
