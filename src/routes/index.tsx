@@ -179,6 +179,7 @@ function Aquafulness() {
   const regularPeriodRef = useRef(regularPeriod);
   const backdropRef = useRef(backdropIdx);
   const wakeLockRef = useRef(wakeLock);
+  const audioSpatialRef = useRef(audioSpatial);
   const rotStickRef = useRef({ x: 0, y: 0 });
   const followStickRef = useRef({ x: 0, y: 0 });
   const yawRef = useRef(0);
