@@ -143,6 +143,10 @@ const DEFAULTS: Persisted = {
   waveDir: 0,
   floorDepth: 14,
   floorTexture: false,
+  floorBrightness: 1,
+  floorTint: 1,
+  floorHue: 0,
+
   vortexMode: false,
   vortexOpening: 14,
   vortexRadius: 26,
