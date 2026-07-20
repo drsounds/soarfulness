@@ -702,18 +702,29 @@ function Aquafulness() {
       const camX = posRef.current.x;
       const camZ = posRef.current.z;
       const surfaceY = waveHeight(camX, camZ, t, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current);
+
+      // Compute wave vertical velocity first so buoyancy can react to it.
+      if (prevSurfaceRef.current === null) prevSurfaceRef.current = surfaceY;
+      const surfVel = (surfaceY - prevSurfaceRef.current) / Math.max(dt, 1e-4);
+      prevSurfaceRef.current = surfaceY;
+
       // Wave-synced buoyancy: camera is a damped spring pulled toward the
-      // surface with gravity. Rising crests outrun the camera so it dips
-      // below the surface ("pushed up through"); in the trough gravity
-      // makes it fall past equilibrium and bounce back — like a real float.
+      // surface with gravity. Rising crests push the camera underwater
+      // (DYK controls how deep), and gravity makes it fall past equilibrium
+      // in the trough and bounce back — like a real float.
       const amp = ampRef.current;
       const b = buoyRef.current;
-      const targetY = surfaceY + heightRef.current;
+      const sub = submergeRef.current;
+      // Dynamic dive: target sinks below surface proportional to how fast
+      // the crest is rising. This is what DYK primarily controls.
+      const diveOffset = Math.max(0, surfVel) * sub * 0.6 * (0.6 + amp * 0.6);
+      const targetY = surfaceY + heightRef.current - diveOffset;
       if (camYRef.current === null) camYRef.current = targetY;
       const k = 4 + 14 * bobSpeedRef.current; // stiffness (spring tempo)
       const zeta = 0.32; // underdamped → visible bounce
       const c = 2 * zeta * Math.sqrt(k);
-      const gravity = 1.6 * b * (0.6 + amp * 0.5) * submergeRef.current; // pulls camera below crest
+      // Steady gravity also scales with DYK so equilibrium sits lower overall.
+      const gravity = (1.2 + 3 * amp) * b * sub;
       const ay = k * (targetY - camYRef.current) - c * camVYRef.current - gravity;
       camVYRef.current += ay * dt;
       camYRef.current += camVYRef.current * dt;
@@ -722,9 +733,6 @@ function Aquafulness() {
       // y > 0 → rise above crests, sink below troughs (surf on top).
       // y < 0 → counter-drag: lag under crests, lift over troughs.
       // x adds a lateral coupling to the wave slope.
-      if (prevSurfaceRef.current === null) prevSurfaceRef.current = surfaceY;
-      const surfVel = (surfaceY - prevSurfaceRef.current) / Math.max(dt, 1e-4);
-      prevSurfaceRef.current = surfaceY;
       const followY = followStickRef.current.y * surfVel * 0.35;
       const eps = 0.4;
       const slopeX = (waveHeight(camX + eps, camZ, t, amp, regularRef.current, regularCrossRef.current, regularPeriodRef.current) - surfaceY) / eps;
