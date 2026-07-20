@@ -642,7 +642,9 @@ function Aquafulness() {
           // Radial wave — analytic so the normal stays clean.
           float kR = 0.12 / uPeriod;
           float phase = r * kR - uTime * 0.9;
-          float hR = shp(phase) * 2.6 * ampF;
+          // Vortex waves must be an even sine wave: ignore SPETS/chaos/cross-wave
+          // shaping here so the orbit never produces uneven jumps.
+          float hR = sin(phase) * 2.6 * ampF;
           // dHr/dr for the radial normal
           float dHr = cos(phase) * kR * 2.6 * ampF;
           float pyRad = pit + hR * (1.0 - g * 0.85);
