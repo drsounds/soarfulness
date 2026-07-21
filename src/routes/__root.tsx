@@ -87,6 +87,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "Aquafulness — Ocean Wave Meditation" },
       { name: "description", content: "A calming WebGL ocean where the camera drifts on the waves. Adjust swell, time of day, and wander across the sea." },
       { name: "author", content: "Lovable" },
+      { name: "robots", content: "noindex, nofollow" },
+      { name: "googlebot", content: "noindex, nofollow" },
       { property: "og:title", content: "Aquafulness — Ocean Wave Meditation" },
       { property: "og:description", content: "A calming WebGL ocean where the camera drifts on the waves. Adjust swell, time of day, and wander across the sea." },
       { property: "og:type", content: "website" },
