@@ -797,6 +797,8 @@ function Aquafulness() {
       uniform float uTintHue;
       uniform float uTintSat;
       uniform float uTintBright;
+      uniform float uSurfBright;
+      uniform float uSurfSat;
       uniform float uUnderwater;
       varying vec3 vWorldPos;
       varying vec3 vNormal;
