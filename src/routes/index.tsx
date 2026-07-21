@@ -1207,7 +1207,7 @@ function Aquafulness() {
       const targetY = surfaceY + heightRef.current - diveOffset + liftOffset;
 
       if (camYRef.current === null) camYRef.current = targetY;
-      const k = 4 + 14 * bobSpeedRef.current; // stiffness (spring tempo)
+      const k = (4 + 14 * bobSpeedRef.current) * (1 + peakK * 0.6); // stiffness — track sharper crests faster
       const zeta = 0.32; // underdamped → visible bounce
       const c = 2 * zeta * Math.sqrt(k);
       // Steady gravity scales with DYK (pulls down) and is countered by FLYT.
