@@ -360,6 +360,8 @@ function Aquafulness() {
   useEffect(() => { waterHueRef.current = waterHue; }, [waterHue]);
   useEffect(() => { waterSatRef.current = waterSat; }, [waterSat]);
   useEffect(() => { waterBrightRef.current = waterBright; }, [waterBright]);
+  useEffect(() => { surfBrightRef.current = surfBright; }, [surfBright]);
+  useEffect(() => { surfSatRef.current = surfSat; }, [surfSat]);
   useEffect(() => { bottomIdxRef.current = bottomIdx; }, [bottomIdx]);
   useEffect(() => { leanRef.current = leanEnabled; }, [leanEnabled]);
   useEffect(() => { regularRef.current = regularWaves; }, [regularWaves]);
