@@ -175,7 +175,7 @@ const DEFAULTS: Persisted = {
   camFov: 65,
   camNear: 0.1,
   waveDir: 0,
-  floorDepth: 14,
+  floorDepth: 28,
   floorTexture: true,
   vortexMode: false,
   vortexOpening: 14,
