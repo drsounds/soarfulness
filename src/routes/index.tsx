@@ -1019,6 +1019,9 @@ function Aquafulness() {
     const floor = new THREE.Mesh(floorGeo, floorMat);
     floor.position.y = -14;
     floor.visible = false;
+    // Rendera botten före vattenytan så att ocean's transparens alltid
+    // blandar mot botten – även när floor själv är alpha-blend (moln-läget).
+    floor.renderOrder = -2;
     scene.add(floor);
 
     // Mid-water drifting cloud layer (separate mesh, reuses cloud shader path).
@@ -1051,6 +1054,7 @@ function Aquafulness() {
     const midClouds = new THREE.Mesh(midCloudGeo, midCloudMat);
     midClouds.position.y = -7;
     midClouds.visible = false;
+    midClouds.renderOrder = -1;
     scene.add(midClouds);
 
     // Sky dome
