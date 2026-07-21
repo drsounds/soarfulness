@@ -638,6 +638,8 @@ function Aquafulness() {
       uTintHue: { value: 0 },
       uTintSat: { value: 1 },
       uTintBright: { value: 1 },
+      uSurfBright: { value: 1 },
+      uSurfSat: { value: 1 },
       uUnderwater: { value: 0 },
       uRegular: { value: 0 },
       uCross: { value: 1 },
