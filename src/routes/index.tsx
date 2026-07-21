@@ -122,6 +122,12 @@ type Persisted = {
   vortexOpening: number;
   vortexRadius: number;
   vortexSpeed: number;
+  depthSineOn: boolean;
+  depthSineAmp: number;
+  depthSineFreq: number;
+  hideWater: boolean;
+  midCloudsOn: boolean;
+  midCloudsHeight: number;
 };
 const WATER_TINTS: { name: string; rgb: [number, number, number] }[] = [
   { name: "Nordhav", rgb: [1, 1, 1] },
