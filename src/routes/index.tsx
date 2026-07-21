@@ -1202,17 +1202,45 @@ function Aquafulness() {
       uniforms.uTintSat.value += (waterSatRef.current - uniforms.uTintSat.value) * Math.min(1, dt * 6);
       uniforms.uTintBright.value += (waterBrightRef.current - uniforms.uTintBright.value) * Math.min(1, dt * 6);
       const bot = BOTTOM_OPTIONS[bottomIdxRef.current] ?? BOTTOM_OPTIONS[0];
+      // Sinus-modulerat djup (togglebart). Ökar/minskar bottendjupet mjukt.
+      const depthMod = depthSineOnRef.current
+        ? Math.sin(t * depthSineFreqRef.current * Math.PI * 2) * depthSineAmpRef.current
+        : 0;
+      const effectiveDepth = Math.max(0.5, floorDepthRef.current + depthMod);
       if (bot.rgb) {
         floor.visible = true;
         floorUniforms.uColor.value.setRGB(bot.rgb[0], bot.rgb[1], bot.rgb[2]);
-        floor.position.y = -floorDepthRef.current;
+        floor.position.y = -effectiveDepth;
         floorUniforms.uTime.value = t;
-        // Smooth blend av textur på/av så tonen inte snappar.
-        const target = floorTextureRef.current ? 1 : 0;
+        const isClouds = bot.name === "Moln";
+        // Cloud mode blends independently of the sand-texture toggle.
+        const cloudTarget = isClouds ? 1 : 0;
+        floorUniforms.uClouds.value += (cloudTarget - floorUniforms.uClouds.value) * Math.min(1, dt * 4);
+        const target = isClouds ? 0 : floorTextureRef.current ? 1 : 0;
         floorUniforms.uTextured.value += (target - floorUniforms.uTextured.value) * Math.min(1, dt * 4);
+        // Drift moln-lagret långsamt över tid.
+        floorUniforms.uCloudScroll.value.x = t * 0.015;
+        floorUniforms.uCloudScroll.value.y = t * 0.01;
+        floorMat.depthWrite = floorUniforms.uClouds.value < 0.5;
       } else {
         floor.visible = false;
       }
+
+      // Mellan-moln (drivande lager mellan botten och yta).
+      if (midCloudsOnRef.current) {
+        midClouds.visible = true;
+        const frac = Math.max(0.05, Math.min(0.95, midCloudsHeightRef.current));
+        // frac=0 → precis över botten, frac=1 → nära ytan.
+        midClouds.position.y = -effectiveDepth + effectiveDepth * frac;
+        midCloudUniforms.uTime.value = t;
+        midCloudUniforms.uCloudScroll.value.x = t * 0.04;
+        midCloudUniforms.uCloudScroll.value.y = t * 0.025;
+      } else {
+        midClouds.visible = false;
+      }
+
+      // Dölj/visa vattenytan.
+      ocean.visible = !hideWaterRef.current;
 
       // Apply joystick velocity (game-pad style): stick.y up = forward (-z), x = strafe.
       // STRÖM-spaken lägger till en konstant drivkraft (drift) så kameran bärs
