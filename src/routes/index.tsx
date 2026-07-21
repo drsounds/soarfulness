@@ -201,6 +201,9 @@ const DEFAULTS: Persisted = {
   hideWater: false,
   midCloudsOn: false,
   midCloudsHeight: 0.5,
+  swayAmp: 0,
+  swaySpeed: 0.15,
+  swayBias: 0,
 };
 function loadSettings(): Persisted {
   if (typeof window === "undefined") return DEFAULTS;
