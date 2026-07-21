@@ -423,6 +423,12 @@ function Aquafulness() {
     setVortexOpening(DEFAULTS.vortexOpening);
     setVortexRadius(DEFAULTS.vortexRadius);
     setVortexSpeed(DEFAULTS.vortexSpeed);
+    setDepthSineOn(DEFAULTS.depthSineOn);
+    setDepthSineAmp(DEFAULTS.depthSineAmp);
+    setDepthSineFreq(DEFAULTS.depthSineFreq);
+    setHideWater(DEFAULTS.hideWater);
+    setMidCloudsOn(DEFAULTS.midCloudsOn);
+    setMidCloudsHeight(DEFAULTS.midCloudsHeight);
     // timeOfDay is intentionally left untouched.
   };
 
