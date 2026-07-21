@@ -416,6 +416,8 @@ function Aquafulness() {
     setWaterHue(DEFAULTS.waterHue);
     setWaterSat(DEFAULTS.waterSat);
     setWaterBright(DEFAULTS.waterBright);
+    setSurfBright(DEFAULTS.surfBright);
+    setSurfSat(DEFAULTS.surfSat);
     setBottomIdx(DEFAULTS.bottomIdx);
     setLeanEnabled(DEFAULTS.leanEnabled);
     setRegularWaves(DEFAULTS.regularWaves);
