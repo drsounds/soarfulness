@@ -309,6 +309,8 @@ function Aquafulness() {
   const waterHueRef = useRef(waterHue);
   const waterSatRef = useRef(waterSat);
   const waterBrightRef = useRef(waterBright);
+  const surfBrightRef = useRef(surfBright);
+  const surfSatRef = useRef(surfSat);
   const bottomIdxRef = useRef(bottomIdx);
   const leanRef = useRef(leanEnabled);
   const regularRef = useRef(regularWaves);
