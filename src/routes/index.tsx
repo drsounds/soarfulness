@@ -122,6 +122,12 @@ type Persisted = {
   vortexOpening: number;
   vortexRadius: number;
   vortexSpeed: number;
+  depthSineOn: boolean;
+  depthSineAmp: number;
+  depthSineFreq: number;
+  hideWater: boolean;
+  midCloudsOn: boolean;
+  midCloudsHeight: number;
 };
 const WATER_TINTS: { name: string; rgb: [number, number, number] }[] = [
   { name: "Nordhav", rgb: [1, 1, 1] },
@@ -138,6 +144,7 @@ const BOTTOM_OPTIONS: { name: string; rgb: [number, number, number] | null }[] =
   { name: "Sten", rgb: [0.35, 0.32, 0.28] },
   { name: "Korall", rgb: [0.9, 0.5, 0.45] },
   { name: "Mörk botten", rgb: [0.08, 0.1, 0.12] },
+  { name: "Moln", rgb: [1, 1, 1] },
 ];
 const BACKDROPS: { name: string; url: string | null }[] = [
   { name: "AV", url: null },
@@ -181,6 +188,12 @@ const DEFAULTS: Persisted = {
   vortexOpening: 14,
   vortexRadius: 26,
   vortexSpeed: 1,
+  depthSineOn: false,
+  depthSineAmp: 2,
+  depthSineFreq: 0.2,
+  hideWater: false,
+  midCloudsOn: false,
+  midCloudsHeight: 0.5,
 };
 function loadSettings(): Persisted {
   if (typeof window === "undefined") return DEFAULTS;
@@ -237,6 +250,12 @@ function Aquafulness() {
   const [vortexOpening, setVortexOpening] = useState(initial.vortexOpening);
   const [vortexRadius, setVortexRadius] = useState(initial.vortexRadius);
   const [vortexSpeed, setVortexSpeed] = useState(initial.vortexSpeed);
+  const [depthSineOn, setDepthSineOn] = useState(initial.depthSineOn);
+  const [depthSineAmp, setDepthSineAmp] = useState(initial.depthSineAmp);
+  const [depthSineFreq, setDepthSineFreq] = useState(initial.depthSineFreq);
+  const [hideWater, setHideWater] = useState(initial.hideWater);
+  const [midCloudsOn, setMidCloudsOn] = useState(initial.midCloudsOn);
+  const [midCloudsHeight, setMidCloudsHeight] = useState(initial.midCloudsHeight);
   const [rotStick, setRotStick] = useState({ x: 0, y: 0 });
   const [driftStick, setDriftStick] = useState({ x: 0, y: 0 });
   const [waveDirStick, setWaveDirStick] = useState({ x: 0, y: 0 });
@@ -249,12 +268,12 @@ function Aquafulness() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -308,6 +327,12 @@ function Aquafulness() {
   const vortexRadiusRef = useRef(vortexRadius);
   const vortexSpeedRef = useRef(vortexSpeed);
   const vortexAngleRef = useRef(0);
+  const depthSineOnRef = useRef(depthSineOn);
+  const depthSineAmpRef = useRef(depthSineAmp);
+  const depthSineFreqRef = useRef(depthSineFreq);
+  const hideWaterRef = useRef(hideWater);
+  const midCloudsOnRef = useRef(midCloudsOn);
+  const midCloudsHeightRef = useRef(midCloudsHeight);
   useEffect(() => { ampRef.current = waveAmp; }, [waveAmp]);
   useEffect(() => { todRef.current = timeOfDay; }, [timeOfDay]);
   useEffect(() => { speedRef.current = waveSpeed; }, [waveSpeed]);
@@ -345,6 +370,12 @@ function Aquafulness() {
   useEffect(() => { vortexOpeningRef.current = vortexOpening; }, [vortexOpening]);
   useEffect(() => { vortexRadiusRef.current = vortexRadius; }, [vortexRadius]);
   useEffect(() => { vortexSpeedRef.current = vortexSpeed; }, [vortexSpeed]);
+  useEffect(() => { depthSineOnRef.current = depthSineOn; }, [depthSineOn]);
+  useEffect(() => { depthSineAmpRef.current = depthSineAmp; }, [depthSineAmp]);
+  useEffect(() => { depthSineFreqRef.current = depthSineFreq; }, [depthSineFreq]);
+  useEffect(() => { hideWaterRef.current = hideWater; }, [hideWater]);
+  useEffect(() => { midCloudsOnRef.current = midCloudsOn; }, [midCloudsOn]);
+  useEffect(() => { midCloudsHeightRef.current = midCloudsHeight; }, [midCloudsHeight]);
   // Håll VÅGRIKT-spakens visuella läge synkat med waveDir (t.ex. när dialen ändras
   // eller vid uppstart), men bara när spaken själv står i vila.
   useEffect(() => {
@@ -392,6 +423,12 @@ function Aquafulness() {
     setVortexOpening(DEFAULTS.vortexOpening);
     setVortexRadius(DEFAULTS.vortexRadius);
     setVortexSpeed(DEFAULTS.vortexSpeed);
+    setDepthSineOn(DEFAULTS.depthSineOn);
+    setDepthSineAmp(DEFAULTS.depthSineAmp);
+    setDepthSineFreq(DEFAULTS.depthSineFreq);
+    setHideWater(DEFAULTS.hideWater);
+    setMidCloudsOn(DEFAULTS.midCloudsOn);
+    setMidCloudsHeight(DEFAULTS.midCloudsHeight);
     // timeOfDay is intentionally left untouched.
   };
 
@@ -883,6 +920,8 @@ function Aquafulness() {
       fogFar: { value: 1000 },
       uColor: { value: new THREE.Color(0xd8c078) },
       uTextured: { value: 0 },
+      uClouds: { value: 0 },
+      uCloudScroll: { value: new THREE.Vector2(0, 0) },
       uTime: { value: 0 },
       uSunDir: { value: uniforms.uSunDir.value },
       uFogColor: { value: uniforms.uFogColor.value },
@@ -893,7 +932,8 @@ function Aquafulness() {
       uniforms: floorUniforms,
       fog: true,
       side: THREE.DoubleSide,
-      transparent: false,
+      transparent: true,
+      depthWrite: true,
       vertexShader: `
         varying vec2 vUv;
         varying vec3 vWorld;
@@ -913,6 +953,8 @@ function Aquafulness() {
         varying vec3 vWorld;
         uniform vec3 uColor;
         uniform float uTextured;
+        uniform float uClouds;
+        uniform vec2 uCloudScroll;
         uniform float uTime;
         uniform vec3 uSunDir;
         uniform sampler2D uSandTex;
@@ -929,24 +971,38 @@ function Aquafulness() {
           vec2 u = f*f*(3.0-2.0*f);
           return mix(a,b,u.x) + (c-a)*u.y*(1.0-u.x) + (d-b)*u.x*u.y;
         }
+        float fbm(vec2 p){
+          float v = 0.0; float a = 0.5;
+          for (int i = 0; i < 5; i++) {
+            v += a * vnoise(p);
+            p *= 2.02; a *= 0.5;
+          }
+          return v;
+        }
 
         void main(){
+          if (uClouds > 0.5) {
+            vec2 p = vWorld.xz * 0.025 + uCloudScroll;
+            float n = fbm(p);
+            float cloud = smoothstep(0.45, 0.78, n);
+            if (cloud < 0.01) discard;
+            // Mild ljus/skugga för volym.
+            float shade = 0.85 + 0.25 * fbm(p * 2.3 + 5.0);
+            vec3 col = uColor * shade;
+            gl_FragColor = vec4(col, cloud);
+            #include <fog_fragment>
+            return;
+          }
           vec3 base = uColor;
           if (uTextured > 0.001) {
             vec2 uv0 = vWorld.xz * uSandScale;
-            // Två oktaver – detaljerat lager + grovare roterat lager för att bryta tile-repetitionen.
             vec3 s1 = texture2D(uSandTex, uv0).rgb;
             mat2 rot = mat2(0.8, -0.6, 0.6, 0.8);
             vec3 s2 = texture2D(uSandTex, rot * uv0 * 0.25 + 0.13).rgb;
-            // Genomsnitt bevarar sandens naturliga ljushet (undviker mörk multiplikation).
             vec3 sand = (s1 + s2) * 0.5;
-            // Mild kontrast så kornen syns utan att gå ner i choklad-toner.
             sand = (sand - 0.5) * 1.15 + 0.55;
-            // Tint mot vald bottenfärg: mjuk multiplikation runt neutralton (mean ~0.5 i linjär sRGB).
             sand *= uColor * 1.9;
-            // Lyft klarheten en aning så det känns som soligt bottenskikt.
             sand = clamp(sand, 0.0, 1.6);
-            // Kaustik-flimmer från vågorna ovanför.
             vec2 p = vWorld.xz;
             float caustic = 0.0;
             caustic += sin(p.x*0.9 + uTime*0.7 + vnoise(p*0.4)*4.0);
@@ -964,6 +1020,38 @@ function Aquafulness() {
     floor.position.y = -14;
     floor.visible = false;
     scene.add(floor);
+
+    // Mid-water drifting cloud layer (separate mesh, reuses cloud shader path).
+    const midCloudGeo = new THREE.PlaneGeometry(600, 600, 8, 8);
+    midCloudGeo.rotateX(-Math.PI / 2);
+    const midCloudUniforms = {
+      fogColor: { value: new THREE.Color(0x000000) },
+      fogDensity: { value: 0 },
+      fogNear: { value: 1 },
+      fogFar: { value: 1000 },
+      uColor: { value: new THREE.Color(0xffffff) },
+      uTextured: { value: 0 },
+      uClouds: { value: 1 },
+      uCloudScroll: { value: new THREE.Vector2(0, 0) },
+      uTime: { value: 0 },
+      uSunDir: { value: uniforms.uSunDir.value },
+      uFogColor: { value: uniforms.uFogColor.value },
+      uSandTex: { value: sandTex },
+      uSandScale: { value: 0.35 },
+    };
+    const midCloudMat = new THREE.ShaderMaterial({
+      uniforms: midCloudUniforms,
+      fog: true,
+      side: THREE.DoubleSide,
+      transparent: true,
+      depthWrite: false,
+      vertexShader: floorMat.vertexShader,
+      fragmentShader: floorMat.fragmentShader,
+    });
+    const midClouds = new THREE.Mesh(midCloudGeo, midCloudMat);
+    midClouds.position.y = -7;
+    midClouds.visible = false;
+    scene.add(midClouds);
 
     // Sky dome
     const skyGeo = new THREE.SphereGeometry(800, 32, 32);
@@ -1114,17 +1202,45 @@ function Aquafulness() {
       uniforms.uTintSat.value += (waterSatRef.current - uniforms.uTintSat.value) * Math.min(1, dt * 6);
       uniforms.uTintBright.value += (waterBrightRef.current - uniforms.uTintBright.value) * Math.min(1, dt * 6);
       const bot = BOTTOM_OPTIONS[bottomIdxRef.current] ?? BOTTOM_OPTIONS[0];
+      // Sinus-modulerat djup (togglebart). Ökar/minskar bottendjupet mjukt.
+      const depthMod = depthSineOnRef.current
+        ? Math.sin(t * depthSineFreqRef.current * Math.PI * 2) * depthSineAmpRef.current
+        : 0;
+      const effectiveDepth = Math.max(0.5, floorDepthRef.current + depthMod);
       if (bot.rgb) {
         floor.visible = true;
         floorUniforms.uColor.value.setRGB(bot.rgb[0], bot.rgb[1], bot.rgb[2]);
-        floor.position.y = -floorDepthRef.current;
+        floor.position.y = -effectiveDepth;
         floorUniforms.uTime.value = t;
-        // Smooth blend av textur på/av så tonen inte snappar.
-        const target = floorTextureRef.current ? 1 : 0;
+        const isClouds = bot.name === "Moln";
+        // Cloud mode blends independently of the sand-texture toggle.
+        const cloudTarget = isClouds ? 1 : 0;
+        floorUniforms.uClouds.value += (cloudTarget - floorUniforms.uClouds.value) * Math.min(1, dt * 4);
+        const target = isClouds ? 0 : floorTextureRef.current ? 1 : 0;
         floorUniforms.uTextured.value += (target - floorUniforms.uTextured.value) * Math.min(1, dt * 4);
+        // Drift moln-lagret långsamt över tid.
+        floorUniforms.uCloudScroll.value.x = t * 0.015;
+        floorUniforms.uCloudScroll.value.y = t * 0.01;
+        floorMat.depthWrite = floorUniforms.uClouds.value < 0.5;
       } else {
         floor.visible = false;
       }
+
+      // Mellan-moln (drivande lager mellan botten och yta).
+      if (midCloudsOnRef.current) {
+        midClouds.visible = true;
+        const frac = Math.max(0.05, Math.min(0.95, midCloudsHeightRef.current));
+        // frac=0 → precis över botten, frac=1 → nära ytan.
+        midClouds.position.y = -effectiveDepth + effectiveDepth * frac;
+        midCloudUniforms.uTime.value = t;
+        midCloudUniforms.uCloudScroll.value.x = t * 0.04;
+        midCloudUniforms.uCloudScroll.value.y = t * 0.025;
+      } else {
+        midClouds.visible = false;
+      }
+
+      // Dölj/visa vattenytan.
+      ocean.visible = !hideWaterRef.current;
 
       // Apply joystick velocity (game-pad style): stick.y up = forward (-z), x = strafe.
       // STRÖM-spaken lägger till en konstant drivkraft (drift) så kameran bärs
@@ -1298,6 +1414,8 @@ function Aquafulness() {
       mat.dispose();
       floorGeo.dispose();
       floorMat.dispose();
+      midCloudGeo.dispose();
+      midCloudMat.dispose();
       sandTex.dispose();
       skyGeo.dispose();
       skyMat.dispose();
@@ -1649,6 +1767,60 @@ function Aquafulness() {
                 value={floorTexture ? "PÅ" : "AV"}
                 onDec={() => setFloorTexture(false)}
                 onInc={() => setFloorTexture(true)}
+              />
+              <PadDial
+                label="DJUP-SINUS"
+                value={depthSineOn ? "PÅ" : "AV"}
+                onDec={() => setDepthSineOn(false)}
+                onInc={() => setDepthSineOn(true)}
+              />
+              <PadDial
+                label="SINUS AMP"
+                mode="number"
+                value={`${depthSineAmp.toFixed(2)}m`}
+                rawValue={depthSineAmp}
+                onSet={(v) => setDepthSineAmp(Math.max(0, Math.min(30, v)))}
+                min={0}
+                max={30}
+                step={0.25}
+                onDec={() => setDepthSineAmp((v) => Math.max(0, +(v - 0.25).toFixed(2)))}
+                onInc={() => setDepthSineAmp((v) => Math.min(30, +(v + 0.25).toFixed(2)))}
+              />
+              <PadDial
+                label="SINUS FREK"
+                mode="number"
+                value={`${depthSineFreq.toFixed(2)}Hz`}
+                rawValue={depthSineFreq}
+                onSet={(v) => setDepthSineFreq(Math.max(0.001, Math.min(2, v)))}
+                min={0.001}
+                max={2}
+                step={0.01}
+                onDec={() => setDepthSineFreq((v) => Math.max(0.001, +(v - 0.01).toFixed(3)))}
+                onInc={() => setDepthSineFreq((v) => Math.min(2, +(v + 0.01).toFixed(3)))}
+              />
+              <PadDial
+                label="YTA"
+                value={hideWater ? "DÖLJ" : "SYNLIGT"}
+                onDec={() => setHideWater(true)}
+                onInc={() => setHideWater(false)}
+              />
+              <PadDial
+                label="MELLAN-MOLN"
+                value={midCloudsOn ? "PÅ" : "AV"}
+                onDec={() => setMidCloudsOn(false)}
+                onInc={() => setMidCloudsOn(true)}
+              />
+              <PadDial
+                label="MOLNHÖJD"
+                mode="number"
+                value={`${Math.round(midCloudsHeight * 100)}%`}
+                rawValue={midCloudsHeight}
+                onSet={(v) => setMidCloudsHeight(Math.max(0.05, Math.min(0.95, v)))}
+                min={0.05}
+                max={0.95}
+                step={0.05}
+                onDec={() => setMidCloudsHeight((v) => Math.max(0.05, +(v - 0.05).toFixed(2)))}
+                onInc={() => setMidCloudsHeight((v) => Math.min(0.95, +(v + 0.05).toFixed(2)))}
               />
               <PadDial
                 label="ROTERING"
