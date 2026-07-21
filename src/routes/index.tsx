@@ -250,6 +250,12 @@ function Aquafulness() {
   const [vortexOpening, setVortexOpening] = useState(initial.vortexOpening);
   const [vortexRadius, setVortexRadius] = useState(initial.vortexRadius);
   const [vortexSpeed, setVortexSpeed] = useState(initial.vortexSpeed);
+  const [depthSineOn, setDepthSineOn] = useState(initial.depthSineOn);
+  const [depthSineAmp, setDepthSineAmp] = useState(initial.depthSineAmp);
+  const [depthSineFreq, setDepthSineFreq] = useState(initial.depthSineFreq);
+  const [hideWater, setHideWater] = useState(initial.hideWater);
+  const [midCloudsOn, setMidCloudsOn] = useState(initial.midCloudsOn);
+  const [midCloudsHeight, setMidCloudsHeight] = useState(initial.midCloudsHeight);
   const [rotStick, setRotStick] = useState({ x: 0, y: 0 });
   const [driftStick, setDriftStick] = useState({ x: 0, y: 0 });
   const [waveDirStick, setWaveDirStick] = useState({ x: 0, y: 0 });
