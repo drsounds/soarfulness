@@ -105,6 +105,8 @@ type Persisted = {
   waterHue: number;
   waterSat: number;
   waterBright: number;
+  surfBright: number;
+  surfSat: number;
   bottomIdx: number;
   leanEnabled: boolean;
   regularWaves: boolean;
