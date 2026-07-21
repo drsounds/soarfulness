@@ -1221,7 +1221,14 @@ function Aquafulness() {
         // Drift moln-lagret långsamt över tid.
         floorUniforms.uCloudScroll.value.x = t * 0.015;
         floorUniforms.uCloudScroll.value.y = t * 0.01;
-        floorMat.depthWrite = floorUniforms.uClouds.value < 0.5;
+        // Bara moln-läget behöver alfa-blandning; annars kör floor opakt så att
+        // vattenytans egen transparens fungerar som tidigare.
+        const wantTransparent = floorUniforms.uClouds.value > 0.5;
+        if (floorMat.transparent !== wantTransparent) {
+          floorMat.transparent = wantTransparent;
+          floorMat.needsUpdate = true;
+        }
+        floorMat.depthWrite = !wantTransparent;
       } else {
         floor.visible = false;
       }
