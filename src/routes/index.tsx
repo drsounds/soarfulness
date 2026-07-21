@@ -105,6 +105,8 @@ type Persisted = {
   waterHue: number;
   waterSat: number;
   waterBright: number;
+  surfBright: number;
+  surfSat: number;
   bottomIdx: number;
   leanEnabled: boolean;
   regularWaves: boolean;
@@ -171,6 +173,8 @@ const DEFAULTS: Persisted = {
   waterHue: 0,
   waterSat: 1,
   waterBright: 1,
+  surfBright: 1,
+  surfSat: 1,
   bottomIdx: 2,
   leanEnabled: false,
   regularWaves: true,
@@ -232,6 +236,8 @@ function Aquafulness() {
   const [waterHue, setWaterHue] = useState(initial.waterHue);
   const [waterSat, setWaterSat] = useState(initial.waterSat);
   const [waterBright, setWaterBright] = useState(initial.waterBright);
+  const [surfBright, setSurfBright] = useState(initial.surfBright);
+  const [surfSat, setSurfSat] = useState(initial.surfSat);
   const [bottomIdx, setBottomIdx] = useState(initial.bottomIdx);
   const [leanEnabled, setLeanEnabled] = useState(initial.leanEnabled);
   const [regularWaves, setRegularWaves] = useState(initial.regularWaves);
@@ -268,12 +274,12 @@ function Aquafulness() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -303,6 +309,8 @@ function Aquafulness() {
   const waterHueRef = useRef(waterHue);
   const waterSatRef = useRef(waterSat);
   const waterBrightRef = useRef(waterBright);
+  const surfBrightRef = useRef(surfBright);
+  const surfSatRef = useRef(surfSat);
   const bottomIdxRef = useRef(bottomIdx);
   const leanRef = useRef(leanEnabled);
   const regularRef = useRef(regularWaves);
@@ -352,6 +360,8 @@ function Aquafulness() {
   useEffect(() => { waterHueRef.current = waterHue; }, [waterHue]);
   useEffect(() => { waterSatRef.current = waterSat; }, [waterSat]);
   useEffect(() => { waterBrightRef.current = waterBright; }, [waterBright]);
+  useEffect(() => { surfBrightRef.current = surfBright; }, [surfBright]);
+  useEffect(() => { surfSatRef.current = surfSat; }, [surfSat]);
   useEffect(() => { bottomIdxRef.current = bottomIdx; }, [bottomIdx]);
   useEffect(() => { leanRef.current = leanEnabled; }, [leanEnabled]);
   useEffect(() => { regularRef.current = regularWaves; }, [regularWaves]);
@@ -406,6 +416,8 @@ function Aquafulness() {
     setWaterHue(DEFAULTS.waterHue);
     setWaterSat(DEFAULTS.waterSat);
     setWaterBright(DEFAULTS.waterBright);
+    setSurfBright(DEFAULTS.surfBright);
+    setSurfSat(DEFAULTS.surfSat);
     setBottomIdx(DEFAULTS.bottomIdx);
     setLeanEnabled(DEFAULTS.leanEnabled);
     setRegularWaves(DEFAULTS.regularWaves);
@@ -638,6 +650,8 @@ function Aquafulness() {
       uTintHue: { value: 0 },
       uTintSat: { value: 1 },
       uTintBright: { value: 1 },
+      uSurfBright: { value: 1 },
+      uSurfSat: { value: 1 },
       uUnderwater: { value: 0 },
       uRegular: { value: 0 },
       uCross: { value: 1 },
@@ -797,6 +811,8 @@ function Aquafulness() {
       uniform float uTintHue;
       uniform float uTintSat;
       uniform float uTintBright;
+      uniform float uSurfBright;
+      uniform float uSurfSat;
       uniform float uUnderwater;
       varying vec3 vWorldPos;
       varying vec3 vNormal;
@@ -868,6 +884,11 @@ function Aquafulness() {
                    * 2.8 * grazeBoost * (1.0 - uUnderwater);
 
         vec3 col = mix(water, skyRef, fres * (1.0 - uUnderwater * 0.85)) + sun;
+
+        // Final surface color adjustment (independent of internal tint).
+        col *= uSurfBright;
+        float sg = dot(col, vec3(0.299, 0.587, 0.114));
+        col = mix(vec3(sg), col, uSurfSat);
 
         // Fog to horizon
         float dist = length(cameraPosition - vWorldPos);
@@ -1019,6 +1040,9 @@ function Aquafulness() {
     const floor = new THREE.Mesh(floorGeo, floorMat);
     floor.position.y = -14;
     floor.visible = false;
+    // Rendera botten före vattenytan så att ocean's transparens alltid
+    // blandar mot botten – även när floor själv är alpha-blend (moln-läget).
+    floor.renderOrder = -2;
     scene.add(floor);
 
     // Mid-water drifting cloud layer (separate mesh, reuses cloud shader path).
@@ -1051,6 +1075,7 @@ function Aquafulness() {
     const midClouds = new THREE.Mesh(midCloudGeo, midCloudMat);
     midClouds.position.y = -7;
     midClouds.visible = false;
+    midClouds.renderOrder = -1;
     scene.add(midClouds);
 
     // Sky dome
@@ -1201,6 +1226,8 @@ function Aquafulness() {
       uniforms.uTintHue.value += (waterHueRef.current * 0.01745329252 - uniforms.uTintHue.value) * Math.min(1, dt * 6);
       uniforms.uTintSat.value += (waterSatRef.current - uniforms.uTintSat.value) * Math.min(1, dt * 6);
       uniforms.uTintBright.value += (waterBrightRef.current - uniforms.uTintBright.value) * Math.min(1, dt * 6);
+      uniforms.uSurfBright.value += (surfBrightRef.current - uniforms.uSurfBright.value) * Math.min(1, dt * 6);
+      uniforms.uSurfSat.value += (surfSatRef.current - uniforms.uSurfSat.value) * Math.min(1, dt * 6);
       const bot = BOTTOM_OPTIONS[bottomIdxRef.current] ?? BOTTOM_OPTIONS[0];
       // Sinus-modulerat djup (togglebart). Ökar/minskar bottendjupet mjukt.
       const depthMod = depthSineOnRef.current
@@ -1750,6 +1777,30 @@ function Aquafulness() {
                 step={0.05}
                 onDec={() => setWaterBright((v) => Math.max(0.1, +(v - 0.05).toFixed(2)))}
                 onInc={() => setWaterBright((v) => Math.min(2.5, +(v + 0.05).toFixed(2)))}
+              />
+              <PadDial
+                label="YT-LJUS"
+                mode="number"
+                value={`${surfBright.toFixed(2)}x`}
+                rawValue={surfBright}
+                onSet={(v) => setSurfBright(Math.max(0.1, Math.min(3, v)))}
+                min={0.1}
+                max={3}
+                step={0.05}
+                onDec={() => setSurfBright((v) => Math.max(0.1, +(v - 0.05).toFixed(2)))}
+                onInc={() => setSurfBright((v) => Math.min(3, +(v + 0.05).toFixed(2)))}
+              />
+              <PadDial
+                label="YT-MÄTTNAD"
+                mode="number"
+                value={`${surfSat.toFixed(2)}x`}
+                rawValue={surfSat}
+                onSet={(v) => setSurfSat(Math.max(0, Math.min(2, v)))}
+                min={0}
+                max={2}
+                step={0.05}
+                onDec={() => setSurfSat((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                onInc={() => setSurfSat((v) => Math.min(2, +(v + 0.05).toFixed(2)))}
               />
               <PadDial
                 label="BOTTEN"
