@@ -327,6 +327,12 @@ function Aquafulness() {
   const vortexRadiusRef = useRef(vortexRadius);
   const vortexSpeedRef = useRef(vortexSpeed);
   const vortexAngleRef = useRef(0);
+  const depthSineOnRef = useRef(depthSineOn);
+  const depthSineAmpRef = useRef(depthSineAmp);
+  const depthSineFreqRef = useRef(depthSineFreq);
+  const hideWaterRef = useRef(hideWater);
+  const midCloudsOnRef = useRef(midCloudsOn);
+  const midCloudsHeightRef = useRef(midCloudsHeight);
   useEffect(() => { ampRef.current = waveAmp; }, [waveAmp]);
   useEffect(() => { todRef.current = timeOfDay; }, [timeOfDay]);
   useEffect(() => { speedRef.current = waveSpeed; }, [waveSpeed]);
