@@ -1414,6 +1414,8 @@ function Aquafulness() {
       mat.dispose();
       floorGeo.dispose();
       floorMat.dispose();
+      midCloudGeo.dispose();
+      midCloudMat.dispose();
       sandTex.dispose();
       skyGeo.dispose();
       skyMat.dispose();
