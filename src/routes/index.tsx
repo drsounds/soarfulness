@@ -173,6 +173,8 @@ const DEFAULTS: Persisted = {
   waterHue: 0,
   waterSat: 1,
   waterBright: 1,
+  surfBright: 1,
+  surfSat: 1,
   bottomIdx: 2,
   leanEnabled: false,
   regularWaves: true,
