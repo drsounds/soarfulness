@@ -398,6 +398,9 @@ function Aquafulness() {
   useEffect(() => { hideWaterRef.current = hideWater; }, [hideWater]);
   useEffect(() => { midCloudsOnRef.current = midCloudsOn; }, [midCloudsOn]);
   useEffect(() => { midCloudsHeightRef.current = midCloudsHeight; }, [midCloudsHeight]);
+  useEffect(() => { swayAmpRef.current = swayAmp; }, [swayAmp]);
+  useEffect(() => { swaySpeedRef.current = swaySpeed; }, [swaySpeed]);
+  useEffect(() => { swayBiasRef.current = swayBias; }, [swayBias]);
   // Håll VÅGRIKT-spakens visuella läge synkat med waveDir (t.ex. när dialen ändras
   // eller vid uppstart), men bara när spaken själv står i vila.
   useEffect(() => {
