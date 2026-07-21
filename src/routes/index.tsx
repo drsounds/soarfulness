@@ -1577,10 +1577,10 @@ function Aquafulness() {
                 rawValue={waveAmp}
                 onSet={setWaveAmp}
                 min={0}
-                max={2}
-                step={0.05}
-                onDec={() => setWaveAmp((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
-                onInc={() => setWaveAmp((v) => Math.min(2, +(v + 0.05).toFixed(2)))}
+                max={100}
+                step={0.5}
+                onDec={() => setWaveAmp((v) => Math.max(0, +(v - 0.5).toFixed(2)))}
+                onInc={() => setWaveAmp((v) => Math.min(100, +(v + 0.5).toFixed(2)))}
               />
               <PadDial
                 label="TID"
