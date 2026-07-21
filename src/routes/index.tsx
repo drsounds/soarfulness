@@ -1380,12 +1380,36 @@ function Aquafulness() {
       camVYRef.current += ay * dt;
       camYRef.current += camVYRef.current * dt;
 
+      // Slow "sway" drift — organic low-frequency wandering to give the
+      // sense that the body is being carried by open water. Two detuned
+      // sines per axis create a lissajous-like path that never repeats
+      // exactly. swayBias biases the drift along/against the wave-direction
+      // vector (+1 = med vågorna, -1 = baksug/motström).
+      const swAmp = swayAmpRef.current;
+      let swayX = 0, swayZ = 0;
+      if (swAmp > 0.001) {
+        const ws = swaySpeedRef.current; // 0..1
+        const st = t * ws;
+        // Base wander (isotropic).
+        const wx = Math.sin(st * 0.31) * 0.7 + Math.sin(st * 0.13 + 1.7) * 0.3;
+        const wz = Math.cos(st * 0.27 + 0.5) * 0.7 + Math.sin(st * 0.11 + 2.3) * 0.3;
+        // Directional bias along wave direction (very slow triangle-ish
+        // envelope so it doesn't feel like a constant push).
+        const bias = swayBiasRef.current;
+        const biasEnv = Math.sin(st * 0.09) * 0.5 + 0.5; // 0..1
+        const dirRadS = (waveDirRef.current * Math.PI) / 180;
+        const dx = Math.sin(dirRadS);
+        const dz = -Math.cos(dirRadS);
+        swayX = swAmp * (wx + bias * dx * biasEnv * 1.2);
+        swayZ = swAmp * (wz + bias * dz * biasEnv * 1.2);
+      }
+
       // Manual XYZ camera offset (POS X/Y/Z dials) — applied after physics so
       // the user can nudge the viewpoint without disturbing the buoyancy loop.
       camera.position.set(
-        camX + camOffXRef.current,
+        camX + camOffXRef.current + swayX,
         camYRef.current + camOffYRef.current,
-        camZ + camOffZRef.current,
+        camZ + camOffZRef.current + swayZ,
       );
       // Look direction: HAV = level forward; VIRVEL = mot centrum (så kameran
       // följer med runt virveln och naturligt tittar ner mot öppningen).
