@@ -1769,6 +1769,60 @@ function Aquafulness() {
                 onInc={() => setFloorTexture(true)}
               />
               <PadDial
+                label="DJUP-SINUS"
+                value={depthSineOn ? "PÅ" : "AV"}
+                onDec={() => setDepthSineOn(false)}
+                onInc={() => setDepthSineOn(true)}
+              />
+              <PadDial
+                label="SINUS AMP"
+                mode="number"
+                value={`${depthSineAmp.toFixed(2)}m`}
+                rawValue={depthSineAmp}
+                onSet={(v) => setDepthSineAmp(Math.max(0, Math.min(30, v)))}
+                min={0}
+                max={30}
+                step={0.25}
+                onDec={() => setDepthSineAmp((v) => Math.max(0, +(v - 0.25).toFixed(2)))}
+                onInc={() => setDepthSineAmp((v) => Math.min(30, +(v + 0.25).toFixed(2)))}
+              />
+              <PadDial
+                label="SINUS FREK"
+                mode="number"
+                value={`${depthSineFreq.toFixed(2)}Hz`}
+                rawValue={depthSineFreq}
+                onSet={(v) => setDepthSineFreq(Math.max(0.001, Math.min(2, v)))}
+                min={0.001}
+                max={2}
+                step={0.01}
+                onDec={() => setDepthSineFreq((v) => Math.max(0.001, +(v - 0.01).toFixed(3)))}
+                onInc={() => setDepthSineFreq((v) => Math.min(2, +(v + 0.01).toFixed(3)))}
+              />
+              <PadDial
+                label="VATTEN"
+                value={hideWater ? "DÖLJ" : "SYNLIGT"}
+                onDec={() => setHideWater(true)}
+                onInc={() => setHideWater(false)}
+              />
+              <PadDial
+                label="MELLAN-MOLN"
+                value={midCloudsOn ? "PÅ" : "AV"}
+                onDec={() => setMidCloudsOn(false)}
+                onInc={() => setMidCloudsOn(true)}
+              />
+              <PadDial
+                label="MOLNHÖJD"
+                mode="number"
+                value={`${Math.round(midCloudsHeight * 100)}%`}
+                rawValue={midCloudsHeight}
+                onSet={(v) => setMidCloudsHeight(Math.max(0.05, Math.min(0.95, v)))}
+                min={0.05}
+                max={0.95}
+                step={0.05}
+                onDec={() => setMidCloudsHeight((v) => Math.max(0.05, +(v - 0.05).toFixed(2)))}
+                onInc={() => setMidCloudsHeight((v) => Math.min(0.95, +(v + 0.05).toFixed(2)))}
+              />
+              <PadDial
                 label="ROTERING"
                 value={leanEnabled ? "FRAMÅTLUT" : "FIXERAD"}
                 onDec={() => setLeanEnabled(false)}
