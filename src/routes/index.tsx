@@ -268,6 +268,9 @@ function Aquafulness() {
   const [hideWater, setHideWater] = useState(initial.hideWater);
   const [midCloudsOn, setMidCloudsOn] = useState(initial.midCloudsOn);
   const [midCloudsHeight, setMidCloudsHeight] = useState(initial.midCloudsHeight);
+  const [swayAmp, setSwayAmp] = useState(initial.swayAmp);
+  const [swaySpeed, setSwaySpeed] = useState(initial.swaySpeed);
+  const [swayBias, setSwayBias] = useState(initial.swayBias);
   const [rotStick, setRotStick] = useState({ x: 0, y: 0 });
   const [driftStick, setDriftStick] = useState({ x: 0, y: 0 });
   const [waveDirStick, setWaveDirStick] = useState({ x: 0, y: 0 });
