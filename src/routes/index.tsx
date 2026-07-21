@@ -932,7 +932,8 @@ function Aquafulness() {
       uniforms: floorUniforms,
       fog: true,
       side: THREE.DoubleSide,
-      transparent: false,
+      transparent: true,
+      depthWrite: true,
       vertexShader: `
         varying vec2 vUv;
         varying vec3 vWorld;
