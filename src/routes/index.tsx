@@ -130,6 +130,9 @@ type Persisted = {
   hideWater: boolean;
   midCloudsOn: boolean;
   midCloudsHeight: number;
+  swayAmp: number;
+  swaySpeed: number;
+  swayBias: number;
 };
 const WATER_TINTS: { name: string; rgb: [number, number, number] }[] = [
   { name: "Nordhav", rgb: [1, 1, 1] },
@@ -198,6 +201,9 @@ const DEFAULTS: Persisted = {
   hideWater: false,
   midCloudsOn: false,
   midCloudsHeight: 0.5,
+  swayAmp: 0,
+  swaySpeed: 0.15,
+  swayBias: 0,
 };
 function loadSettings(): Persisted {
   if (typeof window === "undefined") return DEFAULTS;
@@ -262,6 +268,9 @@ function Aquafulness() {
   const [hideWater, setHideWater] = useState(initial.hideWater);
   const [midCloudsOn, setMidCloudsOn] = useState(initial.midCloudsOn);
   const [midCloudsHeight, setMidCloudsHeight] = useState(initial.midCloudsHeight);
+  const [swayAmp, setSwayAmp] = useState(initial.swayAmp);
+  const [swaySpeed, setSwaySpeed] = useState(initial.swaySpeed);
+  const [swayBias, setSwayBias] = useState(initial.swayBias);
   const [rotStick, setRotStick] = useState({ x: 0, y: 0 });
   const [driftStick, setDriftStick] = useState({ x: 0, y: 0 });
   const [waveDirStick, setWaveDirStick] = useState({ x: 0, y: 0 });
@@ -274,12 +283,12 @@ function Aquafulness() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -341,6 +350,9 @@ function Aquafulness() {
   const hideWaterRef = useRef(hideWater);
   const midCloudsOnRef = useRef(midCloudsOn);
   const midCloudsHeightRef = useRef(midCloudsHeight);
+  const swayAmpRef = useRef(swayAmp);
+  const swaySpeedRef = useRef(swaySpeed);
+  const swayBiasRef = useRef(swayBias);
   useEffect(() => { ampRef.current = waveAmp; }, [waveAmp]);
   useEffect(() => { todRef.current = timeOfDay; }, [timeOfDay]);
   useEffect(() => { speedRef.current = waveSpeed; }, [waveSpeed]);
@@ -386,6 +398,9 @@ function Aquafulness() {
   useEffect(() => { hideWaterRef.current = hideWater; }, [hideWater]);
   useEffect(() => { midCloudsOnRef.current = midCloudsOn; }, [midCloudsOn]);
   useEffect(() => { midCloudsHeightRef.current = midCloudsHeight; }, [midCloudsHeight]);
+  useEffect(() => { swayAmpRef.current = swayAmp; }, [swayAmp]);
+  useEffect(() => { swaySpeedRef.current = swaySpeed; }, [swaySpeed]);
+  useEffect(() => { swayBiasRef.current = swayBias; }, [swayBias]);
   // Håll VÅGRIKT-spakens visuella läge synkat med waveDir (t.ex. när dialen ändras
   // eller vid uppstart), men bara när spaken själv står i vila.
   useEffect(() => {
@@ -441,6 +456,9 @@ function Aquafulness() {
     setHideWater(DEFAULTS.hideWater);
     setMidCloudsOn(DEFAULTS.midCloudsOn);
     setMidCloudsHeight(DEFAULTS.midCloudsHeight);
+    setSwayAmp(DEFAULTS.swayAmp);
+    setSwaySpeed(DEFAULTS.swaySpeed);
+    setSwayBias(DEFAULTS.swayBias);
     // timeOfDay is intentionally left untouched.
   };
 
@@ -1362,12 +1380,36 @@ function Aquafulness() {
       camVYRef.current += ay * dt;
       camYRef.current += camVYRef.current * dt;
 
+      // Slow "sway" drift — organic low-frequency wandering to give the
+      // sense that the body is being carried by open water. Two detuned
+      // sines per axis create a lissajous-like path that never repeats
+      // exactly. swayBias biases the drift along/against the wave-direction
+      // vector (+1 = med vågorna, -1 = baksug/motström).
+      const swAmp = swayAmpRef.current;
+      let swayX = 0, swayZ = 0;
+      if (swAmp > 0.001) {
+        const ws = swaySpeedRef.current; // 0..1
+        const st = t * ws;
+        // Base wander (isotropic).
+        const wx = Math.sin(st * 0.31) * 0.7 + Math.sin(st * 0.13 + 1.7) * 0.3;
+        const wz = Math.cos(st * 0.27 + 0.5) * 0.7 + Math.sin(st * 0.11 + 2.3) * 0.3;
+        // Directional bias along wave direction (very slow triangle-ish
+        // envelope so it doesn't feel like a constant push).
+        const bias = swayBiasRef.current;
+        const biasEnv = Math.sin(st * 0.09) * 0.5 + 0.5; // 0..1
+        const dirRadS = (waveDirRef.current * Math.PI) / 180;
+        const dx = Math.sin(dirRadS);
+        const dz = -Math.cos(dirRadS);
+        swayX = swAmp * (wx + bias * dx * biasEnv * 1.2);
+        swayZ = swAmp * (wz + bias * dz * biasEnv * 1.2);
+      }
+
       // Manual XYZ camera offset (POS X/Y/Z dials) — applied after physics so
       // the user can nudge the viewpoint without disturbing the buoyancy loop.
       camera.position.set(
-        camX + camOffXRef.current,
+        camX + camOffXRef.current + swayX,
         camYRef.current + camOffYRef.current,
-        camZ + camOffZRef.current,
+        camZ + camOffZRef.current + swayZ,
       );
       // Look direction: HAV = level forward; VIRVEL = mot centrum (så kameran
       // följer med runt virveln och naturligt tittar ner mot öppningen).
@@ -1671,6 +1713,42 @@ function Aquafulness() {
                 step={0.1}
                 onDec={() => setCamOffZ((v) => Math.max(-10, +(v - 0.1).toFixed(2)))}
                 onInc={() => setCamOffZ((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
+              />
+              <PadDial
+                label="SVAJ"
+                mode="number"
+                value={`${swayAmp.toFixed(1)}m`}
+                rawValue={swayAmp}
+                onSet={setSwayAmp}
+                min={0}
+                max={30}
+                step={0.5}
+                onDec={() => setSwayAmp((v) => Math.max(0, +(v - 0.5).toFixed(2)))}
+                onInc={() => setSwayAmp((v) => Math.min(30, +(v + 0.5).toFixed(2)))}
+              />
+              <PadDial
+                label="SVAJ TEMPO"
+                mode="number"
+                value={`${swaySpeed.toFixed(2)}×`}
+                rawValue={swaySpeed}
+                onSet={setSwaySpeed}
+                min={0.01}
+                max={1}
+                step={0.01}
+                onDec={() => setSwaySpeed((v) => Math.max(0.01, +(v - 0.01).toFixed(2)))}
+                onInc={() => setSwaySpeed((v) => Math.min(1, +(v + 0.01).toFixed(2)))}
+              />
+              <PadDial
+                label="SVAJ DRIFT"
+                mode="number"
+                value={swayBias === 0 ? "NEUTRAL" : swayBias > 0 ? `MED ${swayBias.toFixed(2)}` : `MOT ${Math.abs(swayBias).toFixed(2)}`}
+                rawValue={swayBias}
+                onSet={setSwayBias}
+                min={-1}
+                max={1}
+                step={0.05}
+                onDec={() => setSwayBias((v) => Math.max(-1, +(v - 0.05).toFixed(2)))}
+                onInc={() => setSwayBias((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
               />
               <PadDial
                 label="GUPP"
