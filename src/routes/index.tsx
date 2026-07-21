@@ -32,14 +32,18 @@ export const Route = createFileRoute("/")({
 // bunch the horizontal phase into near-vertical faces, which caused jagged
 // side-view artifacts at grazing camera angles.
 function shapedWave(theta: number, p: number) {
-  const amount = Math.max(0, p - 1) * 0.16;
-  if (amount <= 0) return Math.sin(theta);
+  if (p <= 1) return Math.sin(theta);
+  const k = Math.min(1, Math.max(0, (p - 1) / 5));
+  const amount = (p - 1) * 0.28;
   const wrapped = Math.atan2(Math.sin(theta - Math.PI / 2), Math.cos(theta - Math.PI / 2));
-  const width = 0.72;
+  const width = 0.72 * (1 - k) + 0.34 * k;
   const crest = Math.exp(-(wrapped * wrapped) / (2 * width * width));
-  const mean = 0.29;
-  return (Math.sin(theta) + amount * (crest - mean)) / (1 + amount * 0.28);
+  const mean = width * 0.3989;
+  const base = Math.sin(theta);
+  const peakBoost = Math.pow(Math.max(base, 0), 1 + 3 * k) - 0.3183 * k;
+  return (base + amount * (crest - mean) + k * 0.55 * peakBoost) / (1 + amount * 0.28 + k * 0.35);
 }
+
 
 // Gerstner-like sum of sines. Keep in sync with vertex shader.
 function waveHeight(x: number, z: number, t: number, amp: number, regular: boolean, cross: boolean, period: number = 1, peak: number = 1, dir: number = 0) {
@@ -625,13 +629,22 @@ function Aquafulness() {
       // Rounded Gaussian crest boost — sharpens the wave top without creating
       // near-vertical phase-bunched faces that alias when viewed from the side.
       float shp(float theta) {
-        float amount = max(0.0, uPeak - 1.0) * 0.16;
+        float k = clamp((uPeak - 1.0) / 5.0, 0.0, 1.0);
+        float amount = max(0.0, uPeak - 1.0) * 0.28;
         float wrapped = atan(sin(theta - 1.57079632679), cos(theta - 1.57079632679));
-        float width = 0.72;
+        // Narrower Gaussian at high SPETS → sharper, pointier crests.
+        float width = mix(0.72, 0.34, k);
         float crest = exp(-(wrapped * wrapped) / (2.0 * width * width));
-        float mean = 0.29;
-        return (sin(theta) + amount * (crest - mean)) / (1.0 + amount * 0.28);
+        // Analytic mean of the Gaussian pulse over one period, so raising
+        // SPETS keeps the mean surface level and only sharpens the top.
+        float mean = width * 0.3989;
+        // Extra pow-based crest boost purely on the positive lobe — adds a
+        // realistic near-cusp peak without steepening the wave face.
+        float base = sin(theta);
+        float peakBoost = pow(max(base, 0.0), mix(1.0, 4.0, k)) - 0.3183 * mix(0.0, 1.0, k);
+        return (base + amount * (crest - mean) + k * 0.55 * peakBoost) / (1.0 + amount * 0.28 + k * 0.35);
       }
+
 
       float wave(vec3 pIn, float t, float amp, float rippleFade) {
         // Rotate horizontal coords by uDir so wave crests advance in the
