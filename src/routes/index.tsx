@@ -32,14 +32,18 @@ export const Route = createFileRoute("/")({
 // bunch the horizontal phase into near-vertical faces, which caused jagged
 // side-view artifacts at grazing camera angles.
 function shapedWave(theta: number, p: number) {
-  const amount = Math.max(0, p - 1) * 0.16;
-  if (amount <= 0) return Math.sin(theta);
+  if (p <= 1) return Math.sin(theta);
+  const k = Math.min(1, Math.max(0, (p - 1) / 5));
+  const amount = (p - 1) * 0.28;
   const wrapped = Math.atan2(Math.sin(theta - Math.PI / 2), Math.cos(theta - Math.PI / 2));
-  const width = 0.72;
+  const width = 0.72 * (1 - k) + 0.34 * k;
   const crest = Math.exp(-(wrapped * wrapped) / (2 * width * width));
-  const mean = 0.29;
-  return (Math.sin(theta) + amount * (crest - mean)) / (1 + amount * 0.28);
+  const mean = width * 0.3989;
+  const base = Math.sin(theta);
+  const peakBoost = Math.pow(Math.max(base, 0), 1 + 3 * k) - 0.3183 * k;
+  return (base + amount * (crest - mean) + k * 0.55 * peakBoost) / (1 + amount * 0.28 + k * 0.35);
 }
+
 
 // Gerstner-like sum of sines. Keep in sync with vertex shader.
 function waveHeight(x: number, z: number, t: number, amp: number, regular: boolean, cross: boolean, period: number = 1, peak: number = 1, dir: number = 0) {
