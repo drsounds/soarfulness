@@ -236,6 +236,8 @@ function Aquafulness() {
   const [waterHue, setWaterHue] = useState(initial.waterHue);
   const [waterSat, setWaterSat] = useState(initial.waterSat);
   const [waterBright, setWaterBright] = useState(initial.waterBright);
+  const [surfBright, setSurfBright] = useState(initial.surfBright);
+  const [surfSat, setSurfSat] = useState(initial.surfSat);
   const [bottomIdx, setBottomIdx] = useState(initial.bottomIdx);
   const [leanEnabled, setLeanEnabled] = useState(initial.leanEnabled);
   const [regularWaves, setRegularWaves] = useState(initial.regularWaves);
