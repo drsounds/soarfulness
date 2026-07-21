@@ -1799,7 +1799,7 @@ function Aquafulness() {
                 onInc={() => setDepthSineFreq((v) => Math.min(2, +(v + 0.01).toFixed(3)))}
               />
               <PadDial
-                label="VATTEN"
+                label="YTA"
                 value={hideWater ? "DÖLJ" : "SYNLIGT"}
                 onDec={() => setHideWater(true)}
                 onInc={() => setHideWater(false)}
