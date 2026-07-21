@@ -1177,40 +1177,36 @@ function Aquafulness() {
       // the derived velocity so the anticipation stays phase-locked with
       // whatever crest shape is currently rendered.
       const peakK = Math.min(1, Math.max(0, (wavePeakRef.current - 1) / 5));
-      const lead = 0.35 / (1 + peakK * 1.2);
+      // Larger base lead → buoyancy reacts as soon as the wave begins to
+      // rise, not after it has already lifted the surface past the camera.
+      const lead = 0.7 / (1 + peakK * 1.0);
       const futureSurf = inVortex
         ? vortexSurfaceHeight(camX, camZ, t + lead, ampRef.current, regularPeriodRef.current, vortexOpeningRef.current)
         : waveHeight(camX, camZ, t + lead, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad);
       const rawAnticip = (futureSurf - surfaceY) / lead;
-      // Blend with the (smoother) past-difference velocity so a spiky crest
-      // doesn't inject a giant impulse into the spring.
       const blend = 1 - peakK * 0.55;
       const anticipVel = rawAnticip * blend + surfVel * (1 - blend);
 
-      // Wave-synced buoyancy: camera is a damped spring pulled toward the
-      // surface with gravity. Rising crests push the camera underwater
-      // (DYK controls how deep), and gravity makes it fall past equilibrium
-      // in the trough and bounce back — like a real float.
       const amp = ampRef.current;
       const b = buoyRef.current;
       const sub = submergeRef.current;
       const lift = floatLiftRef.current;
-      // Dynamic dive uses the anticipated velocity so the camera starts
-      // sinking as soon as the wave begins to rise (not mid-crest). Cap the
-      // per-frame offset to a fraction of amplitude so a sharp crest can't
-      // fling the camera far below the surface.
+      // Feed-forward the future surface height into the target so the camera
+      // starts moving in sync with the incoming wave instead of chasing it.
+      const futureBias = 0.55;
+      const anticipSurf = surfaceY * (1 - futureBias) + futureSurf * futureBias;
       const cap = amp * 1.4;
       const rawDive = Math.max(0, anticipVel) * sub * 0.6 * (0.6 + amp * 0.6);
       const rawLift = anticipVel * lift * 0.35 * (0.6 + amp * 0.6);
       const diveOffset = Math.min(cap, rawDive);
       const liftOffset = Math.max(-cap, Math.min(cap, rawLift));
-      const targetY = surfaceY + heightRef.current - diveOffset + liftOffset;
+      const targetY = anticipSurf + heightRef.current - diveOffset + liftOffset;
 
       if (camYRef.current === null) camYRef.current = targetY;
-      const k = (4 + 14 * bobSpeedRef.current) * (1 + peakK * 0.6); // stiffness — track sharper crests faster
-      const zeta = 0.32; // underdamped → visible bounce
+      // Stiffer spring → less phase lag between wave and camera.
+      const k = (10 + 26 * bobSpeedRef.current) * (1 + peakK * 0.6);
+      const zeta = 0.32;
       const c = 2 * zeta * Math.sqrt(k);
-      // Steady gravity scales with DYK (pulls down) and is countered by FLYT.
       const gravity = (1.2 + 3 * amp) * b * sub - (1.0 + 2 * amp) * b * lift;
       const ay = k * (targetY - camYRef.current) - c * camVYRef.current - gravity;
       camVYRef.current += ay * dt;
