@@ -144,6 +144,7 @@ const BOTTOM_OPTIONS: { name: string; rgb: [number, number, number] | null }[] =
   { name: "Sten", rgb: [0.35, 0.32, 0.28] },
   { name: "Korall", rgb: [0.9, 0.5, 0.45] },
   { name: "Mörk botten", rgb: [0.08, 0.1, 0.12] },
+  { name: "Moln", rgb: [1, 1, 1] },
 ];
 const BACKDROPS: { name: string; url: string | null }[] = [
   { name: "AV", url: null },
