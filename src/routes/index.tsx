@@ -920,6 +920,8 @@ function Aquafulness() {
       fogFar: { value: 1000 },
       uColor: { value: new THREE.Color(0xd8c078) },
       uTextured: { value: 0 },
+      uClouds: { value: 0 },
+      uCloudScroll: { value: new THREE.Vector2(0, 0) },
       uTime: { value: 0 },
       uSunDir: { value: uniforms.uSunDir.value },
       uFogColor: { value: uniforms.uFogColor.value },
