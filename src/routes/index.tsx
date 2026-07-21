@@ -1172,12 +1172,20 @@ function Aquafulness() {
 
       // Anticipatory velocity: peek slightly into the future so buoyancy
       // reacts at the *start* of a wave rise (trough) rather than mid-rise.
-      // t is already wave-time (scaled by wave speed).
-      const lead = 0.35;
+      // Sharper crests (higher SPETS) have very brief peaks — a fixed lead
+      // would overshoot and desync the bob. Shorten the lookahead and clamp
+      // the derived velocity so the anticipation stays phase-locked with
+      // whatever crest shape is currently rendered.
+      const peakK = Math.min(1, Math.max(0, (wavePeakRef.current - 1) / 5));
+      const lead = 0.35 / (1 + peakK * 1.2);
       const futureSurf = inVortex
         ? vortexSurfaceHeight(camX, camZ, t + lead, ampRef.current, regularPeriodRef.current, vortexOpeningRef.current)
         : waveHeight(camX, camZ, t + lead, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad);
-      const anticipVel = (futureSurf - surfaceY) / lead;
+      const rawAnticip = (futureSurf - surfaceY) / lead;
+      // Blend with the (smoother) past-difference velocity so a spiky crest
+      // doesn't inject a giant impulse into the spring.
+      const blend = 1 - peakK * 0.55;
+      const anticipVel = rawAnticip * blend + surfVel * (1 - blend);
 
       // Wave-synced buoyancy: camera is a damped spring pulled toward the
       // surface with gravity. Rising crests push the camera underwater
@@ -1188,12 +1196,18 @@ function Aquafulness() {
       const sub = submergeRef.current;
       const lift = floatLiftRef.current;
       // Dynamic dive uses the anticipated velocity so the camera starts
-      // sinking as soon as the wave begins to rise (not mid-crest).
-      const diveOffset = Math.max(0, anticipVel) * sub * 0.6 * (0.6 + amp * 0.6);
-      const liftOffset = anticipVel * lift * 0.35 * (0.6 + amp * 0.6);
+      // sinking as soon as the wave begins to rise (not mid-crest). Cap the
+      // per-frame offset to a fraction of amplitude so a sharp crest can't
+      // fling the camera far below the surface.
+      const cap = amp * 1.4;
+      const rawDive = Math.max(0, anticipVel) * sub * 0.6 * (0.6 + amp * 0.6);
+      const rawLift = anticipVel * lift * 0.35 * (0.6 + amp * 0.6);
+      const diveOffset = Math.min(cap, rawDive);
+      const liftOffset = Math.max(-cap, Math.min(cap, rawLift));
       const targetY = surfaceY + heightRef.current - diveOffset + liftOffset;
+
       if (camYRef.current === null) camYRef.current = targetY;
-      const k = 4 + 14 * bobSpeedRef.current; // stiffness (spring tempo)
+      const k = (4 + 14 * bobSpeedRef.current) * (1 + peakK * 0.6); // stiffness — track sharper crests faster
       const zeta = 0.32; // underdamped → visible bounce
       const c = 2 * zeta * Math.sqrt(k);
       // Steady gravity scales with DYK (pulls down) and is countered by FLYT.
