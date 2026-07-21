@@ -456,6 +456,9 @@ function Aquafulness() {
     setHideWater(DEFAULTS.hideWater);
     setMidCloudsOn(DEFAULTS.midCloudsOn);
     setMidCloudsHeight(DEFAULTS.midCloudsHeight);
+    setSwayAmp(DEFAULTS.swayAmp);
+    setSwaySpeed(DEFAULTS.swaySpeed);
+    setSwayBias(DEFAULTS.swayBias);
     // timeOfDay is intentionally left untouched.
   };
 
