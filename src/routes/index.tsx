@@ -130,6 +130,9 @@ type Persisted = {
   hideWater: boolean;
   midCloudsOn: boolean;
   midCloudsHeight: number;
+  swayAmp: number;
+  swaySpeed: number;
+  swayBias: number;
 };
 const WATER_TINTS: { name: string; rgb: [number, number, number] }[] = [
   { name: "Nordhav", rgb: [1, 1, 1] },
