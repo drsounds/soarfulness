@@ -953,6 +953,8 @@ function Aquafulness() {
         varying vec3 vWorld;
         uniform vec3 uColor;
         uniform float uTextured;
+        uniform float uClouds;
+        uniform vec2 uCloudScroll;
         uniform float uTime;
         uniform vec3 uSunDir;
         uniform sampler2D uSandTex;
@@ -969,24 +971,38 @@ function Aquafulness() {
           vec2 u = f*f*(3.0-2.0*f);
           return mix(a,b,u.x) + (c-a)*u.y*(1.0-u.x) + (d-b)*u.x*u.y;
         }
+        float fbm(vec2 p){
+          float v = 0.0; float a = 0.5;
+          for (int i = 0; i < 5; i++) {
+            v += a * vnoise(p);
+            p *= 2.02; a *= 0.5;
+          }
+          return v;
+        }
 
         void main(){
+          if (uClouds > 0.5) {
+            vec2 p = vWorld.xz * 0.025 + uCloudScroll;
+            float n = fbm(p);
+            float cloud = smoothstep(0.45, 0.78, n);
+            if (cloud < 0.01) discard;
+            // Mild ljus/skugga för volym.
+            float shade = 0.85 + 0.25 * fbm(p * 2.3 + 5.0);
+            vec3 col = uColor * shade;
+            gl_FragColor = vec4(col, cloud);
+            #include <fog_fragment>
+            return;
+          }
           vec3 base = uColor;
           if (uTextured > 0.001) {
             vec2 uv0 = vWorld.xz * uSandScale;
-            // Två oktaver – detaljerat lager + grovare roterat lager för att bryta tile-repetitionen.
             vec3 s1 = texture2D(uSandTex, uv0).rgb;
             mat2 rot = mat2(0.8, -0.6, 0.6, 0.8);
             vec3 s2 = texture2D(uSandTex, rot * uv0 * 0.25 + 0.13).rgb;
-            // Genomsnitt bevarar sandens naturliga ljushet (undviker mörk multiplikation).
             vec3 sand = (s1 + s2) * 0.5;
-            // Mild kontrast så kornen syns utan att gå ner i choklad-toner.
             sand = (sand - 0.5) * 1.15 + 0.55;
-            // Tint mot vald bottenfärg: mjuk multiplikation runt neutralton (mean ~0.5 i linjär sRGB).
             sand *= uColor * 1.9;
-            // Lyft klarheten en aning så det känns som soligt bottenskikt.
             sand = clamp(sand, 0.0, 1.6);
-            // Kaustik-flimmer från vågorna ovanför.
             vec2 p = vWorld.xz;
             float caustic = 0.0;
             caustic += sin(p.x*0.9 + uTime*0.7 + vnoise(p*0.4)*4.0);
@@ -1004,6 +1020,38 @@ function Aquafulness() {
     floor.position.y = -14;
     floor.visible = false;
     scene.add(floor);
+
+    // Mid-water drifting cloud layer (separate mesh, reuses cloud shader path).
+    const midCloudGeo = new THREE.PlaneGeometry(600, 600, 8, 8);
+    midCloudGeo.rotateX(-Math.PI / 2);
+    const midCloudUniforms = {
+      fogColor: { value: new THREE.Color(0x000000) },
+      fogDensity: { value: 0 },
+      fogNear: { value: 1 },
+      fogFar: { value: 1000 },
+      uColor: { value: new THREE.Color(0xffffff) },
+      uTextured: { value: 0 },
+      uClouds: { value: 1 },
+      uCloudScroll: { value: new THREE.Vector2(0, 0) },
+      uTime: { value: 0 },
+      uSunDir: { value: uniforms.uSunDir.value },
+      uFogColor: { value: uniforms.uFogColor.value },
+      uSandTex: { value: sandTex },
+      uSandScale: { value: 0.35 },
+    };
+    const midCloudMat = new THREE.ShaderMaterial({
+      uniforms: midCloudUniforms,
+      fog: true,
+      side: THREE.DoubleSide,
+      transparent: true,
+      depthWrite: false,
+      vertexShader: floorMat.vertexShader,
+      fragmentShader: floorMat.fragmentShader,
+    });
+    const midClouds = new THREE.Mesh(midCloudGeo, midCloudMat);
+    midClouds.position.y = -7;
+    midClouds.visible = false;
+    scene.add(midClouds);
 
     // Sky dome
     const skyGeo = new THREE.SphereGeometry(800, 32, 32);
