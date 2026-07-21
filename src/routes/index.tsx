@@ -187,6 +187,12 @@ const DEFAULTS: Persisted = {
   vortexOpening: 14,
   vortexRadius: 26,
   vortexSpeed: 1,
+  depthSineOn: false,
+  depthSineAmp: 2,
+  depthSineFreq: 0.2,
+  hideWater: false,
+  midCloudsOn: false,
+  midCloudsHeight: 0.5,
 };
 function loadSettings(): Persisted {
   if (typeof window === "undefined") return DEFAULTS;
