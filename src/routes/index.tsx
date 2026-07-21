@@ -350,6 +350,9 @@ function Aquafulness() {
   const hideWaterRef = useRef(hideWater);
   const midCloudsOnRef = useRef(midCloudsOn);
   const midCloudsHeightRef = useRef(midCloudsHeight);
+  const swayAmpRef = useRef(swayAmp);
+  const swaySpeedRef = useRef(swaySpeed);
+  const swayBiasRef = useRef(swayBias);
   useEffect(() => { ampRef.current = waveAmp; }, [waveAmp]);
   useEffect(() => { todRef.current = timeOfDay; }, [timeOfDay]);
   useEffect(() => { speedRef.current = waveSpeed; }, [waveSpeed]);
