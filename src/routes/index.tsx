@@ -625,13 +625,22 @@ function Aquafulness() {
       // Rounded Gaussian crest boost — sharpens the wave top without creating
       // near-vertical phase-bunched faces that alias when viewed from the side.
       float shp(float theta) {
-        float amount = max(0.0, uPeak - 1.0) * 0.16;
+        float k = clamp((uPeak - 1.0) / 5.0, 0.0, 1.0);
+        float amount = max(0.0, uPeak - 1.0) * 0.28;
         float wrapped = atan(sin(theta - 1.57079632679), cos(theta - 1.57079632679));
-        float width = 0.72;
+        // Narrower Gaussian at high SPETS → sharper, pointier crests.
+        float width = mix(0.72, 0.34, k);
         float crest = exp(-(wrapped * wrapped) / (2.0 * width * width));
-        float mean = 0.29;
-        return (sin(theta) + amount * (crest - mean)) / (1.0 + amount * 0.28);
+        // Analytic mean of the Gaussian pulse over one period, so raising
+        // SPETS keeps the mean surface level and only sharpens the top.
+        float mean = width * 0.3989;
+        // Extra pow-based crest boost purely on the positive lobe — adds a
+        // realistic near-cusp peak without steepening the wave face.
+        float base = sin(theta);
+        float peakBoost = pow(max(base, 0.0), mix(1.0, 4.0, k)) - 0.3183 * mix(0.0, 1.0, k);
+        return (base + amount * (crest - mean) + k * 0.55 * peakBoost) / (1.0 + amount * 0.28 + k * 0.35);
       }
+
 
       float wave(vec3 pIn, float t, float amp, float rippleFade) {
         // Rotate horizontal coords by uDir so wave crests advance in the
