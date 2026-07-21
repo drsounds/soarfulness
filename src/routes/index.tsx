@@ -1715,6 +1715,42 @@ function Aquafulness() {
                 onInc={() => setCamOffZ((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
               />
               <PadDial
+                label="SVAJ"
+                mode="number"
+                value={`${swayAmp.toFixed(1)}m`}
+                rawValue={swayAmp}
+                onSet={setSwayAmp}
+                min={0}
+                max={30}
+                step={0.5}
+                onDec={() => setSwayAmp((v) => Math.max(0, +(v - 0.5).toFixed(2)))}
+                onInc={() => setSwayAmp((v) => Math.min(30, +(v + 0.5).toFixed(2)))}
+              />
+              <PadDial
+                label="SVAJ TEMPO"
+                mode="number"
+                value={`${swaySpeed.toFixed(2)}×`}
+                rawValue={swaySpeed}
+                onSet={setSwaySpeed}
+                min={0.01}
+                max={1}
+                step={0.01}
+                onDec={() => setSwaySpeed((v) => Math.max(0.01, +(v - 0.01).toFixed(2)))}
+                onInc={() => setSwaySpeed((v) => Math.min(1, +(v + 0.01).toFixed(2)))}
+              />
+              <PadDial
+                label="SVAJ DRIFT"
+                mode="number"
+                value={swayBias === 0 ? "NEUTRAL" : swayBias > 0 ? `MED ${swayBias.toFixed(2)}` : `MOT ${Math.abs(swayBias).toFixed(2)}`}
+                rawValue={swayBias}
+                onSet={setSwayBias}
+                min={-1}
+                max={1}
+                step={0.05}
+                onDec={() => setSwayBias((v) => Math.max(-1, +(v - 0.05).toFixed(2)))}
+                onInc={() => setSwayBias((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+              />
+              <PadDial
                 label="GUPP"
                 mode="number"
                 value={`${buoyAmp.toFixed(2)}×`}
