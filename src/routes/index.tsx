@@ -869,6 +869,11 @@ function Aquafulness() {
 
         vec3 col = mix(water, skyRef, fres * (1.0 - uUnderwater * 0.85)) + sun;
 
+        // Final surface color adjustment (independent of internal tint).
+        col *= uSurfBright;
+        float sg = dot(col, vec3(0.299, 0.587, 0.114));
+        col = mix(vec3(sg), col, uSurfSat);
+
         // Fog to horizon
         float dist = length(cameraPosition - vWorldPos);
         float fogF = 1.0 - exp(-dist * 0.008);
