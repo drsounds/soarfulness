@@ -1779,6 +1779,30 @@ function Aquafulness() {
                 onInc={() => setWaterBright((v) => Math.min(2.5, +(v + 0.05).toFixed(2)))}
               />
               <PadDial
+                label="YT-LJUS"
+                mode="number"
+                value={`${surfBright.toFixed(2)}x`}
+                rawValue={surfBright}
+                onSet={(v) => setSurfBright(Math.max(0.1, Math.min(3, v)))}
+                min={0.1}
+                max={3}
+                step={0.05}
+                onDec={() => setSurfBright((v) => Math.max(0.1, +(v - 0.05).toFixed(2)))}
+                onInc={() => setSurfBright((v) => Math.min(3, +(v + 0.05).toFixed(2)))}
+              />
+              <PadDial
+                label="YT-MÄTTNAD"
+                mode="number"
+                value={`${surfSat.toFixed(2)}x`}
+                rawValue={surfSat}
+                onSet={(v) => setSurfSat(Math.max(0, Math.min(2, v)))}
+                min={0}
+                max={2}
+                step={0.05}
+                onDec={() => setSurfSat((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                onInc={() => setSurfSat((v) => Math.min(2, +(v + 0.05).toFixed(2)))}
+              />
+              <PadDial
                 label="BOTTEN"
                 value={BOTTOM_OPTIONS[bottomIdx].name}
                 onDec={() => setBottomIdx((i) => (i - 1 + BOTTOM_OPTIONS.length) % BOTTOM_OPTIONS.length)}
