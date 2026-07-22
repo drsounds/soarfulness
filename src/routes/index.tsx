@@ -1290,7 +1290,7 @@ function Aquafulness() {
         midClouds.visible = true;
         const frac = Math.max(0.05, Math.min(0.95, midCloudsHeightRef.current));
         // frac=0 → precis över botten, frac=1 → nära ytan.
-        midClouds.position.y = -effectiveDepth + effectiveDepth * frac;
+        midClouds.position.y = -effectiveDepth + effectiveDepth * frac + levelY;
         midCloudUniforms.uTime.value = t;
         midCloudUniforms.uCloudScroll.value.x = t * 0.04;
         midCloudUniforms.uCloudScroll.value.y = t * 0.025;
