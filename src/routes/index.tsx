@@ -1262,7 +1262,7 @@ function Aquafulness() {
       if (bot.rgb) {
         floor.visible = true;
         floorUniforms.uColor.value.setRGB(bot.rgb[0], bot.rgb[1], bot.rgb[2]);
-        floor.position.y = -effectiveDepth;
+        floor.position.y = -effectiveDepth + levelY;
         floorUniforms.uTime.value = t;
         const isClouds = bot.name === "Moln";
         // Cloud mode blends independently of the sand-texture toggle.
