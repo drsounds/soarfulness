@@ -1250,11 +1250,15 @@ function Aquafulness() {
       uniforms.uSurfBright.value += (surfBrightRef.current - uniforms.uSurfBright.value) * Math.min(1, dt * 6);
       uniforms.uSurfSat.value += (surfSatRef.current - uniforms.uSurfSat.value) * Math.min(1, dt * 6);
       const bot = BOTTOM_OPTIONS[bottomIdxRef.current] ?? BOTTOM_OPTIONS[0];
-      // Sinus-modulerat djup (togglebart). Ökar/minskar bottendjupet mjukt.
+      // Sinus-modulerat "havsnivå"-offset. Vi flyttar hela scenen (yta, botten,
+      // mellan-moln, kamera) rigidt i Y istället för att modulera bottendjupet
+      // eller vågshaderns tid — det håller vågens rytm och form helt orörd.
       const depthMod = depthSineOnRef.current
         ? Math.sin(t * depthSineFreqRef.current * Math.PI * 2) * depthSineAmpRef.current
         : 0;
-      const effectiveDepth = Math.max(0.5, floorDepthRef.current + depthMod);
+      const effectiveDepth = Math.max(0.5, floorDepthRef.current);
+      const levelY = depthMod;
+      ocean.position.y = levelY;
       if (bot.rgb) {
         floor.visible = true;
         floorUniforms.uColor.value.setRGB(bot.rgb[0], bot.rgb[1], bot.rgb[2]);
