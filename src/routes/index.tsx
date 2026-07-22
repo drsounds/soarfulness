@@ -402,6 +402,8 @@ function Aquafulness() {
   useEffect(() => { swayAmpRef.current = swayAmp; }, [swayAmp]);
   useEffect(() => { swaySpeedRef.current = swaySpeed; }, [swaySpeed]);
   useEffect(() => { swayBiasRef.current = swayBias; }, [swayBias]);
+  const swayStickRef = useRef(swayStick);
+  useEffect(() => { swayStickRef.current = swayStick; }, [swayStick]);
   // Håll VÅGRIKT-spakens visuella läge synkat med waveDir (t.ex. när dialen ändras
   // eller vid uppstart), men bara när spaken själv står i vila.
   useEffect(() => {
