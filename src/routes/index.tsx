@@ -1407,6 +1407,26 @@ function Aquafulness() {
         swayZ = swAmp * (wz + bias * dz * biasEnv * 1.2);
       }
 
+      // Directional sinus sway from the sticky SVAJ pad — the pad's
+      // displacement sets amplitude in each axis (x = left/right, y up =
+      // forward/-z). Motion is a pure sinus so the camera glides back and
+      // forth along the chosen direction. Independent of the organic wander
+      // above; distance from pad center = how far in that direction.
+      const sxStick = swayStickRef.current.x;
+      const syStick = swayStickRef.current.y;
+      if (Math.abs(sxStick) + Math.abs(syStick) > 0.001) {
+        const wsPad = Math.max(0.02, swaySpeedRef.current);
+        // Base amplitude scale in meters — reuse SVAJ dial if set, otherwise
+        // give the pad its own reasonable range so it works standalone.
+        const padAmp = swAmp > 0.001 ? swAmp : 6;
+        const phase = t * wsPad * 0.6;
+        const sX = Math.sin(phase);
+        const sZ = Math.sin(phase + Math.PI / 2);
+        swayX += padAmp * sxStick * sX;
+        swayZ += padAmp * (-syStick) * sZ;
+      }
+
+
       // Manual XYZ camera offset (POS X/Y/Z dials) — applied after physics so
       // the user can nudge the viewpoint without disturbing the buoyancy loop.
       camera.position.set(
