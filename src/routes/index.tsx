@@ -1250,15 +1250,19 @@ function Aquafulness() {
       uniforms.uSurfBright.value += (surfBrightRef.current - uniforms.uSurfBright.value) * Math.min(1, dt * 6);
       uniforms.uSurfSat.value += (surfSatRef.current - uniforms.uSurfSat.value) * Math.min(1, dt * 6);
       const bot = BOTTOM_OPTIONS[bottomIdxRef.current] ?? BOTTOM_OPTIONS[0];
-      // Sinus-modulerat djup (togglebart). Ökar/minskar bottendjupet mjukt.
+      // Sinus-modulerat "havsnivå"-offset. Vi flyttar hela scenen (yta, botten,
+      // mellan-moln, kamera) rigidt i Y istället för att modulera bottendjupet
+      // eller vågshaderns tid — det håller vågens rytm och form helt orörd.
       const depthMod = depthSineOnRef.current
         ? Math.sin(t * depthSineFreqRef.current * Math.PI * 2) * depthSineAmpRef.current
         : 0;
-      const effectiveDepth = Math.max(0.5, floorDepthRef.current + depthMod);
+      const effectiveDepth = Math.max(0.5, floorDepthRef.current);
+      const levelY = depthMod;
+      ocean.position.y = levelY;
       if (bot.rgb) {
         floor.visible = true;
         floorUniforms.uColor.value.setRGB(bot.rgb[0], bot.rgb[1], bot.rgb[2]);
-        floor.position.y = -effectiveDepth;
+        floor.position.y = -effectiveDepth + levelY;
         floorUniforms.uTime.value = t;
         const isClouds = bot.name === "Moln";
         // Cloud mode blends independently of the sand-texture toggle.
@@ -1286,7 +1290,7 @@ function Aquafulness() {
         midClouds.visible = true;
         const frac = Math.max(0.05, Math.min(0.95, midCloudsHeightRef.current));
         // frac=0 → precis över botten, frac=1 → nära ytan.
-        midClouds.position.y = -effectiveDepth + effectiveDepth * frac;
+        midClouds.position.y = -effectiveDepth + effectiveDepth * frac + levelY;
         midCloudUniforms.uTime.value = t;
         midCloudUniforms.uCloudScroll.value.x = t * 0.04;
         midCloudUniforms.uCloudScroll.value.y = t * 0.025;
@@ -1431,7 +1435,7 @@ function Aquafulness() {
       // the user can nudge the viewpoint without disturbing the buoyancy loop.
       camera.position.set(
         camX + camOffXRef.current + swayX,
-        camYRef.current + camOffYRef.current,
+        camYRef.current + camOffYRef.current + levelY,
         camZ + camOffZRef.current + swayZ,
       );
       // Look direction: HAV = level forward; VIRVEL = mot centrum (så kameran
