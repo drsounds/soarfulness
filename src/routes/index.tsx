@@ -1449,8 +1449,12 @@ function Aquafulness() {
         lookX = 0;
         lookZ = 0;
       } else {
-        lookX = camX;
-        lookZ = camZ - 20;
+        // Include the same horizontal offsets as camera.position (SVAJ sway
+        // + manual POS X/Z dial) so the look target pans with the camera
+        // instead of staying fixed — otherwise lookAt swivels the camera to
+        // compensate, which reads as unwanted yaw rotation.
+        lookX = camX + camOffXRef.current + swayX;
+        lookZ = camZ + camOffZRef.current + swayZ - 20;
       }
       camera.lookAt(lookX, lookY, lookZ);
 
