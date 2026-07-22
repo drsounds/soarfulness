@@ -1423,11 +1423,12 @@ function Aquafulness() {
         // Base amplitude scale in meters — reuse SVAJ dial if set, otherwise
         // give the pad its own reasonable range so it works standalone.
         const padAmp = swAmp > 0.001 ? swAmp : 6;
-        const phase = t * wsPad * 0.6;
-        const sX = Math.sin(phase);
-        const sZ = Math.sin(phase + Math.PI / 2);
-        swayX += padAmp * sxStick * sX;
-        swayZ += padAmp * (-syStick) * sZ;
+        // Pure back-and-forth on each axis independently (no rotation/orbit).
+        // Both axes share the same phase so motion is a straight-line sinus
+        // along the pad's direction vector: -amp → +amp → -amp.
+        const s = Math.sin(t * wsPad * 0.6);
+        swayX += padAmp * sxStick * s;
+        swayZ += padAmp * (-syStick) * s;
       }
 
 
