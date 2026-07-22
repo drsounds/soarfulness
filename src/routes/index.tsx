@@ -2134,6 +2134,7 @@ function Aquafulness() {
         label="STRÖM"
         positionClass="bottom-36 left-6"
         sticky
+      />
       <Joystick
         onChange={setSwayStick}
         value={swayStick}
