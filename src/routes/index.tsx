@@ -1435,7 +1435,7 @@ function Aquafulness() {
       // the user can nudge the viewpoint without disturbing the buoyancy loop.
       camera.position.set(
         camX + camOffXRef.current + swayX,
-        camYRef.current + camOffYRef.current,
+        camYRef.current + camOffYRef.current + levelY,
         camZ + camOffZRef.current + swayZ,
       );
       // Look direction: HAV = level forward; VIRVEL = mot centrum (så kameran
