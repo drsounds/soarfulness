@@ -2126,6 +2126,12 @@ function Aquafulness() {
                 onDec={() => setWaveDir((v) => (((v - 15) % 360) + 360) % 360)}
                 onInc={() => setWaveDir((v) => (((v + 15) % 360) + 360) % 360)}
               />
+              <PadDial
+                label="LIVE"
+                value={liveMode ? "PÅ" : "AV"}
+                onDec={() => setLiveMode(false)}
+                onInc={() => setLiveMode(true)}
+              />
             </div>
           </div>
         </div>
