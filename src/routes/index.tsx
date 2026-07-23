@@ -1576,6 +1576,9 @@ function Aquafulness() {
         }}
       />
 
+      {/* Fake live-broadcast overlay — hidden by default, toggled via LIVE dial. */}
+      {liveMode && <LiveBroadcast />}
+
       {/* HUD overlay — fades out on inactivity, back in on any touch. */}
       <div
         className={`absolute inset-0 z-10 transition-opacity duration-700 ${uiVisible ? "opacity-100" : "pointer-events-none opacity-0"}`}
