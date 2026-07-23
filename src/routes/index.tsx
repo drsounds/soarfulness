@@ -465,6 +465,7 @@ function Aquafulness() {
     setSwayAmp(DEFAULTS.swayAmp);
     setSwaySpeed(DEFAULTS.swaySpeed);
     setSwayBias(DEFAULTS.swayBias);
+    setLiveMode(DEFAULTS.liveMode);
     // timeOfDay is intentionally left untouched.
   };
 
