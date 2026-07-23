@@ -133,6 +133,7 @@ type Persisted = {
   swayAmp: number;
   swaySpeed: number;
   swayBias: number;
+  liveMode: boolean;
 };
 const WATER_TINTS: { name: string; rgb: [number, number, number] }[] = [
   { name: "Nordhav", rgb: [1, 1, 1] },
@@ -204,6 +205,7 @@ const DEFAULTS: Persisted = {
   swayAmp: 0,
   swaySpeed: 0.15,
   swayBias: 0,
+  liveMode: false,
 };
 function loadSettings(): Persisted {
   if (typeof window === "undefined") return DEFAULTS;
@@ -271,6 +273,7 @@ function Aquafulness() {
   const [swayAmp, setSwayAmp] = useState(initial.swayAmp);
   const [swaySpeed, setSwaySpeed] = useState(initial.swaySpeed);
   const [swayBias, setSwayBias] = useState(initial.swayBias);
+  const [liveMode, setLiveMode] = useState(initial.liveMode);
   const [rotStick, setRotStick] = useState({ x: 0, y: 0 });
   const [driftStick, setDriftStick] = useState({ x: 0, y: 0 });
   const [waveDirStick, setWaveDirStick] = useState({ x: 0, y: 0 });
@@ -284,12 +287,12 @@ function Aquafulness() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -462,6 +465,7 @@ function Aquafulness() {
     setSwayAmp(DEFAULTS.swayAmp);
     setSwaySpeed(DEFAULTS.swaySpeed);
     setSwayBias(DEFAULTS.swayBias);
+    setLiveMode(DEFAULTS.liveMode);
     // timeOfDay is intentionally left untouched.
   };
 
@@ -1572,6 +1576,9 @@ function Aquafulness() {
         }}
       />
 
+      {/* Fake live-broadcast overlay — hidden by default, toggled via LIVE dial. */}
+      {liveMode && <LiveBroadcast />}
+
       {/* HUD overlay — fades out on inactivity, back in on any touch. */}
       <div
         className={`absolute inset-0 z-10 transition-opacity duration-700 ${uiVisible ? "opacity-100" : "pointer-events-none opacity-0"}`}
@@ -2122,6 +2129,12 @@ function Aquafulness() {
                 onDec={() => setWaveDir((v) => (((v - 15) % 360) + 360) % 360)}
                 onInc={() => setWaveDir((v) => (((v + 15) % 360) + 360) % 360)}
               />
+              <PadDial
+                label="LIVE"
+                value={liveMode ? "PÅ" : "AV"}
+                onDec={() => setLiveMode(false)}
+                onInc={() => setLiveMode(true)}
+              />
             </div>
           </div>
         </div>
@@ -2364,6 +2377,162 @@ function Joystick({
         <span className="pointer-events-none absolute inset-x-0 top-1 text-center text-[8px] font-light tracking-[0.28em] text-white/60">
           {label}
         </span>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Fake "live broadcast" overlay. Simulates streaming to the body's ~28 billion
+// cells: pulsing LIVE badge, animated viewer counter, floating reaction
+// emojis. Purely presentational — no network, no analytics.
+// ---------------------------------------------------------------------------
+type Reaction = { id: number; emoji: string; x: number; drift: number; duration: number; scale: number };
+
+const REACTION_EMOJIS = ["❤️", "👍", "✨", "🌊", "💧", "🙏", "😊", "💖", "🔥", "🫧", "☯️", "💫", "🧘", "🥰"];
+
+function formatViewerCount(n: number): string {
+  if (n >= 1e9) return `${(n / 1e9).toFixed(2)} mdr`;
+  if (n >= 1e6) return `${(n / 1e6).toFixed(2)} mn`;
+  if (n >= 1e3) return `${(n / 1e3).toFixed(1)} t`;
+  return `${Math.round(n)}`;
+}
+
+function LiveBroadcast() {
+  // Base ~28 billion cells; wander with correlated random walk so it feels alive.
+  const [viewers, setViewers] = useState<number>(28_000_000_000);
+  const [likes, setLikes] = useState<number>(0);
+  const [reactions, setReactions] = useState<Reaction[]>([]);
+  const nextIdRef = useRef(1);
+
+  // Viewer count wanders every ~700ms with drift + jitter.
+  useEffect(() => {
+    let alive = true;
+    const tick = () => {
+      if (!alive) return;
+      setViewers((v) => {
+        const drift = (Math.random() - 0.48) * 4_000_000; // small bias upward
+        const jitter = (Math.random() - 0.5) * 20_000_000;
+        const next = v + drift + jitter;
+        // Clamp to ± ~1.5B around 28B so it stays believable.
+        return Math.max(26_500_000_000, Math.min(29_500_000_000, next));
+      });
+    };
+    const id = window.setInterval(tick, 700);
+    return () => { alive = false; window.clearInterval(id); };
+  }, []);
+
+  // Likes trickle in.
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setLikes((l) => l + Math.floor(1 + Math.random() * 40));
+    }, 900);
+    return () => window.clearInterval(id);
+  }, []);
+
+  // Spawn floating reaction emojis on a random cadence.
+  useEffect(() => {
+    let alive = true;
+    let timeoutId: number;
+    const spawn = () => {
+      if (!alive) return;
+      const burst = 1 + Math.floor(Math.random() * 3);
+      const created: Reaction[] = [];
+      for (let i = 0; i < burst; i++) {
+        const id = nextIdRef.current++;
+        created.push({
+          id,
+          emoji: REACTION_EMOJIS[Math.floor(Math.random() * REACTION_EMOJIS.length)],
+          x: 60 + Math.random() * 30, // right side column, in vw
+          drift: (Math.random() - 0.5) * 16, // vw of horizontal wander
+          duration: 4200 + Math.random() * 2600,
+          scale: 0.85 + Math.random() * 0.9,
+        });
+      }
+      setReactions((prev) => [...prev, ...created]);
+      // Clean up after animation ends.
+      created.forEach((r) => {
+        window.setTimeout(() => {
+          setReactions((prev) => prev.filter((p) => p.id !== r.id));
+        }, r.duration + 200);
+      });
+      timeoutId = window.setTimeout(spawn, 260 + Math.random() * 620);
+    };
+    timeoutId = window.setTimeout(spawn, 400);
+    return () => { alive = false; window.clearTimeout(timeoutId); };
+  }, []);
+
+  return (
+    <div className="pointer-events-none absolute inset-0 z-40">
+      <style>{`
+        @keyframes aq-live-pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.55; transform: scale(1.35); }
+        }
+        @keyframes aq-viewer-blip {
+          0%, 100% { opacity: 0.85; }
+          50% { opacity: 1; }
+        }
+        @keyframes aq-reaction-rise {
+          0% { transform: translate3d(0, 0, 0) scale(var(--aq-s, 1)); opacity: 0; }
+          10% { opacity: 1; }
+          80% { opacity: 1; }
+          100% { transform: translate3d(var(--aq-dx, 0), -85vh, 0) scale(calc(var(--aq-s, 1) * 1.2)); opacity: 0; }
+        }
+      `}</style>
+
+      {/* Top-left LIVE badge + viewer count */}
+      <div className="absolute left-4 top-4 flex flex-col gap-2">
+        <div className="flex items-center gap-2 rounded-md bg-red-600/95 px-2.5 py-1 text-white shadow-lg">
+          <span
+            className="inline-block h-2 w-2 rounded-full bg-white"
+            style={{ animation: "aq-live-pulse 1.4s ease-in-out infinite" }}
+            aria-hidden="true"
+          />
+          <span className="text-[10px] font-bold tracking-[0.25em]">LIVE</span>
+        </div>
+        <div
+          className="flex items-center gap-1.5 rounded-md bg-black/55 px-2 py-1 text-white/95 backdrop-blur-sm"
+          style={{ animation: "aq-viewer-blip 2.6s ease-in-out infinite" }}
+        >
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+          <span className="text-[11px] font-medium tabular-nums tracking-wide">{formatViewerCount(viewers)}</span>
+          <span className="text-[9px] text-white/60">celler</span>
+        </div>
+        <div className="rounded-md bg-black/45 px-2 py-1 text-[10px] text-white/80 backdrop-blur-sm">
+          Qi-flöde till 28 mdr följare
+        </div>
+      </div>
+
+      {/* Bottom-left engagement counter */}
+      <div className="absolute bottom-[calc(env(safe-area-inset-bottom,0px)+8rem)] right-4 flex items-center gap-1.5 rounded-full bg-black/50 px-2.5 py-1 text-white/95 backdrop-blur-sm">
+        <span className="text-sm leading-none">❤️</span>
+        <span className="text-[11px] font-medium tabular-nums">{likes.toLocaleString("sv-SE")}</span>
+      </div>
+
+      {/* Floating reactions rising from the bottom-right */}
+      <div className="absolute inset-0 overflow-hidden">
+        {reactions.map((r) => (
+          <span
+            key={r.id}
+            className="absolute select-none"
+            style={{
+              left: `${r.x}vw`,
+              bottom: "6rem",
+              fontSize: "26px",
+              filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.4))",
+              animation: `aq-reaction-rise ${r.duration}ms ease-out forwards`,
+              ["--aq-dx" as string]: `${r.drift}vw`,
+              ["--aq-s" as string]: r.scale,
+            } as React.CSSProperties}
+            aria-hidden="true"
+          >
+            {r.emoji}
+          </span>
+        ))}
       </div>
     </div>
   );
