@@ -205,6 +205,7 @@ const DEFAULTS: Persisted = {
   swayAmp: 0,
   swaySpeed: 0.15,
   swayBias: 0,
+  liveMode: false,
 };
 function loadSettings(): Persisted {
   if (typeof window === "undefined") return DEFAULTS;
