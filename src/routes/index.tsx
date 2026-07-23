@@ -133,6 +133,7 @@ type Persisted = {
   swayAmp: number;
   swaySpeed: number;
   swayBias: number;
+  liveMode: boolean;
 };
 const WATER_TINTS: { name: string; rgb: [number, number, number] }[] = [
   { name: "Nordhav", rgb: [1, 1, 1] },
