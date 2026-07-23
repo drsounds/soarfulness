@@ -273,6 +273,7 @@ function Aquafulness() {
   const [swayAmp, setSwayAmp] = useState(initial.swayAmp);
   const [swaySpeed, setSwaySpeed] = useState(initial.swaySpeed);
   const [swayBias, setSwayBias] = useState(initial.swayBias);
+  const [liveMode, setLiveMode] = useState(initial.liveMode);
   const [rotStick, setRotStick] = useState({ x: 0, y: 0 });
   const [driftStick, setDriftStick] = useState({ x: 0, y: 0 });
   const [waveDirStick, setWaveDirStick] = useState({ x: 0, y: 0 });
