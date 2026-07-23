@@ -2525,9 +2525,8 @@ function LiveBroadcast() {
               fontSize: "26px",
               filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.4))",
               animation: `aq-reaction-rise ${r.duration}ms ease-out forwards`,
-              // @ts-expect-error CSS custom properties
-              "--aq-dx": `${r.drift}vw`,
-              "--aq-s": r.scale,
+              ["--aq-dx" as string]: `${r.drift}vw`,
+              ["--aq-s" as string]: r.scale,
             } as React.CSSProperties}
             aria-hidden="true"
           >
