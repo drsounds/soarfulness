@@ -2320,7 +2320,20 @@ function Joystick({
 }) {
   const baseRef = useRef<HTMLDivElement>(null);
   const activeId = useRef<number | null>(null);
+  const startPt = useRef<{ x: number; y: number } | null>(null);
+  const moved = useRef(false);
   const radius = 42;
+  // Sticky joysticks snap tiny deflections to 0 so accidental taps don't
+  // leave a persistent drift the user can't see or easily correct.
+  const deadzone = sticky ? 0.15 : 0;
+
+  const emit = (nx: number, ny: number) => {
+    if (deadzone > 0 && Math.hypot(nx, ny) < deadzone) {
+      onChange({ x: 0, y: 0 });
+    } else {
+      onChange({ x: nx, y: ny });
+    }
+  };
 
   const setFromPointer = (clientX: number, clientY: number) => {
     const base = baseRef.current;
@@ -2335,7 +2348,7 @@ function Joystick({
       dx = (dx / dist) * radius;
       dy = (dy / dist) * radius;
     }
-    onChange({ x: dx / radius, y: -dy / radius });
+    emit(dx / radius, -dy / radius);
   };
 
   return (
@@ -2348,16 +2361,25 @@ function Joystick({
         onPointerDown={(e) => {
           if (activeId.current !== null) return;
           activeId.current = e.pointerId;
+          startPt.current = { x: e.clientX, y: e.clientY };
+          moved.current = false;
           (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
           setFromPointer(e.clientX, e.clientY);
         }}
         onPointerMove={(e) => {
           if (activeId.current !== e.pointerId) return;
+          if (startPt.current) {
+            const d = Math.hypot(e.clientX - startPt.current.x, e.clientY - startPt.current.y);
+            if (d > 4) moved.current = true;
+          }
           setFromPointer(e.clientX, e.clientY);
         }}
         onPointerUp={(e) => {
           if (activeId.current !== e.pointerId) return;
           activeId.current = null;
+          // Sticky: a tap without meaningful movement clears the stick
+          // (so grazing/pressing lightly doesn't leave a stuck drift).
+          if (sticky && !moved.current) onChange({ x: 0, y: 0 });
           if (!sticky) onChange({ x: 0, y: 0 });
         }}
         onPointerCancel={() => {
