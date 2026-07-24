@@ -2234,12 +2234,12 @@ function Aquafulness() {
                 mode="number"
                 value={`${camNear.toFixed(3)}`}
                 rawValue={camNear}
-                onSet={(v) => setCamNear(Math.max(0.001, Math.min(2, v)))}
+                onSet={(v) => setCamNear(Math.max(0.001, Math.min(10, v)))}
                 min={0.001}
-                max={2}
+                max={10}
                 step={0.01}
                 onDec={() => setCamNear((v) => Math.max(0.001, +(v - 0.01).toFixed(3)))}
-                onInc={() => setCamNear((v) => Math.min(2, +(v + 0.01).toFixed(3)))}
+                onInc={() => setCamNear((v) => Math.min(10, +(v + 0.01).toFixed(3)))}
               />
               <PadDial
                 label="VÅGRIKTNING"
