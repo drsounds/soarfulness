@@ -1467,16 +1467,19 @@ function Aquafulness() {
       const targetY = anticipSurf + heightRef.current - diveOffset + liftOffset;
 
       if (camYRef.current === null) camYRef.current = targetY;
-      // Base stiffness cut (was 10 + 26*bobSpeed, ~83 at the default
-      // bobSpeed of 2.8 — a fast, ~0.7s-period spring) and base damping
-      // raised (was 0.32, well underdamped) so the *default* bob already
-      // reads as a body settling into water instead of a stiff spring
-      // snapping to position and overshooting. The SPETS-linked extra
-      // stiffness/damping on top is kept modest — surfVel/rawAnticip above
-      // are already clamped at the source, so the spring doesn't need to
-      // fight spiky input by being cranked stiff+damped itself.
-      const k = (6 + 14 * bobSpeedRef.current) * (1 + peakK * 0.2);
-      const zeta = 0.55 + peakK * 0.15;
+      // Cutting stiffness in the previous pass fixed the hard bounce but
+      // broke heave sync: the wave's own angular frequency (~0.9*waveSpeed,
+      // a few rad/s at defaults) was no longer well below the spring's
+      // natural frequency (sqrt(k)), so it started visibly lagging the
+      // wave. Stiffness is restored to its original value — needed for the
+      // spring to track the wave's frequency closely — and instead only
+      // damping is pushed up, close to critical. The "hard hit and bounce"
+      // feeling was underdamping (zeta 0.32) causing overshoot/oscillation
+      // after a fast snap, not the fast snap itself; near-critical damping
+      // keeps the same fast, well-synced tracking but removes the overshoot
+      // so it settles smoothly instead of bouncing.
+      const k = (10 + 26 * bobSpeedRef.current) * (1 + peakK * 0.2);
+      const zeta = 0.85 + peakK * 0.1;
       const c = 2 * zeta * Math.sqrt(k);
       const gravity = (1.2 + 3 * amp) * b * sub - (1.0 + 2 * amp) * b * lift;
       const ay = k * (targetY - camYRef.current) - c * camVYRef.current - gravity;
