@@ -1770,7 +1770,7 @@ function Aquafulness() {
                 rawValue={swaySpeed}
                 onSet={setSwaySpeed}
                 min={0.01}
-                max={1}
+                max={10}
                 step={0.01}
                 onDec={() => setSwaySpeed((v) => Math.max(0.01, +(v - 0.01).toFixed(2)))}
                 onInc={() => setSwaySpeed((v) => Math.min(1, +(v + 0.01).toFixed(2)))}
@@ -1781,8 +1781,8 @@ function Aquafulness() {
                 value={swayBias === 0 ? "NEUTRAL" : swayBias > 0 ? `MED ${swayBias.toFixed(2)}` : `MOT ${Math.abs(swayBias).toFixed(2)}`}
                 rawValue={swayBias}
                 onSet={setSwayBias}
-                min={-1}
-                max={1}
+                min={-10}
+                max={10}
                 step={0.05}
                 onDec={() => setSwayBias((v) => Math.max(-1, +(v - 0.05).toFixed(2)))}
                 onInc={() => setSwayBias((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
