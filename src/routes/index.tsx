@@ -317,6 +317,8 @@ function Aquafulness() {
   const posRef = useRef({ x: 0, z: 0 });
   const camYRef = useRef<number | null>(null);
   const camVYRef = useRef(0);
+  const swayPosRef = useRef({ x: 0, z: 0 });
+  const swayVelRef = useRef({ x: 0, z: 0 });
   const waterTintRef = useRef(waterTintIdx);
   const waterOpacityRef = useRef(waterOpacity);
   const waterHueRef = useRef(waterHue);
@@ -1392,13 +1394,14 @@ function Aquafulness() {
       // "Sway" drift — phase-locked to the vertical wave heave so the body
       // swings in rhythm with the up/down bob instead of on an unrelated
       // clock. Driven straight off the camera's own surfaceY (the same
-      // signal that drives the vertical bob), normalized to -1..1, so both
-      // the SVAJ dial wander and the SVAJ pad below always peak together
-      // with the heave rather than drifting in and out of phase with it.
-      const heaveNorm = amp > 0.0001 ? Math.max(-1, Math.min(1, surfaceY / (amp * 3.0))) : 0;
+      // signal that drives the vertical bob). tanh (instead of a hard
+      // clamp) keeps the curve continuously rounded through the crest and
+      // trough rather than clipping flat, so both the SVAJ dial wander and
+      // the SVAJ pad below always peak together with the heave.
+      const heaveNorm = amp > 0.0001 ? Math.tanh(surfaceY / (amp * 2.2)) : 0;
 
       const swAmp = swayAmpRef.current;
-      let swayX = 0, swayZ = 0;
+      let swayTargetX = 0, swayTargetZ = 0;
       if (swAmp > 0.001) {
         const ws = swaySpeedRef.current; // 0..1
         const dirRadS = (waveDirRef.current * Math.PI) / 180;
@@ -1409,8 +1412,8 @@ function Aquafulness() {
         const bias = swayBiasRef.current;
         const st = t * Math.max(0.02, ws);
         const biasEnv = Math.sin(st * 0.09) * 0.5 + 0.5; // 0..1
-        swayX = swAmp * (heaveNorm * dx + bias * dx * biasEnv * 1.2);
-        swayZ = swAmp * (heaveNorm * dz + bias * dz * biasEnv * 1.2);
+        swayTargetX = swAmp * (heaveNorm * dx + bias * dx * biasEnv * 1.2);
+        swayTargetZ = swAmp * (heaveNorm * dz + bias * dz * biasEnv * 1.2);
       }
 
       // Directional sway from the sticky SVAJ pad — the pad sets a
@@ -1431,9 +1434,29 @@ function Aquafulness() {
         const rightX = Math.cos(yaw), rightZ = -Math.sin(yaw);
         const dirX = sxStick * rightX + syStick * fwdX;
         const dirZ = sxStick * rightZ + syStick * fwdZ;
-        swayX += padAmp * dirX * heaveNorm;
-        swayZ += padAmp * dirZ * heaveNorm;
+        swayTargetX += padAmp * dirX * heaveNorm;
+        swayTargetZ += padAmp * dirZ * heaveNorm;
       }
+
+      // Ease toward the sway target with a light spring instead of snapping
+      // straight to it every frame. Without this the horizontal sway was
+      // rigidly locked to the analytic wave value — perfectly synced, but
+      // reading as mechanically "dragged" since it had no inertia, unlike
+      // the vertical bob below which already springs toward its target.
+      // Giving sway the same kind of momentum makes it read as a floating
+      // body being carried by the wave. SVAJ TEMPO still sets how snappy
+      // that response is (higher = tighter to the heave, lower = looser).
+      const swK = 5 + 20 * Math.max(0.05, swaySpeedRef.current);
+      const swZeta = 0.6;
+      const swC = 2 * swZeta * Math.sqrt(swK);
+      const swayAX = swK * (swayTargetX - swayPosRef.current.x) - swC * swayVelRef.current.x;
+      const swayAZ = swK * (swayTargetZ - swayPosRef.current.z) - swC * swayVelRef.current.z;
+      swayVelRef.current.x += swayAX * dt;
+      swayVelRef.current.z += swayAZ * dt;
+      swayPosRef.current.x += swayVelRef.current.x * dt;
+      swayPosRef.current.z += swayVelRef.current.z * dt;
+      const swayX = swayPosRef.current.x;
+      const swayZ = swayPosRef.current.z;
 
 
       // Manual XYZ camera offset (POS X/Y/Z dials) — applied after physics so
