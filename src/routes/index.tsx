@@ -1389,28 +1389,31 @@ function Aquafulness() {
       camVYRef.current += ay * dt;
       camYRef.current += camVYRef.current * dt;
 
-      // Slow "sway" drift — organic low-frequency wandering to give the
-      // sense that the body is being carried by open water. Two detuned
-      // sines per axis create a lissajous-like path that never repeats
-      // exactly. swayBias biases the drift along/against the wave-direction
-      // vector (+1 = med vågorna, -1 = baksug/motström).
+      // "Sway" drift — phase-locked to the vertical wave heave so the body
+      // swings forward along the wave direction on the crest and drifts
+      // back in the trough, the same rhythm a floating object naturally
+      // rocks in. Driven straight off the camera's own surfaceY (the same
+      // signal that drives the vertical bob) rather than an independent
+      // clock, so one sway cycle always completes exactly when one heave
+      // cycle does. swayBias biases the drift along/against the
+      // wave-direction vector (+1 = med vågorna, -1 = baksug/motström).
       const swAmp = swayAmpRef.current;
       let swayX = 0, swayZ = 0;
       if (swAmp > 0.001) {
         const ws = swaySpeedRef.current; // 0..1
-        const st = t * ws;
-        // Base wander (isotropic).
-        const wx = Math.sin(st * 0.31) * 0.7 + Math.sin(st * 0.13 + 1.7) * 0.3;
-        const wz = Math.cos(st * 0.27 + 0.5) * 0.7 + Math.sin(st * 0.11 + 2.3) * 0.3;
-        // Directional bias along wave direction (very slow triangle-ish
-        // envelope so it doesn't feel like a constant push).
-        const bias = swayBiasRef.current;
-        const biasEnv = Math.sin(st * 0.09) * 0.5 + 0.5; // 0..1
         const dirRadS = (waveDirRef.current * Math.PI) / 180;
         const dx = Math.sin(dirRadS);
         const dz = -Math.cos(dirRadS);
-        swayX = swAmp * (wx + bias * dx * biasEnv * 1.2);
-        swayZ = swAmp * (wz + bias * dz * biasEnv * 1.2);
+        // Normalize the analytic surface height at the camera into roughly
+        // -1..1 so the swing scales with SVAJ regardless of swell size.
+        const heaveNorm = amp > 0.0001 ? Math.max(-1, Math.min(1, surfaceY / (amp * 3.0))) : 0;
+        // Slow directional bias envelope (unchanged tempo knob) so the
+        // along-wave push doesn't feel like a constant shove.
+        const bias = swayBiasRef.current;
+        const st = t * Math.max(0.02, ws);
+        const biasEnv = Math.sin(st * 0.09) * 0.5 + 0.5; // 0..1
+        swayX = swAmp * (heaveNorm * dx + bias * dx * biasEnv * 1.2);
+        swayZ = swAmp * (heaveNorm * dz + bias * dz * biasEnv * 1.2);
       }
 
       // Directional sinus sway from the sticky SVAJ pad — the pad's
