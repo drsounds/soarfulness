@@ -41,13 +41,16 @@ function shapedWave(theta: number, p: number) {
   const mean = width * 0.3989;
   const base = Math.sin(theta);
   const peakBoost = Math.pow(Math.max(base, 0), 1 + 3 * k) - 0.3183 * k;
-  // Flatten/broaden the trough as SPETS rises: a fractional power on the
-  // negative lobe's magnitude pulls mid-cycle values toward the minimum, so
-  // the wave spends more time near a shallow flat bottom and less time
-  // transitioning — the mirror image of the crest's power-boosted peak,
-  // giving the asymmetric narrow-crest/broad-trough look of real swells.
-  const troughShaped = base >= 0 ? base : -Math.pow(-base, 1 - 0.35 * k);
-  return (troughShaped + amount * (crest - mean) + k * 0.55 * peakBoost) / (1 + amount * 0.28 + k * 0.45);
+  // Smooth (Stokes-like) second-harmonic term: -cos(2*theta) is +k*0.22 at
+  // both the crest and the trough, so it makes the crest taller *and* the
+  // trough shallower/flatter at once — the asymmetric narrow-crest,
+  // broad-trough look of real swells. Unlike a fractional power split on
+  // the two lobes (which has an infinite derivative right at the
+  // zero-crossing and put a near-vertical kink in the mesh there, visible
+  // as periodic glitching across the whole ocean), this is a pure
+  // trig term: smooth everywhere, no kinks, safe at any SPETS value.
+  const stokes = -Math.cos(2 * theta) * k * 0.22;
+  return (base + stokes + amount * (crest - mean) + k * 0.55 * peakBoost) / (1 + amount * 0.28 + k * 0.35 + k * 0.22);
 }
 
 
@@ -731,10 +734,10 @@ function Aquafulness() {
         // realistic near-cusp peak without steepening the wave face.
         float base = sin(theta);
         float peakBoost = pow(max(base, 0.0), mix(1.0, 4.0, k)) - 0.3183 * mix(0.0, 1.0, k);
-        // Flatten/broaden the trough as SPETS rises (mirrors the crest's
-        // power-boosted peak) — see shapedWave() in the JS above, kept in sync.
-        float troughShaped = base >= 0.0 ? base : -pow(-base, 1.0 - 0.35 * k);
-        return (troughShaped + amount * (crest - mean) + k * 0.55 * peakBoost) / (1.0 + amount * 0.28 + k * 0.45);
+        // Smooth (Stokes-like) second-harmonic term — see shapedWave() in
+        // the JS above, kept in sync. No kinks, safe at any SPETS value.
+        float stokes = -cos(2.0 * theta) * k * 0.22;
+        return (base + stokes + amount * (crest - mean) + k * 0.55 * peakBoost) / (1.0 + amount * 0.28 + k * 0.35 + k * 0.22);
       }
 
 
