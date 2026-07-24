@@ -41,16 +41,20 @@ function shapedWave(theta: number, p: number) {
   const mean = width * 0.3989;
   const base = Math.sin(theta);
   const peakBoost = Math.pow(Math.max(base, 0), 1 + 3 * k) - 0.3183 * k;
-  // Smooth (Stokes-like) second-harmonic term: -cos(2*theta) is +k*0.22 at
+  // Smooth (Stokes-like) second-harmonic term: -cos(2*theta) is +k*0.1 at
   // both the crest and the trough, so it makes the crest taller *and* the
   // trough shallower/flatter at once — the asymmetric narrow-crest,
   // broad-trough look of real swells. Unlike a fractional power split on
   // the two lobes (which has an infinite derivative right at the
   // zero-crossing and put a near-vertical kink in the mesh there, visible
-  // as periodic glitching across the whole ocean), this is a pure
-  // trig term: smooth everywhere, no kinks, safe at any SPETS value.
-  const stokes = -Math.cos(2 * theta) * k * 0.22;
-  return (base + stokes + amount * (crest - mean) + k * 0.55 * peakBoost) / (1 + amount * 0.28 + k * 0.35 + k * 0.22);
+  // as periodic glitching across the whole ocean), this is a pure trig
+  // term: smooth everywhere, no kinks, safe at any SPETS value. Kept small
+  // (0.1, down from an earlier 0.22) — even the pre-existing crest-only
+  // sharpening alone already spends much more of the cycle near the trough
+  // as SPETS rises, and a stronger term on top of that made crests read as
+  // implausibly far apart.
+  const stokes = -Math.cos(2 * theta) * k * 0.1;
+  return (base + stokes + amount * (crest - mean) + k * 0.55 * peakBoost) / (1 + amount * 0.28 + k * 0.35 + k * 0.1);
 }
 
 
@@ -736,8 +740,8 @@ function Aquafulness() {
         float peakBoost = pow(max(base, 0.0), mix(1.0, 4.0, k)) - 0.3183 * mix(0.0, 1.0, k);
         // Smooth (Stokes-like) second-harmonic term — see shapedWave() in
         // the JS above, kept in sync. No kinks, safe at any SPETS value.
-        float stokes = -cos(2.0 * theta) * k * 0.22;
-        return (base + stokes + amount * (crest - mean) + k * 0.55 * peakBoost) / (1.0 + amount * 0.28 + k * 0.35 + k * 0.22);
+        float stokes = -cos(2.0 * theta) * k * 0.1;
+        return (base + stokes + amount * (crest - mean) + k * 0.55 * peakBoost) / (1.0 + amount * 0.28 + k * 0.35 + k * 0.1);
       }
 
 
@@ -1410,8 +1414,14 @@ function Aquafulness() {
         : waveHeight(camX, camZ, t, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad);
 
       // Compute wave vertical velocity first so buoyancy can react to it.
+      // Clamp it too, not just the anticipatory peek below: on a dropped
+      // frame (large dt) a sharp crest can still alias into a real spike
+      // here even without any forward lookahead involved, which is exactly
+      // the failure mode on the low-end devices this dial should stay safe
+      // for.
       if (prevSurfaceRef.current === null) prevSurfaceRef.current = surfaceY;
-      const surfVel = (surfaceY - prevSurfaceRef.current) / Math.max(dt, 1e-4);
+      const maxBaseSlope = ampRef.current * 8.0;
+      const surfVel = Math.max(-maxBaseSlope, Math.min(maxBaseSlope, (surfaceY - prevSurfaceRef.current) / Math.max(dt, 1e-4)));
       prevSurfaceRef.current = surfaceY;
 
       // Anticipatory velocity: peek slightly into the future so buoyancy
@@ -1456,7 +1466,7 @@ function Aquafulness() {
       // crest gets absorbed instead of ringing, while calm water keeps its
       // original bouncier feel.
       const k = (10 + 26 * bobSpeedRef.current) * (1 + peakK * 0.6);
-      const zeta = 0.32 + peakK * 0.28;
+      const zeta = 0.32 + peakK * 0.4;
       const c = 2 * zeta * Math.sqrt(k);
       const gravity = (1.2 + 3 * amp) * b * sub - (1.0 + 2 * amp) * b * lift;
       const ay = k * (targetY - camYRef.current) - c * camVYRef.current - gravity;
