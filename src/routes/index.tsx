@@ -588,12 +588,14 @@ function Aquafulness() {
   }, [wakeLock]);
 
   // Idle UI fade: hide overlays after inactivity, restore on any pointer input.
+  // Paused while the settings panel is open so users can adjust without the UI vanishing.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const IDLE_MS = 3500;
     const bump = () => {
       setUiVisible(true);
       if (idleTimerRef.current) window.clearTimeout(idleTimerRef.current);
+      if (settingsOpen) return;
       idleTimerRef.current = window.setTimeout(() => setUiVisible(false), IDLE_MS);
     };
     bump();
@@ -609,12 +611,8 @@ function Aquafulness() {
       window.removeEventListener("touchstart", bump);
       window.removeEventListener("keydown", bump);
     };
-  }, []);
-
-  // While settings panel is open, keep UI visible.
-  useEffect(() => {
-    if (settingsOpen) setUiVisible(true);
   }, [settingsOpen]);
+
 
   // Fullscreen state tracking.
   useEffect(() => {
