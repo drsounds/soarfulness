@@ -36,25 +36,28 @@ function shapedWave(theta: number, p: number) {
   const k = Math.min(1, Math.max(0, (p - 1) / 5));
   const amount = (p - 1) * 0.28;
   const wrapped = Math.atan2(Math.sin(theta - Math.PI / 2), Math.cos(theta - Math.PI / 2));
-  const width = 0.72 * (1 - k) + 0.34 * k;
+  // Width and peak exponent both eased back from earlier, more extreme
+  // values — narrowing the crest too aggressively is what made troughs
+  // dominate the cycle and crests read as implausibly far apart, even
+  // before factoring in the trough-flattening term below.
+  const width = 0.72 * (1 - k) + 0.52 * k;
   const crest = Math.exp(-(wrapped * wrapped) / (2 * width * width));
   const mean = width * 0.3989;
   const base = Math.sin(theta);
-  const peakBoost = Math.pow(Math.max(base, 0), 1 + 3 * k) - 0.3183 * k;
-  // Smooth (Stokes-like) second-harmonic term: -cos(2*theta) is +k*0.1 at
+  const peakBoost = Math.pow(Math.max(base, 0), 1 + 1.4 * k) - 0.3183 * k;
+  // Smooth (Stokes-like) second-harmonic term: -cos(2*theta) is +k*0.03 at
   // both the crest and the trough, so it makes the crest taller *and* the
   // trough shallower/flatter at once — the asymmetric narrow-crest,
   // broad-trough look of real swells. Unlike a fractional power split on
   // the two lobes (which has an infinite derivative right at the
   // zero-crossing and put a near-vertical kink in the mesh there, visible
   // as periodic glitching across the whole ocean), this is a pure trig
-  // term: smooth everywhere, no kinks, safe at any SPETS value. Kept small
-  // (0.1, down from an earlier 0.22) — even the pre-existing crest-only
-  // sharpening alone already spends much more of the cycle near the trough
-  // as SPETS rises, and a stronger term on top of that made crests read as
-  // implausibly far apart.
-  const stokes = -Math.cos(2 * theta) * k * 0.1;
-  return (base + stokes + amount * (crest - mean) + k * 0.55 * peakBoost) / (1 + amount * 0.28 + k * 0.35 + k * 0.1);
+  // term: smooth everywhere, no kinks, safe at any SPETS value. Kept very
+  // small — even the pre-existing crest-only sharpening alone already
+  // spends much more of the cycle near the trough as SPETS rises, so this
+  // only needs to nudge that a little further, not double it.
+  const stokes = -Math.cos(2 * theta) * k * 0.03;
+  return (base + stokes + amount * (crest - mean) + k * 0.55 * peakBoost) / (1 + amount * 0.28 + k * 0.35 + k * 0.03);
 }
 
 
@@ -728,8 +731,10 @@ function Aquafulness() {
         float k = clamp((uPeak - 1.0) / 5.0, 0.0, 1.0);
         float amount = max(0.0, uPeak - 1.0) * 0.28;
         float wrapped = atan(sin(theta - 1.57079632679), cos(theta - 1.57079632679));
-        // Narrower Gaussian at high SPETS → sharper, pointier crests.
-        float width = mix(0.72, 0.34, k);
+        // Narrower Gaussian at high SPETS → sharper, pointier crests. Eased
+        // back from an earlier, more extreme narrowing that made troughs
+        // dominate the cycle and crests read as implausibly far apart.
+        float width = mix(0.72, 0.52, k);
         float crest = exp(-(wrapped * wrapped) / (2.0 * width * width));
         // Analytic mean of the Gaussian pulse over one period, so raising
         // SPETS keeps the mean surface level and only sharpens the top.
@@ -737,11 +742,11 @@ function Aquafulness() {
         // Extra pow-based crest boost purely on the positive lobe — adds a
         // realistic near-cusp peak without steepening the wave face.
         float base = sin(theta);
-        float peakBoost = pow(max(base, 0.0), mix(1.0, 4.0, k)) - 0.3183 * mix(0.0, 1.0, k);
+        float peakBoost = pow(max(base, 0.0), mix(1.0, 2.4, k)) - 0.3183 * mix(0.0, 1.0, k);
         // Smooth (Stokes-like) second-harmonic term — see shapedWave() in
         // the JS above, kept in sync. No kinks, safe at any SPETS value.
-        float stokes = -cos(2.0 * theta) * k * 0.1;
-        return (base + stokes + amount * (crest - mean) + k * 0.55 * peakBoost) / (1.0 + amount * 0.28 + k * 0.35 + k * 0.1);
+        float stokes = -cos(2.0 * theta) * k * 0.03;
+        return (base + stokes + amount * (crest - mean) + k * 0.55 * peakBoost) / (1.0 + amount * 0.28 + k * 0.35 + k * 0.03);
       }
 
 
@@ -1461,12 +1466,14 @@ function Aquafulness() {
       const targetY = anticipSurf + heightRef.current - diveOffset + liftOffset;
 
       if (camYRef.current === null) camYRef.current = targetY;
-      // Stiffer spring → less phase lag between wave and camera. Damping
-      // ratio rises with peakK too, so any residual noise from a sharp
-      // crest gets absorbed instead of ringing, while calm water keeps its
-      // original bouncier feel.
-      const k = (10 + 26 * bobSpeedRef.current) * (1 + peakK * 0.6);
-      const zeta = 0.32 + peakK * 0.4;
+      // Stiffer spring → less phase lag between wave and camera. Both the
+      // extra stiffness and damping added for high SPETS are kept modest —
+      // surfVel/rawAnticip above are now clamped at the source, so the
+      // spring itself no longer needs to fight spiky input; cranking it
+      // stiff+damped on top of that just made the bob feel like a firm
+      // mattress snapping back instead of a body settling into water.
+      const k = (10 + 26 * bobSpeedRef.current) * (1 + peakK * 0.2);
+      const zeta = 0.32 + peakK * 0.15;
       const c = 2 * zeta * Math.sqrt(k);
       const gravity = (1.2 + 3 * amp) * b * sub - (1.0 + 2 * amp) * b * lift;
       const ay = k * (targetY - camYRef.current) - c * camVYRef.current - gravity;
