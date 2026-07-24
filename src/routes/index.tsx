@@ -41,7 +41,13 @@ function shapedWave(theta: number, p: number) {
   const mean = width * 0.3989;
   const base = Math.sin(theta);
   const peakBoost = Math.pow(Math.max(base, 0), 1 + 3 * k) - 0.3183 * k;
-  return (base + amount * (crest - mean) + k * 0.55 * peakBoost) / (1 + amount * 0.28 + k * 0.35);
+  // Flatten/broaden the trough as SPETS rises: a fractional power on the
+  // negative lobe's magnitude pulls mid-cycle values toward the minimum, so
+  // the wave spends more time near a shallow flat bottom and less time
+  // transitioning — the mirror image of the crest's power-boosted peak,
+  // giving the asymmetric narrow-crest/broad-trough look of real swells.
+  const troughShaped = base >= 0 ? base : -Math.pow(-base, 1 - 0.35 * k);
+  return (troughShaped + amount * (crest - mean) + k * 0.55 * peakBoost) / (1 + amount * 0.28 + k * 0.45);
 }
 
 
@@ -113,6 +119,7 @@ type Persisted = {
   regularCross: boolean;
   regularPeriod: number;
   wavePeak: number;
+  waveHighQuality: boolean;
   backdropIdx: number;
   wakeLock: boolean;
   camFov: number;
@@ -185,6 +192,7 @@ const DEFAULTS: Persisted = {
   regularCross: false,
   regularPeriod: 1,
   wavePeak: 1,
+  waveHighQuality: false,
   backdropIdx: 0,
   wakeLock: true,
   camFov: 65,
@@ -252,6 +260,7 @@ function Aquafulness() {
   const [regularCross, setRegularCross] = useState(initial.regularCross);
   const [regularPeriod, setRegularPeriod] = useState(initial.regularPeriod);
   const [wavePeak, setWavePeak] = useState(initial.wavePeak);
+  const [waveHighQuality, setWaveHighQuality] = useState(initial.waveHighQuality);
   const [backdropIdx, setBackdropIdx] = useState(initial.backdropIdx);
   const [wakeLock, setWakeLock] = useState(initial.wakeLock);
   // Rotation stick (yaw / pitch look) and wave-follow stick.
@@ -287,12 +296,12 @@ function Aquafulness() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -332,6 +341,7 @@ function Aquafulness() {
   const regularCrossRef = useRef(regularCross);
   const regularPeriodRef = useRef(regularPeriod);
   const wavePeakRef = useRef(wavePeak);
+  const waveHighQualityRef = useRef(waveHighQuality);
   const backdropRef = useRef(backdropIdx);
   const wakeLockRef = useRef(wakeLock);
   const audioSpatialRef = useRef(audioSpatial);
@@ -386,6 +396,7 @@ function Aquafulness() {
   useEffect(() => { regularCrossRef.current = regularCross; }, [regularCross]);
   useEffect(() => { regularPeriodRef.current = regularPeriod; }, [regularPeriod]);
   useEffect(() => { wavePeakRef.current = wavePeak; }, [wavePeak]);
+  useEffect(() => { waveHighQualityRef.current = waveHighQuality; }, [waveHighQuality]);
   useEffect(() => { backdropRef.current = backdropIdx; }, [backdropIdx]);
   useEffect(() => { wakeLockRef.current = wakeLock; }, [wakeLock]);
   useEffect(() => { audioSpatialRef.current = audioSpatial; }, [audioSpatial]);
@@ -447,6 +458,7 @@ function Aquafulness() {
     setRegularCross(DEFAULTS.regularCross);
     setRegularPeriod(DEFAULTS.regularPeriod);
     setWavePeak(DEFAULTS.wavePeak);
+    setWaveHighQuality(DEFAULTS.waveHighQuality);
     setBackdropIdx(DEFAULTS.backdropIdx);
     setWakeLock(DEFAULTS.wakeLock);
     setCamFov(DEFAULTS.camFov);
@@ -682,6 +694,7 @@ function Aquafulness() {
       uCross: { value: 1 },
       uPeriod: { value: 1 },
       uPeak: { value: 1 },
+      uQuality: { value: 0 },
       uDir: { value: 0 },
       uVortex: { value: 0 },
       uVortexOpening: { value: 14 },
@@ -718,7 +731,10 @@ function Aquafulness() {
         // realistic near-cusp peak without steepening the wave face.
         float base = sin(theta);
         float peakBoost = pow(max(base, 0.0), mix(1.0, 4.0, k)) - 0.3183 * mix(0.0, 1.0, k);
-        return (base + amount * (crest - mean) + k * 0.55 * peakBoost) / (1.0 + amount * 0.28 + k * 0.35);
+        // Flatten/broaden the trough as SPETS rises (mirrors the crest's
+        // power-boosted peak) — see shapedWave() in the JS above, kept in sync.
+        float troughShaped = base >= 0.0 ? base : -pow(-base, 1.0 - 0.35 * k);
+        return (troughShaped + amount * (crest - mean) + k * 0.55 * peakBoost) / (1.0 + amount * 0.28 + k * 0.45);
       }
 
 
@@ -839,6 +855,9 @@ function Aquafulness() {
       uniform float uSurfBright;
       uniform float uSurfSat;
       uniform float uUnderwater;
+      uniform float uTime;
+      uniform float uAmp;
+      uniform float uQuality;
       varying vec3 vWorldPos;
       varying vec3 vNormal;
 
@@ -852,6 +871,28 @@ function Aquafulness() {
           root3inv * s + oneThird * (1.0 - c), c + oneThird * (1.0 - c),          -root3inv * s + oneThird * (1.0 - c),
           -root3inv * s + oneThird * (1.0 - c), root3inv * s + oneThird * (1.0 - c), c + oneThird * (1.0 - c)
         );
+      }
+
+      // Value noise + fbm reused from the seafloor shader, for the optional
+      // high-quality micro-chop and foam below. Kept to 3 octaves (vs the
+      // floor's 5) since this runs per-pixel over the whole ocean plane.
+      float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453123); }
+      float vnoise(vec2 p){
+        vec2 i = floor(p); vec2 f = fract(p);
+        float a = hash(i);
+        float b = hash(i + vec2(1.0,0.0));
+        float c = hash(i + vec2(0.0,1.0));
+        float d = hash(i + vec2(1.0,1.0));
+        vec2 u = f*f*(3.0-2.0*f);
+        return mix(a,b,u.x) + (c-a)*u.y*(1.0-u.x) + (d-b)*u.x*u.y;
+      }
+      float fbm(vec2 p){
+        float v = 0.0; float a = 0.5;
+        for (int i = 0; i < 3; i++) {
+          v += a * vnoise(p);
+          p *= 2.02; a *= 0.5;
+        }
+        return v;
       }
 
       void main() {
@@ -877,6 +918,25 @@ function Aquafulness() {
         float shim = sin(vWorldPos.x * 3.7 + vWorldPos.z * 4.3) *
                      sin(vWorldPos.x * 5.1 - vWorldPos.z * 6.2);
         vec3 Nshim = normalize(N + vec3(shim * 0.06, 0.0, shim * 0.05));
+
+        // Fine procedural micro-chop + whitecap foam (HIGH quality only) —
+        // breaks up the too-clean analytic-sine "plasma" look with organic,
+        // non-repeating detail, and adds animated, patchy foam near steep,
+        // high crests. uQuality is a uniform (same value for every fragment
+        // in the draw call), so this branch is free when off, and LOW
+        // quality stays byte-for-byte the original shading.
+        float foam = 0.0;
+        if (uQuality > 0.5) {
+          float n1 = fbm(vWorldPos.xz * 0.6 + vec2(uTime * 0.05, uTime * 0.03));
+          float n2 = fbm(vWorldPos.xz * 2.3 - vec2(uTime * 0.08, uTime * 0.11));
+          float microBump = (n1 - 0.5) * 0.05 + (n2 - 0.5) * 0.025;
+          Nshim = normalize(Nshim + vec3(microBump, 0.0, microBump * 0.7));
+
+          float slope = 1.0 - N.y;
+          float crestF = smoothstep(uAmp * 0.55, uAmp * 1.3, vWorldPos.y);
+          float foamNoise = fbm(vWorldPos.xz * 0.8 + vec2(uTime * 0.12, -uTime * 0.09));
+          foam = clamp(crestF * (0.35 + slope * 1.8) * smoothstep(0.3, 0.75, foamNoise), 0.0, 1.0);
+        }
 
         // Sky reflection — sample along the reflection vector so different
         // camera angles pick different sky bands (horizon vs zenith).
@@ -909,6 +969,7 @@ function Aquafulness() {
                    * 2.8 * grazeBoost * (1.0 - uUnderwater);
 
         vec3 col = mix(water, skyRef, fres * (1.0 - uUnderwater * 0.85)) + sun;
+        col = mix(col, vec3(0.95, 0.98, 1.0), foam * 0.85 * (1.0 - uUnderwater));
 
         // Final surface color adjustment (independent of internal tint).
         col *= uSurfBright;
@@ -929,7 +990,7 @@ function Aquafulness() {
 
         // Translucency — thinner (higher/steeper) crests let more light through.
         // uOpacity scales the final water transparency independently.
-        float alpha = clamp(0.65 + fres * 0.35 - height * 0.35, 0.4, 1.0) * uOpacity;
+        float alpha = clamp(0.65 + fres * 0.35 - height * 0.35 + foam * 0.25, 0.4, 1.0) * uOpacity;
         gl_FragColor = vec4(col, alpha);
       }
     `;
@@ -1209,6 +1270,7 @@ function Aquafulness() {
       const t = waveT;
       uniforms.uTime.value = t;
       uniforms.uAmp.value = ampRef.current;
+      uniforms.uQuality.value += ((waveHighQualityRef.current ? 1 : 0) - uniforms.uQuality.value) * Math.min(1, dt * 4);
       uniforms.uRegular.value += ((regularRef.current ? 1 : 0) - uniforms.uRegular.value) * Math.min(1, dt * 4);
       uniforms.uCross.value += ((regularCrossRef.current ? 1 : 0) - uniforms.uCross.value) * Math.min(1, dt * 4);
       uniforms.uPeriod.value += (regularPeriodRef.current - uniforms.uPeriod.value) * Math.min(1, dt * 4);
@@ -1351,19 +1413,23 @@ function Aquafulness() {
 
       // Anticipatory velocity: peek slightly into the future so buoyancy
       // reacts at the *start* of a wave rise (trough) rather than mid-rise.
-      // Sharper crests (higher SPETS) have very brief peaks — a fixed lead
-      // would overshoot and desync the bob. Shorten the lookahead and clamp
-      // the derived velocity so the anticipation stays phase-locked with
-      // whatever crest shape is currently rendered.
+      // Sharper crests (higher SPETS) have very brief, near-cusp peaks — a
+      // fixed lead samples a secant slope that can land right on that cusp
+      // and wildly over/underestimate the true derivative, which used to
+      // spike anticipVel and make the spring ring (the SPETS/heave wobble).
+      // Shrink the lookahead hard as sharpness rises, hard-clamp the raw
+      // secant slope to a sane bound, and lean harder on the already-exact
+      // small-dt surfVel instead of the error-prone long peek.
       const peakK = Math.min(1, Math.max(0, (wavePeakRef.current - 1) / 5));
       // Larger base lead → buoyancy reacts as soon as the wave begins to
       // rise, not after it has already lifted the surface past the camera.
-      const lead = 0.7 / (1 + peakK * 1.0);
+      const lead = 0.7 / (1 + peakK * 6.0);
       const futureSurf = inVortex
         ? vortexSurfaceHeight(camX, camZ, t + lead, ampRef.current, regularPeriodRef.current, vortexOpeningRef.current)
         : waveHeight(camX, camZ, t + lead, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad);
-      const rawAnticip = (futureSurf - surfaceY) / lead;
-      const blend = 1 - peakK * 0.55;
+      const maxSlope = ampRef.current * 6.0;
+      const rawAnticip = Math.max(-maxSlope, Math.min(maxSlope, (futureSurf - surfaceY) / lead));
+      const blend = 1 - peakK * 0.85;
       const anticipVel = rawAnticip * blend + surfVel * (1 - blend);
 
       const amp = ampRef.current;
@@ -1382,9 +1448,12 @@ function Aquafulness() {
       const targetY = anticipSurf + heightRef.current - diveOffset + liftOffset;
 
       if (camYRef.current === null) camYRef.current = targetY;
-      // Stiffer spring → less phase lag between wave and camera.
+      // Stiffer spring → less phase lag between wave and camera. Damping
+      // ratio rises with peakK too, so any residual noise from a sharp
+      // crest gets absorbed instead of ringing, while calm water keeps its
+      // original bouncier feel.
       const k = (10 + 26 * bobSpeedRef.current) * (1 + peakK * 0.6);
-      const zeta = 0.32;
+      const zeta = 0.32 + peakK * 0.28;
       const c = 2 * zeta * Math.sqrt(k);
       const gravity = (1.2 + 3 * amp) * b * sub - (1.0 + 2 * amp) * b * lift;
       const ay = k * (targetY - camYRef.current) - c * camVYRef.current - gravity;
@@ -2061,6 +2130,12 @@ function Aquafulness() {
                 step={0.25}
                 onDec={() => setWavePeak((v) => Math.max(1, +(v - 0.25).toFixed(2)))}
                 onInc={() => setWavePeak((v) => Math.min(6, +(v + 0.25).toFixed(2)))}
+              />
+              <PadDial
+                label="KVALITET"
+                value={waveHighQuality ? "HÖG" : "LÅG"}
+                onDec={() => setWaveHighQuality(false)}
+                onInc={() => setWaveHighQuality(true)}
               />
               <PadDial
                 label="LÄGE"
