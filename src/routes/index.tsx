@@ -1390,13 +1390,13 @@ function Aquafulness() {
       camYRef.current += camVYRef.current * dt;
 
       // "Sway" drift — phase-locked to the vertical wave heave so the body
-      // swings forward along the wave direction on the crest and drifts
-      // back in the trough, the same rhythm a floating object naturally
-      // rocks in. Driven straight off the camera's own surfaceY (the same
-      // signal that drives the vertical bob) rather than an independent
-      // clock, so one sway cycle always completes exactly when one heave
-      // cycle does. swayBias biases the drift along/against the
-      // wave-direction vector (+1 = med vågorna, -1 = baksug/motström).
+      // swings in rhythm with the up/down bob instead of on an unrelated
+      // clock. Driven straight off the camera's own surfaceY (the same
+      // signal that drives the vertical bob), normalized to -1..1, so both
+      // the SVAJ dial wander and the SVAJ pad below always peak together
+      // with the heave rather than drifting in and out of phase with it.
+      const heaveNorm = amp > 0.0001 ? Math.max(-1, Math.min(1, surfaceY / (amp * 3.0))) : 0;
+
       const swAmp = swayAmpRef.current;
       let swayX = 0, swayZ = 0;
       if (swAmp > 0.001) {
@@ -1404,9 +1404,6 @@ function Aquafulness() {
         const dirRadS = (waveDirRef.current * Math.PI) / 180;
         const dx = Math.sin(dirRadS);
         const dz = -Math.cos(dirRadS);
-        // Normalize the analytic surface height at the camera into roughly
-        // -1..1 so the swing scales with SVAJ regardless of swell size.
-        const heaveNorm = amp > 0.0001 ? Math.max(-1, Math.min(1, surfaceY / (amp * 3.0))) : 0;
         // Slow directional bias envelope (unchanged tempo knob) so the
         // along-wave push doesn't feel like a constant shove.
         const bias = swayBiasRef.current;
@@ -1416,24 +1413,26 @@ function Aquafulness() {
         swayZ = swAmp * (heaveNorm * dz + bias * dz * biasEnv * 1.2);
       }
 
-      // Directional sinus sway from the sticky SVAJ pad — the pad's
-      // displacement sets amplitude in each axis (x = left/right, y up =
-      // forward/-z). Motion is a pure sinus so the camera glides back and
-      // forth along the chosen direction. Independent of the organic wander
-      // above; distance from pad center = how far in that direction.
+      // Directional sway from the sticky SVAJ pad — the pad sets a
+      // direction relative to the camera's current look direction (yaw),
+      // not fixed world X/Z, so pushing the pad "forward" always sways
+      // toward wherever the camera is currently looking. Amplitude follows
+      // the same heaveNorm signal as the wander above, so pad-driven sway
+      // is phase-locked to the vertical bob too. Distance from pad center =
+      // how far the camera swings in that direction.
       const sxStick = swayStickRef.current.x;
       const syStick = swayStickRef.current.y;
       if (Math.abs(sxStick) + Math.abs(syStick) > 0.001) {
-        const wsPad = Math.max(0.02, swaySpeedRef.current);
         // Base amplitude scale in meters — reuse SVAJ dial if set, otherwise
         // give the pad its own reasonable range so it works standalone.
         const padAmp = swAmp > 0.001 ? swAmp : 6;
-        // Pure back-and-forth on each axis independently (no rotation/orbit).
-        // Both axes share the same phase so motion is a straight-line sinus
-        // along the pad's direction vector: -amp → +amp → -amp.
-        const s = Math.sin(t * wsPad * 0.6);
-        swayX += padAmp * sxStick * s;
-        swayZ += padAmp * (-syStick) * s;
+        const yaw = yawRef.current;
+        const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
+        const rightX = Math.cos(yaw), rightZ = -Math.sin(yaw);
+        const dirX = sxStick * rightX + syStick * fwdX;
+        const dirZ = sxStick * rightZ + syStick * fwdZ;
+        swayX += padAmp * dirX * heaveNorm;
+        swayZ += padAmp * dirZ * heaveNorm;
       }
 
 
