@@ -137,6 +137,7 @@ type Persisted = {
   wakeLock: boolean;
   camFov: number;
   camNear: number;
+  camFar: number;
   waveDir: number;
   floorDepth: number;
   floorTexture: boolean;
@@ -338,6 +339,7 @@ const DEFAULTS: Persisted = {
   wakeLock: true,
   camFov: 65,
   camNear: 5,
+  camFar: 20000,
   waveDir: 0,
   floorDepth: 28,
   floorTexture: true,
@@ -438,6 +440,7 @@ function Aquafulness() {
   // Rotation stick (yaw / pitch look) and wave-follow stick.
   const [camFov, setCamFov] = useState(initial.camFov);
   const [camNear, setCamNear] = useState(initial.camNear);
+  const [camFar, setCamFar] = useState(initial.camFar);
   const [waveDir, setWaveDir] = useState(initial.waveDir);
   const [floorDepth, setFloorDepth] = useState(initial.floorDepth);
   const [floorTexture, setFloorTexture] = useState(initial.floorTexture);
@@ -489,12 +492,12 @@ function Aquafulness() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, bottomIdx, leanEnabled, regularWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, bottomIdx, leanEnabled, regularWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, bottomIdx, leanEnabled, regularWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, bottomIdx, leanEnabled, regularWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -546,6 +549,7 @@ function Aquafulness() {
   const prevSurfaceRef = useRef<number | null>(null);
   const camFovRef = useRef(camFov);
   const camNearRef = useRef(camNear);
+  const camFarRef = useRef(camFar);
   const waveDirRef = useRef(waveDir);
   const floorDepthRef = useRef(floorDepth);
   const floorTextureRef = useRef(floorTexture);
@@ -597,6 +601,7 @@ function Aquafulness() {
   useEffect(() => { audioSpatialRef.current = audioSpatial; }, [audioSpatial]);
   useEffect(() => { camFovRef.current = camFov; }, [camFov]);
   useEffect(() => { camNearRef.current = camNear; }, [camNear]);
+  useEffect(() => { camFarRef.current = camFar; }, [camFar]);
   useEffect(() => { waveDirRef.current = waveDir; }, [waveDir]);
   useEffect(() => { floorDepthRef.current = floorDepth; }, [floorDepth]);
   useEffect(() => { floorTextureRef.current = floorTexture; }, [floorTexture]);
@@ -659,6 +664,7 @@ function Aquafulness() {
     setWakeLock(DEFAULTS.wakeLock);
     setCamFov(DEFAULTS.camFov);
     setCamNear(DEFAULTS.camNear);
+    setCamFar(DEFAULTS.camFar);
     setWaveDir(DEFAULTS.waveDir);
     setFloorDepth(DEFAULTS.floorDepth);
     setFloorTexture(DEFAULTS.floorTexture);
@@ -993,7 +999,7 @@ function Aquafulness() {
       camFovRef.current,
       mount.clientWidth / mount.clientHeight,
       camNearRef.current,
-      2000,
+      camFarRef.current,
     );
 
     // Ocean plane
@@ -1176,7 +1182,6 @@ function Aquafulness() {
       uniform vec3 uWaterDeep;
       uniform vec3 uWaterShallow;
       uniform vec3 uSunColor;
-      uniform vec3 uFogColor;
       uniform vec3 uWaterTint;
       uniform float uOpacity;
       uniform float uTintHue;
@@ -1306,11 +1311,6 @@ function Aquafulness() {
         float sg = dot(col, vec3(0.299, 0.587, 0.114));
         col = mix(vec3(sg), col, uSurfSat);
 
-        // Fog to horizon
-        float dist = length(cameraPosition - vWorldPos);
-        float fogF = 1.0 - exp(-dist * 0.008);
-        col = mix(col, uFogColor, clamp(fogF, 0.0, 1.0));
-
         // Underwater tone-down: desaturate + darken, pulled toward tinted deep hue.
         if (uUnderwater > 0.0) {
           float g = dot(col, vec3(0.299, 0.587, 0.114));
@@ -1351,37 +1351,29 @@ function Aquafulness() {
     sandTex.colorSpace = THREE.SRGBColorSpace;
 
     const floorUniforms = {
-      fogColor: { value: new THREE.Color(0x000000) },
-      fogDensity: { value: 0 },
-      fogNear: { value: 1 },
-      fogFar: { value: 1000 },
       uColor: { value: new THREE.Color(0xd8c078) },
       uTextured: { value: 0 },
       uClouds: { value: 0 },
       uCloudScroll: { value: new THREE.Vector2(0, 0) },
       uTime: { value: 0 },
       uSunDir: { value: uniforms.uSunDir.value },
-      uFogColor: { value: uniforms.uFogColor.value },
       uSandTex: { value: sandTex },
       uSandScale: { value: 0.35 }, // ~1 tile per 2.9 m så kornen syns
     };
     const floorMat = new THREE.ShaderMaterial({
       uniforms: floorUniforms,
-      fog: true,
       side: THREE.DoubleSide,
       transparent: true,
       depthWrite: true,
       vertexShader: `
         varying vec2 vUv;
         varying vec3 vWorld;
-        #include <fog_pars_vertex>
         void main() {
           vUv = uv;
           vec4 wp = modelMatrix * vec4(position, 1.0);
           vWorld = wp.xyz;
           vec4 mvPosition = viewMatrix * wp;
           gl_Position = projectionMatrix * mvPosition;
-          #include <fog_vertex>
         }
       `,
       fragmentShader: `
@@ -1396,7 +1388,6 @@ function Aquafulness() {
         uniform vec3 uSunDir;
         uniform sampler2D uSandTex;
         uniform float uSandScale;
-        #include <fog_pars_fragment>
 
         float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453123); }
         float vnoise(vec2 p){
@@ -1427,7 +1418,6 @@ function Aquafulness() {
             float shade = 0.85 + 0.25 * fbm(p * 2.3 + 5.0);
             vec3 col = uColor * shade;
             gl_FragColor = vec4(col, cloud);
-            #include <fog_fragment>
             return;
           }
           vec3 base = uColor;
@@ -1449,7 +1439,6 @@ function Aquafulness() {
             base = mix(uColor, sand, clamp(uTextured, 0.0, 1.0));
           }
           gl_FragColor = vec4(base, 1.0);
-          #include <fog_fragment>
         }
       `,
     });
@@ -1465,23 +1454,17 @@ function Aquafulness() {
     const midCloudGeo = new THREE.PlaneGeometry(600, 600, 8, 8);
     midCloudGeo.rotateX(-Math.PI / 2);
     const midCloudUniforms = {
-      fogColor: { value: new THREE.Color(0x000000) },
-      fogDensity: { value: 0 },
-      fogNear: { value: 1 },
-      fogFar: { value: 1000 },
       uColor: { value: new THREE.Color(0xffffff) },
       uTextured: { value: 0 },
       uClouds: { value: 1 },
       uCloudScroll: { value: new THREE.Vector2(0, 0) },
       uTime: { value: 0 },
       uSunDir: { value: uniforms.uSunDir.value },
-      uFogColor: { value: uniforms.uFogColor.value },
       uSandTex: { value: sandTex },
       uSandScale: { value: 0.35 },
     };
     const midCloudMat = new THREE.ShaderMaterial({
       uniforms: midCloudUniforms,
-      fog: true,
       side: THREE.DoubleSide,
       transparent: true,
       depthWrite: false,
@@ -1592,10 +1575,11 @@ function Aquafulness() {
     };
     window.addEventListener("pagehide", saveCameraPoseNow);
     const animate = () => {
-      // Sync camera lens (FOV / near clip) with live settings.
-      if (camera.fov !== camFovRef.current || camera.near !== camNearRef.current) {
+      // Sync camera lens (FOV / near / far clip) with live settings.
+      if (camera.fov !== camFovRef.current || camera.near !== camNearRef.current || camera.far !== camFarRef.current) {
         camera.fov = camFovRef.current;
         camera.near = camNearRef.current;
+        camera.far = camFarRef.current;
         camera.updateProjectionMatrix();
       }
       const now = performance.now();
@@ -2583,6 +2567,18 @@ function Aquafulness() {
                     step={0.01}
                     onDec={() => setCamNear((v) => Math.max(0.001, +(v - 0.01).toFixed(3)))}
                     onInc={() => setCamNear((v) => Math.min(10, +(v + 0.01).toFixed(3)))}
+                  />
+                  <PadDial
+                    label="FJÄRRSIKT"
+                    mode="number"
+                    value={`${camFar.toFixed(0)}`}
+                    rawValue={camFar}
+                    onSet={(v) => setCamFar(Math.max(100, Math.min(100000, v)))}
+                    min={100}
+                    max={100000}
+                    step={100}
+                    onDec={() => setCamFar((v) => Math.max(100, +(v - 100).toFixed(0)))}
+                    onInc={() => setCamFar((v) => Math.min(100000, +(v + 100).toFixed(0)))}
                   />
                   <PadDial
                     label="ROTERING"
