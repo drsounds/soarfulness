@@ -159,6 +159,7 @@ type Persisted = {
   envId: string | null;
   envEra: string | null;
   envTime: string | null;
+  surfaceId: string | null;
 };
 const WATER_TINTS: { name: string; rgb: [number, number, number] }[] = [
   { name: "Nordhav", rgb: [1, 1, 1] },
@@ -304,6 +305,20 @@ function parseEnvironments(data: unknown): EnvironmentEntry[] {
     .filter((e): e is EnvironmentEntry => e !== null);
 }
 
+// A water-surface reflection preset lives at
+//   public/surfaces/<id>/surface.png  (+ manifest.json)
+// and the list comes from public/surfaces/surfaces.json. The photo is sampled
+// along the reflection vector to fake a richer environment reflection than the
+// flat horizon→sky gradient.
+type SurfaceEntry = { id: string; name: string };
+type SurfaceManifest = {
+  name?: string;
+  // How strongly the photo replaces the gradient reflection (0..1, default 0.6).
+  strength?: number;
+  // Surface image filename within the folder (defaults to surface.png).
+  image?: string;
+};
+
 const DEFAULTS: Persisted = {
   waveAmp: 2.0,
   timeOfDay: 0.5,
@@ -361,6 +376,7 @@ const DEFAULTS: Persisted = {
   envId: null,
   envEra: null,
   envTime: null,
+  surfaceId: null,
 };
 function loadSettings(): Persisted {
   if (typeof window === "undefined") return DEFAULTS;
@@ -466,6 +482,9 @@ function Aquafulness() {
   const [envId, setEnvId] = useState<string | null>(initial.envId);
   const [envEra, setEnvEra] = useState<string | null>(initial.envEra);
   const [envTime, setEnvTime] = useState<string | null>(initial.envTime);
+  // Selectable water-surface reflection presets from public/surfaces/surfaces.json.
+  const [surfaces, setSurfaces] = useState<SurfaceEntry[]>([]);
+  const [surfaceId, setSurfaceId] = useState<string | null>(initial.surfaceId);
   const [rotStick, setRotStick] = useState({ x: 0, y: 0 });
   const [driftStick, setDriftStick] = useState({ x: 0, y: 0 });
   const [waveDirStick, setWaveDirStick] = useState({ x: 0, y: 0 });
@@ -487,17 +506,23 @@ function Aquafulness() {
   // the animation loop can hide the procedural sky dome for a real equirect one.
   const envTextureRef = useRef<THREE.Texture | null>(null);
   const envActiveRef = useRef(false);
+  // Water-shader uniforms + reflection-texture plumbing, so the surface-selector
+  // effect can feed a photo into the shader without rebuilding the material.
+  const waterUniformsRef = useRef<Record<string, { value: unknown }> | null>(null);
+  const reflTexRef = useRef<THREE.Texture | null>(null);
+  const reflWhiteTexRef = useRef<THREE.Texture | null>(null);
+  const maxAnisoRef = useRef(4);
 
   // Persist settings to localStorage whenever they change (SSR-safe, hydration-safe).
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, bottomIdx, leanEnabled, regularWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, bottomIdx, leanEnabled, regularWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime, surfaceId };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, bottomIdx, leanEnabled, regularWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, bottomIdx, leanEnabled, regularWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime, surfaceId]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -751,6 +776,14 @@ function Aquafulness() {
     setEnvTime(times[(i + dir + times.length) % times.length].id);
   };
 
+  // Step through the reflection surfaces, including an "AV" (gradient-only) slot.
+  const cycleSurface = (dir: number) => {
+    const options: (string | null)[] = [null, ...surfaces.map((s) => s.id)];
+    const cur = options.indexOf(surfaceId ?? null);
+    const idx = cur < 0 ? 0 : cur;
+    setSurfaceId(options[(idx + dir + options.length) % options.length]);
+  };
+
   // Ocean sound: loop the recorded water track through a lowpass + depth gain
   // so we can still muffle & boost it based on how deep the camera is.
   useEffect(() => {
@@ -977,6 +1010,35 @@ function Aquafulness() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [environments]);
 
+  // Discover the available reflection surfaces from surfaces.json.
+  useEffect(() => {
+    let alive = true;
+    fetch("/surfaces/surfaces.json")
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("no surfaces.json"))))
+      .then((data: unknown) => {
+        if (!alive) return;
+        const raw = Array.isArray(data)
+          ? data
+          : ((data as { surfaces?: unknown }).surfaces ?? []);
+        const list: SurfaceEntry[] = (Array.isArray(raw) ? raw : [])
+          .map((s) => {
+            const e = s as { id?: unknown; name?: unknown };
+            return typeof e.id === "string"
+              ? { id: e.id, name: typeof e.name === "string" ? e.name : e.id }
+              : null;
+          })
+          .filter((s): s is SurfaceEntry => s !== null);
+        setSurfaces(list);
+        setSurfaceId((cur) => (cur && !list.some((s) => s.id === cur) ? null : cur));
+      })
+      .catch(() => {
+        if (alive) setSurfaces([]);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
 
 
 
@@ -1006,6 +1068,20 @@ function Aquafulness() {
     const geo = new THREE.PlaneGeometry(600, 600, 320, 320);
     geo.rotateX(-Math.PI / 2);
 
+    // Max anisotropy for later texture loads (reflection surface, etc.).
+    maxAnisoRef.current = renderer.capabilities.getMaxAnisotropy?.() ?? 4;
+
+    // 1×1 white fallback so the reflection sampler is always valid; the
+    // surface-selector effect swaps in a real photo and raises uReflMix.
+    const whiteTex = new THREE.DataTexture(
+      new Uint8Array([255, 255, 255, 255]),
+      1,
+      1,
+      THREE.RGBAFormat,
+    );
+    whiteTex.needsUpdate = true;
+    reflWhiteTexRef.current = whiteTex;
+
     const uniforms = {
       uTime: { value: 0 },
       uAmp: { value: waveAmp },
@@ -1033,7 +1109,12 @@ function Aquafulness() {
       uVortex: { value: 0 },
       uVortexOpening: { value: 14 },
       uVortexCenter: { value: new THREE.Vector2(0, 0) },
+      // Selectable photo reflection: sampled along the reflection vector.
+      uReflTex: { value: whiteTex },
+      uReflMix: { value: 0 },
     };
+    // Expose the uniforms so the surface-selector effect can feed in a photo.
+    waterUniformsRef.current = uniforms as unknown as Record<string, { value: unknown }>;
 
     const vertexShader = /* glsl */ `
       uniform float uTime;
@@ -1193,6 +1274,8 @@ function Aquafulness() {
       uniform float uTime;
       uniform float uAmp;
       uniform float uQuality;
+      uniform sampler2D uReflTex;
+      uniform float uReflMix;
       varying vec3 vWorldPos;
       varying vec3 vNormal;
 
@@ -1278,6 +1361,22 @@ function Aquafulness() {
         vec3 R = reflect(-V, Nshim);
         float rUp = clamp(R.y, 0.0, 1.0);
         vec3 skyRef = mix(uHorizonColor, uSkyColor, pow(rUp, 0.65));
+
+        // Selectable photo reflection: map the reflection direction to
+        // equirectangular-ish UVs (azimuth → u, elevation → v) and sample a
+        // real surface photo. Because R is built from the wave-perturbed
+        // normal, the reflected image ripples and breaks up with the swell —
+        // far cheaper than planar/SSR reflections but far richer than the flat
+        // gradient. Modulated by daylight so it still darkens at night.
+        if (uReflMix > 0.001) {
+          vec2 reflUv = vec2(atan(R.z, R.x) * 0.15915494 + 0.5, clamp(1.0 - rUp, 0.0, 1.0));
+          vec3 photo = texture2D(uReflTex, reflUv).rgb;
+          float daylight = clamp(uSunDir.y + 0.35, 0.12, 1.15);
+          // Keep the gradient's hue as a base (25%) so dawn/dusk still tints
+          // the water; the photo supplies the detail (75%).
+          vec3 envRefl = mix(skyRef, photo * daylight, 0.75);
+          skyRef = mix(skyRef, envRefl, uReflMix);
+        }
 
         // Refraction tint — view-dependent transmitted color. Straight down
         // we see into the deep hue; at grazing angles the shallow tint takes
@@ -2028,6 +2127,13 @@ function Aquafulness() {
         envTextureRef.current = null;
       }
       envActiveRef.current = false;
+      if (reflTexRef.current) {
+        reflTexRef.current.dispose();
+        reflTexRef.current = null;
+      }
+      whiteTex.dispose();
+      reflWhiteTexRef.current = null;
+      waterUniformsRef.current = null;
       sceneRef.current = null;
       if (renderer.domElement.parentNode === mount) {
         mount.removeChild(renderer.domElement);
@@ -2155,6 +2261,70 @@ function Aquafulness() {
       cancelled = true;
     };
   }, [envId, envEra, envTime]);
+
+  // Load / swap the selected water-surface reflection photo into the water
+  // shader. Re-runs whenever the surface selection changes.
+  useEffect(() => {
+    const uniforms = waterUniformsRef.current;
+    if (!uniforms) return;
+
+    const revert = () => {
+      uniforms.uReflMix.value = 0;
+      uniforms.uReflTex.value = reflWhiteTexRef.current;
+      if (reflTexRef.current) {
+        reflTexRef.current.dispose();
+        reflTexRef.current = null;
+      }
+    };
+
+    if (!surfaceId) {
+      revert();
+      return;
+    }
+
+    let cancelled = false;
+    const dir = `/surfaces/${encodeURIComponent(surfaceId)}`;
+
+    fetch(`${dir}/manifest.json`)
+      .then((r) => (r.ok ? (r.json() as Promise<SurfaceManifest>) : {}))
+      .catch(() => ({} as SurfaceManifest))
+      .then((manifest: SurfaceManifest) => {
+        if (cancelled) return;
+        const image = manifest.image ?? "surface.png";
+        new THREE.TextureLoader().load(
+          `${dir}/${encodeURIComponent(image)}`,
+          (tex) => {
+            if (cancelled) {
+              tex.dispose();
+              return;
+            }
+            // Mirror horizontally to hide the azimuth seam from atan(); clamp
+            // vertically so the horizon/zenith rows don't wrap.
+            tex.wrapS = THREE.MirroredRepeatWrapping;
+            tex.wrapT = THREE.ClampToEdgeWrapping;
+            tex.colorSpace = THREE.SRGBColorSpace;
+            tex.anisotropy = maxAnisoRef.current;
+            if (reflTexRef.current) reflTexRef.current.dispose();
+            reflTexRef.current = tex;
+            uniforms.uReflTex.value = tex;
+            const strength =
+              typeof manifest.strength === "number"
+                ? Math.max(0, Math.min(1, manifest.strength))
+                : 0.6;
+            uniforms.uReflMix.value = strength;
+          },
+          undefined,
+          (err) => {
+            console.error(`Failed to load surface "${surfaceId}"`, err);
+            if (!cancelled) revert();
+          },
+        );
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [surfaceId]);
 
   // Time-of-day label
   const todLabel = (() => {
@@ -2619,6 +2789,18 @@ function Aquafulness() {
                     onDec={() => setWaterTintIdx((i) => (i - 1 + WATER_TINTS.length) % WATER_TINTS.length)}
                     onInc={() => setWaterTintIdx((i) => (i + 1) % WATER_TINTS.length)}
                   />
+                  {surfaces.length > 0 && (
+                    <PadDial
+                      label="SPEGLING"
+                      value={
+                        surfaceId
+                          ? (surfaces.find((s) => s.id === surfaceId)?.name ?? surfaceId)
+                          : "AV"
+                      }
+                      onDec={() => cycleSurface(-1)}
+                      onInc={() => cycleSurface(1)}
+                    />
+                  )}
                   <PadDial
                     label="OPACITET"
                     mode="number"
