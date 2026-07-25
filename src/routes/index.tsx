@@ -129,6 +129,7 @@ type Persisted = {
   leanEnabled: boolean;
   regularWaves: boolean;
   regularCross: boolean;
+  crossAffectsHeave: boolean;
   regularPeriod: number;
   wavePeak: number;
   waveHighQuality: boolean;
@@ -329,6 +330,7 @@ const DEFAULTS: Persisted = {
   leanEnabled: false,
   regularWaves: true,
   regularCross: false,
+  crossAffectsHeave: false,
   regularPeriod: 1,
   wavePeak: 1,
   waveHighQuality: true,
@@ -427,6 +429,7 @@ function Aquafulness() {
   const [leanEnabled, setLeanEnabled] = useState(initial.leanEnabled);
   const [regularWaves, setRegularWaves] = useState(initial.regularWaves);
   const [regularCross, setRegularCross] = useState(initial.regularCross);
+  const [crossAffectsHeave, setCrossAffectsHeave] = useState(initial.crossAffectsHeave);
   const [regularPeriod, setRegularPeriod] = useState(initial.regularPeriod);
   const [wavePeak, setWavePeak] = useState(initial.wavePeak);
   const [waveHighQuality, setWaveHighQuality] = useState(initial.waveHighQuality);
@@ -486,12 +489,12 @@ function Aquafulness() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, bottomIdx, leanEnabled, regularWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, bottomIdx, leanEnabled, regularWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -529,6 +532,7 @@ function Aquafulness() {
   const leanRef = useRef(leanEnabled);
   const regularRef = useRef(regularWaves);
   const regularCrossRef = useRef(regularCross);
+  const crossAffectsHeaveRef = useRef(crossAffectsHeave);
   const regularPeriodRef = useRef(regularPeriod);
   const wavePeakRef = useRef(wavePeak);
   const waveHighQualityRef = useRef(waveHighQuality);
@@ -584,6 +588,7 @@ function Aquafulness() {
   useEffect(() => { leanRef.current = leanEnabled; }, [leanEnabled]);
   useEffect(() => { regularRef.current = regularWaves; }, [regularWaves]);
   useEffect(() => { regularCrossRef.current = regularCross; }, [regularCross]);
+  useEffect(() => { crossAffectsHeaveRef.current = crossAffectsHeave; }, [crossAffectsHeave]);
   useEffect(() => { regularPeriodRef.current = regularPeriod; }, [regularPeriod]);
   useEffect(() => { wavePeakRef.current = wavePeak; }, [wavePeak]);
   useEffect(() => { waveHighQualityRef.current = waveHighQuality; }, [waveHighQuality]);
@@ -646,6 +651,7 @@ function Aquafulness() {
     setLeanEnabled(DEFAULTS.leanEnabled);
     setRegularWaves(DEFAULTS.regularWaves);
     setRegularCross(DEFAULTS.regularCross);
+    setCrossAffectsHeave(DEFAULTS.crossAffectsHeave);
     setRegularPeriod(DEFAULTS.regularPeriod);
     setWavePeak(DEFAULTS.wavePeak);
     setWaveHighQuality(DEFAULTS.waveHighQuality);
@@ -1747,7 +1753,7 @@ function Aquafulness() {
       const dirRad = (waveDirRef.current * Math.PI) / 180;
       const surfaceY = inVortex
         ? vortexSurfaceHeight(camX, camZ, t, ampRef.current, regularPeriodRef.current, vortexOpeningRef.current)
-        : waveHeight(camX, camZ, t, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad);
+        : waveHeight(camX, camZ, t, ampRef.current, regularRef.current, regularCrossRef.current && crossAffectsHeaveRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad);
 
       // Compute wave vertical velocity first so buoyancy can react to it.
       // Clamp it too, not just the anticipatory peek below: on a dropped
@@ -1775,7 +1781,7 @@ function Aquafulness() {
       const lead = 0.7 / (1 + peakK * 6.0);
       const futureSurf = inVortex
         ? vortexSurfaceHeight(camX, camZ, t + lead, ampRef.current, regularPeriodRef.current, vortexOpeningRef.current)
-        : waveHeight(camX, camZ, t + lead, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad);
+        : waveHeight(camX, camZ, t + lead, ampRef.current, regularRef.current, regularCrossRef.current && crossAffectsHeaveRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad);
       const maxSlope = ampRef.current * 6.0;
       const rawAnticip = Math.max(-maxSlope, Math.min(maxSlope, (futureSurf - surfaceY) / lead));
       const blend = 1 - peakK * 0.85;
@@ -1980,7 +1986,7 @@ function Aquafulness() {
         if (mb.bob.follow) {
           const s = inVortex
             ? vortexSurfaceHeight(mb.base.x, mb.base.z, t, ampRef.current, regularPeriodRef.current, vortexOpeningRef.current)
-            : waveHeight(mb.base.x, mb.base.z, t, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad);
+            : waveHeight(mb.base.x, mb.base.z, t, ampRef.current, regularRef.current, regularCrossRef.current && crossAffectsHeaveRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad);
           h = s * mb.bob.amp;
         } else {
           h = Math.sin(t * mb.bob.speed) * mb.bob.amp;
@@ -2423,6 +2429,12 @@ function Aquafulness() {
                     value={regularCross ? "PÅ" : "AV"}
                     onDec={() => setRegularCross(false)}
                     onInc={() => setRegularCross(true)}
+                  />
+                  <PadDial
+                    label="KORSVÅG GUPP"
+                    value={crossAffectsHeave ? "PÅ" : "AV"}
+                    onDec={() => setCrossAffectsHeave(false)}
+                    onInc={() => setCrossAffectsHeave(true)}
                   />
                   <PadDial
                     label="VÅGPERIOD"
