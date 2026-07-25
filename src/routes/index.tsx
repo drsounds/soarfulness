@@ -136,6 +136,7 @@ type Persisted = {
   wakeLock: boolean;
   camFov: number;
   camNear: number;
+  camFar: number;
   waveDir: number;
   floorDepth: number;
   floorTexture: boolean;
@@ -327,6 +328,7 @@ const DEFAULTS: Persisted = {
   wakeLock: true,
   camFov: 65,
   camNear: 5,
+  camFar: 20000,
   waveDir: 0,
   floorDepth: 28,
   floorTexture: true,
@@ -426,6 +428,7 @@ function Aquafulness() {
   // Rotation stick (yaw / pitch look) and wave-follow stick.
   const [camFov, setCamFov] = useState(initial.camFov);
   const [camNear, setCamNear] = useState(initial.camNear);
+  const [camFar, setCamFar] = useState(initial.camFar);
   const [waveDir, setWaveDir] = useState(initial.waveDir);
   const [floorDepth, setFloorDepth] = useState(initial.floorDepth);
   const [floorTexture, setFloorTexture] = useState(initial.floorTexture);
@@ -532,6 +535,7 @@ function Aquafulness() {
   const prevSurfaceRef = useRef<number | null>(null);
   const camFovRef = useRef(camFov);
   const camNearRef = useRef(camNear);
+  const camFarRef = useRef(camFar);
   const waveDirRef = useRef(waveDir);
   const floorDepthRef = useRef(floorDepth);
   const floorTextureRef = useRef(floorTexture);
@@ -582,6 +586,7 @@ function Aquafulness() {
   useEffect(() => { audioSpatialRef.current = audioSpatial; }, [audioSpatial]);
   useEffect(() => { camFovRef.current = camFov; }, [camFov]);
   useEffect(() => { camNearRef.current = camNear; }, [camNear]);
+  useEffect(() => { camFarRef.current = camFar; }, [camFar]);
   useEffect(() => { waveDirRef.current = waveDir; }, [waveDir]);
   useEffect(() => { floorDepthRef.current = floorDepth; }, [floorDepth]);
   useEffect(() => { floorTextureRef.current = floorTexture; }, [floorTexture]);
@@ -643,6 +648,7 @@ function Aquafulness() {
     setWakeLock(DEFAULTS.wakeLock);
     setCamFov(DEFAULTS.camFov);
     setCamNear(DEFAULTS.camNear);
+    setCamFar(DEFAULTS.camFar);
     setWaveDir(DEFAULTS.waveDir);
     setFloorDepth(DEFAULTS.floorDepth);
     setFloorTexture(DEFAULTS.floorTexture);
@@ -977,7 +983,7 @@ function Aquafulness() {
       camFovRef.current,
       mount.clientWidth / mount.clientHeight,
       camNearRef.current,
-      2000,
+      camFarRef.current,
     );
 
     // Ocean plane
@@ -1576,10 +1582,11 @@ function Aquafulness() {
     };
     window.addEventListener("pagehide", saveCameraPoseNow);
     const animate = () => {
-      // Sync camera lens (FOV / near clip) with live settings.
-      if (camera.fov !== camFovRef.current || camera.near !== camNearRef.current) {
+      // Sync camera lens (FOV / near / far clip) with live settings.
+      if (camera.fov !== camFovRef.current || camera.near !== camNearRef.current || camera.far !== camFarRef.current) {
         camera.fov = camFovRef.current;
         camera.near = camNearRef.current;
+        camera.far = camFarRef.current;
         camera.updateProjectionMatrix();
       }
       const now = performance.now();
@@ -2772,6 +2779,18 @@ function Aquafulness() {
                 step={0.01}
                 onDec={() => setCamNear((v) => Math.max(0.001, +(v - 0.01).toFixed(3)))}
                 onInc={() => setCamNear((v) => Math.min(10, +(v + 0.01).toFixed(3)))}
+              />
+              <PadDial
+                label="FJÄRRSIKT"
+                mode="number"
+                value={`${camFar.toFixed(0)}`}
+                rawValue={camFar}
+                onSet={(v) => setCamFar(Math.max(100, Math.min(100000, v)))}
+                min={100}
+                max={100000}
+                step={100}
+                onDec={() => setCamFar((v) => Math.max(100, +(v - 100).toFixed(0)))}
+                onInc={() => setCamFar((v) => Math.min(100000, +(v + 100).toFixed(0)))}
               />
               <PadDial
                 label="VÅGRIKTNING"
