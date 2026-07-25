@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import waterAsset from "@/assets/water.mp3.asset.json";
 import vanernBackdrop from "@/assets/vanern-backdrop.png.asset.json";
 import sandTextureAsset from "@/assets/sand_cc0_512.jpg.asset.json";
@@ -152,6 +153,7 @@ type Persisted = {
   swaySpeed: number;
   swayBias: number;
   liveMode: boolean;
+  sceneId: string | null;
 };
 const WATER_TINTS: { name: string; rgb: [number, number, number] }[] = [
   { name: "Nordhav", rgb: [1, 1, 1] },
@@ -174,6 +176,65 @@ const BACKDROPS: { name: string; url: string | null }[] = [
   { name: "AV", url: null },
   { name: "Vänern", url: vanernBackdrop.url },
 ];
+
+// A loadable .glb scene lives in public/scenes/<id>/<id>.glb with an optional
+// public/scenes/<id>/manifest.json describing where/how to place it. The list
+// of available scenes and their display names comes from public/scenes/scenes.json.
+type SceneEntry = { id: string; name: string };
+type SceneManifest = {
+  name?: string;
+  // World placement of the loaded model. rotation is in degrees.
+  position?: [number, number, number];
+  rotation?: [number, number, number];
+  scale?: number | [number, number, number];
+  // Optional bobbing. Omitted / false → the model stays perfectly static.
+  //   true                         → floats on the waves (follow, amp 1)
+  //   { follow: true, amp }        → rides the wave surface at its position
+  //   { follow: false, amp, speed} → simple vertical sine bob
+  bob?: boolean | { follow?: boolean; amp?: number; speed?: number };
+};
+
+// Resolved bob settings the animation loop consumes; null means static.
+type BobConfig = { follow: boolean; amp: number; speed: number };
+function resolveBob(bob: SceneManifest["bob"]): BobConfig | null {
+  if (!bob) return null;
+  if (bob === true) return { follow: true, amp: 1, speed: 1 };
+  return {
+    follow: bob.follow ?? true,
+    amp: bob.amp ?? 1,
+    speed: bob.speed ?? 1,
+  };
+}
+
+// Apply a scene manifest's transform to a loaded model root.
+function applyManifest(obj: THREE.Object3D, m: SceneManifest) {
+  const d2r = (d: number) => (d * Math.PI) / 180;
+  const p = m.position ?? [0, 0, 0];
+  obj.position.set(p[0] ?? 0, p[1] ?? 0, p[2] ?? 0);
+  const r = m.rotation ?? [0, 0, 0];
+  obj.rotation.set(d2r(r[0] ?? 0), d2r(r[1] ?? 0), d2r(r[2] ?? 0));
+  const s = m.scale ?? 1;
+  if (Array.isArray(s)) obj.scale.set(s[0] ?? 1, s[1] ?? 1, s[2] ?? 1);
+  else obj.scale.setScalar(s);
+}
+
+// Free all GPU resources held by a loaded model subtree.
+function disposeObject(obj: THREE.Object3D) {
+  obj.traverse((child) => {
+    const mesh = child as THREE.Mesh;
+    if (mesh.geometry) mesh.geometry.dispose();
+    const mat = mesh.material as THREE.Material | THREE.Material[] | undefined;
+    if (!mat) return;
+    const mats = Array.isArray(mat) ? mat : [mat];
+    for (const m of mats) {
+      for (const key of Object.keys(m) as (keyof THREE.Material)[]) {
+        const val = (m as unknown as Record<string, unknown>)[key];
+        if (val instanceof THREE.Texture) val.dispose();
+      }
+      m.dispose();
+    }
+  });
+}
 const DEFAULTS: Persisted = {
   waveAmp: 2.0,
   timeOfDay: 0.5,
@@ -225,6 +286,7 @@ const DEFAULTS: Persisted = {
   swaySpeed: 0.15,
   swayBias: 0,
   liveMode: false,
+  sceneId: null,
 };
 function loadSettings(): Persisted {
   if (typeof window === "undefined") return DEFAULTS;
@@ -294,6 +356,9 @@ function Aquafulness() {
   const [swaySpeed, setSwaySpeed] = useState(initial.swaySpeed);
   const [swayBias, setSwayBias] = useState(initial.swayBias);
   const [liveMode, setLiveMode] = useState(initial.liveMode);
+  // Loadable .glb scenes discovered from public/scenes/scenes.json.
+  const [scenes, setScenes] = useState<SceneEntry[]>([]);
+  const [sceneId, setSceneId] = useState<string | null>(initial.sceneId);
   const [rotStick, setRotStick] = useState({ x: 0, y: 0 });
   const [driftStick, setDriftStick] = useState({ x: 0, y: 0 });
   const [waveDirStick, setWaveDirStick] = useState({ x: 0, y: 0 });
@@ -302,17 +367,25 @@ function Aquafulness() {
   const [uiVisible, setUiVisible] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const idleTimerRef = useRef<number | null>(null);
+  // The three.js scene graph (populated by the WebGL setup effect) and the
+  // currently loaded .glb model, so the scene-selector effect can swap models
+  // in and out without tearing down the whole renderer.
+  const sceneRef = useRef<THREE.Scene | null>(null);
+  const modelRef = useRef<THREE.Object3D | null>(null);
+  // Non-null only when the current scene opts into bobbing; drives the model's
+  // vertical motion from inside the animation loop.
+  const modelBobRef = useRef<{ base: THREE.Vector3; bob: BobConfig } | null>(null);
 
   // Persist settings to localStorage whenever they change (SSR-safe, hydration-safe).
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -494,6 +567,15 @@ function Aquafulness() {
     // timeOfDay is intentionally left untouched.
   };
 
+  // Step through the available scenes, including an "AV" (no model) slot.
+  const cycleScene = (dir: number) => {
+    const options: (string | null)[] = [null, ...scenes.map((s) => s.id)];
+    const cur = options.indexOf(sceneId ?? null);
+    const idx = cur < 0 ? 0 : cur;
+    const next = (idx + dir + options.length) % options.length;
+    setSceneId(options[next]);
+  };
+
   // Ocean sound: loop the recorded water track through a lowpass + depth gain
   // so we can still muffle & boost it based on how deep the camera is.
   useEffect(() => {
@@ -656,6 +738,36 @@ function Aquafulness() {
     }
   };
 
+  // Discover the available .glb scenes from public/scenes/scenes.json.
+  useEffect(() => {
+    let alive = true;
+    fetch("/scenes/scenes.json")
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("no scenes.json"))))
+      .then((data: unknown) => {
+        if (!alive) return;
+        const raw = Array.isArray(data)
+          ? data
+          : ((data as { scenes?: unknown }).scenes ?? []);
+        const list: SceneEntry[] = (Array.isArray(raw) ? raw : [])
+          .map((s) => {
+            const e = s as { id?: unknown; name?: unknown };
+            return typeof e.id === "string"
+              ? { id: e.id, name: typeof e.name === "string" ? e.name : e.id }
+              : null;
+          })
+          .filter((s): s is SceneEntry => s !== null);
+        setScenes(list);
+        // Drop a persisted selection that no longer exists.
+        setSceneId((cur) => (cur && !list.some((s) => s.id === cur) ? null : cur));
+      })
+      .catch(() => {
+        if (alive) setScenes([]);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
 
 
 
@@ -671,6 +783,8 @@ function Aquafulness() {
 
     const scene = new THREE.Scene();
     scene.fog = new THREE.FogExp2(0x88aacc, 0.008);
+    // Expose the scene graph so the scene-selector effect can add/remove models.
+    sceneRef.current = scene;
 
     const camera = new THREE.PerspectiveCamera(
       camFovRef.current,
@@ -1630,6 +1744,23 @@ function Aquafulness() {
       sky.visible = !useBackdrop;
       renderer.setClearColor(0x032033, useBackdrop ? 0 : 1);
 
+      // Optional model bobbing — static scenes leave modelBobRef null and the
+      // loaded model keeps its manifest position untouched.
+      const mb = modelBobRef.current;
+      const model = modelRef.current;
+      if (mb && model) {
+        let h: number;
+        if (mb.bob.follow) {
+          const s = inVortex
+            ? vortexSurfaceHeight(mb.base.x, mb.base.z, t, ampRef.current, regularPeriodRef.current, vortexOpeningRef.current)
+            : waveHeight(mb.base.x, mb.base.z, t, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad);
+          h = s * mb.bob.amp;
+        } else {
+          h = Math.sin(t * mb.bob.speed) * mb.bob.amp;
+        }
+        model.position.set(mb.base.x, mb.base.y + h, mb.base.z);
+      }
+
       renderer.render(scene, camera);
       raf = requestAnimationFrame(animate);
       clock.getDelta();
@@ -1649,11 +1780,70 @@ function Aquafulness() {
       sandTex.dispose();
       skyGeo.dispose();
       skyMat.dispose();
+      if (modelRef.current) {
+        scene.remove(modelRef.current);
+        disposeObject(modelRef.current);
+        modelRef.current = null;
+      }
+      modelBobRef.current = null;
+      sceneRef.current = null;
       if (renderer.domElement.parentNode === mount) {
         mount.removeChild(renderer.domElement);
       }
     };
   }, []);
+
+  // Load / swap the selected .glb scene into the live three.js scene graph.
+  // Runs after the WebGL setup effect above has populated sceneRef, and re-runs
+  // whenever the user picks a different scene.
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (!scene) return;
+
+    // Remove any previously loaded model first.
+    if (modelRef.current) {
+      scene.remove(modelRef.current);
+      disposeObject(modelRef.current);
+      modelRef.current = null;
+    }
+    modelBobRef.current = null;
+
+    if (!sceneId) return;
+
+    let cancelled = false;
+    const base = `/scenes/${encodeURIComponent(sceneId)}`;
+    const loader = new GLTFLoader();
+
+    fetch(`${base}/manifest.json`)
+      .then((r) => (r.ok ? (r.json() as Promise<SceneManifest>) : {}))
+      .catch(() => ({} as SceneManifest))
+      .then((manifest: SceneManifest) => {
+        if (cancelled) return;
+        loader.load(
+          `${base}/${encodeURIComponent(sceneId)}.glb`,
+          (gltf) => {
+            if (cancelled) {
+              disposeObject(gltf.scene);
+              return;
+            }
+            const model = gltf.scene;
+            applyManifest(model, manifest);
+            scene.add(model);
+            modelRef.current = model;
+            const bob = resolveBob(manifest.bob);
+            modelBobRef.current = bob
+              ? { base: model.position.clone(), bob }
+              : null;
+          },
+          undefined,
+          (err) => console.error(`Failed to load scene "${sceneId}"`, err),
+        );
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [sceneId]);
 
   // Time-of-day label
   const todLabel = (() => {
@@ -2205,6 +2395,18 @@ function Aquafulness() {
                 onDec={() => setVortexSpeed((v) => Math.max(-3, +(v - 0.1).toFixed(2)))}
                 onInc={() => setVortexSpeed((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
               />
+              {scenes.length > 0 && (
+                <PadDial
+                  label="SCEN"
+                  value={
+                    sceneId
+                      ? (scenes.find((s) => s.id === sceneId)?.name ?? sceneId)
+                      : "AV"
+                  }
+                  onDec={() => cycleScene(-1)}
+                  onInc={() => cycleScene(1)}
+                />
+              )}
               <PadDial
                 label="BAKGRUND"
                 value={BACKDROPS[backdropIdx].name}
