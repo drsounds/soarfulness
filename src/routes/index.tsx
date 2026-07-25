@@ -1720,6 +1720,20 @@ function Aquafulness() {
         camX = posRef.current.x;
         camZ = posRef.current.z;
       }
+
+      // Rekentrera ytan, botten och molnlagret runt kameran varje frame så
+      // de ändliga 600×600-planen alltid täcker synfältet — vågorna och
+      // sandtexturen räknas ut i world space (se shadrarna ovan) så att
+      // flytta meshen bara skiftar vilket fönster av det oändliga fältet som
+      // visas, utan att mönstret hoppar. Resultatet upplevs som en oändlig
+      // vattenyta/botten oavsett hur långt kameran driver.
+      ocean.position.x = camX;
+      ocean.position.z = camZ;
+      floor.position.x = camX;
+      floor.position.z = camZ;
+      midClouds.position.x = camX;
+      midClouds.position.z = camZ;
+
       const dirRad = (waveDirRef.current * Math.PI) / 180;
       const surfaceY = inVortex
         ? vortexSurfaceHeight(camX, camZ, t, ampRef.current, regularPeriodRef.current, vortexOpeningRef.current)
