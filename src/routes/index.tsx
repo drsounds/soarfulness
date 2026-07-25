@@ -1722,8 +1722,18 @@ function Aquafulness() {
         camX = Math.cos(ang) * vortexRadiusRef.current;
         camZ = Math.sin(ang) * vortexRadiusRef.current;
       } else {
-        posRef.current.x += (stickRef.current.x * walkSpeed + driftStickRef.current.x * driftSpeed) * dt;
-        posRef.current.z -= (stickRef.current.y * walkSpeed + driftStickRef.current.y * driftSpeed) * dt;
+        // NAV-spaken är kamera-relativ: stick.y "framåt" ska alltid röra sig
+        // dit kameran för tillfället tittar (yaw), inte fast världs -z, annars
+        // känns det som att man åker åt fel håll så fort man har svängt.
+        // STRÖM (driften) representerar en ström i en fast riktning och
+        // förblir därför i världsrymden, orörd av kamerans rotation.
+        const yaw = yawRef.current;
+        const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
+        const rightX = Math.cos(yaw), rightZ = -Math.sin(yaw);
+        const walkX = stickRef.current.x * rightX + stickRef.current.y * fwdX;
+        const walkZ = stickRef.current.x * rightZ + stickRef.current.y * fwdZ;
+        posRef.current.x += (walkX * walkSpeed + driftStickRef.current.x * driftSpeed) * dt;
+        posRef.current.z += (walkZ * walkSpeed - driftStickRef.current.y * driftSpeed) * dt;
         camX = posRef.current.x;
         camZ = posRef.current.z;
       }
