@@ -1166,7 +1166,6 @@ function Aquafulness() {
       uniform vec3 uWaterDeep;
       uniform vec3 uWaterShallow;
       uniform vec3 uSunColor;
-      uniform vec3 uFogColor;
       uniform vec3 uWaterTint;
       uniform float uOpacity;
       uniform float uTintHue;
@@ -1296,11 +1295,6 @@ function Aquafulness() {
         float sg = dot(col, vec3(0.299, 0.587, 0.114));
         col = mix(vec3(sg), col, uSurfSat);
 
-        // Fog to horizon
-        float dist = length(cameraPosition - vWorldPos);
-        float fogF = 1.0 - exp(-dist * 0.008);
-        col = mix(col, uFogColor, clamp(fogF, 0.0, 1.0));
-
         // Underwater tone-down: desaturate + darken, pulled toward tinted deep hue.
         if (uUnderwater > 0.0) {
           float g = dot(col, vec3(0.299, 0.587, 0.114));
@@ -1341,37 +1335,29 @@ function Aquafulness() {
     sandTex.colorSpace = THREE.SRGBColorSpace;
 
     const floorUniforms = {
-      fogColor: { value: new THREE.Color(0x000000) },
-      fogDensity: { value: 0 },
-      fogNear: { value: 1 },
-      fogFar: { value: 1000 },
       uColor: { value: new THREE.Color(0xd8c078) },
       uTextured: { value: 0 },
       uClouds: { value: 0 },
       uCloudScroll: { value: new THREE.Vector2(0, 0) },
       uTime: { value: 0 },
       uSunDir: { value: uniforms.uSunDir.value },
-      uFogColor: { value: uniforms.uFogColor.value },
       uSandTex: { value: sandTex },
       uSandScale: { value: 0.35 }, // ~1 tile per 2.9 m så kornen syns
     };
     const floorMat = new THREE.ShaderMaterial({
       uniforms: floorUniforms,
-      fog: true,
       side: THREE.DoubleSide,
       transparent: true,
       depthWrite: true,
       vertexShader: `
         varying vec2 vUv;
         varying vec3 vWorld;
-        #include <fog_pars_vertex>
         void main() {
           vUv = uv;
           vec4 wp = modelMatrix * vec4(position, 1.0);
           vWorld = wp.xyz;
           vec4 mvPosition = viewMatrix * wp;
           gl_Position = projectionMatrix * mvPosition;
-          #include <fog_vertex>
         }
       `,
       fragmentShader: `
@@ -1386,7 +1372,6 @@ function Aquafulness() {
         uniform vec3 uSunDir;
         uniform sampler2D uSandTex;
         uniform float uSandScale;
-        #include <fog_pars_fragment>
 
         float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453123); }
         float vnoise(vec2 p){
@@ -1417,7 +1402,6 @@ function Aquafulness() {
             float shade = 0.85 + 0.25 * fbm(p * 2.3 + 5.0);
             vec3 col = uColor * shade;
             gl_FragColor = vec4(col, cloud);
-            #include <fog_fragment>
             return;
           }
           vec3 base = uColor;
@@ -1439,7 +1423,6 @@ function Aquafulness() {
             base = mix(uColor, sand, clamp(uTextured, 0.0, 1.0));
           }
           gl_FragColor = vec4(base, 1.0);
-          #include <fog_fragment>
         }
       `,
     });
@@ -1455,23 +1438,17 @@ function Aquafulness() {
     const midCloudGeo = new THREE.PlaneGeometry(600, 600, 8, 8);
     midCloudGeo.rotateX(-Math.PI / 2);
     const midCloudUniforms = {
-      fogColor: { value: new THREE.Color(0x000000) },
-      fogDensity: { value: 0 },
-      fogNear: { value: 1 },
-      fogFar: { value: 1000 },
       uColor: { value: new THREE.Color(0xffffff) },
       uTextured: { value: 0 },
       uClouds: { value: 1 },
       uCloudScroll: { value: new THREE.Vector2(0, 0) },
       uTime: { value: 0 },
       uSunDir: { value: uniforms.uSunDir.value },
-      uFogColor: { value: uniforms.uFogColor.value },
       uSandTex: { value: sandTex },
       uSandScale: { value: 0.35 },
     };
     const midCloudMat = new THREE.ShaderMaterial({
       uniforms: midCloudUniforms,
-      fog: true,
       side: THREE.DoubleSide,
       transparent: true,
       depthWrite: false,
