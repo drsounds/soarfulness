@@ -160,6 +160,7 @@ type Persisted = {
   envEra: string | null;
   envTime: string | null;
   surfaceId: string | null;
+  reflStrength: number;
 };
 const WATER_TINTS: { name: string; rgb: [number, number, number] }[] = [
   { name: "Nordhav", rgb: [1, 1, 1] },
@@ -377,6 +378,7 @@ const DEFAULTS: Persisted = {
   envEra: null,
   envTime: null,
   surfaceId: null,
+  reflStrength: 1,
 };
 function loadSettings(): Persisted {
   if (typeof window === "undefined") return DEFAULTS;
@@ -485,6 +487,7 @@ function Aquafulness() {
   // Selectable water-surface reflection presets from public/surfaces/surfaces.json.
   const [surfaces, setSurfaces] = useState<SurfaceEntry[]>([]);
   const [surfaceId, setSurfaceId] = useState<string | null>(initial.surfaceId);
+  const [reflStrength, setReflStrength] = useState(initial.reflStrength);
   const [rotStick, setRotStick] = useState({ x: 0, y: 0 });
   const [driftStick, setDriftStick] = useState({ x: 0, y: 0 });
   const [waveDirStick, setWaveDirStick] = useState({ x: 0, y: 0 });
@@ -512,17 +515,21 @@ function Aquafulness() {
   const reflTexRef = useRef<THREE.Texture | null>(null);
   const reflWhiteTexRef = useRef<THREE.Texture | null>(null);
   const maxAnisoRef = useRef(4);
+  // Per-surface base reflection strength (from its manifest); the live STYRKA
+  // dial multiplies it. Effective uReflMix = reflBase * reflStrength.
+  const reflBaseRef = useRef(0);
+  const reflStrengthRef = useRef(reflStrength);
 
   // Persist settings to localStorage whenever they change (SSR-safe, hydration-safe).
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, bottomIdx, leanEnabled, regularWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime, surfaceId };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, bottomIdx, leanEnabled, regularWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, bottomIdx, leanEnabled, regularWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime, surfaceId]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, bottomIdx, leanEnabled, regularWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -643,6 +650,12 @@ function Aquafulness() {
   useEffect(() => { swayAmpRef.current = swayAmp; }, [swayAmp]);
   useEffect(() => { swaySpeedRef.current = swaySpeed; }, [swaySpeed]);
   useEffect(() => { swayBiasRef.current = swayBias; }, [swayBias]);
+  // Live reflection-strength dial → shader (multiplies the surface's base).
+  useEffect(() => {
+    reflStrengthRef.current = reflStrength;
+    applyReflMix();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reflStrength]);
   const swayStickRef = useRef(swayStick);
   useEffect(() => { swayStickRef.current = swayStick; }, [swayStick]);
   // Håll VÅGRIKT-spakens visuella läge synkat med waveDir (t.ex. när dialen ändras
@@ -707,6 +720,7 @@ function Aquafulness() {
     setSwaySpeed(DEFAULTS.swaySpeed);
     setSwayBias(DEFAULTS.swayBias);
     setLiveMode(DEFAULTS.liveMode);
+    setReflStrength(DEFAULTS.reflStrength);
     // timeOfDay is intentionally left untouched.
   };
 
@@ -782,6 +796,14 @@ function Aquafulness() {
     const cur = options.indexOf(surfaceId ?? null);
     const idx = cur < 0 ? 0 : cur;
     setSurfaceId(options[(idx + dir + options.length) % options.length]);
+  };
+
+  // Push the effective reflection blend (surface base × live strength) into the
+  // water shader. Cheap and idempotent; called on surface load and dial change.
+  const applyReflMix = () => {
+    const u = waterUniformsRef.current;
+    if (!u) return;
+    u.uReflMix.value = Math.max(0, Math.min(1, reflBaseRef.current * reflStrengthRef.current));
   };
 
   // Ocean sound: loop the recorded water track through a lowpass + depth gain
@@ -2269,7 +2291,8 @@ function Aquafulness() {
     if (!uniforms) return;
 
     const revert = () => {
-      uniforms.uReflMix.value = 0;
+      reflBaseRef.current = 0;
+      applyReflMix();
       uniforms.uReflTex.value = reflWhiteTexRef.current;
       if (reflTexRef.current) {
         reflTexRef.current.dispose();
@@ -2307,11 +2330,11 @@ function Aquafulness() {
             if (reflTexRef.current) reflTexRef.current.dispose();
             reflTexRef.current = tex;
             uniforms.uReflTex.value = tex;
-            const strength =
+            reflBaseRef.current =
               typeof manifest.strength === "number"
                 ? Math.max(0, Math.min(1, manifest.strength))
                 : 0.6;
-            uniforms.uReflMix.value = strength;
+            applyReflMix();
           },
           undefined,
           (err) => {
@@ -2799,6 +2822,20 @@ function Aquafulness() {
                       }
                       onDec={() => cycleSurface(-1)}
                       onInc={() => cycleSurface(1)}
+                    />
+                  )}
+                  {surfaceId && (
+                    <PadDial
+                      label="STYRKA"
+                      mode="number"
+                      value={`${Math.round(reflStrength * 100)}%`}
+                      rawValue={reflStrength}
+                      onSet={(v) => setReflStrength(Math.max(0, Math.min(3, v)))}
+                      min={0}
+                      max={3}
+                      step={0.05}
+                      onDec={() => setReflStrength((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                      onInc={() => setReflStrength((v) => Math.min(3, +(v + 0.05).toFixed(2)))}
                     />
                   )}
                   <PadDial
