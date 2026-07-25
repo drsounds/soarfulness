@@ -1,0 +1,48 @@
+{
+  "environments": [
+    {
+      "id": "vanern",
+      "name": "Vänern",
+      "eras": [
+        {
+          "id": "present",
+          "name": "Nutid",
+          "times": [{ "id": "day", "name": "Dag" }]
+        },
+        {
+          "id": "future",
+          "name": "Framtid",
+          "times": [
+            { "id": "day", "name": "Dag" },
+            { "id": "night", "name": "Natt" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "futuristic",
+      "name": "Futuristisk",
+      "eras": [
+        {
+          "id": "present",
+          "name": "Nutid",
+          "times": [
+            { "id": "day", "name": "Dag" },
+            { "id": "night", "name": "Natt" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sky",
+      "name": "Himmel",
+      "eras": [
+        {
+          "id": "present",
+          "name": "Nutid",
+          "times": [{ "id": "day", "name": "Dag" }]
+        }
+      ]
+    }
+  ]
+}
