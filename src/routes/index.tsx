@@ -1340,7 +1340,12 @@ function Aquafulness() {
 
     // Optional seafloor beneath the ocean plane. ShaderMaterial gör den
     // procedurellt strukturerad (sandbankar, småsten, kaustik) när uTextured=1.
-    const floorGeo = new THREE.PlaneGeometry(600, 600, 32, 32);
+    // Stor nog att alltid nå bortom det maximala FJÄRRSIKT-värdet (100 000) så
+    // att botten aldrig klipps av mot en synlig kant innan horisonten — helt
+    // ofarligt prestandamässigt eftersom golvet är platt (ingen vertex-
+    // förskjutning, bara fragment-shadad färg), så färre segment räcker på
+    // den enorma ytan.
+    const floorGeo = new THREE.PlaneGeometry(200000, 200000, 32, 32);
     floorGeo.rotateX(-Math.PI / 2);
     // Real CC0 sand photo (ambientCG Ground054, 512px) – loaded lazily so the
     // scene renders even if the CDN request is slow.
@@ -1451,7 +1456,9 @@ function Aquafulness() {
     scene.add(floor);
 
     // Mid-water drifting cloud layer (separate mesh, reuses cloud shader path).
-    const midCloudGeo = new THREE.PlaneGeometry(600, 600, 8, 8);
+    // Same generous size as the floor for the same reason — no visible edge
+    // before the horizon regardless of FJÄRRSIKT.
+    const midCloudGeo = new THREE.PlaneGeometry(200000, 200000, 8, 8);
     midCloudGeo.rotateX(-Math.PI / 2);
     const midCloudUniforms = {
       uColor: { value: new THREE.Color(0xffffff) },
