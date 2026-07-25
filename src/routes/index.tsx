@@ -180,6 +180,15 @@ const BACKDROPS: { name: string; url: string | null }[] = [
   { name: "Vänern", url: vanernBackdrop.url },
 ];
 
+type SettingsTab = "vagor" | "kamera" | "vatten" | "miljo" | "ljud";
+const SETTINGS_TABS: { id: SettingsTab; label: string }[] = [
+  { id: "vagor", label: "VÅGOR" },
+  { id: "kamera", label: "KAMERA" },
+  { id: "vatten", label: "VATTEN" },
+  { id: "miljo", label: "MILJÖ" },
+  { id: "ljud", label: "LJUD" },
+];
+
 // A loadable .glb scene lives in public/scenes/<id>/<id>.glb with an optional
 // public/scenes/<id>/manifest.json describing where/how to place it. The list
 // of available scenes and their display names comes from public/scenes/scenes.json.
@@ -456,6 +465,7 @@ function Aquafulness() {
   const [waveDirStick, setWaveDirStick] = useState({ x: 0, y: 0 });
   const [swayStick, setSwayStick] = useState({ x: 0, y: 0 });
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<SettingsTab>("vagor");
   const [uiVisible, setUiVisible] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const idleTimerRef = useRef<number | null>(null);
@@ -2248,535 +2258,572 @@ function Aquafulness() {
                 </button>
               </div>
             </div>
+            <div className="mb-3 flex flex-wrap justify-center gap-1.5" role="tablist" aria-label="Inställningsflikar">
+              {SETTINGS_TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  role="tab"
+                  aria-selected={settingsTab === tab.id}
+                  onClick={() => setSettingsTab(tab.id)}
+                  className={`rounded-full border px-3 py-1 text-[9px] font-light tracking-wider transition active:scale-95 ${
+                    settingsTab === tab.id
+                      ? "border-white/40 bg-white/20 text-white"
+                      : "border-white/10 bg-white/5 text-white/60 active:bg-white/15"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
             <div className="flex flex-wrap justify-center gap-2">
-              <PadDial
-                label="VÅG"
-                mode="number"
-                value={`${waveAmp.toFixed(2)}m`}
-                rawValue={waveAmp}
-                onSet={setWaveAmp}
-                min={0}
-                max={100}
-                step={0.5}
-                onDec={() => setWaveAmp((v) => Math.max(0, +(v - 0.5).toFixed(2)))}
-                onInc={() => setWaveAmp((v) => Math.min(100, +(v + 0.5).toFixed(2)))}
-              />
-              <PadDial
-                label="TID"
-                value={todLabel}
-                onDec={() => setTimeOfDay((v) => (v - 0.02 + 1) % 1)}
-                onInc={() => setTimeOfDay((v) => (v + 0.02) % 1)}
-              />
-              <PadDial
-                label="TEMPO"
-                mode="number"
-                value={`${waveSpeed.toFixed(2)}×`}
-                rawValue={waveSpeed}
-                onSet={setWaveSpeed}
-                min={0}
-                max={10}
-                step={0.1}
-                onDec={() => setWaveSpeed((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
-                onInc={() => setWaveSpeed((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
-              />
-              <PadDial
-                label="HÖJD"
-                mode="number"
-                value={`${heightOffset >= 0 ? "+" : ""}${heightOffset.toFixed(2)}m`}
-                rawValue={heightOffset}
-                onSet={setHeightOffset}
-                min={-5}
-                max={5}
-                step={0.2}
-                onDec={() => setHeightOffset((v) => Math.max(-5, +(v - 0.2).toFixed(2)))}
-                onInc={() => setHeightOffset((v) => Math.min(5, +(v + 0.2).toFixed(2)))}
-              />
-              <PadDial
-                label="DYK"
-                mode="number"
-                value={`${submergeAmp.toFixed(2)}×`}
-                rawValue={submergeAmp}
-                onSet={setSubmergeAmp}
-                min={0}
-                max={4}
-                step={0.1}
-                onDec={() => setSubmergeAmp((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
-                onInc={() => setSubmergeAmp((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
-              />
-              <PadDial
-                label="FLYT"
-                mode="number"
-                value={`${floatLift.toFixed(2)}×`}
-                rawValue={floatLift}
-                onSet={setFloatLift}
-                min={0}
-                max={4}
-                step={0.1}
-                onDec={() => setFloatLift((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
-                onInc={() => setFloatLift((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
-              />
-              <PadDial
-                label="POS X"
-                mode="number"
-                value={`${camOffX.toFixed(2)}m`}
-                rawValue={camOffX}
-                onSet={setCamOffX}
-                min={-10}
-                max={10}
-                step={0.1}
-                onDec={() => setCamOffX((v) => Math.max(-10, +(v - 0.1).toFixed(2)))}
-                onInc={() => setCamOffX((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
-              />
-              <PadDial
-                label="POS Y"
-                mode="number"
-                value={`${camOffY.toFixed(2)}m`}
-                rawValue={camOffY}
-                onSet={setCamOffY}
-                min={-10}
-                max={10}
-                step={0.1}
-                onDec={() => setCamOffY((v) => Math.max(-10, +(v - 0.1).toFixed(2)))}
-                onInc={() => setCamOffY((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
-              />
-              <PadDial
-                label="POS Z"
-                mode="number"
-                value={`${camOffZ.toFixed(2)}m`}
-                rawValue={camOffZ}
-                onSet={setCamOffZ}
-                min={-10}
-                max={10}
-                step={0.1}
-                onDec={() => setCamOffZ((v) => Math.max(-10, +(v - 0.1).toFixed(2)))}
-                onInc={() => setCamOffZ((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
-              />
-              <PadDial
-                label="SVAJ"
-                mode="number"
-                value={`${swayAmp.toFixed(1)}m`}
-                rawValue={swayAmp}
-                onSet={setSwayAmp}
-                min={0}
-                max={30}
-                step={0.5}
-                onDec={() => setSwayAmp((v) => Math.max(0, +(v - 0.5).toFixed(2)))}
-                onInc={() => setSwayAmp((v) => Math.min(30, +(v + 0.5).toFixed(2)))}
-              />
-              <PadDial
-                label="SVAJ TEMPO"
-                mode="number"
-                value={`${swaySpeed.toFixed(2)}×`}
-                rawValue={swaySpeed}
-                onSet={setSwaySpeed}
-                min={0.01}
-                max={10}
-                step={0.01}
-                onDec={() => setSwaySpeed((v) => Math.max(0.01, +(v - 0.01).toFixed(2)))}
-                onInc={() => setSwaySpeed((v) => Math.min(1, +(v + 0.01).toFixed(2)))}
-              />
-              <PadDial
-                label="SVAJ DRIFT"
-                mode="number"
-                value={swayBias === 0 ? "NEUTRAL" : swayBias > 0 ? `MED ${swayBias.toFixed(2)}` : `MOT ${Math.abs(swayBias).toFixed(2)}`}
-                rawValue={swayBias}
-                onSet={setSwayBias}
-                min={-10}
-                max={10}
-                step={0.05}
-                onDec={() => setSwayBias((v) => Math.max(-1, +(v - 0.05).toFixed(2)))}
-                onInc={() => setSwayBias((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
-              />
-              <PadDial
-                label="GUPP"
-                mode="number"
-                value={`${buoyAmp.toFixed(2)}×`}
-                rawValue={buoyAmp}
-                onSet={setBuoyAmp}
-                min={0}
-                max={4}
-                step={0.1}
-                onDec={() => setBuoyAmp((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
-                onInc={() => setBuoyAmp((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
-              />
-              <PadDial
-                label="GUPP TEMPO"
-                mode="number"
-                value={`${bobSpeed.toFixed(2)}×`}
-                rawValue={bobSpeed}
-                onSet={setBobSpeed}
-                min={0}
-                max={5}
-                step={0.1}
-                onDec={() => setBobSpeed((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
-                onInc={() => setBobSpeed((v) => Math.min(5, +(v + 0.1).toFixed(2)))}
-              />
-              <PadDial
-                label={audioOn ? "LJUD PÅ" : "LJUD AV"}
-                value={audioOn ? `${Math.round(audioVol * 100)}%` : "—"}
-                onDec={() => {
-                  if (!audioOn) { setAudioOn(true); return; }
-                  setAudioVol((v) => {
-                    const next = +(v - 0.1).toFixed(2);
-                    if (next <= 0) { setAudioOn(false); return 0; }
-                    return next;
-                  });
-                }}
-                onInc={() => {
-                  if (!audioOn) { setAudioOn(true); return; }
-                  setAudioVol((v) => Math.min(1, +(v + 0.1).toFixed(2)));
-                }}
-              />
-              <PadDial
-                label="LJUDSYNK"
-                value={audioSyncSpeed ? "PÅ" : "AV"}
-                onDec={() => setAudioSyncSpeed(false)}
-                onInc={() => setAudioSyncSpeed(true)}
-              />
-              <PadDial
-                label="SPATIAL"
-                value={audioSpatial ? "PÅ" : "AV"}
-                onDec={() => setAudioSpatial(false)}
-                onInc={() => setAudioSpatial(true)}
-              />
-              <PadDial
-                label="VATTEN"
-                value={WATER_TINTS[waterTintIdx].name}
-                onDec={() => setWaterTintIdx((i) => (i - 1 + WATER_TINTS.length) % WATER_TINTS.length)}
-                onInc={() => setWaterTintIdx((i) => (i + 1) % WATER_TINTS.length)}
-              />
-              <PadDial
-                label="OPACITET"
-                mode="number"
-                value={`${Math.round(waterOpacity * 100)}%`}
-                rawValue={waterOpacity}
-                onSet={setWaterOpacity}
-                min={0.1}
-                max={1}
-                step={0.05}
-                onDec={() => setWaterOpacity((v) => Math.max(0.1, +(v - 0.05).toFixed(2)))}
-                onInc={() => setWaterOpacity((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
-              />
-              <PadDial
-                label="TON"
-                mode="number"
-                value={`${Math.round(waterHue)}°`}
-                rawValue={waterHue}
-                onSet={setWaterHue}
-                min={-180}
-                max={180}
-                step={5}
-                onDec={() => setWaterHue((v) => Math.max(-180, +(v - 5).toFixed(0)))}
-                onInc={() => setWaterHue((v) => Math.min(180, +(v + 5).toFixed(0)))}
-              />
-              <PadDial
-                label="MÄTTNAD"
-                mode="number"
-                value={`${waterSat.toFixed(2)}x`}
-                rawValue={waterSat}
-                onSet={setWaterSat}
-                min={0}
-                max={2}
-                step={0.05}
-                onDec={() => setWaterSat((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
-                onInc={() => setWaterSat((v) => Math.min(2, +(v + 0.05).toFixed(2)))}
-              />
-              <PadDial
-                label="LJUSSTYRKA"
-                mode="number"
-                value={`${waterBright.toFixed(2)}x`}
-                rawValue={waterBright}
-                onSet={setWaterBright}
-                min={0.1}
-                max={2.5}
-                step={0.05}
-                onDec={() => setWaterBright((v) => Math.max(0.1, +(v - 0.05).toFixed(2)))}
-                onInc={() => setWaterBright((v) => Math.min(2.5, +(v + 0.05).toFixed(2)))}
-              />
-              <PadDial
-                label="YT-LJUS"
-                mode="number"
-                value={`${surfBright.toFixed(2)}x`}
-                rawValue={surfBright}
-                onSet={(v) => setSurfBright(Math.max(0.1, Math.min(3, v)))}
-                min={0.1}
-                max={3}
-                step={0.05}
-                onDec={() => setSurfBright((v) => Math.max(0.1, +(v - 0.05).toFixed(2)))}
-                onInc={() => setSurfBright((v) => Math.min(3, +(v + 0.05).toFixed(2)))}
-              />
-              <PadDial
-                label="YT-MÄTTNAD"
-                mode="number"
-                value={`${surfSat.toFixed(2)}x`}
-                rawValue={surfSat}
-                onSet={(v) => setSurfSat(Math.max(0, Math.min(2, v)))}
-                min={0}
-                max={2}
-                step={0.05}
-                onDec={() => setSurfSat((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
-                onInc={() => setSurfSat((v) => Math.min(2, +(v + 0.05).toFixed(2)))}
-              />
-              <PadDial
-                label="BOTTEN"
-                value={BOTTOM_OPTIONS[bottomIdx].name}
-                onDec={() => setBottomIdx((i) => (i - 1 + BOTTOM_OPTIONS.length) % BOTTOM_OPTIONS.length)}
-                onInc={() => setBottomIdx((i) => (i + 1) % BOTTOM_OPTIONS.length)}
-              />
-              <PadDial
-                label="DJUP"
-                mode="number"
-                value={`${floorDepth.toFixed(1)}m`}
-                rawValue={floorDepth}
-                onSet={(v) => setFloorDepth(Math.max(1, Math.min(60, v)))}
-                min={1}
-                max={60}
-                step={0.5}
-                onDec={() => setFloorDepth((v) => Math.max(1, +(v - 0.5).toFixed(2)))}
-                onInc={() => setFloorDepth((v) => Math.min(60, +(v + 0.5).toFixed(2)))}
-              />
-              <PadDial
-                label="TEXTUR"
-                value={floorTexture ? "PÅ" : "AV"}
-                onDec={() => setFloorTexture(false)}
-                onInc={() => setFloorTexture(true)}
-              />
-              <PadDial
-                label="DJUP-SINUS"
-                value={depthSineOn ? "PÅ" : "AV"}
-                onDec={() => setDepthSineOn(false)}
-                onInc={() => setDepthSineOn(true)}
-              />
-              <PadDial
-                label="SINUS AMP"
-                mode="number"
-                value={`${depthSineAmp.toFixed(2)}m`}
-                rawValue={depthSineAmp}
-                onSet={(v) => setDepthSineAmp(Math.max(0, Math.min(30, v)))}
-                min={0}
-                max={30}
-                step={0.25}
-                onDec={() => setDepthSineAmp((v) => Math.max(0, +(v - 0.25).toFixed(2)))}
-                onInc={() => setDepthSineAmp((v) => Math.min(30, +(v + 0.25).toFixed(2)))}
-              />
-              <PadDial
-                label="SINUS FREK"
-                mode="number"
-                value={`${depthSineFreq.toFixed(2)}Hz`}
-                rawValue={depthSineFreq}
-                onSet={(v) => setDepthSineFreq(Math.max(0.001, Math.min(2, v)))}
-                min={0.001}
-                max={2}
-                step={0.01}
-                onDec={() => setDepthSineFreq((v) => Math.max(0.001, +(v - 0.01).toFixed(3)))}
-                onInc={() => setDepthSineFreq((v) => Math.min(2, +(v + 0.01).toFixed(3)))}
-              />
-              <PadDial
-                label="YTA"
-                value={hideWater ? "DÖLJ" : "SYNLIGT"}
-                onDec={() => setHideWater(true)}
-                onInc={() => setHideWater(false)}
-              />
-              <PadDial
-                label="MELLAN-MOLN"
-                value={midCloudsOn ? "PÅ" : "AV"}
-                onDec={() => setMidCloudsOn(false)}
-                onInc={() => setMidCloudsOn(true)}
-              />
-              <PadDial
-                label="MOLNHÖJD"
-                mode="number"
-                value={`${Math.round(midCloudsHeight * 100)}%`}
-                rawValue={midCloudsHeight}
-                onSet={(v) => setMidCloudsHeight(Math.max(0.05, Math.min(0.95, v)))}
-                min={0.05}
-                max={0.95}
-                step={0.05}
-                onDec={() => setMidCloudsHeight((v) => Math.max(0.05, +(v - 0.05).toFixed(2)))}
-                onInc={() => setMidCloudsHeight((v) => Math.min(0.95, +(v + 0.05).toFixed(2)))}
-              />
-              <PadDial
-                label="ROTERING"
-                value={leanEnabled ? "FRAMÅTLUT" : "FIXERAD"}
-                onDec={() => setLeanEnabled(false)}
-                onInc={() => setLeanEnabled(true)}
-              />
-              <PadDial
-                label="VÅGFORM"
-                value={regularWaves ? "REGELBUNDEN" : "SPRIDD"}
-                onDec={() => setRegularWaves(false)}
-                onInc={() => setRegularWaves(true)}
-              />
-              <PadDial
-                label="KORSVÅG"
-                value={regularCross ? "PÅ" : "AV"}
-                onDec={() => setRegularCross(false)}
-                onInc={() => setRegularCross(true)}
-              />
-              <PadDial
-                label="VÅGPERIOD"
-                mode="number"
-                value={`${regularPeriod.toFixed(2)}x`}
-                rawValue={regularPeriod}
-                onSet={setRegularPeriod}
-                min={0.3}
-                max={4}
-                step={0.1}
-                onDec={() => setRegularPeriod((v) => Math.max(0.3, +(v - 0.1).toFixed(2)))}
-                onInc={() => setRegularPeriod((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
-              />
-              <PadDial
-                label="SPETS"
-                mode="number"
-                value={`${wavePeak.toFixed(2)}`}
-                rawValue={wavePeak}
-                onSet={setWavePeak}
-                min={1}
-                max={6}
-                step={0.25}
-                onDec={() => setWavePeak((v) => Math.max(1, +(v - 0.25).toFixed(2)))}
-                onInc={() => setWavePeak((v) => Math.min(6, +(v + 0.25).toFixed(2)))}
-              />
-              <PadDial
-                label="KVALITET"
-                value={waveHighQuality ? "HÖG" : "LÅG"}
-                onDec={() => setWaveHighQuality(false)}
-                onInc={() => setWaveHighQuality(true)}
-              />
-              <PadDial
-                label="LÄGE"
-                value={vortexMode ? "VIRVEL" : "HAV"}
-                onDec={() => setVortexMode(false)}
-                onInc={() => setVortexMode(true)}
-              />
-              <PadDial
-                label="ÖPPNING"
-                mode="number"
-                value={`${vortexOpening.toFixed(1)}m`}
-                rawValue={vortexOpening}
-                onSet={(v) => setVortexOpening(Math.max(3, Math.min(60, v)))}
-                min={3}
-                max={60}
-                step={0.5}
-                onDec={() => setVortexOpening((v) => Math.max(3, +(v - 0.5).toFixed(2)))}
-                onInc={() => setVortexOpening((v) => Math.min(60, +(v + 0.5).toFixed(2)))}
-              />
-              <PadDial
-                label="AVSTÅND"
-                mode="number"
-                value={`${vortexRadius.toFixed(1)}m`}
-                rawValue={vortexRadius}
-                onSet={(v) => setVortexRadius(Math.max(3, Math.min(220, v)))}
-                min={3}
-                max={220}
-                step={1}
-                onDec={() => setVortexRadius((v) => Math.max(3, +(v - 1).toFixed(2)))}
-                onInc={() => setVortexRadius((v) => Math.min(220, +(v + 1).toFixed(2)))}
-              />
-              <PadDial
-                label="VIRVEL TEMPO"
-                mode="number"
-                value={`${vortexSpeed.toFixed(2)}x`}
-                rawValue={vortexSpeed}
-                onSet={(v) => setVortexSpeed(Math.max(-3, Math.min(10, v)))}
-                min={-3}
-                max={10}
-                step={0.1}
-                onDec={() => setVortexSpeed((v) => Math.max(-3, +(v - 0.1).toFixed(2)))}
-                onInc={() => setVortexSpeed((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
-              />
-              {scenes.length > 0 && (
-                <PadDial
-                  label="SCEN"
-                  value={
-                    sceneId
-                      ? (scenes.find((s) => s.id === sceneId)?.name ?? sceneId)
-                      : "AV"
-                  }
-                  onDec={() => cycleScene(-1)}
-                  onInc={() => cycleScene(1)}
-                />
-              )}
-              {environments.length > 0 && (
+              {settingsTab === "vagor" && (
                 <>
                   <PadDial
-                    label="MILJÖ"
-                    value={curEnv ? curEnv.name : "AV"}
-                    onDec={() => cycleEnv(-1)}
-                    onInc={() => cycleEnv(1)}
+                    label="VÅG"
+                    mode="number"
+                    value={`${waveAmp.toFixed(2)}m`}
+                    rawValue={waveAmp}
+                    onSet={setWaveAmp}
+                    min={0}
+                    max={100}
+                    step={0.5}
+                    onDec={() => setWaveAmp((v) => Math.max(0, +(v - 0.5).toFixed(2)))}
+                    onInc={() => setWaveAmp((v) => Math.min(100, +(v + 0.5).toFixed(2)))}
                   />
-                  {curEnv && curEnv.eras.length > 1 && (
-                    <PadDial
-                      label="EPOK"
-                      value={curEra?.name ?? "—"}
-                      onDec={() => cycleEra(-1)}
-                      onInc={() => cycleEra(1)}
-                    />
-                  )}
-                  {curEra && curEra.times.length > 1 && (
-                    <PadDial
-                      label="DYGN"
-                      value={curTime?.name ?? "—"}
-                      onDec={() => cycleTime(-1)}
-                      onInc={() => cycleTime(1)}
-                    />
-                  )}
+                  <PadDial
+                    label="TEMPO"
+                    mode="number"
+                    value={`${waveSpeed.toFixed(2)}×`}
+                    rawValue={waveSpeed}
+                    onSet={setWaveSpeed}
+                    min={0}
+                    max={10}
+                    step={0.1}
+                    onDec={() => setWaveSpeed((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
+                    onInc={() => setWaveSpeed((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
+                  />
+                  <PadDial
+                    label="HÖJD"
+                    mode="number"
+                    value={`${heightOffset >= 0 ? "+" : ""}${heightOffset.toFixed(2)}m`}
+                    rawValue={heightOffset}
+                    onSet={setHeightOffset}
+                    min={-5}
+                    max={5}
+                    step={0.2}
+                    onDec={() => setHeightOffset((v) => Math.max(-5, +(v - 0.2).toFixed(2)))}
+                    onInc={() => setHeightOffset((v) => Math.min(5, +(v + 0.2).toFixed(2)))}
+                  />
+                  <PadDial
+                    label="DYK"
+                    mode="number"
+                    value={`${submergeAmp.toFixed(2)}×`}
+                    rawValue={submergeAmp}
+                    onSet={setSubmergeAmp}
+                    min={0}
+                    max={4}
+                    step={0.1}
+                    onDec={() => setSubmergeAmp((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
+                    onInc={() => setSubmergeAmp((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
+                  />
+                  <PadDial
+                    label="FLYT"
+                    mode="number"
+                    value={`${floatLift.toFixed(2)}×`}
+                    rawValue={floatLift}
+                    onSet={setFloatLift}
+                    min={0}
+                    max={4}
+                    step={0.1}
+                    onDec={() => setFloatLift((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
+                    onInc={() => setFloatLift((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
+                  />
+                  <PadDial
+                    label="SVAJ"
+                    mode="number"
+                    value={`${swayAmp.toFixed(1)}m`}
+                    rawValue={swayAmp}
+                    onSet={setSwayAmp}
+                    min={0}
+                    max={30}
+                    step={0.5}
+                    onDec={() => setSwayAmp((v) => Math.max(0, +(v - 0.5).toFixed(2)))}
+                    onInc={() => setSwayAmp((v) => Math.min(30, +(v + 0.5).toFixed(2)))}
+                  />
+                  <PadDial
+                    label="SVAJ TEMPO"
+                    mode="number"
+                    value={`${swaySpeed.toFixed(2)}×`}
+                    rawValue={swaySpeed}
+                    onSet={setSwaySpeed}
+                    min={0.01}
+                    max={10}
+                    step={0.01}
+                    onDec={() => setSwaySpeed((v) => Math.max(0.01, +(v - 0.01).toFixed(2)))}
+                    onInc={() => setSwaySpeed((v) => Math.min(1, +(v + 0.01).toFixed(2)))}
+                  />
+                  <PadDial
+                    label="SVAJ DRIFT"
+                    mode="number"
+                    value={swayBias === 0 ? "NEUTRAL" : swayBias > 0 ? `MED ${swayBias.toFixed(2)}` : `MOT ${Math.abs(swayBias).toFixed(2)}`}
+                    rawValue={swayBias}
+                    onSet={setSwayBias}
+                    min={-10}
+                    max={10}
+                    step={0.05}
+                    onDec={() => setSwayBias((v) => Math.max(-1, +(v - 0.05).toFixed(2)))}
+                    onInc={() => setSwayBias((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+                  />
+                  <PadDial
+                    label="GUPP"
+                    mode="number"
+                    value={`${buoyAmp.toFixed(2)}×`}
+                    rawValue={buoyAmp}
+                    onSet={setBuoyAmp}
+                    min={0}
+                    max={4}
+                    step={0.1}
+                    onDec={() => setBuoyAmp((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
+                    onInc={() => setBuoyAmp((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
+                  />
+                  <PadDial
+                    label="GUPP TEMPO"
+                    mode="number"
+                    value={`${bobSpeed.toFixed(2)}×`}
+                    rawValue={bobSpeed}
+                    onSet={setBobSpeed}
+                    min={0}
+                    max={5}
+                    step={0.1}
+                    onDec={() => setBobSpeed((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
+                    onInc={() => setBobSpeed((v) => Math.min(5, +(v + 0.1).toFixed(2)))}
+                  />
+                  <PadDial
+                    label="VÅGFORM"
+                    value={regularWaves ? "REGELBUNDEN" : "SPRIDD"}
+                    onDec={() => setRegularWaves(false)}
+                    onInc={() => setRegularWaves(true)}
+                  />
+                  <PadDial
+                    label="KORSVÅG"
+                    value={regularCross ? "PÅ" : "AV"}
+                    onDec={() => setRegularCross(false)}
+                    onInc={() => setRegularCross(true)}
+                  />
+                  <PadDial
+                    label="VÅGPERIOD"
+                    mode="number"
+                    value={`${regularPeriod.toFixed(2)}x`}
+                    rawValue={regularPeriod}
+                    onSet={setRegularPeriod}
+                    min={0.3}
+                    max={4}
+                    step={0.1}
+                    onDec={() => setRegularPeriod((v) => Math.max(0.3, +(v - 0.1).toFixed(2)))}
+                    onInc={() => setRegularPeriod((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
+                  />
+                  <PadDial
+                    label="SPETS"
+                    mode="number"
+                    value={`${wavePeak.toFixed(2)}`}
+                    rawValue={wavePeak}
+                    onSet={setWavePeak}
+                    min={1}
+                    max={6}
+                    step={0.25}
+                    onDec={() => setWavePeak((v) => Math.max(1, +(v - 0.25).toFixed(2)))}
+                    onInc={() => setWavePeak((v) => Math.min(6, +(v + 0.25).toFixed(2)))}
+                  />
+                  <PadDial
+                    label="KVALITET"
+                    value={waveHighQuality ? "HÖG" : "LÅG"}
+                    onDec={() => setWaveHighQuality(false)}
+                    onInc={() => setWaveHighQuality(true)}
+                  />
+                  <PadDial
+                    label="VÅGRIKTNING"
+                    mode="number"
+                    value={`${Math.round(((waveDir % 360) + 360) % 360)}°`}
+                    rawValue={waveDir}
+                    onSet={(v) => setWaveDir(((v % 360) + 360) % 360)}
+                    min={0}
+                    max={360}
+                    step={5}
+                    onDec={() => setWaveDir((v) => (((v - 15) % 360) + 360) % 360)}
+                    onInc={() => setWaveDir((v) => (((v + 15) % 360) + 360) % 360)}
+                  />
+                  <PadDial
+                    label="LÄGE"
+                    value={vortexMode ? "VIRVEL" : "HAV"}
+                    onDec={() => setVortexMode(false)}
+                    onInc={() => setVortexMode(true)}
+                  />
+                  <PadDial
+                    label="ÖPPNING"
+                    mode="number"
+                    value={`${vortexOpening.toFixed(1)}m`}
+                    rawValue={vortexOpening}
+                    onSet={(v) => setVortexOpening(Math.max(3, Math.min(60, v)))}
+                    min={3}
+                    max={60}
+                    step={0.5}
+                    onDec={() => setVortexOpening((v) => Math.max(3, +(v - 0.5).toFixed(2)))}
+                    onInc={() => setVortexOpening((v) => Math.min(60, +(v + 0.5).toFixed(2)))}
+                  />
+                  <PadDial
+                    label="AVSTÅND"
+                    mode="number"
+                    value={`${vortexRadius.toFixed(1)}m`}
+                    rawValue={vortexRadius}
+                    onSet={(v) => setVortexRadius(Math.max(3, Math.min(220, v)))}
+                    min={3}
+                    max={220}
+                    step={1}
+                    onDec={() => setVortexRadius((v) => Math.max(3, +(v - 1).toFixed(2)))}
+                    onInc={() => setVortexRadius((v) => Math.min(220, +(v + 1).toFixed(2)))}
+                  />
+                  <PadDial
+                    label="VIRVEL TEMPO"
+                    mode="number"
+                    value={`${vortexSpeed.toFixed(2)}x`}
+                    rawValue={vortexSpeed}
+                    onSet={(v) => setVortexSpeed(Math.max(-3, Math.min(10, v)))}
+                    min={-3}
+                    max={10}
+                    step={0.1}
+                    onDec={() => setVortexSpeed((v) => Math.max(-3, +(v - 0.1).toFixed(2)))}
+                    onInc={() => setVortexSpeed((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
+                  />
                 </>
               )}
-              <PadDial
-                label="BAKGRUND"
-                value={BACKDROPS[backdropIdx].name}
-                onDec={() => setBackdropIdx((i) => (i - 1 + BACKDROPS.length) % BACKDROPS.length)}
-                onInc={() => setBackdropIdx((i) => (i + 1) % BACKDROPS.length)}
-              />
-              <PadDial
-                label="VAKEN"
-                value={wakeLock ? "PÅ" : "AV"}
-                onDec={() => setWakeLock(false)}
-                onInc={() => setWakeLock(true)}
-              />
-              <PadDial
-                label="FOV"
-                mode="number"
-                value={`${camFov.toFixed(0)}°`}
-                rawValue={camFov}
-                onSet={(v) => setCamFov(Math.max(20, Math.min(140, v)))}
-                min={20}
-                max={140}
-                step={1}
-                onDec={() => setCamFov((v) => Math.max(20, +(v - 1).toFixed(0)))}
-                onInc={() => setCamFov((v) => Math.min(140, +(v + 1).toFixed(0)))}
-              />
-              <PadDial
-                label="NÄRA"
-                mode="number"
-                value={`${camNear.toFixed(3)}`}
-                rawValue={camNear}
-                onSet={(v) => setCamNear(Math.max(0.001, Math.min(10, v)))}
-                min={0.001}
-                max={10}
-                step={0.01}
-                onDec={() => setCamNear((v) => Math.max(0.001, +(v - 0.01).toFixed(3)))}
-                onInc={() => setCamNear((v) => Math.min(10, +(v + 0.01).toFixed(3)))}
-              />
-              <PadDial
-                label="VÅGRIKTNING"
-                mode="number"
-                value={`${Math.round(((waveDir % 360) + 360) % 360)}°`}
-                rawValue={waveDir}
-                onSet={(v) => setWaveDir(((v % 360) + 360) % 360)}
-                min={0}
-                max={360}
-                step={5}
-                onDec={() => setWaveDir((v) => (((v - 15) % 360) + 360) % 360)}
-                onInc={() => setWaveDir((v) => (((v + 15) % 360) + 360) % 360)}
-              />
-              <PadDial
-                label="LIVE"
-                value={liveMode ? "PÅ" : "AV"}
-                onDec={() => setLiveMode(false)}
-                onInc={() => setLiveMode(true)}
-              />
+              {settingsTab === "kamera" && (
+                <>
+                  <PadDial
+                    label="POS X"
+                    mode="number"
+                    value={`${camOffX.toFixed(2)}m`}
+                    rawValue={camOffX}
+                    onSet={setCamOffX}
+                    min={-10}
+                    max={10}
+                    step={0.1}
+                    onDec={() => setCamOffX((v) => Math.max(-10, +(v - 0.1).toFixed(2)))}
+                    onInc={() => setCamOffX((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
+                  />
+                  <PadDial
+                    label="POS Y"
+                    mode="number"
+                    value={`${camOffY.toFixed(2)}m`}
+                    rawValue={camOffY}
+                    onSet={setCamOffY}
+                    min={-10}
+                    max={10}
+                    step={0.1}
+                    onDec={() => setCamOffY((v) => Math.max(-10, +(v - 0.1).toFixed(2)))}
+                    onInc={() => setCamOffY((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
+                  />
+                  <PadDial
+                    label="POS Z"
+                    mode="number"
+                    value={`${camOffZ.toFixed(2)}m`}
+                    rawValue={camOffZ}
+                    onSet={setCamOffZ}
+                    min={-10}
+                    max={10}
+                    step={0.1}
+                    onDec={() => setCamOffZ((v) => Math.max(-10, +(v - 0.1).toFixed(2)))}
+                    onInc={() => setCamOffZ((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
+                  />
+                  <PadDial
+                    label="FOV"
+                    mode="number"
+                    value={`${camFov.toFixed(0)}°`}
+                    rawValue={camFov}
+                    onSet={(v) => setCamFov(Math.max(20, Math.min(140, v)))}
+                    min={20}
+                    max={140}
+                    step={1}
+                    onDec={() => setCamFov((v) => Math.max(20, +(v - 1).toFixed(0)))}
+                    onInc={() => setCamFov((v) => Math.min(140, +(v + 1).toFixed(0)))}
+                  />
+                  <PadDial
+                    label="NÄRA"
+                    mode="number"
+                    value={`${camNear.toFixed(3)}`}
+                    rawValue={camNear}
+                    onSet={(v) => setCamNear(Math.max(0.001, Math.min(10, v)))}
+                    min={0.001}
+                    max={10}
+                    step={0.01}
+                    onDec={() => setCamNear((v) => Math.max(0.001, +(v - 0.01).toFixed(3)))}
+                    onInc={() => setCamNear((v) => Math.min(10, +(v + 0.01).toFixed(3)))}
+                  />
+                  <PadDial
+                    label="ROTERING"
+                    value={leanEnabled ? "FRAMÅTLUT" : "FIXERAD"}
+                    onDec={() => setLeanEnabled(false)}
+                    onInc={() => setLeanEnabled(true)}
+                  />
+                  <PadDial
+                    label="VAKEN"
+                    value={wakeLock ? "PÅ" : "AV"}
+                    onDec={() => setWakeLock(false)}
+                    onInc={() => setWakeLock(true)}
+                  />
+                </>
+              )}
+              {settingsTab === "vatten" && (
+                <>
+                  <PadDial
+                    label="VATTEN"
+                    value={WATER_TINTS[waterTintIdx].name}
+                    onDec={() => setWaterTintIdx((i) => (i - 1 + WATER_TINTS.length) % WATER_TINTS.length)}
+                    onInc={() => setWaterTintIdx((i) => (i + 1) % WATER_TINTS.length)}
+                  />
+                  <PadDial
+                    label="OPACITET"
+                    mode="number"
+                    value={`${Math.round(waterOpacity * 100)}%`}
+                    rawValue={waterOpacity}
+                    onSet={setWaterOpacity}
+                    min={0.1}
+                    max={1}
+                    step={0.05}
+                    onDec={() => setWaterOpacity((v) => Math.max(0.1, +(v - 0.05).toFixed(2)))}
+                    onInc={() => setWaterOpacity((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+                  />
+                  <PadDial
+                    label="TON"
+                    mode="number"
+                    value={`${Math.round(waterHue)}°`}
+                    rawValue={waterHue}
+                    onSet={setWaterHue}
+                    min={-180}
+                    max={180}
+                    step={5}
+                    onDec={() => setWaterHue((v) => Math.max(-180, +(v - 5).toFixed(0)))}
+                    onInc={() => setWaterHue((v) => Math.min(180, +(v + 5).toFixed(0)))}
+                  />
+                  <PadDial
+                    label="MÄTTNAD"
+                    mode="number"
+                    value={`${waterSat.toFixed(2)}x`}
+                    rawValue={waterSat}
+                    onSet={setWaterSat}
+                    min={0}
+                    max={2}
+                    step={0.05}
+                    onDec={() => setWaterSat((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                    onInc={() => setWaterSat((v) => Math.min(2, +(v + 0.05).toFixed(2)))}
+                  />
+                  <PadDial
+                    label="LJUSSTYRKA"
+                    mode="number"
+                    value={`${waterBright.toFixed(2)}x`}
+                    rawValue={waterBright}
+                    onSet={setWaterBright}
+                    min={0.1}
+                    max={2.5}
+                    step={0.05}
+                    onDec={() => setWaterBright((v) => Math.max(0.1, +(v - 0.05).toFixed(2)))}
+                    onInc={() => setWaterBright((v) => Math.min(2.5, +(v + 0.05).toFixed(2)))}
+                  />
+                  <PadDial
+                    label="YT-LJUS"
+                    mode="number"
+                    value={`${surfBright.toFixed(2)}x`}
+                    rawValue={surfBright}
+                    onSet={(v) => setSurfBright(Math.max(0.1, Math.min(3, v)))}
+                    min={0.1}
+                    max={3}
+                    step={0.05}
+                    onDec={() => setSurfBright((v) => Math.max(0.1, +(v - 0.05).toFixed(2)))}
+                    onInc={() => setSurfBright((v) => Math.min(3, +(v + 0.05).toFixed(2)))}
+                  />
+                  <PadDial
+                    label="YT-MÄTTNAD"
+                    mode="number"
+                    value={`${surfSat.toFixed(2)}x`}
+                    rawValue={surfSat}
+                    onSet={(v) => setSurfSat(Math.max(0, Math.min(2, v)))}
+                    min={0}
+                    max={2}
+                    step={0.05}
+                    onDec={() => setSurfSat((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                    onInc={() => setSurfSat((v) => Math.min(2, +(v + 0.05).toFixed(2)))}
+                  />
+                  <PadDial
+                    label="BOTTEN"
+                    value={BOTTOM_OPTIONS[bottomIdx].name}
+                    onDec={() => setBottomIdx((i) => (i - 1 + BOTTOM_OPTIONS.length) % BOTTOM_OPTIONS.length)}
+                    onInc={() => setBottomIdx((i) => (i + 1) % BOTTOM_OPTIONS.length)}
+                  />
+                  <PadDial
+                    label="DJUP"
+                    mode="number"
+                    value={`${floorDepth.toFixed(1)}m`}
+                    rawValue={floorDepth}
+                    onSet={(v) => setFloorDepth(Math.max(1, Math.min(60, v)))}
+                    min={1}
+                    max={60}
+                    step={0.5}
+                    onDec={() => setFloorDepth((v) => Math.max(1, +(v - 0.5).toFixed(2)))}
+                    onInc={() => setFloorDepth((v) => Math.min(60, +(v + 0.5).toFixed(2)))}
+                  />
+                  <PadDial
+                    label="TEXTUR"
+                    value={floorTexture ? "PÅ" : "AV"}
+                    onDec={() => setFloorTexture(false)}
+                    onInc={() => setFloorTexture(true)}
+                  />
+                  <PadDial
+                    label="DJUP-SINUS"
+                    value={depthSineOn ? "PÅ" : "AV"}
+                    onDec={() => setDepthSineOn(false)}
+                    onInc={() => setDepthSineOn(true)}
+                  />
+                  <PadDial
+                    label="SINUS AMP"
+                    mode="number"
+                    value={`${depthSineAmp.toFixed(2)}m`}
+                    rawValue={depthSineAmp}
+                    onSet={(v) => setDepthSineAmp(Math.max(0, Math.min(30, v)))}
+                    min={0}
+                    max={30}
+                    step={0.25}
+                    onDec={() => setDepthSineAmp((v) => Math.max(0, +(v - 0.25).toFixed(2)))}
+                    onInc={() => setDepthSineAmp((v) => Math.min(30, +(v + 0.25).toFixed(2)))}
+                  />
+                  <PadDial
+                    label="SINUS FREK"
+                    mode="number"
+                    value={`${depthSineFreq.toFixed(2)}Hz`}
+                    rawValue={depthSineFreq}
+                    onSet={(v) => setDepthSineFreq(Math.max(0.001, Math.min(2, v)))}
+                    min={0.001}
+                    max={2}
+                    step={0.01}
+                    onDec={() => setDepthSineFreq((v) => Math.max(0.001, +(v - 0.01).toFixed(3)))}
+                    onInc={() => setDepthSineFreq((v) => Math.min(2, +(v + 0.01).toFixed(3)))}
+                  />
+                  <PadDial
+                    label="YTA"
+                    value={hideWater ? "DÖLJ" : "SYNLIGT"}
+                    onDec={() => setHideWater(true)}
+                    onInc={() => setHideWater(false)}
+                  />
+                </>
+              )}
+              {settingsTab === "miljo" && (
+                <>
+                  <PadDial
+                    label="TID"
+                    value={todLabel}
+                    onDec={() => setTimeOfDay((v) => (v - 0.02 + 1) % 1)}
+                    onInc={() => setTimeOfDay((v) => (v + 0.02) % 1)}
+                  />
+                  <PadDial
+                    label="MELLAN-MOLN"
+                    value={midCloudsOn ? "PÅ" : "AV"}
+                    onDec={() => setMidCloudsOn(false)}
+                    onInc={() => setMidCloudsOn(true)}
+                  />
+                  <PadDial
+                    label="MOLNHÖJD"
+                    mode="number"
+                    value={`${Math.round(midCloudsHeight * 100)}%`}
+                    rawValue={midCloudsHeight}
+                    onSet={(v) => setMidCloudsHeight(Math.max(0.05, Math.min(0.95, v)))}
+                    min={0.05}
+                    max={0.95}
+                    step={0.05}
+                    onDec={() => setMidCloudsHeight((v) => Math.max(0.05, +(v - 0.05).toFixed(2)))}
+                    onInc={() => setMidCloudsHeight((v) => Math.min(0.95, +(v + 0.05).toFixed(2)))}
+                  />
+                  {scenes.length > 0 && (
+                    <PadDial
+                      label="SCEN"
+                      value={
+                        sceneId
+                          ? (scenes.find((s) => s.id === sceneId)?.name ?? sceneId)
+                          : "AV"
+                      }
+                      onDec={() => cycleScene(-1)}
+                      onInc={() => cycleScene(1)}
+                    />
+                  )}
+                  {environments.length > 0 && (
+                    <>
+                      <PadDial
+                        label="MILJÖ"
+                        value={curEnv ? curEnv.name : "AV"}
+                        onDec={() => cycleEnv(-1)}
+                        onInc={() => cycleEnv(1)}
+                      />
+                      {curEnv && curEnv.eras.length > 1 && (
+                        <PadDial
+                          label="EPOK"
+                          value={curEra?.name ?? "—"}
+                          onDec={() => cycleEra(-1)}
+                          onInc={() => cycleEra(1)}
+                        />
+                      )}
+                      {curEra && curEra.times.length > 1 && (
+                        <PadDial
+                          label="DYGN"
+                          value={curTime?.name ?? "—"}
+                          onDec={() => cycleTime(-1)}
+                          onInc={() => cycleTime(1)}
+                        />
+                      )}
+                    </>
+                  )}
+                  <PadDial
+                    label="BAKGRUND"
+                    value={BACKDROPS[backdropIdx].name}
+                    onDec={() => setBackdropIdx((i) => (i - 1 + BACKDROPS.length) % BACKDROPS.length)}
+                    onInc={() => setBackdropIdx((i) => (i + 1) % BACKDROPS.length)}
+                  />
+                  <PadDial
+                    label="LIVE"
+                    value={liveMode ? "PÅ" : "AV"}
+                    onDec={() => setLiveMode(false)}
+                    onInc={() => setLiveMode(true)}
+                  />
+                </>
+              )}
+              {settingsTab === "ljud" && (
+                <>
+                  <PadDial
+                    label={audioOn ? "LJUD PÅ" : "LJUD AV"}
+                    value={audioOn ? `${Math.round(audioVol * 100)}%` : "—"}
+                    onDec={() => {
+                      if (!audioOn) { setAudioOn(true); return; }
+                      setAudioVol((v) => {
+                        const next = +(v - 0.1).toFixed(2);
+                        if (next <= 0) { setAudioOn(false); return 0; }
+                        return next;
+                      });
+                    }}
+                    onInc={() => {
+                      if (!audioOn) { setAudioOn(true); return; }
+                      setAudioVol((v) => Math.min(1, +(v + 0.1).toFixed(2)));
+                    }}
+                  />
+                  <PadDial
+                    label="LJUDSYNK"
+                    value={audioSyncSpeed ? "PÅ" : "AV"}
+                    onDec={() => setAudioSyncSpeed(false)}
+                    onInc={() => setAudioSyncSpeed(true)}
+                  />
+                  <PadDial
+                    label="SPATIAL"
+                    value={audioSpatial ? "PÅ" : "AV"}
+                    onDec={() => setAudioSpatial(false)}
+                    onInc={() => setAudioSpatial(true)}
+                  />
+                </>
+              )}
             </div>
           </div>
         </div>
