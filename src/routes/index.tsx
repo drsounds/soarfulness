@@ -300,6 +300,32 @@ function loadSettings(): Persisted {
   }
 }
 
+// The camera's free-roam position (x/z) and look direction (yaw/pitch) are
+// autosaved continuously, separately from the dial settings above, so a
+// "restore" action can jump back to wherever the camera was left without
+// requiring that value to feed into the physics loop on every reload.
+const CAMERA_STORAGE_KEY = "aquafulness:camera:v1";
+type CameraPose = { x: number; z: number; yaw: number; pitch: number };
+function loadCameraPose(): CameraPose | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(CAMERA_STORAGE_KEY);
+    if (!raw) return null;
+    const p = JSON.parse(raw);
+    if (typeof p.x !== "number" || typeof p.z !== "number" || typeof p.yaw !== "number" || typeof p.pitch !== "number") return null;
+    return p;
+  } catch {
+    return null;
+  }
+}
+function saveCameraPose(pose: CameraPose) {
+  try {
+    window.localStorage.setItem(CAMERA_STORAGE_KEY, JSON.stringify(pose));
+  } catch {
+    /* quota or privacy mode — ignore */
+  }
+}
+
 function Aquafulness() {
   const mountRef = useRef<HTMLDivElement>(null);
   const initial = useRef<Persisted>(loadSettings()).current;
@@ -565,6 +591,19 @@ function Aquafulness() {
     setSwayBias(DEFAULTS.swayBias);
     setLiveMode(DEFAULTS.liveMode);
     // timeOfDay is intentionally left untouched.
+  };
+
+  // Jump the camera back to the last autosaved free-roam position/look
+  // direction. Reads localStorage fresh (rather than a stale ref) so it
+  // always restores whatever was most recently saved, including from a
+  // previous page load.
+  const restoreCameraPosition = () => {
+    const saved = loadCameraPose();
+    if (!saved) return;
+    posRef.current.x = saved.x;
+    posRef.current.z = saved.z;
+    yawRef.current = saved.yaw;
+    pitchRef.current = saved.pitch;
   };
 
   // Step through the available scenes, including an "AV" (no model) slot.
@@ -1381,8 +1420,13 @@ function Aquafulness() {
 
     let raf = 0;
     let lastMs = performance.now();
+    let lastCamSaveMs = 0;
     let waveT = 0;
     const clock = new THREE.Clock();
+    const saveCameraPoseNow = () => {
+      saveCameraPose({ x: posRef.current.x, z: posRef.current.z, yaw: yawRef.current, pitch: pitchRef.current });
+    };
+    window.addEventListener("pagehide", saveCameraPoseNow);
     const animate = () => {
       // Sync camera lens (FOV / near clip) with live settings.
       if (camera.fov !== camFovRef.current || camera.near !== camNearRef.current) {
@@ -1704,6 +1748,13 @@ function Aquafulness() {
       camera.rotateY(yawRef.current);
       camera.rotateX(pitchRef.current);
 
+      // Autosave the free-roam position/look direction (throttled) so it
+      // survives a reload and can be jumped back to via the restore button.
+      if (now - lastCamSaveMs > 1000) {
+        lastCamSaveMs = now;
+        saveCameraPose({ x: posRef.current.x, z: posRef.current.z, yaw: yawRef.current, pitch: pitchRef.current });
+      }
+
       // Optional forward-leaning rotation: pitch into the direction of travel.
       // Default is a fixed forward horizon (no lean).
       if (leanRef.current) {
@@ -1770,6 +1821,8 @@ function Aquafulness() {
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", handleResize);
+      window.removeEventListener("pagehide", saveCameraPoseNow);
+      saveCameraPoseNow();
       renderer.dispose();
       geo.dispose();
       mat.dispose();
@@ -1949,14 +2002,24 @@ function Aquafulness() {
           <div className="max-h-[70vh] overflow-y-auto rounded-3xl border border-white/15 bg-black/60 p-4 shadow-2xl backdrop-blur-xl">
             <div className="mb-3 flex items-center justify-between text-white/90">
               <span className="text-[10px] font-light tracking-[0.4em] text-white/60">INSTÄLLNINGAR</span>
-              <button
-                onClick={resetToDefaults}
-                className="rounded-full border border-white/20 bg-white/5 px-3 py-1 text-[9px] font-light tracking-wider text-white/80 transition active:scale-95 active:bg-white/15"
-                aria-label="Återställ reglage till standardvärden"
-                title="Återställ reglage (tid på dygnet påverkas inte)"
-              >
-                ÅTERSTÄLL
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={restoreCameraPosition}
+                  className="rounded-full border border-white/20 bg-white/5 px-3 py-1 text-[9px] font-light tracking-wider text-white/80 transition active:scale-95 active:bg-white/15"
+                  aria-label="Återgå till senast sparade kameraposition"
+                  title="Återgå till senast sparade kameraposition och riktning"
+                >
+                  ÅTERGÅ
+                </button>
+                <button
+                  onClick={resetToDefaults}
+                  className="rounded-full border border-white/20 bg-white/5 px-3 py-1 text-[9px] font-light tracking-wider text-white/80 transition active:scale-95 active:bg-white/15"
+                  aria-label="Återställ reglage till standardvärden"
+                  title="Återställ reglage (tid på dygnet påverkas inte)"
+                >
+                  ÅTERSTÄLL
+                </button>
+              </div>
             </div>
             <div className="flex flex-wrap justify-center gap-2">
               <PadDial
