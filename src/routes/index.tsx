@@ -154,6 +154,9 @@ type Persisted = {
   swayBias: number;
   liveMode: boolean;
   sceneId: string | null;
+  envId: string | null;
+  envEra: string | null;
+  envTime: string | null;
 };
 const WATER_TINTS: { name: string; rgb: [number, number, number] }[] = [
   { name: "Nordhav", rgb: [1, 1, 1] },
@@ -235,6 +238,61 @@ function disposeObject(obj: THREE.Object3D) {
     }
   });
 }
+
+// A real (3D) skybox environment lives under
+//   public/environments/<env>/<era>/<time>/skybox.png  (+ manifest.json)
+// and the tree of available environments/eras/times comes from
+// public/environments/environment.json. The skybox is rendered as the scene's
+// equirectangular background so it responds correctly to camera rotation,
+// unlike the flat DOM backdrop which stays fixed on screen.
+type EnvTime = { id: string; name: string };
+type EnvEra = { id: string; name: string; times: EnvTime[] };
+type EnvironmentEntry = { id: string; name: string; eras: EnvEra[] };
+type EnvManifest = {
+  name?: string;
+  // If set, the water/lighting palette snaps to this time-of-day (0..1).
+  timeOfDay?: number;
+  // Horizontal rotation of the panorama, in degrees, to align the sun/horizon.
+  rotationY?: number;
+  // Skybox image filename within the leaf folder (defaults to skybox.png).
+  image?: string;
+};
+
+// Parse the loosely-typed environment.json into a validated tree.
+function parseEnvironments(data: unknown): EnvironmentEntry[] {
+  const rawList = Array.isArray(data)
+    ? data
+    : ((data as { environments?: unknown }).environments ?? []);
+  if (!Array.isArray(rawList)) return [];
+  const str = (v: unknown, fallback: string) => (typeof v === "string" ? v : fallback);
+  return rawList
+    .map((e) => {
+      const env = e as { id?: unknown; name?: unknown; eras?: unknown };
+      if (typeof env.id !== "string") return null;
+      const eras = (Array.isArray(env.eras) ? env.eras : [])
+        .map((er) => {
+          const era = er as { id?: unknown; name?: unknown; times?: unknown };
+          if (typeof era.id !== "string") return null;
+          const times = (Array.isArray(era.times) ? era.times : [])
+            .map((tm) => {
+              const time = tm as { id?: unknown; name?: unknown };
+              return typeof time.id === "string"
+                ? { id: time.id, name: str(time.name, time.id) }
+                : null;
+            })
+            .filter((t): t is EnvTime => t !== null);
+          return times.length
+            ? { id: era.id, name: str(era.name, era.id), times }
+            : null;
+        })
+        .filter((er): er is EnvEra => er !== null);
+      return eras.length
+        ? { id: env.id, name: str(env.name, env.id), eras }
+        : null;
+    })
+    .filter((e): e is EnvironmentEntry => e !== null);
+}
+
 const DEFAULTS: Persisted = {
   waveAmp: 2.0,
   timeOfDay: 0.5,
@@ -287,6 +345,9 @@ const DEFAULTS: Persisted = {
   swayBias: 0,
   liveMode: false,
   sceneId: null,
+  envId: null,
+  envEra: null,
+  envTime: null,
 };
 function loadSettings(): Persisted {
   if (typeof window === "undefined") return DEFAULTS;
@@ -385,6 +446,11 @@ function Aquafulness() {
   // Loadable .glb scenes discovered from public/scenes/scenes.json.
   const [scenes, setScenes] = useState<SceneEntry[]>([]);
   const [sceneId, setSceneId] = useState<string | null>(initial.sceneId);
+  // Real-skybox environments discovered from public/environments/environment.json.
+  const [environments, setEnvironments] = useState<EnvironmentEntry[]>([]);
+  const [envId, setEnvId] = useState<string | null>(initial.envId);
+  const [envEra, setEnvEra] = useState<string | null>(initial.envEra);
+  const [envTime, setEnvTime] = useState<string | null>(initial.envTime);
   const [rotStick, setRotStick] = useState({ x: 0, y: 0 });
   const [driftStick, setDriftStick] = useState({ x: 0, y: 0 });
   const [waveDirStick, setWaveDirStick] = useState({ x: 0, y: 0 });
@@ -401,17 +467,21 @@ function Aquafulness() {
   // Non-null only when the current scene opts into bobbing; drives the model's
   // vertical motion from inside the animation loop.
   const modelBobRef = useRef<{ base: THREE.Vector3; bob: BobConfig } | null>(null);
+  // The loaded environment skybox texture and whether it is currently shown, so
+  // the animation loop can hide the procedural sky dome for a real equirect one.
+  const envTextureRef = useRef<THREE.Texture | null>(null);
+  const envActiveRef = useRef(false);
 
   // Persist settings to localStorage whenever they change (SSR-safe, hydration-safe).
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, bottomIdx, leanEnabled, regularWaves, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -615,6 +685,50 @@ function Aquafulness() {
     setSceneId(options[next]);
   };
 
+  // Currently selected environment / era / time objects (null when unset).
+  const curEnv = environments.find((e) => e.id === envId) ?? null;
+  const curEra = curEnv?.eras.find((er) => er.id === envEra) ?? null;
+  const curTime = curEra?.times.find((tm) => tm.id === envTime) ?? null;
+
+  // Selecting an environment cascades to its first era + time.
+  const applyEnv = (id: string | null) => {
+    if (!id) {
+      setEnvId(null);
+      setEnvEra(null);
+      setEnvTime(null);
+      return;
+    }
+    const env = environments.find((e) => e.id === id) ?? null;
+    const era = env?.eras[0] ?? null;
+    setEnvId(id);
+    setEnvEra(era?.id ?? null);
+    setEnvTime(era?.times[0]?.id ?? null);
+  };
+
+  // Step through environments, including an "AV" (procedural sky) slot.
+  const cycleEnv = (dir: number) => {
+    const options: (string | null)[] = [null, ...environments.map((e) => e.id)];
+    const cur = options.indexOf(envId ?? null);
+    const idx = cur < 0 ? 0 : cur;
+    applyEnv(options[(idx + dir + options.length) % options.length]);
+  };
+
+  const cycleEra = (dir: number) => {
+    if (!curEnv || curEnv.eras.length === 0) return;
+    const eras = curEnv.eras;
+    const i = Math.max(0, eras.findIndex((e) => e.id === envEra));
+    const nextEra = eras[(i + dir + eras.length) % eras.length];
+    setEnvEra(nextEra.id);
+    setEnvTime(nextEra.times[0]?.id ?? null);
+  };
+
+  const cycleTime = (dir: number) => {
+    if (!curEra || curEra.times.length === 0) return;
+    const times = curEra.times;
+    const i = Math.max(0, times.findIndex((t) => t.id === envTime));
+    setEnvTime(times[(i + dir + times.length) % times.length].id);
+  };
+
   // Ocean sound: loop the recorded water track through a lowpass + depth gain
   // so we can still muffle & boost it based on how deep the camera is.
   useEffect(() => {
@@ -806,6 +920,40 @@ function Aquafulness() {
       alive = false;
     };
   }, []);
+
+  // Discover the available skybox environments from environment.json.
+  useEffect(() => {
+    let alive = true;
+    fetch("/environments/environment.json")
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("no environment.json"))))
+      .then((data: unknown) => {
+        if (alive) setEnvironments(parseEnvironments(data));
+      })
+      .catch(() => {
+        if (alive) setEnvironments([]);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // Once the environment list loads, repair a persisted selection whose
+  // env/era/time no longer exists (e.g. renamed or removed on disk).
+  useEffect(() => {
+    if (environments.length === 0 || !envId) return;
+    const env = environments.find((e) => e.id === envId);
+    if (!env) {
+      setEnvId(null);
+      setEnvEra(null);
+      setEnvTime(null);
+      return;
+    }
+    const era = env.eras.find((e) => e.id === envEra) ?? env.eras[0] ?? null;
+    if (era?.id !== envEra) setEnvEra(era?.id ?? null);
+    const time = era?.times.find((t) => t.id === envTime) ?? era?.times[0] ?? null;
+    if (time?.id !== envTime) setEnvTime(time?.id ?? null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [environments]);
 
 
 
@@ -1789,10 +1937,14 @@ function Aquafulness() {
 
       sky.position.copy(camera.position);
 
-      // Optional backdrop: hide sky dome & clear alpha so a DOM image
-      // shows through behind the WebGL scene.
-      const useBackdrop = backdropRef.current > 0;
-      sky.visible = !useBackdrop;
+      // Backdrop / skybox priority:
+      //  - A real environment skybox (scene.background) wins: hide the sky dome,
+      //    ignore the flat DOM backdrop, keep an opaque clear behind it.
+      //  - Otherwise an optional flat DOM backdrop hides the dome & clears alpha.
+      //  - Otherwise the procedural sky dome renders as before.
+      const envActive = envActiveRef.current;
+      const useBackdrop = backdropRef.current > 0 && !envActive;
+      sky.visible = !useBackdrop && !envActive;
       renderer.setClearColor(0x032033, useBackdrop ? 0 : 1);
 
       // Optional model bobbing — static scenes leave modelBobRef null and the
@@ -1839,6 +1991,12 @@ function Aquafulness() {
         modelRef.current = null;
       }
       modelBobRef.current = null;
+      scene.background = null;
+      if (envTextureRef.current) {
+        envTextureRef.current.dispose();
+        envTextureRef.current = null;
+      }
+      envActiveRef.current = false;
       sceneRef.current = null;
       if (renderer.domElement.parentNode === mount) {
         mount.removeChild(renderer.domElement);
@@ -1898,6 +2056,75 @@ function Aquafulness() {
     };
   }, [sceneId]);
 
+  // Load / swap the selected environment's equirectangular skybox as the scene
+  // background so it moves correctly with the camera. Re-runs whenever the
+  // environment, era, or time-of-day selection changes.
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (!scene) return;
+
+    const clearSkybox = () => {
+      scene.background = null;
+      envActiveRef.current = false;
+      if (envTextureRef.current) {
+        envTextureRef.current.dispose();
+        envTextureRef.current = null;
+      }
+    };
+
+    // No environment (or an incomplete selection) → procedural sky dome.
+    if (!envId || !envEra || !envTime) {
+      clearSkybox();
+      return;
+    }
+
+    let cancelled = false;
+    const base = [envId, envEra, envTime].map(encodeURIComponent).join("/");
+    const dir = `/environments/${base}`;
+
+    fetch(`${dir}/manifest.json`)
+      .then((r) => (r.ok ? (r.json() as Promise<EnvManifest>) : {}))
+      .catch(() => ({} as EnvManifest))
+      .then((manifest: EnvManifest) => {
+        if (cancelled) return;
+        const image = manifest.image ?? "skybox.png";
+        new THREE.TextureLoader().load(
+          `${dir}/${encodeURIComponent(image)}`,
+          (tex) => {
+            if (cancelled) {
+              tex.dispose();
+              return;
+            }
+            tex.mapping = THREE.EquirectangularReflectionMapping;
+            tex.colorSpace = THREE.SRGBColorSpace;
+            // Swap in the new texture, disposing whatever was there before.
+            if (envTextureRef.current) envTextureRef.current.dispose();
+            envTextureRef.current = tex;
+            scene.background = tex;
+            scene.backgroundRotation.set(
+              0,
+              ((manifest.rotationY ?? 0) * Math.PI) / 180,
+              0,
+            );
+            envActiveRef.current = true;
+            // Sync the water/lighting palette to this skybox's time-of-day.
+            if (typeof manifest.timeOfDay === "number") {
+              setTimeOfDay(((manifest.timeOfDay % 1) + 1) % 1);
+            }
+          },
+          undefined,
+          (err) => {
+            console.error(`Failed to load skybox "${base}"`, err);
+            if (!cancelled) clearSkybox();
+          },
+        );
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [envId, envEra, envTime]);
+
   // Time-of-day label
   const todLabel = (() => {
     const t = timeOfDay;
@@ -1911,7 +2138,7 @@ function Aquafulness() {
 
   return (
     <main className="relative h-screen w-screen overflow-hidden bg-black">
-      {BACKDROPS[backdropIdx]?.url && (
+      {!envId && BACKDROPS[backdropIdx]?.url && (
         <img
           src={BACKDROPS[backdropIdx].url!}
           alt=""
@@ -2469,6 +2696,32 @@ function Aquafulness() {
                   onDec={() => cycleScene(-1)}
                   onInc={() => cycleScene(1)}
                 />
+              )}
+              {environments.length > 0 && (
+                <>
+                  <PadDial
+                    label="MILJÖ"
+                    value={curEnv ? curEnv.name : "AV"}
+                    onDec={() => cycleEnv(-1)}
+                    onInc={() => cycleEnv(1)}
+                  />
+                  {curEnv && curEnv.eras.length > 1 && (
+                    <PadDial
+                      label="EPOK"
+                      value={curEra?.name ?? "—"}
+                      onDec={() => cycleEra(-1)}
+                      onInc={() => cycleEra(1)}
+                    />
+                  )}
+                  {curEra && curEra.times.length > 1 && (
+                    <PadDial
+                      label="DYGN"
+                      value={curTime?.name ?? "—"}
+                      onDec={() => cycleTime(-1)}
+                      onInc={() => cycleTime(1)}
+                    />
+                  )}
+                </>
               )}
               <PadDial
                 label="BAKGRUND"
