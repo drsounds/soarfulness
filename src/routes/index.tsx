@@ -125,6 +125,7 @@ type Persisted = {
   waterBright: number;
   surfBright: number;
   surfSat: number;
+  turbidity: number;
   bottomIdx: number;
   leanEnabled: boolean;
   regularWaves: boolean;
@@ -327,6 +328,7 @@ const DEFAULTS: Persisted = {
   waterBright: 1,
   surfBright: 1,
   surfSat: 1,
+  turbidity: 0,
   bottomIdx: 2,
   leanEnabled: false,
   regularWaves: true,
@@ -427,6 +429,7 @@ function Aquafulness() {
   const [waterBright, setWaterBright] = useState(initial.waterBright);
   const [surfBright, setSurfBright] = useState(initial.surfBright);
   const [surfSat, setSurfSat] = useState(initial.surfSat);
+  const [turbidity, setTurbidity] = useState(initial.turbidity);
   const [bottomIdx, setBottomIdx] = useState(initial.bottomIdx);
   const [leanEnabled, setLeanEnabled] = useState(initial.leanEnabled);
   const [regularWaves, setRegularWaves] = useState(initial.regularWaves);
@@ -492,12 +495,12 @@ function Aquafulness() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, bottomIdx, leanEnabled, regularWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, bottomIdx, leanEnabled, regularWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -531,6 +534,7 @@ function Aquafulness() {
   const waterBrightRef = useRef(waterBright);
   const surfBrightRef = useRef(surfBright);
   const surfSatRef = useRef(surfSat);
+  const turbidityRef = useRef(turbidity);
   const bottomIdxRef = useRef(bottomIdx);
   const leanRef = useRef(leanEnabled);
   const regularRef = useRef(regularWaves);
@@ -588,6 +592,7 @@ function Aquafulness() {
   useEffect(() => { waterBrightRef.current = waterBright; }, [waterBright]);
   useEffect(() => { surfBrightRef.current = surfBright; }, [surfBright]);
   useEffect(() => { surfSatRef.current = surfSat; }, [surfSat]);
+  useEffect(() => { turbidityRef.current = turbidity; }, [turbidity]);
   useEffect(() => { bottomIdxRef.current = bottomIdx; }, [bottomIdx]);
   useEffect(() => { leanRef.current = leanEnabled; }, [leanEnabled]);
   useEffect(() => { regularRef.current = regularWaves; }, [regularWaves]);
@@ -652,6 +657,7 @@ function Aquafulness() {
     setWaterBright(DEFAULTS.waterBright);
     setSurfBright(DEFAULTS.surfBright);
     setSurfSat(DEFAULTS.surfSat);
+    setTurbidity(DEFAULTS.turbidity);
     setBottomIdx(DEFAULTS.bottomIdx);
     setLeanEnabled(DEFAULTS.leanEnabled);
     setRegularWaves(DEFAULTS.regularWaves);
@@ -1364,6 +1370,14 @@ function Aquafulness() {
       uSunDir: { value: uniforms.uSunDir.value },
       uSandTex: { value: sandTex },
       uSandScale: { value: 0.35 }, // ~1 tile per 2.9 m så kornen syns
+      // Grumlighet (turbidity): optional murkiness for the geometry seen
+      // below the water line — see uTurbidity handling in the fragment
+      // shader for details.
+      uTurbidity: { value: 0 },
+      uUnderwater: { value: 0 },
+      uFogColor: { value: new THREE.Color(0x0a2a3a) },
+      uCamNear: { value: camNearRef.current },
+      uCamFar: { value: camFarRef.current },
     };
     const floorMat = new THREE.ShaderMaterial({
       uniforms: floorUniforms,
@@ -1393,6 +1407,11 @@ function Aquafulness() {
         uniform vec3 uSunDir;
         uniform sampler2D uSandTex;
         uniform float uSandScale;
+        uniform float uTurbidity;
+        uniform float uUnderwater;
+        uniform vec3 uFogColor;
+        uniform float uCamNear;
+        uniform float uCamFar;
 
         float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453123); }
         float vnoise(vec2 p){
@@ -1413,6 +1432,41 @@ function Aquafulness() {
           return v;
         }
 
+        // Grumlighet (turbidity): murks up whatever is visible below the
+        // water line — suspended particles both dim/desaturate light overall
+        // (a flat mix toward the fog tint, independent of distance) and
+        // scatter it more the further away / the more submerged the camera
+        // is, swallowing detail into a patchy haze. uTurbidity=0 reproduces
+        // the exact original look; the fbm patchiness keeps dense turbidity
+        // from reading as a flat, unnaturally uniform curtain.
+        vec3 applyTurbidity(vec3 col) {
+          if (uTurbidity <= 0.001) return col;
+          // Distance from the depth buffer, not from interpolating vWorld:
+          // this seafloor is one 200,000-unit plane with only 32 segments,
+          // so its vertices sit thousands of units apart. A triangle with
+          // one corner almost underfoot and the other two kilometers away
+          // makes the rasterizer's perspective-correct interpolation of any
+          // world-space varying (vWorld included) collapse — every nearby
+          // fragment was reading back thousands of units "away". Rebuilding
+          // linear view depth from gl_FragCoord.z sidesteps that entirely.
+          float ndcZ = gl_FragCoord.z * 2.0 - 1.0;
+          float distC = (2.0 * uCamNear * uCamFar) / (uCamFar + uCamNear - ndcZ * (uCamFar - uCamNear));
+          // At a level, near-horizon gaze the grazing angle over this huge
+          // seafloor plane means most on-screen "floor" pixels are actually
+          // hundreds/thousands of units away, so the density has to be tiny
+          // — this keeps nearby sand (tens of units) essentially clear even
+          // at uTurbidity=1, only swallowing the far distance into haze, and
+          // thickens noticeably once the camera itself is submerged.
+          float density = uTurbidity * (0.0012 + 0.006 * uUnderwater);
+          float fogAmt = clamp(1.0 - exp(-distC * density), 0.0, 0.92);
+          float patchy = fbm(vWorld.xz * 0.06 + uTime * 0.015);
+          fogAmt *= 0.75 + 0.35 * patchy;
+          vec3 muted = mix(vec3(dot(col, vec3(0.299, 0.587, 0.114))), uFogColor, 0.6);
+          col = mix(col, muted, uTurbidity * 0.3);
+          col = mix(col, uFogColor, fogAmt);
+          return col;
+        }
+
         void main(){
           if (uClouds > 0.5) {
             vec2 p = vWorld.xz * 0.025 + uCloudScroll;
@@ -1422,6 +1476,7 @@ function Aquafulness() {
             // Mild ljus/skugga för volym.
             float shade = 0.85 + 0.25 * fbm(p * 2.3 + 5.0);
             vec3 col = uColor * shade;
+            col = applyTurbidity(col);
             gl_FragColor = vec4(col, cloud);
             return;
           }
@@ -1443,6 +1498,7 @@ function Aquafulness() {
             sand += vec3(0.95, 0.88, 0.7) * caustic * 0.22;
             base = mix(uColor, sand, clamp(uTextured, 0.0, 1.0));
           }
+          base = applyTurbidity(base);
           gl_FragColor = vec4(base, 1.0);
         }
       `,
@@ -1469,6 +1525,11 @@ function Aquafulness() {
       uSunDir: { value: uniforms.uSunDir.value },
       uSandTex: { value: sandTex },
       uSandScale: { value: 0.35 },
+      uTurbidity: { value: 0 },
+      uUnderwater: { value: 0 },
+      uFogColor: { value: new THREE.Color(0x0a2a3a) },
+      uCamNear: { value: camNearRef.current },
+      uCamFar: { value: camFarRef.current },
     };
     const midCloudMat = new THREE.ShaderMaterial({
       uniforms: midCloudUniforms,
@@ -1589,6 +1650,13 @@ function Aquafulness() {
         camera.far = camFarRef.current;
         camera.updateProjectionMatrix();
       }
+      // uCamNear/uCamFar feed the seafloor/mid-cloud shader's depth-buffer
+      // reconstruction for uTurbidity — keep them in lockstep with the
+      // camera's own (user-adjustable) clip planes.
+      floorUniforms.uCamNear.value = camera.near;
+      floorUniforms.uCamFar.value = camera.far;
+      midCloudUniforms.uCamNear.value = camera.near;
+      midCloudUniforms.uCamFar.value = camera.far;
       const now = performance.now();
       const dt = Math.min((now - lastMs) / 1000, 0.1);
       lastMs = now;
@@ -1963,6 +2031,16 @@ function Aquafulness() {
       // Underwater tone-down factor: fades color/contrast as camera dips below surface.
       const uw = depth > 0 ? Math.min(depth / 2.5, 1) : 0;
       uniforms.uUnderwater.value += (uw - uniforms.uUnderwater.value) * Math.min(1, dt * 6);
+
+      // Grumlighet (turbidity): feed the smoothed murk strength + submerged
+      // state into the seafloor/mid-cloud shader, tinted toward the current
+      // deep-water hue so the murk color matches the water tint/time of day.
+      floorUniforms.uTurbidity.value += (turbidityRef.current - floorUniforms.uTurbidity.value) * Math.min(1, dt * 6);
+      floorUniforms.uUnderwater.value = uniforms.uUnderwater.value;
+      floorUniforms.uFogColor.value.copy(uniforms.uWaterDeep.value);
+      midCloudUniforms.uTurbidity.value = floorUniforms.uTurbidity.value;
+      midCloudUniforms.uUnderwater.value = uniforms.uUnderwater.value;
+      midCloudUniforms.uFogColor.value.copy(uniforms.uWaterDeep.value);
 
       // Keep horizon level: no extra pitch/roll from buoyancy.
 
@@ -2690,6 +2768,18 @@ function Aquafulness() {
                     step={0.05}
                     onDec={() => setSurfSat((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
                     onInc={() => setSurfSat((v) => Math.min(2, +(v + 0.05).toFixed(2)))}
+                  />
+                  <PadDial
+                    label="GRUMLIGHET"
+                    mode="number"
+                    value={turbidity <= 0.001 ? "AV" : `${Math.round(turbidity * 100)}%`}
+                    rawValue={turbidity}
+                    onSet={(v) => setTurbidity(Math.max(0, Math.min(1, v)))}
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    onDec={() => setTurbidity((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                    onInc={() => setTurbidity((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
                   />
                   <PadDial
                     label="BOTTEN"
