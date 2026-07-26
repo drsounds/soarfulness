@@ -162,6 +162,10 @@ type Persisted = {
   envTime: string | null;
   surfaceId: string | null;
   reflStrength: number;
+  bottomColor: string;
+  sphereMaterial: boolean;
+  sphereStrength: number;
+  trochoid: number;
 };
 const WATER_TINTS: { name: string; rgb: [number, number, number] }[] = [
   { name: "Nordhav", rgb: [1, 1, 1] },
@@ -179,7 +183,17 @@ const BOTTOM_OPTIONS: { name: string; rgb: [number, number, number] | null }[] =
   { name: "Korall", rgb: [0.9, 0.5, 0.45] },
   { name: "Mörk botten", rgb: [0.08, 0.1, 0.12] },
   { name: "Moln", rgb: [1, 1, 1] },
+  { name: "Anpassad", rgb: [0.6, 0.55, 0.45] },
 ];
+
+// Parse a "#rrggbb" hex string into normalized [0,1] RGB. Falls back to a
+// neutral sand tone on malformed input rather than throwing.
+function hexToRgbNorm(hex: string): [number, number, number] {
+  const m = /^#?([0-9a-fA-F]{6})$/.exec(hex);
+  if (!m) return [0.6, 0.55, 0.45];
+  const n = parseInt(m[1], 16);
+  return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
+}
 const BACKDROPS: { name: string; url: string | null }[] = [
   { name: "AV", url: null },
   { name: "Vänern", url: vanernBackdrop.url },
@@ -381,6 +395,10 @@ const DEFAULTS: Persisted = {
   envTime: null,
   surfaceId: null,
   reflStrength: 1,
+  bottomColor: "#8a7550",
+  sphereMaterial: false,
+  sphereStrength: 0.7,
+  trochoid: 0,
 };
 function loadSettings(): Persisted {
   if (typeof window === "undefined") return DEFAULTS;
@@ -491,6 +509,10 @@ function Aquafulness() {
   const [surfaces, setSurfaces] = useState<SurfaceEntry[]>([]);
   const [surfaceId, setSurfaceId] = useState<string | null>(initial.surfaceId);
   const [reflStrength, setReflStrength] = useState(initial.reflStrength);
+  const [bottomColor, setBottomColor] = useState(initial.bottomColor);
+  const [sphereMaterial, setSphereMaterial] = useState(initial.sphereMaterial);
+  const [sphereStrength, setSphereStrength] = useState(initial.sphereStrength);
+  const [trochoid, setTrochoid] = useState(initial.trochoid);
   const [rotStick, setRotStick] = useState({ x: 0, y: 0 });
   const [driftStick, setDriftStick] = useState({ x: 0, y: 0 });
   const [waveDirStick, setWaveDirStick] = useState({ x: 0, y: 0 });
@@ -522,17 +544,21 @@ function Aquafulness() {
   // dial multiplies it. Effective uReflMix = reflBase * reflStrength.
   const reflBaseRef = useRef(0);
   const reflStrengthRef = useRef(reflStrength);
+  const bottomColorRef = useRef(bottomColor);
+  const sphereMaterialRef = useRef(sphereMaterial);
+  const sphereStrengthRef = useRef(sphereStrength);
+  const trochoidRef = useRef(trochoid);
 
   // Persist settings to localStorage whenever they change (SSR-safe, hydration-safe).
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -661,6 +687,10 @@ function Aquafulness() {
     applyReflMix();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reflStrength]);
+  useEffect(() => { bottomColorRef.current = bottomColor; }, [bottomColor]);
+  useEffect(() => { sphereMaterialRef.current = sphereMaterial; }, [sphereMaterial]);
+  useEffect(() => { sphereStrengthRef.current = sphereStrength; }, [sphereStrength]);
+  useEffect(() => { trochoidRef.current = trochoid; }, [trochoid]);
   const swayStickRef = useRef(swayStick);
   useEffect(() => { swayStickRef.current = swayStick; }, [swayStick]);
   // Håll VÅGRIKT-spakens visuella läge synkat med waveDir (t.ex. när dialen ändras
@@ -727,6 +757,10 @@ function Aquafulness() {
     setSwayBias(DEFAULTS.swayBias);
     setLiveMode(DEFAULTS.liveMode);
     setReflStrength(DEFAULTS.reflStrength);
+    setBottomColor(DEFAULTS.bottomColor);
+    setSphereMaterial(DEFAULTS.sphereMaterial);
+    setSphereStrength(DEFAULTS.sphereStrength);
+    setTrochoid(DEFAULTS.trochoid);
     // timeOfDay is intentionally left untouched.
   };
 
@@ -1140,6 +1174,18 @@ function Aquafulness() {
       // Selectable photo reflection: sampled along the reflection vector.
       uReflTex: { value: whiteTex },
       uReflMix: { value: 0 },
+      // Procedural sphere-map ("matcap") material: a stylized, glossy
+      // sphere-lit look driven by the view-space normal rather than a real
+      // reflection — cheap, and unlike the photo reflection above it stays
+      // convincing at any camera angle. uSphereMix is the blend amount.
+      uSphereMix: { value: 0 },
+      // Trochoidal (Gerstner-like) horizontal displacement blended in on top
+      // of the existing sine/shaped height — purely a vertex-shader visual,
+      // never fed into the JS-side waveHeight() the camera physics reads.
+      uTrochoid: { value: 0 },
+      // Grumlighet (turbidity), shared with the seafloor/mid-cloud/sky
+      // shaders — see uTurbidity handling in the fragment shader below.
+      uTurbidity: { value: 0 },
     };
     // Expose the uniforms so the surface-selector effect can feed in a photo.
     waterUniformsRef.current = uniforms as unknown as Record<string, { value: unknown }>;
@@ -1151,6 +1197,7 @@ function Aquafulness() {
       uniform float uCross;
       uniform float uPeriod;
       uniform float uPeak;
+      uniform float uTrochoid;
       uniform float uDir;
       uniform float uVortex;
       uniform float uVortexOpening;
@@ -1246,6 +1293,22 @@ function Aquafulness() {
         float hz = wave(wpBase.xyz + vec3(0.0, 0.0, e), uTime, ampF, rippleFade);
         vec3 n = normalize(vec3(h - hx, e, h - hz));
 
+        // Trochoidal (Gerstner-like) horizontal displacement: shifts each
+        // vertex sideways along the local wave slope, which bunches vertices
+        // together on the rising face and spreads them apart in the trough —
+        // the classic sharp-crest, wide-trough trochoid silhouette a pure
+        // sine height field can't produce. This only ever moves the mesh
+        // (visual); the JS-side waveHeight() the camera buoyancy reads is a
+        // separate function untouched by uTrochoid, so it never feeds back
+        // into camera movement.
+        if (uTrochoid > 0.001) {
+          float dhdx = (h - hx) / e;
+          float dhdz = (h - hz) / e;
+          float steepness = min(ampF, 3.0) * 0.7 * uTrochoid;
+          p.x += dhdx * steepness;
+          p.z += dhdz * steepness;
+        }
+
         // Vortex funnel: sink the mesh toward the center with a Gaussian well.
         // Depth of the pit scales with the opening so the walls stay steep but
         // proportional. Inside the vortex we swap the directional swell for a
@@ -1304,6 +1367,8 @@ function Aquafulness() {
       uniform float uQuality;
       uniform sampler2D uReflTex;
       uniform float uReflMix;
+      uniform float uSphereMix;
+      uniform float uTurbidity;
       varying vec3 vWorldPos;
       varying vec3 vNormal;
 
@@ -1339,6 +1404,21 @@ function Aquafulness() {
           p *= 2.02; a *= 0.5;
         }
         return v;
+      }
+
+      // Procedural sphere-map ("matcap") material: instead of sampling a
+      // real environment, a glossy sphere-lit look is derived analytically
+      // from the surface's VIEW-SPACE normal (the classic matcap trick) —
+      // an off-center highlight blob plus a rim brighten, always coherent
+      // from any camera angle and needing no extra texture asset.
+      vec3 sphereMapShade(vec3 Nsh, vec3 baseCol) {
+        vec3 viewN = normalize((viewMatrix * vec4(Nsh, 0.0)).xyz);
+        vec2 muv = viewN.xy * 0.5 + 0.5;
+        float hiCore = smoothstep(0.16, 0.0, length(muv - vec2(0.32, 0.68)));
+        float hiSoft = smoothstep(0.55, 0.0, length(muv - vec2(0.32, 0.68)));
+        float rim = pow(clamp(1.0 - viewN.z, 0.0, 1.0), 3.0);
+        vec3 body = mix(baseCol * 0.32, baseCol * 0.95, hiSoft);
+        return body + vec3(1.0) * hiCore * 0.95 + uSkyColor * rim * 0.6;
       }
 
       void main() {
@@ -1433,6 +1513,13 @@ function Aquafulness() {
         vec3 col = mix(water, skyRef, fres * (1.0 - uUnderwater * 0.85)) + sun;
         col = mix(col, vec3(0.95, 0.98, 1.0), foam * 0.85 * (1.0 - uUnderwater));
 
+        // Selectable sphere-map ("matcap") material — a distinct, glossier
+        // look the user opts into per VÅGMATERIAL, blended on top of the
+        // regular Fresnel/sky shading rather than replacing it outright.
+        if (uSphereMix > 0.001) {
+          col = mix(col, sphereMapShade(Nshim, water), uSphereMix);
+        }
+
         // Final surface color adjustment (independent of internal tint).
         col *= uSurfBright;
         float sg = dot(col, vec3(0.299, 0.587, 0.114));
@@ -1445,9 +1532,25 @@ function Aquafulness() {
           col = mix(col, muted, clamp(uUnderwater, 0.0, 1.0));
         }
 
+        // Grumlighet (turbidity): once submerged, real depth-based fog on
+        // top of the flat tone-down above so diving deeper into murky water
+        // keeps getting hazier instead of plateauing at the same fixed
+        // darken. This plane is small and finely tessellated (unlike the
+        // seafloor), so a plain interpolated-position distance is accurate
+        // here — no depth-buffer reconstruction needed.
+        if (uTurbidity > 0.001 && uUnderwater > 0.001) {
+          float distC = length(cameraPosition - vWorldPos);
+          float murk = clamp(1.0 - exp(-distC * uTurbidity * 0.01), 0.0, 0.95) * uUnderwater;
+          col = mix(col, deepT * 0.55, murk);
+        }
+
         // Translucency — thinner (higher/steeper) crests let more light through.
-        // uOpacity scales the final water transparency independently.
-        float alpha = clamp(0.65 + fres * 0.35 - height * 0.35 + foam * 0.25, 0.4, 1.0) * uOpacity;
+        // uOpacity scales toward full transparency-free opacity: at 100% the
+        // surface is completely opaque everywhere, not just at grazing/foam
+        // angles; lower settings fall back toward the natural fresnel/foam
+        // variation.
+        float baseAlpha = clamp(0.65 + fres * 0.35 - height * 0.35 + foam * 0.25, 0.4, 1.0);
+        float alpha = 1.0 - (1.0 - baseAlpha * uOpacity) * (1.0 - uOpacity);
         gl_FragColor = vec4(col, alpha);
       }
     `;
@@ -1673,6 +1776,13 @@ function Aquafulness() {
       uBottom: { value: new THREE.Color(0xffddaa) },
       uSunDir: { value: uniforms.uSunDir.value },
       uSunColor: { value: new THREE.Color(0xffe6b0) },
+      // Grumlighet (turbidity): once the camera submerges, the "sky" seen
+      // through the water column fades into murk instead of staying a crisp
+      // gradient — this is what actually makes the fog read as "everywhere
+      // underwater" rather than only on the seafloor right below.
+      uUnderwater: uniforms.uUnderwater,
+      uTurbidity: { value: 0 },
+      uFogColor: { value: new THREE.Color(0x0a2a3a) },
     };
     const skyMat = new THREE.ShaderMaterial({
       uniforms: skyUniforms,
@@ -1689,6 +1799,9 @@ function Aquafulness() {
         uniform vec3 uBottom;
         uniform vec3 uSunDir;
         uniform vec3 uSunColor;
+        uniform float uUnderwater;
+        uniform float uTurbidity;
+        uniform vec3 uFogColor;
         varying vec3 vDir;
         void main() {
           float t = clamp(vDir.y * 0.5 + 0.5, 0.0, 1.0);
@@ -1696,6 +1809,10 @@ function Aquafulness() {
           float sd = max(dot(normalize(vDir), normalize(uSunDir)), 0.0);
           col += uSunColor * pow(sd, 180.0) * 3.0;
           col += uSunColor * pow(sd, 8.0) * 0.15;
+          if (uUnderwater > 0.001) {
+            float murk = clamp(uUnderwater * (0.25 + uTurbidity * 0.7), 0.0, 1.0);
+            col = mix(col, uFogColor, murk);
+          }
           gl_FragColor = vec4(col, 1.0);
         }
       `,
@@ -1842,7 +1959,8 @@ function Aquafulness() {
       ocean.position.y = levelY;
       if (bot.rgb) {
         floor.visible = true;
-        floorUniforms.uColor.value.setRGB(bot.rgb[0], bot.rgb[1], bot.rgb[2]);
+        const botRgb = bot.name === "Anpassad" ? hexToRgbNorm(bottomColorRef.current) : bot.rgb;
+        floorUniforms.uColor.value.setRGB(botRgb[0], botRgb[1], botRgb[2]);
         floor.position.y = -effectiveDepth + levelY;
         floorUniforms.uTime.value = t;
         const isClouds = bot.name === "Moln";
@@ -2154,14 +2272,31 @@ function Aquafulness() {
       uniforms.uUnderwater.value += (uw - uniforms.uUnderwater.value) * Math.min(1, dt * 6);
 
       // Grumlighet (turbidity): feed the smoothed murk strength + submerged
-      // state into the seafloor/mid-cloud shader, tinted toward the current
-      // deep-water hue so the murk color matches the water tint/time of day.
+      // state into the seafloor/mid-cloud/sky/ocean shaders, tinted toward
+      // the current deep-water hue so the murk color matches the water
+      // tint/time of day. Smoothed once here and fanned out everywhere else
+      // reads it, so every surface stays in lockstep.
       floorUniforms.uTurbidity.value += (turbidityRef.current - floorUniforms.uTurbidity.value) * Math.min(1, dt * 6);
       floorUniforms.uUnderwater.value = uniforms.uUnderwater.value;
       floorUniforms.uFogColor.value.copy(uniforms.uWaterDeep.value);
       midCloudUniforms.uTurbidity.value = floorUniforms.uTurbidity.value;
       midCloudUniforms.uUnderwater.value = uniforms.uUnderwater.value;
       midCloudUniforms.uFogColor.value.copy(uniforms.uWaterDeep.value);
+      uniforms.uTurbidity.value = floorUniforms.uTurbidity.value;
+      skyUniforms.uTurbidity.value = floorUniforms.uTurbidity.value;
+      skyUniforms.uFogColor.value.copy(uniforms.uWaterDeep.value);
+
+      // Free underwater fog on any loaded .glb model (default materials
+      // already respect scene.fog) — density/color follow the same
+      // grumlighet + submersion state as everything else.
+      const fog = scene.fog as THREE.FogExp2;
+      fog.density = 0.008 + floorUniforms.uTurbidity.value * uniforms.uUnderwater.value * 0.05;
+      fog.color.copy(uniforms.uFogColor.value).lerp(uniforms.uWaterDeep.value, floorUniforms.uTurbidity.value * uniforms.uUnderwater.value);
+
+      // Selectable wave material (sphere-map "matcap") + trochoidal wave
+      // shape — both purely cosmetic dials on the ocean shader.
+      uniforms.uSphereMix.value += ((sphereMaterialRef.current ? sphereStrengthRef.current : 0) - uniforms.uSphereMix.value) * Math.min(1, dt * 6);
+      uniforms.uTrochoid.value += (trochoidRef.current - uniforms.uTrochoid.value) * Math.min(1, dt * 6);
 
       // Keep horizon level: no extra pitch/roll from buoyancy.
 
@@ -2733,6 +2868,18 @@ function Aquafulness() {
                     onInc={() => setWavePeak((v) => Math.min(6, +(v + 0.25).toFixed(2)))}
                   />
                   <PadDial
+                    label="TROKOID"
+                    mode="number"
+                    value={trochoid <= 0.001 ? "AV" : `${Math.round(trochoid * 100)}%`}
+                    rawValue={trochoid}
+                    onSet={(v) => setTrochoid(Math.max(0, Math.min(1, v)))}
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    onDec={() => setTrochoid((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                    onInc={() => setTrochoid((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+                  />
+                  <PadDial
                     label="KVALITET"
                     value={waveHighQuality ? "HÖG" : "LÅG"}
                     onDec={() => setWaveHighQuality(false)}
@@ -2917,6 +3064,26 @@ function Aquafulness() {
                     />
                   )}
                   <PadDial
+                    label="VÅGMATERIAL"
+                    value={sphereMaterial ? "SFÄRKARTA" : "STANDARD"}
+                    onDec={() => setSphereMaterial(false)}
+                    onInc={() => setSphereMaterial(true)}
+                  />
+                  {sphereMaterial && (
+                    <PadDial
+                      label="SFÄR-STYRKA"
+                      mode="number"
+                      value={`${Math.round(sphereStrength * 100)}%`}
+                      rawValue={sphereStrength}
+                      onSet={(v) => setSphereStrength(Math.max(0, Math.min(1, v)))}
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      onDec={() => setSphereStrength((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                      onInc={() => setSphereStrength((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+                    />
+                  )}
+                  <PadDial
                     label="OPACITET"
                     mode="number"
                     value={`${Math.round(waterOpacity * 100)}%`}
@@ -3006,6 +3173,19 @@ function Aquafulness() {
                     onDec={() => setBottomIdx((i) => (i - 1 + BOTTOM_OPTIONS.length) % BOTTOM_OPTIONS.length)}
                     onInc={() => setBottomIdx((i) => (i + 1) % BOTTOM_OPTIONS.length)}
                   />
+                  {BOTTOM_OPTIONS[bottomIdx].name === "Anpassad" && (
+                    <label className="flex items-center gap-2 rounded-full border border-white/15 bg-black/40 py-1 pl-3 pr-1 backdrop-blur-md">
+                      <span className="text-[9px] font-light tracking-[0.28em] text-white/60">
+                        BOTTENFÄRG
+                      </span>
+                      <input
+                        type="color"
+                        value={bottomColor}
+                        onChange={(e) => setBottomColor(e.target.value)}
+                        className="h-7 w-9 cursor-pointer rounded-full border border-white/20 bg-transparent p-0"
+                      />
+                    </label>
+                  )}
                   <PadDial
                     label="DJUP"
                     mode="number"
