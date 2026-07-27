@@ -3648,7 +3648,7 @@ function Joystick({
   // Sticky joysticks only snap right at the center, so a release/tap there
   // reliably zeroes them out — everything past that is left alone for full,
   // fine-grained control instead of being squeezed into a smaller range.
-  const deadzone = sticky ? 0.04 : 0;
+  const deadzone = sticky ? 0.02 : 0;
 
   const emit = (nx: number, ny: number) => {
     if (deadzone > 0 && Math.hypot(nx, ny) < deadzone) {
