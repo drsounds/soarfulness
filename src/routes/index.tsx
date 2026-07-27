@@ -87,6 +87,35 @@ function smoothstep(edge0: number, edge1: number, x: number) {
   return v * v * (3 - 2 * v);
 }
 
+// A "sticky" pad (STRÖM/SVAJ) is set once, relative to wherever the camera is
+// looking at that moment, then represents a real direction that stays fixed
+// in the world from then on — it must not silently rotate just because the
+// camera looks elsewhere afterwards. padToWorldXZ captures that real,
+// world-space vector at set-time; worldXZToPad is its inverse, used every
+// frame to re-derive what the pad should visually show relative to the
+// *current* look angle so the knob rotates in place to keep pointing at that
+// same real direction. Both share the camera's forward/right basis for yaw.
+function padToWorldXZ(px: number, py: number, yaw: number) {
+  const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
+  const rightX = Math.cos(yaw), rightZ = -Math.sin(yaw);
+  return { x: px * rightX + py * fwdX, z: px * rightZ + py * fwdZ };
+}
+function worldXZToPad(wx: number, wz: number, yaw: number) {
+  const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
+  const rightX = Math.cos(yaw), rightZ = -Math.sin(yaw);
+  return { x: wx * rightX + wz * rightZ, y: wx * fwdX + wz * fwdZ };
+}
+// World-space bearing (0-360°, 0 = world -z) for STRÖM/SVAJ's fixed real
+// direction, and its inverse — lets the RIKTNING dials give a finely precise
+// alternative to dragging the small on-screen pad by hand.
+function worldXZBearing(x: number, z: number) {
+  return ((Math.atan2(x, z) * 180) / Math.PI + 360) % 360;
+}
+function bearingToWorldXZ(deg: number, mag: number) {
+  const rad = ((((deg % 360) + 360) % 360) * Math.PI) / 180;
+  return { x: Math.sin(rad) * mag, z: Math.cos(rad) * mag };
+}
+
 // Pure radial sine surface used in vortex mode. Keep in sync with the shader's
 // vortex block so the camera rides the same even wave that is rendered.
 function vortexSurfaceHeight(x: number, z: number, t: number, amp: number, period: number, opening: number) {
@@ -605,7 +634,18 @@ function Aquafulness() {
   const wakeLockRef = useRef(wakeLock);
   const audioSpatialRef = useRef(audioSpatial);
   const rotStickRef = useRef({ x: 0, y: 0 });
-  const driftStickRef = useRef({ x: 0, y: 0 });
+  // The real, fixed-in-world direction STRÖM/SVAJ represent, set relative to
+  // the look angle at the moment the pad is touched (see padToWorldXZ). The
+  // pad's on-screen knob is re-derived from this every frame (worldXZToPad)
+  // so it visually rotates to track the same real direction as you look
+  // around, instead of the real direction silently rotating with the camera.
+  const driftWorldRef = useRef({ x: 0, z: 0 });
+  const swayWorldRef = useRef({ x: 0, z: 0 });
+  // Last pad-local coordinates pushed to the STRÖM/SVAJ knobs, so the render
+  // loop only calls setState when the re-derived display value actually
+  // moved (yaw changed) instead of every single frame.
+  const driftDisplayRef = useRef({ x: 0, y: 0 });
+  const swayDisplayRef = useRef({ x: 0, y: 0 });
   const yawRef = useRef(0);
   const pitchRef = useRef(0);
   const prevSurfaceRef = useRef<number | null>(null);
@@ -642,7 +682,6 @@ function Aquafulness() {
   useEffect(() => { camOffZRef.current = camOffZ; }, [camOffZ]);
   useEffect(() => { stickRef.current = stick; }, [stick]);
   useEffect(() => { rotStickRef.current = rotStick; }, [rotStick]);
-  useEffect(() => { driftStickRef.current = driftStick; }, [driftStick]);
   useEffect(() => { waterTintRef.current = waterTintIdx; }, [waterTintIdx]);
   useEffect(() => { waterOpacityRef.current = waterOpacity; }, [waterOpacity]);
   useEffect(() => { waterHueRef.current = waterHue; }, [waterHue]);
@@ -691,8 +730,6 @@ function Aquafulness() {
   useEffect(() => { sphereMaterialRef.current = sphereMaterial; }, [sphereMaterial]);
   useEffect(() => { sphereStrengthRef.current = sphereStrength; }, [sphereStrength]);
   useEffect(() => { trochoidRef.current = trochoid; }, [trochoid]);
-  const swayStickRef = useRef(swayStick);
-  useEffect(() => { swayStickRef.current = swayStick; }, [swayStick]);
   // Håll VÅGRIKT-spakens visuella läge synkat med waveDir (t.ex. när dialen ändras
   // eller vid uppstart), men bara när spaken själv står i vila.
   useEffect(() => {
@@ -702,6 +739,24 @@ function Aquafulness() {
       return { x: Math.sin(rad), y: Math.cos(rad) };
     });
   }, [waveDir]);
+
+  // Set STRÖM/SVAJ's real direction to an exact bearing (keeping whatever
+  // magnitude/strength it already had, defaulting to full if it was at
+  // rest), then immediately re-derive the knob's on-screen position for it —
+  // the numeric RIKTNING dials go through this instead of dragging the pad.
+  const setStickBearing = (
+    worldRef: { current: { x: number; z: number } },
+    displayRef: { current: { x: number; y: number } },
+    setDisplay: (v: { x: number; y: number }) => void,
+    deg: number,
+  ) => {
+    const mag = Math.hypot(worldRef.current.x, worldRef.current.z) || 1;
+    const w = bearingToWorldXZ(deg, mag);
+    worldRef.current = w;
+    const disp = worldXZToPad(w.x, w.z, yawRef.current);
+    displayRef.current = disp;
+    setDisplay(disp);
+  };
 
   const resetToDefaults = () => {
     setWaveAmp(DEFAULTS.waveAmp);
@@ -2020,7 +2075,9 @@ function Aquafulness() {
         const stickOmega = stickRef.current.x * 1.4; // extra swirl from NAV.x
         vortexAngleRef.current += (baseOmega + stickOmega) * dt;
         // Move in/out along the radius (STRÖM.y also nudges drift in/out).
-        const radialVel = -stickRef.current.y * walkSpeed - driftStickRef.current.y * driftSpeed;
+        // driftWorldRef is the fixed real direction (see padToWorldXZ above),
+        // so this stays a stable in/out nudge even as the camera looks around.
+        const radialVel = -stickRef.current.y * walkSpeed + driftWorldRef.current.z * driftSpeed;
         const minR = Math.max(op * 0.55, 3); // don't dive into the throat
         const maxR = 220;
         vortexRadiusRef.current = Math.max(minR, Math.min(maxR, vortexRadiusRef.current + radialVel * dt));
@@ -2039,8 +2096,8 @@ function Aquafulness() {
         const rightX = Math.cos(yaw), rightZ = -Math.sin(yaw);
         const walkX = stickRef.current.x * rightX + stickRef.current.y * fwdX;
         const walkZ = stickRef.current.x * rightZ + stickRef.current.y * fwdZ;
-        posRef.current.x += (walkX * walkSpeed + driftStickRef.current.x * driftSpeed) * dt;
-        posRef.current.z += (walkZ * walkSpeed - driftStickRef.current.y * driftSpeed) * dt;
+        posRef.current.x += (walkX * walkSpeed + driftWorldRef.current.x * driftSpeed) * dt;
+        posRef.current.z += (walkZ * walkSpeed + driftWorldRef.current.z * driftSpeed) * dt;
         camX = posRef.current.x;
         camZ = posRef.current.z;
       }
@@ -2155,24 +2212,20 @@ function Aquafulness() {
         swayTargetZ = swAmp * (heaveNorm * dz + bias * dz * biasEnv * 1.2);
       }
 
-      // Directional sway from the sticky SVAJ pad — the pad sets a
-      // direction relative to the camera's current look direction (yaw),
-      // not fixed world X/Z, so pushing the pad "forward" always sways
-      // toward wherever the camera is currently looking. Amplitude follows
-      // the same heaveNorm signal as the wander above, so pad-driven sway
-      // is phase-locked to the vertical bob too. Distance from pad center =
-      // how far the camera swings in that direction.
-      const sxStick = swayStickRef.current.x;
-      const syStick = swayStickRef.current.y;
-      if (Math.abs(sxStick) + Math.abs(syStick) > 0.001) {
+      // Directional sway from the sticky SVAJ pad — the pad was set relative
+      // to the camera's look direction at the moment it was touched, but the
+      // real push it represents is fixed in world space from then on
+      // (swayWorldRef; padToWorldXZ), so it no longer silently rotates just
+      // because the camera looks elsewhere afterwards. Amplitude follows the
+      // same heaveNorm signal as the wander above, so pad-driven sway is
+      // phase-locked to the vertical bob too. Distance from pad center = how
+      // far the camera swings in that direction.
+      const dirX = swayWorldRef.current.x;
+      const dirZ = swayWorldRef.current.z;
+      if (Math.abs(dirX) + Math.abs(dirZ) > 0.001) {
         // Base amplitude scale in meters — reuse SVAJ dial if set, otherwise
         // give the pad its own reasonable range so it works standalone.
         const padAmp = swAmp > 0.001 ? swAmp : 6;
-        const yaw = yawRef.current;
-        const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
-        const rightX = Math.cos(yaw), rightZ = -Math.sin(yaw);
-        const dirX = sxStick * rightX + syStick * fwdX;
-        const dirZ = sxStick * rightZ + syStick * fwdZ;
         swayTargetX += padAmp * dirX * heaveNorm;
         swayTargetZ += padAmp * dirZ * heaveNorm;
       }
@@ -2233,6 +2286,22 @@ function Aquafulness() {
       if (pitchRef.current < -maxPitch) pitchRef.current = -maxPitch;
       camera.rotateY(yawRef.current);
       camera.rotateX(pitchRef.current);
+
+      // STRÖM/SVAJ represent a real direction fixed in world space
+      // (driftWorldRef/swayWorldRef); re-derive what that looks like relative
+      // to the *current* look angle so the knobs visually rotate in place as
+      // the camera looks around, instead of silently staying put while the
+      // real direction they show drifts out of sync with the view.
+      const driftDisp = worldXZToPad(driftWorldRef.current.x, driftWorldRef.current.z, yawRef.current);
+      if (Math.abs(driftDisp.x - driftDisplayRef.current.x) > 0.0015 || Math.abs(driftDisp.y - driftDisplayRef.current.y) > 0.0015) {
+        driftDisplayRef.current = driftDisp;
+        setDriftStick(driftDisp);
+      }
+      const swayDisp = worldXZToPad(swayWorldRef.current.x, swayWorldRef.current.z, yawRef.current);
+      if (Math.abs(swayDisp.x - swayDisplayRef.current.x) > 0.0015 || Math.abs(swayDisp.y - swayDisplayRef.current.y) > 0.0015) {
+        swayDisplayRef.current = swayDisp;
+        setSwayStick(swayDisp);
+      }
 
       // Autosave the free-roam position/look direction (throttled) so it
       // survives a reload and can be jumped back to via the restore button.
@@ -2766,6 +2835,18 @@ function Aquafulness() {
                     onInc={() => setFloatLift((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
                   />
                   <PadDial
+                    label="STRÖM RIKTNING"
+                    mode="number"
+                    value={`${Math.round(worldXZBearing(driftWorldRef.current.x, driftWorldRef.current.z))}°`}
+                    rawValue={worldXZBearing(driftWorldRef.current.x, driftWorldRef.current.z)}
+                    onSet={(v) => setStickBearing(driftWorldRef, driftDisplayRef, setDriftStick, v)}
+                    min={0}
+                    max={360}
+                    step={5}
+                    onDec={() => setStickBearing(driftWorldRef, driftDisplayRef, setDriftStick, worldXZBearing(driftWorldRef.current.x, driftWorldRef.current.z) - 15)}
+                    onInc={() => setStickBearing(driftWorldRef, driftDisplayRef, setDriftStick, worldXZBearing(driftWorldRef.current.x, driftWorldRef.current.z) + 15)}
+                  />
+                  <PadDial
                     label="SVAJ"
                     mode="number"
                     value={`${swayAmp.toFixed(1)}m`}
@@ -2800,6 +2881,18 @@ function Aquafulness() {
                     step={0.05}
                     onDec={() => setSwayBias((v) => Math.max(-1, +(v - 0.05).toFixed(2)))}
                     onInc={() => setSwayBias((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+                  />
+                  <PadDial
+                    label="SVAJ RIKTNING"
+                    mode="number"
+                    value={`${Math.round(worldXZBearing(swayWorldRef.current.x, swayWorldRef.current.z))}°`}
+                    rawValue={worldXZBearing(swayWorldRef.current.x, swayWorldRef.current.z)}
+                    onSet={(v) => setStickBearing(swayWorldRef, swayDisplayRef, setSwayStick, v)}
+                    min={0}
+                    max={360}
+                    step={5}
+                    onDec={() => setStickBearing(swayWorldRef, swayDisplayRef, setSwayStick, worldXZBearing(swayWorldRef.current.x, swayWorldRef.current.z) - 15)}
+                    onInc={() => setStickBearing(swayWorldRef, swayDisplayRef, setSwayStick, worldXZBearing(swayWorldRef.current.x, swayWorldRef.current.z) + 15)}
                   />
                   <PadDial
                     label="GUPP"
@@ -3368,14 +3461,26 @@ function Aquafulness() {
         positionClass="bottom-6 left-6"
       />
       <Joystick
-        onChange={setDriftStick}
+        onChange={(v) => {
+          // The pad is read relative to the current look angle, then frozen
+          // into a real, fixed-in-world direction (driftWorldRef) — see
+          // padToWorldXZ. The render loop keeps the knob rotating afterwards
+          // to show that same real direction as the camera looks around.
+          setDriftStick(v);
+          driftDisplayRef.current = v;
+          driftWorldRef.current = padToWorldXZ(v.x, v.y, yawRef.current);
+        }}
         value={driftStick}
         label="STRÖM"
         positionClass="bottom-36 left-6"
         sticky
       />
       <Joystick
-        onChange={setSwayStick}
+        onChange={(v) => {
+          setSwayStick(v);
+          swayDisplayRef.current = v;
+          swayWorldRef.current = padToWorldXZ(v.x, v.y, yawRef.current);
+        }}
         value={swayStick}
         label="SVAJ"
         positionClass="bottom-64 left-6"
