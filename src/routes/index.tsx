@@ -3645,9 +3645,10 @@ function Joystick({
   const startPt = useRef<{ x: number; y: number } | null>(null);
   const moved = useRef(false);
   const radius = 42;
-  // Sticky joysticks snap tiny deflections to 0 so accidental taps don't
-  // leave a persistent drift the user can't see or easily correct.
-  const deadzone = sticky ? 0.15 : 0;
+  // Sticky joysticks only snap right at the center, so a release/tap there
+  // reliably zeroes them out — everything past that is left alone for full,
+  // fine-grained control instead of being squeezed into a smaller range.
+  const deadzone = sticky ? 0.04 : 0;
 
   const emit = (nx: number, ny: number) => {
     if (deadzone > 0 && Math.hypot(nx, ny) < deadzone) {
