@@ -78,6 +78,10 @@ function ensureStyles() {
       background: #0b1620; border-radius: 10px; overflow: hidden;
       box-shadow: 0 20px 60px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.08);
       font-family: system-ui, -apple-system, sans-serif;
+      /* Lets the two-finger move/scale/rotate gesture take over instead of
+         the browser's native pinch-zoom/pan; doesn't affect scrolling inside
+         the embedded iframe, which is governed by its own document. */
+      touch-action: none;
     }
     .aqf-tv-titlebar {
       display: flex; align-items: center; gap: 6px; padding: 6px 8px;
@@ -406,6 +410,22 @@ export class CSS3DTVManager {
     this.bindAxisDrag(zBtn, entry, new THREE.Vector3(0, 0, 1));
     this.bindRotate(rotateBtn, entry);
     this.bindResize(resize, entry);
+    this.bindTwoFingerTransform(el, entry);
+  }
+
+  // Computes the camera-facing basis (screen right/up in world units per
+  // pixel, at the object's current distance) used to translate a panel by a
+  // 2D screen delta. Shared by the free-move drag and the two-finger gesture.
+  private cameraPlaneBasis(objectPos: THREE.Vector3) {
+    const dist = Math.max(0.001, objectPos.distanceTo(this.camera.position));
+    const fovRad = (this.camera.fov * Math.PI) / 180;
+    const size = this.renderer.getSize();
+    const unitsPerPixel = (2 * dist * Math.tan(fovRad / 2)) / Math.max(1, size.height);
+    const right = new THREE.Vector3();
+    const up = new THREE.Vector3();
+    const back = new THREE.Vector3();
+    this.camera.matrixWorld.extractBasis(right, up, back);
+    return { unitsPerPixel, right, up };
   }
 
   // Single-pointer drag: translates the panel within the camera-facing plane
@@ -425,15 +445,7 @@ export class CSS3DTVManager {
       const startX = ev.clientX;
       const startY = ev.clientY;
       const startPos = entry.object.position.clone();
-      const dist = Math.max(0.001, startPos.distanceTo(this.camera.position));
-      const fovRad = (this.camera.fov * Math.PI) / 180;
-      const size = this.renderer.getSize();
-      const unitsPerPixel = (2 * dist * Math.tan(fovRad / 2)) / Math.max(1, size.height);
-
-      const right = new THREE.Vector3();
-      const up = new THREE.Vector3();
-      const back = new THREE.Vector3();
-      this.camera.matrixWorld.extractBasis(right, up, back);
+      const { unitsPerPixel, right, up } = this.cameraPlaneBasis(startPos);
 
       const onMove = (mv: PointerEvent) => {
         const dx = mv.clientX - startX;
@@ -595,5 +607,111 @@ export class CSS3DTVManager {
       handle.addEventListener("pointerup", onUp);
       handle.addEventListener("pointercancel", onUp);
     });
+  }
+
+  // Two-finger touch gesture on the panel itself (anywhere — the title bar,
+  // the screen/iframe area, the padding), combining move + scale + rotate
+  // into one natural motion: pan the midpoint to move, pinch to resize,
+  // twist to rotate. This is the primary touch interaction — the small
+  // single-pointer handles above are precise but fiddly to hit on a real
+  // touchscreen, and a mouse can't produce a second pointer anyway, so both
+  // schemes coexist rather than one replacing the other. A single finger is
+  // left untouched so it still reaches the embedded page normally (tapping
+  // play, scrolling, clicking links).
+  private bindTwoFingerTransform(el: HTMLElement, entry: TVEntry) {
+    const pointers = new Map<number, { x: number; y: number }>();
+    let gesture: {
+      startMid: { x: number; y: number };
+      startDist: number;
+      startAngle: number;
+      startPos: THREE.Vector3;
+      startScale: number;
+      startRotY: number;
+      unitsPerPixel: number;
+      right: THREE.Vector3;
+      up: THREE.Vector3;
+    } | null = null;
+
+    const metrics = () => {
+      const [a, b] = Array.from(pointers.values());
+      return {
+        mid: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 },
+        dist: Math.hypot(b.x - a.x, b.y - a.y),
+        angle: Math.atan2(b.y - a.y, b.x - a.x),
+      };
+    };
+
+    const startGesture = () => {
+      const { mid, dist, angle } = metrics();
+      const startPos = entry.object.position.clone();
+      const { unitsPerPixel, right, up } = this.cameraPlaneBasis(startPos);
+      gesture = {
+        startMid: mid,
+        startDist: dist,
+        startAngle: angle,
+        startPos,
+        startScale: entry.object.scale.x,
+        startRotY: entry.object.rotation.y,
+        unitsPerPixel,
+        right,
+        up,
+      };
+    };
+
+    const endGesture = () => {
+      if (gesture) this.persist();
+      gesture = null;
+    };
+
+    el.addEventListener("pointerdown", (ev) => {
+      if (ev.pointerType !== "touch" && ev.pointerType !== "pen") return;
+      pointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+      if (pointers.size === 2) {
+        ev.preventDefault();
+        startGesture();
+      } else if (pointers.size > 2) {
+        // A third touch (e.g. resting a palm) shouldn't restart the gesture
+        // mid-drag with a new, arbitrary pair — just ignore it.
+        pointers.delete(ev.pointerId);
+      }
+    });
+
+    el.addEventListener("pointermove", (ev) => {
+      if (!pointers.has(ev.pointerId)) return;
+      pointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+      if (pointers.size !== 2 || !gesture) return;
+      ev.preventDefault();
+
+      const { mid, dist, angle } = metrics();
+      const dx = mid.x - gesture.startMid.x;
+      const dy = mid.y - gesture.startMid.y;
+      const nextPos = gesture.startPos
+        .clone()
+        .addScaledVector(gesture.right, dx * gesture.unitsPerPixel)
+        .addScaledVector(gesture.up, -dy * gesture.unitsPerPixel);
+      entry.object.position.copy(nextPos);
+      entry.state.x = nextPos.x;
+      entry.state.y = nextPos.y;
+      entry.state.z = nextPos.z;
+
+      const scaleRatio = gesture.startDist > 1 ? dist / gesture.startDist : 1;
+      const nextScale = clamp(gesture.startScale * scaleRatio, MIN_SCALE, MAX_SCALE);
+      entry.object.scale.setScalar(nextScale);
+      entry.state.scale = nextScale;
+
+      const nextRotY = gesture.startRotY + (angle - gesture.startAngle);
+      entry.object.rotation.y = nextRotY;
+      entry.state.rotY = nextRotY;
+
+      this.schedulePersist();
+    });
+
+    const onPointerEnd = (ev: PointerEvent) => {
+      if (!pointers.has(ev.pointerId)) return;
+      pointers.delete(ev.pointerId);
+      if (pointers.size < 2) endGesture();
+    };
+    el.addEventListener("pointerup", onPointerEnd);
+    el.addEventListener("pointercancel", onPointerEnd);
   }
 }

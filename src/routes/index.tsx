@@ -551,6 +551,14 @@ function Aquafulness() {
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("vagor");
   const [uiVisible, setUiVisible] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  // Edit mode: freezes wave time and all camera bob/drift/walk physics so TV
+  // panels can be moved/rotated/resized precisely without the world (or the
+  // camera's own automatic buoyancy) shifting underneath the gesture.
+  const [editMode, setEditMode] = useState(false);
+  const editModeRef = useRef(editMode);
+  useEffect(() => {
+    editModeRef.current = editMode;
+  }, [editMode]);
   const idleTimerRef = useRef<number | null>(null);
   // The three.js scene graph (populated by the WebGL setup effect) and the
   // currently loaded .glb model, so the scene-selector effect can swap models
@@ -1961,7 +1969,11 @@ function Aquafulness() {
       const now = performance.now();
       const dt = Math.min((now - lastMs) / 1000, 0.1);
       lastMs = now;
-      waveT += dt * speedRef.current;
+      // Edit mode freezes wave time and camera bob/drift/walk (physDt below)
+      // but leaves the LOOK stick's yaw/pitch (which still uses dt directly)
+      // free, so the view can still be reoriented while editing.
+      const physDt = editModeRef.current ? 0 : dt;
+      waveT += physDt * speedRef.current;
       const t = waveT;
       uniforms.uTime.value = t;
       uniforms.uAmp.value = ampRef.current;
@@ -2081,14 +2093,14 @@ function Aquafulness() {
         // Purely driven by the vortex-tempo dial so wave speed stays independent.
         const baseOmega = 0.35 * vortexSpeedRef.current;
         const stickOmega = stickRef.current.x * 1.4; // extra swirl from NAV.x
-        vortexAngleRef.current += (baseOmega + stickOmega) * dt;
+        vortexAngleRef.current += (baseOmega + stickOmega) * physDt;
         // Move in/out along the radius (STRÖM.y also nudges drift in/out).
         // driftWorldRef is the fixed real direction (see padToWorldXZ above),
         // so this stays a stable in/out nudge even as the camera looks around.
         const radialVel = -stickRef.current.y * walkSpeed + driftWorldRef.current.z * driftSpeed;
         const minR = Math.max(op * 0.55, 3); // don't dive into the throat
         const maxR = 220;
-        vortexRadiusRef.current = Math.max(minR, Math.min(maxR, vortexRadiusRef.current + radialVel * dt));
+        vortexRadiusRef.current = Math.max(minR, Math.min(maxR, vortexRadiusRef.current + radialVel * physDt));
         setVortexRadius(vortexRadiusRef.current);
         const ang = vortexAngleRef.current;
         camX = Math.cos(ang) * vortexRadiusRef.current;
@@ -2104,8 +2116,8 @@ function Aquafulness() {
         const rightX = Math.cos(yaw), rightZ = -Math.sin(yaw);
         const walkX = stickRef.current.x * rightX + stickRef.current.y * fwdX;
         const walkZ = stickRef.current.x * rightZ + stickRef.current.y * fwdZ;
-        posRef.current.x += (walkX * walkSpeed + driftWorldRef.current.x * driftSpeed) * dt;
-        posRef.current.z += (walkZ * walkSpeed + driftWorldRef.current.z * driftSpeed) * dt;
+        posRef.current.x += (walkX * walkSpeed + driftWorldRef.current.x * driftSpeed) * physDt;
+        posRef.current.z += (walkZ * walkSpeed + driftWorldRef.current.z * driftSpeed) * physDt;
         camX = posRef.current.x;
         camZ = posRef.current.z;
       }
@@ -2192,8 +2204,8 @@ function Aquafulness() {
       const c = 2 * zeta * Math.sqrt(k);
       const gravity = (1.2 + 3 * amp) * b * sub - (1.0 + 2 * amp) * b * lift;
       const ay = k * (targetY - camYRef.current) - c * camVYRef.current - gravity;
-      camVYRef.current += ay * dt;
-      camYRef.current += camVYRef.current * dt;
+      camVYRef.current += ay * physDt;
+      camYRef.current += camVYRef.current * physDt;
 
       // "Sway" drift — phase-locked to the vertical wave heave so the body
       // swings in rhythm with the up/down bob instead of on an unrelated
@@ -2251,10 +2263,10 @@ function Aquafulness() {
       const swC = 2 * swZeta * Math.sqrt(swK);
       const swayAX = swK * (swayTargetX - swayPosRef.current.x) - swC * swayVelRef.current.x;
       const swayAZ = swK * (swayTargetZ - swayPosRef.current.z) - swC * swayVelRef.current.z;
-      swayVelRef.current.x += swayAX * dt;
-      swayVelRef.current.z += swayAZ * dt;
-      swayPosRef.current.x += swayVelRef.current.x * dt;
-      swayPosRef.current.z += swayVelRef.current.z * dt;
+      swayVelRef.current.x += swayAX * physDt;
+      swayVelRef.current.z += swayAZ * physDt;
+      swayPosRef.current.x += swayVelRef.current.x * physDt;
+      swayPosRef.current.z += swayVelRef.current.z * physDt;
       const swayX = swayPosRef.current.x;
       const swayZ = swayPosRef.current.z;
 
@@ -2730,6 +2742,23 @@ function Aquafulness() {
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <rect x="3" y="5" width="18" height="12" rx="1.5" />
                 <path d="M8 21h8M12 17v4" />
+              </svg>
+            </button>
+
+            <button
+              onClick={() => setEditMode((v) => !v)}
+              className={`pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur-md transition active:scale-95 ${
+                editMode
+                  ? "border-white/40 bg-white/25 text-white"
+                  : "border-white/20 bg-black/40 text-white/90 active:bg-white/15"
+              }`}
+              aria-label={editMode ? "Avsluta redigeringsläge" : "Redigeringsläge (pausar vågor och rörelse)"}
+              aria-pressed={editMode}
+              title={editMode ? "Avsluta redigeringsläge" : "Redigeringsläge (pausar vågor och rörelse)"}
+            >
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M4 20l4-1 11-11a1.5 1.5 0 000-2.1l-.9-.9a1.5 1.5 0 00-2.1 0L5 16l-1 4z" />
+                <path d="M13.5 5.5l3 3" />
               </svg>
             </button>
 
