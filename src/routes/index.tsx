@@ -1179,6 +1179,15 @@ function Aquafulness() {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(mount.clientWidth, mount.clientHeight);
     renderer.setClearColor(0x032033, 1);
+    // Positioned (not static) to match the CSS3D layer's own `position:
+    // absolute` — both are in the same stacking context, so DOM order (the
+    // CSS3D root is inserted before this canvas, see CSS3DTVManager) is what
+    // decides paint order between them, enabling per-pixel occlusion via the
+    // occluder-mesh technique. A static canvas would always paint above a
+    // positioned sibling regardless of DOM order.
+    renderer.domElement.style.position = "absolute";
+    renderer.domElement.style.top = "0";
+    renderer.domElement.style.left = "0";
     mount.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
@@ -1193,7 +1202,7 @@ function Aquafulness() {
       camFarRef.current,
     );
 
-    const tvManager = new CSS3DTVManager(mount, camera, mount.clientWidth, mount.clientHeight);
+    const tvManager = new CSS3DTVManager(mount, camera, scene, mount.clientWidth, mount.clientHeight);
     tvManagerRef.current = tvManager;
 
     // Ocean plane
@@ -2393,13 +2402,20 @@ function Aquafulness() {
 
       // Backdrop / skybox priority:
       //  - A real environment skybox (scene.background) wins: hide the sky dome,
-      //    ignore the flat DOM backdrop, keep an opaque clear behind it.
+      //    ignore the flat DOM backdrop, keep an opaque clear behind it. A
+      //    texture background paints unconditionally before anything else in
+      //    the scene, so a TV panel's occluder can't punch a transparent hole
+      //    through it the way it can through the procedural sky dome below —
+      //    known limitation, only in this mode.
       //  - Otherwise an optional flat DOM backdrop hides the dome & clears alpha.
-      //  - Otherwise the procedural sky dome renders as before.
+      //  - Otherwise the procedural sky dome renders as before, alpha
+      //    cleared to 0 so a TV panel's occluder mesh (renderOrder -1000,
+      //    see CSS3DTVManager) can reveal the CSS3D layer behind the canvas
+      //    wherever nothing in the WebGL scene is actually in front of it.
       const envActive = envActiveRef.current;
       const useBackdrop = backdropRef.current > 0 && !envActive;
       sky.visible = !useBackdrop && !envActive;
-      renderer.setClearColor(0x032033, useBackdrop ? 0 : 1);
+      renderer.setClearColor(0x032033, envActive ? 1 : 0);
 
       // Optional model bobbing — static scenes leave modelBobRef null and the
       // loaded model keeps its manifest position untouched.
@@ -2418,8 +2434,12 @@ function Aquafulness() {
         model.position.set(mb.base.x, mb.base.y + h, mb.base.z);
       }
 
-      renderer.render(scene, camera);
+      // Must run before renderer.render() below — it syncs each TV panel's
+      // invisible occluder mesh (added to `scene`) to the panel's current
+      // transform, so the depth test that lets other 3D objects properly
+      // occlude the panel uses this frame's position, not last frame's.
       tvManager.render();
+      renderer.render(scene, camera);
       raf = requestAnimationFrame(animate);
       clock.getDelta();
     };

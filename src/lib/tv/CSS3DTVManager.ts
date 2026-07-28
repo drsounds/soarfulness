@@ -24,7 +24,10 @@ const NATIVE_W = 480;
 const NATIVE_H = 270;
 const DEFAULT_SCALE = 0.02;
 const MIN_SCALE = 0.006;
-const MAX_SCALE = 0.08;
+// High enough that, dragged far along Z and scaled all the way up, a panel
+// can become a gigantic screen looming in the sky (NATIVE_W * MAX_SCALE =
+// 1440 world units wide — bigger than the 800-unit sky dome radius).
+const MAX_SCALE = 3;
 const SPAWN_DISTANCE = 9;
 
 function clamp(v: number, lo: number, hi: number) {
@@ -151,7 +154,34 @@ type TVEntry = {
   placeholder: HTMLDivElement;
   // Ordered most-specific-first; see setupPointerRedirect for why this exists.
   hitTargets: HTMLElement[];
+  // Invisible WebGL stand-in for the panel — see occluders below.
+  occluder: THREE.Mesh;
 };
+
+// A CSS3DRenderer layer is just a DOM overlay — it always paints in front of
+// (or behind) the WebGL canvas as a whole, with no per-pixel awareness of the
+// WebGL scene's depth. To let a TV panel sit "inside" the 3D world — hidden
+// behind a wave crest, a loaded model, anything nearer the camera, and
+// revealed again once nothing is in front of it — each panel gets an
+// invisible stand-in mesh in the *main* WebGL scene, matching its transform
+// every frame. The stand-in writes depth but never color (colorWrite:
+// false), so it doesn't paint anything itself, but it does win or lose the
+// depth test against every other WebGL object at that position. Where nearer
+// WebGL geometry exists, it draws over the stand-in normally, opaquely
+// hiding the CSS3D panel beneath (the CSS3D layer is composited behind the
+// WebGL canvas, whose alpha=0 clear lets it show through only where nothing
+// opaque was drawn). Where nothing is nearer, the stand-in "claims" that
+// depth so nothing farther gets drawn there either, leaving that patch of
+// the canvas transparent and revealing the panel.
+// Shared by every panel — colorWrite:false means no instance ever needs its
+// own material state (no color, no per-panel uniforms).
+const occluderGeometry = new THREE.PlaneGeometry(NATIVE_W, NATIVE_H);
+const occluderMaterial = new THREE.MeshBasicMaterial({
+  colorWrite: false,
+  depthWrite: true,
+  depthTest: true,
+  fog: false,
+});
 
 // Manages an arbitrary number of "TV apparatus" panels rendered via
 // CSS3DRenderer alongside the main WebGLRenderer/scene, sharing the same
@@ -165,6 +195,9 @@ export class CSS3DTVManager {
   private renderer: CSS3DRenderer;
   private scene = new THREE.Scene();
   private camera: THREE.PerspectiveCamera;
+  // The main WebGL scene — only used to hold each panel's occluder mesh
+  // (see occluderGeometry above), never rendered by this class itself.
+  private mainScene: THREE.Scene;
   private container: HTMLElement;
   private entries = new Map<string, TVEntry>();
   private saveTimer: number | null = null;
@@ -183,12 +216,14 @@ export class CSS3DTVManager {
   constructor(
     container: HTMLElement,
     camera: THREE.PerspectiveCamera,
+    mainScene: THREE.Scene,
     width: number,
     height: number,
   ) {
     ensureStyles();
     this.container = container;
     this.camera = camera;
+    this.mainScene = mainScene;
 
     this.renderer = new CSS3DRenderer();
     this.renderer.domElement.style.position = "absolute";
@@ -196,15 +231,14 @@ export class CSS3DTVManager {
     this.renderer.domElement.style.left = "0";
     this.renderer.domElement.style.pointerEvents = "none";
     this.renderer.setSize(width, height);
-    container.appendChild(this.renderer.domElement);
+    // Inserted *behind* the WebGL canvas (which must already be in
+    // `container` at this point) so the occluder-mesh technique above can
+    // work: the canvas paints over this layer wherever it draws anything
+    // opaque, and lets it show through wherever it doesn't.
+    container.insertBefore(this.renderer.domElement, container.firstChild);
     this.setupPointerRedirect();
 
-    const loaded = loadTVs();
-    for (const state of loaded) this.createEntry(state);
-    // Persist immediately if clampScaleToFit shrank any panel that had been
-    // saved too large for this screen, so the fix sticks rather than being
-    // silently recomputed (and never written back) on every future load.
-    if (loaded.length > 0) this.persist();
+    for (const state of loadTVs()) this.createEntry(state);
   }
 
   setSize(width: number, height: number) {
@@ -228,23 +262,15 @@ export class CSS3DTVManager {
     return clamp((targetPx * unitsPerPixel) / NATIVE_W, MIN_SCALE, MAX_SCALE);
   }
 
-  // Safety net for panels loaded from localStorage (or otherwise already at
-  // a fixed scale): if the viewer's current screen is narrower than whatever
-  // screen the scale was last set on, shrink it down to fit rather than
-  // leaving it permanently stuck too wide to reach.
-  private clampScaleToFit(state: TVState, position: THREE.Vector3) {
-    const dist = Math.max(0.001, position.distanceTo(this.camera.position));
-    const fovRad = (this.camera.fov * Math.PI) / 180;
-    const size = this.renderer.getSize();
-    const unitsPerPixel = (2 * dist * Math.tan(fovRad / 2)) / Math.max(1, size.height);
-    const currentPx = (NATIVE_W * state.scale) / unitsPerPixel;
-    const maxPx = Math.max(160, Math.min(size.width, size.height) * 0.92);
-    if (currentPx > maxPx) {
-      state.scale = clamp((maxPx * unitsPerPixel) / NATIVE_W, MIN_SCALE, MAX_SCALE);
-    }
-  }
 
+  // Must run before the main WebGLRenderer's own render(scene, camera) call
+  // so the occluders' synced transforms are in place when it draws.
   render() {
+    for (const entry of this.entries.values()) {
+      entry.occluder.position.copy(entry.object.position);
+      entry.occluder.quaternion.copy(entry.object.quaternion);
+      entry.occluder.scale.copy(entry.object.scale);
+    }
     this.renderer.render(this.scene, this.camera);
   }
 
@@ -433,6 +459,7 @@ export class CSS3DTVManager {
     const entry = this.entries.get(id);
     if (!entry) return;
     this.scene.remove(entry.object);
+    this.mainScene.remove(entry.occluder);
     this.entries.delete(id);
     if (persist) this.persist();
   }
@@ -546,9 +573,22 @@ export class CSS3DTVManager {
     const object = new CSS3DObject(el);
     object.position.set(state.x, state.y, state.z);
     object.rotation.set(state.rotX, state.rotY, state.rotZ);
-    this.clampScaleToFit(state, object.position);
     object.scale.setScalar(state.scale);
     this.scene.add(object);
+
+    // See occluderGeometry/occluderMaterial above — kept in sync with
+    // `object`'s transform every frame in render().
+    const occluder = new THREE.Mesh(occluderGeometry, occluderMaterial);
+    occluder.position.copy(object.position);
+    occluder.quaternion.copy(object.quaternion);
+    occluder.scale.copy(object.scale);
+    // colorWrite:false only *withholds* new color — it can't erase color
+    // something else already painted there. So the occluder must claim its
+    // depth before the sky/ocean/floor/other objects (default renderOrder 0)
+    // ever get a chance to draw, or their color stays regardless of the
+    // depth test outcome. Negative renderOrder draws first.
+    occluder.renderOrder = -1000;
+    this.mainScene.add(occluder);
 
     // Most-specific-first: findPointerTarget returns the first rect match, so
     // small controls must be checked before the panel's own background.
@@ -567,7 +607,7 @@ export class CSS3DTVManager {
       el,
     ];
 
-    const entry: TVEntry = { state, object, urlInput, iframe, placeholder, hitTargets };
+    const entry: TVEntry = { state, object, urlInput, iframe, placeholder, hitTargets, occluder };
     this.entries.set(state.id, entry);
     this.applyUrl(entry, state.url, false);
 
