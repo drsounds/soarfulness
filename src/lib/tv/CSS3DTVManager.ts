@@ -149,6 +149,8 @@ type TVEntry = {
   urlInput: HTMLInputElement;
   iframe: HTMLIFrameElement;
   placeholder: HTMLDivElement;
+  // Ordered most-specific-first; see setupPointerRedirect for why this exists.
+  hitTargets: HTMLElement[];
 };
 
 // Manages an arbitrary number of "TV apparatus" panels rendered via
@@ -166,6 +168,17 @@ export class CSS3DTVManager {
   private container: HTMLElement;
   private entries = new Map<string, TVEntry>();
   private saveTimer: number | null = null;
+  // Real pointer input (confirmed via CDP-level touch dispatch and real
+  // mouse events, not just synthetic PointerEvents) resolves its target to
+  // the WebGL canvas instead of the CSS3D panel actually rendered on top of
+  // it — a browser hit-testing gap for content behind nested 3D CSS
+  // transforms, for every pointer type. setupPointerRedirect works around it
+  // by finding the intended element ourselves via getBoundingClientRect()
+  // (always accurate — it's only the hit-test that isn't) and re-dispatching
+  // the event there. Keyed by pointerId so a drag or multi-touch gesture
+  // keeps hitting the same element for its duration.
+  private pointerTargets = new Map<number, { el: HTMLElement; downX: number; downY: number }>();
+  private disposePointerRedirect: (() => void) | null = null;
 
   constructor(
     container: HTMLElement,
@@ -184,12 +197,51 @@ export class CSS3DTVManager {
     this.renderer.domElement.style.pointerEvents = "none";
     this.renderer.setSize(width, height);
     container.appendChild(this.renderer.domElement);
+    this.setupPointerRedirect();
 
-    for (const state of loadTVs()) this.createEntry(state);
+    const loaded = loadTVs();
+    for (const state of loaded) this.createEntry(state);
+    // Persist immediately if clampScaleToFit shrank any panel that had been
+    // saved too large for this screen, so the fix sticks rather than being
+    // silently recomputed (and never written back) on every future load.
+    if (loaded.length > 0) this.persist();
   }
 
   setSize(width: number, height: number) {
     this.renderer.setSize(width, height);
+  }
+
+  // A CSS3DObject's on-screen pixel size depends only on the renderer's
+  // *height* and the camera's vertical FOV — never its width, since that's
+  // how perspective projection works. That means a fixed world-space size
+  // that looks reasonable on a wide desktop screen renders at the *same*
+  // pixel size on a narrow portrait phone, easily overflowing the screen's
+  // width entirely (pushing the title bar, toolbar, and buttons off both
+  // edges — unreachable, not just small). This computes the scale that
+  // makes the panel's width equal to `fraction` of the *smaller* viewport
+  // dimension, so it always fits regardless of aspect ratio.
+  private fitScaleForViewport(distance: number, fraction: number): number {
+    const fovRad = (this.camera.fov * Math.PI) / 180;
+    const size = this.renderer.getSize();
+    const unitsPerPixel = (2 * distance * Math.tan(fovRad / 2)) / Math.max(1, size.height);
+    const targetPx = Math.min(size.width, size.height) * fraction;
+    return clamp((targetPx * unitsPerPixel) / NATIVE_W, MIN_SCALE, MAX_SCALE);
+  }
+
+  // Safety net for panels loaded from localStorage (or otherwise already at
+  // a fixed scale): if the viewer's current screen is narrower than whatever
+  // screen the scale was last set on, shrink it down to fit rather than
+  // leaving it permanently stuck too wide to reach.
+  private clampScaleToFit(state: TVState, position: THREE.Vector3) {
+    const dist = Math.max(0.001, position.distanceTo(this.camera.position));
+    const fovRad = (this.camera.fov * Math.PI) / 180;
+    const size = this.renderer.getSize();
+    const unitsPerPixel = (2 * dist * Math.tan(fovRad / 2)) / Math.max(1, size.height);
+    const currentPx = (NATIVE_W * state.scale) / unitsPerPixel;
+    const maxPx = Math.max(160, Math.min(size.width, size.height) * 0.92);
+    if (currentPx > maxPx) {
+      state.scale = clamp((maxPx * unitsPerPixel) / NATIVE_W, MIN_SCALE, MAX_SCALE);
+    }
   }
 
   render() {
@@ -225,12 +277,18 @@ export class CSS3DTVManager {
       id: makeId(),
       url: "",
       x: pos.x,
-      y: Math.max(1.5, pos.y),
+      // No floor on y: pos already lies exactly along the camera's view
+      // direction (including pitch), matching x/z — clamping only this axis
+      // would shift the panel away from view center whenever the camera
+      // looks down enough that the natural y comes out below the floor,
+      // which is routine in this app (the default view leans toward the
+      // water) and was pushing new panels above the visible frame.
+      y: pos.y,
       z: pos.z,
       rotX: 0,
       rotY,
       rotZ: 0,
-      scale: DEFAULT_SCALE,
+      scale: this.fitScaleForViewport(SPAWN_DISTANCE, 0.6),
     };
     this.createEntry(state);
     this.persist();
@@ -241,10 +299,116 @@ export class CSS3DTVManager {
       window.clearTimeout(this.saveTimer);
       this.saveTimer = null;
     }
+    this.disposePointerRedirect?.();
+    this.disposePointerRedirect = null;
     for (const id of Array.from(this.entries.keys())) this.removeEntry(id, false);
     if (this.renderer.domElement.parentNode === this.container) {
       this.container.removeChild(this.renderer.domElement);
     }
+  }
+
+  // Finds the most specific interactive element under a real screen point by
+  // checking actual layout rects (always accurate) instead of relying on the
+  // browser's touch hit-test (which isn't, for this content — see
+  // pointerTargets above). Checks every panel's hitTargets in their declared
+  // most-specific-first order.
+  private findPointerTarget(x: number, y: number): HTMLElement | null {
+    for (const entry of this.entries.values()) {
+      for (const el of entry.hitTargets) {
+        const rect = el.getBoundingClientRect();
+        if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+          return el;
+        }
+      }
+    }
+    return null;
+  }
+
+  private setupPointerRedirect() {
+    // The re-dispatched event bubbles (needed so ancestor listeners, like the
+    // two-finger gesture on the panel root, still see it) all the way back up
+    // to these same capture-phase window listeners — without this guard
+    // they'd reprocess their own dispatch and recurse forever.
+    const dispatchedByUs = new WeakSet<Event>();
+    const TAP_SLOP_PX = 8;
+
+    const dispatchPointer = (target: HTMLElement, ev: PointerEvent, type: string) => {
+      const synthetic = new PointerEvent(type, {
+        pointerId: ev.pointerId,
+        pointerType: ev.pointerType,
+        clientX: ev.clientX,
+        clientY: ev.clientY,
+        screenX: ev.screenX,
+        screenY: ev.screenY,
+        button: ev.button,
+        buttons: ev.buttons,
+        bubbles: true,
+        cancelable: true,
+      });
+      dispatchedByUs.add(synthetic);
+      target.dispatchEvent(synthetic);
+    };
+
+    const onDown = (ev: PointerEvent) => {
+      if (dispatchedByUs.has(ev)) return;
+      const target = this.findPointerTarget(ev.clientX, ev.clientY);
+      if (!target) return;
+      this.pointerTargets.set(ev.pointerId, { el: target, downX: ev.clientX, downY: ev.clientY });
+      dispatchPointer(target, ev, "pointerdown");
+    };
+    const onMove = (ev: PointerEvent) => {
+      if (dispatchedByUs.has(ev)) return;
+      const tracked = this.pointerTargets.get(ev.pointerId);
+      if (!tracked) return;
+      dispatchPointer(tracked.el, ev, "pointermove");
+    };
+    const onUp = (ev: PointerEvent) => {
+      if (dispatchedByUs.has(ev)) return;
+      const tracked = this.pointerTargets.get(ev.pointerId);
+      if (!tracked) return;
+      dispatchPointer(tracked.el, ev, ev.type);
+      // A real trusted tap gets an automatic touch-to-click synthesis from
+      // the browser; a JS-dispatched pointerup does not, so buttons wired up
+      // with onClick (delete, go) need it synthesized explicitly here —
+      // only for a tap-like gesture (little movement), not after a drag.
+      if (ev.type === "pointerup") {
+        const dx = ev.clientX - tracked.downX;
+        const dy = ev.clientY - tracked.downY;
+        if (Math.hypot(dx, dy) <= TAP_SLOP_PX) {
+          const clickEvent = new MouseEvent("click", {
+            clientX: ev.clientX,
+            clientY: ev.clientY,
+            button: 0,
+            bubbles: true,
+            cancelable: true,
+          });
+          dispatchedByUs.add(clickEvent);
+          tracked.el.dispatchEvent(clickEvent);
+
+          // The browser's own touch gesture handling resets focus around
+          // pointerup/click for a real touch, which stomps a focus() called
+          // synchronously here — deferring one tick lets it happen after
+          // that reset instead of before it.
+          if (tracked.el instanceof HTMLInputElement) {
+            const input = tracked.el;
+            setTimeout(() => input.focus(), 0);
+          }
+        }
+      }
+      this.pointerTargets.delete(ev.pointerId);
+    };
+
+    window.addEventListener("pointerdown", onDown, true);
+    window.addEventListener("pointermove", onMove, true);
+    window.addEventListener("pointerup", onUp, true);
+    window.addEventListener("pointercancel", onUp, true);
+
+    this.disposePointerRedirect = () => {
+      window.removeEventListener("pointerdown", onDown, true);
+      window.removeEventListener("pointermove", onMove, true);
+      window.removeEventListener("pointerup", onUp, true);
+      window.removeEventListener("pointercancel", onUp, true);
+    };
   }
 
   private persist() {
@@ -382,10 +546,28 @@ export class CSS3DTVManager {
     const object = new CSS3DObject(el);
     object.position.set(state.x, state.y, state.z);
     object.rotation.set(state.rotX, state.rotY, state.rotZ);
+    this.clampScaleToFit(state, object.position);
     object.scale.setScalar(state.scale);
     this.scene.add(object);
 
-    const entry: TVEntry = { state, object, urlInput, iframe, placeholder };
+    // Most-specific-first: findPointerTarget returns the first rect match, so
+    // small controls must be checked before the panel's own background.
+    const hitTargets = [
+      urlInput,
+      goBtn,
+      deleteBtn,
+      freeBtn,
+      xBtn,
+      yBtn,
+      zBtn,
+      rotateBtn,
+      resize,
+      iframe,
+      placeholder,
+      el,
+    ];
+
+    const entry: TVEntry = { state, object, urlInput, iframe, placeholder, hitTargets };
     this.entries.set(state.id, entry);
     this.applyUrl(entry, state.url, false);
 

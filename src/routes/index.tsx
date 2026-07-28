@@ -2696,9 +2696,16 @@ function Aquafulness() {
       {/* Fake live-broadcast overlay — hidden by default, toggled via LIVE dial. */}
       {liveMode && <LiveBroadcast />}
 
-      {/* HUD overlay — fades out on inactivity, back in on any touch. */}
+      {/* HUD overlay — fades out on inactivity, back in on any touch. Always
+          pointer-events-none on this wrapper itself (every interactive
+          descendant below — buttons, the settings panel, joysticks — already
+          opts back in with its own pointer-events-auto); otherwise, since
+          this covers the full screen and sits in front of the 3D view's
+          sibling div, it silently swallows every touch/click that doesn't
+          land exactly on one of those descendants, including all of the TV
+          panels underneath. */}
       <div
-        className={`absolute inset-0 z-10 transition-opacity duration-700 ${uiVisible ? "opacity-100" : "pointer-events-none opacity-0"}`}
+        className={`pointer-events-none absolute inset-0 z-10 transition-opacity duration-700 ${uiVisible ? "opacity-100" : "opacity-0"}`}
       >
         {/* Top bar: settings + speaker toggle + fullscreen */}
         <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between px-4 pt-4">
