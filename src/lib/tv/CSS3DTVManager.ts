@@ -21,7 +21,18 @@ export type BathApp = {
 function defaultApps(): BathApp[] {
   return [
     { id: "browser", name: "Browser", url: "", icon: "browser" },
-    { id: "youtube", name: "YouTube", url: "https://www.youtube.com", icon: "youtube" },
+    // A specific watch link, not the bare youtube.com homepage — YouTube
+    // sends X-Frame-Options: SAMEORIGIN on everything outside /watch and
+    // /embed, so the homepage can never load in an iframe at all (shows up
+    // as a permanently broken embed, not a crash, but just as dead). A
+    // /watch link works because toEmbedUrl (see youtubeEmbed.ts) rewrites it
+    // to the embeddable youtube-nocookie.com/embed/ form before it's loaded.
+    {
+      id: "youtube",
+      name: "YouTube",
+      url: "https://www.youtube.com/watch?v=JekUNGo-RVk",
+      icon: "youtube",
+    },
   ];
 }
 
