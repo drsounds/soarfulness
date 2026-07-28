@@ -558,6 +558,7 @@ function Aquafulness() {
   const editModeRef = useRef(editMode);
   useEffect(() => {
     editModeRef.current = editMode;
+    tvManagerRef.current?.setEditMode(editMode);
   }, [editMode]);
   const idleTimerRef = useRef<number | null>(null);
   // The three.js scene graph (populated by the WebGL setup effect) and the
@@ -2761,14 +2762,26 @@ function Aquafulness() {
 
           <div className="flex gap-2">
             <button
-              onClick={() => tvManagerRef.current?.addTV()}
+              onClick={() => tvManagerRef.current?.addTV("tv")}
               className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white/90 backdrop-blur-md transition active:scale-95 active:bg-white/15"
-              aria-label="Lägg till TV-apparat"
-              title="Lägg till TV-apparat"
+              aria-label="Lägg till smart-TV"
+              title="Lägg till smart-TV (bathOS)"
             >
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <rect x="3" y="5" width="18" height="12" rx="1.5" />
                 <path d="M8 21h8M12 17v4" />
+              </svg>
+            </button>
+
+            <button
+              onClick={() => tvManagerRef.current?.addTV("mobile")}
+              className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white/90 backdrop-blur-md transition active:scale-95 active:bg-white/15"
+              aria-label="Lägg till mobil"
+              title="Lägg till mobil (bathOS)"
+            >
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="7" y="2.5" width="10" height="19" rx="2" />
+                <path d="M11 18h2" />
               </svg>
             </button>
 

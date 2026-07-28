@@ -2,13 +2,37 @@ import * as THREE from "three";
 import { CSS3DObject, CSS3DRenderer } from "three/examples/jsm/renderers/CSS3DRenderer.js";
 import { toEmbedUrl } from "./youtubeEmbed";
 
-// Persisted shape of a single "TV apparatus". Position/rotation/scale are
-// plain three.js world-space numbers; the DOM panel itself always renders at
-// a fixed native pixel size (NATIVE_W x NATIVE_H) so the embedded page stays
-// crisp — resizing the TV only changes `scale`, never the iframe's own
-// resolution.
+// The two virtual "smart device" shapes a panel can take — a landscape smart
+// TV or a portrait mobile — each with its own native pixel footprint and
+// bathOS shell layout (TV: left nav rail; mobile: bottom nav bar).
+export type DeviceKind = "tv" | "mobile";
+
+// One bathOS "app": a bookmark to a web page (or, for the built-in "browser"
+// icon, no fixed destination — it just resumes whatever address was last
+// typed). Apps are the home screen's icon grid; tapping one loads its url
+// into the browser screen.
+export type BathApp = {
+  id: string;
+  name: string;
+  url: string;
+  icon: "browser" | "youtube" | "link";
+};
+
+function defaultApps(): BathApp[] {
+  return [
+    { id: "browser", name: "Browser", url: "", icon: "browser" },
+    { id: "youtube", name: "YouTube", url: "https://www.youtube.com", icon: "youtube" },
+  ];
+}
+
+// Persisted shape of a single "TV apparatus" — now a full bathOS "smart
+// device". Position/rotation/scale are plain three.js world-space numbers;
+// the DOM panel itself always renders at a fixed native pixel size (per
+// `device`, see SIZES) so the embedded page stays crisp — resizing the panel
+// only changes `scale`, never the iframe's own resolution.
 export type TVState = {
   id: string;
+  // The address currently loaded (or last loaded) in the browser app.
   url: string;
   x: number;
   y: number;
@@ -17,18 +41,55 @@ export type TVState = {
   rotY: number;
   rotZ: number;
   scale: number;
+  device: DeviceKind;
+  // Room/device label shown on the lock screen (e.g. "Bathroom Mirror").
+  name: string;
+  locked: boolean;
+  // Which app-level screen to show once unlocked — the lock overlay sits on
+  // top of whichever of these was last active, same as a real phone.
+  screen: "home" | "browser";
+  apps: BathApp[];
 };
 
 const STORAGE_KEY = "aquafulness:tvs:v1";
-const NATIVE_W = 480;
-const NATIVE_H = 270;
+const SIZES: Record<DeviceKind, { w: number; h: number }> = {
+  tv: { w: 480, h: 270 },
+  mobile: { w: 300, h: 620 },
+};
 const DEFAULT_SCALE = 0.02;
 const MIN_SCALE = 0.006;
 // High enough that, dragged far along Z and scaled all the way up, a panel
-// can become a gigantic screen looming in the sky (NATIVE_W * MAX_SCALE =
-// 1440 world units wide — bigger than the 800-unit sky dome radius).
+// can become a gigantic screen looming in the sky (width * MAX_SCALE can
+// reach 1440 world units — bigger than the 800-unit sky dome radius).
 const MAX_SCALE = 3;
 const SPAWN_DISTANCE = 9;
+
+function isLikelyUrl(text: string): boolean {
+  const t = text.trim();
+  if (!t || /\s/.test(t)) return false;
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(t)) return true;
+  return /^[^./]+(\.[^./]+)+$/.test(t) || t.startsWith("localhost");
+}
+
+// Whatever was typed into a search/address field: a bare domain or full URL
+// loads directly, anything else runs as a web search — the same rule a real
+// phone's combined search+address bar uses.
+function resolveAddress(text: string): string {
+  const t = text.trim();
+  if (!t) return "";
+  if (isLikelyUrl(t)) {
+    return /^[a-z][a-z0-9+.-]*:\/\//i.test(t) ? t : `https://${t}`;
+  }
+  return `https://www.google.com/search?q=${encodeURIComponent(t)}`;
+}
+
+// Deterministic pastel-ish background for a bookmark tile's fallback
+// initial-letter icon, so the same name always gets the same color.
+function colorForName(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) | 0;
+  return `hsl(${Math.abs(hash) % 360}, 60%, 40%)`;
+}
 
 function clamp(v: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, v));
@@ -50,17 +111,35 @@ function loadTVs(): TVState[] {
       typeof v === "number" && Number.isFinite(v) ? v : fallback;
     return parsed
       .filter((t): t is Record<string, unknown> => !!t && typeof t === "object")
-      .map((t) => ({
-        id: typeof t.id === "string" ? t.id : makeId(),
-        url: typeof t.url === "string" ? t.url : "",
-        x: num(t.x, 0),
-        y: num(t.y, 2),
-        z: num(t.z, 0),
-        rotX: num(t.rotX, 0),
-        rotY: num(t.rotY, 0),
-        rotZ: num(t.rotZ, 0),
-        scale: clamp(num(t.scale, DEFAULT_SCALE), MIN_SCALE, MAX_SCALE),
-      }));
+      .map((t) => {
+        const url = typeof t.url === "string" ? t.url : "";
+        const apps = Array.isArray(t.apps)
+          ? (t.apps as unknown[])
+              .filter((a): a is Record<string, unknown> => !!a && typeof a === "object")
+              .map((a): BathApp => ({
+                id: typeof a.id === "string" ? a.id : makeId(),
+                name: typeof a.name === "string" ? a.name : "App",
+                url: typeof a.url === "string" ? a.url : "",
+                icon: a.icon === "youtube" || a.icon === "browser" ? a.icon : "link",
+              }))
+          : defaultApps();
+        return {
+          id: typeof t.id === "string" ? t.id : makeId(),
+          url,
+          x: num(t.x, 0),
+          y: num(t.y, 2),
+          z: num(t.z, 0),
+          rotX: num(t.rotX, 0),
+          rotY: num(t.rotY, 0),
+          rotZ: num(t.rotZ, 0),
+          scale: clamp(num(t.scale, DEFAULT_SCALE), MIN_SCALE, MAX_SCALE),
+          device: t.device === "mobile" ? "mobile" : "tv",
+          name: typeof t.name === "string" ? t.name : "",
+          locked: typeof t.locked === "boolean" ? t.locked : false,
+          screen: t.screen === "browser" || (t.screen === undefined && url) ? "browser" : "home",
+          apps: apps.length ? apps : defaultApps(),
+        } satisfies TVState;
+      });
   } catch {
     return [];
   }
@@ -77,7 +156,7 @@ function ensureStyles() {
   style.id = "aqf-tv-styles";
   style.textContent = `
     .aqf-tv-panel {
-      width: ${NATIVE_W}px; height: ${NATIVE_H}px; display: flex; flex-direction: column;
+      display: flex; flex-direction: column;
       background: #0b1620; border-radius: 10px; overflow: hidden;
       box-shadow: 0 20px 60px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.08);
       font-family: system-ui, -apple-system, sans-serif;
@@ -86,17 +165,6 @@ function ensureStyles() {
          the embedded iframe, which is governed by its own document. */
       touch-action: none;
     }
-    .aqf-tv-titlebar {
-      display: flex; align-items: center; gap: 6px; padding: 6px 8px;
-      background: rgba(255,255,255,0.06); border-bottom: 1px solid rgba(255,255,255,0.08);
-      flex: 0 0 auto;
-    }
-    .aqf-tv-url {
-      flex: 1 1 auto; min-width: 0; background: rgba(0,0,0,0.35);
-      border: 1px solid rgba(255,255,255,0.15); border-radius: 999px;
-      color: #fff; font-size: 12px; padding: 5px 10px; outline: none;
-    }
-    .aqf-tv-url::placeholder { color: rgba(255,255,255,0.4); }
     .aqf-tv-btn {
       flex: 0 0 auto; width: 26px; height: 26px; border-radius: 999px;
       border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.08);
@@ -104,12 +172,128 @@ function ensureStyles() {
       display: flex; align-items: center; justify-content: center; touch-action: none;
     }
     .aqf-tv-btn:active { background: rgba(255,255,255,0.25); }
-    .aqf-tv-screen { position: relative; flex: 1 1 auto; background: #000; min-height: 0; }
     .aqf-tv-iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
     .aqf-tv-placeholder {
       position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
       color: rgba(255,255,255,0.35); font-size: 11px; letter-spacing: 0.08em; text-align: center; padding: 0 16px;
     }
+
+    /* --- bathOS shell -------------------------------------------------- */
+    .bos-root {
+      position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column;
+      background: #000; color: #fff; overflow: hidden;
+    }
+    .bos-statusbar {
+      flex: 0 0 auto; z-index: 6; display: flex; align-items: center; justify-content: flex-end;
+      gap: 5px; padding: 5px 8px; font-size: 10px; font-weight: 600;
+      color: rgba(255,255,255,0.92);
+    }
+    .bos-clock { font-variant-numeric: tabular-nums; }
+    .bos-body { position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: row; }
+    .bos-viewstack { position: relative; flex: 1 1 auto; min-width: 0; min-height: 0; }
+    .bos-view {
+      position: absolute; inset: 0; display: none; flex-direction: column;
+    }
+    .bos-view-active { display: flex; }
+
+    .bos-lock {
+      align-items: center; justify-content: center; text-align: center; gap: 4px;
+      background: linear-gradient(180deg, #2c7be5 0%, #0a1e40 75%, #030b1a 100%);
+      cursor: pointer; padding: 10px;
+    }
+    .bos-lock-name { font-size: 11px; opacity: 0.85; }
+    .bos-lock-time { font-size: 34px; font-weight: 700; line-height: 1; }
+    .bos-lock-date { font-size: 11px; opacity: 0.8; }
+    .bos-lock-hint {
+      position: absolute; bottom: 10px; left: 0; right: 0; text-align: center;
+      font-size: 10px; letter-spacing: 0.06em; opacity: 0.7;
+    }
+
+    .bos-home { background: linear-gradient(180deg, #3579db 0%, #081b38 100%); }
+    .bos-home-main { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; padding: 8px; gap: 8px; }
+    .bos-search {
+      flex: 0 0 auto; display: flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,0.55); border-radius: 999px; padding: 6px 10px; color: #262626;
+    }
+    .bos-search svg { flex: 0 0 auto; opacity: 0.65; }
+    .bos-search-input {
+      flex: 1 1 auto; min-width: 0; background: transparent; border: 0; outline: none;
+      color: #1a1a1a; font-size: 11px;
+    }
+    .bos-search-input::placeholder { color: rgba(30,30,30,0.55); }
+    .bos-apps { flex: 1 1 auto; min-height: 0; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 10px; overflow: auto; }
+    .bos-app { width: 54px; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; touch-action: none; }
+    .bos-app-icon {
+      width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 14px; font-weight: 700; overflow: hidden;
+    }
+    .bos-app-icon svg { width: 20px; height: 20px; }
+    .bos-app-name { font-size: 9px; opacity: 0.92; max-width: 54px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .bos-app-add .bos-app-icon { background: rgba(255,255,255,0.12); border: 1px dashed rgba(255,255,255,0.5); }
+    .bos-addform {
+      flex: 0 0 auto; display: none; flex-direction: column; gap: 5px; padding: 8px;
+      background: rgba(0,0,0,0.35); border-radius: 8px;
+    }
+    .bos-addform.bos-open { display: flex; }
+    .bos-addform input {
+      background: rgba(255,255,255,0.9); border: 0; border-radius: 6px; padding: 5px 8px; font-size: 10px; color: #111; outline: none;
+    }
+    .bos-addform-row { display: flex; gap: 6px; justify-content: flex-end; }
+
+    .bos-rail {
+      flex: 0 0 auto; width: 72px; background: rgba(0,0,0,0.55);
+      display: flex; flex-direction: column; align-items: flex-start; padding: 10px 8px; gap: 10px;
+    }
+    .bos-rail-logo { font-size: 12px; font-weight: 800; }
+    .bos-rail-item { font-size: 10px; opacity: 0.85; cursor: pointer; touch-action: none; }
+    .bos-rail-item:active { opacity: 1; }
+    .bos-rail-spacer { flex: 1 1 auto; }
+    .bos-rail-power { cursor: pointer; touch-action: none; opacity: 0.85; }
+
+    .bos-navbar {
+      flex: 0 0 auto; display: flex; align-items: center; justify-content: space-around;
+      padding: 8px 0; background: rgba(0,0,0,0.4);
+    }
+    .bos-navbtn { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.85); cursor: pointer; touch-action: none; }
+
+    .bos-browser { background: #111; }
+    .bos-addressbar { position: relative; flex: 0 0 auto; display: flex; align-items: center; gap: 5px; padding: 5px 6px; background: rgba(255,255,255,0.92); }
+    .bos-addr-btn { flex: 0 0 auto; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; color: #333; cursor: pointer; touch-action: none; background: none; }
+    .bos-addr-inputwrap { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.08); border-radius: 999px; padding: 4px 9px; }
+    .bos-addr-input { flex: 1 1 auto; min-width: 0; border: 0; outline: none; background: transparent; font-size: 10px; color: #222; }
+    .bos-menu {
+      display: none; flex-direction: column; position: absolute; top: 100%; margin-top: 4px; right: 6px; z-index: 8;
+      background: #1c1c1c; border-radius: 8px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    }
+    .bos-menu.bos-open { display: flex; }
+    .bos-menu-item { padding: 8px 12px; font-size: 10px; color: #eee; cursor: pointer; white-space: nowrap; touch-action: none; }
+    .bos-menu-item:active { background: rgba(255,255,255,0.12); }
+
+    .bos-settings {
+      display: none; position: absolute; inset: 0; z-index: 7; flex-direction: column; gap: 10px;
+      padding: 12px; background: rgba(10,14,22,0.97);
+    }
+    .bos-settings.bos-open { display: flex; }
+    .bos-settings label { font-size: 10px; opacity: 0.7; }
+    .bos-settings input {
+      background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px;
+      padding: 6px 8px; font-size: 11px; color: #fff; outline: none;
+    }
+    .bos-settings-row { display: flex; gap: 8px; }
+    .bos-settings-btn {
+      flex: 1 1 auto; padding: 7px; font-size: 10px; border-radius: 6px; text-align: center; cursor: pointer;
+      background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); touch-action: none;
+    }
+    .bos-settings-btn.bos-danger { background: rgba(220,60,60,0.25); border-color: rgba(220,60,60,0.5); }
+
+    /* The dev-only placement chrome (gizmo toolbar, resize corner, pivot dot)
+       is hidden by default so a panel is nothing but its bathOS device —
+       edge to edge, no tool UI — and only appears while the app's global
+       edit mode is active for precise placement. */
+    .aqf-tv-resize, .aqf-tv-pivot, .aqf-tv-toolbar { display: none; }
+    .aqf-tv-panel.aqf-edit-mode .aqf-tv-resize { display: block; }
+    .aqf-tv-panel.aqf-edit-mode .aqf-tv-pivot { display: block; }
+    .aqf-tv-panel.aqf-edit-mode .aqf-tv-toolbar { display: flex; }
     .aqf-tv-resize {
       position: absolute; right: 2px; bottom: 2px; width: 18px; height: 18px; cursor: nwse-resize;
       touch-action: none; border-right: 2px solid rgba(255,255,255,0.5); border-bottom: 2px solid rgba(255,255,255,0.5);
@@ -120,14 +304,18 @@ function ensureStyles() {
       border-radius: 999px; background: #fff; box-shadow: 0 0 0 2px rgba(0,0,0,0.6);
       pointer-events: none;
     }
-    /* Transform toolbar: axis-constrained move (X/Y/Z, Blender-style colors),
-       free (unconstrained) move, and pivot rotate — dragging each handle
-       manipulates the panel around its own pivot (its position), the same
-       model 3D DCC tools use for their move/rotate gizmos. */
+    /* Transform toolbar: device label, axis-constrained move (X/Y/Z,
+       Blender-style colors), free (unconstrained) move, and pivot rotate —
+       dragging each handle manipulates the panel around its own pivot (its
+       position), the same model 3D DCC tools use for their move/rotate gizmos. */
     .aqf-tv-toolbar {
-      display: flex; align-items: center; gap: 5px; padding: 5px 8px;
-      background: rgba(0,0,0,0.25); border-bottom: 1px solid rgba(255,255,255,0.06);
+      align-items: center; gap: 5px; padding: 5px 8px;
+      background: rgba(0,0,0,0.55); border-bottom: 1px solid rgba(255,255,255,0.08);
       flex: 0 0 auto;
+    }
+    .aqf-tv-devicelabel {
+      flex: 1 1 auto; color: rgba(255,255,255,0.6); font-size: 9px;
+      letter-spacing: 0.1em; text-transform: uppercase;
     }
     .aqf-tv-axis {
       flex: 0 0 auto; width: 24px; height: 22px; border-radius: 6px;
@@ -146,14 +334,56 @@ function ensureStyles() {
   stylesInjected = true;
 }
 
+// Small inline stroke-icon set for the bathOS shell — kept as plain SVG
+// markup (rather than a component library) since every panel is built via
+// raw DOM calls, not React.
+const ICONS = {
+  search:
+    '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>',
+  globe:
+    '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></svg>',
+  gear: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a7.4 7.4 0 000-2l2-1.5-2-3.5-2.4 1a7.6 7.6 0 00-1.7-1L15 3h-4l-.3 2.5a7.6 7.6 0 00-1.7 1l-2.4-1-2 3.5L6.6 11a7.4 7.4 0 000 2l-2 1.5 2 3.5 2.4-1a7.6 7.6 0 001.7 1L11 21h4l.3-2.5a7.6 7.6 0 001.7-1l2.4 1 2-3.5-2-1.5z"/></svg>',
+  power:
+    '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 3v9"/><path d="M6.5 6.5a8 8 0 1011 0"/></svg>',
+  back: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
+  dots: '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg>',
+  heart:
+    '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.4-9.5-9C.7 7.5 2.7 4 6 4c2 0 3.3 1 4 2 .7-1 2-2 4-2 3.3 0 5.3 3.5 3.5 7-2.5 4.6-9.5 9-9.5 9z"/></svg>',
+  signal:
+    '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><rect x="2" y="14" width="3" height="7" rx="0.5"/><rect x="8" y="10" width="3" height="11" rx="0.5"/><rect x="14" y="6" width="3" height="15" rx="0.5"/><rect x="20" y="2" width="3" height="19" rx="0.5"/></svg>',
+  home: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/></svg>',
+  menu: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
+  play: '<svg viewBox="0 0 24 24" width="14" height="14" fill="#fff"><path d="M8 5v14l11-7z"/></svg>',
+};
+
 type TVEntry = {
   state: TVState;
   object: CSS3DObject;
-  urlInput: HTMLInputElement;
   iframe: HTMLIFrameElement;
   placeholder: HTMLDivElement;
-  // Ordered most-specific-first; see setupPointerRedirect for why this exists.
-  hitTargets: HTMLElement[];
+  addressInput: HTMLInputElement;
+  searchInput: HTMLInputElement;
+  heartBtn: HTMLElement;
+  homeAppsEl: HTMLElement;
+  lockView: HTMLElement;
+  homeView: HTMLElement;
+  browserView: HTMLElement;
+  settingsOverlay: HTMLElement;
+  settingsNameInput: HTMLInputElement;
+  browserMenu: HTMLElement;
+  clockEls: HTMLElement[];
+  dateEls: HTMLElement[];
+  lockNameEl: HTMLElement;
+  settingsOpen: boolean;
+  addFormOpen: boolean;
+  addFormEl: HTMLElement;
+  addFormNameInput: HTMLInputElement;
+  addFormUrlInput: HTMLInputElement;
+  // Live-queried each pointer event (`[data-bos-hit]` leaves plus the fixed
+  // chrome controls) — see setupPointerRedirect for why every interactive
+  // element must be discoverable this way. A snapshot array would go stale
+  // the moment an app/bookmark tile is added.
+  hitTargets: () => HTMLElement[];
   // Invisible WebGL stand-in for the panel — see occluders below.
   occluder: THREE.Mesh;
 };
@@ -173,9 +403,13 @@ type TVEntry = {
 // opaque was drawn). Where nothing is nearer, the stand-in "claims" that
 // depth so nothing farther gets drawn there either, leaving that patch of
 // the canvas transparent and revealing the panel.
-// Shared by every panel — colorWrite:false means no instance ever needs its
-// own material state (no color, no per-panel uniforms).
-const occluderGeometry = new THREE.PlaneGeometry(NATIVE_W, NATIVE_H);
+// Shared across every panel of a given device kind — colorWrite:false means
+// no instance ever needs its own material state (no color, no per-panel
+// uniforms), and the geometry only depends on that device's fixed footprint.
+const occluderGeometries: Record<DeviceKind, THREE.PlaneGeometry> = {
+  tv: new THREE.PlaneGeometry(SIZES.tv.w, SIZES.tv.h),
+  mobile: new THREE.PlaneGeometry(SIZES.mobile.w, SIZES.mobile.h),
+};
 const occluderMaterial = new THREE.MeshBasicMaterial({
   colorWrite: false,
   depthWrite: true,
@@ -212,6 +446,9 @@ export class CSS3DTVManager {
   // keeps hitting the same element for its duration.
   private pointerTargets = new Map<number, { el: HTMLElement; downX: number; downY: number }>();
   private disposePointerRedirect: (() => void) | null = null;
+  private clockTimer: number | null = null;
+  // Whether the app's global edit mode is active — see setEditMode.
+  private editMode = false;
 
   constructor(
     container: HTMLElement,
@@ -239,10 +476,32 @@ export class CSS3DTVManager {
     this.setupPointerRedirect();
 
     for (const state of loadTVs()) this.createEntry(state);
+
+    // Every clock/date label across every panel is re-rendered on one shared
+    // timer rather than a per-entry interval — cheap, and keeps all devices'
+    // time in lockstep the way real devices in the same room would be.
+    this.updateAllClocks();
+    this.clockTimer = window.setInterval(() => this.updateAllClocks(), 15000);
   }
 
   setSize(width: number, height: number) {
     this.renderer.setSize(width, height);
+  }
+
+  private updateAllClocks() {
+    const now = new Date();
+    const time = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" }).format(
+      now,
+    );
+    const date = new Intl.DateTimeFormat(undefined, {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+    }).format(now);
+    for (const entry of this.entries.values()) {
+      for (const el of entry.clockEls) el.textContent = time;
+      for (const el of entry.dateEls) el.textContent = date;
+    }
   }
 
   // A CSS3DObject's on-screen pixel size depends only on the renderer's
@@ -254,14 +513,13 @@ export class CSS3DTVManager {
   // edges — unreachable, not just small). This computes the scale that
   // makes the panel's width equal to `fraction` of the *smaller* viewport
   // dimension, so it always fits regardless of aspect ratio.
-  private fitScaleForViewport(distance: number, fraction: number): number {
+  private fitScaleForViewport(distance: number, fraction: number, kind: DeviceKind): number {
     const fovRad = (this.camera.fov * Math.PI) / 180;
     const size = this.renderer.getSize();
     const unitsPerPixel = (2 * distance * Math.tan(fovRad / 2)) / Math.max(1, size.height);
     const targetPx = Math.min(size.width, size.height) * fraction;
-    return clamp((targetPx * unitsPerPixel) / NATIVE_W, MIN_SCALE, MAX_SCALE);
+    return clamp((targetPx * unitsPerPixel) / SIZES[kind].w, MIN_SCALE, MAX_SCALE);
   }
-
 
   // Must run before the main WebGLRenderer's own render(scene, camera) call
   // so the occluders' synced transforms are in place when it draws.
@@ -278,9 +536,20 @@ export class CSS3DTVManager {
     return this.entries.size;
   }
 
-  // Spawns a new, blank TV a fixed distance in front of wherever the camera
-  // is currently looking, facing back toward it.
-  addTV(): void {
+  // Toggles the dev-only placement chrome (gizmo toolbar, resize corner,
+  // pivot dot) on every panel — normally hidden so a panel is nothing but
+  // its bathOS device, revealed only while the caller's edit mode (which
+  // also freezes wave/camera physics) is active.
+  setEditMode(active: boolean): void {
+    this.editMode = active;
+    for (const entry of this.entries.values()) {
+      entry.object.element.classList.toggle("aqf-edit-mode", active);
+    }
+  }
+
+  // Spawns a new, locked, blank device (smart TV or mobile) a fixed distance
+  // in front of wherever the camera is currently looking, facing back toward it.
+  addTV(kind: DeviceKind = "tv"): void {
     // Use the camera's full 3D look direction (including pitch) so the panel
     // lands exactly in the center of the current view, not just level with
     // eye height — otherwise looking down at the water places new panels
@@ -314,13 +583,22 @@ export class CSS3DTVManager {
       rotX: 0,
       rotY,
       rotZ: 0,
-      scale: this.fitScaleForViewport(SPAWN_DISTANCE, 0.6),
+      scale: this.fitScaleForViewport(SPAWN_DISTANCE, 0.6, kind),
+      device: kind,
+      name: "",
+      locked: true,
+      screen: "home",
+      apps: defaultApps(),
     };
     this.createEntry(state);
     this.persist();
   }
 
   dispose() {
+    if (this.clockTimer != null) {
+      window.clearInterval(this.clockTimer);
+      this.clockTimer = null;
+    }
     if (this.saveTimer != null) {
       window.clearTimeout(this.saveTimer);
       this.saveTimer = null;
@@ -340,7 +618,7 @@ export class CSS3DTVManager {
   // most-specific-first order.
   private findPointerTarget(x: number, y: number): HTMLElement | null {
     for (const entry of this.entries.values()) {
-      for (const el of entry.hitTargets) {
+      for (const el of entry.hitTargets()) {
         const rect = el.getBoundingClientRect();
         if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
           return el;
@@ -464,58 +742,182 @@ export class CSS3DTVManager {
     if (persist) this.persist();
   }
 
-  private applyUrl(entry: TVEntry, rawUrl: string, persistNow: boolean) {
-    const trimmed = rawUrl.trim();
-    entry.state.url = trimmed;
-    if (entry.urlInput.value !== trimmed) entry.urlInput.value = trimmed;
-    if (!trimmed) {
+  // --- bathOS screen/navigation helpers ---------------------------------
+
+  private updateViewVisibility(entry: TVEntry) {
+    const current = entry.state.locked ? "lock" : entry.state.screen;
+    entry.lockView.classList.toggle("bos-view-active", current === "lock");
+    entry.homeView.classList.toggle("bos-view-active", current === "home");
+    entry.browserView.classList.toggle("bos-view-active", current === "browser");
+  }
+
+  private setSettingsOpen(entry: TVEntry, open: boolean) {
+    entry.settingsOpen = open;
+    entry.settingsOverlay.classList.toggle("bos-open", open);
+    if (open) entry.settingsNameInput.value = entry.state.name;
+  }
+
+  private lockNow(entry: TVEntry) {
+    entry.state.locked = true;
+    this.setSettingsOpen(entry, false);
+    entry.browserMenu.classList.remove("bos-open");
+    this.updateViewVisibility(entry);
+    this.persist();
+  }
+
+  private unlock(entry: TVEntry) {
+    entry.state.locked = false;
+    this.updateViewVisibility(entry);
+    this.persist();
+  }
+
+  private goHome(entry: TVEntry) {
+    entry.state.screen = "home";
+    this.updateViewVisibility(entry);
+    this.persist();
+  }
+
+  // Pushes a fully-resolved address into the iframe/placeholder/address bar
+  // without touching which screen is showing — used both by navigate() (a
+  // user-triggered load, which does switch to the browser) and by initial
+  // hydration from persisted state (which must not).
+  private applyAddress(entry: TVEntry, address: string) {
+    entry.state.url = address;
+    if (entry.addressInput.value !== address) entry.addressInput.value = address;
+    if (!address) {
       entry.iframe.style.display = "none";
       entry.iframe.src = "";
       entry.placeholder.style.display = "flex";
     } else {
-      const embed = toEmbedUrl(trimmed);
+      const embed = toEmbedUrl(address);
       entry.placeholder.style.display = "none";
       entry.iframe.style.display = "block";
       if (entry.iframe.src !== embed) entry.iframe.src = embed;
     }
-    if (persistNow) this.persist();
+    this.updateHeart(entry);
+  }
+
+  // Loads `rawInput` (a bare search-bar/address-bar string, a bookmark's
+  // saved url, or "" to just resume whatever's already loaded) and switches
+  // to the browser screen — the one path every navigation action goes through.
+  private navigate(entry: TVEntry, rawInput: string) {
+    this.applyAddress(entry, resolveAddress(rawInput));
+    entry.state.screen = "browser";
+    this.updateViewVisibility(entry);
+    this.persist();
+  }
+
+  private updateHeart(entry: TVEntry) {
+    const url = entry.state.url;
+    const active = !!url && entry.state.apps.some((a) => a.url === url);
+    entry.heartBtn.style.color = active ? "#e0245e" : "#333";
+    const svg = entry.heartBtn.querySelector("svg");
+    if (svg) svg.setAttribute("fill", active ? "currentColor" : "none");
+  }
+
+  private toggleBookmark(entry: TVEntry) {
+    const url = entry.state.url;
+    if (!url) return;
+    const idx = entry.state.apps.findIndex((a) => a.url === url);
+    if (idx >= 0) {
+      entry.state.apps.splice(idx, 1);
+    } else {
+      let name = url;
+      try {
+        name = new URL(url).hostname.replace(/^www\./, "");
+      } catch {
+        /* keep raw url as the name */
+      }
+      entry.state.apps.push({ id: makeId(), name, url, icon: "link" });
+    }
+    this.renderApps(entry);
+    this.updateHeart(entry);
+    this.persist();
+  }
+
+  private setAddFormOpen(entry: TVEntry, open: boolean) {
+    entry.addFormOpen = open;
+    entry.addFormEl.classList.toggle("bos-open", open);
+    if (!open) {
+      entry.addFormNameInput.value = "";
+      entry.addFormUrlInput.value = "";
+    }
+  }
+
+  // (Re)builds the home screen's app grid from entry.state.apps, plus a
+  // trailing "+" tile that opens the add-bookmark mini-form.
+  private renderApps(entry: TVEntry) {
+    const container = entry.homeAppsEl;
+    container.innerHTML = "";
+    for (const app of entry.state.apps) {
+      const tile = document.createElement("div");
+      tile.className = "bos-app";
+      tile.dataset.bosHit = "1";
+
+      const icon = document.createElement("div");
+      icon.className = "bos-app-icon";
+      if (app.icon === "browser") {
+        icon.style.background = "linear-gradient(135deg,#7c3aed,#fb923c)";
+        icon.innerHTML = ICONS.globe;
+      } else if (app.icon === "youtube") {
+        icon.style.background = "#fff";
+        icon.innerHTML = `<div style="width:24px;height:17px;border-radius:4px;background:#ff0000;display:flex;align-items:center;justify-content:center;">${ICONS.play}</div>`;
+      } else {
+        icon.style.background = colorForName(app.name);
+        icon.textContent = (app.name.trim()[0] || "?").toUpperCase();
+      }
+
+      const name = document.createElement("div");
+      name.className = "bos-app-name";
+      name.textContent = app.name;
+
+      tile.append(icon, name);
+      tile.addEventListener("click", () => this.navigate(entry, app.url || entry.state.url));
+      container.appendChild(tile);
+    }
+
+    const addTile = document.createElement("div");
+    addTile.className = "bos-app bos-app-add";
+    addTile.dataset.bosHit = "1";
+    const addIcon = document.createElement("div");
+    addIcon.className = "bos-app-icon";
+    addIcon.textContent = "+";
+    const addName = document.createElement("div");
+    addName.className = "bos-app-name";
+    addName.textContent = "Add";
+    addTile.append(addIcon, addName);
+    addTile.addEventListener("click", () => this.setAddFormOpen(entry, !entry.addFormOpen));
+    container.appendChild(addTile);
   }
 
   private createEntry(state: TVState) {
+    const size = SIZES[state.device];
     const el = document.createElement("div");
-    el.className = "aqf-tv-panel";
+    el.className = this.editMode ? "aqf-tv-panel aqf-edit-mode" : "aqf-tv-panel";
     el.style.position = "relative";
+    el.style.width = `${size.w}px`;
+    el.style.height = `${size.h}px`;
 
-    const titlebar = document.createElement("div");
-    titlebar.className = "aqf-tv-titlebar";
+    // --- dev-only placement chrome: device label, delete, and the
+    // move/rotate/scale gizmo toolbar. Unrelated to bathOS itself — this is
+    // the tool for placing/sizing the physical panel in the 3D scene — so it
+    // stays hidden (see .aqf-tv-toolbar CSS) except while the app's global
+    // edit mode is active; otherwise the panel is nothing but its bathOS
+    // device, edge to edge. ------------------------------------------------
+    const toolbar = document.createElement("div");
+    toolbar.className = "aqf-tv-toolbar";
 
-    const urlInput = document.createElement("input");
-    urlInput.className = "aqf-tv-url";
-    urlInput.type = "text";
-    urlInput.placeholder = "youtube.com/watch?v=... eller webbadress";
-    urlInput.value = state.url;
-    urlInput.autocomplete = "off";
-    urlInput.spellcheck = false;
-
-    const goBtn = document.createElement("button");
-    goBtn.className = "aqf-tv-btn";
-    goBtn.type = "button";
-    goBtn.textContent = "↵";
-    goBtn.title = "Ladda adress";
+    const deviceLabel = document.createElement("div");
+    deviceLabel.className = "aqf-tv-devicelabel";
+    deviceLabel.textContent = state.device === "tv" ? "Smart-TV" : "Mobil";
 
     const deleteBtn = document.createElement("button");
     deleteBtn.className = "aqf-tv-btn";
     deleteBtn.type = "button";
     deleteBtn.textContent = "✕";
     deleteBtn.title = "Ta bort";
-
-    titlebar.append(urlInput, goBtn, deleteBtn);
-
-    // Transform toolbar: free move, X/Y/Z axis-constrained move (dragging
-    // constrains motion to that single world axis, the same interaction
-    // model as a 3D move gizmo), and pivot rotate.
-    const toolbar = document.createElement("div");
-    toolbar.className = "aqf-tv-toolbar";
+    deleteBtn.style.width = "22px";
+    deleteBtn.style.height = "22px";
 
     const freeBtn = document.createElement("div");
     freeBtn.className = "aqf-tv-axis aqf-tv-axis-free";
@@ -542,15 +944,143 @@ export class CSS3DTVManager {
     rotateBtn.textContent = "⟳";
     rotateBtn.title = "Dra för att rotera kring pivot";
 
-    toolbar.append(freeBtn, xBtn, yBtn, zBtn, rotateBtn);
+    toolbar.append(deviceLabel, freeBtn, xBtn, yBtn, zBtn, rotateBtn, deleteBtn);
 
-    const screen = document.createElement("div");
-    screen.className = "aqf-tv-screen";
+    // --- bathOS shell ------------------------------------------------------
+    const bosRoot = document.createElement("div");
+    bosRoot.className = "bos-root";
 
+    const statusbar = document.createElement("div");
+    statusbar.className = "bos-statusbar";
+    const signalIcon = document.createElement("span");
+    signalIcon.innerHTML = ICONS.signal;
+    const clockEl = document.createElement("span");
+    clockEl.className = "bos-clock";
+    statusbar.append(signalIcon, clockEl);
+
+    const body = document.createElement("div");
+    body.className = "bos-body";
+
+    const viewstack = document.createElement("div");
+    viewstack.className = "bos-viewstack";
+
+    // Lock screen: tap anywhere to unlock.
+    const lockView = document.createElement("div");
+    lockView.className = "bos-view bos-lock";
+    lockView.dataset.bosHit = "1";
+    const lockNameEl = document.createElement("div");
+    lockNameEl.className = "bos-lock-name";
+    lockNameEl.textContent = state.name || "bathOS";
+    const lockClockEl = document.createElement("div");
+    lockClockEl.className = "bos-lock-time";
+    const lockDateEl = document.createElement("div");
+    lockDateEl.className = "bos-lock-date";
+    const lockHint = document.createElement("div");
+    lockHint.className = "bos-lock-hint";
+    lockHint.textContent = "Tap to unlock";
+    lockView.append(lockNameEl, lockClockEl, lockDateEl, lockHint);
+    lockView.addEventListener("click", () => this.unlock(entry));
+
+    // Home screen: search bar + app grid + add-bookmark form.
+    const homeView = document.createElement("div");
+    homeView.className = "bos-view bos-home";
+    const homeMain = document.createElement("div");
+    homeMain.className = "bos-home-main";
+
+    const search = document.createElement("div");
+    search.className = "bos-search";
+    const searchIcon = document.createElement("span");
+    searchIcon.innerHTML = ICONS.search;
+    const searchInput = document.createElement("input");
+    searchInput.className = "bos-search-input";
+    searchInput.type = "text";
+    searchInput.placeholder = "Search";
+    searchInput.autocomplete = "off";
+    searchInput.spellcheck = false;
+    searchInput.dataset.bosHit = "1";
+    search.append(searchIcon, searchInput);
+
+    const homeApps = document.createElement("div");
+    homeApps.className = "bos-apps";
+
+    const addForm = document.createElement("div");
+    addForm.className = "bos-addform";
+    const addNameInput = document.createElement("input");
+    addNameInput.type = "text";
+    addNameInput.placeholder = "Name";
+    addNameInput.dataset.bosHit = "1";
+    const addUrlInput = document.createElement("input");
+    addUrlInput.type = "text";
+    addUrlInput.placeholder = "Web address";
+    addUrlInput.dataset.bosHit = "1";
+    const addFormRow = document.createElement("div");
+    addFormRow.className = "bos-addform-row";
+    const addConfirmBtn = document.createElement("button");
+    addConfirmBtn.className = "aqf-tv-btn";
+    addConfirmBtn.type = "button";
+    addConfirmBtn.textContent = "✓";
+    addConfirmBtn.dataset.bosHit = "1";
+    const addCancelBtn = document.createElement("button");
+    addCancelBtn.className = "aqf-tv-btn";
+    addCancelBtn.type = "button";
+    addCancelBtn.textContent = "✕";
+    addCancelBtn.dataset.bosHit = "1";
+    addFormRow.append(addConfirmBtn, addCancelBtn);
+    addForm.append(addNameInput, addUrlInput, addFormRow);
+
+    homeMain.append(search, homeApps, addForm);
+    homeView.append(homeMain);
+
+    // Browser screen: address bar (back / address+search / heart / menu) + content.
+    const browserView = document.createElement("div");
+    browserView.className = "bos-view bos-browser";
+    const addressbar = document.createElement("div");
+    addressbar.className = "bos-addressbar";
+
+    const backBtn = document.createElement("div");
+    backBtn.className = "bos-addr-btn";
+    backBtn.innerHTML = ICONS.back;
+    backBtn.dataset.bosHit = "1";
+
+    const addrWrap = document.createElement("div");
+    addrWrap.className = "bos-addr-inputwrap";
+    const addressInput = document.createElement("input");
+    addressInput.className = "bos-addr-input";
+    addressInput.type = "text";
+    addressInput.placeholder = "Search or enter URL";
+    addressInput.autocomplete = "off";
+    addressInput.spellcheck = false;
+    addressInput.dataset.bosHit = "1";
+    const heartBtn = document.createElement("div");
+    heartBtn.className = "bos-addr-btn";
+    heartBtn.innerHTML = ICONS.heart;
+    heartBtn.dataset.bosHit = "1";
+    addrWrap.append(addressInput, heartBtn);
+
+    const menuBtn = document.createElement("div");
+    menuBtn.className = "bos-addr-btn";
+    menuBtn.innerHTML = ICONS.dots;
+    menuBtn.dataset.bosHit = "1";
+
+    const browserMenu = document.createElement("div");
+    browserMenu.className = "bos-menu";
+    const menuLockItem = document.createElement("div");
+    menuLockItem.className = "bos-menu-item";
+    menuLockItem.textContent = "Lock screen";
+    menuLockItem.dataset.bosHit = "1";
+    const menuRemoveItem = document.createElement("div");
+    menuRemoveItem.className = "bos-menu-item";
+    menuRemoveItem.textContent = "Remove device";
+    menuRemoveItem.dataset.bosHit = "1";
+    browserMenu.append(menuLockItem, menuRemoveItem);
+
+    addressbar.append(backBtn, addrWrap, menuBtn, browserMenu);
+
+    const screenWrap = document.createElement("div");
+    screenWrap.className = "aqf-tv-screen";
     const placeholder = document.createElement("div");
     placeholder.className = "aqf-tv-placeholder";
-    placeholder.textContent = "ANGE EN WEBBADRESS ELLER YOUTUBE-LÄNK";
-
+    placeholder.textContent = "SEARCH OR ENTER A WEB ADDRESS";
     const iframe = document.createElement("iframe");
     iframe.className = "aqf-tv-iframe";
     iframe.setAttribute(
@@ -559,8 +1089,96 @@ export class CSS3DTVManager {
     );
     iframe.setAttribute("referrerpolicy", "no-referrer-when-downgrade");
     iframe.style.display = "none";
+    screenWrap.append(placeholder, iframe);
 
-    screen.append(placeholder, iframe);
+    browserView.append(addressbar, screenWrap);
+
+    // Settings overlay (rename device / lock / remove) — opened from the
+    // TV's rail gear icon or the mobile nav bar's menu icon.
+    const settingsOverlay = document.createElement("div");
+    settingsOverlay.className = "bos-settings";
+    const settingsLabel = document.createElement("label");
+    settingsLabel.textContent = "Device name";
+    const settingsNameInput = document.createElement("input");
+    settingsNameInput.type = "text";
+    settingsNameInput.placeholder = "bathOS";
+    settingsNameInput.dataset.bosHit = "1";
+    const settingsRow1 = document.createElement("div");
+    settingsRow1.className = "bos-settings-row";
+    const lockNowBtn = document.createElement("div");
+    lockNowBtn.className = "bos-settings-btn";
+    lockNowBtn.textContent = "Lock now";
+    lockNowBtn.dataset.bosHit = "1";
+    const closeSettingsBtn = document.createElement("div");
+    closeSettingsBtn.className = "bos-settings-btn";
+    closeSettingsBtn.textContent = "Close";
+    closeSettingsBtn.dataset.bosHit = "1";
+    settingsRow1.append(lockNowBtn, closeSettingsBtn);
+    const settingsRow2 = document.createElement("div");
+    settingsRow2.className = "bos-settings-row";
+    const removeDeviceBtn = document.createElement("div");
+    removeDeviceBtn.className = "bos-settings-btn bos-danger";
+    removeDeviceBtn.textContent = "Remove device";
+    removeDeviceBtn.dataset.bosHit = "1";
+    settingsRow2.append(removeDeviceBtn);
+    settingsOverlay.append(settingsLabel, settingsNameInput, settingsRow1, settingsRow2);
+
+    viewstack.append(lockView, homeView, browserView, settingsOverlay);
+
+    // TV: persistent left nav rail. Mobile: bottom nav bar instead.
+    let railStart: HTMLElement | null = null;
+    let railSettings: HTMLElement | null = null;
+    let railPower: HTMLElement | null = null;
+    let navBack: HTMLElement | null = null;
+    let navHome: HTMLElement | null = null;
+    let navMenu: HTMLElement | null = null;
+
+    if (state.device === "tv") {
+      const rail = document.createElement("div");
+      rail.className = "bos-rail";
+      const logo = document.createElement("div");
+      logo.className = "bos-rail-logo";
+      logo.textContent = "bathOS";
+      railStart = document.createElement("div");
+      railStart.className = "bos-rail-item";
+      railStart.textContent = "Start";
+      railStart.dataset.bosHit = "1";
+      railSettings = document.createElement("div");
+      railSettings.className = "bos-rail-item";
+      railSettings.textContent = "Settings";
+      railSettings.dataset.bosHit = "1";
+      const railSpacer = document.createElement("div");
+      railSpacer.className = "bos-rail-spacer";
+      railPower = document.createElement("div");
+      railPower.className = "bos-rail-power";
+      railPower.innerHTML = ICONS.power;
+      railPower.dataset.bosHit = "1";
+      rail.append(logo, railStart, railSettings, railSpacer, railPower);
+      body.append(rail, viewstack);
+    } else {
+      body.append(viewstack);
+    }
+
+    bosRoot.append(statusbar, body);
+
+    if (state.device === "mobile") {
+      const navbar = document.createElement("div");
+      navbar.className = "bos-navbar";
+      navBack = document.createElement("div");
+      navBack.className = "bos-navbtn";
+      navBack.innerHTML = ICONS.back;
+      navBack.dataset.bosHit = "1";
+      navHome = document.createElement("div");
+      navHome.className = "bos-navbtn";
+      navHome.innerHTML = ICONS.home;
+      navHome.dataset.bosHit = "1";
+      navMenu = document.createElement("div");
+      navMenu.className = "bos-navbtn";
+      navMenu.innerHTML = ICONS.menu;
+      navMenu.dataset.bosHit = "1";
+      navbar.append(navBack, navHome, navMenu);
+      bosRoot.append(navbar);
+    }
 
     const resize = document.createElement("div");
     resize.className = "aqf-tv-resize";
@@ -568,7 +1186,7 @@ export class CSS3DTVManager {
     const pivot = document.createElement("div");
     pivot.className = "aqf-tv-pivot";
 
-    el.append(titlebar, toolbar, screen, resize, pivot);
+    el.append(toolbar, bosRoot, resize, pivot);
 
     const object = new CSS3DObject(el);
     object.position.set(state.x, state.y, state.z);
@@ -576,9 +1194,9 @@ export class CSS3DTVManager {
     object.scale.setScalar(state.scale);
     this.scene.add(object);
 
-    // See occluderGeometry/occluderMaterial above — kept in sync with
+    // See occluderGeometries/occluderMaterial above — kept in sync with
     // `object`'s transform every frame in render().
-    const occluder = new THREE.Mesh(occluderGeometry, occluderMaterial);
+    const occluder = new THREE.Mesh(occluderGeometries[state.device], occluderMaterial);
     occluder.position.copy(object.position);
     occluder.quaternion.copy(object.quaternion);
     occluder.scale.copy(object.scale);
@@ -590,11 +1208,10 @@ export class CSS3DTVManager {
     occluder.renderOrder = -1000;
     this.mainScene.add(occluder);
 
-    // Most-specific-first: findPointerTarget returns the first rect match, so
-    // small controls must be checked before the panel's own background.
-    const hitTargets = [
-      urlInput,
-      goBtn,
+    // Most-specific-first: gizmo/chrome controls are listed explicitly, then
+    // every bathOS interactive element still visible is queried fresh each
+    // pointer event (dynamic — the app grid grows), then broad fallbacks.
+    const hitTargets = () => [
       deleteBtn,
       freeBtn,
       xBtn,
@@ -602,29 +1219,108 @@ export class CSS3DTVManager {
       zBtn,
       rotateBtn,
       resize,
+      ...Array.from(el.querySelectorAll<HTMLElement>("[data-bos-hit]")),
       iframe,
-      placeholder,
       el,
     ];
 
-    const entry: TVEntry = { state, object, urlInput, iframe, placeholder, hitTargets, occluder };
+    const entry: TVEntry = {
+      state,
+      object,
+      iframe,
+      placeholder,
+      addressInput,
+      searchInput,
+      heartBtn,
+      homeAppsEl: homeApps,
+      lockView,
+      homeView,
+      browserView,
+      settingsOverlay,
+      settingsNameInput,
+      browserMenu,
+      clockEls: [clockEl, lockClockEl],
+      dateEls: [lockDateEl],
+      lockNameEl,
+      settingsOpen: false,
+      addFormOpen: false,
+      addFormEl: addForm,
+      addFormNameInput: addNameInput,
+      addFormUrlInput: addUrlInput,
+      hitTargets,
+      occluder,
+    };
     this.entries.set(state.id, entry);
-    this.applyUrl(entry, state.url, false);
 
-    const applyFromInput = () => this.applyUrl(entry, urlInput.value, true);
-    goBtn.addEventListener("click", applyFromInput);
-    urlInput.addEventListener("keydown", (e) => {
-      e.stopPropagation();
-      if (e.key === "Enter") {
-        e.preventDefault();
-        applyFromInput();
-        urlInput.blur();
-      }
-    });
+    this.applyAddress(entry, state.url);
+    this.renderApps(entry);
+    this.updateViewVisibility(entry);
+
     deleteBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       this.removeEntry(state.id);
     });
+
+    const stopKeys = (input: HTMLInputElement, onEnter: () => void) => {
+      input.addEventListener("keydown", (e) => {
+        e.stopPropagation();
+        if (e.key === "Enter") {
+          e.preventDefault();
+          onEnter();
+          input.blur();
+        }
+      });
+    };
+
+    stopKeys(searchInput, () => {
+      this.navigate(entry, searchInput.value);
+      searchInput.value = "";
+    });
+    stopKeys(addressInput, () => this.navigate(entry, addressInput.value));
+    stopKeys(addNameInput, () => addUrlInput.focus());
+    stopKeys(addUrlInput, () => addConfirmBtn.click());
+    stopKeys(settingsNameInput, () => settingsNameInput.blur());
+
+    heartBtn.addEventListener("click", () => this.toggleBookmark(entry));
+    backBtn.addEventListener("click", () => this.goHome(entry));
+    menuBtn.addEventListener("click", () => browserMenu.classList.toggle("bos-open"));
+    menuLockItem.addEventListener("click", () => this.lockNow(entry));
+    menuRemoveItem.addEventListener("click", () => this.removeEntry(state.id));
+
+    addConfirmBtn.addEventListener("click", () => {
+      const rawUrl = addUrlInput.value.trim();
+      if (!rawUrl) return;
+      const url = resolveAddress(rawUrl);
+      let name = addNameInput.value.trim();
+      if (!name) {
+        try {
+          name = new URL(url).hostname.replace(/^www\./, "");
+        } catch {
+          name = url;
+        }
+      }
+      entry.state.apps.push({ id: makeId(), name, url, icon: "link" });
+      this.setAddFormOpen(entry, false);
+      this.renderApps(entry);
+      this.persist();
+    });
+    addCancelBtn.addEventListener("click", () => this.setAddFormOpen(entry, false));
+
+    settingsNameInput.addEventListener("blur", () => {
+      entry.state.name = settingsNameInput.value.trim();
+      lockNameEl.textContent = entry.state.name || "bathOS";
+      this.persist();
+    });
+    lockNowBtn.addEventListener("click", () => this.lockNow(entry));
+    closeSettingsBtn.addEventListener("click", () => this.setSettingsOpen(entry, false));
+    removeDeviceBtn.addEventListener("click", () => this.removeEntry(state.id));
+
+    railStart?.addEventListener("click", () => this.goHome(entry));
+    railSettings?.addEventListener("click", () => this.setSettingsOpen(entry, !entry.settingsOpen));
+    railPower?.addEventListener("click", () => this.lockNow(entry));
+    navBack?.addEventListener("click", () => this.goHome(entry));
+    navHome?.addEventListener("click", () => this.goHome(entry));
+    navMenu?.addEventListener("click", () => this.setSettingsOpen(entry, !entry.settingsOpen));
 
     this.bindFreeDrag(freeBtn, entry);
     this.bindAxisDrag(xBtn, entry, new THREE.Vector3(1, 0, 0));
