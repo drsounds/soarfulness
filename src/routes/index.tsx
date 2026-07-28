@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { CSS3DTVManager } from "@/lib/tv/CSS3DTVManager";
 import waterAsset from "@/assets/water.mp3.asset.json";
 import vanernBackdrop from "@/assets/vanern-backdrop.png.asset.json";
 import sandTextureAsset from "@/assets/sand_cc0_512.jpg.asset.json";
@@ -556,6 +557,9 @@ function Aquafulness() {
   // in and out without tearing down the whole renderer.
   const sceneRef = useRef<THREE.Scene | null>(null);
   const modelRef = useRef<THREE.Object3D | null>(null);
+  // Manages the CSS3DRenderer-backed "TV apparatus" panels layered on top of
+  // the WebGL scene, sharing the same camera; see CSS3DTVManager.
+  const tvManagerRef = useRef<CSS3DTVManager | null>(null);
   // Non-null only when the current scene opts into bobbing; drives the model's
   // vertical motion from inside the animation loop.
   const modelBobRef = useRef<{ base: THREE.Vector3; bob: BobConfig } | null>(null);
@@ -1180,6 +1184,9 @@ function Aquafulness() {
       camNearRef.current,
       camFarRef.current,
     );
+
+    const tvManager = new CSS3DTVManager(mount, camera, mount.clientWidth, mount.clientHeight);
+    tvManagerRef.current = tvManager;
 
     // Ocean plane
     const geo = new THREE.PlaneGeometry(600, 600, 320, 320);
@@ -1883,6 +1890,7 @@ function Aquafulness() {
       renderer.setSize(w, h);
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
+      tvManager.setSize(w, h);
     };
     window.addEventListener("resize", handleResize);
 
@@ -2399,6 +2407,7 @@ function Aquafulness() {
       }
 
       renderer.render(scene, camera);
+      tvManager.render();
       raf = requestAnimationFrame(animate);
       clock.getDelta();
     };
@@ -2439,6 +2448,8 @@ function Aquafulness() {
       reflWhiteTexRef.current = null;
       waterUniformsRef.current = null;
       sceneRef.current = null;
+      tvManager.dispose();
+      tvManagerRef.current = null;
       if (renderer.domElement.parentNode === mount) {
         mount.removeChild(renderer.domElement);
       }
@@ -2709,23 +2720,37 @@ function Aquafulness() {
             {settingsOpen ? "STÄNG" : "SETTINGS"}
           </button>
 
-          <button
-            onClick={toggleFullscreen}
-            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white/90 backdrop-blur-md transition active:scale-95 active:bg-white/15"
-            aria-label={isFullscreen ? "Avsluta helskärm" : "Helskärm"}
-            aria-pressed={isFullscreen}
-            title={isFullscreen ? "Avsluta helskärm" : "Helskärm"}
-          >
-            {isFullscreen ? (
+          <div className="flex gap-2">
+            <button
+              onClick={() => tvManagerRef.current?.addTV()}
+              className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white/90 backdrop-blur-md transition active:scale-95 active:bg-white/15"
+              aria-label="Lägg till TV-apparat"
+              title="Lägg till TV-apparat"
+            >
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M9 4v4H5M15 4v4h4M9 20v-4H5M15 20v-4h4" />
+                <rect x="3" y="5" width="18" height="12" rx="1.5" />
+                <path d="M8 21h8M12 17v4" />
               </svg>
-            ) : (
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
-              </svg>
-            )}
-          </button>
+            </button>
+
+            <button
+              onClick={toggleFullscreen}
+              className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white/90 backdrop-blur-md transition active:scale-95 active:bg-white/15"
+              aria-label={isFullscreen ? "Avsluta helskärm" : "Helskärm"}
+              aria-pressed={isFullscreen}
+              title={isFullscreen ? "Avsluta helskärm" : "Helskärm"}
+            >
+              {isFullscreen ? (
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M9 4v4H5M15 4v4h4M9 20v-4H5M15 20v-4h4" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+                </svg>
+              )}
+            </button>
+          </div>
         </div>
 
 
