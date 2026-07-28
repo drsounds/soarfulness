@@ -1204,6 +1204,7 @@ function Aquafulness() {
     );
 
     const tvManager = new CSS3DTVManager(mount, camera, scene, mount.clientWidth, mount.clientHeight);
+    tvManager.setEditMode(editModeRef.current);
     tvManagerRef.current = tvManager;
 
     // Ocean plane
