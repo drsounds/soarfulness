@@ -3540,19 +3540,6 @@ function Aquafulness() {
         </div>
       )}
 
-      {/* Virtual phone: a floating, draggable, resizable 2D bathOS device
-          (not part of the 3D world) used to browse and then "cast" whatever
-          it's showing to any TV/mobile display — see VirtualPhone.tsx. */}
-      {phoneOpen && (
-        <VirtualPhone
-          onClose={() => setPhoneOpen(false)}
-          listDisplays={() => tvManagerRef.current?.listEntries() ?? []}
-          onCastNew={(kind, url) => tvManagerRef.current?.addTV(kind, url)}
-          onCastTo={(id, url) => tvManagerRef.current?.castTo(id, url)}
-          onRemoveAll={() => tvManagerRef.current?.removeAll()}
-        />
-      )}
-
       {/* PS-liknande layout:
           Vänster sida: NAV (rörelse, momentan) längst ned, STRÖM (drift, sticky) ovanför.
           Höger sida: LOOK (rotation, momentan) längst ned, VÅGRIKT (sticky) ovanför.
@@ -3610,6 +3597,25 @@ function Aquafulness() {
         sticky
       />
       </div>
+
+      {/* Virtual phone: a floating, draggable, resizable 2D bathOS device
+          (not part of the 3D world) used to browse and then "cast" whatever
+          it's showing to any TV/mobile display — see VirtualPhone.tsx.
+          Deliberately a sibling of the fading HUD wrapper above, not nested
+          inside it: that wrapper's opacity multiplies down through every
+          descendant regardless of the descendant's own opacity/pointer-events,
+          so the phone would otherwise visually vanish (while still silently
+          receiving clicks) a few seconds after the last touch, even mid-use —
+          it manages its own visibility (open/closed) and needs no idle-fade. */}
+      {phoneOpen && (
+        <VirtualPhone
+          onClose={() => setPhoneOpen(false)}
+          listDisplays={() => tvManagerRef.current?.listEntries() ?? []}
+          onCastNew={(kind, url) => tvManagerRef.current?.addTV(kind, url)}
+          onCastTo={(id, url) => tvManagerRef.current?.castTo(id, url)}
+          onRemoveAll={() => tvManagerRef.current?.removeAll()}
+        />
+      )}
     </main>
   );
 }
