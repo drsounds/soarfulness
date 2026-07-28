@@ -160,10 +160,15 @@ function ensureStyles() {
       background: #0b1620; border-radius: 10px; overflow: hidden;
       box-shadow: 0 20px 60px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.08);
       font-family: system-ui, -apple-system, sans-serif;
-      /* Lets the two-finger move/scale/rotate gesture take over instead of
-         the browser's native pinch-zoom/pan; doesn't affect scrolling inside
-         the embedded iframe, which is governed by its own document. */
-      touch-action: none;
+      /* Deliberately no touch-action override here — touch-action
+         restrictions cascade to descendants with no way for a child to opt
+         back out, so leaving the panel root unrestricted is what lets the
+         bathOS view stack (.bos-view, including the browser's .aqf-tv-iframe)
+         fall through to its own default (auto), which is required for real
+         single-finger touch to reach the embedded page or scroll the app
+         grid at all. Every dev-only chrome control that needs its own drag
+         gesture (the toolbar's axis/resize handles, bathOS's own tap
+         targets) already declares touch-action: none individually below. */
     }
     .aqf-tv-btn {
       flex: 0 0 auto; width: 26px; height: 26px; border-radius: 999px;
@@ -312,6 +317,7 @@ function ensureStyles() {
       align-items: center; gap: 5px; padding: 5px 8px;
       background: rgba(0,0,0,0.55); border-bottom: 1px solid rgba(255,255,255,0.08);
       flex: 0 0 auto;
+      touch-action: none;
     }
     .aqf-tv-devicelabel {
       flex: 1 1 auto; color: rgba(255,255,255,0.6); font-size: 9px;
@@ -386,6 +392,8 @@ type TVEntry = {
   hitTargets: () => HTMLElement[];
   // Invisible WebGL stand-in for the panel — see occluders below.
   occluder: THREE.Mesh;
+  // In-scene 3D transform gizmo — see "3D transform gizmo" below.
+  gizmoGroup: THREE.Group;
 };
 
 // A CSS3DRenderer layer is just a DOM overlay — it always paints in front of
@@ -417,6 +425,136 @@ const occluderMaterial = new THREE.MeshBasicMaterial({
   fog: false,
 });
 
+// --- 3D transform gizmo --------------------------------------------------
+// A real in-scene gizmo attached to each panel's pivot while in edit mode —
+// three colored arrows for axis-constrained move, a center sphere for free
+// move, three rings for axis-constrained rotate, and a cube for uniform
+// scale — the same visual language as Blender/Unity/Maya's move/rotate/
+// scale handles, raycasted like any other 3D object rather than flat DOM
+// icons. Built once at a nominal "1 local unit" size (arrow tip radius ~0.8)
+// and shared across every panel; each panel gets its own THREE.Group whose
+// position and *uniform* scale are recomputed every frame (see render())
+// so the gizmo reads as a constant on-screen size regardless of camera
+// distance or how large/small the panel itself is scaled.
+// Depth-test is deliberately off and renderOrder deliberately high so the
+// gizmo always draws on top, even over an occluded (hidden-behind-geometry)
+// panel — while editing, you still need to see and grab the handle.
+const GIZMO_AXIS_COLOR = { x: 0xe5484d, y: 0x30a46c, z: 0x3b82f6 } as const;
+const GIZMO_NEUTRAL_COLOR = 0xf4f4f5;
+const GIZMO_PIXEL_SIZE = 130;
+const GIZMO_RENDER_ORDER = 10000;
+const GIZMO_AXIS_UNIT_VEC = {
+  x: new THREE.Vector3(1, 0, 0),
+  y: new THREE.Vector3(0, 1, 0),
+  z: new THREE.Vector3(0, 0, 1),
+} as const;
+// An axis arrow pointing (nearly) straight at/away from the camera
+// foreshortens to an invisible dot on screen — and, unlike the X/Y arrows,
+// sits *on* the ray from the camera to the free-move sphere behind it
+// (the gap in gizmoShaftGeometry only clears a *perpendicular* overlap, not
+// one collinear with the view ray). Past this dot-product threshold, hide
+// that arrow's meshes each frame so it can't silently steal drags meant for
+// the sphere while contributing nothing visible anyway.
+const GIZMO_FORESHORTEN_HIDE_DOT = 0.95;
+
+// Shafts start with a gap from the origin (0.15, not 0) rather than
+// meeting it exactly — without that gap, a panel that faces the camera
+// (the common case; new panels always spawn facing the viewer) puts the Z
+// arrow's shaft running straight along the view ray, right through the
+// free-move sphere at the center, so a raycast at dead-center can hit the
+// shaft instead of the sphere. Real DCC-tool gizmos leave the same gap for
+// the same reason.
+const gizmoShaftGeometry = new THREE.CylinderGeometry(0.016, 0.016, 0.45, 10);
+gizmoShaftGeometry.translate(0, 0.375, 0);
+const gizmoHeadGeometry = new THREE.ConeGeometry(0.055, 0.2, 14);
+gizmoHeadGeometry.translate(0, 0.7, 0);
+const gizmoRingGeometry = new THREE.TorusGeometry(0.55, 0.022, 8, 48);
+const gizmoScaleGeometry = new THREE.BoxGeometry(0.11, 0.11, 0.11);
+const gizmoFreeGeometry = new THREE.SphereGeometry(0.085, 14, 10);
+
+function makeGizmoMaterial(color: number, opacity = 1): THREE.MeshBasicMaterial {
+  return new THREE.MeshBasicMaterial({
+    color,
+    depthTest: false,
+    depthWrite: false,
+    transparent: opacity < 1,
+    opacity,
+    fog: false,
+  });
+}
+
+const gizmoMaterials = {
+  x: makeGizmoMaterial(GIZMO_AXIS_COLOR.x),
+  y: makeGizmoMaterial(GIZMO_AXIS_COLOR.y),
+  z: makeGizmoMaterial(GIZMO_AXIS_COLOR.z),
+  neutral: makeGizmoMaterial(GIZMO_NEUTRAL_COLOR, 0.85),
+};
+
+type GizmoHitKind = "axis" | "ring" | "scale" | "free";
+type GizmoHitInfo = { entryId: string; kind: GizmoHitKind; axis?: "x" | "y" | "z" };
+
+// Builds one panel's gizmo group and registers its interactive meshes into
+// `hitMap` (keyed by mesh, so a raycast hit resolves straight back to which
+// handle was grabbed). Geometries/materials above are shared across every
+// panel; only each mesh's position/rotation within the group differs.
+function buildGizmo(entryId: string, hitMap: Map<THREE.Object3D, GizmoHitInfo>): THREE.Group {
+  const group = new THREE.Group();
+
+  const addMesh = (
+    geometry: THREE.BufferGeometry,
+    material: THREE.MeshBasicMaterial,
+    info: GizmoHitInfo,
+  ) => {
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.renderOrder = GIZMO_RENDER_ORDER;
+    hitMap.set(mesh, info);
+    group.add(mesh);
+    return mesh;
+  };
+
+  // Axis arrows: geometry points along +Y by default; rotate into +X/+Z.
+  const axisRotations: Record<"x" | "y" | "z", THREE.Euler> = {
+    x: new THREE.Euler(0, 0, -Math.PI / 2),
+    y: new THREE.Euler(0, 0, 0),
+    z: new THREE.Euler(Math.PI / 2, 0, 0),
+  };
+  (["x", "y", "z"] as const).forEach((axis) => {
+    const shaft = addMesh(gizmoShaftGeometry, gizmoMaterials[axis], {
+      entryId,
+      kind: "axis",
+      axis,
+    });
+    const head = addMesh(gizmoHeadGeometry, gizmoMaterials[axis], { entryId, kind: "axis", axis });
+    shaft.rotation.copy(axisRotations[axis]);
+    head.rotation.copy(axisRotations[axis]);
+  });
+
+  // Rotation rings: geometry lies flat in the XY plane (hole along +Z) by
+  // default; rotate so the ring's hole points along the axis it rotates.
+  const ringRotations: Record<"x" | "y" | "z", THREE.Euler> = {
+    x: new THREE.Euler(0, Math.PI / 2, 0),
+    y: new THREE.Euler(Math.PI / 2, 0, 0),
+    z: new THREE.Euler(0, 0, 0),
+  };
+  (["x", "y", "z"] as const).forEach((axis) => {
+    const ring = addMesh(gizmoRingGeometry, gizmoMaterials[axis], { entryId, kind: "ring", axis });
+    ring.rotation.copy(ringRotations[axis]);
+  });
+
+  // Uniform scale handle, offset along the diagonal so it doesn't overlap
+  // the free-move sphere at the origin.
+  const scaleHandle = addMesh(gizmoScaleGeometry, gizmoMaterials.neutral, {
+    entryId,
+    kind: "scale",
+  });
+  scaleHandle.position.set(0.24, 0.24, 0.24);
+
+  // Free (unconstrained) move handle at the pivot itself.
+  addMesh(gizmoFreeGeometry, gizmoMaterials.neutral, { entryId, kind: "free" });
+
+  return group;
+}
+
 // Manages an arbitrary number of "TV apparatus" panels rendered via
 // CSS3DRenderer alongside the main WebGLRenderer/scene, sharing the same
 // camera. Each panel is a plain DOM element wrapped in a CSS3DObject, with a
@@ -430,9 +568,12 @@ export class CSS3DTVManager {
   private scene = new THREE.Scene();
   private camera: THREE.PerspectiveCamera;
   // The main WebGL scene — only used to hold each panel's occluder mesh
-  // (see occluderGeometry above), never rendered by this class itself.
+  // (see occluderGeometries above) and gizmo group (see buildGizmo), never
+  // rendered by this class itself.
   private mainScene: THREE.Scene;
-  private container: HTMLElement;
+  // The element the CSS3D root is actually attached to (the mount container's
+  // *parent* — see the constructor for why), kept for cleanup in dispose().
+  private mountHost: HTMLElement;
   private entries = new Map<string, TVEntry>();
   private saveTimer: number | null = null;
   // Real pointer input (confirmed via CDP-level touch dispatch and real
@@ -450,6 +591,32 @@ export class CSS3DTVManager {
   // Whether the app's global edit mode is active — see setEditMode.
   private editMode = false;
 
+  // 3D transform gizmo — only shown/interactive in edit mode (manipulating
+  // the frozen wave/camera precisely is the whole point of edit mode; see
+  // setEditMode, which toggles both this and the dev-only DOM chrome via the
+  // shared `editMode` flag above). gizmoHitMap resolves a raycast hit
+  // straight back to which panel and which handle was grabbed.
+  private gizmoHitMap = new Map<THREE.Object3D, GizmoHitInfo>();
+  private raycaster = new THREE.Raycaster();
+  private gizmoDrag: {
+    pointerId: number;
+    entry: TVEntry;
+    kind: GizmoHitKind;
+    axis?: "x" | "y" | "z";
+    startX: number;
+    startY: number;
+    startPos: THREE.Vector3;
+    startScale: number;
+    startRotX: number;
+    startRotY: number;
+    startRotZ: number;
+    unitsPerPixel: number;
+    right: THREE.Vector3;
+    up: THREE.Vector3;
+    screenDir: THREE.Vector2;
+  } | null = null;
+  private disposeGizmoInteraction: (() => void) | null = null;
+
   constructor(
     container: HTMLElement,
     camera: THREE.PerspectiveCamera,
@@ -458,7 +625,6 @@ export class CSS3DTVManager {
     height: number,
   ) {
     ensureStyles();
-    this.container = container;
     this.camera = camera;
     this.mainScene = mainScene;
 
@@ -468,11 +634,30 @@ export class CSS3DTVManager {
     this.renderer.domElement.style.left = "0";
     this.renderer.domElement.style.pointerEvents = "none";
     this.renderer.setSize(width, height);
-    // Inserted *behind* the WebGL canvas (which must already be in
-    // `container` at this point) so the occluder-mesh technique above can
-    // work: the canvas paints over this layer wherever it draws anything
-    // opaque, and lets it show through wherever it doesn't.
-    container.insertBefore(this.renderer.domElement, container.firstChild);
+    // Attached as a *sibling* of `container` (the WebGL mount div) rather
+    // than a child of it. `container` carries `touch-action: none` to block
+    // the browser's native pinch-zoom over the 3D view/joysticks, and touch-
+    // action restrictions cascade to descendants with no way for a child to
+    // opt back out (see the touch-action rules on .aqf-tv-panel below). Left
+    // as a descendant, every TV panel's iframe would inherit that same
+    // blanket restriction, permanently blocking real single-finger touch
+    // (scrolling, tapping links) from ever reaching the embedded page —
+    // and disabling default touch handling on a nested cross-origin iframe
+    // sitting under a 3D-transformed ancestor is a known crash vector in
+    // mobile WebKit. Being a sibling escapes that restriction entirely, so
+    // each panel's own CSS controls touch-action precisely instead.
+    // Inserted *before* `container` in their shared parent so the WebGL
+    // canvas inside `container` still paints over this layer wherever it
+    // draws anything opaque (the occluder-mesh technique above), and lets it
+    // show through wherever it doesn't.
+    const host = container.parentElement ?? container;
+    this.mountHost = host;
+    host.insertBefore(this.renderer.domElement, container);
+    // Registered before setupPointerRedirect so a gizmo-handle hit is seen
+    // (and can fully swallow the event) before the DOM hit-test redirect or
+    // anything else — same-target capture-phase listeners fire in
+    // registration order.
+    this.setupGizmoInteraction();
     this.setupPointerRedirect();
 
     for (const state of loadTVs()) this.createEntry(state);
@@ -521,14 +706,57 @@ export class CSS3DTVManager {
     return clamp((targetPx * unitsPerPixel) / SIZES[kind].w, MIN_SCALE, MAX_SCALE);
   }
 
+  private lastCssRenderTime = 0;
+  // CSS3DRenderer writes a fresh `transform: matrix3d(...)` to every panel's
+  // DOM element on each render() call, which forces the browser to
+  // recomposite — and, for a cross-origin <iframe> that isn't already its
+  // own layer, repaint — the *entire embedded page* underneath, including
+  // whatever that page's own scripts/video/images are doing. Doing this at a
+  // full 60fps was enough to crash the tab's renderer process right as a
+  // real webpage finished loading into a panel, before any further touch —
+  // capping it to ~30fps roughly halves that repaint cost with no visible
+  // difference for panels drifting slowly with the ocean/camera.
+  private static readonly CSS_RENDER_MIN_INTERVAL_MS = 1000 / 30;
+
+  // World units per screen pixel at a given distance from the camera —
+  // shared by the viewport-fit sizing, the drag handlers' screen-to-world
+  // deltas, and the gizmo's constant-on-screen-size scaling below.
+  private unitsPerPixelAt(distance: number): number {
+    const fovRad = (this.camera.fov * Math.PI) / 180;
+    const size = this.renderer.getSize();
+    return (2 * distance * Math.tan(fovRad / 2)) / Math.max(1, size.height);
+  }
+
   // Must run before the main WebGLRenderer's own render(scene, camera) call
   // so the occluders' synced transforms are in place when it draws.
   render() {
+    // Cheap (WebGL-only, no DOM/repaint cost) — kept at full frame rate so
+    // depth occlusion stays accurate every frame regardless of the CSS3D
+    // throttle below.
     for (const entry of this.entries.values()) {
       entry.occluder.position.copy(entry.object.position);
       entry.occluder.quaternion.copy(entry.object.quaternion);
       entry.occluder.scale.copy(entry.object.scale);
+
+      if (entry.gizmoGroup.visible) {
+        entry.gizmoGroup.position.copy(entry.object.position);
+        const dist = Math.max(0.001, entry.object.position.distanceTo(this.camera.position));
+        entry.gizmoGroup.scale.setScalar(this.unitsPerPixelAt(dist) * GIZMO_PIXEL_SIZE);
+
+        const viewDir = entry.object.position.clone().sub(this.camera.position).normalize();
+        for (const child of entry.gizmoGroup.children) {
+          const info = this.gizmoHitMap.get(child);
+          if (info?.kind === "axis" && info.axis) {
+            child.visible =
+              Math.abs(GIZMO_AXIS_UNIT_VEC[info.axis].dot(viewDir)) < GIZMO_FORESHORTEN_HIDE_DOT;
+          }
+        }
+      }
     }
+
+    const now = performance.now();
+    if (now - this.lastCssRenderTime < CSS3DTVManager.CSS_RENDER_MIN_INTERVAL_MS) return;
+    this.lastCssRenderTime = now;
     this.renderer.render(this.scene, this.camera);
   }
 
@@ -536,14 +764,16 @@ export class CSS3DTVManager {
     return this.entries.size;
   }
 
-  // Toggles the dev-only placement chrome (gizmo toolbar, resize corner,
-  // pivot dot) on every panel — normally hidden so a panel is nothing but
-  // its bathOS device, revealed only while the caller's edit mode (which
-  // also freezes wave/camera physics) is active.
+  // Toggles the dev-only placement chrome (DOM toolbar, resize corner, pivot
+  // dot) and the in-scene 3D transform gizmo (see buildGizmo) on every panel
+  // — both normally hidden so a panel is nothing but its bathOS device,
+  // revealed only while the caller's edit mode (which also freezes
+  // wave/camera physics) is active.
   setEditMode(active: boolean): void {
     this.editMode = active;
     for (const entry of this.entries.values()) {
       entry.object.element.classList.toggle("aqf-edit-mode", active);
+      entry.gizmoGroup.visible = active;
     }
   }
 
@@ -605,10 +835,173 @@ export class CSS3DTVManager {
     }
     this.disposePointerRedirect?.();
     this.disposePointerRedirect = null;
+    this.disposeGizmoInteraction?.();
+    this.disposeGizmoInteraction = null;
     for (const id of Array.from(this.entries.keys())) this.removeEntry(id, false);
-    if (this.renderer.domElement.parentNode === this.container) {
-      this.container.removeChild(this.renderer.domElement);
+    if (this.renderer.domElement.parentNode === this.mountHost) {
+      this.mountHost.removeChild(this.renderer.domElement);
     }
+  }
+
+  // Raycasts a gizmo handle under a real screen point and drives the
+  // matching drag (axis-constrained move, free move, axis-constrained
+  // rotate, or uniform scale) — the 3D counterpart of bindAxisDrag/
+  // bindFreeDrag/bindRotate/bindResize below, driven by THREE.Raycaster hits
+  // against real meshes in the main scene instead of DOM pointerdown targets
+  // (a gizmo mesh isn't a DOM element, so it can't receive pointer events or
+  // pointer capture the way the toolbar's handles do). Registered before
+  // setupPointerRedirect in the constructor and, on a hit, calls
+  // stopImmediatePropagation() so the same event can't also be reinterpreted
+  // by the DOM hit-test redirect or anything else listening on window.
+  private setupGizmoInteraction() {
+    const ndcFromClient = (clientX: number, clientY: number) => {
+      const size = this.renderer.getSize();
+      return new THREE.Vector2(
+        (clientX / Math.max(1, size.width)) * 2 - 1,
+        -(clientY / Math.max(1, size.height)) * 2 + 1,
+      );
+    };
+
+    const onDown = (ev: PointerEvent) => {
+      if (!this.editMode || this.gizmoDrag) return;
+      this.raycaster.setFromCamera(ndcFromClient(ev.clientX, ev.clientY), this.camera);
+      const meshes = Array.from(this.gizmoHitMap.keys()).filter((m) => m.visible);
+      const hits = this.raycaster.intersectObjects(meshes, false);
+      if (hits.length === 0) return;
+      // The free-move sphere sits at every panel's exact pivot, which can
+      // geometrically coincide with an edge-on rotation ring or a
+      // foreshortened axis arrow when the panel roughly faces the camera —
+      // prefer the sphere over any other coincidental hit at the same
+      // point, since grabbing the exact center should always mean "move
+      // freely," not whichever ring or arrow happens to pass through it.
+      const freeHit = hits.find((h) => this.gizmoHitMap.get(h.object)?.kind === "free");
+      const hit = freeHit ?? hits[0];
+      const info = this.gizmoHitMap.get(hit.object);
+      const entry = info && this.entries.get(info.entryId);
+      if (!info || !entry) return;
+
+      ev.preventDefault();
+      ev.stopImmediatePropagation();
+
+      const startPos = entry.object.position.clone();
+      const { unitsPerPixel, right, up } = this.cameraPlaneBasis(startPos);
+
+      // Same screen-projection trick as bindAxisDrag: project the axis into
+      // screen space so dragging exactly along the arrow's on-screen
+      // direction gives 1:1 motion.
+      let screenDir = new THREE.Vector2(1, 0);
+      if (info.kind === "axis" && info.axis) {
+        const axisVec = new THREE.Vector3(
+          info.axis === "x" ? 1 : 0,
+          info.axis === "y" ? 1 : 0,
+          info.axis === "z" ? 1 : 0,
+        );
+        const size = this.renderer.getSize();
+        const p0 = startPos.clone().project(this.camera);
+        const p1 = startPos.clone().addScaledVector(axisVec, 0.5).project(this.camera);
+        screenDir = new THREE.Vector2(
+          (p1.x - p0.x) * (size.width / 2),
+          -(p1.y - p0.y) * (size.height / 2),
+        );
+        if (screenDir.lengthSq() < 1e-6) screenDir.set(1, 0);
+        screenDir.normalize();
+      }
+
+      this.gizmoDrag = {
+        pointerId: ev.pointerId,
+        entry,
+        kind: info.kind,
+        axis: info.axis,
+        startX: ev.clientX,
+        startY: ev.clientY,
+        startPos,
+        startScale: entry.object.scale.x,
+        startRotX: entry.object.rotation.x,
+        startRotY: entry.object.rotation.y,
+        startRotZ: entry.object.rotation.z,
+        unitsPerPixel,
+        right,
+        up,
+        screenDir,
+      };
+    };
+
+    const onMove = (ev: PointerEvent) => {
+      const drag = this.gizmoDrag;
+      if (!drag || drag.pointerId !== ev.pointerId) return;
+      ev.preventDefault();
+      ev.stopImmediatePropagation();
+
+      const dx = ev.clientX - drag.startX;
+      const dy = ev.clientY - drag.startY;
+      const { entry } = drag;
+
+      if (drag.kind === "free") {
+        const next = drag.startPos
+          .clone()
+          .addScaledVector(drag.right, dx * drag.unitsPerPixel)
+          .addScaledVector(drag.up, -dy * drag.unitsPerPixel);
+        entry.object.position.copy(next);
+        entry.state.x = next.x;
+        entry.state.y = next.y;
+        entry.state.z = next.z;
+      } else if (drag.kind === "axis" && drag.axis) {
+        const axisVec = new THREE.Vector3(
+          drag.axis === "x" ? 1 : 0,
+          drag.axis === "y" ? 1 : 0,
+          drag.axis === "z" ? 1 : 0,
+        );
+        const along = dx * drag.screenDir.x + dy * drag.screenDir.y;
+        const next = drag.startPos.clone().addScaledVector(axisVec, along * drag.unitsPerPixel);
+        entry.object.position.copy(next);
+        entry.state.x = next.x;
+        entry.state.y = next.y;
+        entry.state.z = next.z;
+      } else if (drag.kind === "ring") {
+        // Horizontal drag yaws/rolls, vertical drag tilts — same per-axis
+        // feel as the toolbar's rotate handle, just split one axis per ring
+        // instead of one handle covering X and Y together.
+        if (drag.axis === "x") {
+          const rotX = clamp(drag.startRotX - dy * 0.012, -1.2, 1.2);
+          entry.object.rotation.x = rotX;
+          entry.state.rotX = rotX;
+        } else if (drag.axis === "y") {
+          const rotY = drag.startRotY + dx * 0.012;
+          entry.object.rotation.y = rotY;
+          entry.state.rotY = rotY;
+        } else if (drag.axis === "z") {
+          const rotZ = drag.startRotZ + dx * 0.012;
+          entry.object.rotation.z = rotZ;
+          entry.state.rotZ = rotZ;
+        }
+      } else if (drag.kind === "scale") {
+        const delta = dx + dy;
+        const next = clamp(drag.startScale * (1 + delta * 0.003), MIN_SCALE, MAX_SCALE);
+        entry.object.scale.setScalar(next);
+        entry.state.scale = next;
+      }
+      this.schedulePersist();
+    };
+
+    const onUp = (ev: PointerEvent) => {
+      if (!this.gizmoDrag || this.gizmoDrag.pointerId !== ev.pointerId) return;
+      ev.preventDefault();
+      ev.stopImmediatePropagation();
+      this.gizmoDrag = null;
+      this.persist();
+    };
+
+    window.addEventListener("pointerdown", onDown, true);
+    window.addEventListener("pointermove", onMove, true);
+    window.addEventListener("pointerup", onUp, true);
+    window.addEventListener("pointercancel", onUp, true);
+
+    this.disposeGizmoInteraction = () => {
+      window.removeEventListener("pointerdown", onDown, true);
+      window.removeEventListener("pointermove", onMove, true);
+      window.removeEventListener("pointerup", onUp, true);
+      window.removeEventListener("pointercancel", onUp, true);
+    };
   }
 
   // Finds the most specific interactive element under a real screen point by
@@ -738,6 +1131,8 @@ export class CSS3DTVManager {
     if (!entry) return;
     this.scene.remove(entry.object);
     this.mainScene.remove(entry.occluder);
+    for (const mesh of entry.gizmoGroup.children) this.gizmoHitMap.delete(mesh);
+    this.mainScene.remove(entry.gizmoGroup);
     this.entries.delete(id);
     if (persist) this.persist();
   }
@@ -1208,6 +1603,12 @@ export class CSS3DTVManager {
     occluder.renderOrder = -1000;
     this.mainScene.add(occluder);
 
+    // See buildGizmo above — position/scale kept in sync with `object` every
+    // frame in render(), visibility toggled by setEditMode.
+    const gizmoGroup = buildGizmo(state.id, this.gizmoHitMap);
+    gizmoGroup.visible = this.editMode;
+    this.mainScene.add(gizmoGroup);
+
     // Most-specific-first: gizmo/chrome controls are listed explicitly, then
     // every bathOS interactive element still visible is queried fresh each
     // pointer event (dynamic — the app grid grows), then broad fallbacks.
@@ -1249,6 +1650,7 @@ export class CSS3DTVManager {
       addFormUrlInput: addUrlInput,
       hitTargets,
       occluder,
+      gizmoGroup,
     };
     this.entries.set(state.id, entry);
 
@@ -1527,15 +1929,21 @@ export class CSS3DTVManager {
     });
   }
 
-  // Two-finger touch gesture on the panel itself (anywhere — the title bar,
-  // the screen/iframe area, the padding), combining move + scale + rotate
-  // into one natural motion: pan the midpoint to move, pinch to resize,
-  // twist to rotate. This is the primary touch interaction — the small
-  // single-pointer handles above are precise but fiddly to hit on a real
-  // touchscreen, and a mouse can't produce a second pointer anyway, so both
-  // schemes coexist rather than one replacing the other. A single finger is
-  // left untouched so it still reaches the embedded page normally (tapping
-  // play, scrolling, clicking links).
+  // Two-finger touch gesture on the panel itself, combining move + scale +
+  // rotate into one natural motion: pan the midpoint to move, pinch to
+  // resize, twist to rotate. This is the primary touch interaction for
+  // moving/resizing a panel — the small single-pointer handles above are
+  // precise but fiddly to hit on a real touchscreen, and a mouse can't
+  // produce a second pointer anyway, so both schemes coexist rather than one
+  // replacing the other. Bound on the whole panel root and relies on
+  // bubbling, so it still sees pointer events that start on
+  // .aqf-tv-screen/.aqf-tv-iframe even though that area carries no
+  // touch-action restriction of its own — the two-finger case only calls
+  // preventDefault() once a second pointer is down, by which point the
+  // browser hasn't yet committed to any default single-finger behavior for
+  // an untouched first touch, so a real single finger still reaches the
+  // embedded page normally (tapping links, scrolling) instead of being
+  // captured here.
   private bindTwoFingerTransform(el: HTMLElement, entry: TVEntry) {
     const pointers = new Map<number, { x: number; y: number }>();
     let gesture: {
