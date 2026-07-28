@@ -209,6 +209,30 @@ const Icon = {
       <path d="M5.5 9A7 7 0 0119 12M18.5 15A7 7 0 015 12" />
     </svg>
   ),
+  forward: (
+    <svg
+      viewBox="0 0 24 24"
+      width="14"
+      height="14"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M9 5l7 7-7 7" />
+    </svg>
+  ),
+  // Signal-strength bars — part of the status bar's phone-chrome look (see
+  // the status bar rendered above lock/home/browser).
+  signal: (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+      <rect x="2" y="14" width="3" height="7" rx="0.5" />
+      <rect x="8" y="10" width="3" height="11" rx="0.5" />
+      <rect x="14" y="6" width="3" height="15" rx="0.5" />
+      <rect x="20" y="2" width="3" height="19" rx="0.5" />
+    </svg>
+  ),
 };
 
 type Props = {
@@ -305,6 +329,27 @@ export function VirtualPhone({ onClose, listDisplays, onCastNew, onCastTo, onRem
     });
   };
   const isBookmarked = !!state.url && state.apps.some((a) => a.url === state.url);
+
+  // Browser history back/forward — history.back()/forward() (unlike most
+  // Window members) are on the spec's cross-origin-accessible allowlist, so
+  // these work even though embedded pages are almost always a different
+  // origin; same-origin content works too. Wrapped defensively anyway since
+  // browsers vary in what they let a parent frame touch on a child window.
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const goBack = () => {
+    try {
+      iframeRef.current?.contentWindow?.history.back();
+    } catch {
+      /* ignore */
+    }
+  };
+  const goForward = () => {
+    try {
+      iframeRef.current?.contentWindow?.history.forward();
+    } catch {
+      /* ignore */
+    }
+  };
 
   const openCastMenu = () => {
     setCastTargets(listDisplays());
@@ -416,284 +461,312 @@ export function VirtualPhone({ onClose, listDisplays, onCastNew, onCastTo, onRem
       </div>
 
       {/* bathOS body */}
-      <div className="relative min-h-0 flex-1 overflow-hidden text-white">
-        {state.locked ? (
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden text-white">
+        {/* Status bar — reinstated from the old in-3D-panel bathOS shell,
+            shown above every screen (lock/home/browser) rather than baked
+            into just one of them: a persistent back-to-home control on the
+            left, a signal glyph on the right, phone-chrome style. Disabled
+            (still visible, not hidden) wherever "back" has nowhere to go. */}
+        <div className="flex flex-shrink-0 items-center justify-between bg-black/30 px-2 py-1">
           <button
-            onClick={unlock}
-            className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-gradient-to-b from-[#2c7be5] via-[#0a1e40] to-[#030b1a] p-3 text-center"
+            onClick={goHome}
+            disabled={state.locked || state.screen === "home"}
+            className="flex h-4 w-4 items-center justify-center text-white/85 disabled:opacity-25"
+            title="Hem"
           >
-            <div className="text-[11px] opacity-85">bathOS</div>
-            <PhoneClock />
-            <div className="absolute bottom-3 left-0 right-0 text-center text-[10px] tracking-wider opacity-70">
-              Tryck för att låsa upp
-            </div>
+            {Icon.back}
           </button>
-        ) : state.screen === "home" ? (
-          <div className="flex h-full flex-col gap-2 bg-gradient-to-b from-[#3579db] to-[#081b38] p-2">
-            <div className="flex flex-shrink-0 items-center gap-1.5 rounded-full bg-white/55 px-2.5 py-1.5 text-[#262626]">
-              <span className="opacity-65">{Icon.search}</span>
-              <input
-                type="text"
-                value={searchValue}
-                onChange={(e) => setSearchValue(e.target.value)}
-                onKeyDown={(e) => {
-                  e.stopPropagation();
-                  if (e.key === "Enter" && searchValue.trim()) {
-                    applyUrl(searchValue);
-                    setSearchValue("");
-                  }
-                }}
-                placeholder="Sök"
-                autoComplete="off"
-                spellCheck={false}
-                className="min-w-0 flex-1 bg-transparent text-[11px] outline-none placeholder:text-black/45"
-              />
-            </div>
-            <div className="flex min-h-0 flex-1 flex-wrap content-start gap-2.5 overflow-auto">
-              {state.apps.map((app) => (
-                <button
-                  key={app.id}
-                  onClick={() => applyUrl(app.url || state.url)}
-                  className="flex w-[54px] flex-col items-center gap-1"
-                >
-                  <div
-                    className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-[10px] text-sm font-bold text-white"
-                    style={{
-                      background:
-                        app.icon === "browser"
-                          ? "linear-gradient(135deg,#7c3aed,#fb923c)"
-                          : app.icon === "youtube"
-                            ? "#fff"
-                            : colorForName(app.name),
-                    }}
-                  >
-                    {app.icon === "browser" ? (
-                      Icon.globe
-                    ) : app.icon === "youtube" ? (
-                      <div className="flex h-[17px] w-6 items-center justify-center rounded bg-red-600">
-                        {Icon.play}
-                      </div>
-                    ) : (
-                      (app.name.trim()[0] || "?").toUpperCase()
-                    )}
-                  </div>
-                  <div className="w-full truncate text-center text-[9px] opacity-90">
-                    {app.name}
-                  </div>
-                </button>
-              ))}
-              <button
-                onClick={() => setAddFormOpen((v) => !v)}
-                className="flex w-[54px] flex-col items-center gap-1"
-              >
-                <div className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-dashed border-white/50 bg-white/10 text-lg">
-                  +
-                </div>
-                <div className="text-center text-[9px] opacity-90">Lägg till</div>
-              </button>
-            </div>
-            {addFormOpen && (
-              <div className="flex flex-shrink-0 flex-col gap-1.5 rounded-lg bg-black/35 p-2">
-                <input
-                  type="text"
-                  value={addName}
-                  onChange={(e) => setAddName(e.target.value)}
-                  onKeyDown={(e) => e.stopPropagation()}
-                  placeholder="Namn"
-                  className="rounded-md border-0 bg-white/90 px-2 py-1 text-[10px] text-black outline-none"
-                />
-                <input
-                  type="text"
-                  value={addUrl}
-                  onChange={(e) => setAddUrl(e.target.value)}
-                  onKeyDown={(e) => e.stopPropagation()}
-                  placeholder="Webbadress"
-                  className="rounded-md border-0 bg-white/90 px-2 py-1 text-[10px] text-black outline-none"
-                />
-                <div className="flex justify-end gap-1.5">
-                  <button
-                    onClick={() => {
-                      const raw = addUrl.trim();
-                      if (!raw) return;
-                      const url = resolveAddress(raw);
-                      let name = addName.trim();
-                      if (!name) {
-                        try {
-                          name = new URL(url).hostname.replace(/^www\./, "");
-                        } catch {
-                          name = url;
-                        }
-                      }
-                      setState((s) => ({
-                        ...s,
-                        apps: [...s.apps, { id: `app-${Date.now()}`, name, url, icon: "link" }],
-                      }));
-                      setAddName("");
-                      setAddUrl("");
-                      setAddFormOpen(false);
-                    }}
-                    className="flex h-6 w-6 items-center justify-center rounded-full border border-white/20 bg-white/10 text-xs"
-                  >
-                    ✓
-                  </button>
-                  <button
-                    onClick={() => {
-                      setAddName("");
-                      setAddUrl("");
-                      setAddFormOpen(false);
-                    }}
-                    className="flex h-6 w-6 items-center justify-center rounded-full border border-white/20 bg-white/10 text-xs"
-                  >
-                    ✕
-                  </button>
-                </div>
+          <span className="flex items-center text-white/85" title="Signal">
+            {Icon.signal}
+          </span>
+        </div>
+        <div className="relative min-h-0 flex-1 overflow-hidden">
+          {state.locked ? (
+            <button
+              onClick={unlock}
+              className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-gradient-to-b from-[#2c7be5] via-[#0a1e40] to-[#030b1a] p-3 text-center"
+            >
+              <div className="text-[11px] opacity-85">bathOS</div>
+              <PhoneClock />
+              <div className="absolute bottom-3 left-0 right-0 text-center text-[10px] tracking-wider opacity-70">
+                Tryck för att låsa upp
               </div>
-            )}
-          </div>
-        ) : (
-          <div className="flex h-full flex-col bg-[#111]">
-            <div className="relative flex flex-shrink-0 items-center gap-1.5 bg-white/90 px-1.5 py-1.5">
-              <button
-                onClick={goHome}
-                className="flex h-5 w-5 flex-shrink-0 items-center justify-center text-[#333]"
-                title="Hem"
-              >
-                {Icon.back}
-              </button>
-              <div className="flex min-w-0 flex-1 items-center gap-1 rounded-full bg-black/10 px-2.5 py-1">
+            </button>
+          ) : state.screen === "home" ? (
+            <div className="flex h-full flex-col gap-2 bg-gradient-to-b from-[#3579db] to-[#081b38] p-2">
+              <div className="flex flex-shrink-0 items-center gap-1.5 rounded-full bg-white/55 px-2.5 py-1.5 text-[#262626]">
+                <span className="opacity-65">{Icon.search}</span>
                 <input
                   type="text"
-                  value={addressValue}
-                  onChange={(e) => setAddressValue(e.target.value)}
+                  value={searchValue}
+                  onChange={(e) => setSearchValue(e.target.value)}
                   onKeyDown={(e) => {
                     e.stopPropagation();
-                    if (e.key === "Enter") applyUrl(addressValue);
+                    if (e.key === "Enter" && searchValue.trim()) {
+                      applyUrl(searchValue);
+                      setSearchValue("");
+                    }
                   }}
-                  placeholder="Sök eller ange webbadress"
+                  placeholder="Sök"
                   autoComplete="off"
                   spellCheck={false}
-                  className="min-w-0 flex-1 border-0 bg-transparent text-[10px] text-[#222] outline-none"
+                  className="min-w-0 flex-1 bg-transparent text-[11px] outline-none placeholder:text-black/45"
                 />
               </div>
-              <button
-                onClick={toggleBookmark}
-                className="flex h-5 w-5 flex-shrink-0 items-center justify-center"
-                style={{ color: isBookmarked ? "#e0245e" : "#333" }}
-                title="Bokmärk"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  width="14"
-                  height="14"
-                  fill={isBookmarked ? "currentColor" : "none"}
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M12 20s-7-4.4-9.5-9C.7 7.5 2.7 4 6 4c2 0 3.3 1 4 2 .7-1 2-2 4-2 3.3 0 5.3 3.5 3.5 7-2.5 4.6-9.5 9-9.5 9z" />
-                </svg>
-              </button>
-              <button
-                onClick={openCastMenu}
-                className="flex h-5 w-5 flex-shrink-0 items-center justify-center text-[#333]"
-                title="Cast till skärm"
-              >
-                {Icon.cast}
-              </button>
-              <button
-                onClick={() => {
-                  setMenuOpen((v) => !v);
-                  setCastMenuOpen(false);
-                }}
-                className="flex h-5 w-5 flex-shrink-0 items-center justify-center text-[#333]"
-                title="Meny"
-              >
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-                  <circle cx="12" cy="5" r="1.6" />
-                  <circle cx="12" cy="12" r="1.6" />
-                  <circle cx="12" cy="19" r="1.6" />
-                </svg>
-              </button>
-
-              {menuOpen && (
-                <div className="absolute right-1.5 top-full z-10 mt-1 flex flex-col overflow-hidden rounded-lg bg-[#1c1c1c] shadow-xl">
+              <div className="flex min-h-0 flex-1 flex-wrap content-start gap-2.5 overflow-auto">
+                {state.apps.map((app) => (
                   <button
-                    onClick={lockNow}
-                    className="whitespace-nowrap px-3 py-2 text-left text-[10px] text-[#eee] active:bg-white/10"
+                    key={app.id}
+                    onClick={() => applyUrl(app.url || state.url)}
+                    className="flex w-[54px] flex-col items-center gap-1"
                   >
-                    Lås skärmen
+                    <div
+                      className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-[10px] text-sm font-bold text-white"
+                      style={{
+                        background:
+                          app.icon === "browser"
+                            ? "linear-gradient(135deg,#7c3aed,#fb923c)"
+                            : app.icon === "youtube"
+                              ? "#fff"
+                              : colorForName(app.name),
+                      }}
+                    >
+                      {app.icon === "browser" ? (
+                        Icon.globe
+                      ) : app.icon === "youtube" ? (
+                        <div className="flex h-[17px] w-6 items-center justify-center rounded bg-red-600">
+                          {Icon.play}
+                        </div>
+                      ) : (
+                        (app.name.trim()[0] || "?").toUpperCase()
+                      )}
+                    </div>
+                    <div className="w-full truncate text-center text-[9px] opacity-90">
+                      {app.name}
+                    </div>
                   </button>
+                ))}
+                <button
+                  onClick={() => setAddFormOpen((v) => !v)}
+                  className="flex w-[54px] flex-col items-center gap-1"
+                >
+                  <div className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-dashed border-white/50 bg-white/10 text-lg">
+                    +
+                  </div>
+                  <div className="text-center text-[9px] opacity-90">Lägg till</div>
+                </button>
+              </div>
+              {addFormOpen && (
+                <div className="flex flex-shrink-0 flex-col gap-1.5 rounded-lg bg-black/35 p-2">
+                  <input
+                    type="text"
+                    value={addName}
+                    onChange={(e) => setAddName(e.target.value)}
+                    onKeyDown={(e) => e.stopPropagation()}
+                    placeholder="Namn"
+                    className="rounded-md border-0 bg-white/90 px-2 py-1 text-[10px] text-black outline-none"
+                  />
+                  <input
+                    type="text"
+                    value={addUrl}
+                    onChange={(e) => setAddUrl(e.target.value)}
+                    onKeyDown={(e) => e.stopPropagation()}
+                    placeholder="Webbadress"
+                    className="rounded-md border-0 bg-white/90 px-2 py-1 text-[10px] text-black outline-none"
+                  />
+                  <div className="flex justify-end gap-1.5">
+                    <button
+                      onClick={() => {
+                        const raw = addUrl.trim();
+                        if (!raw) return;
+                        const url = resolveAddress(raw);
+                        let name = addName.trim();
+                        if (!name) {
+                          try {
+                            name = new URL(url).hostname.replace(/^www\./, "");
+                          } catch {
+                            name = url;
+                          }
+                        }
+                        setState((s) => ({
+                          ...s,
+                          apps: [...s.apps, { id: `app-${Date.now()}`, name, url, icon: "link" }],
+                        }));
+                        setAddName("");
+                        setAddUrl("");
+                        setAddFormOpen(false);
+                      }}
+                      className="flex h-6 w-6 items-center justify-center rounded-full border border-white/20 bg-white/10 text-xs"
+                    >
+                      ✓
+                    </button>
+                    <button
+                      onClick={() => {
+                        setAddName("");
+                        setAddUrl("");
+                        setAddFormOpen(false);
+                      }}
+                      className="flex h-6 w-6 items-center justify-center rounded-full border border-white/20 bg-white/10 text-xs"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 </div>
               )}
+            </div>
+          ) : (
+            <div className="flex h-full flex-col bg-[#111]">
+              <div className="relative flex flex-shrink-0 items-center gap-1.5 bg-white/90 px-1.5 py-1.5">
+                <button
+                  onClick={goBack}
+                  className="flex h-5 w-5 flex-shrink-0 items-center justify-center text-[#333]"
+                  title="Bakåt"
+                >
+                  {Icon.back}
+                </button>
+                <button
+                  onClick={goForward}
+                  className="flex h-5 w-5 flex-shrink-0 items-center justify-center text-[#333]"
+                  title="Framåt"
+                >
+                  {Icon.forward}
+                </button>
+                <div className="flex min-w-0 flex-1 items-center gap-1 rounded-full bg-black/10 px-2.5 py-1">
+                  <input
+                    type="text"
+                    value={addressValue}
+                    onChange={(e) => setAddressValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      e.stopPropagation();
+                      if (e.key === "Enter") applyUrl(addressValue);
+                    }}
+                    placeholder="Sök eller ange webbadress"
+                    autoComplete="off"
+                    spellCheck={false}
+                    className="min-w-0 flex-1 border-0 bg-transparent text-[10px] text-[#222] outline-none"
+                  />
+                </div>
+                <button
+                  onClick={toggleBookmark}
+                  className="flex h-5 w-5 flex-shrink-0 items-center justify-center"
+                  style={{ color: isBookmarked ? "#e0245e" : "#333" }}
+                  title="Bokmärk"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="14"
+                    height="14"
+                    fill={isBookmarked ? "currentColor" : "none"}
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M12 20s-7-4.4-9.5-9C.7 7.5 2.7 4 6 4c2 0 3.3 1 4 2 .7-1 2-2 4-2 3.3 0 5.3 3.5 3.5 7-2.5 4.6-9.5 9-9.5 9z" />
+                  </svg>
+                </button>
+                <button
+                  onClick={openCastMenu}
+                  className="flex h-5 w-5 flex-shrink-0 items-center justify-center text-[#333]"
+                  title="Cast till skärm"
+                >
+                  {Icon.cast}
+                </button>
+                <button
+                  onClick={() => {
+                    setMenuOpen((v) => !v);
+                    setCastMenuOpen(false);
+                  }}
+                  className="flex h-5 w-5 flex-shrink-0 items-center justify-center text-[#333]"
+                  title="Meny"
+                >
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                    <circle cx="12" cy="5" r="1.6" />
+                    <circle cx="12" cy="12" r="1.6" />
+                    <circle cx="12" cy="19" r="1.6" />
+                  </svg>
+                </button>
 
-              {castMenuOpen && (
-                <div className="absolute right-1.5 top-full z-10 mt-1 flex max-h-52 w-48 flex-col overflow-y-auto rounded-lg bg-[#1c1c1c] shadow-xl">
-                  <button
-                    onClick={() => {
-                      onCastNew("tv", state.url);
-                      setCastMenuOpen(false);
-                    }}
-                    className="whitespace-nowrap px-3 py-2 text-left text-[10px] text-[#eee] active:bg-white/10"
-                  >
-                    Ny smart-TV
-                  </button>
-                  <button
-                    onClick={() => {
-                      onCastNew("mobile", state.url);
-                      setCastMenuOpen(false);
-                    }}
-                    className="whitespace-nowrap px-3 py-2 text-left text-[10px] text-[#eee] active:bg-white/10"
-                  >
-                    Ny mobil
-                  </button>
-                  {castTargets.length > 0 && <div className="my-1 border-t border-white/10" />}
-                  {castTargets.map((t) => (
+                {menuOpen && (
+                  <div className="absolute right-1.5 top-full z-10 mt-1 flex flex-col overflow-hidden rounded-lg bg-[#1c1c1c] shadow-xl">
                     <button
-                      key={t.id}
+                      onClick={lockNow}
+                      className="whitespace-nowrap px-3 py-2 text-left text-[10px] text-[#eee] active:bg-white/10"
+                    >
+                      Lås skärmen
+                    </button>
+                  </div>
+                )}
+
+                {castMenuOpen && (
+                  <div className="absolute right-1.5 top-full z-10 mt-1 flex max-h-52 w-48 flex-col overflow-y-auto rounded-lg bg-[#1c1c1c] shadow-xl">
+                    <button
                       onClick={() => {
-                        onCastTo(t.id, state.url);
+                        onCastNew("tv", state.url);
                         setCastMenuOpen(false);
                       }}
-                      className="truncate whitespace-nowrap px-3 py-2 text-left text-[10px] text-[#eee] active:bg-white/10"
+                      className="whitespace-nowrap px-3 py-2 text-left text-[10px] text-[#eee] active:bg-white/10"
                     >
-                      {t.url || "(tom skärm)"}
+                      Ny smart-TV
                     </button>
-                  ))}
-                  {castTargets.length > 0 && (
-                    <>
-                      <div className="my-1 border-t border-white/10" />
+                    <button
+                      onClick={() => {
+                        onCastNew("mobile", state.url);
+                        setCastMenuOpen(false);
+                      }}
+                      className="whitespace-nowrap px-3 py-2 text-left text-[10px] text-[#eee] active:bg-white/10"
+                    >
+                      Ny mobil
+                    </button>
+                    {castTargets.length > 0 && <div className="my-1 border-t border-white/10" />}
+                    {castTargets.map((t) => (
                       <button
+                        key={t.id}
                         onClick={() => {
-                          onRemoveAll();
-                          setCastTargets([]);
+                          onCastTo(t.id, state.url);
                           setCastMenuOpen(false);
                         }}
-                        className="whitespace-nowrap px-3 py-2 text-left text-[10px] text-red-400 active:bg-white/10"
+                        className="truncate whitespace-nowrap px-3 py-2 text-left text-[10px] text-[#eee] active:bg-white/10"
                       >
-                        Ta bort alla skärmar
+                        {t.url || "(tom skärm)"}
                       </button>
-                    </>
-                  )}
-                </div>
-              )}
+                    ))}
+                    {castTargets.length > 0 && (
+                      <>
+                        <div className="my-1 border-t border-white/10" />
+                        <button
+                          onClick={() => {
+                            onRemoveAll();
+                            setCastTargets([]);
+                            setCastMenuOpen(false);
+                          }}
+                          className="whitespace-nowrap px-3 py-2 text-left text-[10px] text-red-400 active:bg-white/10"
+                        >
+                          Ta bort alla skärmar
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div className="relative min-h-0 flex-1 bg-black">
+                {state.url ? (
+                  <iframe
+                    ref={iframeRef}
+                    src={embed}
+                    className="absolute inset-0 h-full w-full border-0"
+                    allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center px-4 text-center text-[11px] tracking-wide text-white/35">
+                    SÖK ELLER ANGE EN WEBBADRESS
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="relative min-h-0 flex-1 bg-black">
-              {state.url ? (
-                <iframe
-                  src={embed}
-                  className="absolute inset-0 h-full w-full border-0"
-                  allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-                  referrerPolicy="no-referrer-when-downgrade"
-                />
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center px-4 text-center text-[11px] tracking-wide text-white/35">
-                  SÖK ELLER ANGE EN WEBBADRESS
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Phone-style bottom nav bar. */}
