@@ -37,6 +37,16 @@ const MIN_SCALE = 0.006;
 // reach 1440 world units — bigger than the 800-unit sky dome radius).
 const MAX_SCALE = 3;
 const SPAWN_DISTANCE = 9;
+// A newly-cast "tv" defaults to a cinema-screen presence — big enough to
+// dominate the current view rather than sit modestly inside it — while a
+// "mobile" still spawns at the older, phone-scale SPAWN_DISTANCE/fraction
+// (see addTV). Distance is pushed out well past SPAWN_DISTANCE so a screen
+// this wide doesn't clip through the near plane at typical FOVs; fraction
+// deliberately exceeds 1 (the fit helper's normal 0–1 "fraction of the
+// viewport" range) so the screen edges intentionally run past the sides of
+// the view, the way a real cinema screen fills your peripheral vision.
+const CINEMA_DISTANCE = 26;
+const CINEMA_FRACTION = 2.2;
 
 function isLikelyUrl(text: string): boolean {
   const t = text.trim();
@@ -109,7 +119,22 @@ function ensureStyles() {
       background: #0b1620; border-radius: 10px; overflow: hidden;
       box-shadow: 0 20px 60px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.08);
       font-family: system-ui, -apple-system, sans-serif;
-      /* Deliberately no touch-action override here — touch-action
+      /* pointer-events is an inherited CSS property, and the CSS3D root
+         element (see the constructor) sets pointer-events:none on itself so
+         real clicks over empty 3D space fall through to whatever's behind
+         it. Without this override, every panel — including the iframe
+         inside it — would inherit that none, so the browser's *native* hit
+         test would correctly (per CSS semantics) skip straight past the
+         panel to the WebGL canvas underneath on every real click/touch, no
+         matter how correctly it's positioned. That's the actual root cause
+         of the "clicks don't reach the embedded page" gap this project
+         spent a long time working around with a synthetic pointer-event
+         redirect (see setupPointerRedirect) — that redirect can dispatch
+         synthetic events on this document's own elements (buttons, inputs),
+         but it can never deliver a click *into* a cross-origin iframe's
+         content, which only the browser's own native, trusted hit-test can
+         do. Restoring auto here is what actually fixes that.
+         Deliberately no touch-action override here — touch-action
          restrictions cascade to descendants with no way for a child to opt
          back out, so leaving the panel root unrestricted is what lets
          .aqf-tv-screen/.aqf-tv-iframe below fall through to their own
@@ -117,6 +142,7 @@ function ensureStyles() {
          reach the embedded page at all (scrolling, tapping links). Every
          control that needs its own drag gesture already declares
          touch-action: none individually below. */
+      pointer-events: auto;
     }
     .aqf-tv-titlebar {
       display: flex; align-items: center; gap: 6px; padding: 6px 8px;
@@ -140,10 +166,18 @@ function ensureStyles() {
     }
     .aqf-tv-btn:active { background: rgba(255,255,255,0.25); }
     .aqf-tv-screen { position: relative; flex: 1 1 auto; background: #000; min-height: 0; }
-    .aqf-tv-iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
     .aqf-tv-placeholder {
       position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
       color: rgba(255,255,255,0.35); font-size: 11px; letter-spacing: 0.08em; text-align: center; padding: 0 16px;
+    }
+    /* The panel's actual iframe — see "live overlay" below for why this
+       lives in a totally separate, non-3D-transformed layer rather than
+       inside .aqf-tv-screen. touch-action left at its default (auto):
+       unlike everything else in this stylesheet, this element genuinely
+       needs the browser's native scroll/tap handling to reach the embedded
+       page (that's the whole point of moving it out here). */
+    .aqf-tv-live-iframe {
+      position: absolute; border: 0; border-radius: 6px; display: none; pointer-events: auto;
     }
 
     /* The dev-only placement chrome (move/rotate/scale toolbar, resize
@@ -195,7 +229,14 @@ type TVEntry = {
   state: TVState;
   object: CSS3DObject;
   urlInput: HTMLInputElement;
+  // The panel's real, interactive iframe — lives in the manager's liveLayer
+  // (see below), *not* inside the CSS3D-rendered `screenEl`. Its on-screen
+  // position/size is copied from screenEl's rect every frame in render().
   iframe: HTMLIFrameElement;
+  // The CSS3D-rendered `.aqf-tv-screen` div — purely visual now (its
+  // perspective-correct on-screen rect is what `iframe` above is
+  // positioned to match every frame); it no longer holds the iframe itself.
+  screenEl: HTMLDivElement;
   placeholder: HTMLDivElement;
   // Ordered most-specific-first; see setupPointerRedirect for why this exists.
   hitTargets: HTMLElement[];
@@ -367,13 +408,28 @@ function buildGizmo(entryId: string, hitMap: Map<THREE.Object3D, GizmoHitInfo>):
 // Manages an arbitrary number of "TV apparatus" panels rendered via
 // CSS3DRenderer alongside the main WebGLRenderer/scene, sharing the same
 // camera. Each panel is a plain DOM element (title bar with URL input, a
-// screen showing an iframe, and a move/rotate/scale toolbar) wrapped in a
-// CSS3DObject, manipulated via pointer events so mouse and touch work
-// identically, plus an in-scene 3D gizmo for the same manipulation (see
-// buildGizmo). URLs can be set directly on a panel or "cast" to it from
-// elsewhere (see castTo) — casting is the primary way panels get content;
-// see routes/index.tsx's Cast overlay. State is persisted to localStorage on
-// every change so panels survive a reload.
+// screen area, and a move/rotate/scale toolbar) wrapped in a CSS3DObject,
+// manipulated via pointer events so mouse and touch work identically, plus
+// an in-scene 3D gizmo for the same manipulation (see buildGizmo). URLs can
+// be set directly on a panel or "cast" to it from elsewhere (see castTo) —
+// casting is the primary way panels get content; see routes/index.tsx's
+// Cast overlay. State is persisted to localStorage on every change so
+// panels survive a reload.
+//
+// Each panel's *actual* iframe does not live inside the CSS3D-rendered
+// panel at all — see the liveLayer field and updateLiveIframes() below for
+// why: real clicks/touches never reach an iframe nested under a 3D CSS
+// transform (setupPointerRedirect's synthetic redirect fixes this for
+// plain elements like buttons and inputs, but a synthetic event dispatched
+// on an <iframe> tag can never be delivered into its cross-origin content —
+// only the browser's own native, trusted hit-test can do that, and it
+// reliably resolves to the WebGL canvas instead of the CSS3D content on
+// top of it for this kind of deeply-3D-transformed layout, confirmed via
+// document.elementFromPoint even with pointer-events set correctly). The
+// fix is to keep the *real* iframe in an ordinary, non-3D-transformed
+// overlay layer, continuously repositioned in plain 2D screen coordinates
+// to match wherever the panel's screen area currently projects to — a
+// normal 2D-positioned iframe hit-tests correctly on its own.
 export class CSS3DTVManager {
   private renderer: CSS3DRenderer;
   private scene = new THREE.Scene();
@@ -385,6 +441,14 @@ export class CSS3DTVManager {
   // The element the CSS3D root is actually attached to (the mount container's
   // *parent* — see the constructor for why), kept for cleanup in dispose().
   private mountHost: HTMLElement;
+  // Plain, non-3D-transformed overlay holding every panel's *real* iframe —
+  // see the class comment above and updateLiveIframes() for why. Sits above
+  // the WebGL canvas but below the HUD (see its z-index in the constructor).
+  private liveLayer: HTMLDivElement;
+  // Dedicated to updateLiveIframes()'s occlusion check, separate from the
+  // gizmo's `raycaster` field purely so the two don't share mutable ray
+  // state across what are, in practice, two independent per-frame uses.
+  private occlusionRaycaster = new THREE.Raycaster();
   private entries = new Map<string, TVEntry>();
   private saveTimer: number | null = null;
   // Real pointer input (confirmed via CDP-level touch dispatch and real
@@ -463,6 +527,20 @@ export class CSS3DTVManager {
     const host = container.parentElement ?? container;
     this.mountHost = host;
     host.insertBefore(this.renderer.domElement, container);
+
+    // See the class comment above — each panel's real iframe lives here,
+    // not inside the CSS3D tree. Appended *after* everything else in `host`
+    // so it paints on top of the WebGL canvas (position:fixed, not nested
+    // under any 3D transform, so it hit-tests correctly on its own); a
+    // z-index still keeps it below the HUD (settings/phone overlays etc.),
+    // which uses z-10 and up.
+    this.liveLayer = document.createElement("div");
+    this.liveLayer.style.position = "fixed";
+    this.liveLayer.style.inset = "0";
+    this.liveLayer.style.zIndex = "5";
+    this.liveLayer.style.pointerEvents = "none";
+    host.appendChild(this.liveLayer);
+
     // Registered before setupPointerRedirect so a gizmo-handle hit is seen
     // (and can fully swallow the event) before the DOM hit-test redirect or
     // anything else — same-target capture-phase listeners fire in
@@ -546,6 +624,86 @@ export class CSS3DTVManager {
     if (now - this.lastCssRenderTime < CSS3DTVManager.CSS_RENDER_MIN_INTERVAL_MS) return;
     this.lastCssRenderTime = now;
     this.renderer.render(this.scene, this.camera);
+    // screenEl's on-screen rect only actually changes when the CSS3D render
+    // above writes a fresh matrix3d transform, so there's no point recomputing
+    // this more often than that — same throttle, same reasoning.
+    this.updateLiveIframes();
+  }
+
+  // Repositions each panel's real iframe (see liveLayer/class comment above)
+  // to match wherever its CSS3D-rendered screen currently projects to
+  // on-screen, and hides it when there's nothing to show, edit mode is
+  // active (so it can't steal clicks meant for the gizmo/toolbar), it's
+  // off-screen, or something nearer occludes it — a plain 2D-positioned
+  // iframe has no innate notion of the WebGL scene's depth, unlike the
+  // occluder mesh it's meant to visually match.
+  private updateLiveIframes() {
+    const size = this.renderer.getSize();
+    for (const entry of this.entries.values()) {
+      if (!entry.state.url) continue; // already display:none via applyUrl
+      if (this.editMode) {
+        entry.iframe.style.visibility = "hidden";
+        continue;
+      }
+
+      const rect = entry.screenEl.getBoundingClientRect();
+      // CSS3DRenderer's perspective divide degenerates as a panel crosses
+      // behind the camera or right through the near plane — guard against
+      // the resulting NaN/Infinity/absurd values rather than parking a
+      // giant stray iframe over the whole page.
+      if (
+        !Number.isFinite(rect.left) ||
+        !Number.isFinite(rect.top) ||
+        !Number.isFinite(rect.width) ||
+        !Number.isFinite(rect.height) ||
+        rect.width <= 0 ||
+        rect.height <= 0 ||
+        rect.width > 20000 ||
+        rect.height > 20000
+      ) {
+        entry.iframe.style.visibility = "hidden";
+        continue;
+      }
+
+      if (
+        rect.right <= 0 ||
+        rect.bottom <= 0 ||
+        rect.left >= size.width ||
+        rect.top >= size.height
+      ) {
+        entry.iframe.style.visibility = "hidden";
+        continue;
+      }
+
+      // Occlusion: cast from the camera toward the panel and stop the ray
+      // just short of it — shortened by an epsilon scaled to the panel's own
+      // world-space width, so the ray naturally clears the panel's own
+      // occluder/gizmo meshes without needing to filter them out explicitly.
+      // Any *other* hit within that shortened range means something nearer
+      // is blocking the panel.
+      const camPos = this.camera.position;
+      const toPanel = entry.object.position.clone().sub(camPos);
+      const distance = toPanel.length();
+      const epsilon = Math.max(0.05, entry.object.scale.x * SIZES[entry.state.device].w * 0.5);
+      let occluded = false;
+      if (distance > epsilon) {
+        this.occlusionRaycaster.set(camPos, toPanel.normalize());
+        this.occlusionRaycaster.near = 0.01;
+        this.occlusionRaycaster.far = distance - epsilon;
+        occluded =
+          this.occlusionRaycaster.intersectObjects(this.mainScene.children, true).length > 0;
+      }
+      if (occluded) {
+        entry.iframe.style.visibility = "hidden";
+        continue;
+      }
+
+      entry.iframe.style.visibility = "visible";
+      entry.iframe.style.left = `${rect.left}px`;
+      entry.iframe.style.top = `${rect.top}px`;
+      entry.iframe.style.width = `${rect.width}px`;
+      entry.iframe.style.height = `${rect.height}px`;
+    }
   }
 
   count(): number {
@@ -579,8 +737,14 @@ export class CSS3DTVManager {
   // Spawns a new device (smart TV or mobile) a fixed distance in front of
   // wherever the camera is currently looking, facing back toward it, loaded
   // with `url` if given (the normal path — see routes/index.tsx's Cast
-  // overlay, which always asks for a URL before creating a display).
+  // overlay, which always asks for a URL before creating a display). A "tv"
+  // spawns as a cinema-scale screen (see CINEMA_DISTANCE/CINEMA_FRACTION) —
+  // the default and by far the most common case, since it's the only one the
+  // Cast overlay actually labels "Smart TV" — while "mobile" keeps the older,
+  // phone-scale SPAWN_DISTANCE/0.6 sizing.
   addTV(kind: DeviceKind = "tv", url = ""): void {
+    const distance = kind === "tv" ? CINEMA_DISTANCE : SPAWN_DISTANCE;
+
     // Use the camera's full 3D look direction (including pitch) so the panel
     // lands exactly in the center of the current view, not just level with
     // eye height — otherwise looking down at the water places new panels
@@ -590,7 +754,7 @@ export class CSS3DTVManager {
     if (dir.lengthSq() < 1e-6) dir.set(0, 0, -1);
     dir.normalize();
 
-    const pos = this.camera.position.clone().addScaledVector(dir, SPAWN_DISTANCE);
+    const pos = this.camera.position.clone().addScaledVector(dir, distance);
 
     // The panel's facing only follows the camera's horizontal yaw, so it
     // stays upright (not tilted to match pitch) while still facing the viewer.
@@ -614,7 +778,7 @@ export class CSS3DTVManager {
       rotX: 0,
       rotY,
       rotZ: 0,
-      scale: this.fitScaleForViewport(SPAWN_DISTANCE, 0.6, kind),
+      scale: this.fitScaleForViewport(distance, kind === "tv" ? CINEMA_FRACTION : 0.6, kind),
       device: kind,
     };
     const entry = this.createEntry(state);
@@ -642,6 +806,9 @@ export class CSS3DTVManager {
     for (const id of Array.from(this.entries.keys())) this.removeEntry(id, false);
     if (this.renderer.domElement.parentNode === this.mountHost) {
       this.mountHost.removeChild(this.renderer.domElement);
+    }
+    if (this.liveLayer.parentNode === this.mountHost) {
+      this.mountHost.removeChild(this.liveLayer);
     }
   }
 
@@ -935,6 +1102,11 @@ export class CSS3DTVManager {
     this.mainScene.remove(entry.occluder);
     for (const mesh of entry.gizmoGroup.children) this.gizmoHitMap.delete(mesh);
     this.mainScene.remove(entry.gizmoGroup);
+    // Lives in this.liveLayer, not under entry.object — removing the panel
+    // from the scene above doesn't take this with it, and leaving it behind
+    // would keep whatever it's loaded (e.g. a YouTube video) alive and
+    // invisibly playing at its last on-screen position.
+    entry.iframe.remove();
     this.entries.delete(id);
     if (persist) this.persist();
   }
@@ -1033,16 +1205,20 @@ export class CSS3DTVManager {
     placeholder.className = "aqf-tv-placeholder";
     placeholder.textContent = "ANGE EN WEBBADRESS ELLER YOUTUBE-LÄNK";
 
+    screen.append(placeholder);
+
+    // The panel's *real* iframe — deliberately not a child of `screen` (see
+    // the class comment up top and updateLiveIframes() below). Lives in
+    // this.liveLayer instead, repositioned every frame to match wherever
+    // `screen`'s CSS3D-rendered rect currently projects to on screen.
     const iframe = document.createElement("iframe");
-    iframe.className = "aqf-tv-iframe";
+    iframe.className = "aqf-tv-live-iframe";
     iframe.setAttribute(
       "allow",
       "accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture",
     );
     iframe.setAttribute("referrerpolicy", "no-referrer-when-downgrade");
-    iframe.style.display = "none";
-
-    screen.append(placeholder, iframe);
+    this.liveLayer.appendChild(iframe);
 
     const resize = document.createElement("div");
     resize.className = "aqf-tv-resize";
@@ -1080,6 +1256,11 @@ export class CSS3DTVManager {
 
     // Most-specific-first: findPointerTarget returns the first rect match, so
     // small controls must be checked before the panel's own background.
+    // `iframe` is deliberately absent — it's not part of the CSS3D tree
+    // anymore (see the class comment up top), so this redirect system,
+    // which only re-dispatches *synthetic* events onto elements in this
+    // same document, has nothing useful to do with it; real clicks/touches
+    // now reach it directly via updateLiveIframes()'s plain 2D overlay.
     const hitTargets = [
       urlInput,
       goBtn,
@@ -1090,7 +1271,6 @@ export class CSS3DTVManager {
       zBtn,
       rotateBtn,
       resize,
-      iframe,
       placeholder,
       el,
     ];
@@ -1100,6 +1280,7 @@ export class CSS3DTVManager {
       object,
       urlInput,
       iframe,
+      screenEl: screen,
       placeholder,
       hitTargets,
       occluder,
