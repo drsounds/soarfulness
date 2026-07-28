@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { CSS3DTVManager } from "@/lib/tv/CSS3DTVManager";
+import { CSS3DTVManager, type DeviceKind } from "@/lib/tv/CSS3DTVManager";
+import { VirtualPhone } from "@/components/VirtualPhone";
 import waterAsset from "@/assets/water.mp3.asset.json";
 import vanernBackdrop from "@/assets/vanern-backdrop.png.asset.json";
 import sandTextureAsset from "@/assets/sand_cc0_512.jpg.asset.json";
@@ -549,6 +550,7 @@ function Aquafulness() {
   const [swayStick, setSwayStick] = useState({ x: 0, y: 0 });
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("vagor");
+  const [phoneOpen, setPhoneOpen] = useState(false);
   const [uiVisible, setUiVisible] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   // Edit mode: freezes wave time and all camera bob/drift/walk physics so TV
@@ -2763,22 +2765,15 @@ function Aquafulness() {
 
           <div className="flex gap-2">
             <button
-              onClick={() => tvManagerRef.current?.addTV("tv")}
-              className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white/90 backdrop-blur-md transition active:scale-95 active:bg-white/15"
-              aria-label="Lägg till smart-TV"
-              title="Lägg till smart-TV (bathOS)"
-            >
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <rect x="3" y="5" width="18" height="12" rx="1.5" />
-                <path d="M8 21h8M12 17v4" />
-              </svg>
-            </button>
-
-            <button
-              onClick={() => tvManagerRef.current?.addTV("mobile")}
-              className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white/90 backdrop-blur-md transition active:scale-95 active:bg-white/15"
-              aria-label="Lägg till mobil"
-              title="Lägg till mobil (bathOS)"
+              onClick={() => setPhoneOpen((v) => !v)}
+              className={`pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur-md transition active:scale-95 ${
+                phoneOpen
+                  ? "border-white/40 bg-white/25 text-white"
+                  : "border-white/20 bg-black/40 text-white/90 active:bg-white/15"
+              }`}
+              aria-label={phoneOpen ? "Stäng telefon" : "Öppna telefon"}
+              aria-pressed={phoneOpen}
+              title={phoneOpen ? "Stäng telefon" : "Öppna telefon (bathOS, cast till skärmar)"}
             >
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <rect x="7" y="2.5" width="10" height="19" rx="2" />
@@ -3543,6 +3538,18 @@ function Aquafulness() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Virtual phone: a floating, draggable, resizable 2D bathOS device
+          (not part of the 3D world) used to browse and then "cast" whatever
+          it's showing to any TV/mobile display — see VirtualPhone.tsx. */}
+      {phoneOpen && (
+        <VirtualPhone
+          onClose={() => setPhoneOpen(false)}
+          listDisplays={() => tvManagerRef.current?.listEntries() ?? []}
+          onCastNew={(kind, url) => tvManagerRef.current?.addTV(kind, url)}
+          onCastTo={(id, url) => tvManagerRef.current?.castTo(id, url)}
+        />
       )}
 
       {/* PS-liknande layout:
