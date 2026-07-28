@@ -12,6 +12,13 @@
 
 html, body {
   font-family: "Bungalow Sans", system-ui, -apple-system, sans-serif;
+  /* Prevents pull-to-refresh/rubber-banding at the page level. Not
+     touch-action: none here — that would also block touch-scrolling in
+     nested UI like the settings panel's scroll list, since touch-action
+     restrictions cascade down to descendants. The 3D view container itself
+     (which has no scrollable content) opts out of default gestures instead —
+     see the `touch-none` class on the mount div in routes/index.tsx. */
+  overscroll-behavior: none;
 }
 
 @custom-variant dark (&:is(.dark *));

@@ -78,7 +78,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+      {
+        name: "viewport",
+        content:
+          "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover",
+      },
       { name: "theme-color", content: "#050b16" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "mobile-web-app-capable", content: "yes" },
@@ -132,6 +136,24 @@ function RootComponent() {
 
   useEffect(() => {
     registerAppServiceWorker();
+  }, []);
+
+  // iOS Safari fires these non-standard gesture events for a pinch and
+  // performs its own page-zoom regardless of the viewport meta tag's
+  // maximum-scale/user-scalable (Safari has ignored that for zoom since iOS
+  // 10, for accessibility reasons) — preventDefault here is the documented
+  // way to stop it so two-finger touches reach the app's own gesture
+  // handling instead of zooming the whole page.
+  useEffect(() => {
+    const preventGesture = (e: Event) => e.preventDefault();
+    document.addEventListener("gesturestart", preventGesture);
+    document.addEventListener("gesturechange", preventGesture);
+    document.addEventListener("gestureend", preventGesture);
+    return () => {
+      document.removeEventListener("gesturestart", preventGesture);
+      document.removeEventListener("gesturechange", preventGesture);
+      document.removeEventListener("gestureend", preventGesture);
+    };
   }, []);
 
   return (

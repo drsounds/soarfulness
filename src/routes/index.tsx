@@ -2675,7 +2675,7 @@ function Aquafulness() {
           className="pointer-events-none absolute inset-0 h-full w-full object-cover"
         />
       )}
-      <div ref={mountRef} className="absolute inset-0" />
+      <div ref={mountRef} className="absolute inset-0 touch-none" />
 
       {/* Persistent brand mark — inverted (white), semi-transparent, 24pt, 5pt margin */}
       <img
