@@ -233,6 +233,23 @@ const Icon = {
       <rect x="20" y="2" width="3" height="19" rx="0.5" />
     </svg>
   ),
+  // Three parallel diagonal strokes — the classic OS window resize grip, so
+  // the corner handle reads as grabbable at a glance instead of decorative.
+  resizeGrip: (
+    <svg
+      viewBox="0 0 24 24"
+      width="12"
+      height="12"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+    >
+      <line x1="16" y1="22" x2="22" y2="16" />
+      <line x1="10" y1="22" x2="22" y2="10" />
+      <line x1="4" y1="22" x2="22" y2="4" />
+    </svg>
+  ),
 };
 
 type Props = {
@@ -789,14 +806,20 @@ export function VirtualPhone({ onClose, listDisplays, onCastNew, onCastTo, onRem
         </div>
       )}
 
-      {/* Resize handle. */}
+      {/* Resize handle — deliberately its own dedicated corner grip (not
+          reusing the title bar's drag, which only moves the phone) with a
+          visible grip icon rather than a bare border, so it reads as
+          grabbable instead of decorative. */}
       <div
-        className="absolute bottom-0 right-0 h-5 w-5 touch-none cursor-nwse-resize border-b-2 border-r-2 border-white/40"
+        className="absolute bottom-0 right-0 flex h-7 w-7 touch-none cursor-nwse-resize items-end justify-end p-1 text-white/45 transition active:text-white/90"
         onPointerDown={onResizeDown}
         onPointerMove={onResizeMove}
         onPointerUp={onResizeUp}
         onPointerCancel={onResizeUp}
-      />
+        title="Ändra storlek"
+      >
+        {Icon.resizeGrip}
+      </div>
     </div>
   );
 }
