@@ -3549,6 +3549,7 @@ function Aquafulness() {
           listDisplays={() => tvManagerRef.current?.listEntries() ?? []}
           onCastNew={(kind, url) => tvManagerRef.current?.addTV(kind, url)}
           onCastTo={(id, url) => tvManagerRef.current?.castTo(id, url)}
+          onRemoveAll={() => tvManagerRef.current?.removeAll()}
         />
       )}
 

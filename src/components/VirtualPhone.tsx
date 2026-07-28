@@ -216,6 +216,7 @@ type Props = {
   listDisplays: () => { id: string; url: string; device: DeviceKind }[];
   onCastNew: (kind: DeviceKind, url: string) => void;
   onCastTo: (id: string, url: string) => void;
+  onRemoveAll: () => void;
 };
 
 // A floating, draggable, resizable 2D "virtual smartphone" — plain screen-
@@ -225,7 +226,7 @@ type Props = {
 // shell (lock screen, home screen with bookmarks, browser) the 3D panels
 // used to, but its purpose here is to be your own remote: browse to
 // something, then "cast" it to any TV/mobile display in the 3D world.
-export function VirtualPhone({ onClose, listDisplays, onCastNew, onCastTo }: Props) {
+export function VirtualPhone({ onClose, listDisplays, onCastNew, onCastTo, onRemoveAll }: Props) {
   const [state, setState] = useState<PhoneState>(loadPhoneState);
   const [addressValue, setAddressValue] = useState(state.url);
   const [searchValue, setSearchValue] = useState("");
@@ -659,6 +660,21 @@ export function VirtualPhone({ onClose, listDisplays, onCastNew, onCastTo }: Pro
                       {t.url || "(tom skärm)"}
                     </button>
                   ))}
+                  {castTargets.length > 0 && (
+                    <>
+                      <div className="my-1 border-t border-white/10" />
+                      <button
+                        onClick={() => {
+                          onRemoveAll();
+                          setCastTargets([]);
+                          setCastMenuOpen(false);
+                        }}
+                        className="whitespace-nowrap px-3 py-2 text-left text-[10px] text-red-400 active:bg-white/10"
+                      >
+                        Ta bort alla skärmar
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
             </div>

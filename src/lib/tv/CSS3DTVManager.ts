@@ -710,6 +710,14 @@ export class CSS3DTVManager {
     return this.entries.size;
   }
 
+  // Tears down every current panel (3D object, occluder, gizmo, and live
+  // overlay iframe — see removeEntry) in one go, e.g. for a "remove all
+  // screens" control. Persists once at the end rather than once per panel.
+  removeAll(): void {
+    for (const id of Array.from(this.entries.keys())) this.removeEntry(id, false);
+    this.persist();
+  }
+
   // Snapshot of every current panel, for a "cast to an existing display"
   // picker (see routes/index.tsx) to list — deliberately plain data, not a
   // live-bound reference, since this class has no subscription mechanism.
