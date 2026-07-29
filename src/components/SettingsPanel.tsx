@@ -174,6 +174,8 @@ export type SettingsPanelProps = {
   setSkyCloudsOn: Dispatch<SetStateAction<boolean>>;
   skyCloudsHeight: number;
   setSkyCloudsHeight: Dispatch<SetStateAction<number>>;
+  surfaceArea: number;
+  setSurfaceArea: Dispatch<SetStateAction<number>>;
   scenes: NamedOption[];
   sceneId: string | null;
   cycleScene: (dir: number) => void;
@@ -338,6 +340,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setSkyCloudsOn,
     skyCloudsHeight,
     setSkyCloudsHeight,
+    surfaceArea,
+    setSurfaceArea,
     scenes,
     sceneId,
     cycleScene,
@@ -756,11 +760,11 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   mode="number"
                   value={`${swingIntensity.toFixed(2)}x`}
                   rawValue={swingIntensity}
-                  onSet={(v) => setSwingIntensity(Math.max(0.1, Math.min(2.5, v)))}
-                  min={0.1}
+                  onSet={(v) => setSwingIntensity(Math.max(0.01, Math.min(2.5, v)))}
+                  min={0.01}
                   max={2.5}
                   step={0.05}
-                  onDec={() => setSwingIntensity((v) => Math.max(0.1, +(v - 0.05).toFixed(2)))}
+                  onDec={() => setSwingIntensity((v) => Math.max(0.01, +(v - 0.05).toFixed(2)))}
                   onInc={() => setSwingIntensity((v) => Math.min(2.5, +(v + 0.05).toFixed(2)))}
                 />
                 <PadDial
@@ -1133,6 +1137,18 @@ export function SettingsPanel(props: SettingsPanelProps) {
               step={0.05}
               onDec={() => setSkyCloudsHeight((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
               onInc={() => setSkyCloudsHeight((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+            />
+            <PadDial
+              label="YTA"
+              mode="number"
+              value={`${surfaceArea.toFixed(0)}m`}
+              rawValue={surfaceArea}
+              onSet={(v) => setSurfaceArea(Math.max(200, Math.min(100000, v)))}
+              min={200}
+              max={100000}
+              step={100}
+              onDec={() => setSurfaceArea((v) => Math.max(200, +(v - 100).toFixed(0)))}
+              onInc={() => setSurfaceArea((v) => Math.min(100000, +(v + 100).toFixed(0)))}
             />
             {scenes.length > 0 && (
               <PadDial
