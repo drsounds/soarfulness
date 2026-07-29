@@ -189,6 +189,7 @@ type Persisted = {
   noclipSpeed: number;
   swingHeight: number;
   swingIntensity: number;
+  swingXFactor: number;
   swingPreset: SwingPreset;
 };
 // Parse a "#rrggbb" hex string into normalized [0,1] RGB. Falls back to a
@@ -397,6 +398,7 @@ const DEFAULTS: Persisted = {
   noclipSpeed: 1,
   swingHeight: 25,
   swingIntensity: 1,
+  swingXFactor: 0,
   swingPreset: "water",
 };
 function loadSettings(): Persisted {
@@ -521,6 +523,9 @@ function Aquafulness() {
   const [noclipSpeed, setNoclipSpeed] = useState(initial.noclipSpeed);
   const [swingHeight, setSwingHeight] = useState(initial.swingHeight);
   const [swingIntensity, setSwingIntensity] = useState(initial.swingIntensity);
+  // Horizontal (side-to-side) swing multiplier — defaults to 0 so the
+  // pendulum bobs vertically in place until explicitly dialed up.
+  const [swingXFactor, setSwingXFactor] = useState(initial.swingXFactor);
   const [swingPreset, setSwingPreset] = useState<SwingPreset>(initial.swingPreset);
   const [rotStick, setRotStick] = useState({ x: 0, y: 0 });
   const [driftStick, setDriftStick] = useState({ x: 0, y: 0 });
@@ -578,12 +583,12 @@ function Aquafulness() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingHeight, swingIntensity, swingPreset };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingHeight, swingIntensity, swingXFactor, swingPreset };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingHeight, swingIntensity, swingPreset]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingHeight, swingIntensity, swingXFactor, swingPreset]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -615,6 +620,7 @@ function Aquafulness() {
   const noclipSpeedRef = useRef(noclipSpeed);
   const swingHeightRef = useRef(swingHeight);
   const swingIntensityRef = useRef(swingIntensity);
+  const swingXFactorRef = useRef(swingXFactor);
   // Yaw captured the instant swing mode is entered, so the pendulum's
   // side-to-side arc stays perpendicular to whichever way you were already
   // facing instead of snapping to a fixed world axis.
@@ -745,6 +751,7 @@ function Aquafulness() {
   useEffect(() => { noclipSpeedRef.current = noclipSpeed; }, [noclipSpeed]);
   useEffect(() => { swingHeightRef.current = swingHeight; }, [swingHeight]);
   useEffect(() => { swingIntensityRef.current = swingIntensity; }, [swingIntensity]);
+  useEffect(() => { swingXFactorRef.current = swingXFactor; }, [swingXFactor]);
   // Mode switch: hand off position/orientation continuity between schemes so
   // switching never teleports the camera. Entering noclip seeds its vertical
   // position from wherever the wave spring last had the camera; entering
@@ -849,6 +856,7 @@ function Aquafulness() {
     setNoclipSpeed(DEFAULTS.noclipSpeed);
     setSwingHeight(DEFAULTS.swingHeight);
     setSwingIntensity(DEFAULTS.swingIntensity);
+    setSwingXFactor(DEFAULTS.swingXFactor);
     setSwingPreset(DEFAULTS.swingPreset);
     // timeOfDay is intentionally left untouched.
   };
@@ -2213,14 +2221,16 @@ function Aquafulness() {
         // position"); SWING HÖJD/INTENSITET set the resting height and the
         // arc's amplitude/speed, and swingYawRef (captured on mode entry)
         // keeps the swing plane perpendicular to the direction you were
-        // already facing.
+        // already facing. GUNGA X scales how far that arc reaches
+        // side-to-side — 0 (the default) keeps the camera hovering in place
+        // with only the vertical bob below.
         const rightX = Math.cos(swingYawRef.current), rightZ = -Math.sin(swingYawRef.current);
         const intensity = Math.max(0.05, swingIntensityRef.current);
         const ampRad = THREE.MathUtils.degToRad(Math.min(75, 15 + intensity * 25));
         const omega = 0.3 + intensity * 0.25;
         const armLen = Math.max(8, Math.min(60, swingHeightRef.current * 0.6));
         const theta = ampRad * Math.sin(t * omega);
-        const swingOff = Math.sin(theta) * armLen;
+        const swingOff = Math.sin(theta) * armLen * swingXFactorRef.current;
         camX = posRef.current.x + rightX * swingOff;
         camZ = posRef.current.z + rightZ * swingOff;
         // Higher at the ends of the arc than at the bottom, like a real swing.
@@ -2909,6 +2919,8 @@ function Aquafulness() {
     setSwingHeight,
     swingIntensity,
     setSwingIntensity,
+    swingXFactor,
+    setSwingXFactor,
     swingPreset,
     cycleSwingPreset,
     camOffX,
