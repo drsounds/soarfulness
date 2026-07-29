@@ -740,12 +740,12 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   mode="number"
                   value={`${swingHeight.toFixed(0)}m`}
                   rawValue={swingHeight}
-                  onSet={(v) => setSwingHeight(Math.max(3, Math.min(300, v)))}
+                  onSet={(v) => setSwingHeight(Math.max(3, Math.min(10000, v)))}
                   min={3}
-                  max={300}
-                  step={1}
-                  onDec={() => setSwingHeight((v) => Math.max(3, +(v - 1).toFixed(0)))}
-                  onInc={() => setSwingHeight((v) => Math.min(300, +(v + 1).toFixed(0)))}
+                  max={10000}
+                  step={10}
+                  onDec={() => setSwingHeight((v) => Math.max(3, +(v - 10).toFixed(0)))}
+                  onInc={() => setSwingHeight((v) => Math.min(10000, +(v + 10).toFixed(0)))}
                 />
                 <PadDial
                   label="GUNGA INTENSITET"
