@@ -165,6 +165,8 @@ type Persisted = {
   hideWater: boolean;
   midCloudsOn: boolean;
   midCloudsHeight: number;
+  skyCloudsOn: boolean;
+  skyCloudsHeight: number;
   swayAmp: number;
   swaySpeed: number;
   swayBias: number;
@@ -366,6 +368,8 @@ const DEFAULTS: Persisted = {
   hideWater: false,
   midCloudsOn: false,
   midCloudsHeight: 0.5,
+  skyCloudsOn: false,
+  skyCloudsHeight: 0.4,
   swayAmp: 0,
   swaySpeed: 0.15,
   swayBias: 0,
@@ -474,6 +478,8 @@ function Aquafulness() {
   const [hideWater, setHideWater] = useState(initial.hideWater);
   const [midCloudsOn, setMidCloudsOn] = useState(initial.midCloudsOn);
   const [midCloudsHeight, setMidCloudsHeight] = useState(initial.midCloudsHeight);
+  const [skyCloudsOn, setSkyCloudsOn] = useState(initial.skyCloudsOn);
+  const [skyCloudsHeight, setSkyCloudsHeight] = useState(initial.skyCloudsHeight);
   const [swayAmp, setSwayAmp] = useState(initial.swayAmp);
   const [swaySpeed, setSwaySpeed] = useState(initial.swaySpeed);
   const [swayBias, setSwayBias] = useState(initial.swayBias);
@@ -547,12 +553,12 @@ function Aquafulness() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -631,6 +637,8 @@ function Aquafulness() {
   const hideWaterRef = useRef(hideWater);
   const midCloudsOnRef = useRef(midCloudsOn);
   const midCloudsHeightRef = useRef(midCloudsHeight);
+  const skyCloudsOnRef = useRef(skyCloudsOn);
+  const skyCloudsHeightRef = useRef(skyCloudsHeight);
   const swayAmpRef = useRef(swayAmp);
   const swaySpeedRef = useRef(swaySpeed);
   const swayBiasRef = useRef(swayBias);
@@ -682,6 +690,8 @@ function Aquafulness() {
   useEffect(() => { hideWaterRef.current = hideWater; }, [hideWater]);
   useEffect(() => { midCloudsOnRef.current = midCloudsOn; }, [midCloudsOn]);
   useEffect(() => { midCloudsHeightRef.current = midCloudsHeight; }, [midCloudsHeight]);
+  useEffect(() => { skyCloudsOnRef.current = skyCloudsOn; }, [skyCloudsOn]);
+  useEffect(() => { skyCloudsHeightRef.current = skyCloudsHeight; }, [skyCloudsHeight]);
   useEffect(() => { swayAmpRef.current = swayAmp; }, [swayAmp]);
   useEffect(() => { swaySpeedRef.current = swaySpeed; }, [swaySpeed]);
   useEffect(() => { swayBiasRef.current = swayBias; }, [swayBias]);
@@ -772,6 +782,8 @@ function Aquafulness() {
     setHideWater(DEFAULTS.hideWater);
     setMidCloudsOn(DEFAULTS.midCloudsOn);
     setMidCloudsHeight(DEFAULTS.midCloudsHeight);
+    setSkyCloudsOn(DEFAULTS.skyCloudsOn);
+    setSkyCloudsHeight(DEFAULTS.skyCloudsHeight);
     setSwayAmp(DEFAULTS.swayAmp);
     setSwaySpeed(DEFAULTS.swaySpeed);
     setSwayBias(DEFAULTS.swayBias);
@@ -1802,6 +1814,40 @@ function Aquafulness() {
     midClouds.renderOrder = -1;
     scene.add(midClouds);
 
+    // Sky clouds — same drifting fbm layer as the mid-water clouds, but
+    // parked high overhead instead of underwater, so the procedural sky
+    // gets a proper cloud deck. Reuses the floor cloud shader verbatim.
+    const skyCloudGeo = new THREE.PlaneGeometry(200000, 200000, 8, 8);
+    skyCloudGeo.rotateX(-Math.PI / 2);
+    const skyCloudUniforms = {
+      uColor: { value: new THREE.Color(0xffffff) },
+      uTextured: { value: 0 },
+      uClouds: { value: 1 },
+      uCloudScroll: { value: new THREE.Vector2(0, 0) },
+      uTime: { value: 0 },
+      uSunDir: { value: uniforms.uSunDir.value },
+      uSandTex: { value: sandTex },
+      uSandScale: { value: 0.35 },
+      uTurbidity: { value: 0 },
+      uUnderwater: { value: 0 },
+      uFogColor: { value: new THREE.Color(0x0a2a3a) },
+      uCamNear: { value: camNearRef.current },
+      uCamFar: { value: camFarRef.current },
+    };
+    const skyCloudMat = new THREE.ShaderMaterial({
+      uniforms: skyCloudUniforms,
+      side: THREE.DoubleSide,
+      transparent: true,
+      depthWrite: false,
+      vertexShader: floorMat.vertexShader,
+      fragmentShader: floorMat.fragmentShader,
+    });
+    const skyClouds = new THREE.Mesh(skyCloudGeo, skyCloudMat);
+    skyClouds.position.y = 150;
+    skyClouds.visible = false;
+    skyClouds.renderOrder = -1;
+    scene.add(skyClouds);
+
     // Sky dome
     const skyGeo = new THREE.SphereGeometry(800, 32, 32);
     const skyUniforms = {
@@ -2035,6 +2081,17 @@ function Aquafulness() {
         midClouds.visible = false;
       }
 
+      // Himmel-moln (drivande molnlager högt ovanför ytan). Höjden hålls
+      // fast i världsrymden (som botten/mellan-moln) istället för relativt
+      // kameran, annars skulle molnen aldrig glida förbi.
+      if (skyCloudsOnRef.current) {
+        const frac = Math.max(0, Math.min(1, skyCloudsHeightRef.current));
+        skyClouds.position.y = 60 + frac * 440 + levelY;
+        skyCloudUniforms.uTime.value = t;
+        skyCloudUniforms.uCloudScroll.value.x = t * 0.02;
+        skyCloudUniforms.uCloudScroll.value.y = t * 0.013;
+      }
+
       // Dölj/visa vattenytan.
       ocean.visible = !hideWaterRef.current;
 
@@ -2097,6 +2154,8 @@ function Aquafulness() {
       floor.position.z = camZ;
       midClouds.position.x = camX;
       midClouds.position.z = camZ;
+      skyClouds.position.x = camX;
+      skyClouds.position.z = camZ;
 
       const dirRad = (waveDirRef.current * Math.PI) / 180;
       const surfaceY = inVortex
@@ -2334,6 +2393,9 @@ function Aquafulness() {
       midCloudUniforms.uTurbidity.value = floorUniforms.uTurbidity.value;
       midCloudUniforms.uUnderwater.value = uniforms.uUnderwater.value;
       midCloudUniforms.uFogColor.value.copy(uniforms.uWaterDeep.value);
+      skyCloudUniforms.uTurbidity.value = floorUniforms.uTurbidity.value;
+      skyCloudUniforms.uUnderwater.value = uniforms.uUnderwater.value;
+      skyCloudUniforms.uFogColor.value.copy(uniforms.uWaterDeep.value);
       uniforms.uTurbidity.value = floorUniforms.uTurbidity.value;
       skyUniforms.uTurbidity.value = floorUniforms.uTurbidity.value;
       skyUniforms.uFogColor.value.copy(uniforms.uWaterDeep.value);
@@ -2369,6 +2431,7 @@ function Aquafulness() {
       const envActive = envActiveRef.current;
       const useBackdrop = backdropRef.current > 0 && !envActive;
       sky.visible = !useBackdrop && !envActive;
+      skyClouds.visible = skyCloudsOnRef.current && !useBackdrop && !envActive;
       renderer.setClearColor(0x032033, envActive ? 1 : 0);
 
       // Optional model bobbing — static scenes leave modelBobRef null and the
@@ -2411,6 +2474,8 @@ function Aquafulness() {
       floorMat.dispose();
       midCloudGeo.dispose();
       midCloudMat.dispose();
+      skyCloudGeo.dispose();
+      skyCloudMat.dispose();
       sandTex.dispose();
       skyGeo.dispose();
       skyMat.dispose();
@@ -2762,6 +2827,10 @@ function Aquafulness() {
     setMidCloudsOn,
     midCloudsHeight,
     setMidCloudsHeight,
+    skyCloudsOn,
+    setSkyCloudsOn,
+    skyCloudsHeight,
+    setSkyCloudsHeight,
     scenes,
     sceneId,
     cycleScene,
