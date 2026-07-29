@@ -154,6 +154,10 @@ export type SettingsPanelProps = {
   setMidCloudsOn: Dispatch<SetStateAction<boolean>>;
   midCloudsHeight: number;
   setMidCloudsHeight: Dispatch<SetStateAction<number>>;
+  skyCloudsOn: boolean;
+  setSkyCloudsOn: Dispatch<SetStateAction<boolean>>;
+  skyCloudsHeight: number;
+  setSkyCloudsHeight: Dispatch<SetStateAction<number>>;
   scenes: NamedOption[];
   sceneId: string | null;
   cycleScene: (dir: number) => void;
@@ -300,6 +304,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setMidCloudsOn,
     midCloudsHeight,
     setMidCloudsHeight,
+    skyCloudsOn,
+    setSkyCloudsOn,
+    skyCloudsHeight,
+    setSkyCloudsHeight,
     scenes,
     sceneId,
     cycleScene,
@@ -993,6 +1001,24 @@ export function SettingsPanel(props: SettingsPanelProps) {
               step={0.05}
               onDec={() => setMidCloudsHeight((v) => Math.max(0.05, +(v - 0.05).toFixed(2)))}
               onInc={() => setMidCloudsHeight((v) => Math.min(0.95, +(v + 0.05).toFixed(2)))}
+            />
+            <PadDial
+              label="HIMMEL-MOLN"
+              value={skyCloudsOn ? "PÅ" : "AV"}
+              onDec={() => setSkyCloudsOn(false)}
+              onInc={() => setSkyCloudsOn(true)}
+            />
+            <PadDial
+              label="HIMMEL-MOLNHÖJD"
+              mode="number"
+              value={`${Math.round(skyCloudsHeight * 100)}%`}
+              rawValue={skyCloudsHeight}
+              onSet={(v) => setSkyCloudsHeight(Math.max(0, Math.min(1, v)))}
+              min={0}
+              max={1}
+              step={0.05}
+              onDec={() => setSkyCloudsHeight((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+              onInc={() => setSkyCloudsHeight((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
             />
             {scenes.length > 0 && (
               <PadDial
