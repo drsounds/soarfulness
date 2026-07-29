@@ -69,3 +69,14 @@ export const SETTINGS_TABS: { id: SettingsTab; label: string }[] = [
   { id: "miljo", label: "MILJÖ" },
   { id: "ljud", label: "LJUD" },
 ];
+
+// Three mutually-exclusive camera movement schemes:
+//  - "float"  the default: buoyant, wave-riding camera (all existing behavior).
+//  - "noclip" free 3D flight in any direction, ignoring the water/wave physics.
+//  - "swing"  a pendulum that swings back and forth high above the water.
+export type CameraMode = "float" | "noclip" | "swing";
+export const CAMERA_MODES: CameraMode[] = ["float", "noclip", "swing"];
+// Quick-jump starting heights for sky-swing mode: a fixed preset, or "custom"
+// meaning the SWING HÖJD dial is left exactly as the user set it.
+export type SwingPreset = "water" | "clouds" | "custom";
+export const SWING_PRESETS: SwingPreset[] = ["water", "clouds", "custom"];

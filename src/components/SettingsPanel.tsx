@@ -7,6 +7,8 @@ import {
   BACKDROPS,
   worldXZBearing,
   type SettingsTab,
+  type CameraMode,
+  type SwingPreset,
 } from "@/lib/settingsShared";
 
 type NamedOption = { id: string; name: string };
@@ -87,6 +89,16 @@ export type SettingsPanelProps = {
   setVortexSpeed: Dispatch<SetStateAction<number>>;
 
   // Kamera
+  cameraMode: CameraMode;
+  cycleCameraMode: (dir: number) => void;
+  noclipSpeed: number;
+  setNoclipSpeed: Dispatch<SetStateAction<number>>;
+  swingHeight: number;
+  setSwingHeight: Dispatch<SetStateAction<number>>;
+  swingIntensity: number;
+  setSwingIntensity: Dispatch<SetStateAction<number>>;
+  swingPreset: SwingPreset;
+  cycleSwingPreset: (dir: number) => void;
   camOffX: number;
   setCamOffX: Dispatch<SetStateAction<number>>;
   camOffY: number;
@@ -241,6 +253,16 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setVortexRadius,
     vortexSpeed,
     setVortexSpeed,
+    cameraMode,
+    cycleCameraMode,
+    noclipSpeed,
+    setNoclipSpeed,
+    swingHeight,
+    setSwingHeight,
+    swingIntensity,
+    setSwingIntensity,
+    swingPreset,
+    cycleSwingPreset,
     camOffX,
     setCamOffX,
     camOffY,
@@ -675,6 +697,66 @@ export function SettingsPanel(props: SettingsPanelProps) {
         )}
         {settingsTab === "kamera" && (
           <>
+            <PadDial
+              label="KAMERALÄGE"
+              value={cameraMode === "float" ? "FRI" : cameraMode === "noclip" ? "NOCLIP" : "GUNGA"}
+              onDec={() => cycleCameraMode(-1)}
+              onInc={() => cycleCameraMode(1)}
+            />
+            {cameraMode === "noclip" && (
+              <PadDial
+                label="NOCLIP FART"
+                mode="number"
+                value={`${noclipSpeed.toFixed(1)}x`}
+                rawValue={noclipSpeed}
+                onSet={(v) => setNoclipSpeed(Math.max(0.2, Math.min(6, v)))}
+                min={0.2}
+                max={6}
+                step={0.1}
+                onDec={() => setNoclipSpeed((v) => Math.max(0.2, +(v - 0.1).toFixed(2)))}
+                onInc={() => setNoclipSpeed((v) => Math.min(6, +(v + 0.1).toFixed(2)))}
+              />
+            )}
+            {cameraMode === "swing" && (
+              <>
+                <PadDial
+                  label="GUNGA START"
+                  value={
+                    swingPreset === "water"
+                      ? "VATTEN"
+                      : swingPreset === "clouds"
+                        ? "MOLN"
+                        : "ANPASSAD"
+                  }
+                  onDec={() => cycleSwingPreset(-1)}
+                  onInc={() => cycleSwingPreset(1)}
+                />
+                <PadDial
+                  label="GUNGA HÖJD"
+                  mode="number"
+                  value={`${swingHeight.toFixed(0)}m`}
+                  rawValue={swingHeight}
+                  onSet={(v) => setSwingHeight(Math.max(3, Math.min(300, v)))}
+                  min={3}
+                  max={300}
+                  step={1}
+                  onDec={() => setSwingHeight((v) => Math.max(3, +(v - 1).toFixed(0)))}
+                  onInc={() => setSwingHeight((v) => Math.min(300, +(v + 1).toFixed(0)))}
+                />
+                <PadDial
+                  label="GUNGA INTENSITET"
+                  mode="number"
+                  value={`${swingIntensity.toFixed(2)}x`}
+                  rawValue={swingIntensity}
+                  onSet={(v) => setSwingIntensity(Math.max(0.1, Math.min(2.5, v)))}
+                  min={0.1}
+                  max={2.5}
+                  step={0.05}
+                  onDec={() => setSwingIntensity((v) => Math.max(0.1, +(v - 0.05).toFixed(2)))}
+                  onInc={() => setSwingIntensity((v) => Math.min(2.5, +(v + 0.05).toFixed(2)))}
+                />
+              </>
+            )}
             <PadDial
               label="POS X"
               mode="number"
