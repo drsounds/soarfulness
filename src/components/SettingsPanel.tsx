@@ -99,6 +99,8 @@ export type SettingsPanelProps = {
   setSwingIntensity: Dispatch<SetStateAction<number>>;
   swingXFactor: number;
   setSwingXFactor: Dispatch<SetStateAction<number>>;
+  swingYAmplitude: number;
+  setSwingYAmplitude: Dispatch<SetStateAction<number>>;
   swingPreset: SwingPreset;
   cycleSwingPreset: (dir: number) => void;
   camOffX: number;
@@ -265,6 +267,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setSwingIntensity,
     swingXFactor,
     setSwingXFactor,
+    swingYAmplitude,
+    setSwingYAmplitude,
     swingPreset,
     cycleSwingPreset,
     camOffX,
@@ -770,6 +774,18 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   step={0.1}
                   onDec={() => setSwingXFactor((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
                   onInc={() => setSwingXFactor((v) => Math.min(2, +(v + 0.1).toFixed(2)))}
+                />
+                <PadDial
+                  label="GUNGA AMPLITUD"
+                  mode="number"
+                  value={`${swingYAmplitude.toFixed(0)}m`}
+                  rawValue={swingYAmplitude}
+                  onSet={(v) => setSwingYAmplitude(Math.max(0, Math.min(100000, v)))}
+                  min={0}
+                  max={100000}
+                  step={100}
+                  onDec={() => setSwingYAmplitude((v) => Math.max(0, +(v - 100).toFixed(0)))}
+                  onInc={() => setSwingYAmplitude((v) => Math.min(100000, +(v + 100).toFixed(0)))}
                 />
               </>
             )}
