@@ -118,6 +118,13 @@ function vortexSurfaceHeight(x: number, z: number, t: number, amp: number, perio
   return pit + ring;
 }
 
+// Original PlaneGeometry extents the water/cloud meshes are built at; the
+// live YTA (surface area) setting rescales each mesh by surfaceArea/base so
+// the *resulting* on-screen size matches the dial regardless of how finely
+// each mesh happens to be subdivided.
+const OCEAN_BASE_SIZE = 600;
+const CLOUD_BASE_SIZE = 200000;
+
 const STORAGE_KEY = "aquafulness:settings:v1";
 type Persisted = {
   waveAmp: number;
@@ -192,6 +199,7 @@ type Persisted = {
   swingXFactor: number;
   swingYAmplitude: number;
   swingPreset: SwingPreset;
+  surfaceArea: number;
 };
 // Parse a "#rrggbb" hex string into normalized [0,1] RGB. Falls back to a
 // neutral sand tone on malformed input rather than throwing.
@@ -402,6 +410,7 @@ const DEFAULTS: Persisted = {
   swingXFactor: 0,
   swingYAmplitude: 15,
   swingPreset: "water",
+  surfaceArea: 1000,
 };
 function loadSettings(): Persisted {
   if (typeof window === "undefined") return DEFAULTS;
@@ -533,6 +542,10 @@ function Aquafulness() {
   // meters up/down from wherever it rests.
   const [swingYAmplitude, setSwingYAmplitude] = useState(initial.swingYAmplitude);
   const [swingPreset, setSwingPreset] = useState<SwingPreset>(initial.swingPreset);
+  // Physical width/depth (meters) of the recentered water and cloud planes —
+  // shared by the ocean surface and both cloud layers so all three always
+  // extend exactly this far before their edge could show.
+  const [surfaceArea, setSurfaceArea] = useState(initial.surfaceArea);
   const [rotStick, setRotStick] = useState({ x: 0, y: 0 });
   const [driftStick, setDriftStick] = useState({ x: 0, y: 0 });
   const [waveDirStick, setWaveDirStick] = useState({ x: 0, y: 0 });
@@ -560,6 +573,11 @@ function Aquafulness() {
   // in and out without tearing down the whole renderer.
   const sceneRef = useRef<THREE.Scene | null>(null);
   const modelRef = useRef<THREE.Object3D | null>(null);
+  // The recentered water/cloud planes, so the YTA (surface area) setting can
+  // rescale them live without tearing down the renderer.
+  const oceanRef = useRef<THREE.Mesh | null>(null);
+  const midCloudsMeshRef = useRef<THREE.Mesh | null>(null);
+  const skyCloudsMeshRef = useRef<THREE.Mesh | null>(null);
   // Manages the CSS3DRenderer-backed "TV apparatus" panels layered on top of
   // the WebGL scene, sharing the same camera; see CSS3DTVManager.
   const tvManagerRef = useRef<CSS3DTVManager | null>(null);
@@ -589,12 +607,12 @@ function Aquafulness() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingHeight, swingIntensity, swingXFactor, swingYAmplitude, swingPreset };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingHeight, swingIntensity, swingXFactor, swingYAmplitude, swingPreset, surfaceArea };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingHeight, swingIntensity, swingXFactor, swingYAmplitude, swingPreset]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingHeight, swingIntensity, swingXFactor, swingYAmplitude, swingPreset, surfaceArea]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -628,6 +646,7 @@ function Aquafulness() {
   const swingIntensityRef = useRef(swingIntensity);
   const swingXFactorRef = useRef(swingXFactor);
   const swingYAmplitudeRef = useRef(swingYAmplitude);
+  const surfaceAreaRef = useRef(surfaceArea);
   // Yaw captured the instant swing mode is entered, so the pendulum's
   // side-to-side arc stays perpendicular to whichever way you were already
   // facing instead of snapping to a fixed world axis.
@@ -760,6 +779,17 @@ function Aquafulness() {
   useEffect(() => { swingIntensityRef.current = swingIntensity; }, [swingIntensity]);
   useEffect(() => { swingXFactorRef.current = swingXFactor; }, [swingXFactor]);
   useEffect(() => { swingYAmplitudeRef.current = swingYAmplitude; }, [swingYAmplitude]);
+  // Live YTA dial → rescale the already-created water/cloud meshes (a no-op
+  // until the WebGL mount effect below has run and populated the refs; that
+  // effect applies the same scale itself when first creating them).
+  useEffect(() => {
+    surfaceAreaRef.current = surfaceArea;
+    const oceanScale = surfaceArea / OCEAN_BASE_SIZE;
+    oceanRef.current?.scale.set(oceanScale, 1, oceanScale);
+    const cloudScale = surfaceArea / CLOUD_BASE_SIZE;
+    midCloudsMeshRef.current?.scale.set(cloudScale, 1, cloudScale);
+    skyCloudsMeshRef.current?.scale.set(cloudScale, 1, cloudScale);
+  }, [surfaceArea]);
   // Mode switch: hand off position/orientation continuity between schemes so
   // switching never teleports the camera. Entering noclip seeds its vertical
   // position from wherever the wave spring last had the camera; entering
@@ -866,6 +896,7 @@ function Aquafulness() {
     setSwingIntensity(DEFAULTS.swingIntensity);
     setSwingXFactor(DEFAULTS.swingXFactor);
     setSwingYAmplitude(DEFAULTS.swingYAmplitude);
+    setSurfaceArea(DEFAULTS.surfaceArea);
     setSwingPreset(DEFAULTS.swingPreset);
     // timeOfDay is intentionally left untouched.
   };
@@ -1704,6 +1735,13 @@ function Aquafulness() {
     });
     mat.forceSinglePass = true;
     const ocean = new THREE.Mesh(geo, mat);
+    // Rescale to the live YTA (surface area) setting — wave math is computed
+    // from vWorldPos (position × modelMatrix) in the shader, so scaling the
+    // mesh stretches its true world-space extent rather than the wave shape
+    // itself; only the flat, already-faded-out far field grows.
+    const oceanScale0 = surfaceAreaRef.current / OCEAN_BASE_SIZE;
+    ocean.scale.set(oceanScale0, 1, oceanScale0);
+    oceanRef.current = ocean;
     scene.add(ocean);
 
     // Optional seafloor beneath the ocean plane. ShaderMaterial gör den
@@ -1905,6 +1943,9 @@ function Aquafulness() {
     midClouds.position.y = -7;
     midClouds.visible = false;
     midClouds.renderOrder = -1;
+    const cloudScale0 = surfaceAreaRef.current / CLOUD_BASE_SIZE;
+    midClouds.scale.set(cloudScale0, 1, cloudScale0);
+    midCloudsMeshRef.current = midClouds;
     scene.add(midClouds);
 
     // Sky clouds — same drifting fbm layer as the mid-water clouds, but
@@ -1939,6 +1980,8 @@ function Aquafulness() {
     skyClouds.position.y = 150;
     skyClouds.visible = false;
     skyClouds.renderOrder = -1;
+    skyClouds.scale.set(cloudScale0, 1, cloudScale0);
+    skyCloudsMeshRef.current = skyClouds;
     scene.add(skyClouds);
 
     // Sky dome
@@ -2236,7 +2279,7 @@ function Aquafulness() {
         // meters — independent of both, so it can swing tens of thousands
         // of meters up/down from wherever it rests.
         const rightX = Math.cos(swingYawRef.current), rightZ = -Math.sin(swingYawRef.current);
-        const intensity = Math.max(0.05, swingIntensityRef.current);
+        const intensity = Math.max(0.01, swingIntensityRef.current);
         const ampRad = THREE.MathUtils.degToRad(Math.min(75, 15 + intensity * 25));
         const omega = 0.3 + intensity * 0.25;
         const horizArmLen = Math.max(8, Math.min(60, swingHeightRef.current * 0.6));
@@ -2657,6 +2700,9 @@ function Aquafulness() {
       reflWhiteTexRef.current = null;
       waterUniformsRef.current = null;
       sceneRef.current = null;
+      oceanRef.current = null;
+      midCloudsMeshRef.current = null;
+      skyCloudsMeshRef.current = null;
       tvManager.dispose();
       tvManagerRef.current = null;
       if (renderer.domElement.parentNode === mount) {
@@ -3003,6 +3049,8 @@ function Aquafulness() {
     setSkyCloudsOn,
     skyCloudsHeight,
     setSkyCloudsHeight,
+    surfaceArea,
+    setSurfaceArea,
     scenes,
     sceneId,
     cycleScene,
