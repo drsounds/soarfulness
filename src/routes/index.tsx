@@ -14,7 +14,11 @@ import {
   BOTTOM_OPTIONS,
   BACKDROPS,
   SETTINGS_TABS,
+  CAMERA_MODES,
+  SWING_PRESETS,
   type SettingsTab,
+  type CameraMode,
+  type SwingPreset,
 } from "@/lib/settingsShared";
 import waterAsset from "@/assets/water.mp3.asset.json";
 import sandTextureAsset from "@/assets/sand_cc0_512.jpg.asset.json";
@@ -181,6 +185,11 @@ type Persisted = {
   sphereMaterial: boolean;
   sphereStrength: number;
   trochoid: number;
+  cameraMode: CameraMode;
+  noclipSpeed: number;
+  swingHeight: number;
+  swingIntensity: number;
+  swingPreset: SwingPreset;
 };
 // Parse a "#rrggbb" hex string into normalized [0,1] RGB. Falls back to a
 // neutral sand tone on malformed input rather than throwing.
@@ -384,6 +393,11 @@ const DEFAULTS: Persisted = {
   sphereMaterial: false,
   sphereStrength: 0.7,
   trochoid: 0,
+  cameraMode: "float",
+  noclipSpeed: 1,
+  swingHeight: 25,
+  swingIntensity: 1,
+  swingPreset: "water",
 };
 function loadSettings(): Persisted {
   if (typeof window === "undefined") return DEFAULTS;
@@ -402,7 +416,10 @@ function loadSettings(): Persisted {
 // "restore" action can jump back to wherever the camera was left without
 // requiring that value to feed into the physics loop on every reload.
 const CAMERA_STORAGE_KEY = "aquafulness:camera:v1";
-type CameraPose = { x: number; z: number; yaw: number; pitch: number };
+// y is only meaningful (and only saved) in noclip mode, where there is no
+// wave-surface spring to re-derive a height from — optional so old saves
+// without it still parse.
+type CameraPose = { x: number; z: number; yaw: number; pitch: number; y?: number };
 function loadCameraPose(): CameraPose | null {
   if (typeof window === "undefined") return null;
   try {
@@ -500,10 +517,18 @@ function Aquafulness() {
   const [sphereMaterial, setSphereMaterial] = useState(initial.sphereMaterial);
   const [sphereStrength, setSphereStrength] = useState(initial.sphereStrength);
   const [trochoid, setTrochoid] = useState(initial.trochoid);
+  const [cameraMode, setCameraMode] = useState<CameraMode>(initial.cameraMode);
+  const [noclipSpeed, setNoclipSpeed] = useState(initial.noclipSpeed);
+  const [swingHeight, setSwingHeight] = useState(initial.swingHeight);
+  const [swingIntensity, setSwingIntensity] = useState(initial.swingIntensity);
+  const [swingPreset, setSwingPreset] = useState<SwingPreset>(initial.swingPreset);
   const [rotStick, setRotStick] = useState({ x: 0, y: 0 });
   const [driftStick, setDriftStick] = useState({ x: 0, y: 0 });
   const [waveDirStick, setWaveDirStick] = useState({ x: 0, y: 0 });
   const [swayStick, setSwayStick] = useState({ x: 0, y: 0 });
+  // Noclip's dedicated vertical (ascend/descend) joystick, shown in place of
+  // STRÖM which has no meaning outside float mode.
+  const [vertStick, setVertStick] = useState({ x: 0, y: 0 });
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("vagor");
   const [phoneOpen, setPhoneOpen] = useState(false);
@@ -553,12 +578,12 @@ function Aquafulness() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingHeight, swingIntensity, swingPreset };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingHeight, swingIntensity, swingPreset]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -580,9 +605,20 @@ function Aquafulness() {
   const camOffYRef = useRef(camOffY);
   const camOffZRef = useRef(camOffZ);
   const stickRef = useRef({ x: 0, y: 0 });
-  const posRef = useRef({ x: 0, z: 0 });
+  // y is only driven in noclip mode (free vertical flight); float/swing
+  // modes derive height from the wave spring / pendulum instead.
+  const posRef = useRef({ x: 0, y: 0, z: 0 });
   const camYRef = useRef<number | null>(null);
   const camVYRef = useRef(0);
+  const vertStickRef = useRef({ x: 0, y: 0 });
+  const cameraModeRef = useRef<CameraMode>(cameraMode);
+  const noclipSpeedRef = useRef(noclipSpeed);
+  const swingHeightRef = useRef(swingHeight);
+  const swingIntensityRef = useRef(swingIntensity);
+  // Yaw captured the instant swing mode is entered, so the pendulum's
+  // side-to-side arc stays perpendicular to whichever way you were already
+  // facing instead of snapping to a fixed world axis.
+  const swingYawRef = useRef(0);
   const swayPosRef = useRef({ x: 0, z: 0 });
   const swayVelRef = useRef({ x: 0, z: 0 });
   const waterTintRef = useRef(waterTintIdx);
@@ -654,6 +690,7 @@ function Aquafulness() {
   useEffect(() => { camOffYRef.current = camOffY; }, [camOffY]);
   useEffect(() => { camOffZRef.current = camOffZ; }, [camOffZ]);
   useEffect(() => { stickRef.current = stick; }, [stick]);
+  useEffect(() => { vertStickRef.current = vertStick; }, [vertStick]);
   useEffect(() => { rotStickRef.current = rotStick; }, [rotStick]);
   useEffect(() => { waterTintRef.current = waterTintIdx; }, [waterTintIdx]);
   useEffect(() => { waterOpacityRef.current = waterOpacity; }, [waterOpacity]);
@@ -705,6 +742,21 @@ function Aquafulness() {
   useEffect(() => { sphereMaterialRef.current = sphereMaterial; }, [sphereMaterial]);
   useEffect(() => { sphereStrengthRef.current = sphereStrength; }, [sphereStrength]);
   useEffect(() => { trochoidRef.current = trochoid; }, [trochoid]);
+  useEffect(() => { noclipSpeedRef.current = noclipSpeed; }, [noclipSpeed]);
+  useEffect(() => { swingHeightRef.current = swingHeight; }, [swingHeight]);
+  useEffect(() => { swingIntensityRef.current = swingIntensity; }, [swingIntensity]);
+  // Mode switch: hand off position/orientation continuity between schemes so
+  // switching never teleports the camera. Entering noclip seeds its vertical
+  // position from wherever the wave spring last had the camera; entering
+  // swing captures the current look yaw as the pendulum's swing plane.
+  useEffect(() => {
+    cameraModeRef.current = cameraMode;
+    if (cameraMode === "noclip") {
+      posRef.current.y = camYRef.current ?? swingHeightRef.current;
+    } else if (cameraMode === "swing") {
+      swingYawRef.current = yawRef.current;
+    }
+  }, [cameraMode]);
   // Håll VÅGRIKT-spakens visuella läge synkat med waveDir (t.ex. när dialen ändras
   // eller vid uppstart), men bara när spaken själv står i vila.
   useEffect(() => {
@@ -793,6 +845,11 @@ function Aquafulness() {
     setSphereMaterial(DEFAULTS.sphereMaterial);
     setSphereStrength(DEFAULTS.sphereStrength);
     setTrochoid(DEFAULTS.trochoid);
+    setCameraMode(DEFAULTS.cameraMode);
+    setNoclipSpeed(DEFAULTS.noclipSpeed);
+    setSwingHeight(DEFAULTS.swingHeight);
+    setSwingIntensity(DEFAULTS.swingIntensity);
+    setSwingPreset(DEFAULTS.swingPreset);
     // timeOfDay is intentionally left untouched.
   };
 
@@ -805,8 +862,27 @@ function Aquafulness() {
     if (!saved) return;
     posRef.current.x = saved.x;
     posRef.current.z = saved.z;
+    if (typeof saved.y === "number") posRef.current.y = saved.y;
     yawRef.current = saved.yaw;
     pitchRef.current = saved.pitch;
+  };
+
+  // Cycle through the three camera movement schemes (float / noclip / swing).
+  const cycleCameraMode = (dir: number) => {
+    const idx = CAMERA_MODES.indexOf(cameraMode);
+    setCameraMode(CAMERA_MODES[(idx + dir + CAMERA_MODES.length) % CAMERA_MODES.length]);
+  };
+
+  // Sky-swing's starting height: a fixed preset snaps SWING HÖJD to a sane
+  // value immediately; "custom" just marks the dial as freely user-set.
+  const applySwingPreset = (preset: SwingPreset) => {
+    setSwingPreset(preset);
+    if (preset === "water") setSwingHeight(12);
+    else if (preset === "clouds") setSwingHeight(Math.round(60 + skyCloudsHeight * 440));
+  };
+  const cycleSwingPreset = (dir: number) => {
+    const idx = SWING_PRESETS.indexOf(swingPreset);
+    applySwingPreset(SWING_PRESETS[(idx + dir + SWING_PRESETS.length) % SWING_PRESETS.length]);
   };
 
   // Step through the available scenes, including an "AV" (no model) slot.
@@ -1957,7 +2033,7 @@ function Aquafulness() {
     let waveT = 0;
     const clock = new THREE.Clock();
     const saveCameraPoseNow = () => {
-      saveCameraPose({ x: posRef.current.x, z: posRef.current.z, yaw: yawRef.current, pitch: pitchRef.current });
+      saveCameraPose({ x: posRef.current.x, z: posRef.current.z, y: posRef.current.y, yaw: yawRef.current, pitch: pitchRef.current });
     };
     window.addEventListener("pagehide", saveCameraPoseNow);
     const animate = () => {
@@ -2100,11 +2176,57 @@ function Aquafulness() {
       // med strömmen även när NAV är i vila.
       // I VIRVEL-läge tolkas NAV om: stick.y = närmare/längre bort från
       // virvelns centrum, stick.x = vridriktning kring virveln.
-      const inVortex = vortexModeRef.current;
+      const camMode = cameraModeRef.current;
+      const inVortex = camMode === "float" && vortexModeRef.current;
       const walkSpeed = 8; // m/s at full deflection
       const driftSpeed = 2.2; // m/s at full deflection — mjukare än aktiv rörelse
       let camX: number, camZ: number;
-      if (inVortex) {
+      if (camMode === "noclip") {
+        // Free 3D flight, no wave physics: NAV's y-axis moves along the full
+        // view direction (pitch included), so looking up/down while pushing
+        // forward climbs or dives — the standard "spectator/noclip" feel.
+        // NAV's x-axis still strafes purely horizontally. The dedicated HÖJD
+        // stick adds a pure vertical rate on top, for climbing/descending
+        // while looking level.
+        const yaw = yawRef.current;
+        const pitch = pitchRef.current;
+        const cosPitch = Math.cos(pitch);
+        const fwdX = -Math.sin(yaw) * cosPitch;
+        const fwdY = Math.sin(pitch);
+        const fwdZ = -Math.cos(yaw) * cosPitch;
+        const rightX = Math.cos(yaw), rightZ = -Math.sin(yaw);
+        const speed = walkSpeed * Math.max(0.1, noclipSpeedRef.current);
+        const moveX = stickRef.current.x * rightX + stickRef.current.y * fwdX;
+        const moveZ = stickRef.current.x * rightZ + stickRef.current.y * fwdZ;
+        const moveY = stickRef.current.y * fwdY + vertStickRef.current.y;
+        posRef.current.x += moveX * speed * physDt;
+        posRef.current.y += moveY * speed * physDt;
+        posRef.current.z += moveZ * speed * physDt;
+        camX = posRef.current.x;
+        camZ = posRef.current.z;
+        camYRef.current = posRef.current.y;
+        camVYRef.current = 0;
+      } else if (camMode === "swing") {
+        // Pendulum swinging back and forth high above the water. The
+        // horizontal anchor is wherever the camera was last (so entering
+        // swing mode never teleports — this doubles as its "custom start
+        // position"); SWING HÖJD/INTENSITET set the resting height and the
+        // arc's amplitude/speed, and swingYawRef (captured on mode entry)
+        // keeps the swing plane perpendicular to the direction you were
+        // already facing.
+        const rightX = Math.cos(swingYawRef.current), rightZ = -Math.sin(swingYawRef.current);
+        const intensity = Math.max(0.05, swingIntensityRef.current);
+        const ampRad = THREE.MathUtils.degToRad(Math.min(75, 15 + intensity * 25));
+        const omega = 0.3 + intensity * 0.25;
+        const armLen = Math.max(8, Math.min(60, swingHeightRef.current * 0.6));
+        const theta = ampRad * Math.sin(t * omega);
+        const swingOff = Math.sin(theta) * armLen;
+        camX = posRef.current.x + rightX * swingOff;
+        camZ = posRef.current.z + rightZ * swingOff;
+        // Higher at the ends of the arc than at the bottom, like a real swing.
+        camYRef.current = swingHeightRef.current + armLen * (1 - Math.cos(theta));
+        camVYRef.current = 0;
+      } else if (inVortex) {
         // Orbit around origin. NAV.y in/ut, NAV.x tangent.
         const op = vortexOpeningRef.current;
         // Base angular speed scales with the dedicated vortex speed dial
@@ -2162,142 +2284,152 @@ function Aquafulness() {
         ? vortexSurfaceHeight(camX, camZ, t, ampRef.current, regularPeriodRef.current, vortexOpeningRef.current)
         : waveHeight(camX, camZ, t, ampRef.current, regularRef.current, regularCrossRef.current && crossAffectsHeaveRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad);
 
-      // Compute wave vertical velocity first so buoyancy can react to it.
-      // Clamp it too, not just the anticipatory peek below: on a dropped
-      // frame (large dt) a sharp crest can still alias into a real spike
-      // here even without any forward lookahead involved, which is exactly
-      // the failure mode on the low-end devices this dial should stay safe
-      // for.
-      if (prevSurfaceRef.current === null) prevSurfaceRef.current = surfaceY;
-      const maxBaseSlope = ampRef.current * 8.0;
-      const surfVel = Math.max(-maxBaseSlope, Math.min(maxBaseSlope, (surfaceY - prevSurfaceRef.current) / Math.max(dt, 1e-4)));
-      prevSurfaceRef.current = surfaceY;
+      // The wave-following buoyancy spring and current/sway drift only apply
+      // in float mode — noclip flies free of the wave surface and swing
+      // already set camYRef.current to its pendulum height above.
+      let swayX = 0,
+        swayZ = 0;
+      if (camMode === "float") {
+        // Compute wave vertical velocity first so buoyancy can react to it.
+        // Clamp it too, not just the anticipatory peek below: on a dropped
+        // frame (large dt) a sharp crest can still alias into a real spike
+        // here even without any forward lookahead involved, which is exactly
+        // the failure mode on the low-end devices this dial should stay safe
+        // for.
+        if (prevSurfaceRef.current === null) prevSurfaceRef.current = surfaceY;
+        const maxBaseSlope = ampRef.current * 8.0;
+        const surfVel = Math.max(-maxBaseSlope, Math.min(maxBaseSlope, (surfaceY - prevSurfaceRef.current) / Math.max(dt, 1e-4)));
+        prevSurfaceRef.current = surfaceY;
 
-      // Anticipatory velocity: peek slightly into the future so buoyancy
-      // reacts at the *start* of a wave rise (trough) rather than mid-rise.
-      // Sharper crests (higher SPETS) have very brief, near-cusp peaks — a
-      // fixed lead samples a secant slope that can land right on that cusp
-      // and wildly over/underestimate the true derivative, which used to
-      // spike anticipVel and make the spring ring (the SPETS/heave wobble).
-      // Shrink the lookahead hard as sharpness rises, hard-clamp the raw
-      // secant slope to a sane bound, and lean harder on the already-exact
-      // small-dt surfVel instead of the error-prone long peek.
-      const peakK = Math.min(1, Math.max(0, (wavePeakRef.current - 1) / 5));
-      // Larger base lead → buoyancy reacts as soon as the wave begins to
-      // rise, not after it has already lifted the surface past the camera.
-      const lead = 0.7 / (1 + peakK * 6.0);
-      const futureSurf = inVortex
-        ? vortexSurfaceHeight(camX, camZ, t + lead, ampRef.current, regularPeriodRef.current, vortexOpeningRef.current)
-        : waveHeight(camX, camZ, t + lead, ampRef.current, regularRef.current, regularCrossRef.current && crossAffectsHeaveRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad);
-      const maxSlope = ampRef.current * 6.0;
-      const rawAnticip = Math.max(-maxSlope, Math.min(maxSlope, (futureSurf - surfaceY) / lead));
-      const blend = 1 - peakK * 0.85;
-      const anticipVel = rawAnticip * blend + surfVel * (1 - blend);
+        // Anticipatory velocity: peek slightly into the future so buoyancy
+        // reacts at the *start* of a wave rise (trough) rather than mid-rise.
+        // Sharper crests (higher SPETS) have very brief, near-cusp peaks — a
+        // fixed lead samples a secant slope that can land right on that cusp
+        // and wildly over/underestimate the true derivative, which used to
+        // spike anticipVel and make the spring ring (the SPETS/heave wobble).
+        // Shrink the lookahead hard as sharpness rises, hard-clamp the raw
+        // secant slope to a sane bound, and lean harder on the already-exact
+        // small-dt surfVel instead of the error-prone long peek.
+        const peakK = Math.min(1, Math.max(0, (wavePeakRef.current - 1) / 5));
+        // Larger base lead → buoyancy reacts as soon as the wave begins to
+        // rise, not after it has already lifted the surface past the camera.
+        const lead = 0.7 / (1 + peakK * 6.0);
+        const futureSurf = inVortex
+          ? vortexSurfaceHeight(camX, camZ, t + lead, ampRef.current, regularPeriodRef.current, vortexOpeningRef.current)
+          : waveHeight(camX, camZ, t + lead, ampRef.current, regularRef.current, regularCrossRef.current && crossAffectsHeaveRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad);
+        const maxSlope = ampRef.current * 6.0;
+        const rawAnticip = Math.max(-maxSlope, Math.min(maxSlope, (futureSurf - surfaceY) / lead));
+        const blend = 1 - peakK * 0.85;
+        const anticipVel = rawAnticip * blend + surfVel * (1 - blend);
 
-      const amp = ampRef.current;
-      const b = buoyRef.current;
-      const sub = submergeRef.current;
-      const lift = floatLiftRef.current;
-      // Feed-forward the future surface height into the target so the camera
-      // starts moving in sync with the incoming wave instead of chasing it.
-      const futureBias = 0.55;
-      const anticipSurf = surfaceY * (1 - futureBias) + futureSurf * futureBias;
-      const cap = amp * 1.4;
-      const rawDive = Math.max(0, anticipVel) * sub * 0.6 * (0.6 + amp * 0.6);
-      const rawLift = anticipVel * lift * 0.35 * (0.6 + amp * 0.6);
-      const diveOffset = Math.min(cap, rawDive);
-      const liftOffset = Math.max(-cap, Math.min(cap, rawLift));
-      const targetY = anticipSurf + heightRef.current - diveOffset + liftOffset;
+        const amp = ampRef.current;
+        const b = buoyRef.current;
+        const sub = submergeRef.current;
+        const lift = floatLiftRef.current;
+        // Feed-forward the future surface height into the target so the camera
+        // starts moving in sync with the incoming wave instead of chasing it.
+        const futureBias = 0.55;
+        const anticipSurf = surfaceY * (1 - futureBias) + futureSurf * futureBias;
+        const cap = amp * 1.4;
+        const rawDive = Math.max(0, anticipVel) * sub * 0.6 * (0.6 + amp * 0.6);
+        const rawLift = anticipVel * lift * 0.35 * (0.6 + amp * 0.6);
+        const diveOffset = Math.min(cap, rawDive);
+        const liftOffset = Math.max(-cap, Math.min(cap, rawLift));
+        const targetY = anticipSurf + heightRef.current - diveOffset + liftOffset;
 
-      if (camYRef.current === null) camYRef.current = targetY;
-      // Cutting stiffness in the previous pass fixed the hard bounce but
-      // broke heave sync: the wave's own angular frequency (~0.9*waveSpeed,
-      // a few rad/s at defaults) was no longer well below the spring's
-      // natural frequency (sqrt(k)), so it started visibly lagging the
-      // wave. Stiffness is restored to its original value — needed for the
-      // spring to track the wave's frequency closely — and instead only
-      // damping is pushed up, close to critical. The "hard hit and bounce"
-      // feeling was underdamping (zeta 0.32) causing overshoot/oscillation
-      // after a fast snap, not the fast snap itself; near-critical damping
-      // keeps the same fast, well-synced tracking but removes the overshoot
-      // so it settles smoothly instead of bouncing.
-      const k = (10 + 26 * bobSpeedRef.current) * (1 + peakK * 0.2);
-      const zeta = 0.85 + peakK * 0.1;
-      const c = 2 * zeta * Math.sqrt(k);
-      const gravity = (1.2 + 3 * amp) * b * sub - (1.0 + 2 * amp) * b * lift;
-      const ay = k * (targetY - camYRef.current) - c * camVYRef.current - gravity;
-      camVYRef.current += ay * physDt;
-      camYRef.current += camVYRef.current * physDt;
+        if (camYRef.current === null) camYRef.current = targetY;
+        // Cutting stiffness in the previous pass fixed the hard bounce but
+        // broke heave sync: the wave's own angular frequency (~0.9*waveSpeed,
+        // a few rad/s at defaults) was no longer well below the spring's
+        // natural frequency (sqrt(k)), so it started visibly lagging the
+        // wave. Stiffness is restored to its original value — needed for the
+        // spring to track the wave's frequency closely — and instead only
+        // damping is pushed up, close to critical. The "hard hit and bounce"
+        // feeling was underdamping (zeta 0.32) causing overshoot/oscillation
+        // after a fast snap, not the fast snap itself; near-critical damping
+        // keeps the same fast, well-synced tracking but removes the overshoot
+        // so it settles smoothly instead of bouncing.
+        const k = (10 + 26 * bobSpeedRef.current) * (1 + peakK * 0.2);
+        const zeta = 0.85 + peakK * 0.1;
+        const c = 2 * zeta * Math.sqrt(k);
+        const gravity = (1.2 + 3 * amp) * b * sub - (1.0 + 2 * amp) * b * lift;
+        const ay = k * (targetY - camYRef.current) - c * camVYRef.current - gravity;
+        camVYRef.current += ay * physDt;
+        camYRef.current += camVYRef.current * physDt;
 
-      // "Sway" drift — phase-locked to the vertical wave heave so the body
-      // swings in rhythm with the up/down bob instead of on an unrelated
-      // clock. Driven straight off the camera's own surfaceY (the same
-      // signal that drives the vertical bob). tanh (instead of a hard
-      // clamp) keeps the curve continuously rounded through the crest and
-      // trough rather than clipping flat, so both the SVAJ dial wander and
-      // the SVAJ pad below always peak together with the heave.
-      const heaveNorm = amp > 0.0001 ? Math.tanh(surfaceY / (amp * 2.2)) : 0;
+        // "Sway" drift — phase-locked to the vertical wave heave so the body
+        // swings in rhythm with the up/down bob instead of on an unrelated
+        // clock. Driven straight off the camera's own surfaceY (the same
+        // signal that drives the vertical bob). tanh (instead of a hard
+        // clamp) keeps the curve continuously rounded through the crest and
+        // trough rather than clipping flat, so both the SVAJ dial wander and
+        // the SVAJ pad below always peak together with the heave.
+        const heaveNorm = amp > 0.0001 ? Math.tanh(surfaceY / (amp * 2.2)) : 0;
 
-      const swAmp = swayAmpRef.current;
-      let swayTargetX = 0, swayTargetZ = 0;
-      if (swAmp > 0.001) {
-        const ws = swaySpeedRef.current; // 0..1
-        const dirRadS = (waveDirRef.current * Math.PI) / 180;
-        const dx = Math.sin(dirRadS);
-        const dz = -Math.cos(dirRadS);
-        // Slow directional bias envelope (unchanged tempo knob) so the
-        // along-wave push doesn't feel like a constant shove.
-        const bias = swayBiasRef.current;
-        const st = t * Math.max(0.02, ws);
-        const biasEnv = Math.sin(st * 0.09) * 0.5 + 0.5; // 0..1
-        swayTargetX = swAmp * (heaveNorm * dx + bias * dx * biasEnv * 1.2);
-        swayTargetZ = swAmp * (heaveNorm * dz + bias * dz * biasEnv * 1.2);
+        const swAmp = swayAmpRef.current;
+        let swayTargetX = 0, swayTargetZ = 0;
+        if (swAmp > 0.001) {
+          const ws = swaySpeedRef.current; // 0..1
+          const dirRadS = (waveDirRef.current * Math.PI) / 180;
+          const dx = Math.sin(dirRadS);
+          const dz = -Math.cos(dirRadS);
+          // Slow directional bias envelope (unchanged tempo knob) so the
+          // along-wave push doesn't feel like a constant shove.
+          const bias = swayBiasRef.current;
+          const st = t * Math.max(0.02, ws);
+          const biasEnv = Math.sin(st * 0.09) * 0.5 + 0.5; // 0..1
+          swayTargetX = swAmp * (heaveNorm * dx + bias * dx * biasEnv * 1.2);
+          swayTargetZ = swAmp * (heaveNorm * dz + bias * dz * biasEnv * 1.2);
+        }
+
+        // Directional sway from the sticky SVAJ pad — the pad was set relative
+        // to the camera's look direction at the moment it was touched, but the
+        // real push it represents is fixed in world space from then on
+        // (swayWorldRef; padToWorldXZ), so it no longer silently rotates just
+        // because the camera looks elsewhere afterwards. Amplitude follows the
+        // same heaveNorm signal as the wander above, so pad-driven sway is
+        // phase-locked to the vertical bob too. Distance from pad center = how
+        // far the camera swings in that direction.
+        const dirX = swayWorldRef.current.x;
+        const dirZ = swayWorldRef.current.z;
+        if (Math.abs(dirX) + Math.abs(dirZ) > 0.001) {
+          // Base amplitude scale in meters — reuse SVAJ dial if set, otherwise
+          // give the pad its own reasonable range so it works standalone.
+          const padAmp = swAmp > 0.001 ? swAmp : 6;
+          swayTargetX += padAmp * dirX * heaveNorm;
+          swayTargetZ += padAmp * dirZ * heaveNorm;
+        }
+
+        // Ease toward the sway target with a light spring instead of snapping
+        // straight to it every frame. Without this the horizontal sway was
+        // rigidly locked to the analytic wave value — perfectly synced, but
+        // reading as mechanically "dragged" since it had no inertia, unlike
+        // the vertical bob below which already springs toward its target.
+        // Giving sway the same kind of momentum makes it read as a floating
+        // body being carried by the wave. SVAJ TEMPO still sets how snappy
+        // that response is (higher = tighter to the heave, lower = looser).
+        const swK = 5 + 20 * Math.max(0.05, swaySpeedRef.current);
+        const swZeta = 0.6;
+        const swC = 2 * swZeta * Math.sqrt(swK);
+        const swayAX = swK * (swayTargetX - swayPosRef.current.x) - swC * swayVelRef.current.x;
+        const swayAZ = swK * (swayTargetZ - swayPosRef.current.z) - swC * swayVelRef.current.z;
+        swayVelRef.current.x += swayAX * physDt;
+        swayVelRef.current.z += swayAZ * physDt;
+        swayPosRef.current.x += swayVelRef.current.x * physDt;
+        swayPosRef.current.z += swayVelRef.current.z * physDt;
+        swayX = swayPosRef.current.x;
+        swayZ = swayPosRef.current.z;
       }
-
-      // Directional sway from the sticky SVAJ pad — the pad was set relative
-      // to the camera's look direction at the moment it was touched, but the
-      // real push it represents is fixed in world space from then on
-      // (swayWorldRef; padToWorldXZ), so it no longer silently rotates just
-      // because the camera looks elsewhere afterwards. Amplitude follows the
-      // same heaveNorm signal as the wander above, so pad-driven sway is
-      // phase-locked to the vertical bob too. Distance from pad center = how
-      // far the camera swings in that direction.
-      const dirX = swayWorldRef.current.x;
-      const dirZ = swayWorldRef.current.z;
-      if (Math.abs(dirX) + Math.abs(dirZ) > 0.001) {
-        // Base amplitude scale in meters — reuse SVAJ dial if set, otherwise
-        // give the pad its own reasonable range so it works standalone.
-        const padAmp = swAmp > 0.001 ? swAmp : 6;
-        swayTargetX += padAmp * dirX * heaveNorm;
-        swayTargetZ += padAmp * dirZ * heaveNorm;
-      }
-
-      // Ease toward the sway target with a light spring instead of snapping
-      // straight to it every frame. Without this the horizontal sway was
-      // rigidly locked to the analytic wave value — perfectly synced, but
-      // reading as mechanically "dragged" since it had no inertia, unlike
-      // the vertical bob below which already springs toward its target.
-      // Giving sway the same kind of momentum makes it read as a floating
-      // body being carried by the wave. SVAJ TEMPO still sets how snappy
-      // that response is (higher = tighter to the heave, lower = looser).
-      const swK = 5 + 20 * Math.max(0.05, swaySpeedRef.current);
-      const swZeta = 0.6;
-      const swC = 2 * swZeta * Math.sqrt(swK);
-      const swayAX = swK * (swayTargetX - swayPosRef.current.x) - swC * swayVelRef.current.x;
-      const swayAZ = swK * (swayTargetZ - swayPosRef.current.z) - swC * swayVelRef.current.z;
-      swayVelRef.current.x += swayAX * physDt;
-      swayVelRef.current.z += swayAZ * physDt;
-      swayPosRef.current.x += swayVelRef.current.x * physDt;
-      swayPosRef.current.z += swayVelRef.current.z * physDt;
-      const swayX = swayPosRef.current.x;
-      const swayZ = swayPosRef.current.z;
 
 
       // Manual XYZ camera offset (POS X/Y/Z dials) — applied after physics so
       // the user can nudge the viewpoint without disturbing the buoyancy loop.
+      // camYRef.current is only null before the very first frame sets it (in
+      // whichever mode-specific branch above ran this frame).
+      const camY = camYRef.current ?? 0;
       camera.position.set(
         camX + camOffXRef.current + swayX,
-        camYRef.current + camOffYRef.current + levelY,
+        camY + camOffYRef.current + levelY,
         camZ + camOffZRef.current + swayZ,
       );
       // Look direction: HAV = level forward; VIRVEL = mot centrum (så kameran
@@ -2323,7 +2455,10 @@ function Aquafulness() {
       const rotSpeed = 1.6; // rad/s at full deflection
       yawRef.current -= rotStickRef.current.x * rotSpeed * dt;
       pitchRef.current += rotStickRef.current.y * rotSpeed * dt;
-      const maxPitch = 1.2;
+      // Noclip allows a steeper look-up/down range since it drives full 3D
+      // flight direction (see the forward vector above); other modes keep
+      // the original, more conservative range.
+      const maxPitch = camMode === "noclip" ? 1.5 : 1.2;
       if (pitchRef.current > maxPitch) pitchRef.current = maxPitch;
       if (pitchRef.current < -maxPitch) pitchRef.current = -maxPitch;
       camera.rotateY(yawRef.current);
@@ -2349,19 +2484,21 @@ function Aquafulness() {
       // survives a reload and can be jumped back to via the restore button.
       if (now - lastCamSaveMs > 1000) {
         lastCamSaveMs = now;
-        saveCameraPose({ x: posRef.current.x, z: posRef.current.z, yaw: yawRef.current, pitch: pitchRef.current });
+        saveCameraPose({ x: posRef.current.x, z: posRef.current.z, y: posRef.current.y, yaw: yawRef.current, pitch: pitchRef.current });
       }
 
       // Optional forward-leaning rotation: pitch into the direction of travel.
-      // Default is a fixed forward horizon (no lean).
-      if (leanRef.current) {
+      // Default is a fixed forward horizon (no lean). Float-only — NAV means
+      // something different (full 3D flight / no movement at all) in the
+      // other two modes.
+      if (leanRef.current && camMode === "float") {
         const leanPitch = stickRef.current.y * 0.12;
         camera.rotateX(leanPitch);
       }
 
       // Sync audio intensity with depth below surface — only when spatial
       // audio is enabled. Default: constant volume with no filtering.
-      const depth = surfaceY - camYRef.current; // positive when underwater
+      const depth = surfaceY - camY; // positive when underwater
       const a = audioRef.current;
       if (a) {
         const now = a.ctx.currentTime;
@@ -2764,6 +2901,16 @@ function Aquafulness() {
     setVortexRadius,
     vortexSpeed,
     setVortexSpeed,
+    cameraMode,
+    cycleCameraMode,
+    noclipSpeed,
+    setNoclipSpeed,
+    swingHeight,
+    setSwingHeight,
+    swingIntensity,
+    setSwingIntensity,
+    swingPreset,
+    cycleSwingPreset,
     camOffX,
     setCamOffX,
     camOffY,
@@ -2997,59 +3144,78 @@ function Aquafulness() {
       {/* PS-liknande layout:
           Vänster sida: NAV (rörelse, momentan) längst ned, STRÖM (drift, sticky) ovanför.
           Höger sida: LOOK (rotation, momentan) längst ned, VÅGRIKT (sticky) ovanför.
-          Dubbelklicka en sticky-spak för att nolla den. */}
-      <Joystick
-        onChange={setStick}
-        value={stick}
-        label="NAV"
-        positionClass="bottom-6 left-6"
-      />
-      <Joystick
-        onChange={(v) => {
-          // The pad is read relative to the current look angle, then frozen
-          // into a real, fixed-in-world direction (driftWorldRef) — see
-          // padToWorldXZ. The render loop keeps the knob rotating afterwards
-          // to show that same real direction as the camera looks around.
-          setDriftStick(v);
-          driftDisplayRef.current = v;
-          driftWorldRef.current = padToWorldXZ(v.x, v.y, yawRef.current);
-        }}
-        value={driftStick}
-        label="STRÖM"
-        positionClass="bottom-36 left-6"
-        sticky
-      />
-      <Joystick
-        onChange={(v) => {
-          setSwayStick(v);
-          swayDisplayRef.current = v;
-          swayWorldRef.current = padToWorldXZ(v.x, v.y, yawRef.current);
-        }}
-        value={swayStick}
-        label="SVAJ"
-        positionClass="bottom-64 left-6"
-        sticky
-      />
+          Dubbelklicka en sticky-spak för att nolla den.
+          I NOCLIP ersätts STRÖM/SVAJ/VÅGRIKT (ström/vågspecifika) av en
+          dedikerad HÖJD-spak för fri vertikal rörelse. I GUNGA-läget styrs
+          positionen helt av gungans fysik, så bara LOOK visas. */}
+      {cameraMode !== "swing" && (
+        <Joystick
+          onChange={setStick}
+          value={stick}
+          label="NAV"
+          positionClass="bottom-6 left-6"
+        />
+      )}
+      {cameraMode === "float" && (
+        <Joystick
+          onChange={(v) => {
+            // The pad is read relative to the current look angle, then frozen
+            // into a real, fixed-in-world direction (driftWorldRef) — see
+            // padToWorldXZ. The render loop keeps the knob rotating afterwards
+            // to show that same real direction as the camera looks around.
+            setDriftStick(v);
+            driftDisplayRef.current = v;
+            driftWorldRef.current = padToWorldXZ(v.x, v.y, yawRef.current);
+          }}
+          value={driftStick}
+          label="STRÖM"
+          positionClass="bottom-36 left-6"
+          sticky
+        />
+      )}
+      {cameraMode === "noclip" && (
+        <Joystick
+          onChange={setVertStick}
+          value={vertStick}
+          label="HÖJD"
+          positionClass="bottom-36 left-6"
+        />
+      )}
+      {cameraMode === "float" && (
+        <Joystick
+          onChange={(v) => {
+            setSwayStick(v);
+            swayDisplayRef.current = v;
+            swayWorldRef.current = padToWorldXZ(v.x, v.y, yawRef.current);
+          }}
+          value={swayStick}
+          label="SVAJ"
+          positionClass="bottom-64 left-6"
+          sticky
+        />
+      )}
       <Joystick
         onChange={setRotStick}
         value={rotStick}
         label="LOOK"
         positionClass="bottom-6 right-6"
       />
-      <Joystick
-        onChange={(v) => {
-          setWaveDirStick(v);
-          const m = Math.hypot(v.x, v.y);
-          if (m > 0.15) {
-            const deg = (Math.atan2(v.x, v.y) * 180) / Math.PI;
-            setWaveDir(((deg % 360) + 360) % 360);
-          }
-        }}
-        value={waveDirStick}
-        label="VÅGRIKT"
-        positionClass="bottom-36 right-6"
-        sticky
-      />
+      {cameraMode === "float" && (
+        <Joystick
+          onChange={(v) => {
+            setWaveDirStick(v);
+            const m = Math.hypot(v.x, v.y);
+            if (m > 0.15) {
+              const deg = (Math.atan2(v.x, v.y) * 180) / Math.PI;
+              setWaveDir(((deg % 360) + 360) % 360);
+            }
+          }}
+          value={waveDirStick}
+          label="VÅGRIKT"
+          positionClass="bottom-36 right-6"
+          sticky
+        />
+      )}
       </div>
 
       {/* Virtual phone: a floating, draggable, resizable 2D bathOS device
