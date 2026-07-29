@@ -4,8 +4,19 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { CSS3DTVManager, type DeviceKind } from "@/lib/tv/CSS3DTVManager";
 import { VirtualPhone } from "@/components/VirtualPhone";
+import { SettingsPanel, type SettingsPanelProps } from "@/components/SettingsPanel";
+import {
+  padToWorldXZ,
+  worldXZToPad,
+  worldXZBearing,
+  bearingToWorldXZ,
+  WATER_TINTS,
+  BOTTOM_OPTIONS,
+  BACKDROPS,
+  SETTINGS_TABS,
+  type SettingsTab,
+} from "@/lib/settingsShared";
 import waterAsset from "@/assets/water.mp3.asset.json";
-import vanernBackdrop from "@/assets/vanern-backdrop.png.asset.json";
 import sandTextureAsset from "@/assets/sand_cc0_512.jpg.asset.json";
 import appIconAsset from "@/assets/AppIconBlack.png.asset.json";
 
@@ -89,35 +100,6 @@ function smoothstep(edge0: number, edge1: number, x: number) {
   return v * v * (3 - 2 * v);
 }
 
-// A "sticky" pad (STRÖM/SVAJ) is set once, relative to wherever the camera is
-// looking at that moment, then represents a real direction that stays fixed
-// in the world from then on — it must not silently rotate just because the
-// camera looks elsewhere afterwards. padToWorldXZ captures that real,
-// world-space vector at set-time; worldXZToPad is its inverse, used every
-// frame to re-derive what the pad should visually show relative to the
-// *current* look angle so the knob rotates in place to keep pointing at that
-// same real direction. Both share the camera's forward/right basis for yaw.
-function padToWorldXZ(px: number, py: number, yaw: number) {
-  const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
-  const rightX = Math.cos(yaw), rightZ = -Math.sin(yaw);
-  return { x: px * rightX + py * fwdX, z: px * rightZ + py * fwdZ };
-}
-function worldXZToPad(wx: number, wz: number, yaw: number) {
-  const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
-  const rightX = Math.cos(yaw), rightZ = -Math.sin(yaw);
-  return { x: wx * rightX + wz * rightZ, y: wx * fwdX + wz * fwdZ };
-}
-// World-space bearing (0-360°, 0 = world -z) for STRÖM/SVAJ's fixed real
-// direction, and its inverse — lets the RIKTNING dials give a finely precise
-// alternative to dragging the small on-screen pad by hand.
-function worldXZBearing(x: number, z: number) {
-  return ((Math.atan2(x, z) * 180) / Math.PI + 360) % 360;
-}
-function bearingToWorldXZ(deg: number, mag: number) {
-  const rad = ((((deg % 360) + 360) % 360) * Math.PI) / 180;
-  return { x: Math.sin(rad) * mag, z: Math.cos(rad) * mag };
-}
-
 // Pure radial sine surface used in vortex mode. Keep in sync with the shader's
 // vortex block so the camera rides the same even wave that is rendered.
 function vortexSurfaceHeight(x: number, z: number, t: number, amp: number, period: number, opening: number) {
@@ -198,25 +180,6 @@ type Persisted = {
   sphereStrength: number;
   trochoid: number;
 };
-const WATER_TINTS: { name: string; rgb: [number, number, number] }[] = [
-  { name: "Nordhav", rgb: [1, 1, 1] },
-  { name: "Tropisk", rgb: [0.55, 1.15, 1.25] },
-  { name: "Karibisk", rgb: [0.6, 1.35, 1.1] },
-  { name: "Medelhav", rgb: [0.8, 1.15, 1.3] },
-  { name: "Skärgård", rgb: [0.85, 1.0, 0.75] },
-  { name: "Djuphav", rgb: [0.55, 0.7, 1.15] },
-];
-const BOTTOM_OPTIONS: { name: string; rgb: [number, number, number] | null }[] = [
-  { name: "AV", rgb: null },
-  { name: "Sand", rgb: [0.85, 0.75, 0.5] },
-  { name: "Ljus sand", rgb: [0.95, 0.9, 0.72] },
-  { name: "Sten", rgb: [0.35, 0.32, 0.28] },
-  { name: "Korall", rgb: [0.9, 0.5, 0.45] },
-  { name: "Mörk botten", rgb: [0.08, 0.1, 0.12] },
-  { name: "Moln", rgb: [1, 1, 1] },
-  { name: "Anpassad", rgb: [0.6, 0.55, 0.45] },
-];
-
 // Parse a "#rrggbb" hex string into normalized [0,1] RGB. Falls back to a
 // neutral sand tone on malformed input rather than throwing.
 function hexToRgbNorm(hex: string): [number, number, number] {
@@ -225,19 +188,6 @@ function hexToRgbNorm(hex: string): [number, number, number] {
   const n = parseInt(m[1], 16);
   return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
 }
-const BACKDROPS: { name: string; url: string | null }[] = [
-  { name: "AV", url: null },
-  { name: "Vänern", url: vanernBackdrop.url },
-];
-
-type SettingsTab = "vagor" | "kamera" | "vatten" | "miljo" | "ljud";
-const SETTINGS_TABS: { id: SettingsTab; label: string }[] = [
-  { id: "vagor", label: "VÅGOR" },
-  { id: "kamera", label: "KAMERA" },
-  { id: "vatten", label: "VATTEN" },
-  { id: "miljo", label: "MILJÖ" },
-  { id: "ljud", label: "LJUD" },
-];
 
 // A loadable .glb scene lives in public/scenes/<id>/<id>.glb with an optional
 // public/scenes/<id>/manifest.json describing where/how to place it. The list
@@ -2689,6 +2639,153 @@ function Aquafulness() {
     return "Skymning";
   })();
 
+  // The exact same values/setters the main HUD's settings dialog above uses —
+  // shared with the identical clone rendered as the "Inställningar" app
+  // inside the virtual phone (see VirtualPhone.tsx's settingsPanelProps prop
+  // and SettingsPanel.tsx, which both hosts render unchanged).
+  const settingsPanelProps: SettingsPanelProps = {
+    settingsTab,
+    setSettingsTab,
+    restoreCameraPosition,
+    resetToDefaults,
+    waveAmp,
+    setWaveAmp,
+    waveSpeed,
+    setWaveSpeed,
+    heightOffset,
+    setHeightOffset,
+    submergeAmp,
+    setSubmergeAmp,
+    floatLift,
+    setFloatLift,
+    driftWorldRef,
+    driftDisplayRef,
+    setDriftStick,
+    swayWorldRef,
+    swayDisplayRef,
+    setSwayStick,
+    setStickBearing,
+    swayAmp,
+    setSwayAmp,
+    swaySpeed,
+    setSwaySpeed,
+    swayBias,
+    setSwayBias,
+    buoyAmp,
+    setBuoyAmp,
+    bobSpeed,
+    setBobSpeed,
+    regularWaves,
+    setRegularWaves,
+    regularCross,
+    setRegularCross,
+    crossAffectsHeave,
+    setCrossAffectsHeave,
+    regularPeriod,
+    setRegularPeriod,
+    wavePeak,
+    setWavePeak,
+    trochoid,
+    setTrochoid,
+    waveHighQuality,
+    setWaveHighQuality,
+    waveDir,
+    setWaveDir,
+    vortexMode,
+    setVortexMode,
+    vortexOpening,
+    setVortexOpening,
+    vortexRadius,
+    setVortexRadius,
+    vortexSpeed,
+    setVortexSpeed,
+    camOffX,
+    setCamOffX,
+    camOffY,
+    setCamOffY,
+    camOffZ,
+    setCamOffZ,
+    camFov,
+    setCamFov,
+    camNear,
+    setCamNear,
+    camFar,
+    setCamFar,
+    leanEnabled,
+    setLeanEnabled,
+    wakeLock,
+    setWakeLock,
+    waterTintIdx,
+    setWaterTintIdx,
+    surfaces,
+    surfaceId,
+    cycleSurface,
+    reflStrength,
+    setReflStrength,
+    sphereMaterial,
+    setSphereMaterial,
+    sphereStrength,
+    setSphereStrength,
+    waterOpacity,
+    setWaterOpacity,
+    waterHue,
+    setWaterHue,
+    waterSat,
+    setWaterSat,
+    waterBright,
+    setWaterBright,
+    surfBright,
+    setSurfBright,
+    surfSat,
+    setSurfSat,
+    turbidity,
+    setTurbidity,
+    bottomIdx,
+    setBottomIdx,
+    bottomColor,
+    setBottomColor,
+    floorDepth,
+    setFloorDepth,
+    floorTexture,
+    setFloorTexture,
+    depthSineOn,
+    setDepthSineOn,
+    depthSineAmp,
+    setDepthSineAmp,
+    depthSineFreq,
+    setDepthSineFreq,
+    hideWater,
+    setHideWater,
+    todLabel,
+    setTimeOfDay,
+    midCloudsOn,
+    setMidCloudsOn,
+    midCloudsHeight,
+    setMidCloudsHeight,
+    scenes,
+    sceneId,
+    cycleScene,
+    environments,
+    curEnv,
+    cycleEnv,
+    curEra,
+    cycleEra,
+    curTime,
+    cycleTime,
+    backdropIdx,
+    setBackdropIdx,
+    liveMode,
+    setLiveMode,
+    audioOn,
+    setAudioOn,
+    audioVol,
+    setAudioVol,
+    audioSyncSpeed,
+    setAudioSyncSpeed,
+    audioSpatial,
+    setAudioSpatial,
+  };
+
   return (
     <main className="relative h-screen w-screen overflow-hidden bg-black">
       {!envId && BACKDROPS[backdropIdx]?.url && (
@@ -2823,719 +2920,7 @@ function Aquafulness() {
       {settingsOpen && (
         <div className="pointer-events-auto absolute inset-x-0 top-14 z-20 mx-auto max-w-2xl px-4">
           <div className="max-h-[70vh] overflow-y-auto rounded-3xl border border-white/15 bg-black/60 p-4 shadow-2xl backdrop-blur-xl">
-            <div className="mb-3 flex items-center justify-between text-white/90">
-              <span className="text-[10px] font-light tracking-[0.4em] text-white/60">INSTÄLLNINGAR</span>
-              <div className="flex gap-2">
-                <button
-                  onClick={restoreCameraPosition}
-                  className="rounded-full border border-white/20 bg-white/5 px-3 py-1 text-[9px] font-light tracking-wider text-white/80 transition active:scale-95 active:bg-white/15"
-                  aria-label="Återgå till senast sparade kameraposition"
-                  title="Återgå till senast sparade kameraposition och riktning"
-                >
-                  ÅTERGÅ
-                </button>
-                <button
-                  onClick={resetToDefaults}
-                  className="rounded-full border border-white/20 bg-white/5 px-3 py-1 text-[9px] font-light tracking-wider text-white/80 transition active:scale-95 active:bg-white/15"
-                  aria-label="Återställ reglage till standardvärden"
-                  title="Återställ reglage (tid på dygnet påverkas inte)"
-                >
-                  ÅTERSTÄLL
-                </button>
-              </div>
-            </div>
-            <div className="mb-3 flex flex-wrap justify-center gap-1.5" role="tablist" aria-label="Inställningsflikar">
-              {SETTINGS_TABS.map((tab) => (
-                <button
-                  key={tab.id}
-                  role="tab"
-                  aria-selected={settingsTab === tab.id}
-                  onClick={() => setSettingsTab(tab.id)}
-                  className={`rounded-full border px-3 py-1 text-[9px] font-light tracking-wider transition active:scale-95 ${
-                    settingsTab === tab.id
-                      ? "border-white/40 bg-white/20 text-white"
-                      : "border-white/10 bg-white/5 text-white/60 active:bg-white/15"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-            <div className="flex flex-wrap justify-center gap-2">
-              {settingsTab === "vagor" && (
-                <>
-                  <PadDial
-                    label="VÅG"
-                    mode="number"
-                    value={`${waveAmp.toFixed(2)}m`}
-                    rawValue={waveAmp}
-                    onSet={setWaveAmp}
-                    min={0}
-                    max={100}
-                    step={0.5}
-                    onDec={() => setWaveAmp((v) => Math.max(0, +(v - 0.5).toFixed(2)))}
-                    onInc={() => setWaveAmp((v) => Math.min(100, +(v + 0.5).toFixed(2)))}
-                  />
-                  <PadDial
-                    label="TEMPO"
-                    mode="number"
-                    value={`${waveSpeed.toFixed(2)}×`}
-                    rawValue={waveSpeed}
-                    onSet={setWaveSpeed}
-                    min={0}
-                    max={10}
-                    step={0.1}
-                    onDec={() => setWaveSpeed((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
-                    onInc={() => setWaveSpeed((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
-                  />
-                  <PadDial
-                    label="HÖJD"
-                    mode="number"
-                    value={`${heightOffset >= 0 ? "+" : ""}${heightOffset.toFixed(2)}m`}
-                    rawValue={heightOffset}
-                    onSet={setHeightOffset}
-                    min={-5}
-                    max={5}
-                    step={0.2}
-                    onDec={() => setHeightOffset((v) => Math.max(-5, +(v - 0.2).toFixed(2)))}
-                    onInc={() => setHeightOffset((v) => Math.min(5, +(v + 0.2).toFixed(2)))}
-                  />
-                  <PadDial
-                    label="DYK"
-                    mode="number"
-                    value={`${submergeAmp.toFixed(2)}×`}
-                    rawValue={submergeAmp}
-                    onSet={setSubmergeAmp}
-                    min={0}
-                    max={4}
-                    step={0.1}
-                    onDec={() => setSubmergeAmp((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
-                    onInc={() => setSubmergeAmp((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
-                  />
-                  <PadDial
-                    label="FLYT"
-                    mode="number"
-                    value={`${floatLift.toFixed(2)}×`}
-                    rawValue={floatLift}
-                    onSet={setFloatLift}
-                    min={0}
-                    max={4}
-                    step={0.1}
-                    onDec={() => setFloatLift((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
-                    onInc={() => setFloatLift((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
-                  />
-                  <PadDial
-                    label="STRÖM RIKTNING"
-                    mode="number"
-                    value={`${Math.round(worldXZBearing(driftWorldRef.current.x, driftWorldRef.current.z))}°`}
-                    rawValue={worldXZBearing(driftWorldRef.current.x, driftWorldRef.current.z)}
-                    onSet={(v) => setStickBearing(driftWorldRef, driftDisplayRef, setDriftStick, v)}
-                    min={0}
-                    max={360}
-                    step={5}
-                    onDec={() => setStickBearing(driftWorldRef, driftDisplayRef, setDriftStick, worldXZBearing(driftWorldRef.current.x, driftWorldRef.current.z) - 15)}
-                    onInc={() => setStickBearing(driftWorldRef, driftDisplayRef, setDriftStick, worldXZBearing(driftWorldRef.current.x, driftWorldRef.current.z) + 15)}
-                  />
-                  <PadDial
-                    label="SVAJ"
-                    mode="number"
-                    value={`${swayAmp.toFixed(1)}m`}
-                    rawValue={swayAmp}
-                    onSet={setSwayAmp}
-                    min={0}
-                    max={30}
-                    step={0.5}
-                    onDec={() => setSwayAmp((v) => Math.max(0, +(v - 0.5).toFixed(2)))}
-                    onInc={() => setSwayAmp((v) => Math.min(30, +(v + 0.5).toFixed(2)))}
-                  />
-                  <PadDial
-                    label="SVAJ TEMPO"
-                    mode="number"
-                    value={`${swaySpeed.toFixed(2)}×`}
-                    rawValue={swaySpeed}
-                    onSet={setSwaySpeed}
-                    min={0.01}
-                    max={10}
-                    step={0.01}
-                    onDec={() => setSwaySpeed((v) => Math.max(0.01, +(v - 0.01).toFixed(2)))}
-                    onInc={() => setSwaySpeed((v) => Math.min(1, +(v + 0.01).toFixed(2)))}
-                  />
-                  <PadDial
-                    label="SVAJ DRIFT"
-                    mode="number"
-                    value={swayBias === 0 ? "NEUTRAL" : swayBias > 0 ? `MED ${swayBias.toFixed(2)}` : `MOT ${Math.abs(swayBias).toFixed(2)}`}
-                    rawValue={swayBias}
-                    onSet={setSwayBias}
-                    min={-10}
-                    max={10}
-                    step={0.05}
-                    onDec={() => setSwayBias((v) => Math.max(-1, +(v - 0.05).toFixed(2)))}
-                    onInc={() => setSwayBias((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
-                  />
-                  <PadDial
-                    label="SVAJ RIKTNING"
-                    mode="number"
-                    value={`${Math.round(worldXZBearing(swayWorldRef.current.x, swayWorldRef.current.z))}°`}
-                    rawValue={worldXZBearing(swayWorldRef.current.x, swayWorldRef.current.z)}
-                    onSet={(v) => setStickBearing(swayWorldRef, swayDisplayRef, setSwayStick, v)}
-                    min={0}
-                    max={360}
-                    step={5}
-                    onDec={() => setStickBearing(swayWorldRef, swayDisplayRef, setSwayStick, worldXZBearing(swayWorldRef.current.x, swayWorldRef.current.z) - 15)}
-                    onInc={() => setStickBearing(swayWorldRef, swayDisplayRef, setSwayStick, worldXZBearing(swayWorldRef.current.x, swayWorldRef.current.z) + 15)}
-                  />
-                  <PadDial
-                    label="GUPP"
-                    mode="number"
-                    value={`${buoyAmp.toFixed(2)}×`}
-                    rawValue={buoyAmp}
-                    onSet={setBuoyAmp}
-                    min={0}
-                    max={4}
-                    step={0.1}
-                    onDec={() => setBuoyAmp((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
-                    onInc={() => setBuoyAmp((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
-                  />
-                  <PadDial
-                    label="GUPP TEMPO"
-                    mode="number"
-                    value={`${bobSpeed.toFixed(2)}×`}
-                    rawValue={bobSpeed}
-                    onSet={setBobSpeed}
-                    min={0}
-                    max={5}
-                    step={0.1}
-                    onDec={() => setBobSpeed((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
-                    onInc={() => setBobSpeed((v) => Math.min(5, +(v + 0.1).toFixed(2)))}
-                  />
-                  <PadDial
-                    label="VÅGFORM"
-                    value={regularWaves ? "REGELBUNDEN" : "SPRIDD"}
-                    onDec={() => setRegularWaves(false)}
-                    onInc={() => setRegularWaves(true)}
-                  />
-                  <PadDial
-                    label="KORSVÅG"
-                    value={regularCross ? "PÅ" : "AV"}
-                    onDec={() => setRegularCross(false)}
-                    onInc={() => setRegularCross(true)}
-                  />
-                  <PadDial
-                    label="KORSVÅG GUPP"
-                    value={crossAffectsHeave ? "PÅ" : "AV"}
-                    onDec={() => setCrossAffectsHeave(false)}
-                    onInc={() => setCrossAffectsHeave(true)}
-                  />
-                  <PadDial
-                    label="VÅGPERIOD"
-                    mode="number"
-                    value={`${regularPeriod.toFixed(2)}x`}
-                    rawValue={regularPeriod}
-                    onSet={setRegularPeriod}
-                    min={0.3}
-                    max={4}
-                    step={0.1}
-                    onDec={() => setRegularPeriod((v) => Math.max(0.3, +(v - 0.1).toFixed(2)))}
-                    onInc={() => setRegularPeriod((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
-                  />
-                  <PadDial
-                    label="SPETS"
-                    mode="number"
-                    value={`${wavePeak.toFixed(2)}`}
-                    rawValue={wavePeak}
-                    onSet={setWavePeak}
-                    min={1}
-                    max={6}
-                    step={0.25}
-                    onDec={() => setWavePeak((v) => Math.max(1, +(v - 0.25).toFixed(2)))}
-                    onInc={() => setWavePeak((v) => Math.min(6, +(v + 0.25).toFixed(2)))}
-                  />
-                  <PadDial
-                    label="TROKOID"
-                    mode="number"
-                    value={trochoid <= 0.001 ? "AV" : `${Math.round(trochoid * 100)}%`}
-                    rawValue={trochoid}
-                    onSet={(v) => setTrochoid(Math.max(0, Math.min(1, v)))}
-                    min={0}
-                    max={1}
-                    step={0.05}
-                    onDec={() => setTrochoid((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
-                    onInc={() => setTrochoid((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
-                  />
-                  <PadDial
-                    label="KVALITET"
-                    value={waveHighQuality ? "HÖG" : "LÅG"}
-                    onDec={() => setWaveHighQuality(false)}
-                    onInc={() => setWaveHighQuality(true)}
-                  />
-                  <PadDial
-                    label="VÅGRIKTNING"
-                    mode="number"
-                    value={`${Math.round(((waveDir % 360) + 360) % 360)}°`}
-                    rawValue={waveDir}
-                    onSet={(v) => setWaveDir(((v % 360) + 360) % 360)}
-                    min={0}
-                    max={360}
-                    step={5}
-                    onDec={() => setWaveDir((v) => (((v - 15) % 360) + 360) % 360)}
-                    onInc={() => setWaveDir((v) => (((v + 15) % 360) + 360) % 360)}
-                  />
-                  <PadDial
-                    label="LÄGE"
-                    value={vortexMode ? "VIRVEL" : "HAV"}
-                    onDec={() => setVortexMode(false)}
-                    onInc={() => setVortexMode(true)}
-                  />
-                  <PadDial
-                    label="ÖPPNING"
-                    mode="number"
-                    value={`${vortexOpening.toFixed(1)}m`}
-                    rawValue={vortexOpening}
-                    onSet={(v) => setVortexOpening(Math.max(3, Math.min(60, v)))}
-                    min={3}
-                    max={60}
-                    step={0.5}
-                    onDec={() => setVortexOpening((v) => Math.max(3, +(v - 0.5).toFixed(2)))}
-                    onInc={() => setVortexOpening((v) => Math.min(60, +(v + 0.5).toFixed(2)))}
-                  />
-                  <PadDial
-                    label="AVSTÅND"
-                    mode="number"
-                    value={`${vortexRadius.toFixed(1)}m`}
-                    rawValue={vortexRadius}
-                    onSet={(v) => setVortexRadius(Math.max(3, Math.min(220, v)))}
-                    min={3}
-                    max={220}
-                    step={1}
-                    onDec={() => setVortexRadius((v) => Math.max(3, +(v - 1).toFixed(2)))}
-                    onInc={() => setVortexRadius((v) => Math.min(220, +(v + 1).toFixed(2)))}
-                  />
-                  <PadDial
-                    label="VIRVEL TEMPO"
-                    mode="number"
-                    value={`${vortexSpeed.toFixed(2)}x`}
-                    rawValue={vortexSpeed}
-                    onSet={(v) => setVortexSpeed(Math.max(-3, Math.min(10, v)))}
-                    min={-3}
-                    max={10}
-                    step={0.1}
-                    onDec={() => setVortexSpeed((v) => Math.max(-3, +(v - 0.1).toFixed(2)))}
-                    onInc={() => setVortexSpeed((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
-                  />
-                </>
-              )}
-              {settingsTab === "kamera" && (
-                <>
-                  <PadDial
-                    label="POS X"
-                    mode="number"
-                    value={`${camOffX.toFixed(2)}m`}
-                    rawValue={camOffX}
-                    onSet={setCamOffX}
-                    min={-10}
-                    max={10}
-                    step={0.1}
-                    onDec={() => setCamOffX((v) => Math.max(-10, +(v - 0.1).toFixed(2)))}
-                    onInc={() => setCamOffX((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
-                  />
-                  <PadDial
-                    label="POS Y"
-                    mode="number"
-                    value={`${camOffY.toFixed(2)}m`}
-                    rawValue={camOffY}
-                    onSet={setCamOffY}
-                    min={-10}
-                    max={10}
-                    step={0.1}
-                    onDec={() => setCamOffY((v) => Math.max(-10, +(v - 0.1).toFixed(2)))}
-                    onInc={() => setCamOffY((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
-                  />
-                  <PadDial
-                    label="POS Z"
-                    mode="number"
-                    value={`${camOffZ.toFixed(2)}m`}
-                    rawValue={camOffZ}
-                    onSet={setCamOffZ}
-                    min={-10}
-                    max={10}
-                    step={0.1}
-                    onDec={() => setCamOffZ((v) => Math.max(-10, +(v - 0.1).toFixed(2)))}
-                    onInc={() => setCamOffZ((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
-                  />
-                  <PadDial
-                    label="FOV"
-                    mode="number"
-                    value={`${camFov.toFixed(0)}°`}
-                    rawValue={camFov}
-                    onSet={(v) => setCamFov(Math.max(20, Math.min(140, v)))}
-                    min={20}
-                    max={140}
-                    step={1}
-                    onDec={() => setCamFov((v) => Math.max(20, +(v - 1).toFixed(0)))}
-                    onInc={() => setCamFov((v) => Math.min(140, +(v + 1).toFixed(0)))}
-                  />
-                  <PadDial
-                    label="NÄRA"
-                    mode="number"
-                    value={`${camNear.toFixed(3)}`}
-                    rawValue={camNear}
-                    onSet={(v) => setCamNear(Math.max(0.001, Math.min(10, v)))}
-                    min={0.001}
-                    max={10}
-                    step={0.01}
-                    onDec={() => setCamNear((v) => Math.max(0.001, +(v - 0.01).toFixed(3)))}
-                    onInc={() => setCamNear((v) => Math.min(10, +(v + 0.01).toFixed(3)))}
-                  />
-                  <PadDial
-                    label="FJÄRRSIKT"
-                    mode="number"
-                    value={`${camFar.toFixed(0)}`}
-                    rawValue={camFar}
-                    onSet={(v) => setCamFar(Math.max(100, Math.min(100000, v)))}
-                    min={100}
-                    max={100000}
-                    step={100}
-                    onDec={() => setCamFar((v) => Math.max(100, +(v - 100).toFixed(0)))}
-                    onInc={() => setCamFar((v) => Math.min(100000, +(v + 100).toFixed(0)))}
-                  />
-                  <PadDial
-                    label="ROTERING"
-                    value={leanEnabled ? "FRAMÅTLUT" : "FIXERAD"}
-                    onDec={() => setLeanEnabled(false)}
-                    onInc={() => setLeanEnabled(true)}
-                  />
-                  <PadDial
-                    label="VAKEN"
-                    value={wakeLock ? "PÅ" : "AV"}
-                    onDec={() => setWakeLock(false)}
-                    onInc={() => setWakeLock(true)}
-                  />
-                </>
-              )}
-              {settingsTab === "vatten" && (
-                <>
-                  <PadDial
-                    label="VATTEN"
-                    value={WATER_TINTS[waterTintIdx].name}
-                    onDec={() => setWaterTintIdx((i) => (i - 1 + WATER_TINTS.length) % WATER_TINTS.length)}
-                    onInc={() => setWaterTintIdx((i) => (i + 1) % WATER_TINTS.length)}
-                  />
-                  {surfaces.length > 0 && (
-                    <PadDial
-                      label="SPEGLING"
-                      value={
-                        surfaceId
-                          ? (surfaces.find((s) => s.id === surfaceId)?.name ?? surfaceId)
-                          : "AV"
-                      }
-                      onDec={() => cycleSurface(-1)}
-                      onInc={() => cycleSurface(1)}
-                    />
-                  )}
-                  {surfaceId && (
-                    <PadDial
-                      label="STYRKA"
-                      mode="number"
-                      value={`${Math.round(reflStrength * 100)}%`}
-                      rawValue={reflStrength}
-                      onSet={(v) => setReflStrength(Math.max(0, Math.min(3, v)))}
-                      min={0}
-                      max={3}
-                      step={0.05}
-                      onDec={() => setReflStrength((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
-                      onInc={() => setReflStrength((v) => Math.min(3, +(v + 0.05).toFixed(2)))}
-                    />
-                  )}
-                  <PadDial
-                    label="VÅGMATERIAL"
-                    value={sphereMaterial ? "SFÄRKARTA" : "STANDARD"}
-                    onDec={() => setSphereMaterial(false)}
-                    onInc={() => setSphereMaterial(true)}
-                  />
-                  {sphereMaterial && (
-                    <PadDial
-                      label="SFÄR-STYRKA"
-                      mode="number"
-                      value={`${Math.round(sphereStrength * 100)}%`}
-                      rawValue={sphereStrength}
-                      onSet={(v) => setSphereStrength(Math.max(0, Math.min(1, v)))}
-                      min={0}
-                      max={1}
-                      step={0.05}
-                      onDec={() => setSphereStrength((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
-                      onInc={() => setSphereStrength((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
-                    />
-                  )}
-                  <PadDial
-                    label="OPACITET"
-                    mode="number"
-                    value={`${Math.round(waterOpacity * 100)}%`}
-                    rawValue={waterOpacity}
-                    onSet={setWaterOpacity}
-                    min={0.1}
-                    max={1}
-                    step={0.05}
-                    onDec={() => setWaterOpacity((v) => Math.max(0.1, +(v - 0.05).toFixed(2)))}
-                    onInc={() => setWaterOpacity((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
-                  />
-                  <PadDial
-                    label="TON"
-                    mode="number"
-                    value={`${Math.round(waterHue)}°`}
-                    rawValue={waterHue}
-                    onSet={setWaterHue}
-                    min={-180}
-                    max={180}
-                    step={5}
-                    onDec={() => setWaterHue((v) => Math.max(-180, +(v - 5).toFixed(0)))}
-                    onInc={() => setWaterHue((v) => Math.min(180, +(v + 5).toFixed(0)))}
-                  />
-                  <PadDial
-                    label="MÄTTNAD"
-                    mode="number"
-                    value={`${waterSat.toFixed(2)}x`}
-                    rawValue={waterSat}
-                    onSet={setWaterSat}
-                    min={0}
-                    max={2}
-                    step={0.05}
-                    onDec={() => setWaterSat((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
-                    onInc={() => setWaterSat((v) => Math.min(2, +(v + 0.05).toFixed(2)))}
-                  />
-                  <PadDial
-                    label="LJUSSTYRKA"
-                    mode="number"
-                    value={`${waterBright.toFixed(2)}x`}
-                    rawValue={waterBright}
-                    onSet={setWaterBright}
-                    min={0.1}
-                    max={2.5}
-                    step={0.05}
-                    onDec={() => setWaterBright((v) => Math.max(0.1, +(v - 0.05).toFixed(2)))}
-                    onInc={() => setWaterBright((v) => Math.min(2.5, +(v + 0.05).toFixed(2)))}
-                  />
-                  <PadDial
-                    label="YT-LJUS"
-                    mode="number"
-                    value={`${surfBright.toFixed(2)}x`}
-                    rawValue={surfBright}
-                    onSet={(v) => setSurfBright(Math.max(0.1, Math.min(3, v)))}
-                    min={0.1}
-                    max={3}
-                    step={0.05}
-                    onDec={() => setSurfBright((v) => Math.max(0.1, +(v - 0.05).toFixed(2)))}
-                    onInc={() => setSurfBright((v) => Math.min(3, +(v + 0.05).toFixed(2)))}
-                  />
-                  <PadDial
-                    label="YT-MÄTTNAD"
-                    mode="number"
-                    value={`${surfSat.toFixed(2)}x`}
-                    rawValue={surfSat}
-                    onSet={(v) => setSurfSat(Math.max(0, Math.min(2, v)))}
-                    min={0}
-                    max={2}
-                    step={0.05}
-                    onDec={() => setSurfSat((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
-                    onInc={() => setSurfSat((v) => Math.min(2, +(v + 0.05).toFixed(2)))}
-                  />
-                  <PadDial
-                    label="GRUMLIGHET"
-                    mode="number"
-                    value={turbidity <= 0.001 ? "AV" : `${Math.round(turbidity * 100)}%`}
-                    rawValue={turbidity}
-                    onSet={(v) => setTurbidity(Math.max(0, Math.min(1, v)))}
-                    min={0}
-                    max={1}
-                    step={0.05}
-                    onDec={() => setTurbidity((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
-                    onInc={() => setTurbidity((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
-                  />
-                  <PadDial
-                    label="BOTTEN"
-                    value={BOTTOM_OPTIONS[bottomIdx].name}
-                    onDec={() => setBottomIdx((i) => (i - 1 + BOTTOM_OPTIONS.length) % BOTTOM_OPTIONS.length)}
-                    onInc={() => setBottomIdx((i) => (i + 1) % BOTTOM_OPTIONS.length)}
-                  />
-                  {BOTTOM_OPTIONS[bottomIdx].name === "Anpassad" && (
-                    <label className="flex items-center gap-2 rounded-full border border-white/15 bg-black/40 py-1 pl-3 pr-1 backdrop-blur-md">
-                      <span className="text-[9px] font-light tracking-[0.28em] text-white/60">
-                        BOTTENFÄRG
-                      </span>
-                      <input
-                        type="color"
-                        value={bottomColor}
-                        onChange={(e) => setBottomColor(e.target.value)}
-                        className="h-7 w-9 cursor-pointer rounded-full border border-white/20 bg-transparent p-0"
-                      />
-                    </label>
-                  )}
-                  <PadDial
-                    label="DJUP"
-                    mode="number"
-                    value={`${floorDepth.toFixed(1)}m`}
-                    rawValue={floorDepth}
-                    onSet={(v) => setFloorDepth(Math.max(1, Math.min(60, v)))}
-                    min={1}
-                    max={60}
-                    step={0.5}
-                    onDec={() => setFloorDepth((v) => Math.max(1, +(v - 0.5).toFixed(2)))}
-                    onInc={() => setFloorDepth((v) => Math.min(60, +(v + 0.5).toFixed(2)))}
-                  />
-                  <PadDial
-                    label="TEXTUR"
-                    value={floorTexture ? "PÅ" : "AV"}
-                    onDec={() => setFloorTexture(false)}
-                    onInc={() => setFloorTexture(true)}
-                  />
-                  <PadDial
-                    label="DJUP-SINUS"
-                    value={depthSineOn ? "PÅ" : "AV"}
-                    onDec={() => setDepthSineOn(false)}
-                    onInc={() => setDepthSineOn(true)}
-                  />
-                  <PadDial
-                    label="SINUS AMP"
-                    mode="number"
-                    value={`${depthSineAmp.toFixed(2)}m`}
-                    rawValue={depthSineAmp}
-                    onSet={(v) => setDepthSineAmp(Math.max(0, Math.min(30, v)))}
-                    min={0}
-                    max={30}
-                    step={0.25}
-                    onDec={() => setDepthSineAmp((v) => Math.max(0, +(v - 0.25).toFixed(2)))}
-                    onInc={() => setDepthSineAmp((v) => Math.min(30, +(v + 0.25).toFixed(2)))}
-                  />
-                  <PadDial
-                    label="SINUS FREK"
-                    mode="number"
-                    value={`${depthSineFreq.toFixed(2)}Hz`}
-                    rawValue={depthSineFreq}
-                    onSet={(v) => setDepthSineFreq(Math.max(0.001, Math.min(2, v)))}
-                    min={0.001}
-                    max={2}
-                    step={0.01}
-                    onDec={() => setDepthSineFreq((v) => Math.max(0.001, +(v - 0.01).toFixed(3)))}
-                    onInc={() => setDepthSineFreq((v) => Math.min(2, +(v + 0.01).toFixed(3)))}
-                  />
-                  <PadDial
-                    label="YTA"
-                    value={hideWater ? "DÖLJ" : "SYNLIGT"}
-                    onDec={() => setHideWater(true)}
-                    onInc={() => setHideWater(false)}
-                  />
-                </>
-              )}
-              {settingsTab === "miljo" && (
-                <>
-                  <PadDial
-                    label="TID"
-                    value={todLabel}
-                    onDec={() => setTimeOfDay((v) => (v - 0.02 + 1) % 1)}
-                    onInc={() => setTimeOfDay((v) => (v + 0.02) % 1)}
-                  />
-                  <PadDial
-                    label="MELLAN-MOLN"
-                    value={midCloudsOn ? "PÅ" : "AV"}
-                    onDec={() => setMidCloudsOn(false)}
-                    onInc={() => setMidCloudsOn(true)}
-                  />
-                  <PadDial
-                    label="MOLNHÖJD"
-                    mode="number"
-                    value={`${Math.round(midCloudsHeight * 100)}%`}
-                    rawValue={midCloudsHeight}
-                    onSet={(v) => setMidCloudsHeight(Math.max(0.05, Math.min(0.95, v)))}
-                    min={0.05}
-                    max={0.95}
-                    step={0.05}
-                    onDec={() => setMidCloudsHeight((v) => Math.max(0.05, +(v - 0.05).toFixed(2)))}
-                    onInc={() => setMidCloudsHeight((v) => Math.min(0.95, +(v + 0.05).toFixed(2)))}
-                  />
-                  {scenes.length > 0 && (
-                    <PadDial
-                      label="SCEN"
-                      value={
-                        sceneId
-                          ? (scenes.find((s) => s.id === sceneId)?.name ?? sceneId)
-                          : "AV"
-                      }
-                      onDec={() => cycleScene(-1)}
-                      onInc={() => cycleScene(1)}
-                    />
-                  )}
-                  {environments.length > 0 && (
-                    <>
-                      <PadDial
-                        label="MILJÖ"
-                        value={curEnv ? curEnv.name : "AV"}
-                        onDec={() => cycleEnv(-1)}
-                        onInc={() => cycleEnv(1)}
-                      />
-                      {curEnv && curEnv.eras.length > 1 && (
-                        <PadDial
-                          label="EPOK"
-                          value={curEra?.name ?? "—"}
-                          onDec={() => cycleEra(-1)}
-                          onInc={() => cycleEra(1)}
-                        />
-                      )}
-                      {curEra && curEra.times.length > 1 && (
-                        <PadDial
-                          label="DYGN"
-                          value={curTime?.name ?? "—"}
-                          onDec={() => cycleTime(-1)}
-                          onInc={() => cycleTime(1)}
-                        />
-                      )}
-                    </>
-                  )}
-                  <PadDial
-                    label="BAKGRUND"
-                    value={BACKDROPS[backdropIdx].name}
-                    onDec={() => setBackdropIdx((i) => (i - 1 + BACKDROPS.length) % BACKDROPS.length)}
-                    onInc={() => setBackdropIdx((i) => (i + 1) % BACKDROPS.length)}
-                  />
-                  <PadDial
-                    label="LIVE"
-                    value={liveMode ? "PÅ" : "AV"}
-                    onDec={() => setLiveMode(false)}
-                    onInc={() => setLiveMode(true)}
-                  />
-                </>
-              )}
-              {settingsTab === "ljud" && (
-                <>
-                  <PadDial
-                    label={audioOn ? "LJUD PÅ" : "LJUD AV"}
-                    value={audioOn ? `${Math.round(audioVol * 100)}%` : "—"}
-                    onDec={() => {
-                      if (!audioOn) { setAudioOn(true); return; }
-                      setAudioVol((v) => {
-                        const next = +(v - 0.1).toFixed(2);
-                        if (next <= 0) { setAudioOn(false); return 0; }
-                        return next;
-                      });
-                    }}
-                    onInc={() => {
-                      if (!audioOn) { setAudioOn(true); return; }
-                      setAudioVol((v) => Math.min(1, +(v + 0.1).toFixed(2)));
-                    }}
-                  />
-                  <PadDial
-                    label="LJUDSYNK"
-                    value={audioSyncSpeed ? "PÅ" : "AV"}
-                    onDec={() => setAudioSyncSpeed(false)}
-                    onInc={() => setAudioSyncSpeed(true)}
-                  />
-                  <PadDial
-                    label="SPATIAL"
-                    value={audioSpatial ? "PÅ" : "AV"}
-                    onDec={() => setAudioSpatial(false)}
-                    onInc={() => setAudioSpatial(true)}
-                  />
-                </>
-              )}
-            </div>
+            <SettingsPanel {...settingsPanelProps} />
           </div>
         </div>
       )}
@@ -3614,125 +2999,10 @@ function Aquafulness() {
           onCastNew={(kind, url) => tvManagerRef.current?.addTV(kind, url)}
           onCastTo={(id, url) => tvManagerRef.current?.castTo(id, url)}
           onRemoveAll={() => tvManagerRef.current?.removeAll()}
+          settingsPanelProps={settingsPanelProps}
         />
       )}
     </main>
-  );
-}
-
-type PadDialMode = "number" | "cycle";
-
-function clampStep(v: number, min: number, max: number, step: number) {
-  const rounded = Math.round(v / step) * step;
-  return Math.max(min, Math.min(max, +rounded.toFixed(10)));
-}
-
-function PadDial({
-  label,
-  value,
-  rawValue,
-  onDec,
-  onInc,
-  onSet,
-  mode = "cycle",
-  min,
-  max,
-  step,
-}: {
-  label: string;
-  value: string;
-  rawValue?: number;
-  onDec: () => void;
-  onInc: () => void;
-  onSet?: (v: number) => void;
-  mode?: PadDialMode;
-  min?: number;
-  max?: number;
-  step?: number;
-}) {
-  const [editing, setEditing] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const commit = () => {
-    const input = inputRef.current;
-    if (!input || min === undefined || max === undefined || step === undefined || !onSet) {
-      setEditing(false);
-      return;
-    }
-    const parsed = parseFloat(input.value.replace(/,/g, "."));
-    if (!Number.isNaN(parsed)) {
-      onSet(clampStep(parsed, min, max, step));
-    }
-    setEditing(false);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (editing) {
-      if (e.key === "Enter") commit();
-      if (e.key === "Escape") setEditing(false);
-      return;
-    }
-    if (e.key === "ArrowUp" || e.key === "ArrowRight" || e.key === "+") {
-      e.preventDefault();
-      onInc();
-    } else if (e.key === "ArrowDown" || e.key === "ArrowLeft" || e.key === "-") {
-      e.preventDefault();
-      onDec();
-    }
-  };
-
-  return (
-    <div
-      tabIndex={0}
-      onKeyDown={handleKeyDown}
-      className="flex items-center gap-1 rounded-full border border-white/15 bg-black/40 p-1 pl-3 backdrop-blur-md outline-none focus:border-white/40 focus:bg-black/50"
-    >
-      <div className="flex min-w-[86px] flex-col items-start leading-tight text-white">
-        <span className="text-[9px] font-light tracking-[0.28em] text-white/60">
-          {label}
-        </span>
-        {mode === "number" && editing ? (
-          <input
-            ref={inputRef}
-            type="text"
-            inputMode="decimal"
-            defaultValue={rawValue ?? value}
-            onBlur={commit}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") commit();
-              if (e.key === "Escape") setEditing(false);
-            }}
-            autoFocus
-            className="w-20 bg-transparent text-xs font-medium tracking-wider text-white outline-none"
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={() => mode === "number" && setEditing(true)}
-            className={`text-xs font-medium tracking-wider ${mode === "number" ? "cursor-text underline decoration-white/30 underline-offset-2" : "cursor-default"}`}
-            tabIndex={-1}
-          >
-            {value}
-          </button>
-        )}
-      </div>
-      <button
-        onClick={onDec}
-        className="h-7 w-7 rounded-full border border-white/20 bg-white/5 text-white/90 transition active:scale-95 active:bg-white/15"
-        aria-label={`${label} minska`}
-        tabIndex={-1}
-      >
-        −
-      </button>
-      <button
-        onClick={onInc}
-        className="h-7 w-7 rounded-full border border-white/20 bg-white/5 text-white/90 transition active:scale-95 active:bg-white/15"
-        aria-label={`${label} öka`}
-        tabIndex={-1}
-      >
-        +
-      </button>
-    </div>
   );
 }
 

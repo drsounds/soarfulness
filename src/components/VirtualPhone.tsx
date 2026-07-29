@@ -2,10 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import type { DeviceKind } from "@/lib/tv/CSS3DTVManager";
 import { resolveAddress } from "@/lib/tv/CSS3DTVManager";
 import { toEmbedUrl } from "@/lib/tv/youtubeEmbed";
+import { SettingsPanel, type SettingsPanelProps } from "@/components/SettingsPanel";
 
 type BathApp = { id: string; name: string; url: string; icon: "browser" | "youtube" | "link" };
 type Orientation = "portrait" | "landscape";
-type Screen = "home" | "browser";
+type Screen = "home" | "browser" | "settings";
 
 type PhoneState = {
   x: number;
@@ -86,7 +87,7 @@ function loadPhoneState(): PhoneState {
       height: clamp(num(p.height, fallback.height), MIN_DIM, MAX_DIM),
       orientation: p.orientation === "landscape" ? "landscape" : "portrait",
       locked: typeof p.locked === "boolean" ? p.locked : fallback.locked,
-      screen: p.screen === "browser" ? "browser" : "home",
+      screen: p.screen === "browser" || p.screen === "settings" ? p.screen : "home",
       url: typeof p.url === "string" ? p.url : "",
       apps: apps.length ? apps : fallback.apps,
     };
@@ -250,6 +251,21 @@ const Icon = {
       <line x1="4" y1="22" x2="22" y2="4" />
     </svg>
   ),
+  gear: (
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 13a7.4 7.4 0 000-2l2-1.5-2-3.5-2.4 1a7.6 7.6 0 00-1.7-1L15 3h-4l-.3 2.5a7.6 7.6 0 00-1.7 1l-2.4-1-2 3.5L6.6 11a7.4 7.4 0 000 2l-2 1.5 2 3.5 2.4-1a7.6 7.6 0 001.7 1L11 21h4l.3-2.5a7.6 7.6 0 001.7-1l2.4 1 2-3.5-2-1.5z" />
+    </svg>
+  ),
 };
 
 type Props = {
@@ -258,6 +274,11 @@ type Props = {
   onCastNew: (kind: DeviceKind, url: string) => void;
   onCastTo: (id: string, url: string) => void;
   onRemoveAll: () => void;
+  // The exact same wave/camera/water/environment/audio controls the main
+  // HUD's own settings dialog uses — see SettingsPanel.tsx. Rendered here
+  // unchanged as the "Inställningar" app so there's a single source of
+  // truth for every value (there's only one wave simulation, one camera).
+  settingsPanelProps: SettingsPanelProps;
 };
 
 // A floating, draggable, resizable 2D "virtual smartphone" — plain screen-
@@ -267,7 +288,14 @@ type Props = {
 // shell (lock screen, home screen with bookmarks, browser) the 3D panels
 // used to, but its purpose here is to be your own remote: browse to
 // something, then "cast" it to any TV/mobile display in the 3D world.
-export function VirtualPhone({ onClose, listDisplays, onCastNew, onCastTo, onRemoveAll }: Props) {
+export function VirtualPhone({
+  onClose,
+  listDisplays,
+  onCastNew,
+  onCastTo,
+  onRemoveAll,
+  settingsPanelProps,
+}: Props) {
   const [state, setState] = useState<PhoneState>(loadPhoneState);
   const [addressValue, setAddressValue] = useState(state.url);
   const [searchValue, setSearchValue] = useState("");
@@ -531,6 +559,21 @@ export function VirtualPhone({ onClose, listDisplays, onCastNew, onCastTo, onRem
                 />
               </div>
               <div className="flex min-h-0 flex-1 flex-wrap content-start gap-2.5 overflow-auto">
+                {/* Built-in, non-removable app — a clone of the main HUD's own
+                    settings dialog (see SettingsPanel.tsx), so every wave/
+                    camera/water/environment/audio control is reachable from
+                    inside the phone too, not just the HUD's gear button. */}
+                <button
+                  onClick={() => setState((s) => ({ ...s, screen: "settings" }))}
+                  className="flex w-[54px] flex-col items-center gap-1"
+                >
+                  <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-white/15 text-white">
+                    {Icon.gear}
+                  </div>
+                  <div className="w-full truncate text-center text-[9px] opacity-90">
+                    Inställningar
+                  </div>
+                </button>
                 {state.apps.map((app) => (
                   <button
                     key={app.id}
@@ -631,7 +674,7 @@ export function VirtualPhone({ onClose, listDisplays, onCastNew, onCastTo, onRem
                 </div>
               )}
             </div>
-          ) : (
+          ) : state.screen === "browser" ? (
             <div className="flex h-full flex-col bg-[#111]">
               <div className="relative flex flex-shrink-0 items-center gap-1.5 bg-white/90 px-1.5 py-1.5">
                 <button
@@ -781,6 +824,14 @@ export function VirtualPhone({ onClose, listDisplays, onCastNew, onCastTo, onRem
                   </div>
                 )}
               </div>
+            </div>
+          ) : (
+            // "Inställningar" — an exact clone of the main HUD's own settings
+            // dialog (see SettingsPanel.tsx): same tabs, same controls, same
+            // live state, just wrapped in the phone's own scrollable screen
+            // instead of the HUD's floating overlay chrome.
+            <div className="h-full overflow-y-auto bg-[#111] p-2 text-white">
+              <SettingsPanel {...settingsPanelProps} />
             </div>
           )}
         </div>
