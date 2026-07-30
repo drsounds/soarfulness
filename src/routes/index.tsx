@@ -4,7 +4,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { CSS3DTVManager, type DeviceKind } from "@/lib/tv/CSS3DTVManager";
 import { VirtualPhone, type RemoteControllerProps } from "@/components/VirtualPhone";
-import type { SettingsPanelProps } from "@/components/SettingsPanel";
+import { SettingsPanel, type SettingsPanelProps } from "@/components/SettingsPanel";
 import { Joystick } from "@/components/Joystick";
 import {
   padToWorldXZ,
@@ -560,6 +560,7 @@ function Aquafulness() {
   // Noclip's dedicated vertical (ascend/descend) joystick, shown in place of
   // STRÖM which has no meaning outside float mode.
   const [vertStick, setVertStick] = useState({ x: 0, y: 0 });
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("vagor");
   const [phoneOpen, setPhoneOpen] = useState(false);
   const [uiVisible, setUiVisible] = useState(true);
@@ -1134,12 +1135,14 @@ function Aquafulness() {
   }, [wakeLock]);
 
   // Idle UI fade: hide overlays after inactivity, restore on any pointer input.
+  // Paused while the settings panel is open so users can adjust without the UI vanishing.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const IDLE_MS = 3500;
     const bump = () => {
       setUiVisible(true);
       if (idleTimerRef.current) window.clearTimeout(idleTimerRef.current);
+      if (settingsOpen) return;
       idleTimerRef.current = window.setTimeout(() => setUiVisible(false), IDLE_MS);
     };
     bump();
@@ -1155,7 +1158,7 @@ function Aquafulness() {
       window.removeEventListener("touchstart", bump);
       window.removeEventListener("keydown", bump);
     };
-  }, []);
+  }, [settingsOpen]);
 
 
   // Fullscreen state tracking.
@@ -3166,10 +3169,9 @@ function Aquafulness() {
       <div
         className={`pointer-events-none absolute inset-0 z-10 transition-opacity duration-700 ${uiVisible ? "opacity-100" : "opacity-0"}`}
       >
-        {/* Top bar: speaker toggle + phone + fullscreen. Settings and
-            edit-mode (the "pencil") no longer live here — both are reachable
-            from inside the bathOS phone (Inställningar / Fjärrkontroll /
-            Skärmar apps), the phone button below is the only entry point. */}
+        {/* Top bar: settings + speaker toggle + phone + fullscreen.
+            Edit-mode (the "pencil") no longer lives here — it moved into the
+            bathOS phone's dedicated Skärmar app. */}
         <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between px-4 pt-4">
           <button
             onClick={() => setAudioOn((v) => !v)}
@@ -3190,6 +3192,15 @@ function Aquafulness() {
                 <path d="M22 9l-6 6M16 9l6 6" />
               </svg>
             )}
+          </button>
+
+          <button
+            onClick={() => setSettingsOpen((s) => !s)}
+            className="pointer-events-auto rounded-full border border-white/20 bg-black/40 px-5 py-2 text-[10px] font-light tracking-[0.35em] text-white/90 backdrop-blur-md transition active:scale-95 active:bg-white/15"
+            aria-label={settingsOpen ? "Stäng inställningar" : "Öppna inställningar"}
+            aria-expanded={settingsOpen}
+          >
+            {settingsOpen ? "STÄNG" : "SETTINGS"}
           </button>
 
           <div className="flex gap-2">
@@ -3229,6 +3240,15 @@ function Aquafulness() {
             </button>
           </div>
         </div>
+
+        {/* Collapsible settings panel */}
+        {settingsOpen && (
+          <div className="pointer-events-auto absolute inset-x-0 top-14 z-20 mx-auto max-w-2xl px-4">
+            <div className="max-h-[70vh] overflow-y-auto rounded-3xl border border-white/15 bg-black/60 p-4 shadow-2xl backdrop-blur-xl">
+              <SettingsPanel {...settingsPanelProps} />
+            </div>
+          </div>
+        )}
 
         {/* PS-liknande layout: NAV (rörelse, momentan) nere till vänster,
             LOOK (rotation, momentan) nere till höger — de enda spakar som är
