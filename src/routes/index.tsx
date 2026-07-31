@@ -814,6 +814,12 @@ function Aquafulness() {
   // its horizontal arc offset can ease in from there instead of snapping
   // straight to the swing formula's value for the current clock phase.
   const swingBlendRef = useRef<{ fromY: number; startMs: number } | null>(null);
+  // The pendulum's horizontal arc angle (theta, radians), recomputed every
+  // frame regardless of cameraMode — see the unconditional block ahead of
+  // the camMode branch in the RAF loop. theta === 0 is the bottom of the
+  // arc (nearest the water); the interval-session driver watches this to
+  // sync FRI<->GUNGA switches to that point instead of an arbitrary phase.
+  const swingThetaRef = useRef(0);
   const surfaceAreaRef = useRef(surfaceArea);
   // Yaw captured the instant swing mode is entered, so the pendulum's
   // side-to-side arc stays perpendicular to whichever way you were already
@@ -1004,6 +1010,21 @@ function Aquafulness() {
   // immediately without restarting the effect. A 10Hz poll (rather than
   // hooking into the WebGL RAF loop) is plenty smooth for a progress bar and
   // keeps this concern fully decoupled from the render loop.
+  //
+  // Once an interval's final SYNC_WINDOW_MS begin, the switch is held until
+  // the pendulum (swingThetaRef, kept live by the RAF loop regardless of
+  // cameraMode — see its declaration above) next passes through the bottom
+  // of its arc (theta crossing zero, nearest the water): entering GUNGA
+  // there means it always starts by pulling up away from the water, and
+  // leaving GUNGA there means it always hands off right as it's down
+  // nearest the water, instead of snapping mid-arc either way. Detected as
+  // a sign flip between consecutive 100ms samples rather than an
+  // exact-zero epsilon — the bob moves fastest in angle right at the
+  // bottom, so a magnitude threshold would be easy to sample straight
+  // through, while crossings themselves are seconds apart at any sane
+  // GUNGA INTENSITET, far coarser than the poll rate. Falls back to the
+  // hard deadline if no crossing turns up in time (e.g. an extremely slow
+  // swing), so a session can never hang waiting on one.
   useEffect(() => {
     if (!intervalSessionOn) {
       setIntervalIndex(0);
@@ -1011,10 +1032,12 @@ function Aquafulness() {
       setIntervalElapsedTotal(0);
       return;
     }
+    const SYNC_WINDOW_MS = 5000;
     let stopped = false;
     let idx = 0;
     const sessionStart = performance.now();
     let intervalStart = sessionStart;
+    let prevTheta = swingThetaRef.current;
     setCameraMode("float");
     setIntervalIndex(0);
     setIntervalProgress(0);
@@ -1023,7 +1046,12 @@ function Aquafulness() {
       if (stopped) return;
       const now = performance.now();
       const durationMs = Math.max(1, intervalDurationRef.current) * 1000;
-      if (now - intervalStart >= durationMs) {
+      const remainingMs = durationMs - (now - intervalStart);
+      const theta = swingThetaRef.current;
+      const crossedBottom = Math.sign(theta) !== Math.sign(prevTheta);
+      prevTheta = theta;
+      const dueBySync = remainingMs <= SYNC_WINDOW_MS && crossedBottom;
+      if (dueBySync || remainingMs <= 0) {
         idx += 1;
         if (intervalSessionTypeRef.current === "fixed" && idx >= intervalCountRef.current) {
           stopped = true;
@@ -2557,6 +2585,18 @@ function Aquafulness() {
       // Dölj/visa vattenytan.
       ocean.visible = !hideWaterRef.current;
 
+      // GUNGA's pendulum angle, computed unconditionally (not just while
+      // camMode === "swing") purely from the shared wave clock and GUNGA
+      // INTENSITET, so it keeps swinging "in the background" while in
+      // another mode — letting the interval-session driver watch it for the
+      // bottom-of-the-arc crossing (theta === 0, nearest the water) even
+      // during a "float" interval, ahead of switching into "swing".
+      const swingIntensityNow = Math.max(0.0001, swingIntensityRef.current);
+      const swingOmegaNow = 0.55 * swingIntensityNow;
+      const swingAmpRadNow = THREE.MathUtils.degToRad(Math.min(75, 40 * swingIntensityNow));
+      const swingThetaNow = swingAmpRadNow * Math.sin(t * swingOmegaNow);
+      swingThetaRef.current = swingThetaNow;
+
       // Apply joystick velocity (game-pad style): stick.y up = forward (-z), x = strafe.
       // STRÖM-spaken lägger till en konstant drivkraft (drift) så kameran bärs
       // med strömmen även när NAV är i vila.
@@ -2609,11 +2649,9 @@ function Aquafulness() {
         // at a fixed minimum swing; intensity 1 still matches the
         // original tuning (40° arc, omega 0.55).
         const rightX = Math.cos(swingYawRef.current), rightZ = -Math.sin(swingYawRef.current);
-        const intensity = Math.max(0.0001, swingIntensityRef.current);
-        const ampRad = THREE.MathUtils.degToRad(Math.min(75, 40 * intensity));
-        const omega = 0.55 * intensity;
+        const omega = swingOmegaNow;
+        const theta = swingThetaNow;
         const horizArmLen = Math.max(8, Math.min(60, swingPositionYRef.current * 0.6));
-        const theta = ampRad * Math.sin(t * omega);
         const rawSwingOff = Math.sin(theta) * horizArmLen * swingXFactorRef.current;
         const rawSwingY =
           swingPositionYRef.current +
@@ -3706,56 +3744,60 @@ function Aquafulness() {
             sticky
           />
         )}
-
-        {/* Interval session HUD: a thin green bar along the very bottom edge
-            shows progress through the current FRI/GUNGA interval; a second,
-            segmented bar above it (fixed-length sessions only) shows which
-            interval of the whole session is current; an optional pill above
-            both shows the elapsed/remaining readout. flex-col-reverse stacks
-            them bottom-up in that order without needing explicit offsets. */}
-        {intervalSessionOn && (
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-col-reverse">
-            <div className="h-1 w-full bg-white/10">
-              <div
-                className="h-full bg-emerald-400"
-                style={{ width: `${Math.round(intervalProgress * 100)}%` }}
-              />
-            </div>
-            {intervalSessionType === "fixed" && (
-              <div className="mb-[3px] flex h-1.5 w-full gap-[2px] px-[2px]">
-                {Array.from({ length: intervalCount }).map((_, i) => (
-                  <div
-                    key={i}
-                    className={`h-full flex-1 rounded-full ${
-                      i < intervalIndex
-                        ? "bg-emerald-400"
-                        : i === intervalIndex
-                          ? "bg-emerald-400/50"
-                          : "bg-white/15"
-                    }`}
-                  />
-                ))}
-              </div>
-            )}
-            {intervalShowStats && (
-              <div className="mb-2 flex justify-center px-4">
-                <span className="rounded-full border border-white/15 bg-black/40 px-3 py-1 text-center text-[10px] font-light tracking-[0.15em] text-white/80 backdrop-blur-md">
-                  {CAMERA_MODE_LABELS[cameraMode]} · {formatClock(curIntervalElapsed)}/
-                  {formatClock(intervalDuration)} (kvar {formatClock(curIntervalRemaining)})
-                  {intervalSessionType === "fixed"
-                    ? ` · Intervall ${intervalIndex + 1}/${intervalCount}`
-                    : ` · Intervall ${intervalIndex + 1}`}
-                  {" · Totalt "}
-                  {formatClock(intervalElapsedTotal)}
-                  {totalPlannedDuration !== null
-                    ? `/${formatClock(totalPlannedDuration)} (kvar ${formatClock(totalIntervalRemaining!)})`
-                    : ""}
-                </span>
-              </div>
-            )}
-          </div>
-        )}
       </div>
+
+      {/* Interval session HUD: a thin green bar along the very bottom edge
+          shows progress through the current FRI/GUNGA interval; a second,
+          segmented bar above it (fixed-length sessions only) shows which
+          interval of the whole session is current; an optional pill above
+          both shows the elapsed/remaining readout. flex-col-reverse stacks
+          them bottom-up in that order without needing explicit offsets.
+          Deliberately a sibling of the fading HUD wrapper above (like the
+          virtual phone below), not nested inside it, so the session stays
+          readable at a glance even once idle-fade has hidden the buttons
+          and dials. */}
+      {intervalSessionOn && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-col-reverse">
+          <div className="h-1 w-full bg-white/10">
+            <div
+              className="h-full bg-emerald-400"
+              style={{ width: `${Math.round(intervalProgress * 100)}%` }}
+            />
+          </div>
+          {intervalSessionType === "fixed" && (
+            <div className="mb-[3px] flex h-1.5 w-full gap-[2px] px-[2px]">
+              {Array.from({ length: intervalCount }).map((_, i) => (
+                <div
+                  key={i}
+                  className={`h-full flex-1 rounded-full ${
+                    i < intervalIndex
+                      ? "bg-emerald-400"
+                      : i === intervalIndex
+                        ? "bg-emerald-400/50"
+                        : "bg-white/15"
+                  }`}
+                />
+              ))}
+            </div>
+          )}
+          {intervalShowStats && (
+            <div className="mb-2 flex justify-center px-4">
+              <span className="rounded-full border border-white/15 bg-black/40 px-3 py-1 text-center text-[10px] font-light tracking-[0.15em] text-white/80 backdrop-blur-md">
+                {CAMERA_MODE_LABELS[cameraMode]} · {formatClock(curIntervalElapsed)}/
+                {formatClock(intervalDuration)} (kvar {formatClock(curIntervalRemaining)})
+                {intervalSessionType === "fixed"
+                  ? ` · Intervall ${intervalIndex + 1}/${intervalCount}`
+                  : ` · Intervall ${intervalIndex + 1}`}
+                {" · Totalt "}
+                {formatClock(intervalElapsedTotal)}
+                {totalPlannedDuration !== null
+                  ? `/${formatClock(totalPlannedDuration)} (kvar ${formatClock(totalIntervalRemaining!)})`
+                  : ""}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Virtual phone: a floating, draggable, resizable 2D bathOS device
           (not part of the 3D world) used to browse and then "cast" whatever
