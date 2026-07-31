@@ -77,6 +77,14 @@ export const SETTINGS_TABS: { id: SettingsTab; label: string }[] = [
 export type CameraMode = "float" | "noclip" | "swing";
 export const CAMERA_MODES: CameraMode[] = ["float", "noclip", "swing"];
 // Quick-jump starting heights for sky-swing mode: a fixed preset, or "custom"
-// meaning the SWING HÖJD dial is left exactly as the user set it.
+// meaning the GUNGA POSITION Y dial is left exactly as the user set it.
 export type SwingPreset = "water" | "clouds" | "custom";
 export const SWING_PRESETS: SwingPreset[] = ["water", "clouds", "custom"];
+
+// Shape of the pendulum's vertical (y) motion over one swing cycle.
+// "pendulum" (default) is the physically-inspired shape: y rises at both
+// ends of the arc and dips at the bottom, twice per side-to-side cycle.
+// The others drive y directly off the swing clock's phase for a simpler,
+// symmetric up/down motion once per cycle.
+export type SwingYWaveform = "pendulum" | "sine" | "triangle" | "square";
+export const SWING_Y_WAVEFORMS: SwingYWaveform[] = ["pendulum", "sine", "triangle", "square"];

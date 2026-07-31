@@ -7,11 +7,6 @@ import { useRef, useState } from "react";
 
 export type PadDialMode = "number" | "cycle";
 
-export function clampStep(v: number, min: number, max: number, step: number) {
-  const rounded = Math.round(v / step) * step;
-  return Math.max(min, Math.min(max, +rounded.toFixed(10)));
-}
-
 export function PadDial({
   label,
   value,
@@ -22,7 +17,9 @@ export function PadDial({
   mode = "cycle",
   min,
   max,
-  step,
+  options,
+  selectedIndex,
+  onSelectIndex,
 }: {
   label: string;
   value: string;
@@ -34,19 +31,31 @@ export function PadDial({
   min?: number;
   max?: number;
   step?: number;
+  // When all three are given, the label renders as a true <select> dropdown
+  // (in addition to the existing +/- buttons) instead of a plain readout —
+  // lets a multi-option dial be jumped to directly instead of only stepped
+  // one at a time.
+  options?: string[];
+  selectedIndex?: number;
+  onSelectIndex?: (i: number) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const isSelect =
+    options !== undefined && selectedIndex !== undefined && onSelectIndex !== undefined;
 
   const commit = () => {
     const input = inputRef.current;
-    if (!input || min === undefined || max === undefined || step === undefined || !onSet) {
+    if (!input || min === undefined || max === undefined || !onSet) {
       setEditing(false);
       return;
     }
     const parsed = parseFloat(input.value.replace(/,/g, "."));
     if (!Number.isNaN(parsed)) {
-      onSet(clampStep(parsed, min, max, step));
+      // Manual entry only clamps to [min, max] — it doesn't snap to the
+      // nearest +/- step, so precise values (e.g. well below a coarse step
+      // size) can actually be typed in instead of silently rounding away.
+      onSet(Math.max(min, Math.min(max, parsed)));
     }
     setEditing(false);
   };
@@ -88,6 +97,20 @@ export function PadDial({
             autoFocus
             className="w-20 bg-transparent text-xs font-medium tracking-wider text-white outline-none"
           />
+        ) : isSelect ? (
+          <select
+            value={selectedIndex}
+            onChange={(e) => onSelectIndex!(Number(e.target.value))}
+            aria-label={label}
+            tabIndex={-1}
+            className="w-full max-w-[110px] cursor-pointer appearance-none bg-transparent text-xs font-medium tracking-wider text-white outline-none"
+          >
+            {options!.map((opt, i) => (
+              <option key={i} value={i} className="bg-black text-white">
+                {opt}
+              </option>
+            ))}
+          </select>
         ) : (
           <button
             type="button"

@@ -5,11 +5,35 @@ import {
   WATER_TINTS,
   BOTTOM_OPTIONS,
   BACKDROPS,
+  CAMERA_MODES,
+  SWING_PRESETS,
+  SWING_Y_WAVEFORMS,
   worldXZBearing,
   type SettingsTab,
   type CameraMode,
   type SwingPreset,
+  type SwingYWaveform,
 } from "@/lib/settingsShared";
+
+// Swedish display labels for enum values that don't already carry a
+// human-readable "name" (unlike scenes/environments/surfaces, which come
+// from data with their own name field).
+const CAMERA_MODE_LABELS: Record<CameraMode, string> = {
+  float: "FRI",
+  noclip: "NOCLIP",
+  swing: "GUNGA",
+};
+const SWING_PRESET_LABELS: Record<SwingPreset, string> = {
+  water: "VATTEN",
+  clouds: "MOLN",
+  custom: "ANPASSAD",
+};
+const SWING_Y_WAVEFORM_LABELS: Record<SwingYWaveform, string> = {
+  pendulum: "PENDEL",
+  sine: "SINUS",
+  triangle: "TRIANGEL",
+  square: "FYRKANT",
+};
 
 type NamedOption = { id: string; name: string };
 type EnvTimeOption = NamedOption;
@@ -93,19 +117,27 @@ export type SettingsPanelProps = {
 
   // Kamera
   cameraMode: CameraMode;
+  setCameraMode: Dispatch<SetStateAction<CameraMode>>;
   cycleCameraMode: (dir: number) => void;
   noclipSpeed: number;
   setNoclipSpeed: Dispatch<SetStateAction<number>>;
-  swingHeight: number;
-  setSwingHeight: Dispatch<SetStateAction<number>>;
+  // Resting altitude the swing hangs from (formerly named "swingHeight",
+  // renamed to avoid confusion with the vertical-excursion swingHeight below).
+  swingPositionY: number;
+  setSwingPositionY: Dispatch<SetStateAction<number>>;
   swingIntensity: number;
   setSwingIntensity: Dispatch<SetStateAction<number>>;
   swingXFactor: number;
   setSwingXFactor: Dispatch<SetStateAction<number>>;
-  swingYAmplitude: number;
-  setSwingYAmplitude: Dispatch<SetStateAction<number>>;
+  // Vertical excursion of the swing (formerly "swingYAmplitude").
+  swingHeight: number;
+  setSwingHeight: Dispatch<SetStateAction<number>>;
   swingPreset: SwingPreset;
+  applySwingPreset: (preset: SwingPreset) => void;
   cycleSwingPreset: (dir: number) => void;
+  swingYWaveform: SwingYWaveform;
+  setSwingYWaveform: Dispatch<SetStateAction<SwingYWaveform>>;
+  cycleSwingYWaveform: (dir: number) => void;
   camOffX: number;
   setCamOffX: Dispatch<SetStateAction<number>>;
   camOffY: number;
@@ -128,6 +160,7 @@ export type SettingsPanelProps = {
   setWaterTintIdx: Dispatch<SetStateAction<number>>;
   surfaces: NamedOption[];
   surfaceId: string | null;
+  setSurfaceId: Dispatch<SetStateAction<string | null>>;
   cycleSurface: (dir: number) => void;
   reflStrength: number;
   setReflStrength: Dispatch<SetStateAction<number>>;
@@ -181,13 +214,17 @@ export type SettingsPanelProps = {
   setSurfaceArea: Dispatch<SetStateAction<number>>;
   scenes: NamedOption[];
   sceneId: string | null;
+  setSceneId: Dispatch<SetStateAction<string | null>>;
   cycleScene: (dir: number) => void;
   environments: EnvOption[];
   curEnv: EnvOption | null;
+  applyEnv: (id: string | null) => void;
   cycleEnv: (dir: number) => void;
   curEra: EnvEraOption | null;
+  applyEra: (id: string) => void;
   cycleEra: (dir: number) => void;
   curTime: EnvTimeOption | null;
+  setEnvTime: Dispatch<SetStateAction<string | null>>;
   cycleTime: (dir: number) => void;
   backdropIdx: number;
   setBackdropIdx: Dispatch<SetStateAction<number>>;
@@ -263,19 +300,24 @@ export function SettingsPanel(props: SettingsPanelProps) {
     vortexSpeed,
     setVortexSpeed,
     cameraMode,
+    setCameraMode,
     cycleCameraMode,
     noclipSpeed,
     setNoclipSpeed,
-    swingHeight,
-    setSwingHeight,
+    swingPositionY,
+    setSwingPositionY,
     swingIntensity,
     setSwingIntensity,
     swingXFactor,
     setSwingXFactor,
-    swingYAmplitude,
-    setSwingYAmplitude,
+    swingHeight,
+    setSwingHeight,
     swingPreset,
+    applySwingPreset,
     cycleSwingPreset,
+    swingYWaveform,
+    setSwingYWaveform,
+    cycleSwingYWaveform,
     camOffX,
     setCamOffX,
     camOffY,
@@ -296,6 +338,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setWaterTintIdx,
     surfaces,
     surfaceId,
+    setSurfaceId,
     cycleSurface,
     reflStrength,
     setReflStrength,
@@ -347,13 +390,17 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setSurfaceArea,
     scenes,
     sceneId,
+    setSceneId,
     cycleScene,
     environments,
     curEnv,
+    applyEnv,
     cycleEnv,
     curEra,
+    applyEra,
     cycleEra,
     curTime,
+    setEnvTime,
     cycleTime,
     backdropIdx,
     setBackdropIdx,
@@ -714,7 +761,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
           <>
             <PadDial
               label="KAMERALÄGE"
-              value={cameraMode === "float" ? "FRI" : cameraMode === "noclip" ? "NOCLIP" : "GUNGA"}
+              value={CAMERA_MODE_LABELS[cameraMode]}
+              options={CAMERA_MODES.map((m) => CAMERA_MODE_LABELS[m])}
+              selectedIndex={CAMERA_MODES.indexOf(cameraMode)}
+              onSelectIndex={(i) => setCameraMode(CAMERA_MODES[i])}
               onDec={() => cycleCameraMode(-1)}
               onInc={() => cycleCameraMode(1)}
             />
@@ -736,39 +786,36 @@ export function SettingsPanel(props: SettingsPanelProps) {
               <>
                 <PadDial
                   label="GUNGA START"
-                  value={
-                    swingPreset === "water"
-                      ? "VATTEN"
-                      : swingPreset === "clouds"
-                        ? "MOLN"
-                        : "ANPASSAD"
-                  }
+                  value={SWING_PRESET_LABELS[swingPreset]}
+                  options={SWING_PRESETS.map((p) => SWING_PRESET_LABELS[p])}
+                  selectedIndex={SWING_PRESETS.indexOf(swingPreset)}
+                  onSelectIndex={(i) => applySwingPreset(SWING_PRESETS[i])}
                   onDec={() => cycleSwingPreset(-1)}
                   onInc={() => cycleSwingPreset(1)}
                 />
                 <PadDial
-                  label="GUNGA HÖJD"
+                  label="GUNGA POSITION Y"
                   mode="number"
-                  value={`${swingHeight.toFixed(0)}m`}
-                  rawValue={swingHeight}
-                  onSet={(v) => setSwingHeight(Math.max(0, Math.min(100000, v)))}
+                  value={`${swingPositionY.toFixed(0)}m`}
+                  rawValue={swingPositionY}
+                  onSet={(v) => setSwingPositionY(Math.max(0, Math.min(100000, v)))}
                   min={0}
                   max={100000}
                   step={100}
-                  onDec={() => setSwingHeight((v) => Math.max(0, +(v - 100).toFixed(0)))}
-                  onInc={() => setSwingHeight((v) => Math.min(100000, +(v + 100).toFixed(0)))}
+                  onDec={() => setSwingPositionY((v) => Math.max(0, +(v - 100).toFixed(0)))}
+                  onInc={() => setSwingPositionY((v) => Math.min(100000, +(v + 100).toFixed(0)))}
                 />
                 <PadDial
                   label="GUNGA INTENSITET"
                   mode="number"
-                  value={`${swingIntensity.toFixed(2)}x`}
+                  value={`${swingIntensity.toFixed(4)}x`}
                   rawValue={swingIntensity}
-                  onSet={(v) => setSwingIntensity(Math.max(0.01, Math.min(2.5, v)))}
-                  min={0.01}
+                  onSet={(v) => setSwingIntensity(Math.max(0.0001, Math.min(2.5, v)))}
+                  min={0.0001}
                   max={2.5}
                   step={0.05}
-                  onDec={() => setSwingIntensity((v) => Math.max(0.01, +(v - 0.05).toFixed(2)))}
-                  onInc={() => setSwingIntensity((v) => Math.min(2.5, +(v + 0.05).toFixed(2)))}
+                  onDec={() => setSwingIntensity((v) => Math.max(0.0001, +(v - 0.05).toFixed(4)))}
+                  onInc={() => setSwingIntensity((v) => Math.min(2.5, +(v + 0.05).toFixed(4)))}
                 />
                 <PadDial
                   label="GUNGA X"
@@ -783,16 +830,25 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   onInc={() => setSwingXFactor((v) => Math.min(2, +(v + 0.1).toFixed(2)))}
                 />
                 <PadDial
-                  label="GUNGA AMPLITUD"
+                  label="GUNGA HÖJD"
                   mode="number"
-                  value={`${swingYAmplitude.toFixed(0)}m`}
-                  rawValue={swingYAmplitude}
-                  onSet={(v) => setSwingYAmplitude(Math.max(0, Math.min(100000, v)))}
+                  value={`${swingHeight.toFixed(0)}m`}
+                  rawValue={swingHeight}
+                  onSet={(v) => setSwingHeight(Math.max(0, Math.min(100000, v)))}
                   min={0}
                   max={100000}
                   step={100}
-                  onDec={() => setSwingYAmplitude((v) => Math.max(0, +(v - 100).toFixed(0)))}
-                  onInc={() => setSwingYAmplitude((v) => Math.min(100000, +(v + 100).toFixed(0)))}
+                  onDec={() => setSwingHeight((v) => Math.max(0, +(v - 100).toFixed(0)))}
+                  onInc={() => setSwingHeight((v) => Math.min(100000, +(v + 100).toFixed(0)))}
+                />
+                <PadDial
+                  label="GUNGA Y VÅGFORM"
+                  value={SWING_Y_WAVEFORM_LABELS[swingYWaveform]}
+                  options={SWING_Y_WAVEFORMS.map((w) => SWING_Y_WAVEFORM_LABELS[w])}
+                  selectedIndex={SWING_Y_WAVEFORMS.indexOf(swingYWaveform)}
+                  onSelectIndex={(i) => setSwingYWaveform(SWING_Y_WAVEFORMS[i])}
+                  onDec={() => cycleSwingYWaveform(-1)}
+                  onInc={() => cycleSwingYWaveform(1)}
                 />
               </>
             )}
@@ -887,6 +943,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
             <PadDial
               label="VATTEN"
               value={WATER_TINTS[waterTintIdx].name}
+              options={WATER_TINTS.map((w) => w.name)}
+              selectedIndex={waterTintIdx}
+              onSelectIndex={setWaterTintIdx}
               onDec={() =>
                 setWaterTintIdx((i) => (i - 1 + WATER_TINTS.length) % WATER_TINTS.length)
               }
@@ -898,6 +957,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
                 value={
                   surfaceId ? (surfaces.find((s) => s.id === surfaceId)?.name ?? surfaceId) : "AV"
                 }
+                options={["AV", ...surfaces.map((s) => s.name)]}
+                selectedIndex={surfaceId ? 1 + surfaces.findIndex((s) => s.id === surfaceId) : 0}
+                onSelectIndex={(i) => setSurfaceId(i === 0 ? null : (surfaces[i - 1]?.id ?? null))}
                 onDec={() => cycleSurface(-1)}
                 onInc={() => cycleSurface(1)}
               />
@@ -1023,6 +1085,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
             <PadDial
               label="BOTTEN"
               value={BOTTOM_OPTIONS[bottomIdx].name}
+              options={BOTTOM_OPTIONS.map((b) => b.name)}
+              selectedIndex={bottomIdx}
+              onSelectIndex={setBottomIdx}
               onDec={() =>
                 setBottomIdx((i) => (i - 1 + BOTTOM_OPTIONS.length) % BOTTOM_OPTIONS.length)
               }
@@ -1157,6 +1222,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
               <PadDial
                 label="SCEN"
                 value={sceneId ? (scenes.find((s) => s.id === sceneId)?.name ?? sceneId) : "AV"}
+                options={["AV", ...scenes.map((s) => s.name)]}
+                selectedIndex={sceneId ? 1 + scenes.findIndex((s) => s.id === sceneId) : 0}
+                onSelectIndex={(i) => setSceneId(i === 0 ? null : (scenes[i - 1]?.id ?? null))}
                 onDec={() => cycleScene(-1)}
                 onInc={() => cycleScene(1)}
               />
@@ -1166,6 +1234,11 @@ export function SettingsPanel(props: SettingsPanelProps) {
                 <PadDial
                   label="MILJÖ"
                   value={curEnv ? curEnv.name : "AV"}
+                  options={["AV", ...environments.map((e) => e.name)]}
+                  selectedIndex={curEnv ? 1 + environments.findIndex((e) => e.id === curEnv.id) : 0}
+                  onSelectIndex={(i) =>
+                    applyEnv(i === 0 ? null : (environments[i - 1]?.id ?? null))
+                  }
                   onDec={() => cycleEnv(-1)}
                   onInc={() => cycleEnv(1)}
                 />
@@ -1173,6 +1246,12 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   <PadDial
                     label="EPOK"
                     value={curEra?.name ?? "—"}
+                    options={curEnv.eras.map((e) => e.name)}
+                    selectedIndex={Math.max(
+                      0,
+                      curEnv.eras.findIndex((e) => e.id === curEra?.id),
+                    )}
+                    onSelectIndex={(i) => applyEra(curEnv.eras[i].id)}
                     onDec={() => cycleEra(-1)}
                     onInc={() => cycleEra(1)}
                   />
@@ -1181,6 +1260,12 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   <PadDial
                     label="DYGN"
                     value={curTime?.name ?? "—"}
+                    options={curEra.times.map((tm) => tm.name)}
+                    selectedIndex={Math.max(
+                      0,
+                      curEra.times.findIndex((tm) => tm.id === curTime?.id),
+                    )}
+                    onSelectIndex={(i) => setEnvTime(curEra.times[i].id)}
                     onDec={() => cycleTime(-1)}
                     onInc={() => cycleTime(1)}
                   />
@@ -1190,6 +1275,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
             <PadDial
               label="BAKGRUND"
               value={BACKDROPS[backdropIdx].name}
+              options={BACKDROPS.map((b) => b.name)}
+              selectedIndex={backdropIdx}
+              onSelectIndex={setBackdropIdx}
               onDec={() => setBackdropIdx((i) => (i - 1 + BACKDROPS.length) % BACKDROPS.length)}
               onInc={() => setBackdropIdx((i) => (i + 1) % BACKDROPS.length)}
             />
