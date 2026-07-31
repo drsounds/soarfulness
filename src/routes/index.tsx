@@ -2476,7 +2476,16 @@ function Aquafulness() {
         const futureBias = 0.55;
         const anticipSurf = surfaceY * (1 - futureBias) + futureSurf * futureBias;
         const cap = amp * 1.4;
-        const rawDive = Math.max(0, anticipVel) * sub * 0.6 * (0.6 + amp * 0.6);
+        // Smooth ramp instead of Math.max(0, anticipVel): the hard clamp has
+        // a slope discontinuity right where anticipVel crosses zero, which
+        // is exactly the rising-to-falling transition at the wave crest —
+        // rawLift below has no such gate, so this was the one place putting
+        // a kink in targetY right at the top of the wave, felt as choppiness
+        // there. Softness is a small fraction of maxSlope so the ramp still
+        // reads as max(0, x) away from the crossing.
+        const diveSoftness = maxSlope * 0.12;
+        const diveRamp = (anticipVel + Math.sqrt(anticipVel * anticipVel + diveSoftness * diveSoftness)) / 2;
+        const rawDive = diveRamp * sub * 0.6 * (0.6 + amp * 0.6);
         const rawLift = anticipVel * lift * 0.35 * (0.6 + amp * 0.6);
         const diveOffset = Math.min(cap, rawDive);
         const liftOffset = Math.max(-cap, Math.min(cap, rawLift));
