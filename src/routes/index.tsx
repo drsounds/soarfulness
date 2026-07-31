@@ -3744,56 +3744,60 @@ function Aquafulness() {
             sticky
           />
         )}
-
-        {/* Interval session HUD: a thin green bar along the very bottom edge
-            shows progress through the current FRI/GUNGA interval; a second,
-            segmented bar above it (fixed-length sessions only) shows which
-            interval of the whole session is current; an optional pill above
-            both shows the elapsed/remaining readout. flex-col-reverse stacks
-            them bottom-up in that order without needing explicit offsets. */}
-        {intervalSessionOn && (
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-col-reverse">
-            <div className="h-1 w-full bg-white/10">
-              <div
-                className="h-full bg-emerald-400"
-                style={{ width: `${Math.round(intervalProgress * 100)}%` }}
-              />
-            </div>
-            {intervalSessionType === "fixed" && (
-              <div className="mb-[3px] flex h-1.5 w-full gap-[2px] px-[2px]">
-                {Array.from({ length: intervalCount }).map((_, i) => (
-                  <div
-                    key={i}
-                    className={`h-full flex-1 rounded-full ${
-                      i < intervalIndex
-                        ? "bg-emerald-400"
-                        : i === intervalIndex
-                          ? "bg-emerald-400/50"
-                          : "bg-white/15"
-                    }`}
-                  />
-                ))}
-              </div>
-            )}
-            {intervalShowStats && (
-              <div className="mb-2 flex justify-center px-4">
-                <span className="rounded-full border border-white/15 bg-black/40 px-3 py-1 text-center text-[10px] font-light tracking-[0.15em] text-white/80 backdrop-blur-md">
-                  {CAMERA_MODE_LABELS[cameraMode]} · {formatClock(curIntervalElapsed)}/
-                  {formatClock(intervalDuration)} (kvar {formatClock(curIntervalRemaining)})
-                  {intervalSessionType === "fixed"
-                    ? ` · Intervall ${intervalIndex + 1}/${intervalCount}`
-                    : ` · Intervall ${intervalIndex + 1}`}
-                  {" · Totalt "}
-                  {formatClock(intervalElapsedTotal)}
-                  {totalPlannedDuration !== null
-                    ? `/${formatClock(totalPlannedDuration)} (kvar ${formatClock(totalIntervalRemaining!)})`
-                    : ""}
-                </span>
-              </div>
-            )}
-          </div>
-        )}
       </div>
+
+      {/* Interval session HUD: a thin green bar along the very bottom edge
+          shows progress through the current FRI/GUNGA interval; a second,
+          segmented bar above it (fixed-length sessions only) shows which
+          interval of the whole session is current; an optional pill above
+          both shows the elapsed/remaining readout. flex-col-reverse stacks
+          them bottom-up in that order without needing explicit offsets.
+          Deliberately a sibling of the fading HUD wrapper above (like the
+          virtual phone below), not nested inside it, so the session stays
+          readable at a glance even once idle-fade has hidden the buttons
+          and dials. */}
+      {intervalSessionOn && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-col-reverse">
+          <div className="h-1 w-full bg-white/10">
+            <div
+              className="h-full bg-emerald-400"
+              style={{ width: `${Math.round(intervalProgress * 100)}%` }}
+            />
+          </div>
+          {intervalSessionType === "fixed" && (
+            <div className="mb-[3px] flex h-1.5 w-full gap-[2px] px-[2px]">
+              {Array.from({ length: intervalCount }).map((_, i) => (
+                <div
+                  key={i}
+                  className={`h-full flex-1 rounded-full ${
+                    i < intervalIndex
+                      ? "bg-emerald-400"
+                      : i === intervalIndex
+                        ? "bg-emerald-400/50"
+                        : "bg-white/15"
+                  }`}
+                />
+              ))}
+            </div>
+          )}
+          {intervalShowStats && (
+            <div className="mb-2 flex justify-center px-4">
+              <span className="rounded-full border border-white/15 bg-black/40 px-3 py-1 text-center text-[10px] font-light tracking-[0.15em] text-white/80 backdrop-blur-md">
+                {CAMERA_MODE_LABELS[cameraMode]} · {formatClock(curIntervalElapsed)}/
+                {formatClock(intervalDuration)} (kvar {formatClock(curIntervalRemaining)})
+                {intervalSessionType === "fixed"
+                  ? ` · Intervall ${intervalIndex + 1}/${intervalCount}`
+                  : ` · Intervall ${intervalIndex + 1}`}
+                {" · Totalt "}
+                {formatClock(intervalElapsedTotal)}
+                {totalPlannedDuration !== null
+                  ? `/${formatClock(totalPlannedDuration)} (kvar ${formatClock(totalIntervalRemaining!)})`
+                  : ""}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Virtual phone: a floating, draggable, resizable 2D bathOS device
           (not part of the 3D world) used to browse and then "cast" whatever
