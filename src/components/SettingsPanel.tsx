@@ -72,8 +72,6 @@ export type SettingsPanelProps = {
   setRealisticWaves: Dispatch<SetStateAction<boolean>>;
   regularCross: boolean;
   setRegularCross: Dispatch<SetStateAction<boolean>>;
-  crossAffectsHeave: boolean;
-  setCrossAffectsHeave: Dispatch<SetStateAction<boolean>>;
   regularPeriod: number;
   setRegularPeriod: Dispatch<SetStateAction<number>>;
   wavePeak: number;
@@ -246,8 +244,6 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setRealisticWaves,
     regularCross,
     setRegularCross,
-    crossAffectsHeave,
-    setCrossAffectsHeave,
     regularPeriod,
     setRegularPeriod,
     wavePeak,
@@ -615,12 +611,6 @@ export function SettingsPanel(props: SettingsPanelProps) {
               value={regularCross ? "PÅ" : "AV"}
               onDec={() => setRegularCross(false)}
               onInc={() => setRegularCross(true)}
-            />
-            <PadDial
-              label="KORSVÅG GUPP"
-              value={crossAffectsHeave ? "PÅ" : "AV"}
-              onDec={() => setCrossAffectsHeave(false)}
-              onInc={() => setCrossAffectsHeave(true)}
             />
             <PadDial
               label="VÅGPERIOD"

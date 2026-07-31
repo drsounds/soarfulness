@@ -182,7 +182,6 @@ type Persisted = {
   regularWaves: boolean;
   realisticWaves: boolean;
   regularCross: boolean;
-  crossAffectsHeave: boolean;
   regularPeriod: number;
   wavePeak: number;
   waveHighQuality: boolean;
@@ -394,8 +393,7 @@ const DEFAULTS: Persisted = {
   leanEnabled: false,
   regularWaves: true,
   realisticWaves: false,
-  regularCross: false,
-  crossAffectsHeave: false,
+  regularCross: true,
   regularPeriod: 1,
   wavePeak: 1,
   waveHighQuality: true,
@@ -525,7 +523,6 @@ function Aquafulness() {
   // camera's wave-following physics (waveHeight()'s realistic branch).
   const fftWaveComponents = useRef<OceanWaveComponent[]>(generateOceanWaveComponents()).current;
   const [regularCross, setRegularCross] = useState(initial.regularCross);
-  const [crossAffectsHeave, setCrossAffectsHeave] = useState(initial.crossAffectsHeave);
   const [regularPeriod, setRegularPeriod] = useState(initial.regularPeriod);
   const [wavePeak, setWavePeak] = useState(initial.wavePeak);
   const [waveHighQuality, setWaveHighQuality] = useState(initial.waveHighQuality);
@@ -648,12 +645,12 @@ function Aquafulness() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, realisticWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingHeight, swingIntensity, swingXFactor, swingYAmplitude, swingPreset, surfaceArea };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, realisticWaves, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingHeight, swingIntensity, swingXFactor, swingYAmplitude, swingPreset, surfaceArea };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, realisticWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingHeight, swingIntensity, swingXFactor, swingYAmplitude, swingPreset, surfaceArea]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, realisticWaves, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingHeight, swingIntensity, swingXFactor, swingYAmplitude, swingPreset, surfaceArea]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -707,7 +704,6 @@ function Aquafulness() {
   const regularRef = useRef(regularWaves);
   const realisticRef = useRef(realisticWaves);
   const regularCrossRef = useRef(regularCross);
-  const crossAffectsHeaveRef = useRef(crossAffectsHeave);
   const regularPeriodRef = useRef(regularPeriod);
   const wavePeakRef = useRef(wavePeak);
   const waveHighQualityRef = useRef(waveHighQuality);
@@ -779,7 +775,6 @@ function Aquafulness() {
   useEffect(() => { regularRef.current = regularWaves; }, [regularWaves]);
   useEffect(() => { realisticRef.current = realisticWaves; }, [realisticWaves]);
   useEffect(() => { regularCrossRef.current = regularCross; }, [regularCross]);
-  useEffect(() => { crossAffectsHeaveRef.current = crossAffectsHeave; }, [crossAffectsHeave]);
   useEffect(() => { regularPeriodRef.current = regularPeriod; }, [regularPeriod]);
   useEffect(() => { wavePeakRef.current = wavePeak; }, [wavePeak]);
   useEffect(() => { waveHighQualityRef.current = waveHighQuality; }, [waveHighQuality]);
@@ -907,7 +902,6 @@ function Aquafulness() {
     setRegularWaves(DEFAULTS.regularWaves);
     setRealisticWaves(DEFAULTS.realisticWaves);
     setRegularCross(DEFAULTS.regularCross);
-    setCrossAffectsHeave(DEFAULTS.crossAffectsHeave);
     setRegularPeriod(DEFAULTS.regularPeriod);
     setWavePeak(DEFAULTS.wavePeak);
     setWaveHighQuality(DEFAULTS.waveHighQuality);
@@ -2428,7 +2422,7 @@ function Aquafulness() {
       const dirRad = (waveDirRef.current * Math.PI) / 180;
       const surfaceY = inVortex
         ? vortexSurfaceHeight(camX, camZ, t, ampRef.current, regularPeriodRef.current, vortexOpeningRef.current)
-        : waveHeight(camX, camZ, t, ampRef.current, regularRef.current, regularCrossRef.current && crossAffectsHeaveRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad, realisticRef.current, fftWaveComponents);
+        : waveHeight(camX, camZ, t, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad, realisticRef.current, fftWaveComponents);
 
       // The wave-following buoyancy spring and current/sway drift only apply
       // in float mode — noclip flies free of the wave surface and swing
@@ -2462,7 +2456,7 @@ function Aquafulness() {
         const lead = 0.7 / (1 + peakK * 6.0);
         const futureSurf = inVortex
           ? vortexSurfaceHeight(camX, camZ, t + lead, ampRef.current, regularPeriodRef.current, vortexOpeningRef.current)
-          : waveHeight(camX, camZ, t + lead, ampRef.current, regularRef.current, regularCrossRef.current && crossAffectsHeaveRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad, realisticRef.current, fftWaveComponents);
+          : waveHeight(camX, camZ, t + lead, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad, realisticRef.current, fftWaveComponents);
         const maxSlope = ampRef.current * 6.0;
         const rawAnticip = Math.max(-maxSlope, Math.min(maxSlope, (futureSurf - surfaceY) / lead));
         const blend = 1 - peakK * 0.85;
@@ -2726,7 +2720,7 @@ function Aquafulness() {
         if (mb.bob.follow) {
           const s = inVortex
             ? vortexSurfaceHeight(mb.base.x, mb.base.z, t, ampRef.current, regularPeriodRef.current, vortexOpeningRef.current)
-            : waveHeight(mb.base.x, mb.base.z, t, ampRef.current, regularRef.current, regularCrossRef.current && crossAffectsHeaveRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad, realisticRef.current, fftWaveComponents);
+            : waveHeight(mb.base.x, mb.base.z, t, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad, realisticRef.current, fftWaveComponents);
           h = s * mb.bob.amp;
         } else {
           h = Math.sin(t * mb.bob.speed) * mb.bob.amp;
@@ -3032,8 +3026,6 @@ function Aquafulness() {
     setRealisticWaves,
     regularCross,
     setRegularCross,
-    crossAffectsHeave,
-    setCrossAffectsHeave,
     regularPeriod,
     setRegularPeriod,
     wavePeak,
