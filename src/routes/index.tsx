@@ -3160,11 +3160,11 @@ function Aquafulness() {
   };
 
   // STRÖM/HÖJD/SVAJ/VÅGRIKT — every on-screen joystick except NAV and LOOK —
-  // rendered inside the "Fjärrkontroll" app in the bathOS phone instead of
-  // floating over the 3D view (see VirtualPhone.tsx). Each onChange here is
-  // exactly what those joysticks used to call directly from the main HUD's
-  // own JSX, so behavior (world-fixed STRÖM/SVAJ direction, VÅGRIKT's
-  // absolute bearing) is unchanged, just relocated.
+  // also rendered inside the "Fjärrkontroll" app in the bathOS phone (see
+  // VirtualPhone.tsx), in addition to STRÖM/SVAJ/VÅGRIKT's own spot on the
+  // main HUD below (HÖJD, noclip's vertical stick, lives only in the app).
+  // Built once here so both hosts share the exact same state/handlers —
+  // there's only one drift direction, one sway direction, one wave direction.
   const remoteControllerProps: RemoteControllerProps = {
     cameraMode,
     driftStick,
@@ -3320,16 +3320,37 @@ function Aquafulness() {
           </div>
         )}
 
-        {/* PS-liknande layout: NAV (rörelse, momentan) nere till vänster,
-            LOOK (rotation, momentan) nere till höger — de enda spakar som är
-            kvar direkt på huvudskärmen. STRÖM/HÖJD/SVAJ/VÅGRIKT flyttade
-            till "Fjärrkontroll"-appen i bathOS-telefonen (se
-            VirtualPhone.tsx), eftersom de sällan behöver ändras mitt i en
-            rörelse och annars tar upp värdefull skärmyta ovanpå 3D-vyn. I
-            GUNGA-läget styrs positionen helt av gungans fysik, så bara LOOK
-            visas. */}
+        {/* PS-liknande layout:
+            Vänster sida: NAV (rörelse, momentan) längst ned, STRÖM (drift,
+            sticky) ovanför.
+            Höger sida: LOOK (rotation, momentan) längst ned, VÅGRIKT
+            (sticky) ovanför.
+            SVAJ delar STRÖM:s kolumn, ovanför STRÖM.
+            STRÖM/SVAJ/VÅGRIKT finns även i "Fjärrkontroll"-appen i
+            bathOS-telefonen (se VirtualPhone.tsx) — samma state/handlers,
+            bara ett andra sätt att nå dem. HÖJD (noclip) finns bara där, för
+            att inte tränga undan de andra spakarna. I GUNGA-läget styrs
+            positionen helt av gungans fysik, så bara LOOK visas. */}
         {cameraMode !== "swing" && (
           <Joystick onChange={setStick} value={stick} label="NAV" positionClass="bottom-6 left-6" />
+        )}
+        {cameraMode === "float" && (
+          <Joystick
+            onChange={remoteControllerProps.onDriftChange}
+            value={remoteControllerProps.driftStick}
+            label="STRÖM"
+            positionClass="bottom-36 left-6"
+            sticky
+          />
+        )}
+        {cameraMode === "float" && (
+          <Joystick
+            onChange={remoteControllerProps.onSwayChange}
+            value={remoteControllerProps.swayStick}
+            label="SVAJ"
+            positionClass="bottom-64 left-6"
+            sticky
+          />
         )}
         <Joystick
           onChange={setRotStick}
@@ -3337,6 +3358,15 @@ function Aquafulness() {
           label="LOOK"
           positionClass="bottom-6 right-6"
         />
+        {cameraMode === "float" && (
+          <Joystick
+            onChange={remoteControllerProps.onWaveDirChange}
+            value={remoteControllerProps.waveDirStick}
+            label="VÅGRIKT"
+            positionClass="bottom-36 right-6"
+            sticky
+          />
+        )}
       </div>
 
       {/* Virtual phone: a floating, draggable, resizable 2D bathOS device

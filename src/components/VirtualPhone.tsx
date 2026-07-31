@@ -11,10 +11,12 @@ type Orientation = "portrait" | "landscape";
 type Screen = "home" | "browser" | "settings" | "remote" | "screens";
 
 // STRÖM/HÖJD/SVAJ/VÅGRIKT — every on-screen joystick except NAV and LOOK —
-// rendered here as the "Fjärrkontroll" app instead of floating over the 3D
-// view. index.tsx owns all of the actual state/refs (there's only one
-// camera, one wave direction); this is just the set of values/handlers it
-// hands down, mirroring what those joysticks used to call directly.
+// rendered here as the "Fjärrkontroll" app, a second way to reach STRÖM/SVAJ/
+// VÅGRIKT alongside their own spot on the main HUD (HÖJD, noclip's vertical
+// stick, lives only here). index.tsx owns all of the actual state/refs
+// (there's only one camera, one wave direction); this is just the set of
+// values/handlers it hands down, identical to what the main HUD's own
+// joysticks call.
 export type RemoteControllerProps = {
   cameraMode: CameraMode;
   driftStick: StickValue;
@@ -651,9 +653,10 @@ export function VirtualPhone({
                   </div>
                 </button>
                 {/* Built-in, non-removable app — STRÖM/HÖJD/SVAJ/VÅGRIKT,
-                    every on-screen joystick except NAV/LOOK, moved here from
-                    the main HUD so they don't take up screen space over the
-                    3D view when they're not being actively steered. */}
+                    every on-screen joystick except NAV/LOOK. STRÖM/SVAJ/
+                    VÅGRIKT are also on the main HUD directly; this is a
+                    second way to reach them (plus HÖJD, which only lives
+                    here) without them cluttering the 3D view. */}
                 <button
                   onClick={() => setState((s) => ({ ...s, screen: "remote" }))}
                   className="flex w-[54px] flex-col items-center gap-1"
@@ -939,9 +942,10 @@ export function VirtualPhone({
             </div>
           ) : state.screen === "remote" ? (
             // "Fjärrkontroll" — STRÖM/HÖJD/SVAJ/VÅGRIKT, every on-screen
-            // joystick except NAV/LOOK (those stay on the main HUD). Each
-            // pad is the exact same onChange the main HUD used to call
-            // directly, just relocated — see index.tsx's remoteControllerProps.
+            // joystick except NAV/LOOK. STRÖM/SVAJ/VÅGRIKT also sit directly
+            // on the main HUD; each pad here is the exact same onChange, so
+            // both places always stay in sync — see index.tsx's
+            // remoteControllerProps.
             <div className="flex h-full flex-col gap-3 overflow-y-auto bg-[#111] p-3 text-white">
               <div className="text-center text-[10px] font-light tracking-[0.4em] text-white/60">
                 FJÄRRKONTROLL
