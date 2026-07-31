@@ -5,6 +5,7 @@ import {
   WATER_TINTS,
   BOTTOM_OPTIONS,
   BACKDROPS,
+  TORUS_RING_TEXTURES,
   CAMERA_MODES,
   SWING_PRESETS,
   SWING_Y_WAVEFORMS,
@@ -212,6 +213,28 @@ export type SettingsPanelProps = {
   setSkyCloudsHeight: Dispatch<SetStateAction<number>>;
   surfaceArea: number;
   setSurfaceArea: Dispatch<SetStateAction<number>>;
+  torusRingsOn: boolean;
+  setTorusRingsOn: Dispatch<SetStateAction<boolean>>;
+  torusRadius: number;
+  setTorusRadius: Dispatch<SetStateAction<number>>;
+  torusTube: number;
+  setTorusTube: Dispatch<SetStateAction<number>>;
+  torusScale: number;
+  setTorusScale: Dispatch<SetStateAction<number>>;
+  torusOpacity: number;
+  setTorusOpacity: Dispatch<SetStateAction<number>>;
+  torusTextureIdx: number;
+  setTorusTextureIdx: Dispatch<SetStateAction<number>>;
+  torusCellSize: number;
+  setTorusCellSize: Dispatch<SetStateAction<number>>;
+  torusVerticalSpacing: number;
+  setTorusVerticalSpacing: Dispatch<SetStateAction<number>>;
+  torusVerticalCount: number;
+  setTorusVerticalCount: Dispatch<SetStateAction<number>>;
+  torusViewDistance: number;
+  setTorusViewDistance: Dispatch<SetStateAction<number>>;
+  torusFadeDistance: number;
+  setTorusFadeDistance: Dispatch<SetStateAction<number>>;
   scenes: NamedOption[];
   sceneId: string | null;
   setSceneId: Dispatch<SetStateAction<string | null>>;
@@ -388,6 +411,28 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setSkyCloudsHeight,
     surfaceArea,
     setSurfaceArea,
+    torusRingsOn,
+    setTorusRingsOn,
+    torusRadius,
+    setTorusRadius,
+    torusTube,
+    setTorusTube,
+    torusScale,
+    setTorusScale,
+    torusOpacity,
+    setTorusOpacity,
+    torusTextureIdx,
+    setTorusTextureIdx,
+    torusCellSize,
+    setTorusCellSize,
+    torusVerticalSpacing,
+    setTorusVerticalSpacing,
+    torusVerticalCount,
+    setTorusVerticalCount,
+    torusViewDistance,
+    setTorusViewDistance,
+    torusFadeDistance,
+    setTorusFadeDistance,
     scenes,
     sceneId,
     setSceneId,
@@ -1287,6 +1332,134 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onDec={() => setLiveMode(false)}
               onInc={() => setLiveMode(true)}
             />
+            <PadDial
+              label="BADRINGAR"
+              value={torusRingsOn ? "PÅ" : "AV"}
+              onDec={() => setTorusRingsOn(false)}
+              onInc={() => setTorusRingsOn(true)}
+            />
+            {torusRingsOn && (
+              <>
+                <PadDial
+                  label="RADIE"
+                  mode="number"
+                  value={`${torusRadius.toFixed(2)}m`}
+                  rawValue={torusRadius}
+                  onSet={(v) => setTorusRadius(Math.max(0.1, Math.min(5, v)))}
+                  min={0.1}
+                  max={5}
+                  step={0.05}
+                  onDec={() => setTorusRadius((v) => Math.max(0.1, +(v - 0.05).toFixed(2)))}
+                  onInc={() => setTorusRadius((v) => Math.min(5, +(v + 0.05).toFixed(2)))}
+                />
+                <PadDial
+                  label="TJOCKLEK"
+                  mode="number"
+                  value={`${torusTube.toFixed(2)}m`}
+                  rawValue={torusTube}
+                  onSet={(v) => setTorusTube(Math.max(0.01, Math.min(1, v)))}
+                  min={0.01}
+                  max={1}
+                  step={0.01}
+                  onDec={() => setTorusTube((v) => Math.max(0.01, +(v - 0.01).toFixed(2)))}
+                  onInc={() => setTorusTube((v) => Math.min(1, +(v + 0.01).toFixed(2)))}
+                />
+                <PadDial
+                  label="STORLEK"
+                  mode="number"
+                  value={`${torusScale.toFixed(2)}x`}
+                  rawValue={torusScale}
+                  onSet={(v) => setTorusScale(Math.max(0.1, Math.min(10, v)))}
+                  min={0.1}
+                  max={10}
+                  step={0.1}
+                  onDec={() => setTorusScale((v) => Math.max(0.1, +(v - 0.1).toFixed(2)))}
+                  onInc={() => setTorusScale((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
+                />
+                <PadDial
+                  label="OPACITET"
+                  mode="number"
+                  value={`${Math.round(torusOpacity * 100)}%`}
+                  rawValue={torusOpacity}
+                  onSet={(v) => setTorusOpacity(Math.max(0, Math.min(1, v)))}
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  onDec={() => setTorusOpacity((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                  onInc={() => setTorusOpacity((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+                />
+                <PadDial
+                  label="TEXTUR"
+                  value={TORUS_RING_TEXTURES[torusTextureIdx].name}
+                  onDec={() =>
+                    setTorusTextureIdx(
+                      (i) => (i - 1 + TORUS_RING_TEXTURES.length) % TORUS_RING_TEXTURES.length,
+                    )
+                  }
+                  onInc={() => setTorusTextureIdx((i) => (i + 1) % TORUS_RING_TEXTURES.length)}
+                />
+                <PadDial
+                  label="RUTNÄT XZ"
+                  mode="number"
+                  value={`${torusCellSize.toFixed(0)}m`}
+                  rawValue={torusCellSize}
+                  onSet={(v) => setTorusCellSize(Math.max(1, Math.min(60, v)))}
+                  min={1}
+                  max={60}
+                  step={1}
+                  onDec={() => setTorusCellSize((v) => Math.max(1, +(v - 1).toFixed(0)))}
+                  onInc={() => setTorusCellSize((v) => Math.min(60, +(v + 1).toFixed(0)))}
+                />
+                <PadDial
+                  label="RUTNÄT HÖJD"
+                  mode="number"
+                  value={`${torusVerticalSpacing.toFixed(1)}m`}
+                  rawValue={torusVerticalSpacing}
+                  onSet={(v) => setTorusVerticalSpacing(Math.max(0.2, Math.min(20, v)))}
+                  min={0.2}
+                  max={20}
+                  step={0.1}
+                  onDec={() => setTorusVerticalSpacing((v) => Math.max(0.2, +(v - 0.1).toFixed(2)))}
+                  onInc={() => setTorusVerticalSpacing((v) => Math.min(20, +(v + 0.1).toFixed(2)))}
+                />
+                <PadDial
+                  label="RINGAR/KOLONN"
+                  mode="number"
+                  value={`${torusVerticalCount}`}
+                  rawValue={torusVerticalCount}
+                  onSet={(v) => setTorusVerticalCount(Math.max(1, Math.min(21, Math.round(v))))}
+                  min={1}
+                  max={21}
+                  step={2}
+                  onDec={() => setTorusVerticalCount((v) => Math.max(1, v - 2))}
+                  onInc={() => setTorusVerticalCount((v) => Math.min(21, v + 2))}
+                />
+                <PadDial
+                  label="RÄCKVIDD"
+                  mode="number"
+                  value={`${torusViewDistance.toFixed(0)}m`}
+                  rawValue={torusViewDistance}
+                  onSet={(v) => setTorusViewDistance(Math.max(torusCellSize, Math.min(400, v)))}
+                  min={torusCellSize}
+                  max={400}
+                  step={2}
+                  onDec={() => setTorusViewDistance((v) => Math.max(torusCellSize, +(v - 2).toFixed(0)))}
+                  onInc={() => setTorusViewDistance((v) => Math.min(400, +(v + 2).toFixed(0)))}
+                />
+                <PadDial
+                  label="TONING"
+                  mode="number"
+                  value={`${torusFadeDistance.toFixed(1)}m`}
+                  rawValue={torusFadeDistance}
+                  onSet={(v) => setTorusFadeDistance(Math.max(0.5, Math.min(100, v)))}
+                  min={0.5}
+                  max={100}
+                  step={0.5}
+                  onDec={() => setTorusFadeDistance((v) => Math.max(0.5, +(v - 0.5).toFixed(1)))}
+                  onInc={() => setTorusFadeDistance((v) => Math.min(100, +(v + 0.5).toFixed(1)))}
+                />
+              </>
+            )}
           </>
         )}
         {settingsTab === "ljud" && (

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { CSS3DTVManager, type DeviceKind } from "@/lib/tv/CSS3DTVManager";
+import { TorusRingField } from "@/lib/torusRings/TorusRingField";
 import { VirtualPhone, type RemoteControllerProps } from "@/components/VirtualPhone";
 import { SettingsPanel, type SettingsPanelProps } from "@/components/SettingsPanel";
 import { Joystick } from "@/components/Joystick";
@@ -17,6 +18,7 @@ import {
   SETTINGS_TABS,
   CAMERA_MODES,
   SWING_PRESETS,
+  TORUS_RING_TEXTURES,
   SWING_Y_WAVEFORMS,
   type SettingsTab,
   type CameraMode,
@@ -263,6 +265,17 @@ type Persisted = {
   swingPreset: SwingPreset;
   swingYWaveform: SwingYWaveform;
   surfaceArea: number;
+  torusRingsOn: boolean;
+  torusRadius: number;
+  torusTube: number;
+  torusScale: number;
+  torusOpacity: number;
+  torusTextureIdx: number;
+  torusCellSize: number;
+  torusVerticalSpacing: number;
+  torusVerticalCount: number;
+  torusViewDistance: number;
+  torusFadeDistance: number;
 };
 // Parse a "#rrggbb" hex string into normalized [0,1] RGB. Falls back to a
 // neutral sand tone on malformed input rather than throwing.
@@ -479,6 +492,20 @@ const DEFAULTS: Persisted = {
   swingPreset: "water",
   swingYWaveform: "pendulum",
   surfaceArea: 1000,
+  // Floating torus "bath rings" field — off by default so existing scenes
+  // look unchanged until explicitly turned on. Defaults per the feature
+  // spec: emissive white, 50% opacity.
+  torusRingsOn: false,
+  torusRadius: 0.6,
+  torusTube: 0.08,
+  torusScale: 1,
+  torusOpacity: 0.5,
+  torusTextureIdx: 0,
+  torusCellSize: 6,
+  torusVerticalSpacing: 1.4,
+  torusVerticalCount: 5,
+  torusViewDistance: 26,
+  torusFadeDistance: 8,
 };
 function loadSettings(): Persisted {
   if (typeof window === "undefined") return DEFAULTS;
@@ -624,6 +651,17 @@ function Aquafulness() {
   // shared by the ocean surface and both cloud layers so all three always
   // extend exactly this far before their edge could show.
   const [surfaceArea, setSurfaceArea] = useState(initial.surfaceArea);
+  const [torusRingsOn, setTorusRingsOn] = useState(initial.torusRingsOn);
+  const [torusRadius, setTorusRadius] = useState(initial.torusRadius);
+  const [torusTube, setTorusTube] = useState(initial.torusTube);
+  const [torusScale, setTorusScale] = useState(initial.torusScale);
+  const [torusOpacity, setTorusOpacity] = useState(initial.torusOpacity);
+  const [torusTextureIdx, setTorusTextureIdx] = useState(initial.torusTextureIdx);
+  const [torusCellSize, setTorusCellSize] = useState(initial.torusCellSize);
+  const [torusVerticalSpacing, setTorusVerticalSpacing] = useState(initial.torusVerticalSpacing);
+  const [torusVerticalCount, setTorusVerticalCount] = useState(initial.torusVerticalCount);
+  const [torusViewDistance, setTorusViewDistance] = useState(initial.torusViewDistance);
+  const [torusFadeDistance, setTorusFadeDistance] = useState(initial.torusFadeDistance);
   const [rotStick, setRotStick] = useState({ x: 0, y: 0 });
   const [driftStick, setDriftStick] = useState({ x: 0, y: 0 });
   const [waveDirStick, setWaveDirStick] = useState({ x: 0, y: 0 });
@@ -659,6 +697,9 @@ function Aquafulness() {
   // Manages the CSS3DRenderer-backed "TV apparatus" panels layered on top of
   // the WebGL scene, sharing the same camera; see CSS3DTVManager.
   const tvManagerRef = useRef<CSS3DTVManager | null>(null);
+  // Floating torus "bath rings" field, arrayed around the camera on an
+  // invisible grid — see TorusRingField for the fade-in/out and grid logic.
+  const torusRingFieldRef = useRef<TorusRingField | null>(null);
   // Non-null only when the current scene opts into bobbing; drives the model's
   // vertical motion from inside the animation loop.
   const modelBobRef = useRef<{ base: THREE.Vector3; bob: BobConfig } | null>(null);
@@ -685,12 +726,12 @@ function Aquafulness() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, realisticWaves, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingPositionY, swingIntensity, swingXFactor, swingHeight, swingPreset, swingYWaveform, surfaceArea };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, realisticWaves, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingPositionY, swingIntensity, swingXFactor, swingHeight, swingPreset, swingYWaveform, surfaceArea, torusRingsOn, torusRadius, torusTube, torusScale, torusOpacity, torusTextureIdx, torusCellSize, torusVerticalSpacing, torusVerticalCount, torusViewDistance, torusFadeDistance };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, realisticWaves, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingPositionY, swingIntensity, swingXFactor, swingHeight, swingPreset, swingYWaveform, surfaceArea]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, realisticWaves, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingPositionY, swingIntensity, swingXFactor, swingHeight, swingPreset, swingYWaveform, surfaceArea, torusRingsOn, torusRadius, torusTube, torusScale, torusOpacity, torusTextureIdx, torusCellSize, torusVerticalSpacing, torusVerticalCount, torusViewDistance, torusFadeDistance]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -875,6 +916,24 @@ function Aquafulness() {
     midCloudsMeshRef.current?.scale.set(cloudScale, 1, cloudScale);
     skyCloudsMeshRef.current?.scale.set(cloudScale, 1, cloudScale);
   }, [surfaceArea]);
+  // Live torus-ring settings → the field manager (a no-op via `?.` until the
+  // WebGL mount effect below has run and constructed it; that effect builds
+  // it with these same values as its initial config).
+  useEffect(() => {
+    torusRingFieldRef.current?.setConfig({
+      enabled: torusRingsOn,
+      radius: torusRadius,
+      tube: torusTube,
+      scale: torusScale,
+      opacity: torusOpacity,
+      textureUrl: TORUS_RING_TEXTURES[torusTextureIdx]?.url ?? null,
+      cellSize: torusCellSize,
+      verticalSpacing: torusVerticalSpacing,
+      verticalCount: torusVerticalCount,
+      viewDistance: torusViewDistance,
+      fadeDistance: torusFadeDistance,
+    });
+  }, [torusRingsOn, torusRadius, torusTube, torusScale, torusOpacity, torusTextureIdx, torusCellSize, torusVerticalSpacing, torusVerticalCount, torusViewDistance, torusFadeDistance]);
   // Mode switch: hand off position/orientation continuity between schemes so
   // switching never teleports the camera. Entering noclip seeds its vertical
   // position from wherever the wave spring last had the camera; entering
@@ -998,6 +1057,17 @@ function Aquafulness() {
     setSwingYWaveform(DEFAULTS.swingYWaveform);
     setSurfaceArea(DEFAULTS.surfaceArea);
     setSwingPreset(DEFAULTS.swingPreset);
+    setTorusRingsOn(DEFAULTS.torusRingsOn);
+    setTorusRadius(DEFAULTS.torusRadius);
+    setTorusTube(DEFAULTS.torusTube);
+    setTorusScale(DEFAULTS.torusScale);
+    setTorusOpacity(DEFAULTS.torusOpacity);
+    setTorusTextureIdx(DEFAULTS.torusTextureIdx);
+    setTorusCellSize(DEFAULTS.torusCellSize);
+    setTorusVerticalSpacing(DEFAULTS.torusVerticalSpacing);
+    setTorusVerticalCount(DEFAULTS.torusVerticalCount);
+    setTorusViewDistance(DEFAULTS.torusViewDistance);
+    setTorusFadeDistance(DEFAULTS.torusFadeDistance);
     // timeOfDay is intentionally left untouched.
   };
 
@@ -1404,6 +1474,22 @@ function Aquafulness() {
     const tvManager = new CSS3DTVManager(mount, camera, scene, mount.clientWidth, mount.clientHeight);
     tvManager.setEditMode(editModeRef.current);
     tvManagerRef.current = tvManager;
+
+    const torusRingField = new TorusRingField(scene, {
+      enabled: initial.torusRingsOn,
+      radius: initial.torusRadius,
+      tube: initial.torusTube,
+      scale: initial.torusScale,
+      opacity: initial.torusOpacity,
+      color: 0xffffff,
+      textureUrl: TORUS_RING_TEXTURES[initial.torusTextureIdx]?.url ?? null,
+      cellSize: initial.torusCellSize,
+      verticalSpacing: initial.torusVerticalSpacing,
+      verticalCount: initial.torusVerticalCount,
+      viewDistance: initial.torusViewDistance,
+      fadeDistance: initial.torusFadeDistance,
+    });
+    torusRingFieldRef.current = torusRingField;
 
     // Ocean plane
     const geo = new THREE.PlaneGeometry(600, 600, 320, 320);
@@ -2836,6 +2922,11 @@ function Aquafulness() {
         model.position.set(mb.base.x, mb.base.y + h, mb.base.z);
       }
 
+      // Recompute the torus-ring field's active grid cells and their
+      // fade-in/out/distance opacity for this frame, now that the camera's
+      // position is final for the frame.
+      torusRingField.update(camera.position, dt);
+
       // Must run before renderer.render() below — it syncs each TV panel's
       // invisible occluder mesh (added to `scene`) to the panel's current
       // transform, so the depth test that lets other 3D objects properly
@@ -2889,6 +2980,8 @@ function Aquafulness() {
       skyCloudsMeshRef.current = null;
       tvManager.dispose();
       tvManagerRef.current = null;
+      torusRingField.dispose();
+      torusRingFieldRef.current = null;
       if (renderer.domElement.parentNode === mount) {
         mount.removeChild(renderer.domElement);
       }
@@ -3241,6 +3334,28 @@ function Aquafulness() {
     setSkyCloudsHeight,
     surfaceArea,
     setSurfaceArea,
+    torusRingsOn,
+    setTorusRingsOn,
+    torusRadius,
+    setTorusRadius,
+    torusTube,
+    setTorusTube,
+    torusScale,
+    setTorusScale,
+    torusOpacity,
+    setTorusOpacity,
+    torusTextureIdx,
+    setTorusTextureIdx,
+    torusCellSize,
+    setTorusCellSize,
+    torusVerticalSpacing,
+    setTorusVerticalSpacing,
+    torusVerticalCount,
+    setTorusVerticalCount,
+    torusViewDistance,
+    setTorusViewDistance,
+    torusFadeDistance,
+    setTorusFadeDistance,
     scenes,
     sceneId,
     setSceneId,
