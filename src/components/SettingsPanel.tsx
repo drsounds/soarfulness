@@ -7,22 +7,25 @@ import {
   BACKDROPS,
   TORUS_RING_TEXTURES,
   CAMERA_MODES,
+  CAMERA_MODE_LABELS,
   SWING_PRESETS,
   SWING_Y_WAVEFORMS,
+  INTERVAL_SESSION_TYPES,
   worldXZBearing,
+  formatClock,
   type SettingsTab,
   type CameraMode,
   type SwingPreset,
   type SwingYWaveform,
+  type IntervalSessionType,
 } from "@/lib/settingsShared";
 
 // Swedish display labels for enum values that don't already carry a
 // human-readable "name" (unlike scenes/environments/surfaces, which come
 // from data with their own name field).
-const CAMERA_MODE_LABELS: Record<CameraMode, string> = {
-  float: "FRI",
-  noclip: "NOCLIP",
-  swing: "GUNGA",
+const INTERVAL_SESSION_TYPE_LABELS: Record<IntervalSessionType, string> = {
+  infinite: "OÄNDLIGT",
+  fixed: "FASTA INTERVALL",
 };
 const SWING_PRESET_LABELS: Record<SwingPreset, string> = {
   water: "VATTEN",
@@ -139,6 +142,18 @@ export type SettingsPanelProps = {
   swingYWaveform: SwingYWaveform;
   setSwingYWaveform: Dispatch<SetStateAction<SwingYWaveform>>;
   cycleSwingYWaveform: (dir: number) => void;
+  // Interval session: automatically alternates FRI/GUNGA every
+  // intervalDuration seconds, either forever or for a fixed intervalCount.
+  intervalSessionOn: boolean;
+  setIntervalSessionOn: Dispatch<SetStateAction<boolean>>;
+  intervalDuration: number;
+  setIntervalDuration: Dispatch<SetStateAction<number>>;
+  intervalSessionType: IntervalSessionType;
+  setIntervalSessionType: Dispatch<SetStateAction<IntervalSessionType>>;
+  intervalCount: number;
+  setIntervalCount: Dispatch<SetStateAction<number>>;
+  intervalShowStats: boolean;
+  setIntervalShowStats: Dispatch<SetStateAction<boolean>>;
   camOffX: number;
   setCamOffX: Dispatch<SetStateAction<number>>;
   camOffY: number;
@@ -341,6 +356,16 @@ export function SettingsPanel(props: SettingsPanelProps) {
     swingYWaveform,
     setSwingYWaveform,
     cycleSwingYWaveform,
+    intervalSessionOn,
+    setIntervalSessionOn,
+    intervalDuration,
+    setIntervalDuration,
+    intervalSessionType,
+    setIntervalSessionType,
+    intervalCount,
+    setIntervalCount,
+    intervalShowStats,
+    setIntervalShowStats,
     camOffX,
     setCamOffX,
     camOffY,
@@ -804,15 +829,26 @@ export function SettingsPanel(props: SettingsPanelProps) {
         )}
         {settingsTab === "kamera" && (
           <>
-            <PadDial
-              label="KAMERALÄGE"
-              value={CAMERA_MODE_LABELS[cameraMode]}
-              options={CAMERA_MODES.map((m) => CAMERA_MODE_LABELS[m])}
-              selectedIndex={CAMERA_MODES.indexOf(cameraMode)}
-              onSelectIndex={(i) => setCameraMode(CAMERA_MODES[i])}
-              onDec={() => cycleCameraMode(-1)}
-              onInc={() => cycleCameraMode(1)}
-            />
+            {intervalSessionOn ? (
+              <div className="flex min-w-[86px] flex-col items-start justify-center gap-0.5 rounded-full border border-white/15 bg-black/40 px-3 py-2 leading-tight">
+                <span className="text-[9px] font-light tracking-[0.28em] text-white/60">
+                  KAMERALÄGE
+                </span>
+                <span className="text-xs font-medium tracking-wider text-white/80">
+                  {CAMERA_MODE_LABELS[cameraMode]} (AUTO)
+                </span>
+              </div>
+            ) : (
+              <PadDial
+                label="KAMERALÄGE"
+                value={CAMERA_MODE_LABELS[cameraMode]}
+                options={CAMERA_MODES.map((m) => CAMERA_MODE_LABELS[m])}
+                selectedIndex={CAMERA_MODES.indexOf(cameraMode)}
+                onSelectIndex={(i) => setCameraMode(CAMERA_MODES[i])}
+                onDec={() => cycleCameraMode(-1)}
+                onInc={() => cycleCameraMode(1)}
+              />
+            )}
             {cameraMode === "noclip" && (
               <PadDial
                 label="NOCLIP FART"
@@ -897,6 +933,53 @@ export function SettingsPanel(props: SettingsPanelProps) {
                 />
               </>
             )}
+            <PadDial
+              label="INTERVALLPASS"
+              value={intervalSessionOn ? "PÅ" : "AV"}
+              onDec={() => setIntervalSessionOn(false)}
+              onInc={() => setIntervalSessionOn(true)}
+            />
+            <PadDial
+              label="INTERVALL"
+              mode="number"
+              value={formatClock(intervalDuration)}
+              rawValue={intervalDuration}
+              onSet={(v) => setIntervalDuration(Math.max(5, Math.min(3600, Math.round(v))))}
+              min={5}
+              max={3600}
+              step={5}
+              onDec={() => setIntervalDuration((v) => Math.max(5, v - 5))}
+              onInc={() => setIntervalDuration((v) => Math.min(3600, v + 5))}
+            />
+            <PadDial
+              label="PASSTYP"
+              value={INTERVAL_SESSION_TYPE_LABELS[intervalSessionType]}
+              options={INTERVAL_SESSION_TYPES.map((t) => INTERVAL_SESSION_TYPE_LABELS[t])}
+              selectedIndex={INTERVAL_SESSION_TYPES.indexOf(intervalSessionType)}
+              onSelectIndex={(i) => setIntervalSessionType(INTERVAL_SESSION_TYPES[i])}
+              onDec={() => setIntervalSessionType((t) => (t === "infinite" ? "fixed" : "infinite"))}
+              onInc={() => setIntervalSessionType((t) => (t === "infinite" ? "fixed" : "infinite"))}
+            />
+            {intervalSessionType === "fixed" && (
+              <PadDial
+                label="ANTAL INTERVALL"
+                mode="number"
+                value={`${intervalCount}`}
+                rawValue={intervalCount}
+                onSet={(v) => setIntervalCount(Math.max(1, Math.min(50, Math.round(v))))}
+                min={1}
+                max={50}
+                step={1}
+                onDec={() => setIntervalCount((v) => Math.max(1, v - 1))}
+                onInc={() => setIntervalCount((v) => Math.min(50, v + 1))}
+              />
+            )}
+            <PadDial
+              label="VISA TID"
+              value={intervalShowStats ? "PÅ" : "AV"}
+              onDec={() => setIntervalShowStats(false)}
+              onInc={() => setIntervalShowStats(true)}
+            />
             <PadDial
               label="POS X"
               mode="number"
@@ -1443,7 +1526,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   min={torusCellSize}
                   max={400}
                   step={2}
-                  onDec={() => setTorusViewDistance((v) => Math.max(torusCellSize, +(v - 2).toFixed(0)))}
+                  onDec={() =>
+                    setTorusViewDistance((v) => Math.max(torusCellSize, +(v - 2).toFixed(0)))
+                  }
                   onInc={() => setTorusViewDistance((v) => Math.min(400, +(v + 2).toFixed(0)))}
                 />
                 <PadDial

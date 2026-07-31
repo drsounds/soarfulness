@@ -17,13 +17,17 @@ import {
   BACKDROPS,
   SETTINGS_TABS,
   CAMERA_MODES,
+  CAMERA_MODE_LABELS,
   SWING_PRESETS,
   TORUS_RING_TEXTURES,
   SWING_Y_WAVEFORMS,
+  INTERVAL_SESSION_TYPES,
+  formatClock,
   type SettingsTab,
   type CameraMode,
   type SwingPreset,
   type SwingYWaveform,
+  type IntervalSessionType,
 } from "@/lib/settingsShared";
 import {
   FFT_WAVE_COUNT,
@@ -264,6 +268,11 @@ type Persisted = {
   swingHeight: number;
   swingPreset: SwingPreset;
   swingYWaveform: SwingYWaveform;
+  intervalSessionOn: boolean;
+  intervalDuration: number;
+  intervalSessionType: IntervalSessionType;
+  intervalCount: number;
+  intervalShowStats: boolean;
   surfaceArea: number;
   torusRingsOn: boolean;
   torusRadius: number;
@@ -491,6 +500,13 @@ const DEFAULTS: Persisted = {
   swingHeight: 15,
   swingPreset: "water",
   swingYWaveform: "pendulum",
+  // Interval session off by default; a 30s FRI/GUNGA alternation running
+  // forever once turned on, until switched to a fixed number of intervals.
+  intervalSessionOn: false,
+  intervalDuration: 30,
+  intervalSessionType: "infinite",
+  intervalCount: 6,
+  intervalShowStats: true,
   surfaceArea: 1000,
   // Floating torus "bath rings" field — off by default so existing scenes
   // look unchanged until explicitly turned on. Defaults per the feature
@@ -647,6 +663,33 @@ function Aquafulness() {
   const [swingHeight, setSwingHeight] = useState(initial.swingHeight);
   const [swingYWaveform, setSwingYWaveform] = useState<SwingYWaveform>(initial.swingYWaveform);
   const [swingPreset, setSwingPreset] = useState<SwingPreset>(initial.swingPreset);
+  // Interval session: automatically alternates the camera between "float"
+  // (FRI) and "swing" (GUNGA) every intervalDuration seconds — see the
+  // session-driver effect below. intervalIndex/intervalProgress/
+  // intervalElapsedTotal are runtime-only (not persisted) progress readouts
+  // for the bottom HUD bars.
+  const [intervalSessionOn, setIntervalSessionOn] = useState(initial.intervalSessionOn);
+  const [intervalDuration, setIntervalDuration] = useState(initial.intervalDuration);
+  const [intervalSessionType, setIntervalSessionType] = useState<IntervalSessionType>(
+    initial.intervalSessionType,
+  );
+  const [intervalCount, setIntervalCount] = useState(initial.intervalCount);
+  const [intervalShowStats, setIntervalShowStats] = useState(initial.intervalShowStats);
+  const [intervalIndex, setIntervalIndex] = useState(0);
+  const [intervalProgress, setIntervalProgress] = useState(0);
+  const [intervalElapsedTotal, setIntervalElapsedTotal] = useState(0);
+  const intervalDurationRef = useRef(intervalDuration);
+  const intervalSessionTypeRef = useRef(intervalSessionType);
+  const intervalCountRef = useRef(intervalCount);
+  useEffect(() => {
+    intervalDurationRef.current = intervalDuration;
+  }, [intervalDuration]);
+  useEffect(() => {
+    intervalSessionTypeRef.current = intervalSessionType;
+  }, [intervalSessionType]);
+  useEffect(() => {
+    intervalCountRef.current = intervalCount;
+  }, [intervalCount]);
   // Physical width/depth (meters) of the recentered water and cloud planes —
   // shared by the ocean surface and both cloud layers so all three always
   // extend exactly this far before their edge could show.
@@ -726,12 +769,12 @@ function Aquafulness() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, realisticWaves, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingPositionY, swingIntensity, swingXFactor, swingHeight, swingPreset, swingYWaveform, surfaceArea, torusRingsOn, torusRadius, torusTube, torusScale, torusOpacity, torusTextureIdx, torusCellSize, torusVerticalSpacing, torusVerticalCount, torusViewDistance, torusFadeDistance };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, realisticWaves, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingPositionY, swingIntensity, swingXFactor, swingHeight, swingPreset, swingYWaveform, intervalSessionOn, intervalDuration, intervalSessionType, intervalCount, intervalShowStats, surfaceArea, torusRingsOn, torusRadius, torusTube, torusScale, torusOpacity, torusTextureIdx, torusCellSize, torusVerticalSpacing, torusVerticalCount, torusViewDistance, torusFadeDistance };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, realisticWaves, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingPositionY, swingIntensity, swingXFactor, swingHeight, swingPreset, swingYWaveform, surfaceArea, torusRingsOn, torusRadius, torusTube, torusScale, torusOpacity, torusTextureIdx, torusCellSize, torusVerticalSpacing, torusVerticalCount, torusViewDistance, torusFadeDistance]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, realisticWaves, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingPositionY, swingIntensity, swingXFactor, swingHeight, swingPreset, swingYWaveform, intervalSessionOn, intervalDuration, intervalSessionType, intervalCount, intervalShowStats, surfaceArea, torusRingsOn, torusRadius, torusTube, torusScale, torusOpacity, torusTextureIdx, torusCellSize, torusVerticalSpacing, torusVerticalCount, torusViewDistance, torusFadeDistance]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -953,6 +996,52 @@ function Aquafulness() {
       };
     }
   }, [cameraMode]);
+
+  // Interval session driver: while on, alternates cameraMode between "float"
+  // (FRI) and "swing" (GUNGA) every intervalDuration seconds, ticking a
+  // low-frequency (10Hz) clock for the bottom HUD progress bars. Reads
+  // duration/type/count from refs each tick so live dial changes apply
+  // immediately without restarting the effect. A 10Hz poll (rather than
+  // hooking into the WebGL RAF loop) is plenty smooth for a progress bar and
+  // keeps this concern fully decoupled from the render loop.
+  useEffect(() => {
+    if (!intervalSessionOn) {
+      setIntervalIndex(0);
+      setIntervalProgress(0);
+      setIntervalElapsedTotal(0);
+      return;
+    }
+    let stopped = false;
+    let idx = 0;
+    const sessionStart = performance.now();
+    let intervalStart = sessionStart;
+    setCameraMode("float");
+    setIntervalIndex(0);
+    setIntervalProgress(0);
+    setIntervalElapsedTotal(0);
+    const id = window.setInterval(() => {
+      if (stopped) return;
+      const now = performance.now();
+      const durationMs = Math.max(1, intervalDurationRef.current) * 1000;
+      if (now - intervalStart >= durationMs) {
+        idx += 1;
+        if (intervalSessionTypeRef.current === "fixed" && idx >= intervalCountRef.current) {
+          stopped = true;
+          setIntervalSessionOn(false);
+          return;
+        }
+        intervalStart = now;
+        setCameraMode((m) => (m === "swing" ? "float" : "swing"));
+        setIntervalIndex(idx);
+      }
+      setIntervalProgress(Math.min(1, (now - intervalStart) / durationMs));
+      setIntervalElapsedTotal((now - sessionStart) / 1000);
+    }, 100);
+    return () => {
+      stopped = true;
+      window.clearInterval(id);
+    };
+  }, [intervalSessionOn]);
   // Håll VÅGRIKT-spakens visuella läge synkat med waveDir (t.ex. när dialen ändras
   // eller vid uppstart), men bara när spaken själv står i vila.
   useEffect(() => {
@@ -1055,6 +1144,11 @@ function Aquafulness() {
     setSwingXFactor(DEFAULTS.swingXFactor);
     setSwingHeight(DEFAULTS.swingHeight);
     setSwingYWaveform(DEFAULTS.swingYWaveform);
+    setIntervalSessionOn(DEFAULTS.intervalSessionOn);
+    setIntervalDuration(DEFAULTS.intervalDuration);
+    setIntervalSessionType(DEFAULTS.intervalSessionType);
+    setIntervalCount(DEFAULTS.intervalCount);
+    setIntervalShowStats(DEFAULTS.intervalShowStats);
     setSurfaceArea(DEFAULTS.surfaceArea);
     setSwingPreset(DEFAULTS.swingPreset);
     setTorusRingsOn(DEFAULTS.torusRingsOn);
@@ -3185,6 +3279,16 @@ function Aquafulness() {
     return "Skymning";
   })();
 
+  // Derived interval-session readouts for the bottom HUD's optional
+  // elapsed/remaining pill — computed here (rather than inline in the JSX
+  // below) to keep that JSX a plain reference to already-resolved values.
+  const curIntervalElapsed = intervalProgress * intervalDuration;
+  const curIntervalRemaining = Math.max(0, intervalDuration - curIntervalElapsed);
+  const totalPlannedDuration =
+    intervalSessionType === "fixed" ? intervalCount * intervalDuration : null;
+  const totalIntervalRemaining =
+    totalPlannedDuration !== null ? Math.max(0, totalPlannedDuration - intervalElapsedTotal) : null;
+
   // The exact same values/setters the main HUD's settings dialog above uses —
   // shared with the identical clone rendered as the "Inställningar" app
   // inside the virtual phone (see VirtualPhone.tsx's settingsPanelProps prop
@@ -3264,6 +3368,16 @@ function Aquafulness() {
     swingYWaveform,
     setSwingYWaveform,
     cycleSwingYWaveform,
+    intervalSessionOn,
+    setIntervalSessionOn,
+    intervalDuration,
+    setIntervalDuration,
+    intervalSessionType,
+    setIntervalSessionType,
+    intervalCount,
+    setIntervalCount,
+    intervalShowStats,
+    setIntervalShowStats,
     camOffX,
     setCamOffX,
     camOffY,
@@ -3591,6 +3705,55 @@ function Aquafulness() {
             positionClass="bottom-36 right-6"
             sticky
           />
+        )}
+
+        {/* Interval session HUD: a thin green bar along the very bottom edge
+            shows progress through the current FRI/GUNGA interval; a second,
+            segmented bar above it (fixed-length sessions only) shows which
+            interval of the whole session is current; an optional pill above
+            both shows the elapsed/remaining readout. flex-col-reverse stacks
+            them bottom-up in that order without needing explicit offsets. */}
+        {intervalSessionOn && (
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-col-reverse">
+            <div className="h-1 w-full bg-white/10">
+              <div
+                className="h-full bg-emerald-400"
+                style={{ width: `${Math.round(intervalProgress * 100)}%` }}
+              />
+            </div>
+            {intervalSessionType === "fixed" && (
+              <div className="mb-[3px] flex h-1.5 w-full gap-[2px] px-[2px]">
+                {Array.from({ length: intervalCount }).map((_, i) => (
+                  <div
+                    key={i}
+                    className={`h-full flex-1 rounded-full ${
+                      i < intervalIndex
+                        ? "bg-emerald-400"
+                        : i === intervalIndex
+                          ? "bg-emerald-400/50"
+                          : "bg-white/15"
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
+            {intervalShowStats && (
+              <div className="mb-2 flex justify-center px-4">
+                <span className="rounded-full border border-white/15 bg-black/40 px-3 py-1 text-center text-[10px] font-light tracking-[0.15em] text-white/80 backdrop-blur-md">
+                  {CAMERA_MODE_LABELS[cameraMode]} · {formatClock(curIntervalElapsed)}/
+                  {formatClock(intervalDuration)} (kvar {formatClock(curIntervalRemaining)})
+                  {intervalSessionType === "fixed"
+                    ? ` · Intervall ${intervalIndex + 1}/${intervalCount}`
+                    : ` · Intervall ${intervalIndex + 1}`}
+                  {" · Totalt "}
+                  {formatClock(intervalElapsedTotal)}
+                  {totalPlannedDuration !== null
+                    ? `/${formatClock(totalPlannedDuration)} (kvar ${formatClock(totalIntervalRemaining!)})`
+                    : ""}
+                </span>
+              </div>
+            )}
+          </div>
         )}
       </div>
 
