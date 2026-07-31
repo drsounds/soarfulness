@@ -97,3 +97,27 @@ export const SWING_PRESETS: SwingPreset[] = ["water", "clouds", "custom"];
 // symmetric up/down motion once per cycle.
 export type SwingYWaveform = "pendulum" | "sine" | "triangle" | "square";
 export const SWING_Y_WAVEFORMS: SwingYWaveform[] = ["pendulum", "sine", "triangle", "square"];
+
+// Swedish display labels for camera modes — shared by the settings dial
+// (SettingsPanel.tsx) and the interval-session HUD readout (routes/index.tsx).
+export const CAMERA_MODE_LABELS: Record<CameraMode, string> = {
+  float: "FRI",
+  noclip: "NOCLIP",
+  swing: "GUNGA",
+};
+
+// An interval session automatically alternates the camera between "float"
+// (FRI) and "swing" (GUNGA) every intervalDuration seconds — see the session
+// driver effect in routes/index.tsx. "infinite" repeats forever; "fixed" runs
+// exactly intervalCount intervals and then stops.
+export type IntervalSessionType = "infinite" | "fixed";
+export const INTERVAL_SESSION_TYPES: IntervalSessionType[] = ["infinite", "fixed"];
+
+// Formats a duration in seconds as "m:ss" for the interval-session controls
+// and HUD readout (e.g. 90 -> "1:30").
+export function formatClock(totalSeconds: number): string {
+  const s = Math.max(0, Math.round(totalSeconds));
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${m}:${sec.toString().padStart(2, "0")}`;
+}
