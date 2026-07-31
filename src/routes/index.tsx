@@ -19,9 +19,11 @@ import {
   CAMERA_MODES,
   SWING_PRESETS,
   TORUS_RING_TEXTURES,
+  SWING_Y_WAVEFORMS,
   type SettingsTab,
   type CameraMode,
   type SwingPreset,
+  type SwingYWaveform,
 } from "@/lib/settingsShared";
 import {
   FFT_WAVE_COUNT,
@@ -155,6 +157,30 @@ function vortexSurfaceHeight(x: number, z: number, t: number, amp: number, perio
   return pit + ring;
 }
 
+// Normalized (roughly -1..1) vertical drive for GUNGA-mode's pendulum, evaluated
+// once per frame from the swing's own angle (theta, radians — the horizontal
+// arc's instantaneous deflection) and phase (t*omega, radians — the swing
+// clock, unwrapped). "pendulum" is the physically-inspired default: y rises
+// at both ends of the arc and dips at the bottom, twice per side-to-side
+// cycle, and is always >= 0. The other shapes drive y directly off the swing
+// clock's phase instead, for a simpler symmetric up/down motion (able to dip
+// below GUNGA POSITION Y) once per cycle.
+function swingYWaveformValue(kind: SwingYWaveform, theta: number, phase: number): number {
+  switch (kind) {
+    case "sine":
+      return Math.sin(phase);
+    case "triangle": {
+      const x = (((phase / (2 * Math.PI)) % 1) + 1) % 1;
+      return x < 0.25 ? x * 4 : x < 0.75 ? 2 - x * 4 : x * 4 - 4;
+    }
+    case "square":
+      return Math.sin(phase) >= 0 ? 1 : -1;
+    case "pendulum":
+    default:
+      return 1 - Math.cos(theta);
+  }
+}
+
 // Original PlaneGeometry extents the water/cloud meshes are built at; the
 // live YTA (surface area) setting rescales each mesh by surfaceArea/base so
 // the *resulting* on-screen size matches the dial regardless of how finely
@@ -232,11 +258,12 @@ type Persisted = {
   trochoid: number;
   cameraMode: CameraMode;
   noclipSpeed: number;
-  swingHeight: number;
+  swingPositionY: number;
   swingIntensity: number;
   swingXFactor: number;
-  swingYAmplitude: number;
+  swingHeight: number;
   swingPreset: SwingPreset;
+  swingYWaveform: SwingYWaveform;
   surfaceArea: number;
   torusRingsOn: boolean;
   torusRadius: number;
@@ -458,11 +485,12 @@ const DEFAULTS: Persisted = {
   trochoid: 0,
   cameraMode: "float",
   noclipSpeed: 1,
-  swingHeight: 25,
+  swingPositionY: 25,
   swingIntensity: 1,
   swingXFactor: 0,
-  swingYAmplitude: 15,
+  swingHeight: 15,
   swingPreset: "water",
+  swingYWaveform: "pendulum",
   surfaceArea: 1000,
   // Floating torus "bath rings" field — off by default so existing scenes
   // look unchanged until explicitly turned on. Defaults per the feature
@@ -605,15 +633,19 @@ function Aquafulness() {
   const [trochoid, setTrochoid] = useState(initial.trochoid);
   const [cameraMode, setCameraMode] = useState<CameraMode>(initial.cameraMode);
   const [noclipSpeed, setNoclipSpeed] = useState(initial.noclipSpeed);
-  const [swingHeight, setSwingHeight] = useState(initial.swingHeight);
+  // Resting altitude the pendulum hangs from — GUNGA POSITION Y. Renamed from
+  // the old "swingHeight" (which was confusingly close to swingYAmplitude,
+  // the actual up/down excursion, now called GUNGA HÖJD below).
+  const [swingPositionY, setSwingPositionY] = useState(initial.swingPositionY);
   const [swingIntensity, setSwingIntensity] = useState(initial.swingIntensity);
   // Horizontal (side-to-side) swing multiplier — defaults to 0 so the
   // pendulum bobs vertically in place until explicitly dialed up.
   const [swingXFactor, setSwingXFactor] = useState(initial.swingXFactor);
-  // Vertical swing excursion in meters — independent of GUNGA HÖJD (the
-  // resting altitude), so the pendulum can swing tens of thousands of
-  // meters up/down from wherever it rests.
-  const [swingYAmplitude, setSwingYAmplitude] = useState(initial.swingYAmplitude);
+  // Vertical swing excursion in meters (GUNGA HÖJD) — independent of GUNGA
+  // POSITION Y (the resting altitude), so the pendulum can swing tens of
+  // thousands of meters up/down from wherever it rests.
+  const [swingHeight, setSwingHeight] = useState(initial.swingHeight);
+  const [swingYWaveform, setSwingYWaveform] = useState<SwingYWaveform>(initial.swingYWaveform);
   const [swingPreset, setSwingPreset] = useState<SwingPreset>(initial.swingPreset);
   // Physical width/depth (meters) of the recentered water and cloud planes —
   // shared by the ocean surface and both cloud layers so all three always
@@ -694,12 +726,12 @@ function Aquafulness() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, realisticWaves, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingHeight, swingIntensity, swingXFactor, swingYAmplitude, swingPreset, surfaceArea, torusRingsOn, torusRadius, torusTube, torusScale, torusOpacity, torusTextureIdx, torusCellSize, torusVerticalSpacing, torusVerticalCount, torusViewDistance, torusFadeDistance };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, realisticWaves, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingPositionY, swingIntensity, swingXFactor, swingHeight, swingPreset, swingYWaveform, surfaceArea, torusRingsOn, torusRadius, torusTube, torusScale, torusOpacity, torusTextureIdx, torusCellSize, torusVerticalSpacing, torusVerticalCount, torusViewDistance, torusFadeDistance };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, realisticWaves, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingHeight, swingIntensity, swingXFactor, swingYAmplitude, swingPreset, surfaceArea, torusRingsOn, torusRadius, torusTube, torusScale, torusOpacity, torusTextureIdx, torusCellSize, torusVerticalSpacing, torusVerticalCount, torusViewDistance, torusFadeDistance]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, realisticWaves, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingPositionY, swingIntensity, swingXFactor, swingHeight, swingPreset, swingYWaveform, surfaceArea, torusRingsOn, torusRadius, torusTube, torusScale, torusOpacity, torusTextureIdx, torusCellSize, torusVerticalSpacing, torusVerticalCount, torusViewDistance, torusFadeDistance]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -729,10 +761,16 @@ function Aquafulness() {
   const vertStickRef = useRef({ x: 0, y: 0 });
   const cameraModeRef = useRef<CameraMode>(cameraMode);
   const noclipSpeedRef = useRef(noclipSpeed);
-  const swingHeightRef = useRef(swingHeight);
+  const swingPositionYRef = useRef(swingPositionY);
   const swingIntensityRef = useRef(swingIntensity);
   const swingXFactorRef = useRef(swingXFactor);
-  const swingYAmplitudeRef = useRef(swingYAmplitude);
+  const swingHeightRef = useRef(swingHeight);
+  const swingYWaveformRef = useRef(swingYWaveform);
+  // Set the instant swing mode is entered: captures where the camera actually
+  // was (continuous with whatever mode came before) so the pendulum's y and
+  // its horizontal arc offset can ease in from there instead of snapping
+  // straight to the swing formula's value for the current clock phase.
+  const swingBlendRef = useRef<{ fromY: number; startMs: number } | null>(null);
   const surfaceAreaRef = useRef(surfaceArea);
   // Yaw captured the instant swing mode is entered, so the pendulum's
   // side-to-side arc stays perpendicular to whichever way you were already
@@ -862,10 +900,11 @@ function Aquafulness() {
   useEffect(() => { sphereStrengthRef.current = sphereStrength; }, [sphereStrength]);
   useEffect(() => { trochoidRef.current = trochoid; }, [trochoid]);
   useEffect(() => { noclipSpeedRef.current = noclipSpeed; }, [noclipSpeed]);
-  useEffect(() => { swingHeightRef.current = swingHeight; }, [swingHeight]);
+  useEffect(() => { swingPositionYRef.current = swingPositionY; }, [swingPositionY]);
   useEffect(() => { swingIntensityRef.current = swingIntensity; }, [swingIntensity]);
   useEffect(() => { swingXFactorRef.current = swingXFactor; }, [swingXFactor]);
-  useEffect(() => { swingYAmplitudeRef.current = swingYAmplitude; }, [swingYAmplitude]);
+  useEffect(() => { swingHeightRef.current = swingHeight; }, [swingHeight]);
+  useEffect(() => { swingYWaveformRef.current = swingYWaveform; }, [swingYWaveform]);
   // Live YTA dial → rescale the already-created water/cloud meshes (a no-op
   // until the WebGL mount effect below has run and populated the refs; that
   // effect applies the same scale itself when first creating them).
@@ -898,13 +937,20 @@ function Aquafulness() {
   // Mode switch: hand off position/orientation continuity between schemes so
   // switching never teleports the camera. Entering noclip seeds its vertical
   // position from wherever the wave spring last had the camera; entering
-  // swing captures the current look yaw as the pendulum's swing plane.
+  // swing captures the current look yaw as the pendulum's swing plane and
+  // arms a short blend (swingBlendRef) so the pendulum's y and horizontal arc
+  // ease in from wherever the camera actually was, instead of snapping
+  // straight to the swing formula's value for the current clock phase.
   useEffect(() => {
     cameraModeRef.current = cameraMode;
     if (cameraMode === "noclip") {
-      posRef.current.y = camYRef.current ?? swingHeightRef.current;
+      posRef.current.y = camYRef.current ?? swingPositionYRef.current;
     } else if (cameraMode === "swing") {
       swingYawRef.current = yawRef.current;
+      swingBlendRef.current = {
+        fromY: camYRef.current ?? swingPositionYRef.current,
+        startMs: performance.now(),
+      };
     }
   }, [cameraMode]);
   // Håll VÅGRIKT-spakens visuella läge synkat med waveDir (t.ex. när dialen ändras
@@ -1004,10 +1050,11 @@ function Aquafulness() {
     setTrochoid(DEFAULTS.trochoid);
     setCameraMode(DEFAULTS.cameraMode);
     setNoclipSpeed(DEFAULTS.noclipSpeed);
-    setSwingHeight(DEFAULTS.swingHeight);
+    setSwingPositionY(DEFAULTS.swingPositionY);
     setSwingIntensity(DEFAULTS.swingIntensity);
     setSwingXFactor(DEFAULTS.swingXFactor);
-    setSwingYAmplitude(DEFAULTS.swingYAmplitude);
+    setSwingHeight(DEFAULTS.swingHeight);
+    setSwingYWaveform(DEFAULTS.swingYWaveform);
     setSurfaceArea(DEFAULTS.surfaceArea);
     setSwingPreset(DEFAULTS.swingPreset);
     setTorusRingsOn(DEFAULTS.torusRingsOn);
@@ -1044,16 +1091,22 @@ function Aquafulness() {
     setCameraMode(CAMERA_MODES[(idx + dir + CAMERA_MODES.length) % CAMERA_MODES.length]);
   };
 
-  // Sky-swing's starting height: a fixed preset snaps SWING HÖJD to a sane
-  // value immediately; "custom" just marks the dial as freely user-set.
+  // Sky-swing's starting height: a fixed preset snaps GUNGA POSITION Y to a
+  // sane value immediately; "custom" just marks the dial as freely user-set.
   const applySwingPreset = (preset: SwingPreset) => {
     setSwingPreset(preset);
-    if (preset === "water") setSwingHeight(12);
-    else if (preset === "clouds") setSwingHeight(Math.round(60 + skyCloudsHeight * 440));
+    if (preset === "water") setSwingPositionY(12);
+    else if (preset === "clouds") setSwingPositionY(Math.round(60 + skyCloudsHeight * 440));
   };
   const cycleSwingPreset = (dir: number) => {
     const idx = SWING_PRESETS.indexOf(swingPreset);
     applySwingPreset(SWING_PRESETS[(idx + dir + SWING_PRESETS.length) % SWING_PRESETS.length]);
+  };
+  const cycleSwingYWaveform = (dir: number) => {
+    const idx = SWING_Y_WAVEFORMS.indexOf(swingYWaveform);
+    setSwingYWaveform(
+      SWING_Y_WAVEFORMS[(idx + dir + SWING_Y_WAVEFORMS.length) % SWING_Y_WAVEFORMS.length],
+    );
   };
 
   // Step through the available scenes, including an "AV" (no model) slot.
@@ -1093,13 +1146,17 @@ function Aquafulness() {
     applyEnv(options[(idx + dir + options.length) % options.length]);
   };
 
+  // Selecting an era (directly, e.g. from a dropdown) cascades to its first time.
+  const applyEra = (id: string) => {
+    const era = curEnv?.eras.find((e) => e.id === id);
+    setEnvEra(id);
+    setEnvTime(era?.times[0]?.id ?? null);
+  };
   const cycleEra = (dir: number) => {
     if (!curEnv || curEnv.eras.length === 0) return;
     const eras = curEnv.eras;
     const i = Math.max(0, eras.findIndex((e) => e.id === envEra));
-    const nextEra = eras[(i + dir + eras.length) % eras.length];
-    setEnvEra(nextEra.id);
-    setEnvTime(nextEra.times[0]?.id ?? null);
+    applyEra(eras[(i + dir + eras.length) % eras.length].id);
   };
 
   const cycleTime = (dir: number) => {
@@ -2445,25 +2502,51 @@ function Aquafulness() {
         // Pendulum swinging back and forth high above the water. The
         // horizontal anchor is wherever the camera was last (so entering
         // swing mode never teleports — this doubles as its "custom start
-        // position"); SWING HÖJD sets the resting altitude and SWING
+        // position"); GUNGA POSITION Y sets the resting altitude and GUNGA
         // INTENSITET the arc's angular amplitude/speed, while swingYawRef
         // (captured on mode entry) keeps the swing plane perpendicular to
         // the direction you were already facing. GUNGA X scales how far
         // that arc reaches side-to-side (0, the default, keeps it hovering
-        // in place) and GUNGA AMPLITUD is the vertical excursion in
-        // meters — independent of both, so it can swing tens of thousands
-        // of meters up/down from wherever it rests.
+        // in place) and GUNGA HÖJD is the vertical excursion in meters —
+        // independent of both, so it can swing tens of thousands of meters
+        // up/down from wherever it rests. Purely multiplicative in
+        // intensity (no additive floor) so a near-zero GUNGA INTENSITET
+        // truly settles toward a motionless hover instead of bottoming out
+        // at a fixed minimum swing; intensity 1 still matches the
+        // original tuning (40° arc, omega 0.55).
         const rightX = Math.cos(swingYawRef.current), rightZ = -Math.sin(swingYawRef.current);
-        const intensity = Math.max(0.01, swingIntensityRef.current);
-        const ampRad = THREE.MathUtils.degToRad(Math.min(75, 15 + intensity * 25));
-        const omega = 0.3 + intensity * 0.25;
-        const horizArmLen = Math.max(8, Math.min(60, swingHeightRef.current * 0.6));
+        const intensity = Math.max(0.0001, swingIntensityRef.current);
+        const ampRad = THREE.MathUtils.degToRad(Math.min(75, 40 * intensity));
+        const omega = 0.55 * intensity;
+        const horizArmLen = Math.max(8, Math.min(60, swingPositionYRef.current * 0.6));
         const theta = ampRad * Math.sin(t * omega);
-        const swingOff = Math.sin(theta) * horizArmLen * swingXFactorRef.current;
+        const rawSwingOff = Math.sin(theta) * horizArmLen * swingXFactorRef.current;
+        const rawSwingY =
+          swingPositionYRef.current +
+          swingHeightRef.current * swingYWaveformValue(swingYWaveformRef.current, theta, t * omega);
+
+        // Ease in from wherever the camera actually was the instant swing
+        // mode was entered (swingBlendRef, armed in the cameraMode-change
+        // effect) instead of snapping straight to the formula's value for
+        // whatever the wave clock's phase happens to be.
+        let blend = 1;
+        const activeBlend = swingBlendRef.current;
+        if (activeBlend) {
+          const SWING_BLEND_S = 0.6;
+          const elapsedS = (now - activeBlend.startMs) / 1000;
+          if (elapsedS >= SWING_BLEND_S) {
+            swingBlendRef.current = null;
+          } else {
+            const lin = Math.max(0, elapsedS / SWING_BLEND_S);
+            blend = lin * lin * (3 - 2 * lin); // smoothstep
+          }
+        }
+        const swingOff = activeBlend ? rawSwingOff * blend : rawSwingOff;
         camX = posRef.current.x + rightX * swingOff;
         camZ = posRef.current.z + rightZ * swingOff;
-        // Higher at the ends of the arc than at the bottom, like a real swing.
-        camYRef.current = swingHeightRef.current + swingYAmplitudeRef.current * (1 - Math.cos(theta));
+        camYRef.current = activeBlend
+          ? activeBlend.fromY + (rawSwingY - activeBlend.fromY) * blend
+          : rawSwingY;
         camVYRef.current = 0;
       } else if (inVortex) {
         // Orbit around origin. NAV.y in/ut, NAV.x tangent.
@@ -3163,19 +3246,24 @@ function Aquafulness() {
     vortexSpeed,
     setVortexSpeed,
     cameraMode,
+    setCameraMode,
     cycleCameraMode,
     noclipSpeed,
     setNoclipSpeed,
-    swingHeight,
-    setSwingHeight,
+    swingPositionY,
+    setSwingPositionY,
     swingIntensity,
     setSwingIntensity,
     swingXFactor,
     setSwingXFactor,
-    swingYAmplitude,
-    setSwingYAmplitude,
+    swingHeight,
+    setSwingHeight,
     swingPreset,
+    applySwingPreset,
     cycleSwingPreset,
+    swingYWaveform,
+    setSwingYWaveform,
+    cycleSwingYWaveform,
     camOffX,
     setCamOffX,
     camOffY,
@@ -3196,6 +3284,7 @@ function Aquafulness() {
     setWaterTintIdx,
     surfaces,
     surfaceId,
+    setSurfaceId,
     cycleSurface,
     reflStrength,
     setReflStrength,
@@ -3269,13 +3358,17 @@ function Aquafulness() {
     setTorusFadeDistance,
     scenes,
     sceneId,
+    setSceneId,
     cycleScene,
     environments,
     curEnv,
+    applyEnv,
     cycleEnv,
     curEra,
+    applyEra,
     cycleEra,
     curTime,
+    setEnvTime,
     cycleTime,
     backdropIdx,
     setBackdropIdx,
