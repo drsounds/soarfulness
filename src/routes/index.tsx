@@ -106,7 +106,10 @@ function waveHeight(
   realistic: boolean = false,
   realisticComponents: OceanWaveComponent[] | null = null,
 ) {
-  const c = Math.cos(dir), s = Math.sin(dir);
+  // Use compass-bearing convention (matches bearingToWorldXZ / the dial:
+  // 0deg = world +z, 90deg = world +x) rather than the math-angle
+  // convention, so the wave actually travels the direction the dial shows.
+  const c = Math.sin(dir), s = Math.cos(dir);
   const xr = c * x + s * z;
   const zr = -s * x + c * z;
   if (realistic && realisticComponents) {
@@ -1472,8 +1475,10 @@ function Aquafulness() {
       float wave(vec3 pIn, float t, float amp, float rippleFade) {
         // Rotate horizontal coords by uDir so wave crests advance in the
         // chosen direction. Small ripples stay in world space so they still
-        // sparkle from every angle.
-        float cd = cos(uDir), sd = sin(uDir);
+        // sparkle from every angle. Uses compass-bearing convention (0 =
+        // world +z, 90deg = world +x), matching the JS waveHeight() and the
+        // angle dial, rather than the math-angle convention.
+        float cd = sin(uDir), sd = cos(uDir);
         vec3 p = vec3(cd * pIn.x + sd * pIn.z, pIn.y, -sd * pIn.x + cd * pIn.z);
         // Regular sine along x, with optional cross-axis sine so it doesn't
         // look like a flat carpet when uRegular = 1. uPeriod scales the
