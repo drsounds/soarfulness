@@ -2516,8 +2516,11 @@ function Aquafulness() {
         if (swAmp > 0.001) {
           const ws = swaySpeedRef.current; // 0..1
           const dirRadS = (waveDirRef.current * Math.PI) / 180;
-          const dx = Math.sin(dirRadS);
-          const dz = -Math.cos(dirRadS);
+          // Same -90deg (perpendicular) offset from the wave's own travel
+          // direction as before; kept in step with waveHeight()'s
+          // compass-bearing convention (x=sin(dir), z=cos(dir)) above.
+          const dx = Math.cos(dirRadS);
+          const dz = -Math.sin(dirRadS);
           // Slow directional bias envelope (unchanged tempo knob) so the
           // along-wave push doesn't feel like a constant shove.
           const bias = swayBiasRef.current;
