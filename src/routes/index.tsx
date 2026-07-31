@@ -2476,7 +2476,16 @@ function Aquafulness() {
         const futureBias = 0.55;
         const anticipSurf = surfaceY * (1 - futureBias) + futureSurf * futureBias;
         const cap = amp * 1.4;
-        const rawDive = Math.max(0, anticipVel) * sub * 0.6 * (0.6 + amp * 0.6);
+        // Smooth ramp instead of Math.max(0, anticipVel): the hard clamp has
+        // a slope discontinuity right where anticipVel crosses zero, which
+        // is exactly the rising-to-falling transition at the wave crest —
+        // rawLift below has no such gate, so this was the one place putting
+        // a kink in targetY right at the top of the wave, felt as choppiness
+        // there. Softness is a small fraction of maxSlope so the ramp still
+        // reads as max(0, x) away from the crossing.
+        const diveSoftness = maxSlope * 0.12;
+        const diveRamp = (anticipVel + Math.sqrt(anticipVel * anticipVel + diveSoftness * diveSoftness)) / 2;
+        const rawDive = diveRamp * sub * 0.6 * (0.6 + amp * 0.6);
         const rawLift = anticipVel * lift * 0.35 * (0.6 + amp * 0.6);
         const diveOffset = Math.min(cap, rawDive);
         const liftOffset = Math.max(-cap, Math.min(cap, rawLift));
@@ -2516,8 +2525,11 @@ function Aquafulness() {
         if (swAmp > 0.001) {
           const ws = swaySpeedRef.current; // 0..1
           const dirRadS = (waveDirRef.current * Math.PI) / 180;
-          const dx = Math.sin(dirRadS);
-          const dz = -Math.cos(dirRadS);
+          // Same -90deg (perpendicular) offset from the wave's own travel
+          // direction as before; kept in step with waveHeight()'s
+          // compass-bearing convention (x=sin(dir), z=cos(dir)) above.
+          const dx = Math.cos(dirRadS);
+          const dz = -Math.sin(dirRadS);
           // Slow directional bias envelope (unchanged tempo knob) so the
           // along-wave push doesn't feel like a constant shove.
           const bias = swayBiasRef.current;
