@@ -1,4 +1,5 @@
 import vanernBackdrop from "@/assets/vanern-backdrop.png.asset.json";
+import sandTextureAsset from "@/assets/sand_cc0_512.jpg.asset.json";
 
 // Shared between the main HUD's settings dialog (routes/index.tsx) and its
 // clone rendered as the "Inställningar" app inside the virtual phone's bathOS
@@ -59,6 +60,14 @@ export const BOTTOM_OPTIONS: { name: string; rgb: [number, number, number] | nul
 export const BACKDROPS: { name: string; url: string | null }[] = [
   { name: "AV", url: null },
   { name: "Vänern", url: vanernBackdrop.url },
+];
+
+// Surface presets for the floating torus "bath rings" field (see
+// src/lib/torusRings/TorusRingField.ts) — "AV" renders a flat emissive
+// color with no texture map at all.
+export const TORUS_RING_TEXTURES: { name: string; url: string | null }[] = [
+  { name: "AV", url: null },
+  { name: "Sand", url: sandTextureAsset.url },
 ];
 
 export type SettingsTab = "vagor" | "kamera" | "vatten" | "miljo" | "ljud";
