@@ -3,8 +3,9 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { CSS3DTVManager, type DeviceKind } from "@/lib/tv/CSS3DTVManager";
-import { VirtualPhone } from "@/components/VirtualPhone";
+import { VirtualPhone, type RemoteControllerProps } from "@/components/VirtualPhone";
 import { SettingsPanel, type SettingsPanelProps } from "@/components/SettingsPanel";
+import { Joystick } from "@/components/Joystick";
 import {
   padToWorldXZ,
   worldXZToPad,
@@ -208,6 +209,7 @@ type Persisted = {
   swayAmp: number;
   swaySpeed: number;
   swayBias: number;
+  syncWaveWithSway: boolean;
   liveMode: boolean;
   sceneId: string | null;
   envId: string | null;
@@ -420,6 +422,10 @@ const DEFAULTS: Persisted = {
   swayAmp: 0,
   swaySpeed: 0.15,
   swayBias: 0,
+  // Default on: dragging/dialing SVAJ RIKTNING also steers VÅGRIKTNING to
+  // match, so the waves read as the cause of the sway instead of two
+  // independently-aimed controls.
+  syncWaveWithSway: true,
   liveMode: false,
   sceneId: null,
   envId: null,
@@ -547,6 +553,7 @@ function Aquafulness() {
   const [swayAmp, setSwayAmp] = useState(initial.swayAmp);
   const [swaySpeed, setSwaySpeed] = useState(initial.swaySpeed);
   const [swayBias, setSwayBias] = useState(initial.swayBias);
+  const [syncWaveWithSway, setSyncWaveWithSway] = useState(initial.syncWaveWithSway);
   const [liveMode, setLiveMode] = useState(initial.liveMode);
   // Loadable .glb scenes discovered from public/scenes/scenes.json.
   const [scenes, setScenes] = useState<SceneEntry[]>([]);
@@ -641,12 +648,12 @@ function Aquafulness() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, realisticWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingHeight, swingIntensity, swingXFactor, swingYAmplitude, swingPreset, surfaceArea };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, realisticWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingHeight, swingIntensity, swingXFactor, swingYAmplitude, swingPreset, surfaceArea };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, realisticWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingHeight, swingIntensity, swingXFactor, swingYAmplitude, swingPreset, surfaceArea]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, realisticWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingHeight, swingIntensity, swingXFactor, swingYAmplitude, swingPreset, surfaceArea]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -864,6 +871,12 @@ function Aquafulness() {
     const disp = worldXZToPad(w.x, w.z, yawRef.current);
     displayRef.current = disp;
     setDisplay(disp);
+    // SVAJ RIKTNING is the one RIKTNING dial that can drive VÅGRIKTNING too —
+    // see syncWaveWithSway (SVAJ's on-screen pad does the same in its own
+    // onChange handler below).
+    if (worldRef === swayWorldRef && syncWaveWithSway) {
+      setWaveDir(((deg % 360) + 360) % 360);
+    }
   };
 
   const resetToDefaults = () => {
@@ -921,6 +934,7 @@ function Aquafulness() {
     setSwayAmp(DEFAULTS.swayAmp);
     setSwaySpeed(DEFAULTS.swaySpeed);
     setSwayBias(DEFAULTS.swayBias);
+    setSyncWaveWithSway(DEFAULTS.syncWaveWithSway);
     setLiveMode(DEFAULTS.liveMode);
     setReflStrength(DEFAULTS.reflStrength);
     setBottomColor(DEFAULTS.bottomColor);
@@ -3145,6 +3159,44 @@ function Aquafulness() {
     setAudioSpatial,
   };
 
+  // STRÖM/HÖJD/SVAJ/VÅGRIKT — every on-screen joystick except NAV and LOOK —
+  // rendered inside the "Fjärrkontroll" app in the bathOS phone instead of
+  // floating over the 3D view (see VirtualPhone.tsx). Each onChange here is
+  // exactly what those joysticks used to call directly from the main HUD's
+  // own JSX, so behavior (world-fixed STRÖM/SVAJ direction, VÅGRIKT's
+  // absolute bearing) is unchanged, just relocated.
+  const remoteControllerProps: RemoteControllerProps = {
+    cameraMode,
+    driftStick,
+    onDriftChange: (v) => {
+      setDriftStick(v);
+      driftDisplayRef.current = v;
+      driftWorldRef.current = padToWorldXZ(v.x, v.y, yawRef.current);
+    },
+    vertStick,
+    onVertChange: setVertStick,
+    swayStick,
+    onSwayChange: (v) => {
+      setSwayStick(v);
+      swayDisplayRef.current = v;
+      swayWorldRef.current = padToWorldXZ(v.x, v.y, yawRef.current);
+      if (syncWaveWithSway) {
+        setWaveDir(worldXZBearing(swayWorldRef.current.x, swayWorldRef.current.z));
+      }
+    },
+    waveDirStick,
+    onWaveDirChange: (v) => {
+      setWaveDirStick(v);
+      const m = Math.hypot(v.x, v.y);
+      if (m > 0.15) {
+        const deg = (Math.atan2(v.x, v.y) * 180) / Math.PI;
+        setWaveDir(((deg % 360) + 360) % 360);
+      }
+    },
+    syncWaveWithSway,
+    setSyncWaveWithSway,
+  };
+
   return (
     <main className="relative h-screen w-screen overflow-hidden bg-black">
       {!envId && BACKDROPS[backdropIdx]?.url && (
@@ -3187,7 +3239,9 @@ function Aquafulness() {
       <div
         className={`pointer-events-none absolute inset-0 z-10 transition-opacity duration-700 ${uiVisible ? "opacity-100" : "opacity-0"}`}
       >
-        {/* Top bar: settings + speaker toggle + fullscreen */}
+        {/* Top bar: settings + speaker toggle + phone + fullscreen.
+            Edit-mode (the "pencil") no longer lives here — it moved into the
+            bathOS phone's dedicated Skärmar app. */}
         <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between px-4 pt-4">
           <button
             onClick={() => setAudioOn((v) => !v)}
@@ -3238,23 +3292,6 @@ function Aquafulness() {
             </button>
 
             <button
-              onClick={() => setEditMode((v) => !v)}
-              className={`pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur-md transition active:scale-95 ${
-                editMode
-                  ? "border-white/40 bg-white/25 text-white"
-                  : "border-white/20 bg-black/40 text-white/90 active:bg-white/15"
-              }`}
-              aria-label={editMode ? "Avsluta redigeringsläge" : "Redigeringsläge (pausar vågor och rörelse)"}
-              aria-pressed={editMode}
-              title={editMode ? "Avsluta redigeringsläge" : "Redigeringsläge (pausar vågor och rörelse)"}
-            >
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M4 20l4-1 11-11a1.5 1.5 0 000-2.1l-.9-.9a1.5 1.5 0 00-2.1 0L5 16l-1 4z" />
-                <path d="M13.5 5.5l3 3" />
-              </svg>
-            </button>
-
-            <button
               onClick={toggleFullscreen}
               className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white/90 backdrop-blur-md transition active:scale-95 active:bg-white/15"
               aria-label={isFullscreen ? "Avsluta helskärm" : "Helskärm"}
@@ -3274,96 +3311,39 @@ function Aquafulness() {
           </div>
         </div>
 
-
-      {/* Collapsible settings panel */}
-      {settingsOpen && (
-        <div className="pointer-events-auto absolute inset-x-0 top-14 z-20 mx-auto max-w-2xl px-4">
-          <div className="max-h-[70vh] overflow-y-auto rounded-3xl border border-white/15 bg-black/60 p-4 shadow-2xl backdrop-blur-xl">
-            <SettingsPanel {...settingsPanelProps} />
+        {/* Collapsible settings panel */}
+        {settingsOpen && (
+          <div className="pointer-events-auto absolute inset-x-0 top-14 z-20 mx-auto max-w-2xl px-4">
+            <div className="max-h-[70vh] overflow-y-auto rounded-3xl border border-white/15 bg-black/60 p-4 shadow-2xl backdrop-blur-xl">
+              <SettingsPanel {...settingsPanelProps} />
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* PS-liknande layout:
-          Vänster sida: NAV (rörelse, momentan) längst ned, STRÖM (drift, sticky) ovanför.
-          Höger sida: LOOK (rotation, momentan) längst ned, VÅGRIKT (sticky) ovanför.
-          Dubbelklicka en sticky-spak för att nolla den.
-          I NOCLIP ersätts STRÖM/SVAJ/VÅGRIKT (ström/vågspecifika) av en
-          dedikerad HÖJD-spak för fri vertikal rörelse. I GUNGA-läget styrs
-          positionen helt av gungans fysik, så bara LOOK visas. */}
-      {cameraMode !== "swing" && (
+        {/* PS-liknande layout: NAV (rörelse, momentan) nere till vänster,
+            LOOK (rotation, momentan) nere till höger — de enda spakar som är
+            kvar direkt på huvudskärmen. STRÖM/HÖJD/SVAJ/VÅGRIKT flyttade
+            till "Fjärrkontroll"-appen i bathOS-telefonen (se
+            VirtualPhone.tsx), eftersom de sällan behöver ändras mitt i en
+            rörelse och annars tar upp värdefull skärmyta ovanpå 3D-vyn. I
+            GUNGA-läget styrs positionen helt av gungans fysik, så bara LOOK
+            visas. */}
+        {cameraMode !== "swing" && (
+          <Joystick onChange={setStick} value={stick} label="NAV" positionClass="bottom-6 left-6" />
+        )}
         <Joystick
-          onChange={setStick}
-          value={stick}
-          label="NAV"
-          positionClass="bottom-6 left-6"
+          onChange={setRotStick}
+          value={rotStick}
+          label="LOOK"
+          positionClass="bottom-6 right-6"
         />
-      )}
-      {cameraMode === "float" && (
-        <Joystick
-          onChange={(v) => {
-            // The pad is read relative to the current look angle, then frozen
-            // into a real, fixed-in-world direction (driftWorldRef) — see
-            // padToWorldXZ. The render loop keeps the knob rotating afterwards
-            // to show that same real direction as the camera looks around.
-            setDriftStick(v);
-            driftDisplayRef.current = v;
-            driftWorldRef.current = padToWorldXZ(v.x, v.y, yawRef.current);
-          }}
-          value={driftStick}
-          label="STRÖM"
-          positionClass="bottom-36 left-6"
-          sticky
-        />
-      )}
-      {cameraMode === "noclip" && (
-        <Joystick
-          onChange={setVertStick}
-          value={vertStick}
-          label="HÖJD"
-          positionClass="bottom-36 left-6"
-        />
-      )}
-      {cameraMode === "float" && (
-        <Joystick
-          onChange={(v) => {
-            setSwayStick(v);
-            swayDisplayRef.current = v;
-            swayWorldRef.current = padToWorldXZ(v.x, v.y, yawRef.current);
-          }}
-          value={swayStick}
-          label="SVAJ"
-          positionClass="bottom-64 left-6"
-          sticky
-        />
-      )}
-      <Joystick
-        onChange={setRotStick}
-        value={rotStick}
-        label="LOOK"
-        positionClass="bottom-6 right-6"
-      />
-      {cameraMode === "float" && (
-        <Joystick
-          onChange={(v) => {
-            setWaveDirStick(v);
-            const m = Math.hypot(v.x, v.y);
-            if (m > 0.15) {
-              const deg = (Math.atan2(v.x, v.y) * 180) / Math.PI;
-              setWaveDir(((deg % 360) + 360) % 360);
-            }
-          }}
-          value={waveDirStick}
-          label="VÅGRIKT"
-          positionClass="bottom-36 right-6"
-          sticky
-        />
-      )}
       </div>
 
       {/* Virtual phone: a floating, draggable, resizable 2D bathOS device
           (not part of the 3D world) used to browse and then "cast" whatever
-          it's showing to any TV/mobile display — see VirtualPhone.tsx.
+          it's showing to any TV/mobile display — see VirtualPhone.tsx. Also
+          hosts the Fjärrkontroll (remote controller: STRÖM/HÖJD/SVAJ/VÅGRIKT)
+          and Skärmar (screen management: edit mode) apps.
           Deliberately a sibling of the fading HUD wrapper above, not nested
           inside it: that wrapper's opacity multiplies down through every
           descendant regardless of the descendant's own opacity/pointer-events,
@@ -3378,109 +3358,12 @@ function Aquafulness() {
           onCastTo={(id, url) => tvManagerRef.current?.castTo(id, url)}
           onRemoveAll={() => tvManagerRef.current?.removeAll()}
           settingsPanelProps={settingsPanelProps}
+          remoteControllerProps={remoteControllerProps}
+          editMode={editMode}
+          setEditMode={setEditMode}
         />
       )}
     </main>
-  );
-}
-
-function Joystick({
-  onChange,
-  value,
-  label = "NAV",
-  positionClass = "bottom-6 left-6",
-  sticky = false,
-}: {
-  onChange: (v: { x: number; y: number }) => void;
-  value: { x: number; y: number };
-  label?: string;
-  positionClass?: string;
-  sticky?: boolean;
-}) {
-  const baseRef = useRef<HTMLDivElement>(null);
-  const activeId = useRef<number | null>(null);
-  const startPt = useRef<{ x: number; y: number } | null>(null);
-  const moved = useRef(false);
-  const radius = 42;
-  // Sticky joysticks only snap right at the center, so a release/tap there
-  // reliably zeroes them out — everything past that is left alone for full,
-  // fine-grained control instead of being squeezed into a smaller range.
-  const deadzone = sticky ? 0.02 : 0;
-
-  const emit = (nx: number, ny: number) => {
-    if (deadzone > 0 && Math.hypot(nx, ny) < deadzone) {
-      onChange({ x: 0, y: 0 });
-    } else {
-      onChange({ x: nx, y: ny });
-    }
-  };
-
-  const setFromPointer = (clientX: number, clientY: number) => {
-    const base = baseRef.current;
-    if (!base) return;
-    const rect = base.getBoundingClientRect();
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
-    let dx = clientX - cx;
-    let dy = clientY - cy;
-    const dist = Math.hypot(dx, dy);
-    if (dist > radius) {
-      dx = (dx / dist) * radius;
-      dy = (dy / dist) * radius;
-    }
-    emit(dx / radius, -dy / radius);
-  };
-
-  return (
-    <div className={`pointer-events-none absolute z-10 select-none ${positionClass}`}>
-      <div
-        ref={baseRef}
-        onDoubleClick={() => {
-          if (sticky) onChange({ x: 0, y: 0 });
-        }}
-        onPointerDown={(e) => {
-          if (activeId.current !== null) return;
-          activeId.current = e.pointerId;
-          startPt.current = { x: e.clientX, y: e.clientY };
-          moved.current = false;
-          (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
-          setFromPointer(e.clientX, e.clientY);
-        }}
-        onPointerMove={(e) => {
-          if (activeId.current !== e.pointerId) return;
-          if (startPt.current) {
-            const d = Math.hypot(e.clientX - startPt.current.x, e.clientY - startPt.current.y);
-            if (d > 4) moved.current = true;
-          }
-          setFromPointer(e.clientX, e.clientY);
-        }}
-        onPointerUp={(e) => {
-          if (activeId.current !== e.pointerId) return;
-          activeId.current = null;
-          // Sticky: a tap without meaningful movement clears the stick
-          // (so grazing/pressing lightly doesn't leave a stuck drift).
-          if (sticky && !moved.current) onChange({ x: 0, y: 0 });
-          if (!sticky) onChange({ x: 0, y: 0 });
-        }}
-        onPointerCancel={() => {
-          activeId.current = null;
-          if (!sticky) onChange({ x: 0, y: 0 });
-        }}
-        className="pointer-events-auto relative h-24 w-24 touch-none rounded-full border border-white/20 bg-black/35 backdrop-blur-md"
-        style={{ boxShadow: "inset 0 0 40px rgba(255,255,255,0.05)" }}
-      >
-        <div className="pointer-events-none absolute inset-3 rounded-full border border-white/10" />
-        <div
-          className="pointer-events-none absolute left-1/2 top-1/2 h-9 w-9 rounded-full border border-white/30 bg-white/80 shadow-[0_0_24px_rgba(255,255,255,0.35)]"
-          style={{
-            transform: `translate(calc(-50% + ${value.x * radius}px), calc(-50% + ${-value.y * radius}px))`,
-          }}
-        />
-        <span className="pointer-events-none absolute inset-x-0 top-1 text-center text-[8px] font-light tracking-[0.28em] text-white/60">
-          {label}
-        </span>
-      </div>
-    </div>
   );
 }
 

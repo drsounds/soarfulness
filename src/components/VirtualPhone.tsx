@@ -1,12 +1,33 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import type { DeviceKind } from "@/lib/tv/CSS3DTVManager";
 import { resolveAddress } from "@/lib/tv/CSS3DTVManager";
 import { toEmbedUrl } from "@/lib/tv/youtubeEmbed";
 import { SettingsPanel, type SettingsPanelProps } from "@/components/SettingsPanel";
+import { JoystickPad, type StickValue } from "@/components/Joystick";
+import type { CameraMode } from "@/lib/settingsShared";
 
 type BathApp = { id: string; name: string; url: string; icon: "browser" | "youtube" | "link" };
 type Orientation = "portrait" | "landscape";
-type Screen = "home" | "browser" | "settings";
+type Screen = "home" | "browser" | "settings" | "remote" | "screens";
+
+// STRÖM/HÖJD/SVAJ/VÅGRIKT — every on-screen joystick except NAV and LOOK —
+// rendered here as the "Fjärrkontroll" app instead of floating over the 3D
+// view. index.tsx owns all of the actual state/refs (there's only one
+// camera, one wave direction); this is just the set of values/handlers it
+// hands down, mirroring what those joysticks used to call directly.
+export type RemoteControllerProps = {
+  cameraMode: CameraMode;
+  driftStick: StickValue;
+  onDriftChange: (v: StickValue) => void;
+  vertStick: StickValue;
+  onVertChange: (v: StickValue) => void;
+  swayStick: StickValue;
+  onSwayChange: (v: StickValue) => void;
+  waveDirStick: StickValue;
+  onWaveDirChange: (v: StickValue) => void;
+  syncWaveWithSway: boolean;
+  setSyncWaveWithSway: Dispatch<SetStateAction<boolean>>;
+};
 
 type PhoneState = {
   x: number;
@@ -87,7 +108,13 @@ function loadPhoneState(): PhoneState {
       height: clamp(num(p.height, fallback.height), MIN_DIM, MAX_DIM),
       orientation: p.orientation === "landscape" ? "landscape" : "portrait",
       locked: typeof p.locked === "boolean" ? p.locked : fallback.locked,
-      screen: p.screen === "browser" || p.screen === "settings" ? p.screen : "home",
+      screen:
+        p.screen === "browser" ||
+        p.screen === "settings" ||
+        p.screen === "remote" ||
+        p.screen === "screens"
+          ? p.screen
+          : "home",
       url: typeof p.url === "string" ? p.url : "",
       apps: apps.length ? apps : fallback.apps,
     };
@@ -266,6 +293,41 @@ const Icon = {
       <path d="M19.4 13a7.4 7.4 0 000-2l2-1.5-2-3.5-2.4 1a7.6 7.6 0 00-1.7-1L15 3h-4l-.3 2.5a7.6 7.6 0 00-1.7 1l-2.4-1-2 3.5L6.6 11a7.4 7.4 0 000 2l-2 1.5 2 3.5 2.4-1a7.6 7.6 0 001.7 1L11 21h4l.3-2.5a7.6 7.6 0 001.7-1l2.4 1 2-3.5-2-1.5z" />
     </svg>
   ),
+  // Game-controller glyph — the "Fjärrkontroll" (remote controller) app icon.
+  remote: (
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="2" y="8" width="20" height="9" rx="4.5" />
+      <circle cx="8" cy="12.5" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="16" cy="12.5" r="1.5" fill="currentColor" stroke="none" />
+    </svg>
+  ),
+  // The same pencil glyph the main HUD's edit-mode ("redigeringsläge") toggle
+  // used to show in its own top-bar button — now the "Skärmar" (screen
+  // management) app icon, and the icon on the toggle button inside it.
+  pencil: (
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M4 20l4-1 11-11a1.5 1.5 0 000-2.1l-.9-.9a1.5 1.5 0 00-2.1 0L5 16l-1 4z" />
+      <path d="M13.5 5.5l3 3" />
+    </svg>
+  ),
 };
 
 type Props = {
@@ -279,6 +341,13 @@ type Props = {
   // unchanged as the "Inställningar" app so there's a single source of
   // truth for every value (there's only one wave simulation, one camera).
   settingsPanelProps: SettingsPanelProps;
+  // STRÖM/HÖJD/SVAJ/VÅGRIKT joysticks, rendered as the "Fjärrkontroll" app.
+  remoteControllerProps: RemoteControllerProps;
+  // Edit mode (freezes wave/camera physics so TV panels can be repositioned)
+  // — its toggle used to be the main HUD's own top-bar pencil button, now
+  // rendered inside the "Skärmar" (screen management) app.
+  editMode: boolean;
+  setEditMode: Dispatch<SetStateAction<boolean>>;
 };
 
 // A floating, draggable, resizable 2D "virtual smartphone" — plain screen-
@@ -295,9 +364,16 @@ export function VirtualPhone({
   onCastTo,
   onRemoveAll,
   settingsPanelProps,
+  remoteControllerProps,
+  editMode,
+  setEditMode,
 }: Props) {
   const [state, setState] = useState<PhoneState>(loadPhoneState);
   const [addressValue, setAddressValue] = useState(state.url);
+  // Bumped after adding/removing a display from the "Skärmar" app so its
+  // list re-reads listDisplays() — that state lives in CSS3DTVManager, not
+  // in this component, so nothing else would otherwise trigger a re-render.
+  const [, setScreensTick] = useState(0);
   const [searchValue, setSearchValue] = useState("");
   const [addFormOpen, setAddFormOpen] = useState(false);
   const [addName, setAddName] = useState("");
@@ -574,6 +650,34 @@ export function VirtualPhone({
                     Inställningar
                   </div>
                 </button>
+                {/* Built-in, non-removable app — STRÖM/HÖJD/SVAJ/VÅGRIKT,
+                    every on-screen joystick except NAV/LOOK, moved here from
+                    the main HUD so they don't take up screen space over the
+                    3D view when they're not being actively steered. */}
+                <button
+                  onClick={() => setState((s) => ({ ...s, screen: "remote" }))}
+                  className="flex w-[54px] flex-col items-center gap-1"
+                >
+                  <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-white/15 text-white">
+                    {Icon.remote}
+                  </div>
+                  <div className="w-full truncate text-center text-[9px] opacity-90">
+                    Fjärrkontroll
+                  </div>
+                </button>
+                {/* Built-in, non-removable app — the edit-mode ("pencil")
+                    toggle that used to live in the main HUD's top bar, plus
+                    basic add/remove controls for the cast-able TV/mobile
+                    displays it lets you rearrange. */}
+                <button
+                  onClick={() => setState((s) => ({ ...s, screen: "screens" }))}
+                  className="flex w-[54px] flex-col items-center gap-1"
+                >
+                  <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-white/15 text-white">
+                    {Icon.pencil}
+                  </div>
+                  <div className="w-full truncate text-center text-[9px] opacity-90">Skärmar</div>
+                </button>
                 {state.apps.map((app) => (
                   <button
                     key={app.id}
@@ -825,13 +929,153 @@ export function VirtualPhone({
                 )}
               </div>
             </div>
-          ) : (
+          ) : state.screen === "settings" ? (
             // "Inställningar" — an exact clone of the main HUD's own settings
             // dialog (see SettingsPanel.tsx): same tabs, same controls, same
             // live state, just wrapped in the phone's own scrollable screen
             // instead of the HUD's floating overlay chrome.
             <div className="h-full overflow-y-auto bg-[#111] p-2 text-white">
               <SettingsPanel {...settingsPanelProps} />
+            </div>
+          ) : state.screen === "remote" ? (
+            // "Fjärrkontroll" — STRÖM/HÖJD/SVAJ/VÅGRIKT, every on-screen
+            // joystick except NAV/LOOK (those stay on the main HUD). Each
+            // pad is the exact same onChange the main HUD used to call
+            // directly, just relocated — see index.tsx's remoteControllerProps.
+            <div className="flex h-full flex-col gap-3 overflow-y-auto bg-[#111] p-3 text-white">
+              <div className="text-center text-[10px] font-light tracking-[0.4em] text-white/60">
+                FJÄRRKONTROLL
+              </div>
+              {remoteControllerProps.cameraMode === "swing" ? (
+                <div className="mt-6 text-center text-[10px] leading-relaxed text-white/50">
+                  I GUNGA-läge styrs kamerans position helt av gungans fysik — inga spakar att styra
+                  här.
+                </div>
+              ) : (
+                <>
+                  <div className="flex flex-wrap items-start justify-center gap-3">
+                    {remoteControllerProps.cameraMode === "float" && (
+                      <JoystickPad
+                        label="STRÖM"
+                        value={remoteControllerProps.driftStick}
+                        onChange={remoteControllerProps.onDriftChange}
+                        sticky
+                      />
+                    )}
+                    {remoteControllerProps.cameraMode === "noclip" && (
+                      <JoystickPad
+                        label="HÖJD"
+                        value={remoteControllerProps.vertStick}
+                        onChange={remoteControllerProps.onVertChange}
+                      />
+                    )}
+                    {remoteControllerProps.cameraMode === "float" && (
+                      <JoystickPad
+                        label="SVAJ"
+                        value={remoteControllerProps.swayStick}
+                        onChange={remoteControllerProps.onSwayChange}
+                        sticky
+                      />
+                    )}
+                    {remoteControllerProps.cameraMode === "float" && (
+                      <JoystickPad
+                        label="VÅGRIKT"
+                        value={remoteControllerProps.waveDirStick}
+                        onChange={remoteControllerProps.onWaveDirChange}
+                        sticky
+                      />
+                    )}
+                  </div>
+                  {remoteControllerProps.cameraMode === "float" && (
+                    <button
+                      onClick={() => remoteControllerProps.setSyncWaveWithSway((v) => !v)}
+                      className={`rounded-full border px-3 py-1.5 text-center text-[9px] font-light tracking-wider transition active:scale-95 ${
+                        remoteControllerProps.syncWaveWithSway
+                          ? "border-white/40 bg-white/20 text-white"
+                          : "border-white/15 bg-white/5 text-white/60"
+                      }`}
+                      aria-pressed={remoteControllerProps.syncWaveWithSway}
+                      title="Låt VÅGRIKTNING följa SVAJ RIKTNING automatiskt (standard: på)"
+                    >
+                      SYNKA VÅG MED SVAJ: {remoteControllerProps.syncWaveWithSway ? "PÅ" : "AV"}
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          ) : (
+            // "Skärmar" — screen management: the edit-mode ("pencil") toggle
+            // that used to be the main HUD's own top-bar button, plus basic
+            // add/remove controls for the TVs/mobiles it lets you rearrange.
+            <div className="flex h-full flex-col gap-3 overflow-y-auto bg-[#111] p-3 text-white">
+              <div className="text-center text-[10px] font-light tracking-[0.4em] text-white/60">
+                SKÄRMHANTERING
+              </div>
+              <button
+                onClick={() => setEditMode((v) => !v)}
+                className={`flex items-center justify-center gap-2 rounded-full border px-3 py-2 text-[10px] font-light tracking-wider transition active:scale-95 ${
+                  editMode
+                    ? "border-white/40 bg-white/20 text-white"
+                    : "border-white/15 bg-white/5 text-white/70"
+                }`}
+                aria-pressed={editMode}
+                title={
+                  editMode
+                    ? "Avsluta redigeringsläge"
+                    : "Redigeringsläge (pausar vågor och rörelse)"
+                }
+              >
+                {Icon.pencil}
+                {editMode ? "AVSLUTA REDIGERING" : "REDIGERINGSLÄGE"}
+              </button>
+              <div className="text-[9px] leading-relaxed text-white/45">
+                Pausar vågor och kamerarörelse så att TV/mobil-skärmarna i 3D-vyn kan flyttas,
+                roteras och ändras i storlek exakt.
+              </div>
+              <div className="mt-1 flex flex-col gap-1.5">
+                <button
+                  onClick={() => {
+                    onCastNew("tv", "");
+                    setScreensTick((t) => t + 1);
+                  }}
+                  className="rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[9px] font-light tracking-wider text-white/80 active:scale-95 active:bg-white/15"
+                >
+                  + Ny smart-TV
+                </button>
+                <button
+                  onClick={() => {
+                    onCastNew("mobile", "");
+                    setScreensTick((t) => t + 1);
+                  }}
+                  className="rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[9px] font-light tracking-wider text-white/80 active:scale-95 active:bg-white/15"
+                >
+                  + Ny mobil
+                </button>
+              </div>
+              {(() => {
+                const entries = listDisplays();
+                if (entries.length === 0) return null;
+                return (
+                  <>
+                    <div className="mt-1 flex flex-col gap-1 text-[9px] text-white/50">
+                      {entries.map((d) => (
+                        <div key={d.id} className="truncate rounded-md bg-white/5 px-2 py-1">
+                          {d.device === "tv" ? "TV" : "Mobil"} — {d.url || "(tom skärm)"}
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => {
+                        onRemoveAll();
+                        setScreensTick((t) => t + 1);
+                      }}
+                      className="rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[9px] font-light tracking-wider text-red-400 active:scale-95 active:bg-white/15"
+                    >
+                      Ta bort alla skärmar
+                    </button>
+                  </>
+                );
+              })()}
             </div>
           )}
         </div>
