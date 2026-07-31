@@ -109,7 +109,12 @@ function waveHeight(
   // Use compass-bearing convention (matches bearingToWorldXZ / the dial:
   // 0deg = world +z, 90deg = world +x) rather than the math-angle
   // convention, so the wave actually travels the direction the dial shows.
-  const c = Math.sin(dir), s = Math.cos(dir);
+  // Negated: every phase term below is xr*k + t*speed (positive time
+  // coefficient), and for sin(k*x + w*t) the crest position (const-w*t)/k
+  // *decreases* as t grows — i.e. crests travel toward -xr, not +xr. Without
+  // the negation the wave would visibly travel exactly opposite the bearing
+  // the dial (and the linked SVAJ push) claim.
+  const c = -Math.sin(dir), s = -Math.cos(dir);
   const xr = c * x + s * z;
   const zr = -s * x + c * z;
   if (realistic && realisticComponents) {
@@ -1477,8 +1482,11 @@ function Aquafulness() {
         // chosen direction. Small ripples stay in world space so they still
         // sparkle from every angle. Uses compass-bearing convention (0 =
         // world +z, 90deg = world +x), matching the JS waveHeight() and the
-        // angle dial, rather than the math-angle convention.
-        float cd = sin(uDir), sd = cos(uDir);
+        // angle dial, rather than the math-angle convention. Negated to
+        // match waveHeight(): every phase term below is p.x/p.z*k + t*speed,
+        // and that sign makes crests travel toward -p, not +p — the
+        // negation here points +p (and so crest travel) at uDir directly.
+        float cd = -sin(uDir), sd = -cos(uDir);
         vec3 p = vec3(cd * pIn.x + sd * pIn.z, pIn.y, -sd * pIn.x + cd * pIn.z);
         // Regular sine along x, with optional cross-axis sine so it doesn't
         // look like a flat carpet when uRegular = 1. uPeriod scales the
