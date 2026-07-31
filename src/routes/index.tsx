@@ -20,6 +20,13 @@ import {
   type CameraMode,
   type SwingPreset,
 } from "@/lib/settingsShared";
+import {
+  FFT_WAVE_COUNT,
+  generateOceanWaveComponents,
+  packOceanWaveComponents,
+  sampleOceanWaveHeight,
+  type OceanWaveComponent,
+} from "@/lib/ocean/fftOceanSpectrum";
 import waterAsset from "@/assets/water.mp3.asset.json";
 import sandTextureAsset from "@/assets/sand_cc0_512.jpg.asset.json";
 import appIconAsset from "@/assets/AppIconBlack.png.asset.json";
@@ -81,10 +88,29 @@ function shapedWave(theta: number, p: number) {
 
 
 // Gerstner-like sum of sines. Keep in sync with vertex shader.
-function waveHeight(x: number, z: number, t: number, amp: number, regular: boolean, cross: boolean, period: number = 1, peak: number = 1, dir: number = 0) {
+// `realistic` swaps in the JONSWAP/FFT-ocean waveform (see
+// src/lib/ocean/fftOceanSpectrum.ts) so the camera floats correctly on it
+// too; `realisticComponents` is the fixed component set generated once per
+// mount that both this and the vertex shader's fftHeight() sample from.
+function waveHeight(
+  x: number,
+  z: number,
+  t: number,
+  amp: number,
+  regular: boolean,
+  cross: boolean,
+  period: number = 1,
+  peak: number = 1,
+  dir: number = 0,
+  realistic: boolean = false,
+  realisticComponents: OceanWaveComponent[] | null = null,
+) {
   const c = Math.cos(dir), s = Math.sin(dir);
   const xr = c * x + s * z;
   const zr = -s * x + c * z;
+  if (realistic && realisticComponents) {
+    return sampleOceanWaveHeight(realisticComponents, xr, zr, t) * amp;
+  }
   if (regular) {
     const kx = 0.12 / period;
     const kz = 0.09 / period;
@@ -153,6 +179,7 @@ type Persisted = {
   bottomIdx: number;
   leanEnabled: boolean;
   regularWaves: boolean;
+  realisticWaves: boolean;
   regularCross: boolean;
   crossAffectsHeave: boolean;
   regularPeriod: number;
@@ -364,6 +391,7 @@ const DEFAULTS: Persisted = {
   bottomIdx: 2,
   leanEnabled: false,
   regularWaves: true,
+  realisticWaves: false,
   regularCross: false,
   crossAffectsHeave: false,
   regularPeriod: 1,
@@ -484,6 +512,12 @@ function Aquafulness() {
   const [bottomIdx, setBottomIdx] = useState(initial.bottomIdx);
   const [leanEnabled, setLeanEnabled] = useState(initial.leanEnabled);
   const [regularWaves, setRegularWaves] = useState(initial.regularWaves);
+  // Realistic (JONSWAP/FFT-ocean) waveform — see src/lib/ocean/fftOceanSpectrum.ts.
+  const [realisticWaves, setRealisticWaves] = useState(initial.realisticWaves);
+  // Fixed set of spectrum-sampled wave components, generated once per mount
+  // and shared by the vertex shader (uFftWave/uFftPhase uniforms) and the
+  // camera's wave-following physics (waveHeight()'s realistic branch).
+  const fftWaveComponents = useRef<OceanWaveComponent[]>(generateOceanWaveComponents()).current;
   const [regularCross, setRegularCross] = useState(initial.regularCross);
   const [crossAffectsHeave, setCrossAffectsHeave] = useState(initial.crossAffectsHeave);
   const [regularPeriod, setRegularPeriod] = useState(initial.regularPeriod);
@@ -607,12 +641,12 @@ function Aquafulness() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingHeight, swingIntensity, swingXFactor, swingYAmplitude, swingPreset, surfaceArea };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, realisticWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingHeight, swingIntensity, swingXFactor, swingYAmplitude, swingPreset, surfaceArea };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingHeight, swingIntensity, swingXFactor, swingYAmplitude, swingPreset, surfaceArea]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, realisticWaves, regularCross, crossAffectsHeave, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingHeight, swingIntensity, swingXFactor, swingYAmplitude, swingPreset, surfaceArea]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -664,6 +698,7 @@ function Aquafulness() {
   const bottomIdxRef = useRef(bottomIdx);
   const leanRef = useRef(leanEnabled);
   const regularRef = useRef(regularWaves);
+  const realisticRef = useRef(realisticWaves);
   const regularCrossRef = useRef(regularCross);
   const crossAffectsHeaveRef = useRef(crossAffectsHeave);
   const regularPeriodRef = useRef(regularPeriod);
@@ -735,6 +770,7 @@ function Aquafulness() {
   useEffect(() => { bottomIdxRef.current = bottomIdx; }, [bottomIdx]);
   useEffect(() => { leanRef.current = leanEnabled; }, [leanEnabled]);
   useEffect(() => { regularRef.current = regularWaves; }, [regularWaves]);
+  useEffect(() => { realisticRef.current = realisticWaves; }, [realisticWaves]);
   useEffect(() => { regularCrossRef.current = regularCross; }, [regularCross]);
   useEffect(() => { crossAffectsHeaveRef.current = crossAffectsHeave; }, [crossAffectsHeave]);
   useEffect(() => { regularPeriodRef.current = regularPeriod; }, [regularPeriod]);
@@ -856,6 +892,7 @@ function Aquafulness() {
     setBottomIdx(DEFAULTS.bottomIdx);
     setLeanEnabled(DEFAULTS.leanEnabled);
     setRegularWaves(DEFAULTS.regularWaves);
+    setRealisticWaves(DEFAULTS.realisticWaves);
     setRegularCross(DEFAULTS.regularCross);
     setCrossAffectsHeave(DEFAULTS.crossAffectsHeave);
     setRegularPeriod(DEFAULTS.regularPeriod);
@@ -1313,9 +1350,17 @@ function Aquafulness() {
     whiteTex.needsUpdate = true;
     reflWhiteTexRef.current = whiteTex;
 
+    const { wave: fftWaveData, phase: fftPhaseData } = packOceanWaveComponents(fftWaveComponents);
     const uniforms = {
       uTime: { value: 0 },
       uAmp: { value: waveAmp },
+      // Realistic (JONSWAP/FFT-ocean) waveform — see uFft blend below and
+      // src/lib/ocean/fftOceanSpectrum.ts for the credited source algorithm.
+      // The component arrays are static for the mount's lifetime (only
+      // uFft's blend weight animates), so they're set once here.
+      uFft: { value: 0 },
+      uFftWave: { value: fftWaveData },
+      uFftPhase: { value: fftPhaseData },
       uSunDir: { value: new THREE.Vector3(0, 1, 0) },
       uSkyColor: { value: new THREE.Color(0x88aacc) },
       uHorizonColor: { value: new THREE.Color(0xffddaa) },
@@ -1371,8 +1416,25 @@ function Aquafulness() {
       uniform float uVortex;
       uniform float uVortexOpening;
       uniform vec2 uVortexCenter;
+      // Realistic (JONSWAP/FFT-ocean) waveform, ported from
+      // https://github.com/drsounds/OceanDemo (MIT, Popov / evpopov.com) —
+      // see src/lib/ocean/fftOceanSpectrum.ts for the full derivation. Each
+      // component is one cosine term of a spectrum-sampled sum-of-sinusoids
+      // realization: vec4(kx, kz, amplitude, omega) + a parallel phase.
+      uniform float uFft;
+      uniform vec4 uFftWave[${FFT_WAVE_COUNT}];
+      uniform float uFftPhase[${FFT_WAVE_COUNT}];
       varying vec3 vWorldPos;
       varying vec3 vNormal;
+
+      float fftHeight(vec2 xz, float t) {
+        float h = 0.0;
+        for (int i = 0; i < ${FFT_WAVE_COUNT}; i++) {
+          vec4 w = uFftWave[i];
+          h += w.z * cos(w.x * xz.x + w.y * xz.y - w.w * t + uFftPhase[i]);
+        }
+        return h;
+      }
 
       // Rounded Gaussian crest boost — sharpens the wave top without creating
       // near-vertical phase-bunched faces that alias when viewed from the side.
@@ -1428,7 +1490,12 @@ function Aquafulness() {
         float r4 = sin((p.x * 1.9 - p.z * 1.6) + t * 4.7 + 2.3) * 0.022;
         float ripples = (r1 + r2 + r3 + r4) * (1.0 - uRegular) * rippleFade;
 
-        return mix(big + ripples, reg, uRegular);
+        float base = mix(big + ripples, reg, uRegular);
+        if (uFft > 0.001) {
+          float fft = fftHeight(p.xz, t) * amp;
+          base = mix(base, fft, uFft);
+        }
+        return base;
       }
 
       void main() {
@@ -2124,6 +2191,7 @@ function Aquafulness() {
       uniforms.uAmp.value = ampRef.current;
       uniforms.uQuality.value += ((waveHighQualityRef.current ? 1 : 0) - uniforms.uQuality.value) * Math.min(1, dt * 4);
       uniforms.uRegular.value += ((regularRef.current ? 1 : 0) - uniforms.uRegular.value) * Math.min(1, dt * 4);
+      uniforms.uFft.value += ((realisticRef.current ? 1 : 0) - uniforms.uFft.value) * Math.min(1, dt * 4);
       uniforms.uCross.value += ((regularCrossRef.current ? 1 : 0) - uniforms.uCross.value) * Math.min(1, dt * 4);
       uniforms.uPeriod.value += (regularPeriodRef.current - uniforms.uPeriod.value) * Math.min(1, dt * 4);
       uniforms.uPeak.value += (wavePeakRef.current - uniforms.uPeak.value) * Math.min(1, dt * 4);
@@ -2346,7 +2414,7 @@ function Aquafulness() {
       const dirRad = (waveDirRef.current * Math.PI) / 180;
       const surfaceY = inVortex
         ? vortexSurfaceHeight(camX, camZ, t, ampRef.current, regularPeriodRef.current, vortexOpeningRef.current)
-        : waveHeight(camX, camZ, t, ampRef.current, regularRef.current, regularCrossRef.current && crossAffectsHeaveRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad);
+        : waveHeight(camX, camZ, t, ampRef.current, regularRef.current, regularCrossRef.current && crossAffectsHeaveRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad, realisticRef.current, fftWaveComponents);
 
       // The wave-following buoyancy spring and current/sway drift only apply
       // in float mode — noclip flies free of the wave surface and swing
@@ -2380,7 +2448,7 @@ function Aquafulness() {
         const lead = 0.7 / (1 + peakK * 6.0);
         const futureSurf = inVortex
           ? vortexSurfaceHeight(camX, camZ, t + lead, ampRef.current, regularPeriodRef.current, vortexOpeningRef.current)
-          : waveHeight(camX, camZ, t + lead, ampRef.current, regularRef.current, regularCrossRef.current && crossAffectsHeaveRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad);
+          : waveHeight(camX, camZ, t + lead, ampRef.current, regularRef.current, regularCrossRef.current && crossAffectsHeaveRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad, realisticRef.current, fftWaveComponents);
         const maxSlope = ampRef.current * 6.0;
         const rawAnticip = Math.max(-maxSlope, Math.min(maxSlope, (futureSurf - surfaceY) / lead));
         const blend = 1 - peakK * 0.85;
@@ -2644,7 +2712,7 @@ function Aquafulness() {
         if (mb.bob.follow) {
           const s = inVortex
             ? vortexSurfaceHeight(mb.base.x, mb.base.z, t, ampRef.current, regularPeriodRef.current, vortexOpeningRef.current)
-            : waveHeight(mb.base.x, mb.base.z, t, ampRef.current, regularRef.current, regularCrossRef.current && crossAffectsHeaveRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad);
+            : waveHeight(mb.base.x, mb.base.z, t, ampRef.current, regularRef.current, regularCrossRef.current && crossAffectsHeaveRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad, realisticRef.current, fftWaveComponents);
           h = s * mb.bob.amp;
         } else {
           h = Math.sin(t * mb.bob.speed) * mb.bob.amp;
@@ -2946,6 +3014,8 @@ function Aquafulness() {
     setBobSpeed,
     regularWaves,
     setRegularWaves,
+    realisticWaves,
+    setRealisticWaves,
     regularCross,
     setRegularCross,
     crossAffectsHeave,

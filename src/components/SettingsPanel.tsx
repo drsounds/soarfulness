@@ -65,6 +65,11 @@ export type SettingsPanelProps = {
   setBobSpeed: Dispatch<SetStateAction<number>>;
   regularWaves: boolean;
   setRegularWaves: Dispatch<SetStateAction<boolean>>;
+  // Realistic (JONSWAP/FFT-ocean) waveform, ported from
+  // https://github.com/drsounds/OceanDemo (MIT, Popov / evpopov.com) — see
+  // src/lib/ocean/fftOceanSpectrum.ts.
+  realisticWaves: boolean;
+  setRealisticWaves: Dispatch<SetStateAction<boolean>>;
   regularCross: boolean;
   setRegularCross: Dispatch<SetStateAction<boolean>>;
   crossAffectsHeave: boolean;
@@ -237,6 +242,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setBobSpeed,
     regularWaves,
     setRegularWaves,
+    realisticWaves,
+    setRealisticWaves,
     regularCross,
     setRegularCross,
     crossAffectsHeave,
@@ -596,6 +603,12 @@ export function SettingsPanel(props: SettingsPanelProps) {
               value={regularWaves ? "REGELBUNDEN" : "SPRIDD"}
               onDec={() => setRegularWaves(false)}
               onInc={() => setRegularWaves(true)}
+            />
+            <PadDial
+              label="REALISTISKA VÅGOR"
+              value={realisticWaves ? "FFT-HAV" : "AV"}
+              onDec={() => setRealisticWaves(false)}
+              onInc={() => setRealisticWaves(true)}
             />
             <PadDial
               label="KORSVÅG"
