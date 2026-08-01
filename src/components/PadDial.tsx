@@ -144,11 +144,13 @@ export function PadDial({
 
 // A drag slider for the same numeric range a neighboring PadDial's +/- steps
 // through — sits beside it for quick coarse adjustment instead of repeated
-// taps. Deliberately a plain native <input type="range">, not the shadcn/
-// Radix Slider in components/ui/slider.tsx: that one is styled off the
-// app-wide light/dark CSS theme tokens, which this dark glass HUD doesn't
-// use, so a hand-styled native slider keeps it visually consistent with
-// PadDial's own pill chrome without fighting that theme.
+// taps. Deliberately a plain native <input type="range"> tinted via
+// accent-color rather than the shadcn/Radix Slider in
+// components/ui/slider.tsx (that one is styled off the app-wide light/dark
+// CSS theme tokens this dark glass HUD doesn't use) — and rather than
+// stripping the native appearance, which removes the browser's own
+// track/thumb rendering entirely unless every ::-webkit-slider-thumb /
+// ::-moz-range-thumb pseudo-element is hand-styled to replace it.
 export function PadSlider({
   label,
   value,
@@ -175,7 +177,7 @@ export function PadSlider({
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
         aria-label={label}
-        className="h-1.5 w-24 cursor-pointer appearance-none rounded-full bg-white/15 accent-white"
+        className="h-4 w-24 cursor-pointer accent-white"
       />
     </div>
   );
