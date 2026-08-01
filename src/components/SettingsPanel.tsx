@@ -1,5 +1,5 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
-import { PadDial, PadSlider } from "@/components/PadDial";
+import { PadDial } from "@/components/PadDial";
 import {
   SETTINGS_TABS,
   WATER_TINTS,
@@ -571,7 +571,6 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onDec={() => setWaveAmp((v) => Math.max(0, +(v - 0.5).toFixed(2)))}
               onInc={() => setWaveAmp((v) => Math.min(100, +(v + 0.5).toFixed(2)))}
             />
-            <PadSlider label="VÅG" value={waveAmp} min={0} max={100} step={0.5} onChange={setWaveAmp} />
             <PadDial
               label="TEMPO"
               mode="number"
@@ -584,7 +583,6 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onDec={() => setWaveSpeed((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
               onInc={() => setWaveSpeed((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
             />
-            <PadSlider label="TEMPO" value={waveSpeed} min={0} max={10} step={0.1} onChange={setWaveSpeed} />
             <PadDial
               label="HÖJD"
               mode="number"

@@ -6,6 +6,7 @@ import { CSS3DTVManager, type DeviceKind } from "@/lib/tv/CSS3DTVManager";
 import { TorusRingField } from "@/lib/torusRings/TorusRingField";
 import { VirtualPhone, type RemoteControllerProps } from "@/components/VirtualPhone";
 import { SettingsPanel, type SettingsPanelProps } from "@/components/SettingsPanel";
+import { PadSlider } from "@/components/PadDial";
 import { Joystick } from "@/components/Joystick";
 import {
   padToWorldXZ,
@@ -3912,6 +3913,17 @@ function Aquafulness() {
             sticky
           />
         )}
+
+        {/* VÅG/TEMPO sliders — live on the main HUD next to the joysticks
+            (not tucked into the SETTINGS dialog) so wave height/speed can be
+            nudged without opening settings. Bottom-center, clear of the
+            joystick columns hugging each side; always shown regardless of
+            camera mode since both affect the wave mesh itself, not just
+            float-mode physics. */}
+        <div className="pointer-events-auto absolute bottom-6 left-1/2 flex -translate-x-1/2 flex-col items-center gap-2">
+          <PadSlider label="VÅG" value={waveAmp} min={0} max={100} step={0.5} onChange={setWaveAmp} />
+          <PadSlider label="TEMPO" value={waveSpeed} min={0} max={10} step={0.1} onChange={setWaveSpeed} />
+        </div>
       </div>
 
       {/* Interval session HUD: a thin green bar along the very bottom edge
