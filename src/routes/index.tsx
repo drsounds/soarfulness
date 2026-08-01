@@ -2975,17 +2975,26 @@ function Aquafulness() {
         const rawAnticip = Math.max(-maxSlope, Math.min(maxSlope, (futureSurf - surfaceY) / lead));
         const blend = 1 - peakK * 0.85;
         const anticipVel = rawAnticip * blend + surfVel * (1 - blend);
-        // Low-pass the velocity estimate before it drives the spring. Both
-        // REALISTISKA VÅGOR and DÖENDE VÅG sum many out-of-phase frequency
-        // components (see fftOceanSpectrum.ts), so a secant slope taken over
-        // the `lead` lookahead window (and even the frame-to-frame surfVel)
-        // jitters in a way the old 2-4 term analytic sine never did — that
-        // jitter fed straight into the spring read as jerky, irregular heave
-        // once FFT-hav became the default wave. anticipSurf/futureSurf above
-        // (the actual height feed-forward) stay exact — only this derived
-        // velocity estimate needs smoothing.
-        const velSmoothing = Math.min(1, dt * 8);
-        anticipVelSmoothRef.current += (anticipVel - anticipVelSmoothRef.current) * velSmoothing;
+        // Low-pass the velocity estimate before it drives the spring — but
+        // only while REALISTISKA VÅGOR or DÖENDE VÅG is actually driving the
+        // height field. Both sum many out-of-phase frequency components (see
+        // fftOceanSpectrum.ts), so a secant slope taken over the `lead`
+        // lookahead window (and even the frame-to-frame surfVel) jitters in a
+        // way the old 2-4 term analytic sine never did. But this filter's
+        // time constant (~1/8s) is comparable to or slower than REGELBUNDEN's
+        // own oscillation period at higher TEMPO values (e.g. LEGACY's
+        // waveSpeed=5 defaults to a ~1.4s main-term period), so applying it
+        // unconditionally lagged and phase-distorted that wave's already
+        // exact motion too — felt as heave/sway repeatedly slowing down
+        // instead of moving at a constant rate. Skip it for the plain
+        // analytic modes, where the raw estimate was always exact anyway.
+        const usesFftWaveform = realisticRef.current || dyingRef.current;
+        if (usesFftWaveform) {
+          const velSmoothing = Math.min(1, dt * 8);
+          anticipVelSmoothRef.current += (anticipVel - anticipVelSmoothRef.current) * velSmoothing;
+        } else {
+          anticipVelSmoothRef.current = anticipVel;
+        }
         const anticipVelSmoothed = anticipVelSmoothRef.current;
 
         const amp = ampRef.current;
