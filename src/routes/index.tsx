@@ -36,6 +36,7 @@ import {
   generateOceanWaveComponents,
   DYING_WAVE_COUNT,
   generateDyingWaveComponents,
+  createSeededRandom,
   packOceanWaveComponents,
   sampleOceanWaveHeight,
   type OceanWaveComponent,
@@ -208,6 +209,14 @@ function swingYWaveformValue(kind: SwingYWaveform, theta: number, phase: number)
 const OCEAN_BASE_SIZE = 600;
 const CLOUD_BASE_SIZE = 200000;
 
+// SLUMPA VÅGOR off (default): the FFT wave modes (REALISTISKA VÅGOR/DÖENDE
+// VÅG) are generated from these fixed seeds instead of Math.random(), so the
+// component set — and the exact wave shape/heave rhythm it produces — is the
+// same every load rather than reshuffling each time. Two distinct seeds so
+// the two generators don't happen to draw the same sequence of values.
+const FFT_WAVE_SEED = 20260108;
+const DYING_WAVE_SEED = 19700101;
+
 const STORAGE_KEY = "aquafulness:settings:v1";
 type Persisted = {
   waveAmp: number;
@@ -240,6 +249,7 @@ type Persisted = {
   dyingWave: boolean;
   dyingWaveAmp: number;
   dyingWaveSpeed: number;
+  randomizeWaves: boolean;
   wavePreset: WavePresetName;
   regularCross: boolean;
   regularPeriod: number;
@@ -494,6 +504,9 @@ const WAVE_PRESETS: Record<
 const DEFAULTS: Persisted = {
   ...WAVE_PRESETS.standard,
   wavePreset: "standard",
+  // Off by default: the FFT wave modes stay the same fixed shape every load
+  // (see FFT_WAVE_SEED/DYING_WAVE_SEED above) rather than reshuffling.
+  randomizeWaves: false,
   timeOfDay: 0.5,
   bobSpeed: 2.8,
   buoyAmp: 2.8,
@@ -661,10 +674,18 @@ function Aquafulness() {
   const [regularWaves, setRegularWaves] = useState(initial.regularWaves);
   // Realistic (JONSWAP/FFT-ocean) waveform — see src/lib/ocean/fftOceanSpectrum.ts.
   const [realisticWaves, setRealisticWaves] = useState(initial.realisticWaves);
+  // SLUMPA VÅGOR: off (default) seeds both FFT generators below so the
+  // component set — and the exact wave shape/heave rhythm — is the same
+  // every load; on draws real Math.random() for a fresh shape each load.
+  // Read once from `initial` (not the reactive state below) since the
+  // component sets are themselves only ever generated once per mount.
+  const [randomizeWaves, setRandomizeWaves] = useState(initial.randomizeWaves);
   // Fixed set of spectrum-sampled wave components, generated once per mount
   // and shared by the vertex shader (uFftWave/uFftPhase uniforms) and the
   // camera's wave-following physics (waveHeight()'s realistic branch).
-  const fftWaveComponents = useRef<OceanWaveComponent[]>(generateOceanWaveComponents()).current;
+  const fftWaveComponents = useRef<OceanWaveComponent[]>(
+    generateOceanWaveComponents(initial.randomizeWaves ? Math.random : createSeededRandom(FFT_WAVE_SEED)),
+  ).current;
   // DÖENDE VÅG (dying wave) — a long, decaying-swell overlay that blends in
   // on top of whichever base waveform is active, the same way REALISTISKA
   // VÅGOR blends over VÅGFORM. Own dedicated height/speed dials (dyingWaveAmp/
@@ -673,7 +694,9 @@ function Aquafulness() {
   const [dyingWave, setDyingWave] = useState(initial.dyingWave);
   const [dyingWaveAmp, setDyingWaveAmp] = useState(initial.dyingWaveAmp);
   const [dyingWaveSpeed, setDyingWaveSpeed] = useState(initial.dyingWaveSpeed);
-  const dyingWaveComponents = useRef<OceanWaveComponent[]>(generateDyingWaveComponents()).current;
+  const dyingWaveComponents = useRef<OceanWaveComponent[]>(
+    generateDyingWaveComponents(initial.randomizeWaves ? Math.random : createSeededRandom(DYING_WAVE_SEED)),
+  ).current;
   const [wavePreset, setWavePreset] = useState<WavePresetName>(initial.wavePreset);
   const [regularCross, setRegularCross] = useState(initial.regularCross);
   const [regularPeriod, setRegularPeriod] = useState(initial.regularPeriod);
@@ -843,12 +866,12 @@ function Aquafulness() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, realisticWaves, dyingWave, dyingWaveAmp, dyingWaveSpeed, wavePreset, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingPositionY, swingIntensity, swingXFactor, swingHeight, swingPreset, swingYWaveform, intervalSessionOn, intervalDuration, intervalSessionType, intervalCount, intervalShowStats, surfaceArea, torusRingsOn, torusRadius, torusTube, torusScale, torusOpacity, torusTextureIdx, torusCellSize, torusVerticalSpacing, torusVerticalCount, torusViewDistance, torusFadeDistance };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, realisticWaves, dyingWave, dyingWaveAmp, dyingWaveSpeed, randomizeWaves, wavePreset, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingPositionY, swingIntensity, swingXFactor, swingHeight, swingPreset, swingYWaveform, intervalSessionOn, intervalDuration, intervalSessionType, intervalCount, intervalShowStats, surfaceArea, torusRingsOn, torusRadius, torusTube, torusScale, torusOpacity, torusTextureIdx, torusCellSize, torusVerticalSpacing, torusVerticalCount, torusViewDistance, torusFadeDistance };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, realisticWaves, dyingWave, dyingWaveAmp, dyingWaveSpeed, wavePreset, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingPositionY, swingIntensity, swingXFactor, swingHeight, swingPreset, swingYWaveform, intervalSessionOn, intervalDuration, intervalSessionType, intervalCount, intervalShowStats, surfaceArea, torusRingsOn, torusRadius, torusTube, torusScale, torusOpacity, torusTextureIdx, torusCellSize, torusVerticalSpacing, torusVerticalCount, torusViewDistance, torusFadeDistance]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, realisticWaves, dyingWave, dyingWaveAmp, dyingWaveSpeed, randomizeWaves, wavePreset, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingPositionY, swingIntensity, swingXFactor, swingHeight, swingPreset, swingYWaveform, intervalSessionOn, intervalDuration, intervalSessionType, intervalCount, intervalShowStats, surfaceArea, torusRingsOn, torusRadius, torusTube, torusScale, torusOpacity, torusTextureIdx, torusCellSize, torusVerticalSpacing, torusVerticalCount, torusViewDistance, torusFadeDistance]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -1217,6 +1240,7 @@ function Aquafulness() {
     setDyingWave(DEFAULTS.dyingWave);
     setDyingWaveAmp(DEFAULTS.dyingWaveAmp);
     setDyingWaveSpeed(DEFAULTS.dyingWaveSpeed);
+    setRandomizeWaves(DEFAULTS.randomizeWaves);
     setWavePreset(DEFAULTS.wavePreset);
     setRegularCross(DEFAULTS.regularCross);
     setRegularPeriod(DEFAULTS.regularPeriod);
@@ -3534,6 +3558,8 @@ function Aquafulness() {
     setDyingWaveAmp,
     dyingWaveSpeed,
     setDyingWaveSpeed,
+    randomizeWaves,
+    setRandomizeWaves,
     wavePreset,
     applyWavePreset,
     regularCross,
