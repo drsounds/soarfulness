@@ -141,3 +141,42 @@ export function PadDial({
     </div>
   );
 }
+
+// A drag slider for the same numeric range a neighboring PadDial's +/- steps
+// through — sits beside it for quick coarse adjustment instead of repeated
+// taps. Deliberately a plain native <input type="range">, not the shadcn/
+// Radix Slider in components/ui/slider.tsx: that one is styled off the
+// app-wide light/dark CSS theme tokens, which this dark glass HUD doesn't
+// use, so a hand-styled native slider keeps it visually consistent with
+// PadDial's own pill chrome without fighting that theme.
+export function PadSlider({
+  label,
+  value,
+  min,
+  max,
+  step,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2 rounded-full border border-white/15 bg-black/40 px-3 py-1.5 backdrop-blur-md">
+      <span className="whitespace-nowrap text-[9px] font-light tracking-[0.28em] text-white/60">{label}</span>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        aria-label={label}
+        className="h-1.5 w-24 cursor-pointer appearance-none rounded-full bg-white/15 accent-white"
+      />
+    </div>
+  );
+}
