@@ -222,6 +222,22 @@ function spectrumPeakK(pars: SpectrumParams): number {
   return (pars.peakOmega * pars.peakOmega) / G;
 }
 
+// Deterministic PRNG (mulberry32) so the FFT wave modes can be generated
+// with a fixed, reproducible component set — same wave every load — instead
+// of the true Math.random() each generate*WaveComponents() call otherwise
+// uses. See SLUMPA VÅGOR in routes/index.tsx: off (default) passes a seeded
+// instance of this so the wave is constant session to session; on passes
+// Math.random() itself for genuine per-load variety.
+export function createSeededRandom(seed: number): () => number {
+  let state = seed | 0;
+  return () => {
+    state = (state + 0x6d2b79f5) | 0;
+    let t = Math.imul(state ^ (state >>> 15), 1 | state);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 export type OceanWaveComponent = {
   kx: number;
   kz: number;
@@ -241,7 +257,7 @@ const REFERENCE_TOTAL_AMPLITUDE = 2.6;
 // fixed list of cosine components: height(x,z,t) = Σ A·cos(k·[x,z] − ωt + φ).
 // This is the direct-summation form of linear (Airy) wave theory the source
 // repo's FFT accelerates — see the module header for the full derivation.
-export function generateOceanWaveComponents(): OceanWaveComponent[] {
+export function generateOceanWaveComponents(random: () => number = Math.random): OceanWaveComponent[] {
   const local = resolveSpectrum(LOCAL_SPECTRUM);
   const swell = resolveSpectrum(SWELL_SPECTRUM);
 
@@ -274,9 +290,9 @@ export function generateOceanWaveComponents(): OceanWaveComponent[] {
       // Stratified sample in log(k) (one per bin) with a fully random
       // direction — the spectrum's directional weighting (not the sampling
       // pattern) is what shapes the result toward the wind/swell direction.
-      const lnK = lnMin + ((j + Math.random()) / count) * (lnMax - lnMin);
+      const lnK = lnMin + ((j + random()) / count) * (lnMax - lnMin);
       const k = Math.exp(lnK);
-      const theta = Math.random() * Math.PI * 2;
+      const theta = random() * Math.PI * 2;
 
       const omega = dispersion(k, G, DEPTH);
       const dOmegaDk = dispersionDerivative(k, G, DEPTH);
@@ -302,7 +318,7 @@ export function generateOceanWaveComponents(): OceanWaveComponent[] {
         kz: k * Math.sin(theta),
         amplitude,
         omega,
-        phase: Math.random() * Math.PI * 2,
+        phase: random() * Math.PI * 2,
       });
     }
     kMin = kMax;
@@ -339,7 +355,7 @@ const DYING_SWELL_SPECTRUM: DisplaySpectrumSettings = {
 const DYING_WAVE_KMAX = 0.12;
 export const DYING_WAVE_COUNT = 10;
 
-export function generateDyingWaveComponents(): OceanWaveComponent[] {
+export function generateDyingWaveComponents(random: () => number = Math.random): OceanWaveComponent[] {
   const pars = resolveSpectrum(DYING_SWELL_SPECTRUM);
   const components: OceanWaveComponent[] = [];
 
@@ -354,9 +370,9 @@ export function generateDyingWaveComponents(): OceanWaveComponent[] {
   const lnMax = Math.log(kMax);
 
   for (let j = 0; j < DYING_WAVE_COUNT; j++) {
-    const lnK = lnMin + ((j + Math.random()) / DYING_WAVE_COUNT) * (lnMax - lnMin);
+    const lnK = lnMin + ((j + random()) / DYING_WAVE_COUNT) * (lnMax - lnMin);
     const k = Math.exp(lnK);
-    const theta = Math.random() * Math.PI * 2;
+    const theta = random() * Math.PI * 2;
 
     const omega = dispersion(k, G, DEPTH);
     const dOmegaDk = dispersionDerivative(k, G, DEPTH);
@@ -375,7 +391,7 @@ export function generateDyingWaveComponents(): OceanWaveComponent[] {
       kz: k * Math.sin(theta),
       amplitude,
       omega,
-      phase: Math.random() * Math.PI * 2,
+      phase: random() * Math.PI * 2,
     });
   }
 

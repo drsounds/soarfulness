@@ -112,6 +112,13 @@ export type SettingsPanelProps = {
   setDyingWaveAmp: Dispatch<SetStateAction<number>>;
   dyingWaveSpeed: number;
   setDyingWaveSpeed: Dispatch<SetStateAction<number>>;
+  // SLUMPA VÅGOR: off (default) generates REALISTISKA VÅGOR/DÖENDE VÅG from
+  // a fixed seed each load — same wave shape and heave rhythm every time; on
+  // draws real randomness for a fresh shape each load. Only read once at
+  // mount (the component sets are only ever generated once per mount), so
+  // toggling it takes effect on the next reload, not live.
+  randomizeWaves: boolean;
+  setRandomizeWaves: Dispatch<SetStateAction<boolean>>;
   // VÅGPRESET: applies a bundle of wave-only settings in one step — see
   // WAVE_PRESETS in routes/index.tsx.
   wavePreset: WavePresetName;
@@ -341,6 +348,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setDyingWaveAmp,
     dyingWaveSpeed,
     setDyingWaveSpeed,
+    randomizeWaves,
+    setRandomizeWaves,
     wavePreset,
     applyWavePreset,
     regularCross,
@@ -784,6 +793,12 @@ export function SettingsPanel(props: SettingsPanelProps) {
               step={0.05}
               onDec={() => setDyingWaveSpeed((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
               onInc={() => setDyingWaveSpeed((v) => Math.min(5, +(v + 0.05).toFixed(2)))}
+            />
+            <PadDial
+              label="SLUMPA VÅGOR"
+              value={randomizeWaves ? "PÅ" : "AV"}
+              onDec={() => setRandomizeWaves(false)}
+              onInc={() => setRandomizeWaves(true)}
             />
             <PadDial
               label="KORSVÅG"
