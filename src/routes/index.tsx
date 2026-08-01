@@ -2126,10 +2126,33 @@ function Aquafulness() {
         float F0 = 0.02;
         float fres = F0 + (1.0 - F0) * pow(1.0 - NdotV, 5.0);
 
+        // Distance from camera in the water plane — same idea as the vertex
+        // shader's ampFade/rippleFade (see uTrochoid's neighborhood above),
+        // but computed here since the fine per-pixel normal perturbations
+        // below have no vertex-side equivalent to inherit a fade from. Every
+        // wave mode (REGELBUNDEN/FFT-HAV/DÖENDE VÅG) shares this same
+        // fragment shader, so an un-faded high-frequency term here reads as
+        // "boiling water" regardless of which waveform is actually driving
+        // the mesh underneath it.
+        float shimDist = length(vWorldPos.xz - cameraPosition.xz);
+
         // Micro-shimmer: high-frequency normal perturbation for scale-fine
         // sparkle that only shows up near the Fresnel rim / sun highlight.
+        // At ~4-6 rad/m (≈1-1.7m wavelength) this is far finer than anything
+        // else in the shader and had no distance fade at all, so once enough
+        // of the visible water sits at a grazing angle — where each pixel's
+        // footprint spans many wavelengths of it — it aliased into a dense,
+        // shimmering "boiling" texture instead of the intended sparse sparkle.
+        // Distance alone isn't enough to tame it though: reflect(-V, Nshim)
+        // is inherently hypersensitive to normal perturbation right as NdotV
+        // approaches 0 (a grazing ray's reflection direction swings hugely
+        // for a tiny normal wobble), so even a mostly-distance-faded shim
+        // still visibly shimmers at the most extreme grazing angles — fade
+        // it out there too, accepting a little less rim sparkle for a lot
+        // less boiling.
+        float shimFade = (1.0 - smoothstep(10.0, 40.0, shimDist)) * smoothstep(0.02, 0.15, NdotV);
         float shim = sin(vWorldPos.x * 3.7 + vWorldPos.z * 4.3) *
-                     sin(vWorldPos.x * 5.1 - vWorldPos.z * 6.2);
+                     sin(vWorldPos.x * 5.1 - vWorldPos.z * 6.2) * shimFade;
         vec3 Nshim = normalize(N + vec3(shim * 0.06, 0.0, shim * 0.05));
 
         // Fine procedural micro-chop + whitecap foam (HIGH quality only) —
@@ -2140,9 +2163,13 @@ function Aquafulness() {
         // quality stays byte-for-byte the original shading.
         float foam = 0.0;
         if (uQuality > 0.5) {
+          // Coarser frequency than shim above, so it stays resolved (and
+          // fades out) at a proportionally longer distance; same grazing-
+          // angle taming since it feeds the same reflection-sensitive Nshim.
+          float microFade = (1.0 - smoothstep(20.0, 90.0, shimDist)) * smoothstep(0.02, 0.15, NdotV);
           float n1 = fbm(vWorldPos.xz * 0.6 + vec2(uTime * 0.05, uTime * 0.03));
           float n2 = fbm(vWorldPos.xz * 2.3 - vec2(uTime * 0.08, uTime * 0.11));
-          float microBump = (n1 - 0.5) * 0.05 + (n2 - 0.5) * 0.025;
+          float microBump = ((n1 - 0.5) * 0.05 + (n2 - 0.5) * 0.025) * microFade;
           Nshim = normalize(Nshim + vec3(microBump, 0.0, microBump * 0.7));
 
           float slope = 1.0 - N.y;
