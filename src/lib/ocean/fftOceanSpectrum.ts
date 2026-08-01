@@ -73,12 +73,37 @@ const SWELL_SPECTRUM: DisplaySpectrumSettings = {
 
 // The three cascade length scales (meters) from wavesGenerator.ts — one
 // covers big swell, one mid chop, one fine ripple.
-const CASCADE_LENGTH_SCALES = [250, 17, 5];
+//
+// OceanDemo's own mesh is fine enough to resolve all three via a real IFFT;
+// this port instead displaces a 600×600 plane with 320 segments (see the
+// `geo` PlaneGeometry in routes/index.tsx), i.e. ~1.875m between vertices, so
+// its Nyquist limit is only k ≈ π/1.875 ≈ 1.68 rad/m (wavelengths below
+// ~3.75m). The original [250, 17, 5] scales pushed the mid/fine cascades'
+// kMax up to ~7.5 and ~40 rad/m — far past that limit — so per-vertex
+// sampling of those components aliased into uncorrelated noise instead of
+// smooth chop, reading as a jagged, boiling surface rather than a wave.
+// Scaled up so every cascade's kMax stays comfortably under the mesh's
+// Nyquist limit — this is a mesh-resolution ceiling, not an artistic
+// choice, so don't lower it further without also raising the plane's
+// segment count.
+const CASCADE_LENGTH_SCALES = [250, 90, 40];
 // How many discrete wave components to spend on each cascade (sums to
 // FFT_WAVE_COUNT). Weighted toward the swell cascade since it dominates the
 // visible silhouette; the fine cascade mostly adds sparkle.
 const CASCADE_COMPONENT_COUNTS = [14, 10, 8];
 export const FFT_WAVE_COUNT = CASCADE_COMPONENT_COUNTS.reduce((a, b) => a + b, 0);
+// Extra per-cascade damping applied on top of the JONSWAP density itself.
+// The analytic "regelbunden" wave keeps its big swell (~2.6×amp) completely
+// separate from its high-frequency ripple terms (a fixed, tiny ~0.17 total
+// that doesn't scale with amp at all), so raising VÅG only makes the big
+// rollers taller, never the chop faster/steeper. The FFT cascades all share
+// one amplitude budget, so without this the mid/fine cascades' steeper,
+// higher-omega components end up carrying a disproportionate share of the
+// visible motion — many short, crossing crests reading as agitated chop
+// ("boiling") instead of calm swell. Damping them down brings the realistic
+// waveform's tempo and height in line with the other two modes at the same
+// VÅG/TEMPO dial values.
+const CASCADE_AMPLITUDE_WEIGHT = [1, 0.15, 0.04];
 
 // Resolved (radians / SI) spectrum parameters — ported from
 // WavesSettings.setParametersToShader / _fillSettingsStruct.
@@ -220,7 +245,9 @@ export function generateOceanWaveComponents(): OceanWaveComponent[] {
     // (finest) cascade is capped instead of left unbounded — wavelengths
     // much shorter than the mesh's vertex spacing would just alias, and the
     // existing shader already layers high-frequency ripple sines on top.
-    const kMax = isLast ? 40 : ((2 * Math.PI) / CASCADE_LENGTH_SCALES[c + 1]) * 6;
+    // Cap stays under the ~1.68 rad/m Nyquist limit of the 600m/320-segment
+    // water plane (see the CASCADE_LENGTH_SCALES comment above).
+    const kMax = isLast ? 1.4 : ((2 * Math.PI) / CASCADE_LENGTH_SCALES[c + 1]) * 6;
     const count = CASCADE_COMPONENT_COUNTS[c];
     const lnMin = Math.log(kMin);
     const lnMax = Math.log(kMax);
@@ -250,7 +277,7 @@ export function generateOceanWaveComponents(): OceanWaveComponent[] {
       // of radial strata sharing that ln(k) range.
       const areaElement = ((2 * Math.PI * k * k) / count) * (lnMax - lnMin);
       const variance = Math.max(0, (2 * spectrum * Math.abs(dOmegaDk) * areaElement) / k);
-      const amplitude = Math.sqrt(variance);
+      const amplitude = Math.sqrt(variance) * CASCADE_AMPLITUDE_WEIGHT[c];
 
       components.push({
         kx: k * Math.cos(theta),
