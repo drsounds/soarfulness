@@ -938,6 +938,9 @@ function Aquafulness() {
   const yawRef = useRef(0);
   const pitchRef = useRef(0);
   const prevSurfaceRef = useRef<number | null>(null);
+  // Low-pass state for the buoyancy spring's anticipatory velocity estimate
+  // — see its use in the animation loop below.
+  const anticipVelSmoothRef = useRef(0);
   const camFovRef = useRef(camFov);
   const camNearRef = useRef(camNear);
   const camFarRef = useRef(camFar);
@@ -2920,6 +2923,18 @@ function Aquafulness() {
         const rawAnticip = Math.max(-maxSlope, Math.min(maxSlope, (futureSurf - surfaceY) / lead));
         const blend = 1 - peakK * 0.85;
         const anticipVel = rawAnticip * blend + surfVel * (1 - blend);
+        // Low-pass the velocity estimate before it drives the spring. Both
+        // REALISTISKA VÅGOR and DÖENDE VÅG sum many out-of-phase frequency
+        // components (see fftOceanSpectrum.ts), so a secant slope taken over
+        // the `lead` lookahead window (and even the frame-to-frame surfVel)
+        // jitters in a way the old 2-4 term analytic sine never did — that
+        // jitter fed straight into the spring read as jerky, irregular heave
+        // once FFT-hav became the default wave. anticipSurf/futureSurf above
+        // (the actual height feed-forward) stay exact — only this derived
+        // velocity estimate needs smoothing.
+        const velSmoothing = Math.min(1, dt * 8);
+        anticipVelSmoothRef.current += (anticipVel - anticipVelSmoothRef.current) * velSmoothing;
+        const anticipVelSmoothed = anticipVelSmoothRef.current;
 
         const amp = ampRef.current;
         const b = buoyRef.current;
@@ -2938,9 +2953,9 @@ function Aquafulness() {
         // there. Softness is a small fraction of maxSlope so the ramp still
         // reads as max(0, x) away from the crossing.
         const diveSoftness = maxSlope * 0.12;
-        const diveRamp = (anticipVel + Math.sqrt(anticipVel * anticipVel + diveSoftness * diveSoftness)) / 2;
+        const diveRamp = (anticipVelSmoothed + Math.sqrt(anticipVelSmoothed * anticipVelSmoothed + diveSoftness * diveSoftness)) / 2;
         const rawDive = diveRamp * sub * 0.6 * (0.6 + amp * 0.6);
-        const rawLift = anticipVel * lift * 0.35 * (0.6 + amp * 0.6);
+        const rawLift = anticipVelSmoothed * lift * 0.35 * (0.6 + amp * 0.6);
         const diveOffset = Math.min(cap, rawDive);
         const liftOffset = Math.max(-cap, Math.min(cap, rawLift));
         const targetY = anticipSurf + heightRef.current - diveOffset + liftOffset;
