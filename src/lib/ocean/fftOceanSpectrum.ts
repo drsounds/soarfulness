@@ -213,6 +213,15 @@ function shortWavesFade(kLength: number, pars: SpectrumParams): number {
   return Math.exp(-pars.shortWavesFade * pars.shortWavesFade * kLength * kLength);
 }
 
+// Deep-water approximation (ignoring the tanh(k·depth) shoaling correction,
+// negligible at these low k and DEPTH) of the wavenumber where a spectrum's
+// JONSWAP density actually peaks — used only to pick where cascade sampling
+// should concentrate, not for the wave physics itself (which still uses the
+// exact dispersion() relation).
+function spectrumPeakK(pars: SpectrumParams): number {
+  return (pars.peakOmega * pars.peakOmega) / G;
+}
+
 export type OceanWaveComponent = {
   kx: number;
   kz: number;
@@ -238,7 +247,16 @@ export function generateOceanWaveComponents(): OceanWaveComponent[] {
 
   const components: OceanWaveComponent[] = [];
 
-  let kMin = 0.0001;
+  // Sampling the swell cascade all the way down to a near-zero kMin spends
+  // most of its stratified log(k) bins far below where the JONSWAP density
+  // actually peaks — each still gets a full direction/phase/amplitude share
+  // after renormalization, so the sum reads as a mix of many faint,
+  // random-direction, mismatched-frequency terms rather than one coherent
+  // swell, and the camera's buoyancy heave inherits that unevenness cycle to
+  // cycle. Starting the band near the spectra's own peak wavenumber (deep-
+  // water k ≈ ω²/g) concentrates every sampled component where the energy
+  // actually is, so it reads as one much more coherent, evenly cycling swell.
+  let kMin = 0.35 * Math.min(spectrumPeakK(local), spectrumPeakK(swell));
   for (let c = 0; c < CASCADE_LENGTH_SCALES.length; c++) {
     const isLast = c === CASCADE_LENGTH_SCALES.length - 1;
     // Same boundary rule as WavesGenerator.initializeCascades, but the last
@@ -325,7 +343,12 @@ export function generateDyingWaveComponents(): OceanWaveComponent[] {
   const pars = resolveSpectrum(DYING_SWELL_SPECTRUM);
   const components: OceanWaveComponent[] = [];
 
-  const kMin = 0.0001;
+  // Same reasoning as generateOceanWaveComponents() above: start the band
+  // near the spectrum's own peak wavenumber instead of a near-zero floor, so
+  // every sampled component clusters around the same frequency/wavelength
+  // instead of spending bins on faint, mismatched, near-DC terms — reads as
+  // one coherent, evenly cycling swell rather than an uneven beat.
+  const kMin = 0.35 * spectrumPeakK(pars);
   const kMax = DYING_WAVE_KMAX;
   const lnMin = Math.log(kMin);
   const lnMax = Math.log(kMax);
