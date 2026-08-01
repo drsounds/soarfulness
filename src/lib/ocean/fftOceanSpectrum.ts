@@ -287,28 +287,43 @@ export function generateOceanWaveComponents(random: () => number = Math.random):
     const lnMax = Math.log(kMax);
 
     for (let j = 0; j < count; j++) {
-      // Stratified sample in log(k) (one per bin) with a fully random
-      // direction — the spectrum's directional weighting (not the sampling
-      // pattern) is what shapes the result toward the wind/swell direction.
+      // Stratified sample in log(k) (one per bin).
       const lnK = lnMin + ((j + random()) / count) * (lnMax - lnMin);
       const k = Math.exp(lnK);
-      const theta = random() * Math.PI * 2;
-
       const omega = dispersion(k, G, DEPTH);
       const dOmegaDk = dispersionDerivative(k, G, DEPTH);
 
-      const spectrum =
-        jonswap(omega, G, DEPTH, local) *
-          directionSpectrum(theta, omega, local) *
-          shortWavesFade(k, local) +
-        jonswap(omega, G, DEPTH, swell) *
-          directionSpectrum(theta, omega, swell) *
-          shortWavesFade(k, swell);
+      const jLocal = jonswap(omega, G, DEPTH, local);
+      const jSwell = jonswap(omega, G, DEPTH, swell);
+      // Direction was previously sampled fully at random (0..2π), relying
+      // only on directionSpectrum()'s amplitude weighting below to suppress
+      // off-axis draws. A real FFT bins thousands of directions, so that
+      // washes out statistically; this sum-of-sinusoids realization only
+      // has `count` samples per cascade, so an unlucky handful of
+      // moderately-weighted off-axis draws reads as chaotic crossing chop
+      // ("boiling") instead of one coherent swell — worse still after
+      // narrowing the k band above concentrated more samples into this
+      // cascade's now non-negligible range. Centering each draw on whichever
+      // spectrum's own frequency density dominates at this k (still jittered
+      // within a wide-ish arc, not forced onto a single ray) keeps samples
+      // clustered near the two physically real directions — local wind sea
+      // and distant swell — instead of scattering across the whole circle.
+      const centerAngle = jLocal > jSwell ? local.angle : swell.angle;
+      const directionalSpread = (50 * Math.PI) / 180;
+      const theta = centerAngle + (random() * 2 - 1) * directionalSpread;
 
-      // Monte-Carlo area element for a sample stratified in log(k) but
-      // random in theta over the full circle: dkx·dkz = k·dk·dθ, with
-      // dk = k·d(ln k), integrated over θ∈[0,2π) and divided by the number
-      // of radial strata sharing that ln(k) range.
+      const spectrum =
+        jLocal * directionSpectrum(theta, omega, local) * shortWavesFade(k, local) +
+        jSwell * directionSpectrum(theta, omega, swell) * shortWavesFade(k, swell);
+
+      // Monte-Carlo area element, still using the full-circle dkx·dkz =
+      // k·dk·dθ normalization (dk = k·d(ln k), θ∈[0,2π)) even though theta is
+      // now drawn from a narrower arc above — the area element only sets each
+      // sample's *relative* weight before the total gets renormalized to
+      // REFERENCE_TOTAL_AMPLITUDE below, so this under-counts the sampled
+      // arc's true share of the circle and effectively over-weights it,
+      // which is exactly the intended effect (concentrate energy toward the
+      // two coherent directions instead of spreading it "fairly" over 360°).
       const areaElement = ((2 * Math.PI * k * k) / count) * (lnMax - lnMin);
       const variance = Math.max(0, (2 * spectrum * Math.abs(dOmegaDk) * areaElement) / k);
       const amplitude = Math.sqrt(variance) * CASCADE_AMPLITUDE_WEIGHT[c];
@@ -372,15 +387,17 @@ export function generateDyingWaveComponents(random: () => number = Math.random):
   for (let j = 0; j < DYING_WAVE_COUNT; j++) {
     const lnK = lnMin + ((j + random()) / DYING_WAVE_COUNT) * (lnMax - lnMin);
     const k = Math.exp(lnK);
-    const theta = random() * Math.PI * 2;
-
     const omega = dispersion(k, G, DEPTH);
     const dOmegaDk = dispersionDerivative(k, G, DEPTH);
 
-    const spectrum =
-      jonswap(omega, G, DEPTH, pars) *
-      directionSpectrum(theta, omega, pars) *
-      shortWavesFade(k, pars);
+    // Same reasoning as generateOceanWaveComponents(): jitter direction
+    // within a wide-ish arc around the spectrum's own angle instead of
+    // drawing fully at random, so the handful of samples read as one
+    // coherent swell train instead of chop crossing in from everywhere.
+    const directionalSpread = (50 * Math.PI) / 180;
+    const theta = pars.angle + (random() * 2 - 1) * directionalSpread;
+
+    const spectrum = jonswap(omega, G, DEPTH, pars) * directionSpectrum(theta, omega, pars) * shortWavesFade(k, pars);
 
     const areaElement = ((2 * Math.PI * k * k) / DYING_WAVE_COUNT) * (lnMax - lnMin);
     const variance = Math.max(0, (2 * spectrum * Math.abs(dOmegaDk) * areaElement) / k);
