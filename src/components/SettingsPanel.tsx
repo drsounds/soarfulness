@@ -18,6 +18,7 @@ import {
   type SwingPreset,
   type SwingYWaveform,
   type IntervalSessionType,
+  type WavePresetName,
 } from "@/lib/settingsShared";
 
 // Swedish display labels for enum values that don't already carry a
@@ -37,6 +38,10 @@ const SWING_Y_WAVEFORM_LABELS: Record<SwingYWaveform, string> = {
   sine: "SINUS",
   triangle: "TRIANGEL",
   square: "FYRKANT",
+};
+const WAVE_PRESET_LABELS: Record<WavePresetName, string> = {
+  standard: "STANDARD",
+  legacy: "LEGACY",
 };
 
 type NamedOption = { id: string; name: string };
@@ -98,6 +103,19 @@ export type SettingsPanelProps = {
   // src/lib/ocean/fftOceanSpectrum.ts.
   realisticWaves: boolean;
   setRealisticWaves: Dispatch<SetStateAction<boolean>>;
+  // DÖENDE VÅG (dying wave): a long, decaying-swell overlay with its own
+  // height/speed dials, blended on top of whichever base waveform is active
+  // the same way REALISTISKA VÅGOR blends over VÅGFORM.
+  dyingWave: boolean;
+  setDyingWave: Dispatch<SetStateAction<boolean>>;
+  dyingWaveAmp: number;
+  setDyingWaveAmp: Dispatch<SetStateAction<number>>;
+  dyingWaveSpeed: number;
+  setDyingWaveSpeed: Dispatch<SetStateAction<number>>;
+  // VÅGPRESET: applies a bundle of wave-only settings in one step — see
+  // WAVE_PRESETS in routes/index.tsx.
+  wavePreset: WavePresetName;
+  applyWavePreset: (preset: WavePresetName) => void;
   regularCross: boolean;
   setRegularCross: Dispatch<SetStateAction<boolean>>;
   regularPeriod: number;
@@ -317,6 +335,14 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setRegularWaves,
     realisticWaves,
     setRealisticWaves,
+    dyingWave,
+    setDyingWave,
+    dyingWaveAmp,
+    setDyingWaveAmp,
+    dyingWaveSpeed,
+    setDyingWaveSpeed,
+    wavePreset,
+    applyWavePreset,
     regularCross,
     setRegularCross,
     regularPeriod,
@@ -722,6 +748,42 @@ export function SettingsPanel(props: SettingsPanelProps) {
               value={realisticWaves ? "FFT-HAV" : "AV"}
               onDec={() => setRealisticWaves(false)}
               onInc={() => setRealisticWaves(true)}
+            />
+            <PadDial
+              label="VÅGPRESET"
+              value={WAVE_PRESET_LABELS[wavePreset]}
+              onDec={() => applyWavePreset("legacy")}
+              onInc={() => applyWavePreset("standard")}
+            />
+            <PadDial
+              label="DÖENDE VÅG"
+              value={dyingWave ? "PÅ" : "AV"}
+              onDec={() => setDyingWave(false)}
+              onInc={() => setDyingWave(true)}
+            />
+            <PadDial
+              label="DÖD VÅG HÖJD"
+              mode="number"
+              value={`${dyingWaveAmp.toFixed(2)}m`}
+              rawValue={dyingWaveAmp}
+              onSet={setDyingWaveAmp}
+              min={0}
+              max={20}
+              step={0.1}
+              onDec={() => setDyingWaveAmp((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
+              onInc={() => setDyingWaveAmp((v) => Math.min(20, +(v + 0.1).toFixed(2)))}
+            />
+            <PadDial
+              label="DÖD VÅG TEMPO"
+              mode="number"
+              value={`${dyingWaveSpeed.toFixed(2)}×`}
+              rawValue={dyingWaveSpeed}
+              onSet={setDyingWaveSpeed}
+              min={0}
+              max={5}
+              step={0.05}
+              onDec={() => setDyingWaveSpeed((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+              onInc={() => setDyingWaveSpeed((v) => Math.min(5, +(v + 0.05).toFixed(2)))}
             />
             <PadDial
               label="KORSVÅG"

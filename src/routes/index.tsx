@@ -28,10 +28,13 @@ import {
   type SwingPreset,
   type SwingYWaveform,
   type IntervalSessionType,
+  type WavePresetName,
 } from "@/lib/settingsShared";
 import {
   FFT_WAVE_COUNT,
   generateOceanWaveComponents,
+  DYING_WAVE_COUNT,
+  generateDyingWaveComponents,
   packOceanWaveComponents,
   sampleOceanWaveHeight,
   type OceanWaveComponent,
@@ -101,6 +104,11 @@ function shapedWave(theta: number, p: number) {
 // src/lib/ocean/fftOceanSpectrum.ts) so the camera floats correctly on it
 // too; `realisticComponents` is the fixed component set generated once per
 // mount that both this and the vertex shader's fftHeight() sample from.
+// `dying` layers the long, decaying-swell waveform on top (same idea as
+// `realistic`, its own fixed component set and independent time base
+// `dyingT` so DÖD VÅG TEMPO can run at its own speed) — takes precedence
+// over `realistic` when both are on, matching the vertex shader's mix
+// order (uDying is applied after uFft).
 function waveHeight(
   x: number,
   z: number,
@@ -113,6 +121,10 @@ function waveHeight(
   dir: number = 0,
   realistic: boolean = false,
   realisticComponents: OceanWaveComponent[] | null = null,
+  dying: boolean = false,
+  dyingComponents: OceanWaveComponent[] | null = null,
+  dyingAmp: number = 0,
+  dyingT: number = 0,
 ) {
   // Use compass-bearing convention (matches bearingToWorldXZ / the dial:
   // 0deg = world +z, 90deg = world +x) rather than the math-angle
@@ -125,6 +137,9 @@ function waveHeight(
   const c = -Math.sin(dir), s = -Math.cos(dir);
   const xr = c * x + s * z;
   const zr = -s * x + c * z;
+  if (dying && dyingComponents) {
+    return sampleOceanWaveHeight(dyingComponents, xr, zr, dyingT) * dyingAmp;
+  }
   if (realistic && realisticComponents) {
     return sampleOceanWaveHeight(realisticComponents, xr, zr, t) * amp;
   }
@@ -221,6 +236,10 @@ type Persisted = {
   leanEnabled: boolean;
   regularWaves: boolean;
   realisticWaves: boolean;
+  dyingWave: boolean;
+  dyingWaveAmp: number;
+  dyingWaveSpeed: number;
+  wavePreset: WavePresetName;
   regularCross: boolean;
   regularPeriod: number;
   wavePeak: number;
@@ -422,10 +441,59 @@ type SurfaceManifest = {
   image?: string;
 };
 
+// VÅGPRESET bundles — everything the wave-only preset selector applies in
+// one step. "standard" is this app's current default (calm FFT-hav swell);
+// "legacy" restores the exact wave settings from before that change (tall,
+// fast REGELBUNDEN waves, no FFT-hav) for anyone who preferred the original
+// feel. DÖENDE VÅG (dying wave) is a newer, separate overlay and defaults
+// off in both presets — turn it on explicitly to layer a long, slow, dying
+// swell on top of whichever base preset is active.
+const WAVE_PRESETS: Record<
+  WavePresetName,
+  Pick<
+    Persisted,
+    | "waveAmp"
+    | "waveSpeed"
+    | "regularWaves"
+    | "realisticWaves"
+    | "dyingWave"
+    | "dyingWaveAmp"
+    | "dyingWaveSpeed"
+    | "regularCross"
+    | "regularPeriod"
+    | "wavePeak"
+  >
+> = {
+  standard: {
+    waveAmp: 0.5,
+    waveSpeed: 2.8,
+    regularWaves: true,
+    realisticWaves: true,
+    dyingWave: false,
+    dyingWaveAmp: 1.2,
+    dyingWaveSpeed: 0.6,
+    regularCross: true,
+    regularPeriod: 1,
+    wavePeak: 1,
+  },
+  legacy: {
+    waveAmp: 2.0,
+    waveSpeed: 5,
+    regularWaves: true,
+    realisticWaves: false,
+    dyingWave: false,
+    dyingWaveAmp: 1.2,
+    dyingWaveSpeed: 0.6,
+    regularCross: true,
+    regularPeriod: 1,
+    wavePeak: 1,
+  },
+};
+
 const DEFAULTS: Persisted = {
-  waveAmp: 0.5,
+  ...WAVE_PRESETS.standard,
+  wavePreset: "standard",
   timeOfDay: 0.5,
-  waveSpeed: 2.8,
   bobSpeed: 2.8,
   buoyAmp: 2.8,
   heightOffset: 0,
@@ -448,11 +516,6 @@ const DEFAULTS: Persisted = {
   turbidity: 0,
   bottomIdx: 2,
   leanEnabled: false,
-  regularWaves: true,
-  realisticWaves: true,
-  regularCross: true,
-  regularPeriod: 1,
-  wavePeak: 1,
   waveHighQuality: true,
   backdropIdx: 0,
   wakeLock: true,
@@ -601,6 +664,16 @@ function Aquafulness() {
   // and shared by the vertex shader (uFftWave/uFftPhase uniforms) and the
   // camera's wave-following physics (waveHeight()'s realistic branch).
   const fftWaveComponents = useRef<OceanWaveComponent[]>(generateOceanWaveComponents()).current;
+  // DÖENDE VÅG (dying wave) — a long, decaying-swell overlay that blends in
+  // on top of whichever base waveform is active, the same way REALISTISKA
+  // VÅGOR blends over VÅGFORM. Own dedicated height/speed dials (dyingWaveAmp/
+  // dyingWaveSpeed) and own fixed component set — see
+  // src/lib/ocean/fftOceanSpectrum.ts's generateDyingWaveComponents().
+  const [dyingWave, setDyingWave] = useState(initial.dyingWave);
+  const [dyingWaveAmp, setDyingWaveAmp] = useState(initial.dyingWaveAmp);
+  const [dyingWaveSpeed, setDyingWaveSpeed] = useState(initial.dyingWaveSpeed);
+  const dyingWaveComponents = useRef<OceanWaveComponent[]>(generateDyingWaveComponents()).current;
+  const [wavePreset, setWavePreset] = useState<WavePresetName>(initial.wavePreset);
   const [regularCross, setRegularCross] = useState(initial.regularCross);
   const [regularPeriod, setRegularPeriod] = useState(initial.regularPeriod);
   const [wavePeak, setWavePeak] = useState(initial.wavePeak);
@@ -769,12 +842,12 @@ function Aquafulness() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, realisticWaves, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingPositionY, swingIntensity, swingXFactor, swingHeight, swingPreset, swingYWaveform, intervalSessionOn, intervalDuration, intervalSessionType, intervalCount, intervalShowStats, surfaceArea, torusRingsOn, torusRadius, torusTube, torusScale, torusOpacity, torusTextureIdx, torusCellSize, torusVerticalSpacing, torusVerticalCount, torusViewDistance, torusFadeDistance };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, realisticWaves, dyingWave, dyingWaveAmp, dyingWaveSpeed, wavePreset, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingPositionY, swingIntensity, swingXFactor, swingHeight, swingPreset, swingYWaveform, intervalSessionOn, intervalDuration, intervalSessionType, intervalCount, intervalShowStats, surfaceArea, torusRingsOn, torusRadius, torusTube, torusScale, torusOpacity, torusTextureIdx, torusCellSize, torusVerticalSpacing, torusVerticalCount, torusViewDistance, torusFadeDistance };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, realisticWaves, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingPositionY, swingIntensity, swingXFactor, swingHeight, swingPreset, swingYWaveform, intervalSessionOn, intervalDuration, intervalSessionType, intervalCount, intervalShowStats, surfaceArea, torusRingsOn, torusRadius, torusTube, torusScale, torusOpacity, torusTextureIdx, torusCellSize, torusVerticalSpacing, torusVerticalCount, torusViewDistance, torusFadeDistance]);
+  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, realisticWaves, dyingWave, dyingWaveAmp, dyingWaveSpeed, wavePreset, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingPositionY, swingIntensity, swingXFactor, swingHeight, swingPreset, swingYWaveform, intervalSessionOn, intervalDuration, intervalSessionType, intervalCount, intervalShowStats, surfaceArea, torusRingsOn, torusRadius, torusTube, torusScale, torusOpacity, torusTextureIdx, torusCellSize, torusVerticalSpacing, torusVerticalCount, torusViewDistance, torusFadeDistance]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -839,6 +912,9 @@ function Aquafulness() {
   const leanRef = useRef(leanEnabled);
   const regularRef = useRef(regularWaves);
   const realisticRef = useRef(realisticWaves);
+  const dyingRef = useRef(dyingWave);
+  const dyingAmpRef = useRef(dyingWaveAmp);
+  const dyingSpeedRef = useRef(dyingWaveSpeed);
   const regularCrossRef = useRef(regularCross);
   const regularPeriodRef = useRef(regularPeriod);
   const wavePeakRef = useRef(wavePeak);
@@ -910,6 +986,9 @@ function Aquafulness() {
   useEffect(() => { leanRef.current = leanEnabled; }, [leanEnabled]);
   useEffect(() => { regularRef.current = regularWaves; }, [regularWaves]);
   useEffect(() => { realisticRef.current = realisticWaves; }, [realisticWaves]);
+  useEffect(() => { dyingRef.current = dyingWave; }, [dyingWave]);
+  useEffect(() => { dyingAmpRef.current = dyingWaveAmp; }, [dyingWaveAmp]);
+  useEffect(() => { dyingSpeedRef.current = dyingWaveSpeed; }, [dyingWaveSpeed]);
   useEffect(() => { regularCrossRef.current = regularCross; }, [regularCross]);
   useEffect(() => { regularPeriodRef.current = regularPeriod; }, [regularPeriod]);
   useEffect(() => { wavePeakRef.current = wavePeak; }, [wavePeak]);
@@ -1131,6 +1210,10 @@ function Aquafulness() {
     setLeanEnabled(DEFAULTS.leanEnabled);
     setRegularWaves(DEFAULTS.regularWaves);
     setRealisticWaves(DEFAULTS.realisticWaves);
+    setDyingWave(DEFAULTS.dyingWave);
+    setDyingWaveAmp(DEFAULTS.dyingWaveAmp);
+    setDyingWaveSpeed(DEFAULTS.dyingWaveSpeed);
+    setWavePreset(DEFAULTS.wavePreset);
     setRegularCross(DEFAULTS.regularCross);
     setRegularPeriod(DEFAULTS.regularPeriod);
     setWavePeak(DEFAULTS.wavePeak);
@@ -1191,6 +1274,24 @@ function Aquafulness() {
     setTorusViewDistance(DEFAULTS.torusViewDistance);
     setTorusFadeDistance(DEFAULTS.torusFadeDistance);
     // timeOfDay is intentionally left untouched.
+  };
+
+  // VÅGPRESET: applies a bundle of wave-only settings in one step (see
+  // WAVE_PRESETS above) — everything else (camera, water color,
+  // environment, ...) is left untouched, unlike the full resetToDefaults().
+  const applyWavePreset = (preset: WavePresetName) => {
+    const p = WAVE_PRESETS[preset];
+    setWavePreset(preset);
+    setWaveAmp(p.waveAmp);
+    setWaveSpeed(p.waveSpeed);
+    setRegularWaves(p.regularWaves);
+    setRealisticWaves(p.realisticWaves);
+    setDyingWave(p.dyingWave);
+    setDyingWaveAmp(p.dyingWaveAmp);
+    setDyingWaveSpeed(p.dyingWaveSpeed);
+    setRegularCross(p.regularCross);
+    setRegularPeriod(p.regularPeriod);
+    setWavePeak(p.wavePeak);
   };
 
   // Jump the camera back to the last autosaved free-roam position/look
@@ -1632,6 +1733,7 @@ function Aquafulness() {
     reflWhiteTexRef.current = whiteTex;
 
     const { wave: fftWaveData, phase: fftPhaseData } = packOceanWaveComponents(fftWaveComponents);
+    const { wave: dyingWaveData, phase: dyingPhaseData } = packOceanWaveComponents(dyingWaveComponents);
     const uniforms = {
       uTime: { value: 0 },
       uAmp: { value: waveAmp },
@@ -1642,6 +1744,14 @@ function Aquafulness() {
       uFft: { value: 0 },
       uFftWave: { value: fftWaveData },
       uFftPhase: { value: fftPhaseData },
+      // DÖENDE VÅG (dying wave) — same idea as uFft above, but its own blend
+      // weight, own time base (own TEMPO dial) and own component set from
+      // generateDyingWaveComponents().
+      uDying: { value: 0 },
+      uDyingAmp: { value: dyingWaveAmp },
+      uDyingTime: { value: 0 },
+      uDyingWave: { value: dyingWaveData },
+      uDyingPhase: { value: dyingPhaseData },
       uSunDir: { value: new THREE.Vector3(0, 1, 0) },
       uSkyColor: { value: new THREE.Color(0x88aacc) },
       uHorizonColor: { value: new THREE.Color(0xffddaa) },
@@ -1705,6 +1815,17 @@ function Aquafulness() {
       uniform float uFft;
       uniform vec4 uFftWave[${FFT_WAVE_COUNT}];
       uniform float uFftPhase[${FFT_WAVE_COUNT}];
+      // DÖENDE VÅG (dying wave) — a long, decaying-swell overlay blended in
+      // on top of whichever base waveform (uRegular/uFft) is active, with its
+      // own time base (uDyingTime, driven by the DÖD VÅG TEMPO dial) and own
+      // height (uDyingAmp, DÖD VÅG HÖJD) so it can run independently of the
+      // other wave layers. See generateDyingWaveComponents() in
+      // src/lib/ocean/fftOceanSpectrum.ts.
+      uniform float uDying;
+      uniform float uDyingAmp;
+      uniform float uDyingTime;
+      uniform vec4 uDyingWave[${DYING_WAVE_COUNT}];
+      uniform float uDyingPhase[${DYING_WAVE_COUNT}];
       varying vec3 vWorldPos;
       varying vec3 vNormal;
 
@@ -1713,6 +1834,17 @@ function Aquafulness() {
         for (int i = 0; i < ${FFT_WAVE_COUNT}; i++) {
           vec4 w = uFftWave[i];
           h += w.z * cos(w.x * xz.x + w.y * xz.y - w.w * t + uFftPhase[i]);
+        }
+        return h;
+      }
+
+      // Same idea as fftHeight() above, sampling the long-swell-only
+      // DÖENDE VÅG component set instead — see generateDyingWaveComponents().
+      float dyingHeight(vec2 xz, float t) {
+        float h = 0.0;
+        for (int i = 0; i < ${DYING_WAVE_COUNT}; i++) {
+          vec4 w = uDyingWave[i];
+          h += w.z * cos(w.x * xz.x + w.y * xz.y - w.w * t + uDyingPhase[i]);
         }
         return h;
       }
@@ -1742,7 +1874,7 @@ function Aquafulness() {
       }
 
 
-      float wave(vec3 pIn, float t, float amp, float rippleFade) {
+      float wave(vec3 pIn, float t, float amp, float rippleFade, float dyingAmp) {
         // Rotate horizontal coords by uDir so wave crests advance in the
         // chosen direction. Small ripples stay in world space so they still
         // sparkle from every angle. Uses compass-bearing convention (0 =
@@ -1781,6 +1913,10 @@ function Aquafulness() {
           float fft = fftHeight(p.xz, t) * amp;
           base = mix(base, fft, uFft);
         }
+        if (uDying > 0.001) {
+          float dying = dyingHeight(p.xz, uDyingTime) * dyingAmp;
+          base = mix(base, dying, uDying);
+        }
         return base;
       }
 
@@ -1803,16 +1939,17 @@ function Aquafulness() {
         float rippleFar  = mix(70.0, 220.0, uVortex);
         float rippleFade = 1.0 - smoothstep(rippleNear, rippleFar, distXZ);
         float ampF = uAmp * ampFade;
+        float dyingAmpF = uDyingAmp * ampFade;
 
-        float h = wave(wpBase.xyz, uTime, ampF, rippleFade);
+        float h = wave(wpBase.xyz, uTime, ampF, rippleFade, dyingAmpF);
         p.y += h;
 
 
         // approximate normal via finite differences — small epsilon so
         // the ripples contribute crisp shading.
         float e = 0.22;
-        float hx = wave(wpBase.xyz + vec3(e, 0.0, 0.0), uTime, ampF, rippleFade);
-        float hz = wave(wpBase.xyz + vec3(0.0, 0.0, e), uTime, ampF, rippleFade);
+        float hx = wave(wpBase.xyz + vec3(e, 0.0, 0.0), uTime, ampF, rippleFade, dyingAmpF);
+        float hz = wave(wpBase.xyz + vec3(0.0, 0.0, e), uTime, ampF, rippleFade, dyingAmpF);
         vec3 n = normalize(vec3(h - hx, e, h - hz));
 
         // Trochoidal (Gerstner-like) horizontal displacement: shifts each
@@ -2444,6 +2581,10 @@ function Aquafulness() {
     let lastMs = performance.now();
     let lastCamSaveMs = 0;
     let waveT = 0;
+    // DÖENDE VÅG runs on its own clock (own TEMPO dial), independent of the
+    // shared waveT above, so it can be a long, slow swell regardless of how
+    // the other wave layers' speed is set.
+    let dyingWaveT = 0;
     const clock = new THREE.Clock();
     const saveCameraPoseNow = () => {
       saveCameraPose({ x: posRef.current.x, z: posRef.current.z, y: posRef.current.y, yaw: yawRef.current, pitch: pitchRef.current });
@@ -2473,11 +2614,15 @@ function Aquafulness() {
       const physDt = editModeRef.current ? 0 : dt;
       waveT += physDt * speedRef.current;
       const t = waveT;
+      dyingWaveT += physDt * dyingSpeedRef.current;
       uniforms.uTime.value = t;
       uniforms.uAmp.value = ampRef.current;
+      uniforms.uDyingTime.value = dyingWaveT;
+      uniforms.uDyingAmp.value = dyingAmpRef.current;
       uniforms.uQuality.value += ((waveHighQualityRef.current ? 1 : 0) - uniforms.uQuality.value) * Math.min(1, dt * 4);
       uniforms.uRegular.value += ((regularRef.current ? 1 : 0) - uniforms.uRegular.value) * Math.min(1, dt * 4);
       uniforms.uFft.value += ((realisticRef.current ? 1 : 0) - uniforms.uFft.value) * Math.min(1, dt * 4);
+      uniforms.uDying.value += ((dyingRef.current ? 1 : 0) - uniforms.uDying.value) * Math.min(1, dt * 4);
       uniforms.uCross.value += ((regularCrossRef.current ? 1 : 0) - uniforms.uCross.value) * Math.min(1, dt * 4);
       uniforms.uPeriod.value += (regularPeriodRef.current - uniforms.uPeriod.value) * Math.min(1, dt * 4);
       uniforms.uPeak.value += (wavePeakRef.current - uniforms.uPeak.value) * Math.min(1, dt * 4);
@@ -2736,7 +2881,7 @@ function Aquafulness() {
       const dirRad = (waveDirRef.current * Math.PI) / 180;
       const surfaceY = inVortex
         ? vortexSurfaceHeight(camX, camZ, t, ampRef.current, regularPeriodRef.current, vortexOpeningRef.current)
-        : waveHeight(camX, camZ, t, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad, realisticRef.current, fftWaveComponents);
+        : waveHeight(camX, camZ, t, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad, realisticRef.current, fftWaveComponents, dyingRef.current, dyingWaveComponents, dyingAmpRef.current, dyingWaveT);
 
       // The wave-following buoyancy spring and current/sway drift only apply
       // in float mode — noclip flies free of the wave surface and swing
@@ -2770,7 +2915,7 @@ function Aquafulness() {
         const lead = 0.7 / (1 + peakK * 6.0);
         const futureSurf = inVortex
           ? vortexSurfaceHeight(camX, camZ, t + lead, ampRef.current, regularPeriodRef.current, vortexOpeningRef.current)
-          : waveHeight(camX, camZ, t + lead, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad, realisticRef.current, fftWaveComponents);
+          : waveHeight(camX, camZ, t + lead, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad, realisticRef.current, fftWaveComponents, dyingRef.current, dyingWaveComponents, dyingAmpRef.current, dyingWaveT + lead);
         const maxSlope = ampRef.current * 6.0;
         const rawAnticip = Math.max(-maxSlope, Math.min(maxSlope, (futureSurf - surfaceY) / lead));
         const blend = 1 - peakK * 0.85;
@@ -3046,7 +3191,7 @@ function Aquafulness() {
         if (mb.bob.follow) {
           const s = inVortex
             ? vortexSurfaceHeight(mb.base.x, mb.base.z, t, ampRef.current, regularPeriodRef.current, vortexOpeningRef.current)
-            : waveHeight(mb.base.x, mb.base.z, t, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad, realisticRef.current, fftWaveComponents);
+            : waveHeight(mb.base.x, mb.base.z, t, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad, realisticRef.current, fftWaveComponents, dyingRef.current, dyingWaveComponents, dyingAmpRef.current, dyingWaveT);
           h = s * mb.bob.amp;
         } else {
           h = Math.sin(t * mb.bob.speed) * mb.bob.amp;
@@ -3367,6 +3512,14 @@ function Aquafulness() {
     setRegularWaves,
     realisticWaves,
     setRealisticWaves,
+    dyingWave,
+    setDyingWave,
+    dyingWaveAmp,
+    setDyingWaveAmp,
+    dyingWaveSpeed,
+    setDyingWaveSpeed,
+    wavePreset,
+    applyWavePreset,
     regularCross,
     setRegularCross,
     regularPeriod,
