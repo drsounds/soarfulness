@@ -113,6 +113,14 @@ export const CAMERA_MODE_LABELS: Record<CameraMode, string> = {
 export type IntervalSessionType = "infinite" | "fixed";
 export const INTERVAL_SESSION_TYPES: IntervalSessionType[] = ["infinite", "fixed"];
 
+// VÅGPRESET applies a bundle of wave-only settings (VÅG/TEMPO/VÅGFORM/
+// REALISTISKA VÅGOR/DÖENDE VÅG/VÅGPERIOD/SPETS/KORSVÅG) in one step — see
+// WAVE_PRESETS in routes/index.tsx. "standard" is the calm FFT-hav swell
+// this app now defaults to; "legacy" restores the original REGELBUNDEN
+// wave's settings from before that change, for anyone who preferred it.
+export type WavePresetName = "standard" | "legacy";
+export const WAVE_PRESET_NAMES: WavePresetName[] = ["standard", "legacy"];
+
 // Formats a duration in seconds as "m:ss" for the interval-session controls
 // and HUD readout (e.g. 90 -> "1:30").
 export function formatClock(totalSeconds: number): string {

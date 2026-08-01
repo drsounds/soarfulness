@@ -297,6 +297,72 @@ export function generateOceanWaveComponents(): OceanWaveComponent[] {
   return components;
 }
 
+// "Dying wave" — a single long, decaying swell train, the classic
+// surf-forecasting "dying swell" left over once the wind that raised it has
+// moved on: no local wind-sea chop, just one smooth, long-period roller.
+// Reuses the same JONSWAP direct-summation machinery as
+// generateOceanWaveComponents() above, but sampled from only the swell-type
+// spectrum over a single, very-long-wavelength band — nowhere near the
+// water plane's Nyquist limit (see the CASCADE_LENGTH_SCALES comment above),
+// so it stays smooth by construction rather than needing cascade damping.
+const DYING_SWELL_SPECTRUM: DisplaySpectrumSettings = {
+  scale: 0.5,
+  windSpeed: 3,
+  windDirection: 0,
+  fetch: 800000,
+  spreadBlend: 1,
+  swell: 1,
+  peakEnhancement: 6,
+  shortWavesFade: 0.01,
+};
+
+// Wavelengths of ~52m and up — long enough that even several of these
+// summed together read as one slow, rolling swell rather than chop.
+const DYING_WAVE_KMAX = 0.12;
+export const DYING_WAVE_COUNT = 10;
+
+export function generateDyingWaveComponents(): OceanWaveComponent[] {
+  const pars = resolveSpectrum(DYING_SWELL_SPECTRUM);
+  const components: OceanWaveComponent[] = [];
+
+  const kMin = 0.0001;
+  const kMax = DYING_WAVE_KMAX;
+  const lnMin = Math.log(kMin);
+  const lnMax = Math.log(kMax);
+
+  for (let j = 0; j < DYING_WAVE_COUNT; j++) {
+    const lnK = lnMin + ((j + Math.random()) / DYING_WAVE_COUNT) * (lnMax - lnMin);
+    const k = Math.exp(lnK);
+    const theta = Math.random() * Math.PI * 2;
+
+    const omega = dispersion(k, G, DEPTH);
+    const dOmegaDk = dispersionDerivative(k, G, DEPTH);
+
+    const spectrum =
+      jonswap(omega, G, DEPTH, pars) *
+      directionSpectrum(theta, omega, pars) *
+      shortWavesFade(k, pars);
+
+    const areaElement = ((2 * Math.PI * k * k) / DYING_WAVE_COUNT) * (lnMax - lnMin);
+    const variance = Math.max(0, (2 * spectrum * Math.abs(dOmegaDk) * areaElement) / k);
+    const amplitude = Math.sqrt(variance);
+
+    components.push({
+      kx: k * Math.cos(theta),
+      kz: k * Math.sin(theta),
+      amplitude,
+      omega,
+      phase: Math.random() * Math.PI * 2,
+    });
+  }
+
+  const total = components.reduce((sum, c) => sum + c.amplitude, 0) || 1;
+  const scale = REFERENCE_TOTAL_AMPLITUDE / total;
+  for (const c of components) c.amplitude *= scale;
+
+  return components;
+}
+
 // Packs components into the flat arrays the vertex shader's uniform arrays
 // expect: vec4(kx, kz, amplitude, omega) per component, plus a parallel
 // phase array (kept separate since GLSL vec4 arrays here already carry 4
