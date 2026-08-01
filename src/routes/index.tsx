@@ -423,9 +423,9 @@ type SurfaceManifest = {
 };
 
 const DEFAULTS: Persisted = {
-  waveAmp: 2.0,
+  waveAmp: 0.5,
   timeOfDay: 0.5,
-  waveSpeed: 5,
+  waveSpeed: 2.8,
   bobSpeed: 2.8,
   buoyAmp: 2.8,
   heightOffset: 0,
@@ -449,7 +449,7 @@ const DEFAULTS: Persisted = {
   bottomIdx: 2,
   leanEnabled: false,
   regularWaves: true,
-  realisticWaves: false,
+  realisticWaves: true,
   regularCross: true,
   regularPeriod: 1,
   wavePeak: 1,
