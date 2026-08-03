@@ -11,6 +11,8 @@ import {
   SWING_PRESETS,
   SWING_Y_WAVEFORMS,
   INTERVAL_SESSION_TYPES,
+  WAVE_FREQ_MIN,
+  WAVE_FREQ_MAX,
   worldXZBearing,
   formatClock,
   type SettingsTab,
@@ -68,6 +70,12 @@ export type SettingsPanelProps = {
   setWaveAmp: Dispatch<SetStateAction<number>>;
   waveSpeed: number;
   setWaveSpeed: Dispatch<SetStateAction<number>>;
+  // FREKVENS: multiplies the spatial wavenumbers of every waveform at once
+  // (SPRIDD/REGELBUNDEN/FFT-HAV/DÖENDE VÅG/VIRVEL) — higher packs more,
+  // shorter crests into the same water without changing TEMPO. Stacks on top
+  // of VÅGPERIOD, which only ever applied to REGELBUNDEN/VIRVEL.
+  waveFreq: number;
+  setWaveFreq: Dispatch<SetStateAction<number>>;
   heightOffset: number;
   setHeightOffset: Dispatch<SetStateAction<number>>;
   submergeAmp: number;
@@ -315,6 +323,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setWaveAmp,
     waveSpeed,
     setWaveSpeed,
+    waveFreq,
+    setWaveFreq,
     heightOffset,
     setHeightOffset,
     submergeAmp,
@@ -591,6 +601,18 @@ export function SettingsPanel(props: SettingsPanelProps) {
               step={0.1}
               onDec={() => setWaveSpeed((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
               onInc={() => setWaveSpeed((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
+            />
+            <PadDial
+              label="FREKVENS"
+              mode="number"
+              value={`${waveFreq.toFixed(2)}×`}
+              rawValue={waveFreq}
+              onSet={(v) => setWaveFreq(Math.max(WAVE_FREQ_MIN, Math.min(WAVE_FREQ_MAX, v)))}
+              min={WAVE_FREQ_MIN}
+              max={WAVE_FREQ_MAX}
+              step={0.05}
+              onDec={() => setWaveFreq((v) => Math.max(WAVE_FREQ_MIN, +(v - 0.05).toFixed(2)))}
+              onInc={() => setWaveFreq((v) => Math.min(WAVE_FREQ_MAX, +(v + 0.05).toFixed(2)))}
             />
             <PadDial
               label="HÖJD"

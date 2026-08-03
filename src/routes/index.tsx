@@ -23,6 +23,8 @@ import {
   TORUS_RING_TEXTURES,
   SWING_Y_WAVEFORMS,
   INTERVAL_SESSION_TYPES,
+  WAVE_FREQ_MIN,
+  WAVE_FREQ_MAX,
   formatClock,
   type SettingsTab,
   type CameraMode,
@@ -39,6 +41,7 @@ import {
   createSeededRandom,
   packOceanWaveComponents,
   sampleOceanWaveHeight,
+  K_ALIAS_FADE_GLSL,
   type OceanWaveComponent,
 } from "@/lib/ocean/fftOceanSpectrum";
 import waterAsset from "@/assets/water.mp3.asset.json";
@@ -111,6 +114,12 @@ function shapedWave(theta: number, p: number) {
 // `dyingT` so DÖD VÅG TEMPO can run at its own speed) — takes precedence
 // over `realistic` when both are on, matching the vertex shader's mix
 // order (uDying is applied after uFft).
+// `freq` is FREKVENS: a multiplier on every mode's spatial wavenumbers (and
+// only those), so raising it packs more, shorter crests into the same stretch
+// of water while each still passes a fixed point at the rate TEMPO sets. It
+// is the one dial that reaches every waveform — VÅGPERIOD only ever scaled
+// REGELBUNDEN/VIRVEL, and SPRIDD and the two FFT modes had no wavelength
+// control at all. Applied on top of VÅGPERIOD where both apply.
 function waveHeight(
   x: number,
   z: number,
@@ -127,6 +136,7 @@ function waveHeight(
   dyingComponents: OceanWaveComponent[] | null = null,
   dyingAmp: number = 0,
   dyingT: number = 0,
+  freq: number = 1,
 ) {
   // Use compass-bearing convention (matches bearingToWorldXZ / the dial:
   // 0deg = world +z, 90deg = world +x) rather than the math-angle
@@ -140,22 +150,22 @@ function waveHeight(
   const xr = c * x + s * z;
   const zr = -s * x + c * z;
   if (dying && dyingComponents) {
-    return sampleOceanWaveHeight(dyingComponents, xr, zr, dyingT) * dyingAmp;
+    return sampleOceanWaveHeight(dyingComponents, xr, zr, dyingT, freq) * dyingAmp;
   }
   if (realistic && realisticComponents) {
-    return sampleOceanWaveHeight(realisticComponents, xr, zr, t) * amp;
+    return sampleOceanWaveHeight(realisticComponents, xr, zr, t, freq) * amp;
   }
   if (regular) {
-    const kx = 0.12 / period;
-    const kz = 0.09 / period;
+    const kx = (0.12 * freq) / period;
+    const kz = (0.09 * freq) / period;
     const rx = shapedWave(xr * kx + t * 0.9, peak) * 2.6 * amp;
     const rz = cross ? shapedWave(zr * kz + t * 0.7 + 1.1, peak) * 1.4 * amp : 0;
     return rx + rz;
   }
-  const w1 = shapedWave(xr * 0.12 + t * 0.9, peak) * 1.0;
-  const w2 = shapedWave(zr * 0.17 + t * 0.7 + 1.3, peak) * 0.75;
-  const w3 = shapedWave((xr * 0.22 + zr * 0.19) + t * 1.4 + 2.1, peak) * 0.5;
-  const w4 = shapedWave((xr * 0.31 - zr * 0.11) + t * 1.8 + 0.4, peak) * 0.35;
+  const w1 = shapedWave(xr * 0.12 * freq + t * 0.9, peak) * 1.0;
+  const w2 = shapedWave(zr * 0.17 * freq + t * 0.7 + 1.3, peak) * 0.75;
+  const w3 = shapedWave((xr * 0.22 + zr * 0.19) * freq + t * 1.4 + 2.1, peak) * 0.5;
+  const w4 = shapedWave((xr * 0.31 - zr * 0.11) * freq + t * 1.8 + 0.4, peak) * 0.35;
   return (w1 + w2 + w3 + w4) * amp;
 }
 
@@ -166,13 +176,21 @@ function smoothstep(edge0: number, edge1: number, x: number) {
 
 // Pure radial sine surface used in vortex mode. Keep in sync with the shader's
 // vortex block so the camera rides the same even wave that is rendered.
-function vortexSurfaceHeight(x: number, z: number, t: number, amp: number, period: number, opening: number) {
+function vortexSurfaceHeight(
+  x: number,
+  z: number,
+  t: number,
+  amp: number,
+  period: number,
+  opening: number,
+  freq: number = 1,
+) {
   const op = Math.max(1, opening);
   const r = Math.hypot(x, z);
   const g = Math.exp(-(r * r) / (op * op));
   const pit = -op * 1.6 * g;
   const stableFade = 1 - smoothstep(220, 520, r);
-  const kR = 0.12 / period;
+  const kR = (0.12 * freq) / period;
   const phase = r * kR - t * 0.9;
   const ring = Math.sin(phase) * 2.6 * amp * stableFade * (1 - g * 0.85);
   return pit + ring;
@@ -222,6 +240,9 @@ type Persisted = {
   waveAmp: number;
   timeOfDay: number;
   waveSpeed: number;
+  // FREKVENS — spatial-wavenumber multiplier shared by every waveform
+  // (SPRIDD/REGELBUNDEN/FFT-HAV/DÖENDE VÅG/VIRVEL); see waveHeight() above.
+  waveFreq: number;
   bobSpeed: number;
   buoyAmp: number;
   heightOffset: number;
@@ -465,6 +486,7 @@ const WAVE_PRESETS: Record<
     Persisted,
     | "waveAmp"
     | "waveSpeed"
+    | "waveFreq"
     | "regularWaves"
     | "realisticWaves"
     | "dyingWave"
@@ -478,6 +500,7 @@ const WAVE_PRESETS: Record<
   standard: {
     waveAmp: 0.5,
     waveSpeed: 2.8,
+    waveFreq: 1,
     regularWaves: true,
     realisticWaves: true,
     dyingWave: false,
@@ -490,6 +513,7 @@ const WAVE_PRESETS: Record<
   legacy: {
     waveAmp: 2.0,
     waveSpeed: 5,
+    waveFreq: 1,
     regularWaves: true,
     realisticWaves: false,
     dyingWave: false,
@@ -647,6 +671,7 @@ function Aquafulness() {
   const [waveAmp, setWaveAmp] = useState(initial.waveAmp);
   const [timeOfDay, setTimeOfDay] = useState(initial.timeOfDay);
   const [waveSpeed, setWaveSpeed] = useState(initial.waveSpeed);
+  const [waveFreq, setWaveFreq] = useState(initial.waveFreq);
   const [bobSpeed, setBobSpeed] = useState(initial.bobSpeed);
   const [buoyAmp, setBuoyAmp] = useState(initial.buoyAmp);
   const [heightOffset, setHeightOffset] = useState(initial.heightOffset);
@@ -866,12 +891,12 @@ function Aquafulness() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, realisticWaves, dyingWave, dyingWaveAmp, dyingWaveSpeed, randomizeWaves, wavePreset, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingPositionY, swingIntensity, swingXFactor, swingHeight, swingPreset, swingYWaveform, intervalSessionOn, intervalDuration, intervalSessionType, intervalCount, intervalShowStats, surfaceArea, torusRingsOn, torusRadius, torusTube, torusScale, torusOpacity, torusTextureIdx, torusCellSize, torusVerticalSpacing, torusVerticalCount, torusViewDistance, torusFadeDistance };
+      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, waveFreq, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, realisticWaves, dyingWave, dyingWaveAmp, dyingWaveSpeed, randomizeWaves, wavePreset, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingPositionY, swingIntensity, swingXFactor, swingHeight, swingPreset, swingYWaveform, intervalSessionOn, intervalDuration, intervalSessionType, intervalCount, intervalShowStats, surfaceArea, torusRingsOn, torusRadius, torusTube, torusScale, torusOpacity, torusTextureIdx, torusCellSize, torusVerticalSpacing, torusVerticalCount, torusViewDistance, torusFadeDistance };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, realisticWaves, dyingWave, dyingWaveAmp, dyingWaveSpeed, randomizeWaves, wavePreset, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingPositionY, swingIntensity, swingXFactor, swingHeight, swingPreset, swingYWaveform, intervalSessionOn, intervalDuration, intervalSessionType, intervalCount, intervalShowStats, surfaceArea, torusRingsOn, torusRadius, torusTube, torusScale, torusOpacity, torusTextureIdx, torusCellSize, torusVerticalSpacing, torusVerticalCount, torusViewDistance, torusFadeDistance]);
+  }, [waveAmp, timeOfDay, waveSpeed, waveFreq, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, realisticWaves, dyingWave, dyingWaveAmp, dyingWaveSpeed, randomizeWaves, wavePreset, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingPositionY, swingIntensity, swingXFactor, swingHeight, swingPreset, swingYWaveform, intervalSessionOn, intervalDuration, intervalSessionType, intervalCount, intervalShowStats, surfaceArea, torusRingsOn, torusRadius, torusTube, torusScale, torusOpacity, torusTextureIdx, torusCellSize, torusVerticalSpacing, torusVerticalCount, torusViewDistance, torusFadeDistance]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -884,6 +909,7 @@ function Aquafulness() {
   const ampRef = useRef(waveAmp);
   const todRef = useRef(timeOfDay);
   const speedRef = useRef(waveSpeed);
+  const freqRef = useRef(waveFreq);
   const bobSpeedRef = useRef(bobSpeed);
   const buoyRef = useRef(buoyAmp);
   const heightRef = useRef(heightOffset);
@@ -990,6 +1016,7 @@ function Aquafulness() {
   useEffect(() => { ampRef.current = waveAmp; }, [waveAmp]);
   useEffect(() => { todRef.current = timeOfDay; }, [timeOfDay]);
   useEffect(() => { speedRef.current = waveSpeed; }, [waveSpeed]);
+  useEffect(() => { freqRef.current = waveFreq; }, [waveFreq]);
   useEffect(() => { bobSpeedRef.current = bobSpeed; }, [bobSpeed]);
   useEffect(() => { buoyRef.current = buoyAmp; }, [buoyAmp]);
   useEffect(() => { heightRef.current = heightOffset; }, [heightOffset]);
@@ -1213,6 +1240,7 @@ function Aquafulness() {
   const resetToDefaults = () => {
     setWaveAmp(DEFAULTS.waveAmp);
     setWaveSpeed(DEFAULTS.waveSpeed);
+    setWaveFreq(DEFAULTS.waveFreq);
     setBobSpeed(DEFAULTS.bobSpeed);
     setBuoyAmp(DEFAULTS.buoyAmp);
     setHeightOffset(DEFAULTS.heightOffset);
@@ -1312,6 +1340,7 @@ function Aquafulness() {
     setWavePreset(preset);
     setWaveAmp(p.waveAmp);
     setWaveSpeed(p.waveSpeed);
+    setWaveFreq(p.waveFreq);
     setRegularWaves(p.regularWaves);
     setRealisticWaves(p.realisticWaves);
     setDyingWave(p.dyingWave);
@@ -1798,6 +1827,10 @@ function Aquafulness() {
       uRegular: { value: 0 },
       uCross: { value: 1 },
       uPeriod: { value: 1 },
+      // FREKVENS — multiplies the spatial wavenumbers of every waveform
+      // (analytic, FFT and vortex alike); see waveHeight() in the JS above,
+      // which this shader is kept in sync with.
+      uFreq: { value: waveFreq },
       uPeak: { value: 1 },
       uQuality: { value: 0 },
       uDir: { value: 0 },
@@ -1829,6 +1862,7 @@ function Aquafulness() {
       uniform float uRegular;
       uniform float uCross;
       uniform float uPeriod;
+      uniform float uFreq;
       uniform float uPeak;
       uniform float uTrochoid;
       uniform float uDir;
@@ -1857,11 +1891,21 @@ function Aquafulness() {
       varying vec3 vWorldPos;
       varying vec3 vNormal;
 
+      // FREKVENS scales each component's wave vector, which can push it past
+      // the mesh's Nyquist limit into aliasing noise — fade those out. Mirror
+      // of kAliasFade() in src/lib/ocean/fftOceanSpectrum.ts (same edges, so
+      // the camera physics and the rendered surface agree); a no-op at
+      // uFreq = 1, where no generated component reaches the fade's start.
+      float kAliasFade(vec2 k) {
+        return 1.0 - smoothstep(${K_ALIAS_FADE_GLSL.start}, ${K_ALIAS_FADE_GLSL.end}, length(k));
+      }
+
       float fftHeight(vec2 xz, float t) {
         float h = 0.0;
         for (int i = 0; i < ${FFT_WAVE_COUNT}; i++) {
           vec4 w = uFftWave[i];
-          h += w.z * cos(w.x * xz.x + w.y * xz.y - w.w * t + uFftPhase[i]);
+          vec2 k = w.xy * uFreq;
+          h += w.z * kAliasFade(k) * cos(k.x * xz.x + k.y * xz.y - w.w * t + uFftPhase[i]);
         }
         return h;
       }
@@ -1872,7 +1916,8 @@ function Aquafulness() {
         float h = 0.0;
         for (int i = 0; i < ${DYING_WAVE_COUNT}; i++) {
           vec4 w = uDyingWave[i];
-          h += w.z * cos(w.x * xz.x + w.y * xz.y - w.w * t + uDyingPhase[i]);
+          vec2 k = w.xy * uFreq;
+          h += w.z * kAliasFade(k) * cos(k.x * xz.x + k.y * xz.y - w.w * t + uDyingPhase[i]);
         }
         return h;
       }
@@ -1915,21 +1960,27 @@ function Aquafulness() {
         vec3 p = vec3(cd * pIn.x + sd * pIn.z, pIn.y, -sd * pIn.x + cd * pIn.z);
         // Regular sine along x, with optional cross-axis sine so it doesn't
         // look like a flat carpet when uRegular = 1. uPeriod scales the
-        // spatial wavelength (higher = longer, calmer swells).
-        float regX = shp(p.x * (0.12 / uPeriod) + t * 0.9) * 2.6 * amp;
-        float regZ = shp(p.z * (0.09 / uPeriod) + t * 0.7 + 1.1) * 1.4 * amp * uCross;
+        // spatial wavelength (higher = longer, calmer swells); uFreq (FREKVENS)
+        // scales it the other way, and unlike uPeriod also reaches the swell
+        // and FFT terms below.
+        float regX = shp(p.x * (0.12 * uFreq / uPeriod) + t * 0.9) * 2.6 * amp;
+        float regZ = shp(p.z * (0.09 * uFreq / uPeriod) + t * 0.7 + 1.1) * 1.4 * amp * uCross;
         float reg = regX + regZ;
 
         // Large primary swell (chaotic sum of sines)
-        float w1 = shp(p.x * 0.12 + t * 0.9) * 1.0;
-        float w2 = shp(p.z * 0.17 + t * 0.7 + 1.3) * 0.75;
-        float w3 = shp((p.x * 0.22 + p.z * 0.19) + t * 1.4 + 2.1) * 0.5;
-        float w4 = shp((p.x * 0.31 - p.z * 0.11) + t * 1.8 + 0.4) * 0.35;
+        float w1 = shp(p.x * 0.12 * uFreq + t * 0.9) * 1.0;
+        float w2 = shp(p.z * 0.17 * uFreq + t * 0.7 + 1.3) * 0.75;
+        float w3 = shp((p.x * 0.22 + p.z * 0.19) * uFreq + t * 1.4 + 2.1) * 0.5;
+        float w4 = shp((p.x * 0.31 - p.z * 0.11) * uFreq + t * 1.8 + 0.4) * 0.35;
         float big = (w1 + w2 + w3 + w4) * amp;
 
         // Small ripples on top of the swell — high frequency, so they must
         // fade with distance well before the mesh becomes under-sampled or
-        // they alias into jagged spikes at grazing angles.
+        // they alias into jagged spikes at grazing angles. Deliberately left
+        // out of uFreq: these are decorative surface sparkle rather than part
+        // of the wave train, and they already sit near the mesh's resolution
+        // limit, so scaling them up would alias straight into the boiling
+        // look the distance fade above exists to prevent.
         float r1 = sin(p.x * 0.85 + p.z * 0.42 + t * 2.6) * 0.06;
         float r2 = sin(p.x * 0.55 - p.z * 0.95 + t * 3.1 + 1.7) * 0.05;
         float r3 = sin((p.x * 1.35 + p.z * 1.15) + t * 3.8 + 0.6) * 0.035;
@@ -2009,7 +2060,7 @@ function Aquafulness() {
           float g = exp(-(r*r) / (op*op));
           float pit = -op * 1.6 * g;
           // Radial wave — analytic so the normal stays clean.
-          float kR = 0.12 / uPeriod;
+          float kR = 0.12 * uFreq / uPeriod;
           float phase = r * kR - uTime * 0.9;
           // Vortex waves must be an even sine wave: ignore SPETS/chaos/cross-wave
           // shaping here so the orbit never produces uneven jumps.
@@ -2680,6 +2731,7 @@ function Aquafulness() {
       uniforms.uDying.value += ((dyingRef.current ? 1 : 0) - uniforms.uDying.value) * Math.min(1, dt * 4);
       uniforms.uCross.value += ((regularCrossRef.current ? 1 : 0) - uniforms.uCross.value) * Math.min(1, dt * 4);
       uniforms.uPeriod.value += (regularPeriodRef.current - uniforms.uPeriod.value) * Math.min(1, dt * 4);
+      uniforms.uFreq.value += (freqRef.current - uniforms.uFreq.value) * Math.min(1, dt * 4);
       uniforms.uPeak.value += (wavePeakRef.current - uniforms.uPeak.value) * Math.min(1, dt * 4);
       // Wave direction stored in degrees; smoothly interpolate the shortest
       // angular path so wrapping around 360° doesn't spin the ocean.
@@ -2935,8 +2987,8 @@ function Aquafulness() {
 
       const dirRad = (waveDirRef.current * Math.PI) / 180;
       const surfaceY = inVortex
-        ? vortexSurfaceHeight(camX, camZ, t, ampRef.current, regularPeriodRef.current, vortexOpeningRef.current)
-        : waveHeight(camX, camZ, t, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad, realisticRef.current, fftWaveComponents, dyingRef.current, dyingWaveComponents, dyingAmpRef.current, dyingWaveT);
+        ? vortexSurfaceHeight(camX, camZ, t, ampRef.current, regularPeriodRef.current, vortexOpeningRef.current, freqRef.current)
+        : waveHeight(camX, camZ, t, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad, realisticRef.current, fftWaveComponents, dyingRef.current, dyingWaveComponents, dyingAmpRef.current, dyingWaveT, freqRef.current);
 
       // The wave-following buoyancy spring and current/sway drift only apply
       // in float mode — noclip flies free of the wave surface and swing
@@ -2969,8 +3021,8 @@ function Aquafulness() {
         // rise, not after it has already lifted the surface past the camera.
         const lead = 0.7 / (1 + peakK * 6.0);
         const futureSurf = inVortex
-          ? vortexSurfaceHeight(camX, camZ, t + lead, ampRef.current, regularPeriodRef.current, vortexOpeningRef.current)
-          : waveHeight(camX, camZ, t + lead, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad, realisticRef.current, fftWaveComponents, dyingRef.current, dyingWaveComponents, dyingAmpRef.current, dyingWaveT + lead);
+          ? vortexSurfaceHeight(camX, camZ, t + lead, ampRef.current, regularPeriodRef.current, vortexOpeningRef.current, freqRef.current)
+          : waveHeight(camX, camZ, t + lead, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad, realisticRef.current, fftWaveComponents, dyingRef.current, dyingWaveComponents, dyingAmpRef.current, dyingWaveT + lead, freqRef.current);
         const maxSlope = ampRef.current * 6.0;
         const rawAnticip = Math.max(-maxSlope, Math.min(maxSlope, (futureSurf - surfaceY) / lead));
         const blend = 1 - peakK * 0.85;
@@ -3266,8 +3318,8 @@ function Aquafulness() {
         let h: number;
         if (mb.bob.follow) {
           const s = inVortex
-            ? vortexSurfaceHeight(mb.base.x, mb.base.z, t, ampRef.current, regularPeriodRef.current, vortexOpeningRef.current)
-            : waveHeight(mb.base.x, mb.base.z, t, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad, realisticRef.current, fftWaveComponents, dyingRef.current, dyingWaveComponents, dyingAmpRef.current, dyingWaveT);
+            ? vortexSurfaceHeight(mb.base.x, mb.base.z, t, ampRef.current, regularPeriodRef.current, vortexOpeningRef.current, freqRef.current)
+            : waveHeight(mb.base.x, mb.base.z, t, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad, realisticRef.current, fftWaveComponents, dyingRef.current, dyingWaveComponents, dyingAmpRef.current, dyingWaveT, freqRef.current);
           h = s * mb.bob.amp;
         } else {
           h = Math.sin(t * mb.bob.speed) * mb.bob.amp;
@@ -3561,6 +3613,8 @@ function Aquafulness() {
     setWaveAmp,
     waveSpeed,
     setWaveSpeed,
+    waveFreq,
+    setWaveFreq,
     heightOffset,
     setHeightOffset,
     submergeAmp,
@@ -3976,15 +4030,49 @@ function Aquafulness() {
           />
         )}
 
-        {/* VÅG/TEMPO sliders — live on the main HUD next to the joysticks
-            (not tucked into the SETTINGS dialog) so wave height/speed can be
-            nudged without opening settings. Bottom-center, clear of the
-            joystick columns hugging each side; always shown regardless of
-            camera mode since both affect the wave mesh itself, not just
-            float-mode physics. */}
+        {/* VÅG/TEMPO/FREKVENS sliders — live on the main HUD next to the
+            joysticks (not tucked into the SETTINGS dialog) so wave height,
+            speed and wavelength can be nudged without opening settings.
+            Bottom-center, clear of the joystick columns hugging each side;
+            always shown regardless of camera mode since all three affect the
+            wave mesh itself, not just float-mode physics.
+            Each is curved rather than linear (see PadSliderCurve): the useful
+            settings all live near the bottom of these ranges — VÅG's default
+            is 0.5 of 100 — so a linear track put every calm sea inside its
+            first pixel and made the first touch of the slider a cliff. */}
         <div className="pointer-events-auto absolute bottom-6 left-1/2 flex -translate-x-1/2 flex-col items-center gap-2">
-          <PadSlider label="VÅG" value={waveAmp} min={0} max={100} step={0.5} onChange={setWaveAmp} />
-          <PadSlider label="TEMPO" value={waveSpeed} min={0} max={10} step={0.1} onChange={setWaveSpeed} />
+          <PadSlider
+            label="VÅG"
+            value={waveAmp}
+            min={0}
+            max={100}
+            step={0.5}
+            curve={4}
+            format={(v) => `${v.toFixed(2)}m`}
+            onChange={setWaveAmp}
+          />
+          <PadSlider
+            label="TEMPO"
+            value={waveSpeed}
+            min={0}
+            max={10}
+            step={0.1}
+            curve={2}
+            format={(v) => `${v.toFixed(2)}×`}
+            onChange={setWaveSpeed}
+          />
+          {/* Geometric, not power-curved: FREKVENS is a multiplier, so half
+              speed (0.5×) and double (2×) should sit equally far from 1×. */}
+          <PadSlider
+            label="FREKVENS"
+            value={waveFreq}
+            min={WAVE_FREQ_MIN}
+            max={WAVE_FREQ_MAX}
+            step={0.05}
+            curve="log"
+            format={(v) => `${v.toFixed(2)}×`}
+            onChange={setWaveFreq}
+          />
         </div>
       </div>
 

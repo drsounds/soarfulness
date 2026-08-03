@@ -142,6 +142,32 @@ export function PadDial({
   );
 }
 
+// How the slider's travel maps onto its value range:
+//   1        linear (the plain default)
+//   n > 1    power curve — value = min + range·pos^n, so the low end of the
+//            range gets most of the travel
+//   "log"    geometric — value = min·(max/min)^pos, equal travel per equal
+//            ratio; for multipliers around 1, needs min > 0
+// Several of these ranges are deliberately huge at the top (VÅG goes to 100m)
+// but are actually used down at the bottom (its default is 0.5m). Mapped
+// linearly, the whole usable range collapses into the first pixel or two of
+// travel, so the very first drag jumps the sea from a ripple to a wall of
+// water. The curves below spend the travel where the values are.
+export type PadSliderCurve = number | "log";
+
+// Slider position (0..1) -> value.
+function padSliderValue(pos: number, min: number, max: number, curve: PadSliderCurve): number {
+  if (curve === "log") return min * Math.pow(max / min, pos);
+  return min + (max - min) * Math.pow(pos, curve);
+}
+
+// Inverse of padSliderValue() — where the thumb sits for a given value.
+function padSliderPos(value: number, min: number, max: number, curve: PadSliderCurve): number {
+  const v = Math.max(min, Math.min(max, value));
+  if (curve === "log") return Math.log(v / min) / Math.log(max / min);
+  return Math.pow((v - min) / (max - min), 1 / curve);
+}
+
 // A drag slider for the same numeric range a neighboring PadDial's +/- steps
 // through — sits beside it for quick coarse adjustment instead of repeated
 // taps. Deliberately a plain native <input type="range"> tinted via
@@ -157,6 +183,8 @@ export function PadSlider({
   min,
   max,
   step,
+  curve = 1,
+  format,
   onChange,
 }: {
   label: string;
@@ -164,21 +192,42 @@ export function PadSlider({
   min: number;
   max: number;
   step: number;
+  curve?: PadSliderCurve;
+  // Readout beside the label. Worth passing whenever `curve` isn't linear —
+  // the thumb's position no longer reads as a proportion of the range, so the
+  // number is the only cue for where the value actually is.
+  format?: (v: number) => string;
   onChange: (v: number) => void;
 }) {
+  const curved = curve !== 1;
   return (
     <div className="flex items-center gap-2 rounded-full border border-white/15 bg-black/40 px-3 py-1.5 backdrop-blur-md">
-      <span className="whitespace-nowrap text-[9px] font-light tracking-[0.28em] text-white/60">{label}</span>
+      <span className="whitespace-nowrap text-[9px] font-light tracking-[0.28em] text-white/60">
+        {label}
+      </span>
       <input
         type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
+        // A curved slider drags in position space (0..1) and converts on the
+        // way out, so `step` — an increment in *value* space — no longer
+        // applies; a fine, uniform position step plus 2-decimal rounding
+        // keeps the low end precise without quantizing the top end coarsely.
+        min={curved ? 0 : min}
+        max={curved ? 1 : max}
+        step={curved ? 0.002 : step}
+        value={curved ? padSliderPos(value, min, max, curve) : value}
+        onChange={(e) => {
+          const raw = Number(e.target.value);
+          onChange(curved ? +padSliderValue(raw, min, max, curve).toFixed(2) : raw);
+        }}
         aria-label={label}
-        className="h-4 w-24 cursor-pointer accent-white"
+        aria-valuetext={format ? format(value) : undefined}
+        className="h-4 w-32 cursor-pointer accent-white"
       />
+      {format && (
+        <span className="w-12 shrink-0 text-right text-[10px] font-medium tabular-nums tracking-wider text-white/80">
+          {format(value)}
+        </span>
+      )}
     </div>
   );
 }
