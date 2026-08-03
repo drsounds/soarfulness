@@ -121,6 +121,18 @@ export const INTERVAL_SESSION_TYPES: IntervalSessionType[] = ["infinite", "fixed
 export type WavePresetName = "standard" | "legacy";
 export const WAVE_PRESET_NAMES: WavePresetName[] = ["standard", "legacy"];
 
+// FREKVENS bounds, shared by the HUD slider (routes/index.tsx) and the VÅGOR
+// dial (SettingsPanel.tsx). A multiplier on every waveform's spatial
+// wavenumbers — 1 is the wavelength each waveform was authored at, higher
+// packs crests closer together. Capped at 4 because the water plane is 600m
+// across with 320 segments (~1.875m between vertices), so wavenumbers beyond
+// roughly 1.68 rad/m can no longer be resolved by the mesh; 4× is where the
+// analytic modes' shortest swell term reaches that ceiling. The FFT modes'
+// own components are faded out individually as they approach it (see
+// kAliasFade in src/lib/ocean/fftOceanSpectrum.ts).
+export const WAVE_FREQ_MIN = 0.25;
+export const WAVE_FREQ_MAX = 4;
+
 // Formats a duration in seconds as "m:ss" for the interval-session controls
 // and HUD readout (e.g. 90 -> "1:30").
 export function formatClock(totalSeconds: number): string {

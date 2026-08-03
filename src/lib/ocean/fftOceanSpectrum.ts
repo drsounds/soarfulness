@@ -439,18 +439,51 @@ export function packOceanWaveComponents(components: OceanWaveComponent[]): {
   return { wave, phase };
 }
 
+// FREKVENS (see waveFreq in routes/index.tsx) multiplies every component's
+// wavenumber, so a component generated safely below the water plane's ~1.68
+// rad/m Nyquist limit (see the CASCADE_LENGTH_SCALES comment above) can be
+// pushed straight past it and alias into uncorrelated noise — the same
+// "boiling surface" failure the cascade scales were raised to avoid. Fade
+// such components out instead. The fade only starts above the generators'
+// own kMax (DYING_WAVE_KMAX / the last cascade's 1.4 cap), so at FREKVENS = 1
+// nothing is attenuated and the waveform is bit-for-bit what it was before.
+const K_ALIAS_FADE_START = 1.4;
+const K_ALIAS_FADE_END = 1.75;
+
+export function kAliasFade(k: number): number {
+  const v = Math.max(
+    0,
+    Math.min(1, (k - K_ALIAS_FADE_START) / (K_ALIAS_FADE_END - K_ALIAS_FADE_START)),
+  );
+  return 1 - v * v * (3 - 2 * v);
+}
+
+// The two fade edges, injected into the vertex shader so its fftHeight()/
+// dyingHeight() apply the exact same attenuation as kAliasFade() above.
+export const K_ALIAS_FADE_GLSL = {
+  start: K_ALIAS_FADE_START.toFixed(2),
+  end: K_ALIAS_FADE_END.toFixed(2),
+};
+
 // JS-side mirror of the vertex shader's fftHeight() — used by the camera's
 // wave-following physics so it floats on this waveform exactly like the
 // analytic modes it sits alongside (see waveHeight() in routes/index.tsx).
+// `freq` is the FREKVENS multiplier on the spatial wavenumbers only: crests
+// pack closer together without the temporal rate (omega, driven by TEMPO)
+// changing, matching how uPeriod already works for the analytic modes.
 export function sampleOceanWaveHeight(
   components: OceanWaveComponent[],
   x: number,
   z: number,
   t: number,
+  freq: number = 1,
 ): number {
   let h = 0;
   for (const c of components) {
-    h += c.amplitude * Math.cos(c.kx * x + c.kz * z - c.omega * t + c.phase);
+    const kx = c.kx * freq;
+    const kz = c.kz * freq;
+    const fade = freq === 1 ? 1 : kAliasFade(Math.hypot(kx, kz));
+    h += c.amplitude * fade * Math.cos(kx * x + kz * z - c.omega * t + c.phase);
   }
   return h;
 }
