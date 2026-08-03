@@ -40,6 +40,8 @@ import {
 import {
   type PresetScope,
   type SavedPreset,
+  type RuntimeState,
+  type SavedState,
   buildPresetFilePayload,
   extractPresetData,
   downloadJsonFile,
@@ -47,6 +49,12 @@ import {
   loadSavedPresets,
   addSavedPreset,
   removeSavedPreset,
+  buildStateFilePayload,
+  extractStateData,
+  isValidRuntimeState,
+  loadSavedStates,
+  addSavedState,
+  removeSavedState,
 } from "@/lib/presets";
 import {
   FFT_WAVE_COUNT,
@@ -754,6 +762,10 @@ function Aquafulness() {
   // below) — kept in their own localStorage list, separate from the
   // always-on autosave under STORAGE_KEY. See src/lib/presets.ts.
   const [savedPresets, setSavedPresets] = useState<SavedPreset[]>(() => loadSavedPresets());
+  // Named full-state saves (settings + player position/look + current/sway
+  // direction) — see buildFullStateSnapshot/applyFullState below and
+  // src/lib/presets.ts's separate "state" file kind/localStorage list.
+  const [savedStates, setSavedStates] = useState<SavedState[]>(() => loadSavedStates());
   const [phoneOpen, setPhoneOpen] = useState(false);
   const [uiVisible, setUiVisible] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -1418,6 +1430,96 @@ function Aquafulness() {
   // RADERA: removes a previously saved named preset.
   const deleteSavedPreset = (id: string) => {
     setSavedPresets((list) => removeSavedPreset(list, id));
+  };
+
+  // The runtime-only half of a full "state" save/load (as opposed to a
+  // parameters-only preset above): the player's live position/look and the
+  // STRÖM/SVAJ world-space direction vectors. None of these are part of
+  // Persisted — they're deliberately ref-only/runtime state (see
+  // driftWorldRef/swayWorldRef and CAMERA_STORAGE_KEY's separate pose
+  // autosave) — so a full state save has to capture them separately.
+  const buildRuntimeSnapshot = (): RuntimeState => ({
+    camera: {
+      x: posRef.current.x,
+      y: posRef.current.y,
+      z: posRef.current.z,
+      yaw: yawRef.current,
+      pitch: pitchRef.current,
+    },
+    driftDir: { x: driftWorldRef.current.x, z: driftWorldRef.current.z },
+    swayDir: { x: swayWorldRef.current.x, z: swayWorldRef.current.z },
+  });
+
+  const applyRuntimeState = (runtime: RuntimeState) => {
+    posRef.current.x = runtime.camera.x;
+    posRef.current.y = runtime.camera.y;
+    posRef.current.z = runtime.camera.z;
+    yawRef.current = runtime.camera.yaw;
+    pitchRef.current = runtime.camera.pitch;
+    saveCameraPose({ x: posRef.current.x, y: posRef.current.y, z: posRef.current.z, yaw: yawRef.current, pitch: pitchRef.current });
+
+    driftWorldRef.current = runtime.driftDir;
+    const driftDisp = worldXZToPad(runtime.driftDir.x, runtime.driftDir.z, yawRef.current);
+    driftDisplayRef.current = driftDisp;
+    setDriftStick(driftDisp);
+
+    swayWorldRef.current = runtime.swayDir;
+    const swayDisp = worldXZToPad(runtime.swayDir.x, runtime.swayDir.z, yawRef.current);
+    swayDisplayRef.current = swayDisp;
+    setSwayStick(swayDisp);
+  };
+
+  // A full state snapshot is every settings field (like an "all"-scope
+  // preset) plus the runtime snapshot above, flattened into one object with
+  // the runtime piece nested under "runtime" so import can tell them apart.
+  const buildFullStateSnapshot = (): Record<string, unknown> => ({
+    ...pickFields(buildPersistedSnapshot(), PRESET_ALL_FIELDS),
+    runtime: buildRuntimeSnapshot(),
+  });
+
+  // Applies a full state object: every recognized Persisted field, plus
+  // (if present and well-formed) the runtime position/look/current/sway.
+  const applyFullState = (data: Record<string, unknown>) => {
+    const { runtime, ...settingsData } = data;
+    applySettingsPatch(filterToScope("all", settingsData));
+    if (isValidRuntimeState(runtime)) applyRuntimeState(runtime);
+  };
+
+  // TILLSTÅND EXPORTERA: downloads the full live state (settings + player
+  // position/look + current/sway) as a JSON file via the File API.
+  const exportStateFile = () => {
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    downloadJsonFile(`aquafulness-state-${stamp}.json`, buildStateFilePayload(buildFullStateSnapshot()));
+  };
+
+  // TILLSTÅND IMPORTERA: reads a JSON state file and applies it in full.
+  const importStateFile = async (file: File) => {
+    try {
+      const raw = await readJsonFile(file);
+      const data = extractStateData(raw);
+      if (!data) throw new Error("invalid state file");
+      applyFullState(data);
+    } catch {
+      window.alert("Kunde inte läsa tillståndsfilen — kontrollera att den är en giltig JSON-fil.");
+    }
+  };
+
+  // TILLSTÅND SPARA: saves the full live state as a named entry in
+  // localStorage, for later one-click recall via LÄS IN.
+  const saveStateAs = (name: string) => {
+    setSavedStates((list) => addSavedState(list, name, buildFullStateSnapshot()));
+  };
+
+  // TILLSTÅND LÄS IN: applies a previously saved named state.
+  const loadSavedStateById = (id: string) => {
+    const state = savedStates.find((s) => s.id === id);
+    if (!state) return;
+    applyFullState(state.data);
+  };
+
+  // TILLSTÅND RADERA: removes a previously saved named state.
+  const deleteSavedState = (id: string) => {
+    setSavedStates((list) => removeSavedState(list, id));
   };
 
   // VÅGPRESET: applies a bundle of wave-only settings in one step (see
@@ -3703,6 +3805,12 @@ function Aquafulness() {
     savePresetAs,
     loadSavedPreset,
     deleteSavedPreset,
+    savedStates,
+    exportStateFile,
+    importStateFile,
+    saveStateAs,
+    loadSavedStateById,
+    deleteSavedState,
     waveAmp,
     setWaveAmp,
     waveSpeed,

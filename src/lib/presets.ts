@@ -139,3 +139,128 @@ export function removeSavedPreset(list: SavedPreset[], id: string): SavedPreset[
   persistSavedPresets(next);
   return next;
 }
+
+// "Full state" save/load — a superset of a preset: every settings field
+// (like an "all"-scope preset) plus the runtime-only player position/look
+// and STRÖM/SVAJ direction vectors, which are deliberately *not* part of
+// Persisted (see routes/index.tsx's buildRuntimeSnapshot/applyRuntimeState).
+// Kept as its own file "kind" and localStorage list rather than folded into
+// PresetScope, since it isn't tab-scoped — it's always everything at once.
+const STATE_FILE_APP = "aquafulness-state";
+const STATE_FILE_VERSION = 1;
+
+export type StateFilePayload = {
+  app: typeof STATE_FILE_APP;
+  version: typeof STATE_FILE_VERSION;
+  savedAt: string;
+  data: Record<string, unknown>;
+};
+
+export function buildStateFilePayload(data: Record<string, unknown>): StateFilePayload {
+  return {
+    app: STATE_FILE_APP,
+    version: STATE_FILE_VERSION,
+    savedAt: new Date().toISOString(),
+    data,
+  };
+}
+
+export function extractStateData(raw: unknown): Record<string, unknown> | null {
+  if (!raw || typeof raw !== "object") return null;
+  const obj = raw as Record<string, unknown>;
+  if (obj.app === STATE_FILE_APP && obj.data && typeof obj.data === "object") {
+    return obj.data as Record<string, unknown>;
+  }
+  return obj;
+}
+
+// The runtime-only half of a full state save — player position/look plus
+// the STRÖM (current) and SVAJ (sway) world-space direction vectors. Built/
+// applied by routes/index.tsx (which owns the refs these mirror); validated
+// here since it round-trips through untrusted JSON on import.
+export type RuntimeState = {
+  camera: { x: number; y: number; z: number; yaw: number; pitch: number };
+  driftDir: { x: number; z: number };
+  swayDir: { x: number; z: number };
+};
+
+function isFiniteNumber(v: unknown): v is number {
+  return typeof v === "number" && Number.isFinite(v);
+}
+
+function isVec2(v: unknown): v is { x: number; z: number } {
+  if (!v || typeof v !== "object") return false;
+  const o = v as Record<string, unknown>;
+  return isFiniteNumber(o.x) && isFiniteNumber(o.z);
+}
+
+export function isValidRuntimeState(v: unknown): v is RuntimeState {
+  if (!v || typeof v !== "object") return false;
+  const o = v as Record<string, unknown>;
+  const c = o.camera as Record<string, unknown> | undefined;
+  if (
+    !c ||
+    typeof c !== "object" ||
+    !isFiniteNumber(c.x) ||
+    !isFiniteNumber(c.y) ||
+    !isFiniteNumber(c.z) ||
+    !isFiniteNumber(c.yaw) ||
+    !isFiniteNumber(c.pitch)
+  ) {
+    return false;
+  }
+  return isVec2(o.driftDir) && isVec2(o.swayDir);
+}
+
+export type SavedState = {
+  id: string;
+  name: string;
+  savedAt: string;
+  data: Record<string, unknown>;
+};
+
+const SAVED_STATES_KEY = "aquafulness:states:v1";
+
+export function loadSavedStates(): SavedState[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(SAVED_STATES_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function persistSavedStates(list: SavedState[]) {
+  try {
+    window.localStorage.setItem(SAVED_STATES_KEY, JSON.stringify(list));
+  } catch {
+    /* quota or privacy mode — ignore */
+  }
+}
+
+export function addSavedState(
+  list: SavedState[],
+  name: string,
+  data: Record<string, unknown>,
+): SavedState[] {
+  const next: SavedState[] = [
+    ...list,
+    {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      name,
+      savedAt: new Date().toISOString(),
+      data,
+    },
+  ];
+  persistSavedStates(next);
+  return next;
+}
+
+export function removeSavedState(list: SavedState[], id: string): SavedState[] {
+  const next = list.filter((s) => s.id !== id);
+  persistSavedStates(next);
+  return next;
+}
