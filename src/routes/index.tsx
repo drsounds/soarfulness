@@ -559,7 +559,7 @@ const DEFAULTS: Persisted = {
   wakeLock: true,
   camFov: 65,
   camNear: 5,
-  camFar: 20000,
+  camFar: 50000,
   waveDir: 0,
   floorDepth: 28,
   floorTexture: true,
@@ -608,7 +608,7 @@ const DEFAULTS: Persisted = {
   intervalSessionType: "infinite",
   intervalCount: 6,
   intervalShowStats: true,
-  surfaceArea: 1000,
+  surfaceArea: 150000,
   // Floating torus "bath rings" field — off by default so existing scenes
   // look unchanged until explicitly turned on. Defaults per the feature
   // spec: emissive white, 50% opacity.
@@ -1748,7 +1748,11 @@ function Aquafulness() {
     mount.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x88aacc, 0.008);
+    // Above water this stays at density 0 (no whiteout of distant objects);
+    // it only ramps up once submerged, to sell the underwater murk on
+    // default-material objects like .glb scenes and torus rings — see the
+    // per-frame update below.
+    scene.fog = new THREE.FogExp2(0x88aacc, 0);
     // Expose the scene graph so the scene-selector effect can add/remove models.
     sceneRef.current = scene;
 
@@ -2350,12 +2354,12 @@ function Aquafulness() {
 
     // Optional seafloor beneath the ocean plane. ShaderMaterial gör den
     // procedurellt strukturerad (sandbankar, småsten, kaustik) när uTextured=1.
-    // Stor nog att alltid nå bortom det maximala FJÄRRSIKT-värdet (100 000) så
+    // Stor nog att alltid nå bortom det maximala FJÄRRSIKT-värdet (300 000) så
     // att botten aldrig klipps av mot en synlig kant innan horisonten — helt
     // ofarligt prestandamässigt eftersom golvet är platt (ingen vertex-
     // förskjutning, bara fragment-shadad färg), så färre segment räcker på
     // den enorma ytan.
-    const floorGeo = new THREE.PlaneGeometry(200000, 200000, 32, 32);
+    const floorGeo = new THREE.PlaneGeometry(900000, 900000, 32, 32);
     floorGeo.rotateX(-Math.PI / 2);
     // Real CC0 sand photo (ambientCG Ground054, 512px) – loaded lazily so the
     // scene renders even if the CDN request is slow.
@@ -3286,9 +3290,11 @@ function Aquafulness() {
 
       // Free underwater fog on any loaded .glb model (default materials
       // already respect scene.fog) — density/color follow the same
-      // grumlighet + submersion state as everything else.
+      // grumlighet + submersion state as everything else. Zero above water
+      // (uUnderwater=0) so distant objects (torus rings, .glb scenery) read
+      // their real color/shape instead of washing out to the fog tint.
       const fog = scene.fog as THREE.FogExp2;
-      fog.density = 0.008 + floorUniforms.uTurbidity.value * uniforms.uUnderwater.value * 0.05;
+      fog.density = floorUniforms.uTurbidity.value * uniforms.uUnderwater.value * 0.05;
       fog.color.copy(uniforms.uFogColor.value).lerp(uniforms.uWaterDeep.value, floorUniforms.uTurbidity.value * uniforms.uUnderwater.value);
 
       // Selectable wave material (sphere-map "matcap") + trochoidal wave

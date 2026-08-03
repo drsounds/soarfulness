@@ -1144,12 +1144,12 @@ export function SettingsPanel(props: SettingsPanelProps) {
               mode="number"
               value={`${camFar.toFixed(0)}`}
               rawValue={camFar}
-              onSet={(v) => setCamFar(Math.max(100, Math.min(100000, v)))}
+              onSet={(v) => setCamFar(Math.max(100, Math.min(300000, v)))}
               min={100}
-              max={100000}
+              max={300000}
               step={100}
               onDec={() => setCamFar((v) => Math.max(100, +(v - 100).toFixed(0)))}
-              onInc={() => setCamFar((v) => Math.min(100000, +(v + 100).toFixed(0)))}
+              onInc={() => setCamFar((v) => Math.min(300000, +(v + 100).toFixed(0)))}
             />
             <PadDial
               label="ROTERING"
@@ -1382,7 +1382,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setDepthSineFreq((v) => Math.min(2, +(v + 0.01).toFixed(3)))}
             />
             <PadDial
-              label="YTA"
+              label="VATTENYTA"
               value={hideWater ? "DÖLJ" : "SYNLIGT"}
               onDec={() => setHideWater(true)}
               onInc={() => setHideWater(false)}
@@ -1434,16 +1434,16 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setSkyCloudsHeight((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
             />
             <PadDial
-              label="YTA"
+              label="RUMSSTORLEK"
               mode="number"
               value={`${surfaceArea.toFixed(0)}m`}
               rawValue={surfaceArea}
-              onSet={(v) => setSurfaceArea(Math.max(200, Math.min(100000, v)))}
+              onSet={(v) => setSurfaceArea(Math.max(200, Math.min(700000, v)))}
               min={200}
-              max={100000}
-              step={100}
-              onDec={() => setSurfaceArea((v) => Math.max(200, +(v - 100).toFixed(0)))}
-              onInc={() => setSurfaceArea((v) => Math.min(100000, +(v + 100).toFixed(0)))}
+              max={700000}
+              step={1000}
+              onDec={() => setSurfaceArea((v) => Math.max(200, +(v - 1000).toFixed(0)))}
+              onInc={() => setSurfaceArea((v) => Math.min(700000, +(v + 1000).toFixed(0)))}
             />
             {scenes.length > 0 && (
               <PadDial
