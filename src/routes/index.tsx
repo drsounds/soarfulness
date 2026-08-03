@@ -668,6 +668,10 @@ function saveCameraPose(pose: CameraPose) {
 function Aquafulness() {
   const mountRef = useRef<HTMLDivElement>(null);
   const initial = useRef<Persisted>(loadSettings()).current;
+  // Autosaved free-roam camera pose (see CAMERA_STORAGE_KEY below) — read
+  // once at mount so a reload resumes from wherever the camera was left,
+  // instead of always snapping back to the origin looking forward.
+  const initialCameraPose = useRef<CameraPose | null>(loadCameraPose()).current;
   const [waveAmp, setWaveAmp] = useState(initial.waveAmp);
   const [timeOfDay, setTimeOfDay] = useState(initial.timeOfDay);
   const [waveSpeed, setWaveSpeed] = useState(initial.waveSpeed);
@@ -921,7 +925,11 @@ function Aquafulness() {
   const stickRef = useRef({ x: 0, y: 0 });
   // y is only driven in noclip mode (free vertical flight); float/swing
   // modes derive height from the wave spring / pendulum instead.
-  const posRef = useRef({ x: 0, y: 0, z: 0 });
+  const posRef = useRef({
+    x: initialCameraPose?.x ?? 0,
+    y: initialCameraPose?.y ?? 0,
+    z: initialCameraPose?.z ?? 0,
+  });
   const camYRef = useRef<number | null>(null);
   const camVYRef = useRef(0);
   const vertStickRef = useRef({ x: 0, y: 0 });
@@ -985,8 +993,8 @@ function Aquafulness() {
   // moved (yaw changed) instead of every single frame.
   const driftDisplayRef = useRef({ x: 0, y: 0 });
   const swayDisplayRef = useRef({ x: 0, y: 0 });
-  const yawRef = useRef(0);
-  const pitchRef = useRef(0);
+  const yawRef = useRef(initialCameraPose?.yaw ?? 0);
+  const pitchRef = useRef(initialCameraPose?.pitch ?? 0);
   const prevSurfaceRef = useRef<number | null>(null);
   // Low-pass state for the buoyancy spring's anticipatory velocity estimate
   // — see its use in the animation loop below.
