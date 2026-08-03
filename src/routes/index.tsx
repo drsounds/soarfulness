@@ -26,13 +26,36 @@ import {
   WAVE_FREQ_MIN,
   WAVE_FREQ_MAX,
   formatClock,
+  PRESET_TAB_FIELDS,
+  PRESET_ALL_FIELDS,
+  pickFields,
   type SettingsTab,
   type CameraMode,
   type SwingPreset,
   type SwingYWaveform,
   type IntervalSessionType,
   type WavePresetName,
+  type Persisted,
 } from "@/lib/settingsShared";
+import {
+  type PresetScope,
+  type SavedPreset,
+  type RuntimeState,
+  type SavedState,
+  buildPresetFilePayload,
+  extractPresetData,
+  downloadJsonFile,
+  readJsonFile,
+  loadSavedPresets,
+  addSavedPreset,
+  removeSavedPreset,
+  buildStateFilePayload,
+  extractStateData,
+  isValidRuntimeState,
+  loadSavedStates,
+  addSavedState,
+  removeSavedState,
+} from "@/lib/presets";
 import {
   FFT_WAVE_COUNT,
   generateOceanWaveComponents,
@@ -236,107 +259,6 @@ const FFT_WAVE_SEED = 20260108;
 const DYING_WAVE_SEED = 19700101;
 
 const STORAGE_KEY = "aquafulness:settings:v1";
-type Persisted = {
-  waveAmp: number;
-  timeOfDay: number;
-  waveSpeed: number;
-  // FREKVENS — spatial-wavenumber multiplier shared by every waveform
-  // (SPRIDD/REGELBUNDEN/FFT-HAV/DÖENDE VÅG/VIRVEL); see waveHeight() above.
-  waveFreq: number;
-  bobSpeed: number;
-  buoyAmp: number;
-  heightOffset: number;
-  submergeAmp: number;
-  floatLift: number;
-  camOffX: number;
-  camOffY: number;
-  camOffZ: number;
-  audioOn: boolean;
-  audioVol: number;
-  audioSyncSpeed: boolean;
-  audioSpatial: boolean;
-  waterTintIdx: number;
-  waterOpacity: number;
-  waterHue: number;
-  waterSat: number;
-  waterBright: number;
-  surfBright: number;
-  surfSat: number;
-  turbidity: number;
-  bottomIdx: number;
-  leanEnabled: boolean;
-  regularWaves: boolean;
-  realisticWaves: boolean;
-  dyingWave: boolean;
-  dyingWaveAmp: number;
-  dyingWaveSpeed: number;
-  randomizeWaves: boolean;
-  wavePreset: WavePresetName;
-  regularCross: boolean;
-  regularPeriod: number;
-  wavePeak: number;
-  waveHighQuality: boolean;
-  backdropIdx: number;
-  wakeLock: boolean;
-  camFov: number;
-  camNear: number;
-  camFar: number;
-  waveDir: number;
-  floorDepth: number;
-  floorTexture: boolean;
-  vortexMode: boolean;
-  vortexOpening: number;
-  vortexRadius: number;
-  vortexSpeed: number;
-  depthSineOn: boolean;
-  depthSineAmp: number;
-  depthSineFreq: number;
-  hideWater: boolean;
-  midCloudsOn: boolean;
-  midCloudsHeight: number;
-  skyCloudsOn: boolean;
-  skyCloudsHeight: number;
-  swayAmp: number;
-  swaySpeed: number;
-  swayBias: number;
-  syncWaveWithSway: boolean;
-  liveMode: boolean;
-  sceneId: string | null;
-  envId: string | null;
-  envEra: string | null;
-  envTime: string | null;
-  surfaceId: string | null;
-  reflStrength: number;
-  bottomColor: string;
-  sphereMaterial: boolean;
-  sphereStrength: number;
-  trochoid: number;
-  cameraMode: CameraMode;
-  noclipSpeed: number;
-  swingPositionY: number;
-  swingIntensity: number;
-  swingXFactor: number;
-  swingHeight: number;
-  swingPreset: SwingPreset;
-  swingYWaveform: SwingYWaveform;
-  intervalSessionOn: boolean;
-  intervalDuration: number;
-  intervalSessionType: IntervalSessionType;
-  intervalCount: number;
-  intervalShowStats: boolean;
-  surfaceArea: number;
-  torusRingsOn: boolean;
-  torusRadius: number;
-  torusTube: number;
-  torusScale: number;
-  torusOpacity: number;
-  torusTextureIdx: number;
-  torusCellSize: number;
-  torusVerticalSpacing: number;
-  torusVerticalCount: number;
-  torusViewDistance: number;
-  torusFadeDistance: number;
-};
 // Parse a "#rrggbb" hex string into normalized [0,1] RGB. Falls back to a
 // neutral sand tone on malformed input rather than throwing.
 function hexToRgbNorm(hex: string): [number, number, number] {
@@ -840,6 +762,14 @@ function Aquafulness() {
   const [vertStick, setVertStick] = useState({ x: 0, y: 0 });
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("vagor");
+  // Named settings presets (save/load, in addition to file export/import
+  // below) — kept in their own localStorage list, separate from the
+  // always-on autosave under STORAGE_KEY. See src/lib/presets.ts.
+  const [savedPresets, setSavedPresets] = useState<SavedPreset[]>(() => loadSavedPresets());
+  // Named full-state saves (settings + player position/look + current/sway
+  // direction) — see buildFullStateSnapshot/applyFullState below and
+  // src/lib/presets.ts's separate "state" file kind/localStorage list.
+  const [savedStates, setSavedStates] = useState<SavedState[]>(() => loadSavedStates());
   const [phoneOpen, setPhoneOpen] = useState(false);
   const [uiVisible, setUiVisible] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -891,12 +821,17 @@ function Aquafulness() {
   const sphereStrengthRef = useRef(sphereStrength);
   const trochoidRef = useRef(trochoid);
 
+  // A full snapshot of every settings-dialog field, in the exact Persisted
+  // shape saved to localStorage below — also reused by the preset save/
+  // export feature (see exportSettingsFile/savePresetAs) so there's only one
+  // place that enumerates every field.
+  const buildPersistedSnapshot = (): Persisted => ({ waveAmp, timeOfDay, waveSpeed, waveFreq, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, realisticWaves, dyingWave, dyingWaveAmp, dyingWaveSpeed, randomizeWaves, wavePreset, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingPositionY, swingIntensity, swingXFactor, swingHeight, swingPreset, swingYWaveform, intervalSessionOn, intervalDuration, intervalSessionType, intervalCount, intervalShowStats, surfaceArea, torusRingsOn, torusRadius, torusTube, torusScale, torusOpacity, torusTextureIdx, torusCellSize, torusVerticalSpacing, torusVerticalCount, torusViewDistance, torusFadeDistance });
+
   // Persist settings to localStorage whenever they change (SSR-safe, hydration-safe).
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const data: Persisted = { waveAmp, timeOfDay, waveSpeed, waveFreq, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, realisticWaves, dyingWave, dyingWaveAmp, dyingWaveSpeed, randomizeWaves, wavePreset, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingPositionY, swingIntensity, swingXFactor, swingHeight, swingPreset, swingYWaveform, intervalSessionOn, intervalDuration, intervalSessionType, intervalCount, intervalShowStats, surfaceArea, torusRingsOn, torusRadius, torusTube, torusScale, torusOpacity, torusTextureIdx, torusCellSize, torusVerticalSpacing, torusVerticalCount, torusViewDistance, torusFadeDistance };
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(buildPersistedSnapshot()));
     } catch {
       /* quota or privacy mode — ignore */
     }
@@ -1338,6 +1273,261 @@ function Aquafulness() {
     setTorusViewDistance(DEFAULTS.torusViewDistance);
     setTorusFadeDistance(DEFAULTS.torusFadeDistance);
     // timeOfDay is intentionally left untouched.
+  };
+
+  // Applies any subset of Persisted fields present in `patch` — the shared
+  // engine behind the save/load/export/import preset feature (SettingsPanel
+  // .tsx's PresetControls): loading a saved preset, importing a JSON file,
+  // or restoring a per-tab subset all funnel through here. Unlike
+  // resetToDefaults, this *does* touch sceneId/envId/envEra/envTime/
+  // surfaceId, since a preset is meant to fully recreate a saved look.
+  const applySettingsPatch = (patch: Partial<Persisted>) => {
+    if (patch.waveAmp !== undefined) setWaveAmp(patch.waveAmp);
+    if (patch.timeOfDay !== undefined) setTimeOfDay(patch.timeOfDay);
+    if (patch.waveSpeed !== undefined) setWaveSpeed(patch.waveSpeed);
+    if (patch.waveFreq !== undefined) setWaveFreq(patch.waveFreq);
+    if (patch.bobSpeed !== undefined) setBobSpeed(patch.bobSpeed);
+    if (patch.buoyAmp !== undefined) setBuoyAmp(patch.buoyAmp);
+    if (patch.heightOffset !== undefined) setHeightOffset(patch.heightOffset);
+    if (patch.submergeAmp !== undefined) setSubmergeAmp(patch.submergeAmp);
+    if (patch.floatLift !== undefined) setFloatLift(patch.floatLift);
+    if (patch.camOffX !== undefined) setCamOffX(patch.camOffX);
+    if (patch.camOffY !== undefined) setCamOffY(patch.camOffY);
+    if (patch.camOffZ !== undefined) setCamOffZ(patch.camOffZ);
+    if (patch.audioOn !== undefined) setAudioOn(patch.audioOn);
+    if (patch.audioVol !== undefined) setAudioVol(patch.audioVol);
+    if (patch.audioSyncSpeed !== undefined) setAudioSyncSpeed(patch.audioSyncSpeed);
+    if (patch.audioSpatial !== undefined) setAudioSpatial(patch.audioSpatial);
+    if (patch.waterTintIdx !== undefined) setWaterTintIdx(patch.waterTintIdx);
+    if (patch.waterOpacity !== undefined) setWaterOpacity(patch.waterOpacity);
+    if (patch.waterHue !== undefined) setWaterHue(patch.waterHue);
+    if (patch.waterSat !== undefined) setWaterSat(patch.waterSat);
+    if (patch.waterBright !== undefined) setWaterBright(patch.waterBright);
+    if (patch.surfBright !== undefined) setSurfBright(patch.surfBright);
+    if (patch.surfSat !== undefined) setSurfSat(patch.surfSat);
+    if (patch.turbidity !== undefined) setTurbidity(patch.turbidity);
+    if (patch.bottomIdx !== undefined) setBottomIdx(patch.bottomIdx);
+    if (patch.leanEnabled !== undefined) setLeanEnabled(patch.leanEnabled);
+    if (patch.regularWaves !== undefined) setRegularWaves(patch.regularWaves);
+    if (patch.realisticWaves !== undefined) setRealisticWaves(patch.realisticWaves);
+    if (patch.dyingWave !== undefined) setDyingWave(patch.dyingWave);
+    if (patch.dyingWaveAmp !== undefined) setDyingWaveAmp(patch.dyingWaveAmp);
+    if (patch.dyingWaveSpeed !== undefined) setDyingWaveSpeed(patch.dyingWaveSpeed);
+    if (patch.randomizeWaves !== undefined) setRandomizeWaves(patch.randomizeWaves);
+    if (patch.wavePreset !== undefined) setWavePreset(patch.wavePreset);
+    if (patch.regularCross !== undefined) setRegularCross(patch.regularCross);
+    if (patch.regularPeriod !== undefined) setRegularPeriod(patch.regularPeriod);
+    if (patch.wavePeak !== undefined) setWavePeak(patch.wavePeak);
+    if (patch.waveHighQuality !== undefined) setWaveHighQuality(patch.waveHighQuality);
+    if (patch.backdropIdx !== undefined) setBackdropIdx(patch.backdropIdx);
+    if (patch.wakeLock !== undefined) setWakeLock(patch.wakeLock);
+    if (patch.camFov !== undefined) setCamFov(patch.camFov);
+    if (patch.camNear !== undefined) setCamNear(patch.camNear);
+    if (patch.camFar !== undefined) setCamFar(patch.camFar);
+    if (patch.waveDir !== undefined) setWaveDir(patch.waveDir);
+    if (patch.floorDepth !== undefined) setFloorDepth(patch.floorDepth);
+    if (patch.floorTexture !== undefined) setFloorTexture(patch.floorTexture);
+    if (patch.vortexMode !== undefined) setVortexMode(patch.vortexMode);
+    if (patch.vortexOpening !== undefined) setVortexOpening(patch.vortexOpening);
+    if (patch.vortexRadius !== undefined) setVortexRadius(patch.vortexRadius);
+    if (patch.vortexSpeed !== undefined) setVortexSpeed(patch.vortexSpeed);
+    if (patch.depthSineOn !== undefined) setDepthSineOn(patch.depthSineOn);
+    if (patch.depthSineAmp !== undefined) setDepthSineAmp(patch.depthSineAmp);
+    if (patch.depthSineFreq !== undefined) setDepthSineFreq(patch.depthSineFreq);
+    if (patch.hideWater !== undefined) setHideWater(patch.hideWater);
+    if (patch.midCloudsOn !== undefined) setMidCloudsOn(patch.midCloudsOn);
+    if (patch.midCloudsHeight !== undefined) setMidCloudsHeight(patch.midCloudsHeight);
+    if (patch.skyCloudsOn !== undefined) setSkyCloudsOn(patch.skyCloudsOn);
+    if (patch.skyCloudsHeight !== undefined) setSkyCloudsHeight(patch.skyCloudsHeight);
+    if (patch.swayAmp !== undefined) setSwayAmp(patch.swayAmp);
+    if (patch.swaySpeed !== undefined) setSwaySpeed(patch.swaySpeed);
+    if (patch.swayBias !== undefined) setSwayBias(patch.swayBias);
+    if (patch.syncWaveWithSway !== undefined) setSyncWaveWithSway(patch.syncWaveWithSway);
+    if (patch.liveMode !== undefined) setLiveMode(patch.liveMode);
+    if (patch.sceneId !== undefined) setSceneId(patch.sceneId);
+    if (patch.envId !== undefined) setEnvId(patch.envId);
+    if (patch.envEra !== undefined) setEnvEra(patch.envEra);
+    if (patch.envTime !== undefined) setEnvTime(patch.envTime);
+    if (patch.surfaceId !== undefined) setSurfaceId(patch.surfaceId);
+    if (patch.reflStrength !== undefined) setReflStrength(patch.reflStrength);
+    if (patch.bottomColor !== undefined) setBottomColor(patch.bottomColor);
+    if (patch.sphereMaterial !== undefined) setSphereMaterial(patch.sphereMaterial);
+    if (patch.sphereStrength !== undefined) setSphereStrength(patch.sphereStrength);
+    if (patch.trochoid !== undefined) setTrochoid(patch.trochoid);
+    if (patch.cameraMode !== undefined) setCameraMode(patch.cameraMode);
+    if (patch.noclipSpeed !== undefined) setNoclipSpeed(patch.noclipSpeed);
+    if (patch.swingPositionY !== undefined) setSwingPositionY(patch.swingPositionY);
+    if (patch.swingIntensity !== undefined) setSwingIntensity(patch.swingIntensity);
+    if (patch.swingXFactor !== undefined) setSwingXFactor(patch.swingXFactor);
+    if (patch.swingHeight !== undefined) setSwingHeight(patch.swingHeight);
+    if (patch.swingPreset !== undefined) setSwingPreset(patch.swingPreset);
+    if (patch.swingYWaveform !== undefined) setSwingYWaveform(patch.swingYWaveform);
+    if (patch.intervalSessionOn !== undefined) setIntervalSessionOn(patch.intervalSessionOn);
+    if (patch.intervalDuration !== undefined) setIntervalDuration(patch.intervalDuration);
+    if (patch.intervalSessionType !== undefined) setIntervalSessionType(patch.intervalSessionType);
+    if (patch.intervalCount !== undefined) setIntervalCount(patch.intervalCount);
+    if (patch.intervalShowStats !== undefined) setIntervalShowStats(patch.intervalShowStats);
+    if (patch.surfaceArea !== undefined) setSurfaceArea(patch.surfaceArea);
+    if (patch.torusRingsOn !== undefined) setTorusRingsOn(patch.torusRingsOn);
+    if (patch.torusRadius !== undefined) setTorusRadius(patch.torusRadius);
+    if (patch.torusTube !== undefined) setTorusTube(patch.torusTube);
+    if (patch.torusScale !== undefined) setTorusScale(patch.torusScale);
+    if (patch.torusOpacity !== undefined) setTorusOpacity(patch.torusOpacity);
+    if (patch.torusTextureIdx !== undefined) setTorusTextureIdx(patch.torusTextureIdx);
+    if (patch.torusCellSize !== undefined) setTorusCellSize(patch.torusCellSize);
+    if (patch.torusVerticalSpacing !== undefined) setTorusVerticalSpacing(patch.torusVerticalSpacing);
+    if (patch.torusVerticalCount !== undefined) setTorusVerticalCount(patch.torusVerticalCount);
+    if (patch.torusViewDistance !== undefined) setTorusViewDistance(patch.torusViewDistance);
+    if (patch.torusFadeDistance !== undefined) setTorusFadeDistance(patch.torusFadeDistance);
+  };
+
+  // Which Persisted fields a given preset scope owns — "all" is every field
+  // the settings dialog exposes, a tab id is just that tab's fields.
+  const fieldsForScope = (scope: PresetScope): (keyof Persisted)[] =>
+    scope === "all" ? PRESET_ALL_FIELDS : PRESET_TAB_FIELDS[scope];
+
+  // Restricts an arbitrary (e.g. imported/loaded) data object down to the
+  // fields `scope` actually owns, dropping anything else it might contain.
+  const filterToScope = (scope: PresetScope, data: Record<string, unknown>): Partial<Persisted> => {
+    const allowed = new Set<string>(fieldsForScope(scope));
+    const patch: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(data)) {
+      if (allowed.has(k)) patch[k] = v;
+    }
+    return patch as Partial<Persisted>;
+  };
+
+  // EXPORTERA: downloads the current settings (all tabs, or just one) as a
+  // JSON file via the File API.
+  const exportSettingsFile = (scope: PresetScope) => {
+    const snapshot = buildPersistedSnapshot();
+    const data = pickFields(snapshot, fieldsForScope(scope));
+    const payload = buildPresetFilePayload(scope, data);
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    downloadJsonFile(`aquafulness-${scope}-preset-${stamp}.json`, payload);
+  };
+
+  // IMPORTERA: reads a JSON file (dropped via the File API's file picker)
+  // and applies whichever of its fields belong to `scope`.
+  const importSettingsFile = async (scope: PresetScope, file: File) => {
+    try {
+      const raw = await readJsonFile(file);
+      const data = extractPresetData(raw);
+      if (!data) throw new Error("invalid preset file");
+      applySettingsPatch(filterToScope(scope, data));
+    } catch {
+      window.alert("Kunde inte läsa presetfilen — kontrollera att den är en giltig JSON-fil.");
+    }
+  };
+
+  // SPARA: saves the current settings (all tabs, or just one) as a named
+  // preset in localStorage, for later one-click recall via LÄS IN.
+  const savePresetAs = (scope: PresetScope, name: string) => {
+    const snapshot = buildPersistedSnapshot();
+    const data = pickFields(snapshot, fieldsForScope(scope)) as Record<string, unknown>;
+    setSavedPresets((list) => addSavedPreset(list, name, scope, data));
+  };
+
+  // LÄS IN: applies a previously saved named preset.
+  const loadSavedPreset = (id: string) => {
+    const preset = savedPresets.find((p) => p.id === id);
+    if (!preset) return;
+    applySettingsPatch(filterToScope(preset.scope, preset.data));
+  };
+
+  // RADERA: removes a previously saved named preset.
+  const deleteSavedPreset = (id: string) => {
+    setSavedPresets((list) => removeSavedPreset(list, id));
+  };
+
+  // The runtime-only half of a full "state" save/load (as opposed to a
+  // parameters-only preset above): the player's live position/look and the
+  // STRÖM/SVAJ world-space direction vectors. None of these are part of
+  // Persisted — they're deliberately ref-only/runtime state (see
+  // driftWorldRef/swayWorldRef and CAMERA_STORAGE_KEY's separate pose
+  // autosave) — so a full state save has to capture them separately.
+  const buildRuntimeSnapshot = (): RuntimeState => ({
+    camera: {
+      x: posRef.current.x,
+      y: posRef.current.y,
+      z: posRef.current.z,
+      yaw: yawRef.current,
+      pitch: pitchRef.current,
+    },
+    driftDir: { x: driftWorldRef.current.x, z: driftWorldRef.current.z },
+    swayDir: { x: swayWorldRef.current.x, z: swayWorldRef.current.z },
+  });
+
+  const applyRuntimeState = (runtime: RuntimeState) => {
+    posRef.current.x = runtime.camera.x;
+    posRef.current.y = runtime.camera.y;
+    posRef.current.z = runtime.camera.z;
+    yawRef.current = runtime.camera.yaw;
+    pitchRef.current = runtime.camera.pitch;
+    saveCameraPose({ x: posRef.current.x, y: posRef.current.y, z: posRef.current.z, yaw: yawRef.current, pitch: pitchRef.current });
+
+    driftWorldRef.current = runtime.driftDir;
+    const driftDisp = worldXZToPad(runtime.driftDir.x, runtime.driftDir.z, yawRef.current);
+    driftDisplayRef.current = driftDisp;
+    setDriftStick(driftDisp);
+
+    swayWorldRef.current = runtime.swayDir;
+    const swayDisp = worldXZToPad(runtime.swayDir.x, runtime.swayDir.z, yawRef.current);
+    swayDisplayRef.current = swayDisp;
+    setSwayStick(swayDisp);
+  };
+
+  // A full state snapshot is every settings field (like an "all"-scope
+  // preset) plus the runtime snapshot above, flattened into one object with
+  // the runtime piece nested under "runtime" so import can tell them apart.
+  const buildFullStateSnapshot = (): Record<string, unknown> => ({
+    ...pickFields(buildPersistedSnapshot(), PRESET_ALL_FIELDS),
+    runtime: buildRuntimeSnapshot(),
+  });
+
+  // Applies a full state object: every recognized Persisted field, plus
+  // (if present and well-formed) the runtime position/look/current/sway.
+  const applyFullState = (data: Record<string, unknown>) => {
+    const { runtime, ...settingsData } = data;
+    applySettingsPatch(filterToScope("all", settingsData));
+    if (isValidRuntimeState(runtime)) applyRuntimeState(runtime);
+  };
+
+  // TILLSTÅND EXPORTERA: downloads the full live state (settings + player
+  // position/look + current/sway) as a JSON file via the File API.
+  const exportStateFile = () => {
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    downloadJsonFile(`aquafulness-state-${stamp}.json`, buildStateFilePayload(buildFullStateSnapshot()));
+  };
+
+  // TILLSTÅND IMPORTERA: reads a JSON state file and applies it in full.
+  const importStateFile = async (file: File) => {
+    try {
+      const raw = await readJsonFile(file);
+      const data = extractStateData(raw);
+      if (!data) throw new Error("invalid state file");
+      applyFullState(data);
+    } catch {
+      window.alert("Kunde inte läsa tillståndsfilen — kontrollera att den är en giltig JSON-fil.");
+    }
+  };
+
+  // TILLSTÅND SPARA: saves the full live state as a named entry in
+  // localStorage, for later one-click recall via LÄS IN.
+  const saveStateAs = (name: string) => {
+    setSavedStates((list) => addSavedState(list, name, buildFullStateSnapshot()));
+  };
+
+  // TILLSTÅND LÄS IN: applies a previously saved named state.
+  const loadSavedStateById = (id: string) => {
+    const state = savedStates.find((s) => s.id === id);
+    if (!state) return;
+    applyFullState(state.data);
+  };
+
+  // TILLSTÅND RADERA: removes a previously saved named state.
+  const deleteSavedState = (id: string) => {
+    setSavedStates((list) => removeSavedState(list, id));
   };
 
   // VÅGPRESET: applies a bundle of wave-only settings in one step (see
@@ -3617,6 +3807,18 @@ function Aquafulness() {
     setSettingsTab,
     restoreCameraPosition,
     resetToDefaults,
+    savedPresets,
+    exportSettingsFile,
+    importSettingsFile,
+    savePresetAs,
+    loadSavedPreset,
+    deleteSavedPreset,
+    savedStates,
+    exportStateFile,
+    importStateFile,
+    saveStateAs,
+    loadSavedStateById,
+    deleteSavedState,
     waveAmp,
     setWaveAmp,
     waveSpeed,

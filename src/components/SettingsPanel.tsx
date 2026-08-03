@@ -1,4 +1,4 @@
-import type { Dispatch, MutableRefObject, SetStateAction } from "react";
+import { useState, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 import { PadDial } from "@/components/PadDial";
 import {
   SETTINGS_TABS,
@@ -22,6 +22,7 @@ import {
   type IntervalSessionType,
   type WavePresetName,
 } from "@/lib/settingsShared";
+import { pickJsonFile, type PresetScope, type SavedPreset, type SavedState } from "@/lib/presets";
 
 // Swedish display labels for enum values that don't already carry a
 // human-readable "name" (unlike scenes/environments/surfaces, which come
@@ -64,6 +65,26 @@ export type SettingsPanelProps = {
   setSettingsTab: (tab: SettingsTab) => void;
   restoreCameraPosition: () => void;
   resetToDefaults: () => void;
+
+  // Save/load/export/import presets (see src/lib/presets.ts) — offered both
+  // for the settings dialog as a whole ("all") and for each individual tab.
+  savedPresets: SavedPreset[];
+  exportSettingsFile: (scope: PresetScope) => void;
+  importSettingsFile: (scope: PresetScope, file: File) => void;
+  savePresetAs: (scope: PresetScope, name: string) => void;
+  loadSavedPreset: (id: string) => void;
+  deleteSavedPreset: (id: string) => void;
+
+  // Save/load/export/import full state — like the presets above, but every
+  // settings field at once (unscoped) plus the player's live position/look
+  // and STRÖM/SVAJ current direction (see routes/index.tsx's
+  // buildFullStateSnapshot/applyFullState).
+  savedStates: SavedState[];
+  exportStateFile: () => void;
+  importStateFile: (file: File) => void;
+  saveStateAs: (name: string) => void;
+  loadSavedStateById: (id: string) => void;
+  deleteSavedState: (id: string) => void;
 
   // Vågor
   waveAmp: number;
@@ -313,12 +334,199 @@ export type SettingsPanelProps = {
   setAudioSpatial: Dispatch<SetStateAction<boolean>>;
 };
 
+// Compact save/load/export/import row for one preset scope ("all", or a
+// single settings tab) — rendered once for the whole dialog and once inside
+// each tab's own content, each time scoped to just that tab's fields.
+function PresetControls({
+  scope,
+  label,
+  savedPresets,
+  exportSettingsFile,
+  importSettingsFile,
+  savePresetAs,
+  loadSavedPreset,
+  deleteSavedPreset,
+}: {
+  scope: PresetScope;
+  label: string;
+  savedPresets: SavedPreset[];
+  exportSettingsFile: (scope: PresetScope) => void;
+  importSettingsFile: (scope: PresetScope, file: File) => void;
+  savePresetAs: (scope: PresetScope, name: string) => void;
+  loadSavedPreset: (id: string) => void;
+  deleteSavedPreset: (id: string) => void;
+}) {
+  const scoped = savedPresets.filter((p) => p.scope === scope);
+  const [selected, setSelected] = useState("");
+  const activeId = scoped.some((p) => p.id === selected) ? selected : "";
+  const btnClass =
+    "rounded-full border border-white/15 bg-white/5 px-2.5 py-0.5 text-[9px] font-light tracking-wider text-white/70 transition active:scale-95 active:bg-white/15 disabled:opacity-30";
+
+  return (
+    <div className="mb-2 flex w-full flex-wrap items-center justify-center gap-1.5">
+      <span className="text-[9px] font-light tracking-[0.28em] text-white/40">{label}</span>
+      <button
+        onClick={() => {
+          const name = window.prompt("Spara som:");
+          if (name && name.trim()) savePresetAs(scope, name.trim());
+        }}
+        className={btnClass}
+      >
+        SPARA
+      </button>
+      <button onClick={() => exportSettingsFile(scope)} className={btnClass}>
+        EXPORTERA
+      </button>
+      <button
+        onClick={() => pickJsonFile((file) => importSettingsFile(scope, file))}
+        className={btnClass}
+      >
+        IMPORTERA
+      </button>
+      {scoped.length > 0 && (
+        <>
+          <select
+            value={activeId}
+            onChange={(e) => setSelected(e.target.value)}
+            className="rounded-full border border-white/15 bg-black/40 px-2 py-0.5 text-[9px] text-white/70"
+          >
+            <option value="" disabled>
+              VÄLJ SPARAD…
+            </option>
+            {scoped.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+          <button
+            disabled={!activeId}
+            onClick={() => activeId && loadSavedPreset(activeId)}
+            className={btnClass}
+          >
+            LÄS IN
+          </button>
+          <button
+            disabled={!activeId}
+            onClick={() => {
+              if (activeId && window.confirm("Ta bort sparad preset?")) {
+                deleteSavedPreset(activeId);
+                setSelected("");
+              }
+            }}
+            className={btnClass}
+          >
+            RADERA
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
+// Save/load/export/import row for the full live state (settings + player
+// position/look + STRÖM/SVAJ direction) — always unscoped, unlike
+// PresetControls above, since position/look/current aren't tied to any one
+// tab.
+function StateControls({
+  label,
+  savedStates,
+  exportStateFile,
+  importStateFile,
+  saveStateAs,
+  loadSavedStateById,
+  deleteSavedState,
+}: {
+  label: string;
+  savedStates: SavedState[];
+  exportStateFile: () => void;
+  importStateFile: (file: File) => void;
+  saveStateAs: (name: string) => void;
+  loadSavedStateById: (id: string) => void;
+  deleteSavedState: (id: string) => void;
+}) {
+  const [selected, setSelected] = useState("");
+  const activeId = savedStates.some((s) => s.id === selected) ? selected : "";
+  const btnClass =
+    "rounded-full border border-white/15 bg-white/5 px-2.5 py-0.5 text-[9px] font-light tracking-wider text-white/70 transition active:scale-95 active:bg-white/15 disabled:opacity-30";
+
+  return (
+    <div className="mb-2 flex w-full flex-wrap items-center justify-center gap-1.5">
+      <span className="text-[9px] font-light tracking-[0.28em] text-white/40">{label}</span>
+      <button
+        onClick={() => {
+          const name = window.prompt("Spara tillstånd som:");
+          if (name && name.trim()) saveStateAs(name.trim());
+        }}
+        className={btnClass}
+      >
+        SPARA
+      </button>
+      <button onClick={() => exportStateFile()} className={btnClass}>
+        EXPORTERA
+      </button>
+      <button onClick={() => pickJsonFile((file) => importStateFile(file))} className={btnClass}>
+        IMPORTERA
+      </button>
+      {savedStates.length > 0 && (
+        <>
+          <select
+            value={activeId}
+            onChange={(e) => setSelected(e.target.value)}
+            className="rounded-full border border-white/15 bg-black/40 px-2 py-0.5 text-[9px] text-white/70"
+          >
+            <option value="" disabled>
+              VÄLJ SPARAT…
+            </option>
+            {savedStates.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+          <button
+            disabled={!activeId}
+            onClick={() => activeId && loadSavedStateById(activeId)}
+            className={btnClass}
+          >
+            LÄS IN
+          </button>
+          <button
+            disabled={!activeId}
+            onClick={() => {
+              if (activeId && window.confirm("Ta bort sparat tillstånd?")) {
+                deleteSavedState(activeId);
+                setSelected("");
+              }
+            }}
+            className={btnClass}
+          >
+            RADERA
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
 export function SettingsPanel(props: SettingsPanelProps) {
   const {
     settingsTab,
     setSettingsTab,
     restoreCameraPosition,
     resetToDefaults,
+    savedPresets,
+    exportSettingsFile,
+    importSettingsFile,
+    savePresetAs,
+    loadSavedPreset,
+    deleteSavedPreset,
+    savedStates,
+    exportStateFile,
+    importStateFile,
+    saveStateAs,
+    loadSavedStateById,
+    deleteSavedState,
     waveAmp,
     setWaveAmp,
     waveSpeed,
@@ -575,9 +783,38 @@ export function SettingsPanel(props: SettingsPanelProps) {
           </button>
         ))}
       </div>
+      <PresetControls
+        scope="all"
+        label="ALLA INSTÄLLNINGAR"
+        savedPresets={savedPresets}
+        exportSettingsFile={exportSettingsFile}
+        importSettingsFile={importSettingsFile}
+        savePresetAs={savePresetAs}
+        loadSavedPreset={loadSavedPreset}
+        deleteSavedPreset={deleteSavedPreset}
+      />
+      <StateControls
+        label="TILLSTÅND (allt + position, blick, ström, svaj)"
+        savedStates={savedStates}
+        exportStateFile={exportStateFile}
+        importStateFile={importStateFile}
+        saveStateAs={saveStateAs}
+        loadSavedStateById={loadSavedStateById}
+        deleteSavedState={deleteSavedState}
+      />
       <div className="flex flex-wrap justify-center gap-2">
         {settingsTab === "vagor" && (
           <>
+            <PresetControls
+              scope="vagor"
+              label="VÅGOR-PRESET"
+              savedPresets={savedPresets}
+              exportSettingsFile={exportSettingsFile}
+              importSettingsFile={importSettingsFile}
+              savePresetAs={savePresetAs}
+              loadSavedPreset={loadSavedPreset}
+              deleteSavedPreset={deleteSavedPreset}
+            />
             <PadDial
               label="VÅG"
               mode="number"
@@ -928,6 +1165,16 @@ export function SettingsPanel(props: SettingsPanelProps) {
         )}
         {settingsTab === "kamera" && (
           <>
+            <PresetControls
+              scope="kamera"
+              label="KAMERA-PRESET"
+              savedPresets={savedPresets}
+              exportSettingsFile={exportSettingsFile}
+              importSettingsFile={importSettingsFile}
+              savePresetAs={savePresetAs}
+              loadSavedPreset={loadSavedPreset}
+              deleteSavedPreset={deleteSavedPreset}
+            />
             {intervalSessionOn ? (
               <div className="flex min-w-[86px] flex-col items-start justify-center gap-0.5 rounded-full border border-white/15 bg-black/40 px-3 py-2 leading-tight">
                 <span className="text-[9px] font-light tracking-[0.28em] text-white/60">
@@ -1167,6 +1414,16 @@ export function SettingsPanel(props: SettingsPanelProps) {
         )}
         {settingsTab === "vatten" && (
           <>
+            <PresetControls
+              scope="vatten"
+              label="VATTEN-PRESET"
+              savedPresets={savedPresets}
+              exportSettingsFile={exportSettingsFile}
+              importSettingsFile={importSettingsFile}
+              savePresetAs={savePresetAs}
+              loadSavedPreset={loadSavedPreset}
+              deleteSavedPreset={deleteSavedPreset}
+            />
             <PadDial
               label="VATTEN"
               value={WATER_TINTS[waterTintIdx].name}
@@ -1391,6 +1648,16 @@ export function SettingsPanel(props: SettingsPanelProps) {
         )}
         {settingsTab === "miljo" && (
           <>
+            <PresetControls
+              scope="miljo"
+              label="MILJÖ-PRESET"
+              savedPresets={savedPresets}
+              exportSettingsFile={exportSettingsFile}
+              importSettingsFile={importSettingsFile}
+              savePresetAs={savePresetAs}
+              loadSavedPreset={loadSavedPreset}
+              deleteSavedPreset={deleteSavedPreset}
+            />
             <PadDial
               label="TID"
               value={todLabel}
@@ -1648,6 +1915,16 @@ export function SettingsPanel(props: SettingsPanelProps) {
         )}
         {settingsTab === "ljud" && (
           <>
+            <PresetControls
+              scope="ljud"
+              label="LJUD-PRESET"
+              savedPresets={savedPresets}
+              exportSettingsFile={exportSettingsFile}
+              importSettingsFile={importSettingsFile}
+              savePresetAs={savePresetAs}
+              loadSavedPreset={loadSavedPreset}
+              deleteSavedPreset={deleteSavedPreset}
+            />
             <PadDial
               label={audioOn ? "LJUD PÅ" : "LJUD AV"}
               value={audioOn ? `${Math.round(audioVol * 100)}%` : "—"}

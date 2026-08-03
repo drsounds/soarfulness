@@ -141,3 +141,231 @@ export function formatClock(totalSeconds: number): string {
   const sec = s % 60;
   return `${m}:${sec.toString().padStart(2, "0")}`;
 }
+
+// The full shape of the settings persisted to localStorage (routes/index.tsx)
+// and — since it's exactly every field the settings dialog exposes — also
+// what the save/load/export/import preset feature reads and writes (see
+// src/lib/presets.ts and SettingsPanel.tsx's PresetControls).
+export type Persisted = {
+  waveAmp: number;
+  timeOfDay: number;
+  waveSpeed: number;
+  waveFreq: number;
+  bobSpeed: number;
+  buoyAmp: number;
+  heightOffset: number;
+  submergeAmp: number;
+  floatLift: number;
+  camOffX: number;
+  camOffY: number;
+  camOffZ: number;
+  audioOn: boolean;
+  audioVol: number;
+  audioSyncSpeed: boolean;
+  audioSpatial: boolean;
+  waterTintIdx: number;
+  waterOpacity: number;
+  waterHue: number;
+  waterSat: number;
+  waterBright: number;
+  surfBright: number;
+  surfSat: number;
+  turbidity: number;
+  bottomIdx: number;
+  leanEnabled: boolean;
+  regularWaves: boolean;
+  realisticWaves: boolean;
+  dyingWave: boolean;
+  dyingWaveAmp: number;
+  dyingWaveSpeed: number;
+  randomizeWaves: boolean;
+  wavePreset: WavePresetName;
+  regularCross: boolean;
+  regularPeriod: number;
+  wavePeak: number;
+  waveHighQuality: boolean;
+  backdropIdx: number;
+  wakeLock: boolean;
+  camFov: number;
+  camNear: number;
+  camFar: number;
+  waveDir: number;
+  floorDepth: number;
+  floorTexture: boolean;
+  vortexMode: boolean;
+  vortexOpening: number;
+  vortexRadius: number;
+  vortexSpeed: number;
+  depthSineOn: boolean;
+  depthSineAmp: number;
+  depthSineFreq: number;
+  hideWater: boolean;
+  midCloudsOn: boolean;
+  midCloudsHeight: number;
+  skyCloudsOn: boolean;
+  skyCloudsHeight: number;
+  swayAmp: number;
+  swaySpeed: number;
+  swayBias: number;
+  syncWaveWithSway: boolean;
+  liveMode: boolean;
+  sceneId: string | null;
+  envId: string | null;
+  envEra: string | null;
+  envTime: string | null;
+  surfaceId: string | null;
+  reflStrength: number;
+  bottomColor: string;
+  sphereMaterial: boolean;
+  sphereStrength: number;
+  trochoid: number;
+  cameraMode: CameraMode;
+  noclipSpeed: number;
+  swingPositionY: number;
+  swingIntensity: number;
+  swingXFactor: number;
+  swingHeight: number;
+  swingPreset: SwingPreset;
+  swingYWaveform: SwingYWaveform;
+  intervalSessionOn: boolean;
+  intervalDuration: number;
+  intervalSessionType: IntervalSessionType;
+  intervalCount: number;
+  intervalShowStats: boolean;
+  surfaceArea: number;
+  torusRingsOn: boolean;
+  torusRadius: number;
+  torusTube: number;
+  torusScale: number;
+  torusOpacity: number;
+  torusTextureIdx: number;
+  torusCellSize: number;
+  torusVerticalSpacing: number;
+  torusVerticalCount: number;
+  torusViewDistance: number;
+  torusFadeDistance: number;
+};
+
+// Which Persisted fields belong to each settings tab — drives the per-tab
+// save/load/export/import preset controls (SettingsPanel.tsx's
+// PresetControls), so a "VÅGOR-only" preset only touches wave fields, etc.
+// syncWaveWithSway has no dedicated dial (its toggle lives in the virtual
+// phone's remote-controller app instead) but is grouped under "vagor" since
+// it's SVAJ/wave-related.
+export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
+  vagor: [
+    "waveAmp",
+    "waveSpeed",
+    "waveFreq",
+    "heightOffset",
+    "submergeAmp",
+    "floatLift",
+    "swayAmp",
+    "swaySpeed",
+    "swayBias",
+    "syncWaveWithSway",
+    "buoyAmp",
+    "bobSpeed",
+    "regularWaves",
+    "realisticWaves",
+    "wavePreset",
+    "dyingWave",
+    "dyingWaveAmp",
+    "dyingWaveSpeed",
+    "randomizeWaves",
+    "regularCross",
+    "regularPeriod",
+    "wavePeak",
+    "trochoid",
+    "waveHighQuality",
+    "waveDir",
+    "vortexMode",
+    "vortexOpening",
+    "vortexRadius",
+    "vortexSpeed",
+  ],
+  kamera: [
+    "cameraMode",
+    "noclipSpeed",
+    "swingPreset",
+    "swingPositionY",
+    "swingIntensity",
+    "swingXFactor",
+    "swingHeight",
+    "swingYWaveform",
+    "intervalSessionOn",
+    "intervalDuration",
+    "intervalSessionType",
+    "intervalCount",
+    "intervalShowStats",
+    "camOffX",
+    "camOffY",
+    "camOffZ",
+    "camFov",
+    "camNear",
+    "camFar",
+    "leanEnabled",
+    "wakeLock",
+  ],
+  vatten: [
+    "waterTintIdx",
+    "surfaceId",
+    "reflStrength",
+    "sphereMaterial",
+    "sphereStrength",
+    "waterOpacity",
+    "waterHue",
+    "waterSat",
+    "waterBright",
+    "surfBright",
+    "surfSat",
+    "turbidity",
+    "bottomIdx",
+    "bottomColor",
+    "floorDepth",
+    "floorTexture",
+    "depthSineOn",
+    "depthSineAmp",
+    "depthSineFreq",
+    "hideWater",
+  ],
+  miljo: [
+    "timeOfDay",
+    "midCloudsOn",
+    "midCloudsHeight",
+    "skyCloudsOn",
+    "skyCloudsHeight",
+    "surfaceArea",
+    "sceneId",
+    "envId",
+    "envEra",
+    "envTime",
+    "backdropIdx",
+    "liveMode",
+    "torusRingsOn",
+    "torusRadius",
+    "torusTube",
+    "torusScale",
+    "torusOpacity",
+    "torusTextureIdx",
+    "torusCellSize",
+    "torusVerticalSpacing",
+    "torusVerticalCount",
+    "torusViewDistance",
+    "torusFadeDistance",
+  ],
+  ljud: ["audioOn", "audioVol", "audioSyncSpeed", "audioSpatial"],
+};
+
+export const PRESET_ALL_FIELDS: (keyof Persisted)[] = Object.values(PRESET_TAB_FIELDS).flat();
+
+// Shallow-picks `keys` off `obj`, skipping any that are undefined — shared by
+// the preset export (tab scope -> subset of a full snapshot) and import
+// (only apply fields the target scope actually owns) paths.
+export function pickFields<T extends object>(obj: T, keys: (keyof T)[]): Partial<T> {
+  const out: Partial<T> = {};
+  for (const k of keys) {
+    if (obj[k] !== undefined) out[k] = obj[k];
+  }
+  return out;
+}
