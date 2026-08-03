@@ -596,9 +596,9 @@ const DEFAULTS: Persisted = {
   cameraMode: "float",
   noclipSpeed: 1,
   swingPositionY: 25,
-  swingIntensity: 1,
+  swingIntensity: 0.3,
   swingXFactor: 0,
-  swingHeight: 15,
+  swingHeight: 50000,
   swingPreset: "water",
   swingYWaveform: "pendulum",
   // Interval session off by default; a 30s FRI/GUNGA alternation running
