@@ -219,6 +219,7 @@ export type Persisted = {
   sphereMaterial: boolean;
   sphereStrength: number;
   trochoid: number;
+  causticsOn: boolean;
   cameraMode: CameraMode;
   noclipSpeed: number;
   swingPositionY: number;
@@ -328,6 +329,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "depthSineAmp",
     "depthSineFreq",
     "hideWater",
+    "causticsOn",
   ],
   miljo: [
     "timeOfDay",

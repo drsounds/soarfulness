@@ -268,6 +268,8 @@ export type SettingsPanelProps = {
   setDepthSineFreq: Dispatch<SetStateAction<number>>;
   hideWater: boolean;
   setHideWater: Dispatch<SetStateAction<boolean>>;
+  causticsOn: boolean;
+  setCausticsOn: Dispatch<SetStateAction<boolean>>;
 
   // Miljö
   todLabel: string;
@@ -677,6 +679,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setDepthSineFreq,
     hideWater,
     setHideWater,
+    causticsOn,
+    setCausticsOn,
     todLabel,
     setTimeOfDay,
     midCloudsOn,
@@ -1643,6 +1647,12 @@ export function SettingsPanel(props: SettingsPanelProps) {
               value={hideWater ? "DÖLJ" : "SYNLIGT"}
               onDec={() => setHideWater(true)}
               onInc={() => setHideWater(false)}
+            />
+            <PadDial
+              label="ÄKTA KAUSTIK"
+              value={causticsOn ? "PÅ" : "AV"}
+              onDec={() => setCausticsOn(false)}
+              onInc={() => setCausticsOn(true)}
             />
           </>
         )}
