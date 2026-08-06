@@ -16,7 +16,7 @@
       }
     },
     "android": {
-      "package": "com.aquawavedream.app",
+      "package": "se.aquafulness.app.gen7",
       "permissions": ["android.permission.INTERNET"]
     },
     "plugins": ["react-native-webgpu"],
