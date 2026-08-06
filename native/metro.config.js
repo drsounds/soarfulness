@@ -7,10 +7,29 @@
 // https://wcandillon.github.io/react-native-webgpu/docs/integrations/three-js
 const { getDefaultConfig } = require("expo/metro-config");
 const path = require("path");
+const fs = require("fs");
 
 const config = getDefaultConfig(__dirname);
 
-const threePackagePath = path.dirname(require.resolve("three/package.json"));
+// `require.resolve("three/package.json")` throws under Node's "exports"
+// enforcement — three's package.json doesn't list "./package.json" as an
+// exported subpath, so resolving it as a module specifier is rejected even
+// though the file exists on disk. Resolve the main entry file instead (which
+// *is* covered by "exports") and walk up to the nearest package.json with a
+// plain fs check, which isn't subject to the exports map at all.
+function resolvePackageDir(pkgName) {
+  let dir = path.dirname(require.resolve(pkgName));
+  while (!fs.existsSync(path.join(dir, "package.json"))) {
+    const parent = path.dirname(dir);
+    if (parent === dir) {
+      throw new Error(`Could not locate package.json for "${pkgName}"`);
+    }
+    dir = parent;
+  }
+  return dir;
+}
+
+const threePackagePath = resolvePackageDir("three");
 
 const defaultResolveRequest = config.resolver.resolveRequest;
 
