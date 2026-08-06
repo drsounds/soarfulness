@@ -86,21 +86,17 @@ Android was the one explicitly asked for, and the same `eas build --platform
 ios` command would need Apple credentials configured on the EAS project
 first.
 
-**Required one-time setup before this workflow can run** (none of this can be
-done from this sandbox — no Expo account/credentials here):
+**Setup status:**
 
-1. Create/sign in to an [Expo account](https://expo.dev), then from `native/`
-   run `npx eas-cli init` (or `eas build:configure`) to create a real EAS
-   project. This replaces the `REPLACE_WITH_EAS_PROJECT_ID` placeholder in
-   `app.json`'s `expo.extra.eas.projectId` with a real project ID — commit
-   that change.
-2. Generate an [Expo access token](https://docs.expo.dev/accounts/programmatic-access/)
-   and add it as a repository secret named `EXPO_TOKEN` (Settings → Secrets
-   and variables → Actions). The workflow reads `secrets.EXPO_TOKEN`.
+1. ✅ Done — `app.json`'s `expo.extra.eas.projectId` points at a real EAS
+   project (`0bbc297b-1ee1-46d3-a1b4-292c34d47cd7`, created at expo.dev).
+2. ⬜ **Still needed**: generate an
+   [Expo access token](https://docs.expo.dev/accounts/programmatic-access/)
+   for that account and add it as a repository secret named `EXPO_TOKEN`
+   (Settings → Secrets and variables → Actions). The workflow reads
+   `secrets.EXPO_TOKEN` and will fail authentication without it — this can't
+   be done from this sandbox (no Expo credentials here).
 3. The `preview`/`development` profiles in `eas.json` build an installable
    `.apk` directly (no Play Store signing needed); `production` is set up for
    an `.aab` Play Store submission and will need real signing credentials
    (EAS can generate/manage an Android keystore for you on first build).
-
-Until step 1 is done, `eas build` will fail — there's no real project for it
-to build against yet.

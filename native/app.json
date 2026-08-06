@@ -22,7 +22,7 @@
     "plugins": ["react-native-webgpu"],
     "extra": {
       "eas": {
-        "projectId": "REPLACE_WITH_EAS_PROJECT_ID"
+        "projectId": "0bbc297b-1ee1-46d3-a1b4-292c34d47cd7"
       }
     }
   }
