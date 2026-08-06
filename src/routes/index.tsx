@@ -2557,15 +2557,26 @@ function Aquafulness() {
         // Translucency — uOpacity controls how see-through the tinted WATER
         // BODY is, but real water (like glass) doesn't get less reflective
         // just because it reads as clearer: the Fresnel sky/photo reflection,
-        // sun glint and foam are surface phenomena that must stay visible
-        // even at uOpacity = 0, so a plain "fade col toward the background"
-        // would wrongly wash out the reflection along with the tint.
+        // sun glint and foam are surface phenomena that shouldn't wash out
+        // just because uOpacity is turned down a little, so a plain "fade
+        // col toward the background" would wrongly dim the reflection right
+        // along with the tint even at moderate settings.
+        // At literal uOpacity = 0 though, the water needs to actually
+        // disappear (this is the dial's "off" end, same expectation as
+        // VATTENYTA/hideWater) — a camera sitting near the surface spends
+        // most of its view at grazing angles where reflAmt is naturally
+        // high, so without this gate the "reflection stays visible" fix
+        // above left the water looking fully opaque almost everywhere even
+        // at 0%. reflGate ramps the reflective/foam share in fast (by 15%)
+        // so it's back to full strength for the dial's actual usable range,
+        // while 0% itself stays fully transparent.
+        float reflGate = smoothstep(0.0, 0.15, uOpacity);
         // keepAmt is the fraction of this pixel that's reflection/foam
         // rather than transmitted water body — col above was built as
         // exactly that weighted mix, so only the remaining share needs
         // uOpacity applied. Thinner (higher/steeper) crests let a little
         // more light through regardless.
-        float keepAmt = clamp(reflAmt + foam * 0.6, 0.0, 1.0);
+        float keepAmt = clamp((reflAmt + foam * 0.6) * reflGate, 0.0, 1.0);
         float bodyAlpha = clamp(uOpacity * (1.0 - height * 0.25), 0.0, 1.0);
         float alpha = mix(bodyAlpha, 1.0, keepAmt);
         // Premultiplied compositing (see mat.premultipliedAlpha below): the
