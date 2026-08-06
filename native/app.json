@@ -1,15 +1,15 @@
 {
   "expo": {
     "name": "Aqua Wave Dream",
-    "slug": "aqua-wave-dream",
-    "scheme": "aquawavedream",
+    "slug": "aquafulness",
+    "scheme": "aquafulness",
     "version": "0.1.0",
     "orientation": "landscape",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "assetBundlePatterns": ["assets/**/*"],
     "ios": {
-      "bundleIdentifier": "com.aquawavedream.app",
+      "bundleIdentifier": "se.aquafulnss.app.gen7",
       "supportsTablet": true,
       "infoPlist": {
         "UIRequiresFullScreen": true
