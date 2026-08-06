@@ -1,0 +1,50 @@
+name: Native Android build (EAS)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "native/**"
+      - ".github/workflows/native-eas-build.yml"
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "eas.json build profile to use"
+        required: false
+        default: preview
+        type: choice
+        options:
+          - development
+          - preview
+          - production
+
+jobs:
+  build:
+    name: EAS Build (Android)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: native
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+        # No `cache: npm` here yet — see native/NATIVE_APP.md (no committed
+        # package-lock.json).
+
+      - name: Set up EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          packager: npm
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build on EAS
+        run: eas build --platform android --profile ${{ inputs.profile || 'preview' }} --non-interactive

@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "Aqua Wave Dream",
+    "slug": "aqua-wave-dream",
+    "scheme": "aquawavedream",
+    "version": "0.1.0",
+    "orientation": "landscape",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "assetBundlePatterns": ["assets/**/*"],
+    "ios": {
+      "bundleIdentifier": "com.aquawavedream.app",
+      "supportsTablet": true,
+      "infoPlist": {
+        "UIRequiresFullScreen": true
+      }
+    },
+    "android": {
+      "package": "com.aquawavedream.app",
+      "permissions": ["android.permission.INTERNET"]
+    },
+    "plugins": ["react-native-webgpu"],
+    "extra": {
+      "eas": {
+        "projectId": "0bbc297b-1ee1-46d3-a1b4-292c34d47cd7"
+      }
+    }
+  }
+}
