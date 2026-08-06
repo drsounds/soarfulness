@@ -2554,37 +2554,37 @@ function Aquafulness() {
           col = mix(col, deepT * 0.55, murk);
         }
 
-        // Translucency — uOpacity controls how see-through the tinted WATER
-        // BODY is, but real water (like glass) doesn't get less reflective
-        // just because it reads as clearer: the Fresnel sky/photo reflection,
-        // sun glint and foam are surface phenomena that shouldn't wash out
-        // just because uOpacity is turned down a little, so a plain "fade
-        // col toward the background" would wrongly dim the reflection right
-        // along with the tint even at moderate settings.
-        // At literal uOpacity = 0 though, the water needs to actually
-        // disappear (this is the dial's "off" end, same expectation as
-        // VATTENYTA/hideWater) — a camera sitting near the surface spends
-        // most of its view at grazing angles where reflAmt is naturally
-        // high, so without this gate the "reflection stays visible" fix
-        // above left the water looking fully opaque almost everywhere even
-        // at 0%. reflGate ramps the reflective/foam share in fast (by 15%)
-        // so it's back to full strength for the dial's actual usable range,
-        // while 0% itself stays fully transparent.
-        float reflGate = smoothstep(0.0, 0.15, uOpacity);
+        // Translucency — uOpacity controls how see-through the water is.
+        // Two earlier attempts at this got it wrong in opposite directions:
+        // pinning the reflective/foam share to fully opaque the moment
+        // uOpacity ticked up even slightly meant the dial had almost no
+        // visible effect across most of the screen (a camera near the
+        // surface spends most of its view at grazing angles, where reflAmt
+        // is naturally high — so keepAmt below was already ~1 there
+        // regardless of the dial); fading everything at the same flat rate
+        // (the very first version) wrongly washed the reflection out at
+        // low-but-nonzero settings instead of just revealing what's behind
+        // the water.
+        // The fix: give the reflective/foam share its own alpha curve
+        // (reflAlpha) that rises faster than the plain body fade (bodyAlpha)
+        // — so a reflection stays clearly visible through fairly transparent
+        // water, matching how a thin, clear film still shows a visible sheen
+        // — while both curves still start at exactly 0 (uOpacity = 0 is
+        // fully invisible, same as VATTENYTA/hideWater) and reach exactly 1
+        // at uOpacity = 1 (fully opaque), so the whole dial stays
+        // continuously responsive end to end.
+        float bodyAlpha = clamp(uOpacity, 0.0, 1.0);
+        float reflAlpha = pow(bodyAlpha, 0.35);
         // keepAmt is the fraction of this pixel that's reflection/foam
         // rather than transmitted water body — col above was built as
-        // exactly that weighted mix, so only the remaining share needs
-        // uOpacity applied. Thinner (higher/steeper) crests let a little
-        // more light through regardless.
-        float keepAmt = clamp((reflAmt + foam * 0.6) * reflGate, 0.0, 1.0);
-        float bodyAlpha = clamp(uOpacity * (1.0 - height * 0.25), 0.0, 1.0);
-        float alpha = mix(bodyAlpha, 1.0, keepAmt);
-        // Premultiplied compositing (see mat.premultipliedAlpha below): the
-        // reflective/foam share of col is written at full strength so it
-        // blends straight on top of whatever's behind the water, while the
-        // body share is scaled down by its own alpha before the GPU adds in
-        // (1 - alpha) of the background.
-        vec3 premult = mix(col * bodyAlpha, col, keepAmt);
+        // exactly that weighted mix.
+        float keepAmt = clamp(reflAmt + foam * 0.6, 0.0, 1.0);
+        float alpha = mix(bodyAlpha, reflAlpha, keepAmt);
+        // Premultiplied compositing (see mat.premultipliedAlpha below):
+        // col * alpha is exactly mix(col * bodyAlpha, col * reflAlpha,
+        // keepAmt), i.e. each share pre-scaled by its own alpha before the
+        // GPU adds in (1 - alpha) of whatever's behind the water.
+        vec3 premult = col * alpha;
         gl_FragColor = vec4(premult, alpha);
       }
     `;

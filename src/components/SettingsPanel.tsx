@@ -1492,10 +1492,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
               value={`${Math.round(waterOpacity * 100)}%`}
               rawValue={waterOpacity}
               onSet={setWaterOpacity}
-              min={0.1}
+              min={0}
               max={1}
               step={0.05}
-              onDec={() => setWaterOpacity((v) => Math.max(0.1, +(v - 0.05).toFixed(2)))}
+              onDec={() => setWaterOpacity((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
               onInc={() => setWaterOpacity((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
             />
             <PadDial
