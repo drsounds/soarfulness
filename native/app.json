@@ -4,7 +4,7 @@
     "slug": "aquafulness",
     "scheme": "aquafulness",
     "version": "0.1.0",
-    "orientation": "landscape",
+    "orientation": "default",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "assetBundlePatterns": ["assets/**/*"],
