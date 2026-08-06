@@ -515,6 +515,13 @@ const DEFAULTS: Persisted = {
   sphereMaterial: false,
   sphereStrength: 0.7,
   trochoid: 0,
+  // Off by default: swaps the flat sine-noise "fake" caustic for a real
+  // Snell's-law refraction + ray-density caustic driven by the actual FFT
+  // wave field (see uCausticsOn in the ocean/floor shaders), and lets the
+  // water body's color reveal the true seafloor tint at shallow refraction
+  // angles instead of the fixed deep/shallow gradient. Costs extra
+  // per-fragment cos() evaluations, so it stays opt-in.
+  causticsOn: false,
   cameraMode: "float",
   noclipSpeed: 1,
   swingPositionY: 25,
@@ -695,6 +702,7 @@ function Aquafulness() {
   const [sphereMaterial, setSphereMaterial] = useState(initial.sphereMaterial);
   const [sphereStrength, setSphereStrength] = useState(initial.sphereStrength);
   const [trochoid, setTrochoid] = useState(initial.trochoid);
+  const [causticsOn, setCausticsOn] = useState(initial.causticsOn);
   const [cameraMode, setCameraMode] = useState<CameraMode>(initial.cameraMode);
   const [noclipSpeed, setNoclipSpeed] = useState(initial.noclipSpeed);
   // Resting altitude the pendulum hangs from — GUNGA POSITION Y. Renamed from
@@ -820,12 +828,13 @@ function Aquafulness() {
   const sphereMaterialRef = useRef(sphereMaterial);
   const sphereStrengthRef = useRef(sphereStrength);
   const trochoidRef = useRef(trochoid);
+  const causticsOnRef = useRef(causticsOn);
 
   // A full snapshot of every settings-dialog field, in the exact Persisted
   // shape saved to localStorage below — also reused by the preset save/
   // export feature (see exportSettingsFile/savePresetAs) so there's only one
   // place that enumerates every field.
-  const buildPersistedSnapshot = (): Persisted => ({ waveAmp, timeOfDay, waveSpeed, waveFreq, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, realisticWaves, dyingWave, dyingWaveAmp, dyingWaveSpeed, randomizeWaves, wavePreset, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingPositionY, swingIntensity, swingXFactor, swingHeight, swingPreset, swingYWaveform, intervalSessionOn, intervalDuration, intervalSessionType, intervalCount, intervalShowStats, surfaceArea, torusRingsOn, torusRadius, torusTube, torusScale, torusOpacity, torusTextureIdx, torusCellSize, torusVerticalSpacing, torusVerticalCount, torusViewDistance, torusFadeDistance });
+  const buildPersistedSnapshot = (): Persisted => ({ waveAmp, timeOfDay, waveSpeed, waveFreq, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, realisticWaves, dyingWave, dyingWaveAmp, dyingWaveSpeed, randomizeWaves, wavePreset, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, causticsOn, cameraMode, noclipSpeed, swingPositionY, swingIntensity, swingXFactor, swingHeight, swingPreset, swingYWaveform, intervalSessionOn, intervalDuration, intervalSessionType, intervalCount, intervalShowStats, surfaceArea, torusRingsOn, torusRadius, torusTube, torusScale, torusOpacity, torusTextureIdx, torusCellSize, torusVerticalSpacing, torusVerticalCount, torusViewDistance, torusFadeDistance });
 
   // Persist settings to localStorage whenever they change (SSR-safe, hydration-safe).
   useEffect(() => {
@@ -835,7 +844,7 @@ function Aquafulness() {
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, waveFreq, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, realisticWaves, dyingWave, dyingWaveAmp, dyingWaveSpeed, randomizeWaves, wavePreset, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, cameraMode, noclipSpeed, swingPositionY, swingIntensity, swingXFactor, swingHeight, swingPreset, swingYWaveform, intervalSessionOn, intervalDuration, intervalSessionType, intervalCount, intervalShowStats, surfaceArea, torusRingsOn, torusRadius, torusTube, torusScale, torusOpacity, torusTextureIdx, torusCellSize, torusVerticalSpacing, torusVerticalCount, torusViewDistance, torusFadeDistance]);
+  }, [waveAmp, timeOfDay, waveSpeed, waveFreq, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, regularWaves, realisticWaves, dyingWave, dyingWaveAmp, dyingWaveSpeed, randomizeWaves, wavePreset, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, causticsOn, cameraMode, noclipSpeed, swingPositionY, swingIntensity, swingXFactor, swingHeight, swingPreset, swingYWaveform, intervalSessionOn, intervalDuration, intervalSessionType, intervalCount, intervalShowStats, surfaceArea, torusRingsOn, torusRadius, torusTube, torusScale, torusOpacity, torusTextureIdx, torusCellSize, torusVerticalSpacing, torusVerticalCount, torusViewDistance, torusFadeDistance]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -1022,6 +1031,7 @@ function Aquafulness() {
   }, [reflStrength]);
   useEffect(() => { bottomColorRef.current = bottomColor; }, [bottomColor]);
   useEffect(() => { sphereMaterialRef.current = sphereMaterial; }, [sphereMaterial]);
+  useEffect(() => { causticsOnRef.current = causticsOn; }, [causticsOn]);
   useEffect(() => { sphereStrengthRef.current = sphereStrength; }, [sphereStrength]);
   useEffect(() => { trochoidRef.current = trochoid; }, [trochoid]);
   useEffect(() => { noclipSpeedRef.current = noclipSpeed; }, [noclipSpeed]);
@@ -1247,6 +1257,7 @@ function Aquafulness() {
     setSphereMaterial(DEFAULTS.sphereMaterial);
     setSphereStrength(DEFAULTS.sphereStrength);
     setTrochoid(DEFAULTS.trochoid);
+    setCausticsOn(DEFAULTS.causticsOn);
     setCameraMode(DEFAULTS.cameraMode);
     setNoclipSpeed(DEFAULTS.noclipSpeed);
     setSwingPositionY(DEFAULTS.swingPositionY);
@@ -1354,6 +1365,7 @@ function Aquafulness() {
     if (patch.sphereMaterial !== undefined) setSphereMaterial(patch.sphereMaterial);
     if (patch.sphereStrength !== undefined) setSphereStrength(patch.sphereStrength);
     if (patch.trochoid !== undefined) setTrochoid(patch.trochoid);
+    if (patch.causticsOn !== undefined) setCausticsOn(patch.causticsOn);
     if (patch.cameraMode !== undefined) setCameraMode(patch.cameraMode);
     if (patch.noclipSpeed !== undefined) setNoclipSpeed(patch.noclipSpeed);
     if (patch.swingPositionY !== undefined) setSwingPositionY(patch.swingPositionY);
@@ -2054,6 +2066,13 @@ function Aquafulness() {
       // Grumlighet (turbidity), shared with the seafloor/mid-cloud/sky
       // shaders — see uTurbidity handling in the fragment shader below.
       uTurbidity: { value: 0 },
+      // ÄKTA KAUSTIK: real Snell's-law refraction of the view ray reveals
+      // the actual seafloor tint in shallow water instead of the fixed
+      // deep/shallow gradient — see uRefraction handling below. Shares the
+      // floor's live color/depth so the two stay consistent.
+      uRefraction: { value: 0 },
+      uFloorColor: { value: new THREE.Color(0xd8c078) },
+      uFloorDepth: { value: 14 },
     };
     // Expose the uniforms so the surface-selector effect can feed in a photo.
     waterUniformsRef.current = uniforms as unknown as Record<string, { value: unknown }>;
@@ -2309,6 +2328,9 @@ function Aquafulness() {
       uniform float uReflMix;
       uniform float uSphereMix;
       uniform float uTurbidity;
+      uniform float uRefraction;
+      uniform vec3 uFloorColor;
+      uniform float uFloorDepth;
       varying vec3 vWorldPos;
       varying vec3 vNormal;
 
@@ -2461,6 +2483,23 @@ function Aquafulness() {
         float refrMix = mix(0.15, 0.85, pow(1.0 - NdotV, 1.6));
         vec3 water = mix(deepT, shalT, refrMix);
 
+        // ÄKTA KAUSTIK / optisk ljusbrytning: bend the view ray through the
+        // surface with real Snell's law (air->water, IOR 1.333) and see how
+        // far it has to travel to reach the seafloor. Near-vertical looks
+        // into shallow water land close by, so the true sand tint shows
+        // through instead of the fixed deep/shallow gradient; steep angles
+        // or deep water travel far enough that the approximation fades back
+        // to the plain gradient.
+        if (uRefraction > 0.001) {
+          vec3 refr = refract(-V, N, 1.0 / 1.333);
+          if (dot(refr, refr) > 0.0001) {
+            float travel = uFloorDepth / max(0.05, -refr.y);
+            float seeBottom = clamp(1.0 - travel / 45.0, 0.0, 1.0);
+            vec3 bottomTint = uFloorColor * clamp(uSunDir.y + 0.3, 0.2, 1.0) * tint;
+            water = mix(water, bottomTint, seeBottom * 0.6 * uRefraction);
+          }
+        }
+
         // Subsurface scattering — light bleeding through wave crests
         float height = clamp((vWorldPos.y + 1.0) / 3.0, 0.0, 1.0);
         vec3 sss = uSunColor * pow(height, 2.0) * 0.35 * clamp(uSunDir.y + 0.2, 0.0, 1.0);
@@ -2477,7 +2516,11 @@ function Aquafulness() {
         vec3 sun = uSunColor * spec * clamp(uSunDir.y + 0.2, 0.0, 1.0)
                    * 2.8 * grazeBoost * (1.0 - uUnderwater);
 
-        vec3 col = mix(water, skyRef, fres * (1.0 - uUnderwater * 0.85)) + sun;
+        // Reflective share of this pixel (sky/photo Fresnel term) — kept
+        // around post-mix so the alpha/compositing step below can tell it
+        // apart from the transmitted water body.
+        float reflAmt = fres * (1.0 - uUnderwater * 0.85);
+        vec3 col = mix(water, skyRef, reflAmt) + sun;
         col = mix(col, vec3(0.95, 0.98, 1.0), foam * 0.85 * (1.0 - uUnderwater));
 
         // Selectable sphere-map ("matcap") material — a distinct, glossier
@@ -2511,14 +2554,27 @@ function Aquafulness() {
           col = mix(col, deepT * 0.55, murk);
         }
 
-        // Translucency — thinner (higher/steeper) crests let more light through.
-        // uOpacity scales toward full transparency-free opacity: at 100% the
-        // surface is completely opaque everywhere, not just at grazing/foam
-        // angles; lower settings fall back toward the natural fresnel/foam
-        // variation.
-        float baseAlpha = clamp(0.65 + fres * 0.35 - height * 0.35 + foam * 0.25, 0.4, 1.0);
-        float alpha = 1.0 - (1.0 - baseAlpha * uOpacity) * (1.0 - uOpacity);
-        gl_FragColor = vec4(col, alpha);
+        // Translucency — uOpacity controls how see-through the tinted WATER
+        // BODY is, but real water (like glass) doesn't get less reflective
+        // just because it reads as clearer: the Fresnel sky/photo reflection,
+        // sun glint and foam are surface phenomena that must stay visible
+        // even at uOpacity = 0, so a plain "fade col toward the background"
+        // would wrongly wash out the reflection along with the tint.
+        // keepAmt is the fraction of this pixel that's reflection/foam
+        // rather than transmitted water body — col above was built as
+        // exactly that weighted mix, so only the remaining share needs
+        // uOpacity applied. Thinner (higher/steeper) crests let a little
+        // more light through regardless.
+        float keepAmt = clamp(reflAmt + foam * 0.6, 0.0, 1.0);
+        float bodyAlpha = clamp(uOpacity * (1.0 - height * 0.25), 0.0, 1.0);
+        float alpha = mix(bodyAlpha, 1.0, keepAmt);
+        // Premultiplied compositing (see mat.premultipliedAlpha below): the
+        // reflective/foam share of col is written at full strength so it
+        // blends straight on top of whatever's behind the water, while the
+        // body share is scaled down by its own alpha before the GPU adds in
+        // (1 - alpha) of the background.
+        vec3 premult = mix(col * bodyAlpha, col, keepAmt);
+        gl_FragColor = vec4(premult, alpha);
       }
     `;
 
@@ -2528,6 +2584,11 @@ function Aquafulness() {
       vertexShader,
       fragmentShader,
       transparent: true,
+      // The fragment shader writes premultiplied color (see the alpha/
+      // compositing block above) so lowering uOpacity fades the tinted
+      // water body toward whatever's behind it without dimming the
+      // reflection/foam that's blended on top.
+      premultipliedAlpha: true,
       depthWrite: true,
       side: THREE.DoubleSide,
     });
@@ -2576,6 +2637,17 @@ function Aquafulness() {
       uFogColor: { value: new THREE.Color(0x0a2a3a) },
       uCamNear: { value: camNearRef.current },
       uCamFar: { value: camFarRef.current },
+      // ÄKTA KAUSTIK — see uCausticsOn handling in the fragment shader
+      // above. uSunColor/uFftWave/uFftPhase share the ocean's own uniform
+      // value objects so they never drift out of sync with the visible
+      // surface's wave state.
+      uCausticsOn: { value: 0 },
+      uSunColor: { value: uniforms.uSunColor.value },
+      uFftWave: { value: fftWaveData },
+      uFftPhase: { value: fftPhaseData },
+      uCausticAmp: { value: waveAmp },
+      uCausticFreq: { value: waveFreq },
+      uCausticDepth: { value: 14 },
     };
     const floorMat = new THREE.ShaderMaterial({
       uniforms: floorUniforms,
@@ -2610,6 +2682,18 @@ function Aquafulness() {
         uniform vec3 uFogColor;
         uniform float uCamNear;
         uniform float uCamFar;
+        // ÄKTA KAUSTIK: real Snell's-law refraction + ray-density caustics,
+        // driven by the same FFT wave spectrum the ocean surface itself
+        // renders with (see uFftWave/uFftPhase in the ocean vertex shader,
+        // src/lib/ocean/fftOceanSpectrum.ts) — off by default since it costs
+        // several extra wave-sum evaluations per seafloor fragment.
+        uniform float uCausticsOn;
+        uniform vec3 uSunColor;
+        uniform vec4 uFftWave[${FFT_WAVE_COUNT}];
+        uniform float uFftPhase[${FFT_WAVE_COUNT}];
+        uniform float uCausticAmp;
+        uniform float uCausticFreq;
+        uniform float uCausticDepth;
 
         float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453123); }
         float vnoise(vec2 p){
@@ -2628,6 +2712,64 @@ function Aquafulness() {
             p *= 2.02; a *= 0.5;
           }
           return v;
+        }
+
+        // Same FFT ocean-spectrum sum used by the water surface's vertex
+        // shader (kept in sync via the shared FFT_WAVE_COUNT/K_ALIAS_FADE_GLSL
+        // constants), so the seafloor caustics below are driven by the
+        // actual live wave state rather than independent decorative noise.
+        float kAliasFade(vec2 k) {
+          return 1.0 - smoothstep(${K_ALIAS_FADE_GLSL.start}, ${K_ALIAS_FADE_GLSL.end}, length(k));
+        }
+        float fftHeight(vec2 xz, float t) {
+          float h = 0.0;
+          for (int i = 0; i < ${FFT_WAVE_COUNT}; i++) {
+            vec4 w = uFftWave[i];
+            vec2 k = w.xy * uCausticFreq;
+            h += w.z * kAliasFade(k) * cos(k.x * xz.x + k.y * xz.y - w.w * t + uFftPhase[i]);
+          }
+          return h;
+        }
+
+        // Real caustics: refract the sun ray through the true wave-surface
+        // normal at three neighboring points (finite differences of
+        // fftHeight) and measure how much the resulting rays converge
+        // (bright focus) or spread apart (dim) by the time they reach the
+        // seafloor — the actual ray-density mechanism real underwater
+        // caustics come from, applied to this scene's live wave field.
+        float causticIntensity(vec2 xz) {
+          float e = 0.5;
+          float h0  = fftHeight(xz, uTime) * uCausticAmp;
+          float hx  = fftHeight(xz + vec2(e, 0.0), uTime) * uCausticAmp;
+          float hz  = fftHeight(xz + vec2(0.0, e), uTime) * uCausticAmp;
+          float hxx = fftHeight(xz + vec2(2.0 * e, 0.0), uTime) * uCausticAmp;
+          float hxz = fftHeight(xz + vec2(e, e), uTime) * uCausticAmp;
+          float hzz = fftHeight(xz + vec2(0.0, 2.0 * e), uTime) * uCausticAmp;
+
+          vec3 n0 = normalize(vec3(h0 - hx, e, h0 - hz));
+          vec3 nx = normalize(vec3(hx - hxx, e, hx - hxz));
+          vec3 nz = normalize(vec3(hz - hxz, e, hz - hzz));
+
+          vec3 sunDirN = normalize(uSunDir);
+          float eta = 1.0 / 1.333; // air -> water
+          vec3 r0 = refract(-sunDirN, n0, eta);
+          vec3 rx = refract(-sunDirN, nx, eta);
+          vec3 rz = refract(-sunDirN, nz, eta);
+
+          float depth0 = max(0.1, uCausticDepth - h0);
+          float depthx = max(0.1, uCausticDepth - hx);
+          float depthz = max(0.1, uCausticDepth - hz);
+
+          vec2 hit0 = xz + r0.xz * (depth0 / max(0.05, -r0.y));
+          vec2 hitx = (xz + vec2(e, 0.0)) + rx.xz * (depthx / max(0.05, -rx.y));
+          vec2 hitz = (xz + vec2(0.0, e)) + rz.xz * (depthz / max(0.05, -rz.y));
+
+          vec2 edge1 = hitx - hit0;
+          vec2 edge2 = hitz - hit0;
+          float refractedArea = abs(edge1.x * edge2.y - edge1.y * edge2.x);
+          float undisturbedArea = e * e;
+          float intensity = clamp(undisturbedArea / max(refractedArea, 0.02), 0.0, 8.0);
+          return pow(intensity, 1.3);
         }
 
         // Grumlighet (turbidity): murks up whatever is visible below the
@@ -2693,7 +2835,14 @@ function Aquafulness() {
             caustic += sin(p.x*0.9 + uTime*0.7 + vnoise(p*0.4)*4.0);
             caustic += sin(p.y*0.85 - uTime*0.55 + vnoise(p*0.35 + 3.1)*4.0);
             caustic = pow(max(0.0, caustic*0.5 + 0.5), 3.0);
-            sand += vec3(0.95, 0.88, 0.7) * caustic * 0.22;
+            if (uCausticsOn > 0.001) {
+              float realCaustic = causticIntensity(p) * clamp(uSunDir.y + 0.15, 0.0, 1.0);
+              caustic = mix(caustic, realCaustic, uCausticsOn);
+              sand += uSunColor * caustic * 0.22 * uCausticsOn;
+              sand += vec3(0.95, 0.88, 0.7) * caustic * 0.22 * (1.0 - uCausticsOn);
+            } else {
+              sand += vec3(0.95, 0.88, 0.7) * caustic * 0.22;
+            }
             base = mix(uColor, sand, clamp(uTextured, 0.0, 1.0));
           }
           base = applyTurbidity(base);
@@ -2975,6 +3124,7 @@ function Aquafulness() {
       uniforms.uTintBright.value += (waterBrightRef.current - uniforms.uTintBright.value) * Math.min(1, dt * 6);
       uniforms.uSurfBright.value += (surfBrightRef.current - uniforms.uSurfBright.value) * Math.min(1, dt * 6);
       uniforms.uSurfSat.value += (surfSatRef.current - uniforms.uSurfSat.value) * Math.min(1, dt * 6);
+      uniforms.uRefraction.value += ((causticsOnRef.current ? 1 : 0) - uniforms.uRefraction.value) * Math.min(1, dt * 4);
       const bot = BOTTOM_OPTIONS[bottomIdxRef.current] ?? BOTTOM_OPTIONS[0];
       // Sinus-modulerat "havsnivå"-offset. Vi flyttar hela scenen (yta, botten,
       // mellan-moln, kamera) rigidt i Y istället för att modulera bottendjupet
@@ -2989,8 +3139,14 @@ function Aquafulness() {
         floor.visible = true;
         const botRgb = bot.name === "Anpassad" ? hexToRgbNorm(bottomColorRef.current) : bot.rgb;
         floorUniforms.uColor.value.setRGB(botRgb[0], botRgb[1], botRgb[2]);
+        uniforms.uFloorColor.value.setRGB(botRgb[0], botRgb[1], botRgb[2]);
+        uniforms.uFloorDepth.value = effectiveDepth;
         floor.position.y = -effectiveDepth + levelY;
         floorUniforms.uTime.value = t;
+        floorUniforms.uCausticDepth.value = effectiveDepth;
+        floorUniforms.uCausticAmp.value = ampRef.current;
+        floorUniforms.uCausticFreq.value = uniforms.uFreq.value;
+        floorUniforms.uCausticsOn.value += ((causticsOnRef.current ? 1 : 0) - floorUniforms.uCausticsOn.value) * Math.min(1, dt * 4);
         const isClouds = bot.name === "Moln";
         // Cloud mode blends independently of the sand-texture toggle.
         const cloudTarget = isClouds ? 1 : 0;
@@ -3975,6 +4131,8 @@ function Aquafulness() {
     setDepthSineFreq,
     hideWater,
     setHideWater,
+    causticsOn,
+    setCausticsOn,
     todLabel,
     setTimeOfDay,
     midCloudsOn,
