@@ -19,6 +19,11 @@
       "package": "com.aquawavedream.app",
       "permissions": ["android.permission.INTERNET"]
     },
-    "plugins": ["react-native-webgpu"]
+    "plugins": ["react-native-webgpu"],
+    "extra": {
+      "eas": {
+        "projectId": "REPLACE_WITH_EAS_PROJECT_ID"
+      }
+    }
   }
 }

@@ -74,9 +74,33 @@ have **no equivalent here yet**:
 
 ## CI
 
-`.github/workflows/native-android-build.yml` builds an unsigned debug APK via
-`expo prebuild` + `./gradlew assembleDebug` on every change under `native/`.
-It has no `package-lock.json` to cache against yet (see above) — add one (and
-enable `actions/setup-node`'s npm cache) once dependencies have actually been
-installed and pinned for real. There's no iOS CI job yet (would need a
-macOS runner + code signing setup); Android was the one explicitly asked for.
+`.github/workflows/native-eas-build.yml` builds Android via
+[EAS Build](https://docs.expo.dev/build/introduction/) (`eas build --platform
+android --profile preview`) instead of building locally on the runner. It
+triggers on push to `main` under `native/**`, or manually via
+`workflow_dispatch` (pick `development` / `preview` / `production` from
+`eas.json`). It has no `package-lock.json` to cache against yet (see above) —
+add one (and enable `actions/setup-node`'s npm cache) once dependencies have
+actually been installed and pinned for real. There's no iOS build job yet;
+Android was the one explicitly asked for, and the same `eas build --platform
+ios` command would need Apple credentials configured on the EAS project
+first.
+
+**Required one-time setup before this workflow can run** (none of this can be
+done from this sandbox — no Expo account/credentials here):
+
+1. Create/sign in to an [Expo account](https://expo.dev), then from `native/`
+   run `npx eas-cli init` (or `eas build:configure`) to create a real EAS
+   project. This replaces the `REPLACE_WITH_EAS_PROJECT_ID` placeholder in
+   `app.json`'s `expo.extra.eas.projectId` with a real project ID — commit
+   that change.
+2. Generate an [Expo access token](https://docs.expo.dev/accounts/programmatic-access/)
+   and add it as a repository secret named `EXPO_TOKEN` (Settings → Secrets
+   and variables → Actions). The workflow reads `secrets.EXPO_TOKEN`.
+3. The `preview`/`development` profiles in `eas.json` build an installable
+   `.apk` directly (no Play Store signing needed); `production` is set up for
+   an `.aab` Play Store submission and will need real signing credentials
+   (EAS can generate/manage an Android keystore for you on first build).
+
+Until step 1 is done, `eas build` will fail — there's no real project for it
+to build against yet.
