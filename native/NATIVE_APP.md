@@ -10,11 +10,17 @@ anything in here** — it was written under real constraints that shaped what
 
 This was authored in a sandboxed environment with **no GPU and no iOS/Android
 device or emulator**. Nothing in `src/three/` has been compiled or run.
-`npm install` was never even executed in this directory. Everything here is a
-best-effort, code-reading-level translation — expect to spend real time
-debugging it the first time it actually runs on a device.
+Everything in the shader/scene/rendering code is a best-effort,
+code-reading-level translation — expect to spend real time debugging it the
+first time it actually runs on a device.
 
-Two things partly de-risk this:
+`npm install` **has** now been run for real in this directory (resolved
+cleanly, 956 packages, no conflicts — `package-lock.json` is committed), so
+the dependency versions listed in `package.json` are confirmed to actually
+co-exist. That's a lower bar than "it builds" or "it runs", but it does rule
+out an entire category of failure.
+
+Two more things partly de-risk the unverified parts:
 
 - The renderer setup (`src/three/webgpuRenderer.ts`, `metro.config.js`) and
   the Canvas/device wiring (`src/components/OceanCanvas.tsx`) follow
@@ -56,9 +62,7 @@ have **no equivalent here yet**:
 
 ## Before this can actually run
 
-1. `cd native && npm install` — this has never been run; expect dependency
-   resolution issues on the first try (version pins above are best-guess,
-   not verified against the real dependency graph).
+1. ✅ `cd native && npm install` — done, resolves cleanly (see above).
 2. `npx expo prebuild` to generate the `android`/`ios` projects (not
    committed — see `.gitignore` — this repo uses Continuous Native
    Generation, so `app.json`/`metro.config.js` are the source of truth).
@@ -79,12 +83,10 @@ have **no equivalent here yet**:
 android --profile preview`) instead of building locally on the runner. It
 triggers on push to `main` under `native/**`, or manually via
 `workflow_dispatch` (pick `development` / `preview` / `production` from
-`eas.json`). It has no `package-lock.json` to cache against yet (see above) —
-add one (and enable `actions/setup-node`'s npm cache) once dependencies have
-actually been installed and pinned for real. There's no iOS build job yet;
-Android was the one explicitly asked for, and the same `eas build --platform
-ios` command would need Apple credentials configured on the EAS project
-first.
+`eas.json`). It caches `npm` against the committed `package-lock.json` and
+installs via `npm ci`. There's no iOS build job yet; Android was the one
+explicitly asked for, and the same `eas build --platform ios` command would
+need Apple credentials configured on the EAS project first.
 
 **Setup status:**
 
