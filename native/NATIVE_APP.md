@@ -339,6 +339,23 @@ everything else in this file that touches `googleapis.com`):**
    testing tracks; add production-release permission only once you actually
    want CI able to do that).
 
+**First automated attempt hit `This edit has expired, please create a new
+Edit.`** After the manual-first-upload prerequisite above was satisfied
+(Play Console showed an `.aab` uploaded for version code 1), CI's first
+automated submission still failed with this error from the Play Developer
+API, right after the AAB upload step logged as complete. Play Console
+nonetheless showed the bundle as uploaded for that version code - the
+binary transfer succeeded, but the "edit" (the API's transaction object
+covering the upload + track assignment + commit) expired before the whole
+operation could finalize into a released build, so nothing actually got
+attached to a track. Net effect either way: version code 1 is now
+permanently claimed on Google's side (Play rejects any future upload that
+reuses a version code, whether or not it was ever released), so
+`app.json`'s `android.versionCode` is now set explicitly (starting at `2`)
+to guarantee every subsequent CI build ships a code Google hasn't seen yet,
+regardless of whether that first edit-expiry error turns out to be a
+one-off runner/network fluke or a recurring issue.
+
 **Track defaults to `internal`, never `production`, on automatic
 (push-triggered) runs** — that's a deliberate safety choice: continuous
 internal-testing distribution is reasonable to fully automate, but pushing
