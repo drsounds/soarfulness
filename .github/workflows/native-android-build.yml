@@ -30,6 +30,14 @@ jobs:
     defaults:
       run:
         working-directory: native
+    # `secrets` isn't a recognized context inside step `if:` conditionals
+    # (confirmed via the Actions API's own workflow validation - "Unrecognized
+    # named-value: 'secrets'"). Booleans computed here in job-level `env:`
+    # *can* read secrets, and `env` *is* usable in `if:`, so gate steps on
+    # these instead of referencing secrets.* directly in if:.
+    env:
+      HAS_ANDROID_SIGNING: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 != '' }}
+      HAS_PLAY_SUBMIT: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 != '' && secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -74,12 +82,12 @@ jobs:
       # is configured (see native/NATIVE_APP.md). Skipped entirely otherwise,
       # so forks/PRs without the secret still get the debug APK above.
       - name: Decode upload keystore
-        if: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 != '' }}
+        if: ${{ env.HAS_ANDROID_SIGNING == 'true' }}
         run: |
           echo "${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/upload-keystore.jks"
 
       - name: Build release AAB (signed)
-        if: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 != '' }}
+        if: ${{ env.HAS_ANDROID_SIGNING == 'true' }}
         working-directory: native/android
         env:
           ANDROID_UPLOAD_STORE_FILE: ${{ runner.temp }}/upload-keystore.jks
@@ -89,7 +97,7 @@ jobs:
         run: ./gradlew bundleRelease --no-daemon
 
       - name: Upload release AAB artifact
-        if: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 != '' }}
+        if: ${{ env.HAS_ANDROID_SIGNING == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: aqua-wave-dream-release-aab
@@ -105,7 +113,7 @@ jobs:
       # (push-triggered) runs; use workflow_dispatch to target a different
       # track deliberately - this never defaults to "production" on its own.
       - name: Submit to Play Store
-        if: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 != '' && secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON != '' }}
+        if: ${{ env.HAS_PLAY_SUBMIT == 'true' }}
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
