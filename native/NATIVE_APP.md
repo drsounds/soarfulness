@@ -65,7 +65,7 @@ have **no equivalent here yet**:
 1. ✅ `cd native && npm install` — done, resolves cleanly (see above).
 2. `npx expo prebuild` to generate the `android`/`ios` projects (not
    committed — see `.gitignore` — this repo uses Continuous Native
-   Generation, so `app.json`/`metro.config.js` are the source of truth).
+   Generation, so `app.config.js`/`metro.config.js` are the source of truth).
 3. Run on a **physical device** if possible — WebGPU on Android emulators
    commonly falls back to a slow software adapter (see
    react-native-webgpu's own troubleshooting docs).
@@ -355,6 +355,23 @@ reuses a version code, whether or not it was ever released), so
 to guarantee every subsequent CI build ships a code Google hasn't seen yet,
 regardless of whether that first edit-expiry error turns out to be a
 one-off runner/network fluke or a recurring issue.
+
+**Version code 2 turned out to already be claimed too, from a build this
+repo never produced.** The very next CI run - the first ever built with
+`versionCode: 2` - failed the same submission step with `Version code 2
+has already been used`, even though no build from this repo/workflow had
+ever used that code before (confirmed via `git log -p` on `app.json`).
+Something outside this CI pipeline - most plausibly a manual upload the
+user made directly through Play Console while testing - had already
+claimed it. Bumping the static number by hand again would just be
+guessing at a moving target, so `app.json` was replaced with
+`app.config.js`, computing `android.versionCode` from `GITHUB_RUN_NUMBER`
+(set automatically on every Actions run, strictly increasing, already far
+past 2) instead of a hardcoded literal. This closes off the whole class of
+"someone/something else already claimed that number" collisions rather
+than reacting to each one - falls back to `1` outside CI (local
+`expo prebuild`/`expo run:android`), which is fine since those aren't used
+to produce Play Store uploads.
 
 **Track defaults to `internal`, never `production`, on automatic
 (push-triggered) runs** — that's a deliberate safety choice: continuous
