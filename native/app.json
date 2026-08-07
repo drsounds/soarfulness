@@ -17,6 +17,7 @@
     },
     "android": {
       "package": "se.aquafulness.app.gen7",
+      "versionCode": 2,
       "permissions": ["android.permission.INTERNET"]
     },
     "plugins": [
