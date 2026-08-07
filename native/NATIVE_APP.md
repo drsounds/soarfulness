@@ -78,61 +78,60 @@ have **no equivalent here yet**:
 
 ## CI
 
-`.github/workflows/native-eas-build.yml` builds Android via
-[EAS Build](https://docs.expo.dev/build/introduction/) (`eas build --platform
-android --profile preview`) instead of building locally on the runner. It
-triggers on push to `main` under `native/**`, or manually via
-`workflow_dispatch` (pick `development` / `preview` / `production` from
-`eas.json`). It caches `npm` against the committed `package-lock.json` and
-installs via `npm ci`. There's no iOS build job yet; Android was the one
-explicitly asked for, and the same `eas build --platform ios` command would
-need Apple credentials configured on the EAS project first.
+`.github/workflows/native-android-build.yml` builds Android **directly on
+the GitHub Actions runner** — `expo prebuild` + `./gradlew assembleDebug` —
+rather than delegating to EAS Build. It triggers on push to `main` or PRs
+touching `native/**`, or manually via `workflow_dispatch`, and uploads the
+resulting unsigned debug APK as a workflow artifact. It caches `npm` against
+the committed `package-lock.json` and installs via `npm ci`.
 
-**Setup status:**
+This is a deliberate choice, not the default/obvious option — see "EAS Build
+vs. GitHub Actions" below for why.
 
-1. ✅ Done — `app.json`'s `expo.extra.eas.projectId` points at a real EAS
-   project (`0bbc297b-1ee1-46d3-a1b4-292c34d47cd7`, created at expo.dev).
-2. ✅ Done — `EXPO_TOKEN` repo secret is set; CI authenticates successfully.
-3. The `preview`/`development` profiles in `eas.json` build an installable
-   `.apk` directly (no Play Store signing needed); `production` is set up for
-   an `.aab` Play Store submission and will need real signing credentials
-   (EAS can generate/manage an Android keystore for you on first build).
+`eas.json` and the `EXPO_TOKEN` repo secret are still in place (unused by CI
+right now) in case EAS Build becomes viable again later — e.g. on a paid
+Expo plan, or if the actual resource bottleneck gets tracked down and worked
+around. There's no iOS CI job (would need a macOS runner + code signing);
+Android was the one explicitly asked for.
 
-### Build history / known issues
+### EAS Build vs. GitHub Actions
 
-- **Metro couldn't resolve `three`'s package.json** (fixed) — `three`'s
-  `"exports"` map doesn't expose `./package.json`, so
-  `require.resolve("three/package.json")` threw. Fixed in `metro.config.js`
-  by resolving `three`'s main entry (covered by `exports`) and walking up to
-  the nearest `package.json` via `fs.existsSync` instead.
-- **Gradle build killed with no error, EAS free plan lacks capacity**
-  (unresolved — see below) — the first real EAS Android build got through
-  the entire Gradle task graph (all 254 tasks executed) but never printed
-  `BUILD SUCCESSFUL` before EAS reported "Gradle build failed with unknown
-  error" — the signature of the build machine being killed rather than an
-  actual Gradle-reported failure. The initial guess was that
-  `react-native-webgpu` compiling Dawn from source via CMake was the
-  culprit — that guess was **wrong in its specifics**: Dawn actually ships
-  *prebuilt* per-ABI (`libwebgpu_dawn.so`, linked via CMake's
-  `IMPORTED_LOCATION`, see
-  `node_modules/react-native-webgpu/android/CMakeLists.txt`); only a small
-  ~30-file JNI wrapper compiles from source. Tried bumping
-  `resourceClass: "large"` on all Android profiles as a mitigation (reverted
-  — see below) before confirming with Expo that **the free EAS plan doesn't
-  have the capacity to build this project at all**, regardless of resource
-  class. Root cause of the actual resource pressure (whether it's Kotlin
-  compilation across the many `expo-dev-client`/`expo-dev-launcher`/
-  `expo-dev-menu` modules, the dexing/linking step, or something else) is
-  still unconfirmed.
-  - `resourceClass: "large"` was **reverted** — it doesn't fix a
-    plan-capacity problem, and may not even be usable on the free plan.
-  - Next step under consideration: avoid relying on EAS's build machine for
-    the actual compile/link — e.g. build via a CI runner with a separate,
-    more generous resource pool (this repo's own
-    `.github/workflows/native-eas-build.yml` currently still shells out to
-    EAS; it could instead run `./gradlew` directly on the GitHub Actions
-    runner, sidestepping Expo's plan tier entirely — this is in fact how the
-    very first version of this CI workflow worked, before it was switched to
-    EAS Build), or precompile the native module elsewhere (needs real
-    Android NDK/SDK access, which this sandbox's network policy blocks) and
-    vendor the resulting binary.
+CI originally used EAS Build (`eas build --platform android`). That's
+gone through several iterations:
+
+1. **Metro couldn't resolve `three`'s package.json** (fixed) — `three`'s
+   `"exports"` map doesn't expose `./package.json`, so
+   `require.resolve("three/package.json")` threw. Fixed in `metro.config.js`
+   by resolving `three`'s main entry (covered by `exports`) and walking up
+   to the nearest `package.json` via `fs.existsSync` instead.
+2. **Gradle build killed with no error** — the first real EAS Android build
+   got through the entire Gradle task graph (all 254 tasks executed) but
+   never printed `BUILD SUCCESSFUL` before EAS reported "Gradle build failed
+   with unknown error" — the signature of the build machine being killed
+   rather than an actual Gradle-reported failure. The initial guess was that
+   `react-native-webgpu` compiling Dawn from source via CMake was the
+   culprit — that guess was **wrong in its specifics**: Dawn actually ships
+   *prebuilt* per-ABI (`libwebgpu_dawn.so`, linked via CMake's
+   `IMPORTED_LOCATION`, see
+   `node_modules/react-native-webgpu/android/CMakeLists.txt`); only a small
+   ~30-file JNI wrapper compiles from source. The real source of the
+   resource pressure (Kotlin compilation across the many
+   `expo-dev-client`/`expo-dev-launcher`/`expo-dev-menu` modules, the
+   dexing/linking step, or something else) is still unconfirmed.
+3. Tried `resourceClass: "large"` on all Android profiles in `eas.json` as
+   a mitigation — **reverted**. Expo confirmed the free EAS plan doesn't
+   have the capacity to build this project *at all*, regardless of resource
+   class, so the bump didn't fix anything.
+4. **Current state**: CI builds directly on the GitHub Actions runner
+   instead, sidestepping EAS's build machine (and Expo's plan tier)
+   entirely — GitHub's `ubuntu-latest` runners are a separate resource pool.
+   This is untested (see the constraint note at the top of this file), but
+   it's the same recipe the very first version of this CI workflow used,
+   before it was switched to EAS Build in the first place.
+
+A precompiled-binary approach (compile `react-native-webgpu`'s native
+module once, elsewhere, and vendor the resulting `.so`/AAR instead of
+building it in CI at all) was considered but not pursued from this sandbox
+specifically: it has no way to fetch an Android NDK/SDK toolchain here
+(`dl.google.com`/`googleapis.com` are blocked by this sandbox's network
+policy, confirmed via direct connectivity test) to do the compile.
