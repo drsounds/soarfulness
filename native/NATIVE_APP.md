@@ -152,16 +152,26 @@ issue was — this one was actually fixable):
    the *contents* of the runner's pre-baked `/usr/local/lib/android`. Logs
    `df -h /` before and after for visibility if this needs revisiting.
 
-   The first version of this step deleted `/usr/local/lib/android` itself
-   (the directory entry, not just its contents) — that broke the next step:
-   `android-actions/setup-android` tries to recreate that exact path as the
-   unprivileged `runner` user, and only the pre-existing directory (not its
-   root-owned parent, `/usr/local/lib`) was writable by that user. Deleting
-   the directory lost that writable ownership, so recreating it failed with
-   `EACCES: permission denied, mkdir '/usr/local/lib/android'`. Fixed by
-   clearing the directory's contents in place (`rm -rf
-   /usr/local/lib/android/*`) instead of removing the directory itself —
-   same disk reclaimed, ownership untouched.
+   Getting `/usr/local/lib/android` right took three tries:
+   1. Deleting the directory itself (not just its contents) broke the next
+      step: `android-actions/setup-android` tries to recreate that exact
+      path as the unprivileged `runner` user, and only the pre-existing
+      directory (not its root-owned parent, `/usr/local/lib`) was writable
+      by that user. Deleting it lost that writable ownership:
+      `EACCES: permission denied, mkdir '/usr/local/lib/android'`.
+   2. Clearing just the contents (`rm -rf /usr/local/lib/android/*`)
+      relocated the exact same problem one level down — the special
+      writable ownership turned out to belong to the `sdk` subdirectory
+      specifically, not the top-level `android` directory, so deleting
+      *its* directory entry hit the identical failure one level deeper:
+      `EACCES: permission denied, mkdir '/usr/local/lib/android/sdk'`.
+   3. Fixed properly by `chown -R` of the whole tree to the runner user
+      *before* clearing it (`sudo chown -R "$(id -u):$(id -g)"
+      /usr/local/lib/android && rm -rf /usr/local/lib/android/*`) — this
+      sidesteps needing to know which exact directory level carries the
+      special ownership, since after the chown every level does, so
+      whatever `setup-android` recreates afterward (at any depth) is
+      already owned by the same user doing the recreating.
 
 Halving the ABI count also roughly halves native build time, so this
 should make the whole job noticeably faster too, not just fix the disk
