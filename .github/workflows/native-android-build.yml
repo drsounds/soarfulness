@@ -58,3 +58,29 @@ jobs:
           name: aqua-wave-dream-debug-apk
           path: native/android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+
+      # Play Store release build - only runs when the upload keystore secret
+      # is configured (see native/NATIVE_APP.md). Skipped entirely otherwise,
+      # so forks/PRs without the secret still get the debug APK above.
+      - name: Decode upload keystore
+        if: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 != '' }}
+        run: |
+          echo "${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/upload-keystore.jks"
+
+      - name: Build release AAB (signed)
+        if: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 != '' }}
+        working-directory: native/android
+        env:
+          ANDROID_UPLOAD_STORE_FILE: ${{ runner.temp }}/upload-keystore.jks
+          ANDROID_UPLOAD_STORE_PASSWORD: ${{ secrets.ANDROID_UPLOAD_STORE_PASSWORD }}
+          ANDROID_UPLOAD_KEY_ALIAS: ${{ secrets.ANDROID_UPLOAD_KEY_ALIAS }}
+          ANDROID_UPLOAD_KEY_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEY_PASSWORD }}
+        run: ./gradlew bundleRelease --no-daemon
+
+      - name: Upload release AAB artifact
+        if: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: aqua-wave-dream-release-aab
+          path: native/android/app/build/outputs/bundle/release/*.aab
+          if-no-files-found: error

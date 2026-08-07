@@ -83,7 +83,9 @@ the GitHub Actions runner** — `expo prebuild` + `./gradlew assembleDebug` —
 rather than delegating to EAS Build. It triggers on push to `main` or PRs
 touching `native/**`, or manually via `workflow_dispatch`, and uploads the
 resulting unsigned debug APK as a workflow artifact. It caches `npm` against
-the committed `package-lock.json` and installs via `npm ci`.
+the committed `package-lock.json` and installs via `npm ci`. When the
+Play Store signing secrets below are configured, it also builds and
+uploads a signed release `.aab`.
 
 This is a deliberate choice, not the default/obvious option — see "EAS Build
 vs. GitHub Actions" below for why.
@@ -93,6 +95,56 @@ right now) in case EAS Build becomes viable again later — e.g. on a paid
 Expo plan, or if the actual resource bottleneck gets tracked down and worked
 around. There's no iOS CI job (would need a macOS runner + code signing);
 Android was the one explicitly asked for.
+
+### Play Store signing
+
+`plugins/withAndroidReleaseSigning.js` is an Expo config plugin (registered
+in `app.json`) that patches the generated `android/app/build.gradle` on
+every `expo prebuild` so the `release` build type signs with a real upload
+keystore instead of the RN/Expo template's default (which silently signs
+release builds with the debug keystore). It reads the actual key material
+from environment variables **at Gradle build time** — nothing is baked into
+the generated (gitignored, regenerated-every-time) `build.gradle` itself —
+and transparently falls back to the debug keystore when those env vars
+aren't set, so local/dev builds are unaffected. Verified by actually running
+`expo prebuild` in this environment and inspecting the generated
+`build.gradle` (Node-only; doesn't need the Android SDK), not just read from
+source.
+
+Required GitHub Actions repo secrets (Settings → Secrets and variables →
+Actions):
+
+| Secret | Value |
+| --- | --- |
+| `ANDROID_UPLOAD_KEYSTORE_BASE64` | `base64 -w0 your-upload-keystore.jks` |
+| `ANDROID_UPLOAD_STORE_PASSWORD` | keystore password |
+| `ANDROID_UPLOAD_KEY_ALIAS` | key alias inside the keystore |
+| `ANDROID_UPLOAD_KEY_PASSWORD` | key password (PKCS12 keystores use the same value as the store password) |
+
+**Approach: Google Play App Signing.** The keystore this generates is an
+*upload key* only — it authenticates your uploads to Play Console. Google
+holds and manages the real app signing key, so a lost/compromised upload key
+is recoverable (via Google Play support), unlike a fully self-managed
+signing key. This project's very first upload to Play Console had not
+happened yet as of this key's generation (confirmed before generating it —
+generating a new upload key when one is *already* registered with Play
+Console would break all future uploads), so Play Console's standard
+first-upload flow will handle enrolling into Play App Signing automatically.
+
+**⚠️ The generated keystore file and its passwords are not in this repo**
+(and must never be committed) — they were handed to you directly as a
+download when this was set up, since this is the only copy outside of
+whatever GitHub secrets get configured from it. If that download is gone,
+you'll need to regenerate a new upload key and go through Play Console's
+"lost upload key" reset flow (Play App Signing makes this recoverable, but
+it's real friction — keep a backup somewhere durable, e.g. a password
+manager).
+
+Play Store *submission* (actually uploading the built `.aab` to Play
+Console) is a separate, not-yet-automated step — for now, download the
+`aqua-wave-dream-release-aab` CI artifact and upload it through the Play
+Console web UI. Automating that would need a Google Play Developer API
+service account credential, which hasn't been set up.
 
 ### EAS Build vs. GitHub Actions
 
