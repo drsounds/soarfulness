@@ -207,16 +207,44 @@ already-consumed quota — that still needs either the ~6-12 hour automatic
 recalculation GitHub mentions, or manually deleting old artifacts/caches
 from the repo's Actions tab.
 
+**Manually deleting old artifacts did not immediately unblock uploads.**
+After deleting a batch of old failed-run artifacts through the Actions tab,
+the very next run (and a second, redundant run — see below) still hit the
+identical `Artifact storage quota has been hit` error on the AAB upload,
+even though the build itself succeeded both times. GitHub's own error text
+— "usage is recalculated every 6-12 hours" — reads as literal: the quota
+gate appears to check a periodically-recalculated usage snapshot rather
+than live storage, so a manual deletion doesn't necessarily take effect
+right away. Two changes followed from this:
+
+- **Removed the `push` trigger on `main` entirely** (workflow now only runs
+  on `pull_request` or manual `workflow_dispatch`). Merging PR #95 had
+  triggered a second, redundant build of the exact same commit alongside
+  the manually-dispatched one already in flight — both raced for the same
+  quota and both lost. One trigger path removes the race, not just the
+  waste.
+- **The signed release AAB is now published as a GitHub Release asset**
+  (`softprops/action-gh-release`, tagged `native-android-build-<run
+  number>`) instead of an Actions artifact. Release assets are billed
+  against the repo's general storage, a separate pool from the Actions
+  artifact quota that kept getting exhausted, so this sidesteps the
+  problem rather than continuing to manage around it. It also means the
+  AAB no longer expires after `retention-days` - it stays attached to the
+  release until deleted. The debug APK (only uploaded on unsigned runs -
+  see above) still goes through `actions/upload-artifact`, since it's
+  low-volume and disposable by nature.
+
 ## CI
 
 `.github/workflows/native-android-build.yml` builds Android **directly on
 the GitHub Actions runner** — `expo prebuild` + `./gradlew assembleDebug` —
-rather than delegating to EAS Build. It triggers on push to `main` or PRs
-touching `native/**`, or manually via `workflow_dispatch`, and uploads the
-resulting unsigned debug APK as a workflow artifact. It caches `npm` against
-the committed `package-lock.json` and installs via `npm ci`. When the
-Play Store signing secrets below are configured, it also builds and
-uploads a signed release `.aab`.
+rather than delegating to EAS Build. It triggers on PRs touching
+`native/**`, or manually via `workflow_dispatch` (no `push` trigger on
+`main` - see above), and uploads the resulting unsigned debug APK as a
+workflow artifact when no signed build is also happening. It caches `npm`
+against the committed `package-lock.json` and installs via `npm ci`. When
+the Play Store signing secrets below are configured, it also builds a
+signed release `.aab` and publishes it as a GitHub Release asset.
 
 This is a deliberate choice, not the default/obvious option — see "EAS Build
 vs. GitHub Actions" below for why.

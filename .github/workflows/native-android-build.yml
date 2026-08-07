@@ -1,11 +1,11 @@
 name: Native Android build
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "native/**"
-      - ".github/workflows/native-android-build.yml"
+  # No push trigger on main: every merge was kicking off its own build
+  # alongside any build already running from a manual dispatch on the same
+  # commit, and the two raced each other for the same limited Actions
+  # artifact storage quota (see native/NATIVE_APP.md). Trigger manually via
+  # workflow_dispatch once a merge lands instead.
   pull_request:
     paths:
       - "native/**"
@@ -27,6 +27,10 @@ jobs:
   android:
     name: Build Android (debug APK)
     runs-on: ubuntu-latest
+    # contents: write is needed to publish the release AAB as a GitHub
+    # Release asset below (separate storage from Actions artifacts).
+    permissions:
+      contents: write
     defaults:
       run:
         working-directory: native
@@ -130,23 +134,34 @@ jobs:
           ANDROID_UPLOAD_KEY_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEY_PASSWORD }}
         run: ./gradlew bundleRelease --no-daemon
 
-      - name: Upload release AAB artifact
+      # Published as a GitHub Release asset rather than an Actions artifact -
+      # Release assets use the repo's general storage, not the (much more
+      # easily exhausted) Actions artifact quota that repeatedly blocked
+      # uploads here (see native/NATIVE_APP.md). Tagged per run number so
+      # reruns of the same workflow update the same release's assets instead
+      # of failing on a duplicate tag.
+      - name: Publish release AAB as GitHub Release asset
         if: ${{ env.HAS_ANDROID_SIGNING == 'true' }}
-        uses: actions/upload-artifact@v4
+        uses: softprops/action-gh-release@v2
         with:
-          name: aqua-wave-dream-release-aab
-          path: native/android/app/build/outputs/bundle/release/*.aab
-          if-no-files-found: error
-          retention-days: 3
+          tag_name: native-android-build-${{ github.run_number }}
+          name: "Android build #${{ github.run_number }}"
+          prerelease: true
+          files: native/android/app/build/outputs/bundle/release/*.aab
+          body: |
+            Automated signed release AAB from CI run ${{ github.run_id }}
+            (commit ${{ github.sha }}). Not a versioned app release - for
+            manual upload to Play Console or testing only.
 
       # Play Store submission - only runs when both the signing secret above
       # AND the Play Developer API service account secret are configured.
       # Requires a manual first upload through the Play Console web UI before
       # this can ever succeed (the Play Developer API rejects uploads for a
       # packageName it hasn't seen a release for yet) - see
-      # native/NATIVE_APP.md. Defaults to the "internal" track on automatic
-      # (push-triggered) runs; use workflow_dispatch to target a different
-      # track deliberately - this never defaults to "production" on its own.
+      # native/NATIVE_APP.md. Every run is now workflow_dispatch (no push
+      # trigger - see the `on:` block above), so this always reads the
+      # dispatch input, defaulting to "internal" when not specified; it
+      # never defaults to "production" on its own.
       - name: Submit to Play Store
         if: ${{ env.HAS_PLAY_SUBMIT == 'true' }}
         uses: r0adkll/upload-google-play@v1
