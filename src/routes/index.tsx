@@ -247,8 +247,44 @@ function swingYWaveformValue(kind: SwingYWaveform, theta: number, phase: number)
 // live YTA (surface area) setting rescales each mesh by surfaceArea/base so
 // the *resulting* on-screen size matches the dial regardless of how finely
 // each mesh happens to be subdivided.
-const OCEAN_BASE_SIZE = 600;
+//
+// The ocean mesh is split into two tiers instead of one scaled plane: a
+// small, finely-tessellated OCEAN_BASE_SIZE square that always stays at
+// scale 1 (so its ~3.75-unit vertex spacing keeps resolving the wave's
+// shortest ~20-unit wavelength), and a coarse ring around it — reusing the
+// same material — whose outer radius RUMSSTORLEK/surfaceArea controls, to
+// push the horizon edge out. Stretching a single low-segment plane to reach
+// a huge surfaceArea (as this used to do) also stretches its vertex
+// spacing by the same factor: at the default 150,000m surfaceArea that was
+// ~470 world units between adjacent vertices, so the wave phase (evaluated
+// per-vertex in world space) was sampled far below its own Nyquist rate —
+// aliasing the whole visible surface into flat, blocky facets instead of
+// smooth waves.
+//
+// The ring's inner radius is fixed at OCEAN_FAR_INNER_RADIUS (not scaled
+// with surfaceArea, unlike the old single-plane approach) so it can't
+// shrink inside the near tier's own still-wavy area — it only ever starts
+// where the near tier's amplitude has already faded to exactly 0 (see
+// ampFade in the vertex shader), so the ring can stay coarse and flat
+// without a seam or clipping through a wave trough/crest. Half of
+// OCEAN_BASE_SIZE reaches every straight edge of the near tier with no
+// gap; the ring only overlaps the near tier in its four diagonal corners
+// (out to OCEAN_BASE_SIZE/√2), comfortably past the ~500-unit farthest
+// possible ampFade radius (vortex mode's), so that overlap is always
+// zero-amplitude on both sides and harmless.
+const OCEAN_BASE_SIZE = 1200;
+const OCEAN_FAR_INNER_RADIUS = OCEAN_BASE_SIZE / 2;
 const CLOUD_BASE_SIZE = 200000;
+
+// Builds the far ocean ring at the given RUMSSTORLEK/surfaceArea outer
+// extent — see OCEAN_FAR_INNER_RADIUS above for why this is a ring (fixed
+// inner radius) rebuilt on change, not a plane scaled from origin.
+function buildFarOceanGeometry(surfaceArea: number) {
+  const outerRadius = Math.max(OCEAN_FAR_INNER_RADIUS + 1, surfaceArea / 2);
+  const geo = new THREE.RingGeometry(OCEAN_FAR_INNER_RADIUS, outerRadius, 64, 1);
+  geo.rotateX(-Math.PI / 2);
+  return geo;
+}
 
 // SLUMPA VÅGOR off (default): the FFT wave modes (REALISTISKA VÅGOR/DÖENDE
 // VÅG) are generated from these fixed seeds instead of Math.random(), so the
@@ -799,6 +835,9 @@ function Aquafulness() {
   // The recentered water/cloud planes, so the YTA (surface area) setting can
   // rescale them live without tearing down the renderer.
   const oceanRef = useRef<THREE.Mesh | null>(null);
+  // Coarse far tier of the ocean mesh — see OCEAN_FAR_INNER_RADIUS above for
+  // why this is a second mesh instead of just scaling `ocean` itself.
+  const farOceanRef = useRef<THREE.Mesh | null>(null);
   const midCloudsMeshRef = useRef<THREE.Mesh | null>(null);
   const skyCloudsMeshRef = useRef<THREE.Mesh | null>(null);
   // Manages the CSS3DRenderer-backed "TV apparatus" panels layered on top of
@@ -1045,8 +1084,14 @@ function Aquafulness() {
   // effect applies the same scale itself when first creating them).
   useEffect(() => {
     surfaceAreaRef.current = surfaceArea;
-    const oceanScale = surfaceArea / OCEAN_BASE_SIZE;
-    oceanRef.current?.scale.set(oceanScale, 1, oceanScale);
+    // The near, finely-tessellated ocean tier stays at scale 1 (see
+    // OCEAN_FAR_INNER_RADIUS above) — only its coarse far ring follows the
+    // dial, and it's rebuilt (not scaled) so its inner radius stays fixed.
+    const farOcean = farOceanRef.current;
+    if (farOcean) {
+      farOcean.geometry.dispose();
+      farOcean.geometry = buildFarOceanGeometry(surfaceArea);
+    }
     const cloudScale = surfaceArea / CLOUD_BASE_SIZE;
     midCloudsMeshRef.current?.scale.set(cloudScale, 1, cloudScale);
     skyCloudsMeshRef.current?.scale.set(cloudScale, 1, cloudScale);
@@ -1985,8 +2030,8 @@ function Aquafulness() {
     });
     torusRingFieldRef.current = torusRingField;
 
-    // Ocean plane
-    const geo = new THREE.PlaneGeometry(600, 600, 320, 320);
+    // Ocean plane (near, finely-tessellated tier — see OCEAN_BASE_SIZE above)
+    const geo = new THREE.PlaneGeometry(OCEAN_BASE_SIZE, OCEAN_BASE_SIZE, 320, 320);
     geo.rotateX(-Math.PI / 2);
 
     // Max anisotropy for later texture loads (reflection surface, etc.).
@@ -2605,14 +2650,21 @@ function Aquafulness() {
     });
     mat.forceSinglePass = true;
     const ocean = new THREE.Mesh(geo, mat);
-    // Rescale to the live YTA (surface area) setting — wave math is computed
-    // from vWorldPos (position × modelMatrix) in the shader, so scaling the
-    // mesh stretches its true world-space extent rather than the wave shape
-    // itself; only the flat, already-faded-out far field grows.
-    const oceanScale0 = surfaceAreaRef.current / OCEAN_BASE_SIZE;
-    ocean.scale.set(oceanScale0, 1, oceanScale0);
+    // Stays at scale 1 — see OCEAN_FAR_INNER_RADIUS above. The YTA (surface
+    // area) dial no longer touches this near tier, only farOcean below.
     oceanRef.current = ocean;
     scene.add(ocean);
+
+    // Coarse far tier: reuses the same material (so it shades identically)
+    // over a low-segment ring whose outer radius YTA/surfaceArea controls,
+    // to push the horizon edge out. Safe to be coarse because by the time
+    // waves reach this tier's (fixed) inner edge, ampFade (see vertex
+    // shader) has already faded their amplitude to exactly 0 — it only ever
+    // renders flat water, so it needs no more tessellation than the
+    // equally-flat seafloor below.
+    const farOcean = new THREE.Mesh(buildFarOceanGeometry(surfaceAreaRef.current), mat);
+    farOceanRef.current = farOcean;
+    scene.add(farOcean);
 
     // Optional seafloor beneath the ocean plane. ShaderMaterial gör den
     // procedurellt strukturerad (sandbankar, småsten, kaustik) när uTextured=1.
@@ -3146,6 +3198,7 @@ function Aquafulness() {
       const effectiveDepth = Math.max(0.5, floorDepthRef.current);
       const levelY = depthMod;
       ocean.position.y = levelY;
+      farOcean.position.y = levelY;
       if (bot.rgb) {
         floor.visible = true;
         const botRgb = bot.name === "Anpassad" ? hexToRgbNorm(bottomColorRef.current) : bot.rgb;
@@ -3340,13 +3393,16 @@ function Aquafulness() {
       }
 
       // Rekentrera ytan, botten och molnlagret runt kameran varje frame så
-      // de ändliga 600×600-planen alltid täcker synfältet — vågorna och
-      // sandtexturen räknas ut i world space (se shadrarna ovan) så att
+      // de ändliga planen (och havsringen, se OCEAN_FAR_INNER_RADIUS) alltid
+      // täcker synfältet — vågorna och sandtexturen räknas ut i world space
+      // (se shadrarna ovan) så att
       // flytta meshen bara skiftar vilket fönster av det oändliga fältet som
       // visas, utan att mönstret hoppar. Resultatet upplevs som en oändlig
       // vattenyta/botten oavsett hur långt kameran driver.
       ocean.position.x = camX;
       ocean.position.z = camZ;
+      farOcean.position.x = camX;
+      farOcean.position.z = camZ;
       floor.position.x = camX;
       floor.position.z = camZ;
       midClouds.position.x = camX;
@@ -3721,6 +3777,7 @@ function Aquafulness() {
       saveCameraPoseNow();
       renderer.dispose();
       geo.dispose();
+      farOcean.geometry.dispose();
       mat.dispose();
       floorGeo.dispose();
       floorMat.dispose();
@@ -3752,6 +3809,7 @@ function Aquafulness() {
       waterUniformsRef.current = null;
       sceneRef.current = null;
       oceanRef.current = null;
+      farOceanRef.current = null;
       midCloudsMeshRef.current = null;
       skyCloudsMeshRef.current = null;
       tvManager.dispose();
