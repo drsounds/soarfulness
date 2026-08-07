@@ -177,6 +177,36 @@ Halving the ABI count also roughly halves native build time, so this
 should make the whole job noticeably faster too, not just fix the disk
 error.
 
+### Repo hit its Actions artifact storage quota
+
+Once the disk-space and `EACCES` issues above were fixed, a run got all the
+way through `./gradlew assembleDebug` successfully and then failed anyway —
+not in the build, but in the "Upload APK artifact" step:
+
+```
+##[error]Failed to CreateArtifact: Artifact storage quota has been hit.
+Unable to upload any new artifacts. Usage is recalculated every 6-12 hours.
+```
+
+Private repos get a limited GitHub Actions artifact storage allowance, and
+the many debug-APK and signed-release-AAB uploads produced while iterating
+on the fixes above (each one kept for the default 90-day retention period)
+used it up. Not a code or workflow-logic bug — re-running immediately would
+hit the identical wall. Mitigated two ways in the workflow:
+
+- The debug APK is now only uploaded when no signed release build is also
+  happening (`if: env.HAS_ANDROID_SIGNING != 'true'`) — it only exists to
+  prove forks/PRs without the signing secret still compile, so there's no
+  reason to also store it alongside the AAB on signed runs.
+- Both artifact uploads now set `retention-days: 3` instead of the 90-day
+  default, so iterating on CI fixes doesn't keep accumulating stored build
+  output indefinitely.
+
+This reduces how fast the quota fills up going forward, but doesn't free
+already-consumed quota — that still needs either the ~6-12 hour automatic
+recalculation GitHub mentions, or manually deleting old artifacts/caches
+from the repo's Actions tab.
+
 ## CI
 
 `.github/workflows/native-android-build.yml` builds Android **directly on

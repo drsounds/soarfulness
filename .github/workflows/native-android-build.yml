@@ -98,12 +98,19 @@ jobs:
         working-directory: native/android
         run: ./gradlew assembleDebug --no-daemon
 
+      # Skipped when a signed release AAB is also being built below - the
+      # debug APK only exists to prove the build compiles on forks/PRs
+      # without the signing secret, and every artifact upload eats into the
+      # repo's (limited) GitHub Actions storage quota, so we don't upload
+      # both when only the AAB is actually needed.
       - name: Upload APK artifact
+        if: ${{ env.HAS_ANDROID_SIGNING != 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: aqua-wave-dream-debug-apk
           path: native/android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+          retention-days: 3
 
       # Play Store release build - only runs when the upload keystore secret
       # is configured (see native/NATIVE_APP.md). Skipped entirely otherwise,
@@ -130,6 +137,7 @@ jobs:
           name: aqua-wave-dream-release-aab
           path: native/android/app/build/outputs/bundle/release/*.aab
           if-no-files-found: error
+          retention-days: 3
 
       # Play Store submission - only runs when both the signing secret above
       # AND the Play Developer API service account secret are configured.
