@@ -11,6 +11,17 @@ on:
       - "native/**"
       - ".github/workflows/native-android-build.yml"
   workflow_dispatch:
+    inputs:
+      track:
+        description: "Play Store track to submit to (only used when GOOGLE_PLAY_SERVICE_ACCOUNT_JSON is set)"
+        required: false
+        default: internal
+        type: choice
+        options:
+          - internal
+          - alpha
+          - beta
+          - production
 
 jobs:
   android:
@@ -84,3 +95,21 @@ jobs:
           name: aqua-wave-dream-release-aab
           path: native/android/app/build/outputs/bundle/release/*.aab
           if-no-files-found: error
+
+      # Play Store submission - only runs when both the signing secret above
+      # AND the Play Developer API service account secret are configured.
+      # Requires a manual first upload through the Play Console web UI before
+      # this can ever succeed (the Play Developer API rejects uploads for a
+      # packageName it hasn't seen a release for yet) - see
+      # native/NATIVE_APP.md. Defaults to the "internal" track on automatic
+      # (push-triggered) runs; use workflow_dispatch to target a different
+      # track deliberately - this never defaults to "production" on its own.
+      - name: Submit to Play Store
+        if: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 != '' && secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON != '' }}
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: se.aquafulness.app.gen7
+          releaseFiles: native/android/app/build/outputs/bundle/release/*.aab
+          tracks: ${{ inputs.track || 'internal' }}
+          status: completed

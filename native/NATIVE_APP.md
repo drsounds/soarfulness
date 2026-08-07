@@ -140,11 +140,55 @@ you'll need to regenerate a new upload key and go through Play Console's
 it's real friction — keep a backup somewhere durable, e.g. a password
 manager).
 
-Play Store *submission* (actually uploading the built `.aab` to Play
-Console) is a separate, not-yet-automated step — for now, download the
-`aqua-wave-dream-release-aab` CI artifact and upload it through the Play
-Console web UI. Automating that would need a Google Play Developer API
-service account credential, which hasn't been set up.
+### Play Store submission (automated)
+
+CI can also submit the signed `.aab` straight to Play Console, via
+[`r0adkll/upload-google-play`](https://github.com/r0adkll/upload-google-play)
+(uses the Google Play Developer API v3). This needs one more secret:
+
+| Secret | Value |
+| --- | --- |
+| `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` | the full contents of a Google Cloud service account JSON key (see setup below) |
+
+**⚠️ Hard prerequisite, not optional: you must manually upload one release
+through the Play Console web UI first.** The Play Developer API rejects
+uploads for a `packageName` it has never seen a release for — this is a
+Google-side restriction with no API workaround, confirmed in the action's
+own docs/FAQ ("Package not found" → "make sure you upload an apk or aab
+manually first"). So the sequence has to be: (1) download the
+`aqua-wave-dream-release-aab` CI artifact once and upload it by hand through
+Play Console, creating at least an internal-testing release; only after
+that will step 2 work. (2) From then on, CI can submit automatically.
+
+**Setup, all of which needs your Google Cloud / Play Console access (none
+of this can be done from this sandbox — same class of restriction as
+everything else in this file that touches `googleapis.com`):**
+
+1. Enable the Google Play Android Developer API on a Google Cloud project
+   (console.cloud.google.com → APIs & Services → Library → search "Google
+   Play Android Developer API" → Enable).
+2. Create a service account in that project (IAM & Admin → Service accounts
+   → Create). It doesn't need any Google Cloud IAM roles/permissions —
+   access is granted entirely on the Play Console side in the next step.
+3. Create a JSON key for that service account (Keys tab → Add key → JSON) —
+   downloads a `.json` file. Paste its full contents into the
+   `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` GitHub secret.
+4. In Play Console → Users and permissions → Invite new user, invite the
+   service account's email address (looks like
+   `...@<project>.iam.gserviceaccount.com`), and grant it permission to
+   manage `se.aquafulness.app.gen7`'s releases (at minimum: release to
+   testing tracks; add production-release permission only once you actually
+   want CI able to do that).
+
+**Track defaults to `internal`, never `production`, on automatic
+(push-triggered) runs** — that's a deliberate safety choice: continuous
+internal-testing distribution is reasonable to fully automate, but pushing
+to production shouldn't be an accidental side effect of merging a PR. Use
+`workflow_dispatch` (with the `track` input) to deliberately target
+`alpha`/`beta`/`production` when you actually want that. Play Console also
+enforces its own progression — per the action's FAQ, you generally can't
+target `production` until at least one release has gone through an earlier
+track, which the `internal`-by-default behavior here naturally satisfies.
 
 ### EAS Build vs. GitHub Actions
 
