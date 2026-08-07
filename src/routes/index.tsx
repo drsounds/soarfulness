@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { useOnlineStatus } from "@/hooks/use-online-status";
 import { CSS3DTVManager, type DeviceKind } from "@/lib/tv/CSS3DTVManager";
 import { TorusRingField } from "@/lib/torusRings/TorusRingField";
 import { VirtualPhone, type RemoteControllerProps } from "@/components/VirtualPhone";
@@ -595,6 +596,7 @@ function saveCameraPose(pose: CameraPose) {
 }
 
 function Aquafulness() {
+  const online = useOnlineStatus();
   const mountRef = useRef<HTMLDivElement>(null);
   const initial = useRef<Persisted>(loadSettings()).current;
   // Autosaved free-roam camera pose (see CAMERA_STORAGE_KEY below) — read
@@ -4271,6 +4273,18 @@ function Aquafulness() {
           opacity: 0.5,
         }}
       />
+
+      {/* Offline indicator — stays up regardless of HUD fade so it's never
+          mistaken for a stall; only cached scenes/environments/surfaces are
+          available while it's shown. */}
+      {!online && (
+        <div
+          className="pointer-events-none absolute left-1/2 top-[5pt] z-30 -translate-x-1/2 rounded-full border border-white/20 bg-black/40 px-3 py-1 text-[10px] font-light tracking-[0.2em] text-white/80 backdrop-blur-md"
+          role="status"
+        >
+          OFFLINE
+        </div>
+      )}
 
       {/* Fake live-broadcast overlay — hidden by default, toggled via LIVE dial. */}
       {liveMode && <LiveBroadcast />}
