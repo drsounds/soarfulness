@@ -148,11 +148,20 @@ issue was — this one was actually fixable):
    `reactNativeArchitectures=arm64-v8a,x86_64`.
 2. **A "Free disk space" CI step** (`.github/workflows/native-android-build.yml`,
    before any other setup) that removes large preinstalled toolchains the
-   runner ships but this project never uses (.NET, GHC, CodeQL, Boost) —
-   including the runner's pre-baked `/usr/local/lib/android`, which is safe
-   to delete because the very next step (`Set up Android SDK`) reinstalls
-   exactly what's needed at that same path. Logs `df -h /` before and after
-   for visibility if this needs revisiting.
+   runner ships but this project never uses (.NET, GHC, CodeQL, Boost) plus
+   the *contents* of the runner's pre-baked `/usr/local/lib/android`. Logs
+   `df -h /` before and after for visibility if this needs revisiting.
+
+   The first version of this step deleted `/usr/local/lib/android` itself
+   (the directory entry, not just its contents) — that broke the next step:
+   `android-actions/setup-android` tries to recreate that exact path as the
+   unprivileged `runner` user, and only the pre-existing directory (not its
+   root-owned parent, `/usr/local/lib`) was writable by that user. Deleting
+   the directory lost that writable ownership, so recreating it failed with
+   `EACCES: permission denied, mkdir '/usr/local/lib/android'`. Fixed by
+   clearing the directory's contents in place (`rm -rf
+   /usr/local/lib/android/*`) instead of removing the directory itself —
+   same disk reclaimed, ownership untouched.
 
 Halving the ABI count also roughly halves native build time, so this
 should make the whole job noticeably faster too, not just fix the disk

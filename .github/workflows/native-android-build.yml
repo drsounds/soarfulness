@@ -47,15 +47,22 @@ jobs:
       # with large preinstalled toolchains this project doesn't use (.NET,
       # GHC, CodeQL bundles) eating into the ~14GB normally free. Removing
       # them here, before anything else needs disk, reclaims tens of GB.
-      # /usr/local/lib/android is included: the "Set up Android SDK" step
-      # below reinstalls exactly what this project needs at that same path,
-      # so wiping the runner's pre-baked (and often mismatched-version) copy
-      # first is safe and standard practice, not just deleted-and-hoped-for.
+      #
+      # /usr/local/lib/android's *contents* are included (not the directory
+      # itself - a first attempt at this deleted the directory entry too,
+      # which broke the next step: android-actions/setup-android tries to
+      # recreate /usr/local/lib/android as the unprivileged runner user, and
+      # only the pre-existing directory - not its root-owned parent
+      # /usr/local/lib - was writable by that user; deleting it lost that,
+      # so recreation failed with EACCES. Clearing contents in place leaves
+      # the directory's own ownership untouched, so the setup step can still
+      # write into it without needing to create it from scratch.
       - name: Free disk space
         run: |
           echo "Before cleanup:"
           df -h /
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost "$AGENT_TOOLSDIRECTORY" || true
+          sudo rm -rf /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost "$AGENT_TOOLSDIRECTORY" || true
+          sudo rm -rf /usr/local/lib/android/* || true
           echo "After cleanup:"
           df -h /
 
