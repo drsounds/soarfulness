@@ -9,7 +9,7 @@
     "newArchEnabled": true,
     "assetBundlePatterns": ["assets/**/*"],
     "ios": {
-      "bundleIdentifier": "se.aquafulnss.app.gen7",
+      "bundleIdentifier": "se.aquafulness.app.gen7",
       "supportsTablet": true,
       "infoPlist": {
         "UIRequiresFullScreen": true
