@@ -105,19 +105,34 @@ need Apple credentials configured on the EAS project first.
   `require.resolve("three/package.json")` threw. Fixed in `metro.config.js`
   by resolving `three`'s main entry (covered by `exports`) and walking up to
   the nearest `package.json` via `fs.existsSync` instead.
-- **Gradle build killed with no error** (mitigated, unverified) — the first
-  real EAS Android build got through the entire Gradle task graph (all 254
-  tasks executed, including the native CMake/ninja build of
-  `react-native-webgpu`'s bundled Dawn sources for arm64-v8a) but never
-  printed `BUILD SUCCESSFUL` — it just stopped, and EAS reported "Gradle
-  build failed with unknown error." That signature (full task completion,
-  no explicit Gradle failure, abrupt death) points at the build machine
-  running out of memory rather than an actual code/config error — Dawn is
-  an unusually large C++ codebase to compile via CMake, and EAS's default
-  Android resource class may not have enough headroom for it on top of the
-  rest of the Gradle/Kotlin/JS build. Mitigation: `eas.json` now sets
-  `"resourceClass": "large"` on all three Android build profiles. This is a
-  reasoned diagnosis, not a confirmed root cause — nobody has access to the
-  build machine's actual system/OOM logs, only the Gradle stdout the EAS
-  dashboard shows. If a `"large"` machine still fails the same way, that
-  rules out memory and points elsewhere.
+- **Gradle build killed with no error, EAS free plan lacks capacity**
+  (unresolved — see below) — the first real EAS Android build got through
+  the entire Gradle task graph (all 254 tasks executed) but never printed
+  `BUILD SUCCESSFUL` before EAS reported "Gradle build failed with unknown
+  error" — the signature of the build machine being killed rather than an
+  actual Gradle-reported failure. The initial guess was that
+  `react-native-webgpu` compiling Dawn from source via CMake was the
+  culprit — that guess was **wrong in its specifics**: Dawn actually ships
+  *prebuilt* per-ABI (`libwebgpu_dawn.so`, linked via CMake's
+  `IMPORTED_LOCATION`, see
+  `node_modules/react-native-webgpu/android/CMakeLists.txt`); only a small
+  ~30-file JNI wrapper compiles from source. Tried bumping
+  `resourceClass: "large"` on all Android profiles as a mitigation (reverted
+  — see below) before confirming with Expo that **the free EAS plan doesn't
+  have the capacity to build this project at all**, regardless of resource
+  class. Root cause of the actual resource pressure (whether it's Kotlin
+  compilation across the many `expo-dev-client`/`expo-dev-launcher`/
+  `expo-dev-menu` modules, the dexing/linking step, or something else) is
+  still unconfirmed.
+  - `resourceClass: "large"` was **reverted** — it doesn't fix a
+    plan-capacity problem, and may not even be usable on the free plan.
+  - Next step under consideration: avoid relying on EAS's build machine for
+    the actual compile/link — e.g. build via a CI runner with a separate,
+    more generous resource pool (this repo's own
+    `.github/workflows/native-eas-build.yml` currently still shells out to
+    EAS; it could instead run `./gradlew` directly on the GitHub Actions
+    runner, sidestepping Expo's plan tier entirely — this is in fact how the
+    very first version of this CI workflow worked, before it was switched to
+    EAS Build), or precompile the native module elsewhere (needs real
+    Android NDK/SDK access, which this sandbox's network policy blocks) and
+    vendor the resulting binary.
