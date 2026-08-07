@@ -42,6 +42,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # The previous run failed with "No space left on device" mid-build
+      # (see native/NATIVE_APP.md) - GitHub-hosted ubuntu-latest runners ship
+      # with large preinstalled toolchains this project doesn't use (.NET,
+      # GHC, CodeQL bundles) eating into the ~14GB normally free. Removing
+      # them here, before anything else needs disk, reclaims tens of GB.
+      # /usr/local/lib/android is included: the "Set up Android SDK" step
+      # below reinstalls exactly what this project needs at that same path,
+      # so wiping the runner's pre-baked (and often mismatched-version) copy
+      # first is safe and standard practice, not just deleted-and-hoped-for.
+      - name: Free disk space
+        run: |
+          echo "Before cleanup:"
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost "$AGENT_TOOLSDIRECTORY" || true
+          echo "After cleanup:"
+          df -h /
+
       - name: Set up Node
         uses: actions/setup-node@v4
         with:

@@ -106,6 +106,58 @@ version to 8.0 (released 2017) — should be a non-issue for virtually all
 real devices at this point, but worth knowing it's a real constraint
 `react-native-webgpu` imposes, not an arbitrary choice made here.
 
+### Runner ran out of disk space
+
+The next CI attempt (after the `minSdkVersion` fix) got much further —
+into actually building the native module across all 4 default Android
+ABIs — before failing with two errors:
+
+```
+Execution failed for task ':react-native-webgpu:bundleDebugAar'.
+> Could not add file '.../jni/x86_64/libreactnative.so' to ZIP '.../react-native-webgpu-debug.aar'.
+...
+Execution failed for task ':app:mergeDebugNativeLibs'.
+> A failure occurred while executing ...MergeNativeLibsTaskWorkAction
+   > No space left on device
+```
+
+The second error is the real one; the first (a ZIP write failing
+mid-file) is a downstream symptom of the same disk-full condition, not an
+independent bug. This is a genuinely different failure mode from
+everything earlier in this file — not GitHub Actions infrastructure
+flakiness, not EAS's plan-tier compute limit, not an API-level mismatch —
+GitHub-hosted `ubuntu-latest` runners have limited free disk by default
+(~14GB after preinstalled tooling), and building 4 CPU architectures of a
+project that bundles `react-native-webgpu` (which ships prebuilt Dawn
+binaries per-ABI inside an already-176MB-unpacked npm package) plus the
+Android SDK/NDK plus Gradle's caches pushed past that.
+
+Two-part fix, both in this repo (not a plan/infra limitation like the EAS
+issue was — this one was actually fixable):
+
+1. **`android.buildArchs: ["arm64-v8a", "x86_64"]`** added to the
+   `expo-build-properties` plugin config, cutting the default 4 ABIs
+   (`armeabi-v7a`, `arm64-v8a`, `x86`, `x86_64`) down to the two that
+   actually matter: `arm64-v8a` covers essentially all real devices (Play
+   Store requires 64-bit support), `x86_64` covers the standard Android
+   Studio emulator. Dropped `armeabi-v7a` (legacy 32-bit ARM) and `x86`
+   (legacy 32-bit emulator) - add `armeabi-v7a` back if you specifically
+   need to support very old 32-bit-only devices. Verified the same way as
+   the other build-properties change: ran `expo prebuild` here and
+   confirmed `android/gradle.properties` comes out with
+   `reactNativeArchitectures=arm64-v8a,x86_64`.
+2. **A "Free disk space" CI step** (`.github/workflows/native-android-build.yml`,
+   before any other setup) that removes large preinstalled toolchains the
+   runner ships but this project never uses (.NET, GHC, CodeQL, Boost) —
+   including the runner's pre-baked `/usr/local/lib/android`, which is safe
+   to delete because the very next step (`Set up Android SDK`) reinstalls
+   exactly what's needed at that same path. Logs `df -h /` before and after
+   for visibility if this needs revisiting.
+
+Halving the ABI count also roughly halves native build time, so this
+should make the whole job noticeably faster too, not just fix the disk
+error.
+
 ## CI
 
 `.github/workflows/native-android-build.yml` builds Android **directly on
