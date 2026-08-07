@@ -92,13 +92,32 @@ need Apple credentials configured on the EAS project first.
 
 1. ✅ Done — `app.json`'s `expo.extra.eas.projectId` points at a real EAS
    project (`0bbc297b-1ee1-46d3-a1b4-292c34d47cd7`, created at expo.dev).
-2. ⬜ **Still needed**: generate an
-   [Expo access token](https://docs.expo.dev/accounts/programmatic-access/)
-   for that account and add it as a repository secret named `EXPO_TOKEN`
-   (Settings → Secrets and variables → Actions). The workflow reads
-   `secrets.EXPO_TOKEN` and will fail authentication without it — this can't
-   be done from this sandbox (no Expo credentials here).
+2. ✅ Done — `EXPO_TOKEN` repo secret is set; CI authenticates successfully.
 3. The `preview`/`development` profiles in `eas.json` build an installable
    `.apk` directly (no Play Store signing needed); `production` is set up for
    an `.aab` Play Store submission and will need real signing credentials
    (EAS can generate/manage an Android keystore for you on first build).
+
+### Build history / known issues
+
+- **Metro couldn't resolve `three`'s package.json** (fixed) — `three`'s
+  `"exports"` map doesn't expose `./package.json`, so
+  `require.resolve("three/package.json")` threw. Fixed in `metro.config.js`
+  by resolving `three`'s main entry (covered by `exports`) and walking up to
+  the nearest `package.json` via `fs.existsSync` instead.
+- **Gradle build killed with no error** (mitigated, unverified) — the first
+  real EAS Android build got through the entire Gradle task graph (all 254
+  tasks executed, including the native CMake/ninja build of
+  `react-native-webgpu`'s bundled Dawn sources for arm64-v8a) but never
+  printed `BUILD SUCCESSFUL` — it just stopped, and EAS reported "Gradle
+  build failed with unknown error." That signature (full task completion,
+  no explicit Gradle failure, abrupt death) points at the build machine
+  running out of memory rather than an actual code/config error — Dawn is
+  an unusually large C++ codebase to compile via CMake, and EAS's default
+  Android resource class may not have enough headroom for it on top of the
+  rest of the Gradle/Kotlin/JS build. Mitigation: `eas.json` now sets
+  `"resourceClass": "large"` on all three Android build profiles. This is a
+  reasoned diagnosis, not a confirmed root cause — nobody has access to the
+  build machine's actual system/OOM logs, only the Gradle stdout the EAS
+  dashboard shows. If a `"large"` machine still fails the same way, that
+  rules out memory and points elsewhere.
