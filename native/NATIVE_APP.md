@@ -76,6 +76,36 @@ have **no equivalent here yet**:
    exactly like the SkyMesh/WaterMesh examples imply; and general TSL
    type/argument-order mismatches that only surface at build time.
 
+### `minSdkVersion` must be 26+
+
+The first real Android build (on GitHub Actions, not EAS) failed with the
+native `react-native-webgpu` module refusing to compile:
+
+```
+error: 'AHardwareBuffer_acquire' is unavailable: introduced in Android 26
+```
+
+This looked at first like it might be another resource/capacity problem
+(same shape of surprise as the earlier EAS free-plan issue) — it wasn't.
+It's a plain API-level mismatch: Expo SDK 54 defaults `minSdkVersion` to
+24 (Android 7.0), but `react-native-webgpu` calls `AHardwareBuffer_*` APIs
+that only exist from API 26 (Android 8.0) onward — confirmed by
+`react-native-webgpu`'s own example app, which explicitly sets
+`react.minSdkVersion=26` in its `gradle.properties`. Not a memory/CPU
+issue at all; the build was rejecting the code at compile time regardless
+of how much horsepower was behind it.
+
+Fixed by adding the `expo-build-properties` plugin
+(`app.json` → `plugins`) with `android.minSdkVersion: 26`. Verified the
+same way as the release-signing plugin — by actually running
+`expo prebuild` here and confirming `android/gradle.properties` comes out
+with `android.minSdkVersion=26`, not just reading the fix from source.
+
+One practical consequence: this raises the app's minimum supported Android
+version to 8.0 (released 2017) — should be a non-issue for virtually all
+real devices at this point, but worth knowing it's a real constraint
+`react-native-webgpu` imposes, not an arbitrary choice made here.
+
 ## CI
 
 `.github/workflows/native-android-build.yml` builds Android **directly on
