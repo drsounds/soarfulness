@@ -78,61 +78,156 @@ have **no equivalent here yet**:
 
 ## CI
 
-`.github/workflows/native-eas-build.yml` builds Android via
-[EAS Build](https://docs.expo.dev/build/introduction/) (`eas build --platform
-android --profile preview`) instead of building locally on the runner. It
-triggers on push to `main` under `native/**`, or manually via
-`workflow_dispatch` (pick `development` / `preview` / `production` from
-`eas.json`). It caches `npm` against the committed `package-lock.json` and
-installs via `npm ci`. There's no iOS build job yet; Android was the one
-explicitly asked for, and the same `eas build --platform ios` command would
-need Apple credentials configured on the EAS project first.
+`.github/workflows/native-android-build.yml` builds Android **directly on
+the GitHub Actions runner** — `expo prebuild` + `./gradlew assembleDebug` —
+rather than delegating to EAS Build. It triggers on push to `main` or PRs
+touching `native/**`, or manually via `workflow_dispatch`, and uploads the
+resulting unsigned debug APK as a workflow artifact. It caches `npm` against
+the committed `package-lock.json` and installs via `npm ci`. When the
+Play Store signing secrets below are configured, it also builds and
+uploads a signed release `.aab`.
 
-**Setup status:**
+This is a deliberate choice, not the default/obvious option — see "EAS Build
+vs. GitHub Actions" below for why.
 
-1. ✅ Done — `app.json`'s `expo.extra.eas.projectId` points at a real EAS
-   project (`0bbc297b-1ee1-46d3-a1b4-292c34d47cd7`, created at expo.dev).
-2. ✅ Done — `EXPO_TOKEN` repo secret is set; CI authenticates successfully.
-3. The `preview`/`development` profiles in `eas.json` build an installable
-   `.apk` directly (no Play Store signing needed); `production` is set up for
-   an `.aab` Play Store submission and will need real signing credentials
-   (EAS can generate/manage an Android keystore for you on first build).
+`eas.json` and the `EXPO_TOKEN` repo secret are still in place (unused by CI
+right now) in case EAS Build becomes viable again later — e.g. on a paid
+Expo plan, or if the actual resource bottleneck gets tracked down and worked
+around. There's no iOS CI job (would need a macOS runner + code signing);
+Android was the one explicitly asked for.
 
-### Build history / known issues
+### Play Store signing
 
-- **Metro couldn't resolve `three`'s package.json** (fixed) — `three`'s
-  `"exports"` map doesn't expose `./package.json`, so
-  `require.resolve("three/package.json")` threw. Fixed in `metro.config.js`
-  by resolving `three`'s main entry (covered by `exports`) and walking up to
-  the nearest `package.json` via `fs.existsSync` instead.
-- **Gradle build killed with no error, EAS free plan lacks capacity**
-  (unresolved — see below) — the first real EAS Android build got through
-  the entire Gradle task graph (all 254 tasks executed) but never printed
-  `BUILD SUCCESSFUL` before EAS reported "Gradle build failed with unknown
-  error" — the signature of the build machine being killed rather than an
-  actual Gradle-reported failure. The initial guess was that
-  `react-native-webgpu` compiling Dawn from source via CMake was the
-  culprit — that guess was **wrong in its specifics**: Dawn actually ships
-  *prebuilt* per-ABI (`libwebgpu_dawn.so`, linked via CMake's
-  `IMPORTED_LOCATION`, see
-  `node_modules/react-native-webgpu/android/CMakeLists.txt`); only a small
-  ~30-file JNI wrapper compiles from source. Tried bumping
-  `resourceClass: "large"` on all Android profiles as a mitigation (reverted
-  — see below) before confirming with Expo that **the free EAS plan doesn't
-  have the capacity to build this project at all**, regardless of resource
-  class. Root cause of the actual resource pressure (whether it's Kotlin
-  compilation across the many `expo-dev-client`/`expo-dev-launcher`/
-  `expo-dev-menu` modules, the dexing/linking step, or something else) is
-  still unconfirmed.
-  - `resourceClass: "large"` was **reverted** — it doesn't fix a
-    plan-capacity problem, and may not even be usable on the free plan.
-  - Next step under consideration: avoid relying on EAS's build machine for
-    the actual compile/link — e.g. build via a CI runner with a separate,
-    more generous resource pool (this repo's own
-    `.github/workflows/native-eas-build.yml` currently still shells out to
-    EAS; it could instead run `./gradlew` directly on the GitHub Actions
-    runner, sidestepping Expo's plan tier entirely — this is in fact how the
-    very first version of this CI workflow worked, before it was switched to
-    EAS Build), or precompile the native module elsewhere (needs real
-    Android NDK/SDK access, which this sandbox's network policy blocks) and
-    vendor the resulting binary.
+`plugins/withAndroidReleaseSigning.js` is an Expo config plugin (registered
+in `app.json`) that patches the generated `android/app/build.gradle` on
+every `expo prebuild` so the `release` build type signs with a real upload
+keystore instead of the RN/Expo template's default (which silently signs
+release builds with the debug keystore). It reads the actual key material
+from environment variables **at Gradle build time** — nothing is baked into
+the generated (gitignored, regenerated-every-time) `build.gradle` itself —
+and transparently falls back to the debug keystore when those env vars
+aren't set, so local/dev builds are unaffected. Verified by actually running
+`expo prebuild` in this environment and inspecting the generated
+`build.gradle` (Node-only; doesn't need the Android SDK), not just read from
+source.
+
+Required GitHub Actions repo secrets (Settings → Secrets and variables →
+Actions):
+
+| Secret | Value |
+| --- | --- |
+| `ANDROID_UPLOAD_KEYSTORE_BASE64` | `base64 -w0 your-upload-keystore.jks` |
+| `ANDROID_UPLOAD_STORE_PASSWORD` | keystore password |
+| `ANDROID_UPLOAD_KEY_ALIAS` | key alias inside the keystore |
+| `ANDROID_UPLOAD_KEY_PASSWORD` | key password (PKCS12 keystores use the same value as the store password) |
+
+**Approach: Google Play App Signing.** The keystore this generates is an
+*upload key* only — it authenticates your uploads to Play Console. Google
+holds and manages the real app signing key, so a lost/compromised upload key
+is recoverable (via Google Play support), unlike a fully self-managed
+signing key. This project's very first upload to Play Console had not
+happened yet as of this key's generation (confirmed before generating it —
+generating a new upload key when one is *already* registered with Play
+Console would break all future uploads), so Play Console's standard
+first-upload flow will handle enrolling into Play App Signing automatically.
+
+**⚠️ The generated keystore file and its passwords are not in this repo**
+(and must never be committed) — they were handed to you directly as a
+download when this was set up, since this is the only copy outside of
+whatever GitHub secrets get configured from it. If that download is gone,
+you'll need to regenerate a new upload key and go through Play Console's
+"lost upload key" reset flow (Play App Signing makes this recoverable, but
+it's real friction — keep a backup somewhere durable, e.g. a password
+manager).
+
+### Play Store submission (automated)
+
+CI can also submit the signed `.aab` straight to Play Console, via
+[`r0adkll/upload-google-play`](https://github.com/r0adkll/upload-google-play)
+(uses the Google Play Developer API v3). This needs one more secret:
+
+| Secret | Value |
+| --- | --- |
+| `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` | the full contents of a Google Cloud service account JSON key (see setup below) |
+
+**⚠️ Hard prerequisite, not optional: you must manually upload one release
+through the Play Console web UI first.** The Play Developer API rejects
+uploads for a `packageName` it has never seen a release for — this is a
+Google-side restriction with no API workaround, confirmed in the action's
+own docs/FAQ ("Package not found" → "make sure you upload an apk or aab
+manually first"). So the sequence has to be: (1) download the
+`aqua-wave-dream-release-aab` CI artifact once and upload it by hand through
+Play Console, creating at least an internal-testing release; only after
+that will step 2 work. (2) From then on, CI can submit automatically.
+
+**Setup, all of which needs your Google Cloud / Play Console access (none
+of this can be done from this sandbox — same class of restriction as
+everything else in this file that touches `googleapis.com`):**
+
+1. Enable the Google Play Android Developer API on a Google Cloud project
+   (console.cloud.google.com → APIs & Services → Library → search "Google
+   Play Android Developer API" → Enable).
+2. Create a service account in that project (IAM & Admin → Service accounts
+   → Create). It doesn't need any Google Cloud IAM roles/permissions —
+   access is granted entirely on the Play Console side in the next step.
+3. Create a JSON key for that service account (Keys tab → Add key → JSON) —
+   downloads a `.json` file. Paste its full contents into the
+   `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` GitHub secret.
+4. In Play Console → Users and permissions → Invite new user, invite the
+   service account's email address (looks like
+   `...@<project>.iam.gserviceaccount.com`), and grant it permission to
+   manage `se.aquafulness.app.gen7`'s releases (at minimum: release to
+   testing tracks; add production-release permission only once you actually
+   want CI able to do that).
+
+**Track defaults to `internal`, never `production`, on automatic
+(push-triggered) runs** — that's a deliberate safety choice: continuous
+internal-testing distribution is reasonable to fully automate, but pushing
+to production shouldn't be an accidental side effect of merging a PR. Use
+`workflow_dispatch` (with the `track` input) to deliberately target
+`alpha`/`beta`/`production` when you actually want that. Play Console also
+enforces its own progression — per the action's FAQ, you generally can't
+target `production` until at least one release has gone through an earlier
+track, which the `internal`-by-default behavior here naturally satisfies.
+
+### EAS Build vs. GitHub Actions
+
+CI originally used EAS Build (`eas build --platform android`). That's
+gone through several iterations:
+
+1. **Metro couldn't resolve `three`'s package.json** (fixed) — `three`'s
+   `"exports"` map doesn't expose `./package.json`, so
+   `require.resolve("three/package.json")` threw. Fixed in `metro.config.js`
+   by resolving `three`'s main entry (covered by `exports`) and walking up
+   to the nearest `package.json` via `fs.existsSync` instead.
+2. **Gradle build killed with no error** — the first real EAS Android build
+   got through the entire Gradle task graph (all 254 tasks executed) but
+   never printed `BUILD SUCCESSFUL` before EAS reported "Gradle build failed
+   with unknown error" — the signature of the build machine being killed
+   rather than an actual Gradle-reported failure. The initial guess was that
+   `react-native-webgpu` compiling Dawn from source via CMake was the
+   culprit — that guess was **wrong in its specifics**: Dawn actually ships
+   *prebuilt* per-ABI (`libwebgpu_dawn.so`, linked via CMake's
+   `IMPORTED_LOCATION`, see
+   `node_modules/react-native-webgpu/android/CMakeLists.txt`); only a small
+   ~30-file JNI wrapper compiles from source. The real source of the
+   resource pressure (Kotlin compilation across the many
+   `expo-dev-client`/`expo-dev-launcher`/`expo-dev-menu` modules, the
+   dexing/linking step, or something else) is still unconfirmed.
+3. Tried `resourceClass: "large"` on all Android profiles in `eas.json` as
+   a mitigation — **reverted**. Expo confirmed the free EAS plan doesn't
+   have the capacity to build this project *at all*, regardless of resource
+   class, so the bump didn't fix anything.
+4. **Current state**: CI builds directly on the GitHub Actions runner
+   instead, sidestepping EAS's build machine (and Expo's plan tier)
+   entirely — GitHub's `ubuntu-latest` runners are a separate resource pool.
+   This is untested (see the constraint note at the top of this file), but
+   it's the same recipe the very first version of this CI workflow used,
+   before it was switched to EAS Build in the first place.
+
+A precompiled-binary approach (compile `react-native-webgpu`'s native
+module once, elsewhere, and vendor the resulting `.so`/AAR instead of
+building it in CI at all) was considered but not pursued from this sandbox
+specifically: it has no way to fetch an Android NDK/SDK toolchain here
+(`dl.google.com`/`googleapis.com` are blocked by this sandbox's network
+policy, confirmed via direct connectivity test) to do the compile.

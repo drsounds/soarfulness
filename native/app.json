@@ -9,7 +9,7 @@
     "newArchEnabled": true,
     "assetBundlePatterns": ["assets/**/*"],
     "ios": {
-      "bundleIdentifier": "se.aquafulnss.app.gen7",
+      "bundleIdentifier": "se.aquafulness.app.gen7",
       "supportsTablet": true,
       "infoPlist": {
         "UIRequiresFullScreen": true
@@ -19,7 +19,7 @@
       "package": "se.aquafulness.app.gen7",
       "permissions": ["android.permission.INTERNET"]
     },
-    "plugins": ["react-native-webgpu"],
+    "plugins": ["react-native-webgpu", "./plugins/withAndroidReleaseSigning.js"],
     "extra": {
       "eas": {
         "projectId": "0bbc297b-1ee1-46d3-a1b4-292c34d47cd7"
