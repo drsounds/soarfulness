@@ -49,11 +49,30 @@ export default defineConfig({
             },
             {
               urlPattern: ({ request, sameOrigin }) =>
-                sameOrigin && ["style", "script", "worker", "image", "font"].includes(request.destination),
+                sameOrigin &&
+                ["style", "script", "worker", "image", "font"].includes(request.destination),
               handler: "CacheFirst",
               options: {
                 cacheName: "aquafulness-assets",
                 expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              },
+            },
+            // Scene/environment/surface catalogs, manifests, and .glb models are
+            // loaded with plain fetch()/GLTFLoader rather than <img>/<script>
+            // tags, so the browser reports no `request.destination` for them and
+            // they'd otherwise fall through the rule above uncached — breaking
+            // offline playback of any scene/environment/surface the user has
+            // already visited. Cache them by path instead of destination.
+            {
+              urlPattern: ({ sameOrigin, url }) =>
+                sameOrigin &&
+                (url.pathname.startsWith("/scenes/") ||
+                  url.pathname.startsWith("/surfaces/") ||
+                  url.pathname.startsWith("/environments/")),
+              handler: "CacheFirst",
+              options: {
+                cacheName: "aquafulness-content",
+                expiration: { maxEntries: 300, maxAgeSeconds: 60 * 60 * 24 * 30 },
               },
             },
           ],
