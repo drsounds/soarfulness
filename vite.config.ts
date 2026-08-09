@@ -36,11 +36,28 @@ export default defineConfig({
           ],
         },
         workbox: {
-          navigateFallback: "/",
-          navigateFallbackDenylist: [/^\/~oauth/, /^\/api\//],
+          // vite-plugin-pwa defaults navigateFallback to "index.html" when
+          // it's not set at all, which registers a Workbox NavigationRoute
+          // that gets matched (routes match in registration order) before
+          // the "aquafulness-html" rule below and serves straight from the
+          // precache; but this is an SSR app, so the build's precache
+          // manifest never actually contains an entry for "index.html" or
+          // "/" (only static files like the manifest/icons do). That made
+          // the fallback a dead end offline: cache lookup miss → network
+          // fetch → also fails offline → the handler throws and the browser
+          // is left to silently retry the failed top-level navigation on
+          // its own, which looks like the page repeatedly reloading.
+          // Setting this to null suppresses that NavigationRoute so the
+          // NetworkFirst rule below — which actually populates and reads
+          // its own cache keyed by the navigation request — is the one
+          // handling navigations.
+          navigateFallback: null,
           runtimeCaching: [
             {
-              urlPattern: ({ request }) => request.mode === "navigate",
+              urlPattern: ({ request, url }) =>
+                request.mode === "navigate" &&
+                !/^\/~oauth/.test(url.pathname) &&
+                !/^\/api\//.test(url.pathname),
               handler: "NetworkFirst",
               options: {
                 cacheName: "aquafulness-html",
