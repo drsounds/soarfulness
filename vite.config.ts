@@ -19,7 +19,17 @@ export default defineConfig({
         registerType: "autoUpdate",
         injectRegister: null,
         devOptions: { enabled: false },
-        filename: "sw.js",
+        // A hand-written source (src/sw.ts) rather than the declarative
+        // `workbox` config generateSW mode takes: its `runtimeCaching` API
+        // can't express a graceful fallback for the case where a navigation
+        // misses both network and cache (e.g. a client's very first ever
+        // offline visit) — that always throws, which standalone/installed
+        // PWA shells treat as "not connected" and silently retry, looking
+        // like the app endlessly reloading. src/sw.ts adds a
+        // setCatchHandler for that instead of just letting it throw.
+        strategies: "injectManifest",
+        srcDir: "src",
+        filename: "sw.ts",
         manifest: {
           name: "Aquafulness",
           short_name: "Aquafulness",
@@ -33,65 +43,6 @@ export default defineConfig({
           icons: [
             { src: "/pwa-192.png", sizes: "192x192", type: "image/png", purpose: "any maskable" },
             { src: "/pwa-512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" },
-          ],
-        },
-        workbox: {
-          // vite-plugin-pwa defaults navigateFallback to "index.html" when
-          // it's not set at all, which registers a Workbox NavigationRoute
-          // that gets matched (routes match in registration order) before
-          // the "aquafulness-html" rule below and serves straight from the
-          // precache; but this is an SSR app, so the build's precache
-          // manifest never actually contains an entry for "index.html" or
-          // "/" (only static files like the manifest/icons do). That made
-          // the fallback a dead end offline: cache lookup miss → network
-          // fetch → also fails offline → the handler throws and the browser
-          // is left to silently retry the failed top-level navigation on
-          // its own, which looks like the page repeatedly reloading.
-          // Setting this to null suppresses that NavigationRoute so the
-          // NetworkFirst rule below — which actually populates and reads
-          // its own cache keyed by the navigation request — is the one
-          // handling navigations.
-          navigateFallback: null,
-          runtimeCaching: [
-            {
-              urlPattern: ({ request, url }) =>
-                request.mode === "navigate" &&
-                !/^\/~oauth/.test(url.pathname) &&
-                !/^\/api\//.test(url.pathname),
-              handler: "NetworkFirst",
-              options: {
-                cacheName: "aquafulness-html",
-                networkTimeoutSeconds: 4,
-              },
-            },
-            {
-              urlPattern: ({ request, sameOrigin }) =>
-                sameOrigin &&
-                ["style", "script", "worker", "image", "font"].includes(request.destination),
-              handler: "CacheFirst",
-              options: {
-                cacheName: "aquafulness-assets",
-                expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },
-              },
-            },
-            // Scene/environment/surface catalogs, manifests, and .glb models are
-            // loaded with plain fetch()/GLTFLoader rather than <img>/<script>
-            // tags, so the browser reports no `request.destination` for them and
-            // they'd otherwise fall through the rule above uncached — breaking
-            // offline playback of any scene/environment/surface the user has
-            // already visited. Cache them by path instead of destination.
-            {
-              urlPattern: ({ sameOrigin, url }) =>
-                sameOrigin &&
-                (url.pathname.startsWith("/scenes/") ||
-                  url.pathname.startsWith("/surfaces/") ||
-                  url.pathname.startsWith("/environments/")),
-              handler: "CacheFirst",
-              options: {
-                cacheName: "aquafulness-content",
-                expiration: { maxEntries: 300, maxAgeSeconds: 60 * 60 * 24 * 30 },
-              },
-            },
           ],
         },
       }),
