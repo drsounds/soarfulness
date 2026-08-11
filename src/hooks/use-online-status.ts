@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 
 export function useOnlineStatus() {
-  const [online, setOnline] = useState(typeof navigator === "undefined" ? true : navigator.onLine);
+  // Always start "online" so SSR and the first client render agree; the real
+  // value is read after hydration in the effect below.
+  const [online, setOnline] = useState(true);
 
   useEffect(() => {
+    setOnline(navigator.onLine);
     const goOnline = () => setOnline(true);
     const goOffline = () => setOnline(false);
     window.addEventListener("online", goOnline);
