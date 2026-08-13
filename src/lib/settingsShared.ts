@@ -173,6 +173,8 @@ export type Persisted = {
   turbidity: number;
   bottomIdx: number;
   leanEnabled: boolean;
+  gogglesOn: boolean;
+  gogglesBlur: number;
   regularWaves: boolean;
   realisticWaves: boolean;
   dyingWave: boolean;
@@ -307,6 +309,8 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "camFar",
     "leanEnabled",
     "wakeLock",
+    "gogglesOn",
+    "gogglesBlur",
   ],
   vatten: [
     "waterTintIdx",

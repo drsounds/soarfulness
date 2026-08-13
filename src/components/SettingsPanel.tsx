@@ -222,6 +222,10 @@ export type SettingsPanelProps = {
   setCamFar: Dispatch<SetStateAction<number>>;
   leanEnabled: boolean;
   setLeanEnabled: Dispatch<SetStateAction<boolean>>;
+  gogglesOn: boolean;
+  setGogglesOn: Dispatch<SetStateAction<boolean>>;
+  gogglesBlur: number;
+  setGogglesBlur: Dispatch<SetStateAction<number>>;
   wakeLock: boolean;
   setWakeLock: Dispatch<SetStateAction<boolean>>;
 
@@ -635,6 +639,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setCamFar,
     leanEnabled,
     setLeanEnabled,
+    gogglesOn,
+    setGogglesOn,
+    gogglesBlur,
+    setGogglesBlur,
     wakeLock,
     setWakeLock,
     waterTintIdx,
@@ -1413,6 +1421,24 @@ export function SettingsPanel(props: SettingsPanelProps) {
               value={wakeLock ? "PÅ" : "AV"}
               onDec={() => setWakeLock(false)}
               onInc={() => setWakeLock(true)}
+            />
+            <PadDial
+              label="SIMGLASÖGON"
+              value={gogglesOn ? "PÅ" : "AV"}
+              onDec={() => setGogglesOn(false)}
+              onInc={() => setGogglesOn(true)}
+            />
+            <PadDial
+              label="LINSOSKÄRPA"
+              mode="number"
+              value={`${Math.round(gogglesBlur * 100)}%`}
+              rawValue={gogglesBlur}
+              onSet={(v) => setGogglesBlur(Math.max(0, Math.min(1, v)))}
+              min={0}
+              max={1}
+              step={0.05}
+              onDec={() => setGogglesBlur((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+              onInc={() => setGogglesBlur((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
             />
           </>
         )}
