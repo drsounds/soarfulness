@@ -1,12 +1,11 @@
 import { useEffect, useRef } from "react";
 import type { RefObject } from "react";
 
-// Optional "swimming goggles" effect — see gogglesOn/gogglesBlur/gogglesLoop/
-// gogglesRain/gogglesScatter in settingsShared.ts's Persisted type, dialed in
-// from the KAMERA settings tab (SettingsPanel.tsx). Rendered in
-// routes/index.tsx right above the three.js canvas and below every HUD
-// element, so it reads as something sitting on the camera lens rather than
-// smearing the on-screen controls.
+// Optional "swimming goggles" effect — see gogglesOn/gogglesBlur/gogglesLoop
+// in settingsShared.ts's Persisted type, dialed in from the KAMERA settings
+// tab (SettingsPanel.tsx). Rendered in routes/index.tsx right above the
+// three.js canvas and below every HUD element, so it reads as something
+// sitting on the camera lens rather than smearing the on-screen controls.
 //
 // Two independent layers:
 //  - a whole-screen backdrop blur standing in for slightly fogged/misted
@@ -14,17 +13,12 @@ import type { RefObject } from "react";
 //    optional on top of the droplets)
 //  - a scatter of water droplets that fall straight down like gravity,
 //    driven by an imperative rAF loop (not React state) so ~20 elements can
-//    move every frame without triggering a re-render each time.
-//
-// Every opacity change — fading out near the waterline, fading in on
-// (re)spawn, fading with the underwater state — goes through a single eased
-// value (Droplet.opacity) rather than being derived instantly from position,
-// so a droplet is never abruptly hidden or popped into view: it only ever
-// fades. gogglesLoop picks *when* a droplet recycles (reaching the waterline
-// vs. falling off the bottom of the screen with the waterline ignored
-// entirely); gogglesRain/gogglesScatter pick *where* it reappears (falling
-// in from above the screen like rain, vs. fading in already scattered
-// somewhere in the sky above the waterline) and can be mixed.
+//    move every frame without triggering a re-render each time. By default
+//    each droplet fades out as it nears the on-screen waterline and is only
+//    recycled once fully invisible, so nothing visibly pops; with
+//    gogglesLoop on, the waterline is ignored entirely and droplets just
+//    keep falling, wrapping from the top once safely off-screen, for an
+//    unbroken continuous stream.
 
 const DROPLET_COUNT = 22;
 // Percent of screen height fallen per second — kept slow for the app's
@@ -38,8 +32,6 @@ const FADE_ZONE_PCT = 14;
 // ramped smoothly rather than an on/off cutoff, so diving/surfacing never
 // pops the whole scatter of droplets at once.
 const UNDERWATER_FADE_RANGE = 0.6;
-// Time constant (seconds) for a droplet fading in after it (re)spawns.
-const FADE_IN_TIME = 0.5;
 
 type Droplet = {
   el: HTMLDivElement | null;
@@ -49,7 +41,6 @@ type Droplet = {
   elongated: boolean;
   rotate: number;
   fallPctPerSec: number;
-  opacity: number; // eased render value — never set directly to a target
 };
 
 function randomSize() {
@@ -63,17 +54,6 @@ function randomizeShape(d: Droplet) {
   d.rotate = (Math.random() - 0.5) * 24;
   d.fallPctPerSec = FALL_PCT_MIN + Math.random() * (FALL_PCT_MAX - FALL_PCT_MIN);
   d.xPct = Math.random() * 100;
-}
-
-// Picks a (re)spawn height per the rain/scatter toggles: rain enters from
-// just above the screen and falls in; scatter materializes directly
-// somewhere in the sky region above the waterline. With both on, each spawn
-// randomly picks one or the other; with neither on, falls back to scatter
-// so droplets never simply stop appearing.
-function pickSpawnY(rain: boolean, scatter: boolean, horizonPct: number): number {
-  const useRain = rain && (!scatter || Math.random() < 0.5);
-  if (useRain) return -8 - Math.random() * 20;
-  return Math.random() * Math.max(0, horizonPct - 4);
 }
 
 // Vertical screen fraction (0 = top, 1 = bottom) where the level horizon —
@@ -104,16 +84,12 @@ function applyDropletShape(d: Droplet) {
 export function GogglesOverlay({
   blur,
   loop,
-  rain,
-  scatter,
   pitchRef,
   camFovRef,
   underwaterRef,
 }: {
   blur: number;
   loop: boolean;
-  rain: boolean;
-  scatter: boolean;
   pitchRef: RefObject<number>;
   camFovRef: RefObject<number>;
   underwaterRef: RefObject<Record<string, { value: unknown }> | null>;
@@ -134,21 +110,11 @@ export function GogglesOverlay({
         elongated: false,
         rotate: 0,
         fallPctPerSec: FALL_PCT_MIN,
-        opacity: 0,
       };
       randomizeShape(d);
       dropletsRef.current.push(d);
     }
   }
-
-  // rain/scatter are read fresh every frame via refs rather than restarting
-  // the rAF loop on every toggle flip.
-  const rainRef = useRef(rain);
-  const scatterRef = useRef(scatter);
-  useEffect(() => {
-    rainRef.current = rain;
-    scatterRef.current = scatter;
-  }, [rain, scatter]);
 
   useEffect(() => {
     let raf = 0;
@@ -168,42 +134,28 @@ export function GogglesOverlay({
         if (!d.el) continue;
         d.yPct += d.fallPctPerSec * dt;
 
-        let target: number;
         if (loop) {
-          // Waterline ignored entirely: keep falling, then quietly recycle
-          // once safely off-screen so the recycle is never visible.
+          // Waterline ignored entirely: keep falling, wrap from above once
+          // safely off-screen so the recycle is never visible.
           if (d.yPct > 108) {
             randomizeShape(d);
-            d.yPct = pickSpawnY(rainRef.current, scatterRef.current, horizonPct);
-            d.opacity = 0;
+            d.yPct = -8 - Math.random() * 20;
             applyDropletShape(d);
           } else {
             d.el.style.top = `${d.yPct}%`;
           }
-          target = globalFade;
+          d.el.style.opacity = globalFade.toFixed(3);
         } else {
           if (d.yPct >= horizonPct) {
             randomizeShape(d);
-            d.yPct = pickSpawnY(rainRef.current, scatterRef.current, horizonPct);
-            d.opacity = 0;
+            d.yPct = Math.random() * Math.max(0, horizonPct - 4);
             applyDropletShape(d);
           } else {
             d.el.style.top = `${d.yPct}%`;
           }
           const surfaceFade = Math.max(0, Math.min(1, (horizonPct - d.yPct) / FADE_ZONE_PCT));
-          target = surfaceFade * globalFade;
+          d.el.style.opacity = (surfaceFade * globalFade).toFixed(3);
         }
-
-        // Fading out (target below current) tracks the already-smooth
-        // distance/underwater curve exactly, so opacity is essentially 0 by
-        // the moment a droplet recycles. Fading in (target above current,
-        // e.g. right after a (re)spawn) eases up over FADE_IN_TIME instead
-        // of snapping — that's what turns every (re)spawn into a fade-in.
-        d.opacity =
-          target < d.opacity
-            ? target
-            : d.opacity + (target - d.opacity) * Math.min(1, dt / FADE_IN_TIME);
-        d.el.style.opacity = d.opacity.toFixed(3);
       }
       raf = requestAnimationFrame(tick);
     };
