@@ -20,7 +20,11 @@ import type { RefObject } from "react";
 //    keep falling, wrapping from the top once safely off-screen, for an
 //    unbroken continuous stream.
 
-const DROPLET_COUNT = 22;
+// Droplet count range the INTENSITET slider maps across (0-1). 0.5 (its
+// default) lands on 22, matching the fixed count this effect originally
+// shipped with.
+const MIN_DROPLETS = 2;
+const MAX_DROPLETS = 42;
 // Percent of screen height fallen per second — kept slow for the app's
 // generally calm feel, with enough spread that drops don't look lockstep.
 const FALL_PCT_MIN = 3;
@@ -56,6 +60,22 @@ function randomizeShape(d: Droplet) {
   d.xPct = Math.random() * 100;
 }
 
+// A freshly seeded droplet, scattered anywhere on screen (rather than only
+// above the waterline) so it reads as already-in-progress immediately.
+function makeDroplet(): Droplet {
+  const d: Droplet = {
+    el: null,
+    xPct: Math.random() * 100,
+    yPct: Math.random() * 100,
+    size: randomSize(),
+    elongated: false,
+    rotate: 0,
+    fallPctPerSec: FALL_PCT_MIN,
+  };
+  randomizeShape(d);
+  return d;
+}
+
 // Vertical screen fraction (0 = top, 1 = bottom) where the level horizon —
 // i.e. the water's surface line — falls, given the camera's up/down look
 // pitch (radians, positive = looking up) and its vertical field of view
@@ -84,36 +104,32 @@ function applyDropletShape(d: Droplet) {
 export function GogglesOverlay({
   blur,
   loop,
+  intensity,
   pitchRef,
   camFovRef,
   underwaterRef,
 }: {
   blur: number;
   loop: boolean;
+  intensity: number;
   pitchRef: RefObject<number>;
   camFovRef: RefObject<number>;
   underwaterRef: RefObject<Record<string, { value: unknown }> | null>;
 }) {
   // Droplet state lives in a ref, not React state — it's mutated every
-  // animation frame and must never itself trigger a re-render. Lazily
-  // seeded once per mount (i.e. once per GOGGLES toggle-on), scattered
-  // across the whole screen so it reads as already-in-progress rather than
+  // animation frame and must never itself trigger a re-render. The array is
+  // grown/shrunk in place to track the INTENSITET slider — done directly in
+  // the render body (not an effect) so the .map() below picks up the new
+  // length on the very render that changed it. New droplets are scattered
+  // across the whole screen so they read as already-in-progress rather than
   // raining in from an empty screen.
   const dropletsRef = useRef<Droplet[]>([]);
-  if (dropletsRef.current.length === 0) {
-    for (let i = 0; i < DROPLET_COUNT; i++) {
-      const d: Droplet = {
-        el: null,
-        xPct: Math.random() * 100,
-        yPct: Math.random() * 100,
-        size: randomSize(),
-        elongated: false,
-        rotate: 0,
-        fallPctPerSec: FALL_PCT_MIN,
-      };
-      randomizeShape(d);
-      dropletsRef.current.push(d);
-    }
+  const desiredCount = Math.round(MIN_DROPLETS + (MAX_DROPLETS - MIN_DROPLETS) * intensity);
+  while (dropletsRef.current.length < desiredCount) {
+    dropletsRef.current.push(makeDroplet());
+  }
+  if (dropletsRef.current.length > desiredCount) {
+    dropletsRef.current.length = desiredCount;
   }
 
   useEffect(() => {

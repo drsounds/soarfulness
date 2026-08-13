@@ -522,6 +522,9 @@ const DEFAULTS: Persisted = {
   // above it. On disables that recycling entirely so droplets just keep
   // falling and wrap from the top, for an unbroken continuous stream.
   gogglesLoop: false,
+  // Maps to a droplet count via GogglesOverlay's MIN_DROPLETS/MAX_DROPLETS —
+  // 0.5 lands on 22, this effect's original fixed count.
+  gogglesIntensity: 0.5,
   waveHighQuality: true,
   backdropIdx: 0,
   wakeLock: true,
@@ -679,6 +682,7 @@ function Aquafulness() {
   const [gogglesOn, setGogglesOn] = useState(initial.gogglesOn);
   const [gogglesBlur, setGogglesBlur] = useState(initial.gogglesBlur);
   const [gogglesLoop, setGogglesLoop] = useState(initial.gogglesLoop);
+  const [gogglesIntensity, setGogglesIntensity] = useState(initial.gogglesIntensity);
   const [regularWaves, setRegularWaves] = useState(initial.regularWaves);
   // Realistic (JONSWAP/FFT-ocean) waveform — see src/lib/ocean/fftOceanSpectrum.ts.
   const [realisticWaves, setRealisticWaves] = useState(initial.realisticWaves);
@@ -887,7 +891,7 @@ function Aquafulness() {
   // shape saved to localStorage below — also reused by the preset save/
   // export feature (see exportSettingsFile/savePresetAs) so there's only one
   // place that enumerates every field.
-  const buildPersistedSnapshot = (): Persisted => ({ waveAmp, timeOfDay, waveSpeed, waveFreq, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, gogglesOn, gogglesBlur, gogglesLoop, regularWaves, realisticWaves, dyingWave, dyingWaveAmp, dyingWaveSpeed, randomizeWaves, wavePreset, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, causticsOn, cameraMode, noclipSpeed, swingPositionY, swingIntensity, swingXFactor, swingHeight, swingPreset, swingYWaveform, intervalSessionOn, intervalDuration, intervalSessionType, intervalCount, intervalShowStats, surfaceArea, torusRingsOn, torusRadius, torusTube, torusScale, torusOpacity, torusTextureIdx, torusCellSize, torusVerticalSpacing, torusVerticalCount, torusViewDistance, torusFadeDistance });
+  const buildPersistedSnapshot = (): Persisted => ({ waveAmp, timeOfDay, waveSpeed, waveFreq, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, gogglesOn, gogglesBlur, gogglesLoop, gogglesIntensity, regularWaves, realisticWaves, dyingWave, dyingWaveAmp, dyingWaveSpeed, randomizeWaves, wavePreset, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, causticsOn, cameraMode, noclipSpeed, swingPositionY, swingIntensity, swingXFactor, swingHeight, swingPreset, swingYWaveform, intervalSessionOn, intervalDuration, intervalSessionType, intervalCount, intervalShowStats, surfaceArea, torusRingsOn, torusRadius, torusTube, torusScale, torusOpacity, torusTextureIdx, torusCellSize, torusVerticalSpacing, torusVerticalCount, torusViewDistance, torusFadeDistance });
 
   // Persist settings to localStorage whenever they change (SSR-safe, hydration-safe).
   useEffect(() => {
@@ -897,7 +901,7 @@ function Aquafulness() {
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, waveFreq, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, gogglesOn, gogglesBlur, gogglesLoop, regularWaves, realisticWaves, dyingWave, dyingWaveAmp, dyingWaveSpeed, randomizeWaves, wavePreset, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, causticsOn, cameraMode, noclipSpeed, swingPositionY, swingIntensity, swingXFactor, swingHeight, swingPreset, swingYWaveform, intervalSessionOn, intervalDuration, intervalSessionType, intervalCount, intervalShowStats, surfaceArea, torusRingsOn, torusRadius, torusTube, torusScale, torusOpacity, torusTextureIdx, torusCellSize, torusVerticalSpacing, torusVerticalCount, torusViewDistance, torusFadeDistance]);
+  }, [waveAmp, timeOfDay, waveSpeed, waveFreq, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, gogglesOn, gogglesBlur, gogglesLoop, gogglesIntensity, regularWaves, realisticWaves, dyingWave, dyingWaveAmp, dyingWaveSpeed, randomizeWaves, wavePreset, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, causticsOn, cameraMode, noclipSpeed, swingPositionY, swingIntensity, swingXFactor, swingHeight, swingPreset, swingYWaveform, intervalSessionOn, intervalDuration, intervalSessionType, intervalCount, intervalShowStats, surfaceArea, torusRingsOn, torusRadius, torusTube, torusScale, torusOpacity, torusTextureIdx, torusCellSize, torusVerticalSpacing, torusVerticalCount, torusViewDistance, torusFadeDistance]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -1278,6 +1282,7 @@ function Aquafulness() {
     setGogglesOn(DEFAULTS.gogglesOn);
     setGogglesBlur(DEFAULTS.gogglesBlur);
     setGogglesLoop(DEFAULTS.gogglesLoop);
+    setGogglesIntensity(DEFAULTS.gogglesIntensity);
     setRegularWaves(DEFAULTS.regularWaves);
     setRealisticWaves(DEFAULTS.realisticWaves);
     setDyingWave(DEFAULTS.dyingWave);
@@ -1384,6 +1389,7 @@ function Aquafulness() {
     if (patch.gogglesOn !== undefined) setGogglesOn(patch.gogglesOn);
     if (patch.gogglesBlur !== undefined) setGogglesBlur(patch.gogglesBlur);
     if (patch.gogglesLoop !== undefined) setGogglesLoop(patch.gogglesLoop);
+    if (patch.gogglesIntensity !== undefined) setGogglesIntensity(patch.gogglesIntensity);
     if (patch.regularWaves !== undefined) setRegularWaves(patch.regularWaves);
     if (patch.realisticWaves !== undefined) setRealisticWaves(patch.realisticWaves);
     if (patch.dyingWave !== undefined) setDyingWave(patch.dyingWave);
@@ -4182,6 +4188,8 @@ function Aquafulness() {
     setGogglesBlur,
     gogglesLoop,
     setGogglesLoop,
+    gogglesIntensity,
+    setGogglesIntensity,
     wakeLock,
     setWakeLock,
     waterTintIdx,
@@ -4348,6 +4356,7 @@ function Aquafulness() {
         <GogglesOverlay
           blur={gogglesBlur}
           loop={gogglesLoop}
+          intensity={gogglesIntensity}
           pitchRef={pitchRef}
           camFovRef={camFovRef}
           underwaterRef={waterUniformsRef}
