@@ -226,6 +226,8 @@ export type SettingsPanelProps = {
   setGogglesOn: Dispatch<SetStateAction<boolean>>;
   gogglesBlur: number;
   setGogglesBlur: Dispatch<SetStateAction<number>>;
+  gogglesLoop: boolean;
+  setGogglesLoop: Dispatch<SetStateAction<boolean>>;
   wakeLock: boolean;
   setWakeLock: Dispatch<SetStateAction<boolean>>;
 
@@ -643,6 +645,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setGogglesOn,
     gogglesBlur,
     setGogglesBlur,
+    gogglesLoop,
+    setGogglesLoop,
     wakeLock,
     setWakeLock,
     waterTintIdx,
@@ -1439,6 +1443,12 @@ export function SettingsPanel(props: SettingsPanelProps) {
               step={0.05}
               onDec={() => setGogglesBlur((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
               onInc={() => setGogglesBlur((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+            />
+            <PadDial
+              label="DROPPLOOP"
+              value={gogglesLoop ? "PÅ" : "AV"}
+              onDec={() => setGogglesLoop(false)}
+              onInc={() => setGogglesLoop(true)}
             />
           </>
         )}
