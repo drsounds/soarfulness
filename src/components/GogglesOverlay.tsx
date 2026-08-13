@@ -115,6 +115,7 @@ export function GogglesOverlay({
   blur,
   loop,
   intensity,
+  fpsCap,
   pitchRef,
   camFovRef,
   underwaterRef,
@@ -122,6 +123,7 @@ export function GogglesOverlay({
   blur: number;
   loop: boolean;
   intensity: number;
+  fpsCap: number;
   pitchRef: RefObject<number>;
   camFovRef: RefObject<number>;
   underwaterRef: RefObject<Record<string, { value: unknown }> | null>;
@@ -145,7 +147,16 @@ export function GogglesOverlay({
   useEffect(() => {
     let raf = 0;
     let last = performance.now();
+    // Caps how often droplets actually get repositioned — no point
+    // recalculating positions faster than gogglesFpsCap's matching render
+    // cap will ever paint them. rAF itself still fires every real frame so
+    // the elapsed-time check below stays accurate; only the work is skipped.
+    const minIntervalMs = fpsCap > 0 ? 1000 / fpsCap : 0;
     const tick = (now: number) => {
+      if (now - last < minIntervalMs) {
+        raf = requestAnimationFrame(tick);
+        return;
+      }
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
 
@@ -188,7 +199,7 @@ export function GogglesOverlay({
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [loop, pitchRef, camFovRef, underwaterRef]);
+  }, [loop, fpsCap, pitchRef, camFovRef, underwaterRef]);
 
   const blurPx = blur * 5;
 
