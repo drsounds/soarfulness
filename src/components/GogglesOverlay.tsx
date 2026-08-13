@@ -218,8 +218,14 @@ export function GogglesOverlay({
             height: d.elongated ? d.size * 1.7 : d.size,
             borderRadius: d.elongated ? "50% 50% 45% 45% / 62% 62% 38% 38%" : "50%",
             transform: `translate(-50%, -50%) rotate(${d.rotate}deg)`,
+            // Highlight/body gradient on top, then a thin red ring right at
+            // the rim with a blue-tinted ring just inside it underneath —
+            // a lens chromatic-aberration fringe, red fringing outward,
+            // blue/cyan inward, exactly at the droplet's edge.
             background:
-              "radial-gradient(circle at 32% 26%, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.12) 10%, rgba(255,255,255,0.02) 45%, rgba(190,220,255,0.1) 75%, transparent 100%)",
+              "radial-gradient(circle at 32% 26%, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.12) 10%, rgba(255,255,255,0.02) 45%, rgba(190,220,255,0.1) 75%, transparent 100%), " +
+              "radial-gradient(circle at 50% 50%, transparent 88%, rgba(255,70,70,0.55) 95%, transparent 100%), " +
+              "radial-gradient(circle at 50% 50%, transparent 78%, rgba(80,160,255,0.5) 88%, transparent 96%)",
             boxShadow:
               "inset 0 -2px 3px rgba(0,0,0,0.18), inset 0 2px 2px rgba(255,255,255,0.45), 0 1px 2px rgba(0,0,0,0.12)",
             backdropFilter: "blur(1.5px)",
