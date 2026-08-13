@@ -14,11 +14,13 @@ import type { RefObject } from "react";
 //  - a scatter of water droplets that fall straight down like gravity,
 //    driven by an imperative rAF loop (not React state) so ~20 elements can
 //    move every frame without triggering a re-render each time. By default
-//    each droplet fades out as it nears the on-screen waterline and is only
-//    recycled once fully invisible, so nothing visibly pops; with
-//    gogglesLoop on, the waterline is ignored entirely and droplets just
-//    keep falling, wrapping from the top once safely off-screen, for an
-//    unbroken continuous stream.
+//    each droplet fades out as it nears the on-screen waterline and then
+//    recycles to a new, freshly randomized position scattered somewhere
+//    else in the sky above the water — like a new droplet forming — rather
+//    than reusing the same spot; with gogglesLoop on, the waterline is
+//    ignored entirely and droplets just keep falling until off the bottom
+//    of the screen before recycling the same way, for an unbroken
+//    continuous stream.
 
 // Droplet count range the INTENSITET slider maps across (0-1). 0.5 (its
 // default) lands on 22, matching the fixed count this effect originally
@@ -74,6 +76,14 @@ function makeDroplet(): Droplet {
   };
   randomizeShape(d);
   return d;
+}
+
+// A scattered respawn height somewhere in the sky region currently above
+// the waterline — used whenever a droplet recycles, in both loop and
+// non-loop mode, so reappearing droplets read as freshly scattered across
+// the water's surface rather than lining up and falling in from one spot.
+function scatterSpawnY(horizonPct: number): number {
+  return Math.random() * Math.max(0, horizonPct - 4);
 }
 
 // Vertical screen fraction (0 = top, 1 = bottom) where the level horizon —
@@ -151,11 +161,12 @@ export function GogglesOverlay({
         d.yPct += d.fallPctPerSec * dt;
 
         if (loop) {
-          // Waterline ignored entirely: keep falling, wrap from above once
-          // safely off-screen so the recycle is never visible.
+          // Waterline ignored entirely: keep falling until off the bottom
+          // of the screen, then reappear scattered somewhere new above the
+          // waterline, like a fresh droplet forming.
           if (d.yPct > 108) {
             randomizeShape(d);
-            d.yPct = -8 - Math.random() * 20;
+            d.yPct = scatterSpawnY(horizonPct);
             applyDropletShape(d);
           } else {
             d.el.style.top = `${d.yPct}%`;
@@ -164,7 +175,7 @@ export function GogglesOverlay({
         } else {
           if (d.yPct >= horizonPct) {
             randomizeShape(d);
-            d.yPct = Math.random() * Math.max(0, horizonPct - 4);
+            d.yPct = scatterSpawnY(horizonPct);
             applyDropletShape(d);
           } else {
             d.el.style.top = `${d.yPct}%`;
