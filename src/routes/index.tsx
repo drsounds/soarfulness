@@ -4335,7 +4335,14 @@ function Aquafulness() {
           plus optional blur (see KAMERA settings tab). Sits directly above
           the 3D canvas and below every HUD element, so it reads as being on
           the camera rather than smearing the on-screen controls. */}
-      {gogglesOn && <GogglesOverlay blur={gogglesBlur} />}
+      {gogglesOn && (
+        <GogglesOverlay
+          blur={gogglesBlur}
+          pitchRef={pitchRef}
+          camFovRef={camFovRef}
+          underwaterRef={waterUniformsRef}
+        />
+      )}
 
       {/* Persistent brand mark — inverted (white), semi-transparent, 24pt, 5pt margin */}
       <img
