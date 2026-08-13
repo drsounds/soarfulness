@@ -228,6 +228,10 @@ export type SettingsPanelProps = {
   setGogglesBlur: Dispatch<SetStateAction<number>>;
   gogglesLoop: boolean;
   setGogglesLoop: Dispatch<SetStateAction<boolean>>;
+  gogglesRain: boolean;
+  setGogglesRain: Dispatch<SetStateAction<boolean>>;
+  gogglesScatter: boolean;
+  setGogglesScatter: Dispatch<SetStateAction<boolean>>;
   wakeLock: boolean;
   setWakeLock: Dispatch<SetStateAction<boolean>>;
 
@@ -647,6 +651,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setGogglesBlur,
     gogglesLoop,
     setGogglesLoop,
+    gogglesRain,
+    setGogglesRain,
+    gogglesScatter,
+    setGogglesScatter,
     wakeLock,
     setWakeLock,
     waterTintIdx,
@@ -1449,6 +1457,18 @@ export function SettingsPanel(props: SettingsPanelProps) {
               value={gogglesLoop ? "PÅ" : "AV"}
               onDec={() => setGogglesLoop(false)}
               onInc={() => setGogglesLoop(true)}
+            />
+            <PadDial
+              label="REGN"
+              value={gogglesRain ? "PÅ" : "AV"}
+              onDec={() => setGogglesRain(false)}
+              onInc={() => setGogglesRain(true)}
+            />
+            <PadDial
+              label="SPRIDNING"
+              value={gogglesScatter ? "PÅ" : "AV"}
+              onDec={() => setGogglesScatter(false)}
+              onInc={() => setGogglesScatter(true)}
             />
           </>
         )}

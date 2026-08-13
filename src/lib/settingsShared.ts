@@ -176,6 +176,8 @@ export type Persisted = {
   gogglesOn: boolean;
   gogglesBlur: number;
   gogglesLoop: boolean;
+  gogglesRain: boolean;
+  gogglesScatter: boolean;
   regularWaves: boolean;
   realisticWaves: boolean;
   dyingWave: boolean;
@@ -313,6 +315,8 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "gogglesOn",
     "gogglesBlur",
     "gogglesLoop",
+    "gogglesRain",
+    "gogglesScatter",
   ],
   vatten: [
     "waterTintIdx",
