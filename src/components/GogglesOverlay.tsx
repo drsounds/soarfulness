@@ -232,7 +232,11 @@ export function GogglesOverlay({
           }}
           className="absolute"
           style={{
-            opacity: 0,
+            // Read from the live droplet, not hardcoded — this component
+            // re-renders on unrelated parent state changes (HUD counters,
+            // other dials, ...), and a literal 0 here would stomp the rAF
+            // loop's eased fade back to invisible on every such re-render.
+            opacity: d.opacity,
             left: `${d.xPct}%`,
             top: `${d.yPct}%`,
             width: d.size,
