@@ -14,13 +14,19 @@ import type { RefObject } from "react";
 //  - a scatter of water droplets that fall straight down like gravity,
 //    driven by an imperative rAF loop (not React state) so ~20 elements can
 //    move every frame without triggering a re-render each time. By default
-//    each droplet fades out as it nears the on-screen waterline and is only
-//    recycled once fully invisible, so nothing visibly pops; with
-//    gogglesLoop on, the waterline is ignored entirely and droplets just
-//    keep falling, wrapping from the top once safely off-screen, for an
-//    unbroken continuous stream.
+//    each droplet fades out as it nears the on-screen waterline and then
+//    recycles to a new, freshly randomized position scattered somewhere
+//    else in the sky above the water — like a new droplet forming — rather
+//    than reusing the same spot; with gogglesLoop on, the waterline is
+//    ignored entirely and droplets just keep falling until off the bottom
+//    of the screen before recycling the same way, for an unbroken
+//    continuous stream.
 
-const DROPLET_COUNT = 22;
+// Droplet count range the INTENSITET slider maps across (0-1). 0.5 (its
+// default) lands on 22, matching the fixed count this effect originally
+// shipped with.
+const MIN_DROPLETS = 2;
+const MAX_DROPLETS = 42;
 // Percent of screen height fallen per second — kept slow for the app's
 // generally calm feel, with enough spread that drops don't look lockstep.
 const FALL_PCT_MIN = 3;
@@ -56,6 +62,30 @@ function randomizeShape(d: Droplet) {
   d.xPct = Math.random() * 100;
 }
 
+// A freshly seeded droplet, scattered anywhere on screen (rather than only
+// above the waterline) so it reads as already-in-progress immediately.
+function makeDroplet(): Droplet {
+  const d: Droplet = {
+    el: null,
+    xPct: Math.random() * 100,
+    yPct: Math.random() * 100,
+    size: randomSize(),
+    elongated: false,
+    rotate: 0,
+    fallPctPerSec: FALL_PCT_MIN,
+  };
+  randomizeShape(d);
+  return d;
+}
+
+// A scattered respawn height somewhere in the sky region currently above
+// the waterline — used whenever a droplet recycles, in both loop and
+// non-loop mode, so reappearing droplets read as freshly scattered across
+// the water's surface rather than lining up and falling in from one spot.
+function scatterSpawnY(horizonPct: number): number {
+  return Math.random() * Math.max(0, horizonPct - 4);
+}
+
 // Vertical screen fraction (0 = top, 1 = bottom) where the level horizon —
 // i.e. the water's surface line — falls, given the camera's up/down look
 // pitch (radians, positive = looking up) and its vertical field of view
@@ -84,36 +114,32 @@ function applyDropletShape(d: Droplet) {
 export function GogglesOverlay({
   blur,
   loop,
+  intensity,
   pitchRef,
   camFovRef,
   underwaterRef,
 }: {
   blur: number;
   loop: boolean;
+  intensity: number;
   pitchRef: RefObject<number>;
   camFovRef: RefObject<number>;
   underwaterRef: RefObject<Record<string, { value: unknown }> | null>;
 }) {
   // Droplet state lives in a ref, not React state — it's mutated every
-  // animation frame and must never itself trigger a re-render. Lazily
-  // seeded once per mount (i.e. once per GOGGLES toggle-on), scattered
-  // across the whole screen so it reads as already-in-progress rather than
+  // animation frame and must never itself trigger a re-render. The array is
+  // grown/shrunk in place to track the INTENSITET slider — done directly in
+  // the render body (not an effect) so the .map() below picks up the new
+  // length on the very render that changed it. New droplets are scattered
+  // across the whole screen so they read as already-in-progress rather than
   // raining in from an empty screen.
   const dropletsRef = useRef<Droplet[]>([]);
-  if (dropletsRef.current.length === 0) {
-    for (let i = 0; i < DROPLET_COUNT; i++) {
-      const d: Droplet = {
-        el: null,
-        xPct: Math.random() * 100,
-        yPct: Math.random() * 100,
-        size: randomSize(),
-        elongated: false,
-        rotate: 0,
-        fallPctPerSec: FALL_PCT_MIN,
-      };
-      randomizeShape(d);
-      dropletsRef.current.push(d);
-    }
+  const desiredCount = Math.round(MIN_DROPLETS + (MAX_DROPLETS - MIN_DROPLETS) * intensity);
+  while (dropletsRef.current.length < desiredCount) {
+    dropletsRef.current.push(makeDroplet());
+  }
+  if (dropletsRef.current.length > desiredCount) {
+    dropletsRef.current.length = desiredCount;
   }
 
   useEffect(() => {
@@ -135,11 +161,12 @@ export function GogglesOverlay({
         d.yPct += d.fallPctPerSec * dt;
 
         if (loop) {
-          // Waterline ignored entirely: keep falling, wrap from above once
-          // safely off-screen so the recycle is never visible.
+          // Waterline ignored entirely: keep falling until off the bottom
+          // of the screen, then reappear scattered somewhere new above the
+          // waterline, like a fresh droplet forming.
           if (d.yPct > 108) {
             randomizeShape(d);
-            d.yPct = -8 - Math.random() * 20;
+            d.yPct = scatterSpawnY(horizonPct);
             applyDropletShape(d);
           } else {
             d.el.style.top = `${d.yPct}%`;
@@ -148,7 +175,7 @@ export function GogglesOverlay({
         } else {
           if (d.yPct >= horizonPct) {
             randomizeShape(d);
-            d.yPct = Math.random() * Math.max(0, horizonPct - 4);
+            d.yPct = scatterSpawnY(horizonPct);
             applyDropletShape(d);
           } else {
             d.el.style.top = `${d.yPct}%`;
