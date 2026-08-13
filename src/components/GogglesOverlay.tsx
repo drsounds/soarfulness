@@ -228,8 +228,11 @@ export function GogglesOverlay({
               "radial-gradient(circle at 50% 50%, transparent 78%, rgba(80,160,255,0.5) 88%, transparent 96%)",
             boxShadow:
               "inset 0 -2px 3px rgba(0,0,0,0.18), inset 0 2px 2px rgba(255,255,255,0.45), 0 1px 2px rgba(0,0,0,0.12)",
-            backdropFilter: "blur(1.5px)",
-            WebkitBackdropFilter: "blur(1.5px)",
+            // No per-droplet backdrop-filter: up to MAX_DROPLETS of these
+            // moving every frame each forcing their own backdrop blur
+            // sample of the animating 3D scene behind them was the actual
+            // source of this effect's CPU/GPU/memory cost — the gradient +
+            // box-shadow above already reads as a wet lens on its own.
           }}
         />
       ))}

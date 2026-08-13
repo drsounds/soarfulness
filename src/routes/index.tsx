@@ -517,7 +517,7 @@ const DEFAULTS: Persisted = {
   // Off by default: an optional "swimming goggles" overlay — static water
   // droplets on the lens, plus an optional whole-screen blur (0 = none).
   gogglesOn: false,
-  gogglesBlur: 0.3,
+  gogglesBlur: 0,
   // Off by default: droplets fade out approaching the waterline and recycle
   // above it. On disables that recycling entirely so droplets just keep
   // falling and wrap from the top, for an unbroken continuous stream.
