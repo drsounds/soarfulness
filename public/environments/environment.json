@@ -1,7 +1,7 @@
 {
   "environments": [    {
-      "id": "framnas",
-      "name": "Framnäs",
+      "id": "strandpark",
+      "name": "Strandpark",
       "eras": [
         {
           "id": "present",
