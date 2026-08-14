@@ -525,6 +525,12 @@ const DEFAULTS: Persisted = {
   // Maps to a droplet count via GogglesOverlay's MIN_DROPLETS/MAX_DROPLETS —
   // 0.5 lands on 22, this effect's original fixed count.
   gogglesIntensity: 0.5,
+  // Caps the main render loop's renderer.render() calls (and the droplet
+  // overlay's own update loop) to this many fps while SIMGLASÖGON is on —
+  // a lower, movie-like frame rate trades a bit of motion smoothness for
+  // meaningfully less GPU/thermal load during the effect. Has no effect at
+  // all while SIMGLASÖGON is off.
+  gogglesFpsCap: 25,
   waveHighQuality: true,
   backdropIdx: 0,
   wakeLock: true,
@@ -683,6 +689,7 @@ function Aquafulness() {
   const [gogglesBlur, setGogglesBlur] = useState(initial.gogglesBlur);
   const [gogglesLoop, setGogglesLoop] = useState(initial.gogglesLoop);
   const [gogglesIntensity, setGogglesIntensity] = useState(initial.gogglesIntensity);
+  const [gogglesFpsCap, setGogglesFpsCap] = useState(initial.gogglesFpsCap);
   const [regularWaves, setRegularWaves] = useState(initial.regularWaves);
   // Realistic (JONSWAP/FFT-ocean) waveform — see src/lib/ocean/fftOceanSpectrum.ts.
   const [realisticWaves, setRealisticWaves] = useState(initial.realisticWaves);
@@ -891,7 +898,7 @@ function Aquafulness() {
   // shape saved to localStorage below — also reused by the preset save/
   // export feature (see exportSettingsFile/savePresetAs) so there's only one
   // place that enumerates every field.
-  const buildPersistedSnapshot = (): Persisted => ({ waveAmp, timeOfDay, waveSpeed, waveFreq, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, gogglesOn, gogglesBlur, gogglesLoop, gogglesIntensity, regularWaves, realisticWaves, dyingWave, dyingWaveAmp, dyingWaveSpeed, randomizeWaves, wavePreset, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, causticsOn, cameraMode, noclipSpeed, swingPositionY, swingIntensity, swingXFactor, swingHeight, swingPreset, swingYWaveform, intervalSessionOn, intervalDuration, intervalSessionType, intervalCount, intervalShowStats, surfaceArea, torusRingsOn, torusRadius, torusTube, torusScale, torusOpacity, torusTextureIdx, torusCellSize, torusVerticalSpacing, torusVerticalCount, torusViewDistance, torusFadeDistance });
+  const buildPersistedSnapshot = (): Persisted => ({ waveAmp, timeOfDay, waveSpeed, waveFreq, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, gogglesOn, gogglesBlur, gogglesLoop, gogglesIntensity, gogglesFpsCap, regularWaves, realisticWaves, dyingWave, dyingWaveAmp, dyingWaveSpeed, randomizeWaves, wavePreset, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, causticsOn, cameraMode, noclipSpeed, swingPositionY, swingIntensity, swingXFactor, swingHeight, swingPreset, swingYWaveform, intervalSessionOn, intervalDuration, intervalSessionType, intervalCount, intervalShowStats, surfaceArea, torusRingsOn, torusRadius, torusTube, torusScale, torusOpacity, torusTextureIdx, torusCellSize, torusVerticalSpacing, torusVerticalCount, torusViewDistance, torusFadeDistance });
 
   // Persist settings to localStorage whenever they change (SSR-safe, hydration-safe).
   useEffect(() => {
@@ -901,7 +908,7 @@ function Aquafulness() {
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, waveFreq, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, gogglesOn, gogglesBlur, gogglesLoop, gogglesIntensity, regularWaves, realisticWaves, dyingWave, dyingWaveAmp, dyingWaveSpeed, randomizeWaves, wavePreset, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, causticsOn, cameraMode, noclipSpeed, swingPositionY, swingIntensity, swingXFactor, swingHeight, swingPreset, swingYWaveform, intervalSessionOn, intervalDuration, intervalSessionType, intervalCount, intervalShowStats, surfaceArea, torusRingsOn, torusRadius, torusTube, torusScale, torusOpacity, torusTextureIdx, torusCellSize, torusVerticalSpacing, torusVerticalCount, torusViewDistance, torusFadeDistance]);
+  }, [waveAmp, timeOfDay, waveSpeed, waveFreq, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, gogglesOn, gogglesBlur, gogglesLoop, gogglesIntensity, gogglesFpsCap, regularWaves, realisticWaves, dyingWave, dyingWaveAmp, dyingWaveSpeed, randomizeWaves, wavePreset, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, causticsOn, cameraMode, noclipSpeed, swingPositionY, swingIntensity, swingXFactor, swingHeight, swingPreset, swingYWaveform, intervalSessionOn, intervalDuration, intervalSessionType, intervalCount, intervalShowStats, surfaceArea, torusRingsOn, torusRadius, torusTube, torusScale, torusOpacity, torusTextureIdx, torusCellSize, torusVerticalSpacing, torusVerticalCount, torusViewDistance, torusFadeDistance]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -1001,6 +1008,11 @@ function Aquafulness() {
   // — see its use in the animation loop below.
   const anticipVelSmoothRef = useRef(0);
   const camFovRef = useRef(camFov);
+  // Read by the main render loop to cap GPU-expensive renderer.render()
+  // calls to gogglesFpsCap while SIMGLASÖGON is on — see the animate()
+  // closure below and GogglesOverlay's own matching cap.
+  const gogglesOnRef = useRef(gogglesOn);
+  const gogglesFpsCapRef = useRef(gogglesFpsCap);
   const camNearRef = useRef(camNear);
   const camFarRef = useRef(camFar);
   const waveDirRef = useRef(waveDir);
@@ -1060,6 +1072,8 @@ function Aquafulness() {
   useEffect(() => { wakeLockRef.current = wakeLock; }, [wakeLock]);
   useEffect(() => { audioSpatialRef.current = audioSpatial; }, [audioSpatial]);
   useEffect(() => { camFovRef.current = camFov; }, [camFov]);
+  useEffect(() => { gogglesOnRef.current = gogglesOn; }, [gogglesOn]);
+  useEffect(() => { gogglesFpsCapRef.current = gogglesFpsCap; }, [gogglesFpsCap]);
   useEffect(() => { camNearRef.current = camNear; }, [camNear]);
   useEffect(() => { camFarRef.current = camFar; }, [camFar]);
   useEffect(() => { waveDirRef.current = waveDir; }, [waveDir]);
@@ -1283,6 +1297,7 @@ function Aquafulness() {
     setGogglesBlur(DEFAULTS.gogglesBlur);
     setGogglesLoop(DEFAULTS.gogglesLoop);
     setGogglesIntensity(DEFAULTS.gogglesIntensity);
+    setGogglesFpsCap(DEFAULTS.gogglesFpsCap);
     setRegularWaves(DEFAULTS.regularWaves);
     setRealisticWaves(DEFAULTS.realisticWaves);
     setDyingWave(DEFAULTS.dyingWave);
@@ -1390,6 +1405,7 @@ function Aquafulness() {
     if (patch.gogglesBlur !== undefined) setGogglesBlur(patch.gogglesBlur);
     if (patch.gogglesLoop !== undefined) setGogglesLoop(patch.gogglesLoop);
     if (patch.gogglesIntensity !== undefined) setGogglesIntensity(patch.gogglesIntensity);
+    if (patch.gogglesFpsCap !== undefined) setGogglesFpsCap(patch.gogglesFpsCap);
     if (patch.regularWaves !== undefined) setRegularWaves(patch.regularWaves);
     if (patch.realisticWaves !== undefined) setRealisticWaves(patch.realisticWaves);
     if (patch.dyingWave !== undefined) setDyingWave(patch.dyingWave);
@@ -3126,6 +3142,9 @@ function Aquafulness() {
     let raf = 0;
     let lastMs = performance.now();
     let lastCamSaveMs = 0;
+    // Throttles renderer.render() (see below) while SIMGLASÖGON is on —
+    // 0 means "render this frame" is still due.
+    let lastRenderMs = 0;
     let waveT = 0;
     // DÖENDE VÅG runs on its own clock (own TEMPO dial), independent of the
     // shared waveT above, so it can be a long, slow swell regardless of how
@@ -3785,12 +3804,23 @@ function Aquafulness() {
       // position is final for the frame.
       torusRingField.update(camera.position, dt);
 
-      // Must run before renderer.render() below — it syncs each TV panel's
-      // invisible occluder mesh (added to `scene`) to the panel's current
-      // transform, so the depth test that lets other 3D objects properly
-      // occlude the panel uses this frame's position, not last frame's.
-      tvManager.render();
-      renderer.render(scene, camera);
+      // While SIMGLASÖGON is on, cap actual GPU renders to gogglesFpsCap —
+      // camera/physics/uniforms above still update every rAF tick (cheap,
+      // keeps input response and motion timing correct), only the expensive
+      // renderer.render() draw call itself is skipped on the frames in
+      // between. Off (the default), this never skips a render.
+      const fpsCap = gogglesOnRef.current ? gogglesFpsCapRef.current : 0;
+      const renderDue = fpsCap <= 0 || now - lastRenderMs >= 1000 / fpsCap;
+      if (renderDue) {
+        lastRenderMs = now;
+        // Must run before renderer.render() below — it syncs each TV
+        // panel's invisible occluder mesh (added to `scene`) to the
+        // panel's current transform, so the depth test that lets other 3D
+        // objects properly occlude the panel uses this frame's position,
+        // not last frame's.
+        tvManager.render();
+        renderer.render(scene, camera);
+      }
       raf = requestAnimationFrame(animate);
       clock.getDelta();
     };
@@ -4190,6 +4220,8 @@ function Aquafulness() {
     setGogglesLoop,
     gogglesIntensity,
     setGogglesIntensity,
+    gogglesFpsCap,
+    setGogglesFpsCap,
     wakeLock,
     setWakeLock,
     waterTintIdx,
@@ -4357,6 +4389,7 @@ function Aquafulness() {
           blur={gogglesBlur}
           loop={gogglesLoop}
           intensity={gogglesIntensity}
+          fpsCap={gogglesFpsCap}
           pitchRef={pitchRef}
           camFovRef={camFovRef}
           underwaterRef={waterUniformsRef}

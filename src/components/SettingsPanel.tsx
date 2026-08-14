@@ -230,6 +230,8 @@ export type SettingsPanelProps = {
   setGogglesLoop: Dispatch<SetStateAction<boolean>>;
   gogglesIntensity: number;
   setGogglesIntensity: Dispatch<SetStateAction<number>>;
+  gogglesFpsCap: number;
+  setGogglesFpsCap: Dispatch<SetStateAction<number>>;
   wakeLock: boolean;
   setWakeLock: Dispatch<SetStateAction<boolean>>;
 
@@ -651,6 +653,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setGogglesLoop,
     gogglesIntensity,
     setGogglesIntensity,
+    gogglesFpsCap,
+    setGogglesFpsCap,
     wakeLock,
     setWakeLock,
     waterTintIdx,
@@ -1465,6 +1469,18 @@ export function SettingsPanel(props: SettingsPanelProps) {
               step={0.05}
               onDec={() => setGogglesIntensity((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
               onInc={() => setGogglesIntensity((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+            />
+            <PadDial
+              label="BILDFREKVENS"
+              mode="number"
+              value={`${gogglesFpsCap} fps`}
+              rawValue={gogglesFpsCap}
+              onSet={(v) => setGogglesFpsCap(Math.max(10, Math.min(60, Math.round(v))))}
+              min={10}
+              max={60}
+              step={5}
+              onDec={() => setGogglesFpsCap((v) => Math.max(10, v - 5))}
+              onInc={() => setGogglesFpsCap((v) => Math.min(60, v + 5))}
             />
           </>
         )}

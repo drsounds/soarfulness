@@ -177,6 +177,7 @@ export type Persisted = {
   gogglesBlur: number;
   gogglesLoop: boolean;
   gogglesIntensity: number;
+  gogglesFpsCap: number;
   regularWaves: boolean;
   realisticWaves: boolean;
   dyingWave: boolean;
@@ -315,6 +316,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "gogglesBlur",
     "gogglesLoop",
     "gogglesIntensity",
+    "gogglesFpsCap",
   ],
   vatten: [
     "waterTintIdx",
