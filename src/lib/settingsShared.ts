@@ -264,6 +264,8 @@ export type Persisted = {
   sphereStrength: number;
   trochoid: number;
   causticsOn: boolean;
+  chromaticAberrationOn: boolean;
+  chromaticAberrationAmount: number;
   cameraMode: CameraMode;
   noclipSpeed: number;
   swingPositionY: number;
@@ -358,6 +360,8 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "gogglesFpsCap",
     "targetFps",
     "resolutionScale",
+    "chromaticAberrationOn",
+    "chromaticAberrationAmount",
   ],
   vatten: [
     "waterTintIdx",
