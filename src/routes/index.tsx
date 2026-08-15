@@ -3,6 +3,9 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
+import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { CSS3DTVManager, type DeviceKind } from "@/lib/tv/CSS3DTVManager";
 import { TorusRingField } from "@/lib/torusRings/TorusRingField";
@@ -587,6 +590,12 @@ const DEFAULTS: Persisted = {
   // angles instead of the fixed deep/shallow gradient. Costs extra
   // per-fragment cos() evaluations, so it stays opt-in.
   causticsOn: false,
+  // Off by default: a full-screen post-process lens effect (red/blue channels
+  // sampled offset radially from center, growing toward the edges) — see
+  // CHROMATIC_ABERRATION_SHADER above. chromaticAberrationAmount is the
+  // dial's 0..1 value (shown as a %), independent of whether the effect is on.
+  chromaticAberrationOn: false,
+  chromaticAberrationAmount: 0.4,
   cameraMode: "float",
   noclipSpeed: 1,
   swingPositionY: 25,
@@ -664,6 +673,41 @@ function saveCameraPose(pose: CameraPose) {
     /* quota or privacy mode — ignore */
   }
 }
+
+// Full-screen post-process pass for KROMATISK ABERRATION: samples the red and
+// blue channels offset radially from frame center (green stays put), the
+// offset growing linearly with distance from center so it reads as a lens
+// effect concentrated at the edges rather than a uniform screen-wide smear.
+// uAmount is the red/blue offset (in UV units) at the frame's corner;
+// scaled from the 0..1 dial value in the render loop below.
+const CHROMATIC_ABERRATION_SHADER = {
+  uniforms: {
+    tDiffuse: { value: null as THREE.Texture | null },
+    uAmount: { value: 0 },
+  },
+  vertexShader: `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform sampler2D tDiffuse;
+    uniform float uAmount;
+    varying vec2 vUv;
+    void main() {
+      vec2 toCenter = vUv - 0.5;
+      vec2 dir = toCenter / (length(toCenter) + 1e-6);
+      vec2 offset = dir * length(toCenter) * uAmount;
+      float r = texture2D(tDiffuse, vUv - offset).r;
+      float g = texture2D(tDiffuse, vUv).g;
+      float b = texture2D(tDiffuse, vUv + offset).b;
+      float a = texture2D(tDiffuse, vUv).a;
+      gl_FragColor = vec4(r, g, b, a);
+    }
+  `,
+};
 
 function Aquafulness() {
   const { t } = useTranslation();
@@ -787,6 +831,10 @@ function Aquafulness() {
   const [sphereStrength, setSphereStrength] = useState(initial.sphereStrength);
   const [trochoid, setTrochoid] = useState(initial.trochoid);
   const [causticsOn, setCausticsOn] = useState(initial.causticsOn);
+  const [chromaticAberrationOn, setChromaticAberrationOn] = useState(initial.chromaticAberrationOn);
+  const [chromaticAberrationAmount, setChromaticAberrationAmount] = useState(
+    initial.chromaticAberrationAmount,
+  );
   const [cameraMode, setCameraMode] = useState<CameraMode>(initial.cameraMode);
   const [noclipSpeed, setNoclipSpeed] = useState(initial.noclipSpeed);
   // Resting altitude the pendulum hangs from — GUNGA POSITION Y. Renamed from
@@ -920,6 +968,8 @@ function Aquafulness() {
   const sphereStrengthRef = useRef(sphereStrength);
   const trochoidRef = useRef(trochoid);
   const causticsOnRef = useRef(causticsOn);
+  const chromaticAberrationOnRef = useRef(chromaticAberrationOn);
+  const chromaticAberrationAmountRef = useRef(chromaticAberrationAmount);
 
   // A full snapshot of every settings-dialog field, in the exact Persisted
   // shape saved to localStorage below — also reused by the preset save/
@@ -1006,6 +1056,8 @@ function Aquafulness() {
     sphereStrength,
     trochoid,
     causticsOn,
+    chromaticAberrationOn,
+    chromaticAberrationAmount,
     cameraMode,
     noclipSpeed,
     swingPositionY,
@@ -1122,6 +1174,8 @@ function Aquafulness() {
     sphereStrength,
     trochoid,
     causticsOn,
+    chromaticAberrationOn,
+    chromaticAberrationAmount,
     cameraMode,
     noclipSpeed,
     swingPositionY,
@@ -1481,6 +1535,12 @@ function Aquafulness() {
     causticsOnRef.current = causticsOn;
   }, [causticsOn]);
   useEffect(() => {
+    chromaticAberrationOnRef.current = chromaticAberrationOn;
+  }, [chromaticAberrationOn]);
+  useEffect(() => {
+    chromaticAberrationAmountRef.current = chromaticAberrationAmount;
+  }, [chromaticAberrationAmount]);
+  useEffect(() => {
     sphereStrengthRef.current = sphereStrength;
   }, [sphereStrength]);
   useEffect(() => {
@@ -1747,6 +1807,8 @@ function Aquafulness() {
     setSphereStrength(DEFAULTS.sphereStrength);
     setTrochoid(DEFAULTS.trochoid);
     setCausticsOn(DEFAULTS.causticsOn);
+    setChromaticAberrationOn(DEFAULTS.chromaticAberrationOn);
+    setChromaticAberrationAmount(DEFAULTS.chromaticAberrationAmount);
     setCameraMode(DEFAULTS.cameraMode);
     setNoclipSpeed(DEFAULTS.noclipSpeed);
     setSwingPositionY(DEFAULTS.swingPositionY);
@@ -1862,6 +1924,10 @@ function Aquafulness() {
     if (patch.sphereStrength !== undefined) setSphereStrength(patch.sphereStrength);
     if (patch.trochoid !== undefined) setTrochoid(patch.trochoid);
     if (patch.causticsOn !== undefined) setCausticsOn(patch.causticsOn);
+    if (patch.chromaticAberrationOn !== undefined)
+      setChromaticAberrationOn(patch.chromaticAberrationOn);
+    if (patch.chromaticAberrationAmount !== undefined)
+      setChromaticAberrationAmount(patch.chromaticAberrationAmount);
     if (patch.cameraMode !== undefined) setCameraMode(patch.cameraMode);
     if (patch.noclipSpeed !== undefined) setNoclipSpeed(patch.noclipSpeed);
     if (patch.swingPositionY !== undefined) setSwingPositionY(patch.swingPositionY);
@@ -2500,6 +2566,17 @@ function Aquafulness() {
     );
     tvManager.setEditMode(editModeRef.current);
     tvManagerRef.current = tvManager;
+
+    // KROMATISK ABERRATION post-process — only ever engaged (via
+    // composer.render() instead of renderer.render()) on frames where the
+    // effect is actually on, so it costs nothing when off. Built once here
+    // regardless, at whatever pixel ratio the renderer already has (see
+    // resolutionScale sync below for what keeps it matching afterwards).
+    const composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene, camera));
+    const chromaticAberrationPass = new ShaderPass(CHROMATIC_ABERRATION_SHADER);
+    chromaticAberrationPass.renderToScreen = true;
+    composer.addPass(chromaticAberrationPass);
 
     const torusRingField = new TorusRingField(scene, {
       enabled: initial.torusRingsOn,
@@ -3538,6 +3615,7 @@ function Aquafulness() {
       const w = mount.clientWidth;
       const h = mount.clientHeight;
       renderer.setSize(w, h);
+      composer.setSize(w, h);
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
       tvManager.setSize(w, h);
@@ -3627,7 +3705,9 @@ function Aquafulness() {
       // actually changed.
       if (resolutionScaleRef.current !== lastResolutionScale) {
         lastResolutionScale = resolutionScaleRef.current;
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2) * lastResolutionScale);
+        const pixelRatio = Math.min(window.devicePixelRatio, 2) * lastResolutionScale;
+        renderer.setPixelRatio(pixelRatio);
+        composer.setPixelRatio(pixelRatio);
       }
       // Sync camera lens (FOV / near / far clip) with live settings.
       if (
@@ -4423,7 +4503,15 @@ function Aquafulness() {
         // objects properly occlude the panel uses this frame's position,
         // not last frame's.
         tvManager.render();
-        renderer.render(scene, camera);
+        if (chromaticAberrationOnRef.current) {
+          // 0..1 dial value -> a max red/blue UV offset of 0..~3.5% of the
+          // frame at its corners (see CHROMATIC_ABERRATION_SHADER above).
+          chromaticAberrationPass.uniforms.uAmount.value =
+            chromaticAberrationAmountRef.current * 0.05;
+          composer.render();
+        } else {
+          renderer.render(scene, camera);
+        }
       }
       raf = requestAnimationFrame(animate);
       clock.getDelta();
@@ -4436,6 +4524,8 @@ function Aquafulness() {
       window.removeEventListener("pagehide", saveCameraPoseNow);
       saveCameraPoseNow();
       renderer.dispose();
+      chromaticAberrationPass.dispose();
+      composer.dispose();
       geo.dispose();
       farOcean.geometry.dispose();
       mat.dispose();
@@ -4824,6 +4914,10 @@ function Aquafulness() {
     setTargetFps,
     resolutionScale,
     setResolutionScale,
+    chromaticAberrationOn,
+    setChromaticAberrationOn,
+    chromaticAberrationAmount,
+    setChromaticAberrationAmount,
     wakeLock,
     setWakeLock,
     waterTintIdx,

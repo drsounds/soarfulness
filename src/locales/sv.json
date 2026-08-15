@@ -34,6 +34,8 @@
       "syncSpeed": "LJUDSYNK"
     },
     "camera": {
+      "chromaticAberration": "KROMATISK ABERRATION",
+      "chromaticAberrationAmount": "ABERRATIONSSTYRKA",
       "far": "FJÄRRSIKT",
       "fov": "FOV",
       "goggles": "SIMGLASÖGON",

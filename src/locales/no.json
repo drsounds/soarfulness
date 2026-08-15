@@ -34,6 +34,8 @@
       "syncSpeed": "LYDSYNK"
     },
     "camera": {
+      "chromaticAberration": "KROMATISK ABERRASJON",
+      "chromaticAberrationAmount": "ABERRASJONSSTYRKE",
       "far": "FJERNSYN",
       "fov": "FOV",
       "goggles": "SVØMMEBRILLER",

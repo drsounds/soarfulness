@@ -34,6 +34,8 @@
       "syncSpeed": "ÄÄNISYNKRONOINTI"
     },
     "camera": {
+      "chromaticAberration": "KROMAATTINEN ABERRAATIO",
+      "chromaticAberrationAmount": "ABERRAATION VOIMAKKUUS",
       "far": "KAUKOTASO",
       "fov": "FOV",
       "goggles": "UIMALASIT",

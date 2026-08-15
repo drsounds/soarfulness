@@ -270,6 +270,13 @@ export type SettingsPanelProps = {
   setTargetFps: Dispatch<SetStateAction<number>>;
   resolutionScale: number;
   setResolutionScale: Dispatch<SetStateAction<number>>;
+  // KROMATISK ABERRATION: a full-screen lens post-process (red/blue channels
+  // sampled offset radially from center). chromaticAberrationAmount is the
+  // dial's 0..1 strength, independent of whether the effect is on.
+  chromaticAberrationOn: boolean;
+  setChromaticAberrationOn: Dispatch<SetStateAction<boolean>>;
+  chromaticAberrationAmount: number;
+  setChromaticAberrationAmount: Dispatch<SetStateAction<number>>;
   wakeLock: boolean;
   setWakeLock: Dispatch<SetStateAction<boolean>>;
 
@@ -699,6 +706,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setTargetFps,
     resolutionScale,
     setResolutionScale,
+    chromaticAberrationOn,
+    setChromaticAberrationOn,
+    chromaticAberrationAmount,
+    setChromaticAberrationAmount,
     wakeLock,
     setWakeLock,
     waterTintIdx,
@@ -1563,6 +1574,24 @@ export function SettingsPanel(props: SettingsPanelProps) {
               step={0.05}
               onDec={() => setResolutionScale((v) => Math.max(0.25, +(v - 0.05).toFixed(2)))}
               onInc={() => setResolutionScale((v) => Math.min(1.5, +(v + 0.05).toFixed(2)))}
+            />
+            <PadDial
+              label={t("dial.camera.chromaticAberration")}
+              value={onOff(chromaticAberrationOn)}
+              onDec={() => setChromaticAberrationOn(false)}
+              onInc={() => setChromaticAberrationOn(true)}
+            />
+            <PadDial
+              label={t("dial.camera.chromaticAberrationAmount")}
+              mode="number"
+              value={`${Math.round(chromaticAberrationAmount * 100)}%`}
+              rawValue={chromaticAberrationAmount}
+              onSet={(v) => setChromaticAberrationAmount(Math.max(0, Math.min(1, v)))}
+              min={0}
+              max={1}
+              step={0.05}
+              onDec={() => setChromaticAberrationAmount((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+              onInc={() => setChromaticAberrationAmount((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
             />
           </>
         )}
