@@ -1,0 +1,365 @@
+{
+  "camera": {
+    "mode": {
+      "autoSuffix": "(AUTO)",
+      "float": "FRI",
+      "noclip": "NOCLIP",
+      "swing": "GYNGE"
+    },
+    "rotationValue": {
+      "fixed": "FAST",
+      "leanForward": "FREMOVERLÆNET"
+    }
+  },
+  "common": {
+    "against": "MOD",
+    "auto": "AUTO",
+    "decreaseAria": "{{label}} formindsk",
+    "high": "HØJ",
+    "increaseAria": "{{label}} forøg",
+    "low": "LAV",
+    "neutral": "NEUTRAL",
+    "none": "—",
+    "off": "SLUKKET",
+    "on": "TÆND",
+    "opacity": "OPACITET",
+    "texture": "TEKSTUR",
+    "with": "MED"
+  },
+  "dial": {
+    "audio": {
+      "off": "LYD FRA",
+      "on": "LYD TIL",
+      "spatial": "RUMLIG",
+      "syncSpeed": "LYDSYNK"
+    },
+    "camera": {
+      "far": "FJERNSYN",
+      "fov": "FOV",
+      "goggles": "SVØMMEBRILLER",
+      "gogglesBlur": "LINSEUSKARPHED",
+      "gogglesFpsCap": "BILLEDFREKVENS",
+      "gogglesIntensity": "INTENSITET",
+      "gogglesLoop": "DRÅBELØKKE",
+      "intervalCount": "ANTAL INTERVALLER",
+      "intervalDuration": "INTERVAL",
+      "intervalSession": "INTERVALSESSION",
+      "mode": "KAMERATILSTAND",
+      "near": "NÆR",
+      "noclipSpeed": "NOCLIP HASTIGHED",
+      "posX": "POS X",
+      "posY": "POS Y",
+      "posZ": "POS Z",
+      "rotation": "ROTATION",
+      "sessionType": "SESSIONSTYPE",
+      "showStats": "VIS TID",
+      "swingHeight": "GYNGE HØJDE",
+      "swingIntensity": "GYNGE INTENSITET",
+      "swingPositionY": "GYNGE POSITION Y",
+      "swingStart": "GYNGE START",
+      "swingXFactor": "GYNGE X",
+      "swingYWaveform": "GYNGE Y BØLGEFORM",
+      "wakeLock": "VÅGEN"
+    },
+    "env": {
+      "backdrop": "BAGGRUND",
+      "dayTime": "DØGN",
+      "environment": "MILJØ",
+      "era": "ÆRA",
+      "live": "LIVE",
+      "midClouds": "MELLEM-SKYER",
+      "midCloudsHeight": "SKYHØJDE",
+      "roomSize": "RUMSTØRRELSE",
+      "scene": "SCENE",
+      "skyClouds": "HIMMEL-SKYER",
+      "skyCloudsHeight": "HIMMEL-SKYHØJDE",
+      "time": "TID",
+      "torusCellSize": "GITTER XZ",
+      "torusFadeDistance": "UDTONING",
+      "torusOpacity": "OPACITET",
+      "torusRadius": "RADIUS",
+      "torusRings": "BADERINGE",
+      "torusScale": "STØRRELSE",
+      "torusTexture": "TEKSTUR",
+      "torusTube": "TYKKELSE",
+      "torusVerticalCount": "RINGE/KOLONNE",
+      "torusVerticalSpacing": "GITTER HØJDE",
+      "torusViewDistance": "REKKEVIDDE"
+    },
+    "water": {
+      "bottom": "BUND",
+      "bottomColor": "BUNDFARVE",
+      "brightness": "LYSSTYRKE",
+      "caustics": "EKTE KAUSTIK",
+      "depth": "DYBDE",
+      "depthSine": "DYBDE-SINUS",
+      "floorTexture": "TEKSTUR",
+      "hue": "NUANCE",
+      "reflStrength": "STYRKE",
+      "reflection": "REFLEKSION",
+      "saturation": "MÆTNING",
+      "sineAmp": "SINUS AMP",
+      "sineFreq": "SINUS FREK",
+      "sphereStrength": "SFÆRE-STYRKE",
+      "surfBright": "OVERFLADE-LYS",
+      "surfSat": "OVERFLADE-MÆTNING",
+      "surface": "VANDOVERFLADE",
+      "surfaceValue": {
+        "hide": "SKJUL",
+        "visible": "SYNLIG"
+      },
+      "tint": "VAND",
+      "turbidity": "GRUMSETHED",
+      "waveMaterial": "BØLGEMATERIALE",
+      "waveMaterialValue": {
+        "sphereMap": "SFÆREKORT",
+        "standard": "STANDARD"
+      }
+    },
+    "wave": {
+      "amp": "BØLGE",
+      "bob": "VUGGE",
+      "bobSpeed": "VUGGE TEMPO",
+      "crossWave": "KRYDSBØLGE",
+      "currentDirection": "STRØM RETNING",
+      "distance": "AFSTAND",
+      "dive": "DYK",
+      "dyingWave": "DØENDE BØLGE",
+      "dyingWaveHeight": "DØENDE BØLGE HØJDE",
+      "dyingWaveSpeed": "DØENDE BØLGE TEMPO",
+      "floatLift": "FLYD",
+      "freq": "FREKVENS",
+      "height": "HØJDE",
+      "mode": "TILSTAND",
+      "modeValue": {
+        "ocean": "HAV",
+        "vortex": "HVIRVEL"
+      },
+      "opening": "ÅBNING",
+      "peak": "TOP",
+      "preset": "BØLGE-PRESET",
+      "quality": "KVALITET",
+      "randomize": "TILFÆLDIGE BØLGER",
+      "realistic": "REALISTISKE BØLGER",
+      "realisticValue": {
+        "on": "FFT-HAV"
+      },
+      "speed": "TEMPO",
+      "sway": "SVAJ",
+      "swayDirection": "SVAJ RETNING",
+      "swayDrift": "SVAJ DRIFT",
+      "swaySpeed": "SVAJ TEMPO",
+      "trochoid": "TROKOIDE",
+      "trochoidOff": "SLUKKET",
+      "vortexSpeed": "HVIRVEL TEMPO",
+      "waveDirection": "BØLGERETNING",
+      "wavePeriod": "BØLGEPERIODE",
+      "waveform": "BØLGEFORM",
+      "waveformValue": {
+        "regular": "REGELMÆSSIG",
+        "spread": "SPREDT"
+      }
+    }
+  },
+  "hud": {
+    "audioMuteAria": "Slå lyd fra",
+    "audioOffTitle": "Lyd fra",
+    "audioOnTitle": "Lyd til",
+    "audioUnmuteAria": "Slå lyd til",
+    "fullscreenEnterAria": "Fuldskærm",
+    "fullscreenExitAria": "Afslut fuldskærm",
+    "intervalFixedLabel": "Interval {{n}}/{{total}}",
+    "intervalInfiniteLabel": "Interval {{n}}",
+    "intervalRemaining": "{{time}} tilbage",
+    "joystick": {
+      "current": "STRØM",
+      "look": "LOOK",
+      "nav": "NAV",
+      "sway": "SVAJ",
+      "waveDirection": "BØLGERETN"
+    },
+    "offline": "OFFLINE",
+    "phoneCloseAria": "Luk telefon",
+    "phoneCloseTitle": "Luk telefon",
+    "phoneOpenAria": "Åbn telefon",
+    "phoneOpenTitle": "Åbn telefon (bathOS, cast til skærme)",
+    "settingsCloseAria": "Luk indstillinger",
+    "settingsCloseLabel": "LUK",
+    "settingsOpenAria": "Åbn indstillinger",
+    "settingsOpenLabel": "INDSTILLINGER",
+    "slider": {
+      "frequency": "FREKVENS",
+      "tempo": "TEMPO",
+      "wave": "BØLGE"
+    },
+    "totalLabel": " · I alt "
+  },
+  "interval": {
+    "type": {
+      "fixed": "FASTE INTERVALLER",
+      "infinite": "UENDELIG"
+    }
+  },
+  "language": {
+    "da": "Dansk",
+    "en": "Engelsk",
+    "fi": "Finsk",
+    "label": "SPROG",
+    "no": "Norsk",
+    "sv": "Svensk"
+  },
+  "live": {
+    "badge": "LIVE",
+    "cellsUnit": "celler",
+    "followerFlow": "Qi-flow til 28 mia. følgere",
+    "viewerBillion": "mia",
+    "viewerMillion": "mio",
+    "viewerThousand": "t"
+  },
+  "options": {
+    "backdrop": {
+      "off": "SLUKKET",
+      "vanern": "Vänern"
+    },
+    "bottom": {
+      "clouds": "Skyer",
+      "coral": "Koral",
+      "custom": "Tilpasset",
+      "darkBottom": "Mørk bund",
+      "lightSand": "Lys sand",
+      "off": "SLUKKET",
+      "sand": "Sand",
+      "stone": "Sten"
+    },
+    "torusTexture": {
+      "off": "SLUKKET",
+      "sand": "Sand"
+    },
+    "waterTint": {
+      "archipelago": "Skærgård",
+      "caribbean": "Caribisk",
+      "deepSea": "Dybhav",
+      "mediterranean": "Middelhavet",
+      "nordic": "Nordhav",
+      "tropical": "Tropisk"
+    }
+  },
+  "phone": {
+    "addLabel": "Tilføj",
+    "appRemote": "Fjernbetjening",
+    "appScreens": "Skærme",
+    "appSettings": "Indstillinger",
+    "backTitle": "Tilbage",
+    "bathOS": "bathOS",
+    "bookmarkTitle": "Bogmærke",
+    "castTitle": "Cast til skærm",
+    "closeTitle": "Luk",
+    "emptyScreen": "(tom skærm)",
+    "forwardTitle": "Frem",
+    "homeTitle": "Hjem",
+    "lockScreen": "Lås skærmen",
+    "lockTitle": "Lås",
+    "menuTitle": "Menu",
+    "mobileLabel": "Mobil",
+    "namePlaceholder": "Navn",
+    "newMobile": "Ny mobil",
+    "newSmartTv": "Ny smart-tv",
+    "removeAllScreens": "Fjern alle skærme",
+    "resizeTitle": "Ændr størrelse",
+    "rotateTitle": "Rotér (stående/liggende)",
+    "searchOrEnterUrl": "Søg eller indtast en webadresse",
+    "searchOrEnterUrlShort": "Søg eller indtast webadresse",
+    "searchPlaceholder": "Søg",
+    "signalTitle": "Signal",
+    "title": "TELEFON",
+    "tvLabel": "TV",
+    "unlockHint": "Tryk for at låse op",
+    "urlPlaceholder": "Webadresse"
+  },
+  "presets": {
+    "all": "ALLE INDSTILLINGER",
+    "choosePreset": "VÆLG GEMT…",
+    "chooseState": "VÆLG GEMT…",
+    "delete": "SLET",
+    "deleteConfirm": "Slet gemt preset?",
+    "deleteStateConfirm": "Slet gemt tilstand?",
+    "export": "EKSPORTÉR",
+    "import": "IMPORTÉR",
+    "invalidPresetFile": "Kunne ikke læse presetfilen — kontrollér at den er en gyldig JSON-fil.",
+    "invalidStateFile": "Kunne ikke læse tilstandsfilen — kontrollér at den er en gyldig JSON-fil.",
+    "load": "INDLÆS",
+    "save": "GEM",
+    "savePromptTitle": "Gem som:",
+    "saveStatePromptTitle": "Gem tilstand som:",
+    "scope": {
+      "kamera": "KAMERA-PRESET",
+      "ljud": "LYD-PRESET",
+      "miljo": "MILJØ-PRESET",
+      "vagor": "BØLGER-PRESET",
+      "vatten": "VAND-PRESET"
+    },
+    "state": "TILSTAND (alt + position, blik, strøm, sving)"
+  },
+  "remote": {
+    "hojd": "HØJDE",
+    "strom": "STRØM",
+    "svaj": "SVAJ",
+    "swingHint": "I GYNGE-tilstand styres kameraets position helt af gyngens fysik — ingen styrepinde her.",
+    "syncButton": "SYNK BØLGE MED SVAJ: {{state}}",
+    "syncTitle": "Lad BØLGERETNING automatisk følge SVAJ RETNING (standard: til)",
+    "title": "FJERNBETJENING",
+    "vagrikt": "BØLGERETN"
+  },
+  "screens": {
+    "editModeDescription": "Pauser bølger og kamerabevægelse, så tv/mobil-skærmene i 3D-visningen kan flyttes, roteres og ændre størrelse præcist.",
+    "editModeOff": "REDIGERINGSTILSTAND",
+    "editModeOn": "AFSLUT REDIGERING",
+    "editModeTitleOff": "Redigeringstilstand (pauser bølger og bevægelse)",
+    "editModeTitleOn": "Afslut redigeringstilstand",
+    "title": "SKÆRMHÅNDTERING"
+  },
+  "settings": {
+    "reset": "NULSTIL",
+    "resetAriaLabel": "Nulstil kontroller til standardværdier",
+    "resetTitle": "Nulstil kontroller (tidspunkt på dagen påvirkes ikke)",
+    "restore": "GENDAN",
+    "restoreAriaLabel": "Vend tilbage til senest gemte kameraposition",
+    "restoreTitle": "Vend tilbage til senest gemte kameraposition og retning",
+    "tabs": {
+      "kamera": "KAMERA",
+      "ljud": "LYD",
+      "miljo": "MILJØ",
+      "vagor": "BØLGER",
+      "vatten": "VAND"
+    },
+    "tabsAriaLabel": "Indstillingsfaner",
+    "title": "INDSTILLINGER"
+  },
+  "swing": {
+    "preset": {
+      "clouds": "SKYER",
+      "custom": "TILPASSET",
+      "water": "VAND"
+    },
+    "waveform": {
+      "pendulum": "PENDUL",
+      "sine": "SINUS",
+      "square": "FIRKANT",
+      "triangle": "TREKANT"
+    }
+  },
+  "tod": {
+    "afternoon": "Eftermiddag",
+    "dawn": "Daggry",
+    "dusk": "Skumring",
+    "midday": "Middag",
+    "morning": "Morgen",
+    "night": "Nat"
+  },
+  "wave": {
+    "preset": {
+      "legacy": "LEGACY",
+      "standard": "STANDARD"
+    }
+  }
+}

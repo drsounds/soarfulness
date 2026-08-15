@@ -12,7 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { registerAppServiceWorker } from "../lib/register-sw";
-
+import { loadStoredLanguage, detectBrowserLanguage, changeLanguage } from "../lib/i18n";
 
 function NotFoundComponent() {
   return (
@@ -89,17 +89,29 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { name: "apple-mobile-web-app-title", content: "Aquafulness" },
       { title: "Aquafulness — Ocean Wave Meditation" },
-      { name: "description", content: "A calming WebGL ocean where the camera drifts on the waves. Adjust swell, time of day, and wander across the sea." },
+      {
+        name: "description",
+        content:
+          "A calming WebGL ocean where the camera drifts on the waves. Adjust swell, time of day, and wander across the sea.",
+      },
       { name: "author", content: "Lovable" },
       { name: "robots", content: "noindex, nofollow" },
       { name: "googlebot", content: "noindex, nofollow" },
       { property: "og:title", content: "Aquafulness — Ocean Wave Meditation" },
-      { property: "og:description", content: "A calming WebGL ocean where the camera drifts on the waves. Adjust swell, time of day, and wander across the sea." },
+      {
+        property: "og:description",
+        content:
+          "A calming WebGL ocean where the camera drifts on the waves. Adjust swell, time of day, and wander across the sea.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@Lovable" },
       { name: "twitter:title", content: "Aquafulness — Ocean Wave Meditation" },
-      { name: "twitter:description", content: "A calming WebGL ocean where the camera drifts on the waves. Adjust swell, time of day, and wander across the sea." },
+      {
+        name: "twitter:description",
+        content:
+          "A calming WebGL ocean where the camera drifts on the waves. Adjust swell, time of day, and wander across the sea.",
+      },
     ],
     links: [
       {
@@ -119,8 +131,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 // Measurement ID comes from the Lovable Google Analytics connector.
 const GA_MEASUREMENT_ID = import.meta.env["VITE_LOVABLE_CONNECTOR_GOOGLE_ANALYTICS_API_KEY"] as
-  | string
-  | undefined;
+  string | undefined;
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
@@ -159,6 +170,13 @@ function RootComponent() {
 
   useEffect(() => {
     registerAppServiceWorker();
+  }, []);
+
+  // Server and the first client render always use Swedish (see lib/i18n.ts)
+  // so hydration never mismatches; apply the user's stored or browser-
+  // detected language immediately after mount, before any interaction.
+  useEffect(() => {
+    changeLanguage(loadStoredLanguage() ?? detectBrowserLanguage());
   }, []);
 
   // iOS Safari fires these non-standard gesture events for a pinch and

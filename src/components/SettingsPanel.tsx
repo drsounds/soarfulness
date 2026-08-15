@@ -1,13 +1,18 @@
 import { useState, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
+import { useTranslation } from "react-i18next";
 import { PadDial } from "@/components/PadDial";
 import {
   SETTINGS_TABS,
   WATER_TINTS,
+  WATER_TINT_LABEL_KEYS,
   BOTTOM_OPTIONS,
+  BOTTOM_LABEL_KEYS,
   BACKDROPS,
+  BACKDROP_LABEL_KEYS,
   TORUS_RING_TEXTURES,
+  TORUS_TEXTURE_LABEL_KEYS,
   CAMERA_MODES,
-  CAMERA_MODE_LABELS,
+  CAMERA_MODE_LABEL_KEYS,
   SWING_PRESETS,
   SWING_Y_WAVEFORMS,
   INTERVAL_SESSION_TYPES,
@@ -23,29 +28,56 @@ import {
   type WavePresetName,
 } from "@/lib/settingsShared";
 import { pickJsonFile, type PresetScope, type SavedPreset, type SavedState } from "@/lib/presets";
+import { changeLanguage, SUPPORTED_LANGUAGES, LANGUAGE_NAMES, type LanguageCode } from "@/lib/i18n";
 
-// Swedish display labels for enum values that don't already carry a
-// human-readable "name" (unlike scenes/environments/surfaces, which come
-// from data with their own name field).
-const INTERVAL_SESSION_TYPE_LABELS: Record<IntervalSessionType, string> = {
-  infinite: "OÄNDLIGT",
-  fixed: "FASTA INTERVALL",
+// i18next keys for enum values that don't already carry a human-readable
+// "name" (unlike scenes/environments/surfaces, which come from data with
+// their own name field) — resolved via t() at each usage site below.
+const INTERVAL_SESSION_TYPE_LABEL_KEYS: Record<IntervalSessionType, string> = {
+  infinite: "interval.type.infinite",
+  fixed: "interval.type.fixed",
 };
-const SWING_PRESET_LABELS: Record<SwingPreset, string> = {
-  water: "VATTEN",
-  clouds: "MOLN",
-  custom: "ANPASSAD",
+const SWING_PRESET_LABEL_KEYS: Record<SwingPreset, string> = {
+  water: "swing.preset.water",
+  clouds: "swing.preset.clouds",
+  custom: "swing.preset.custom",
 };
-const SWING_Y_WAVEFORM_LABELS: Record<SwingYWaveform, string> = {
-  pendulum: "PENDEL",
-  sine: "SINUS",
-  triangle: "TRIANGEL",
-  square: "FYRKANT",
+const SWING_Y_WAVEFORM_LABEL_KEYS: Record<SwingYWaveform, string> = {
+  pendulum: "swing.waveform.pendulum",
+  sine: "swing.waveform.sine",
+  triangle: "swing.waveform.triangle",
+  square: "swing.waveform.square",
 };
-const WAVE_PRESET_LABELS: Record<WavePresetName, string> = {
-  standard: "STANDARD",
-  legacy: "LEGACY",
+const WAVE_PRESET_LABEL_KEYS: Record<WavePresetName, string> = {
+  standard: "wave.preset.standard",
+  legacy: "wave.preset.legacy",
 };
+
+// Compact language picker — always visible in the settings header (not
+// tab-scoped) since it affects every tab's labels at once. Uses the shared
+// i18n instance directly via changeLanguage() (see lib/i18n.ts) rather than
+// i18n.changeLanguage(), so the choice is also persisted to localStorage.
+function LanguageSwitcher() {
+  const { i18n, t } = useTranslation();
+  return (
+    <label className="flex items-center gap-1.5 rounded-full border border-white/15 bg-black/40 px-2.5 py-1">
+      <span className="text-[9px] font-light tracking-[0.28em] text-white/50">
+        {t("language.label")}
+      </span>
+      <select
+        value={i18n.language}
+        onChange={(e) => changeLanguage(e.target.value as LanguageCode)}
+        className="cursor-pointer appearance-none bg-transparent text-[10px] font-medium tracking-wider text-white outline-none"
+      >
+        {SUPPORTED_LANGUAGES.map((code) => (
+          <option key={code} value={code} className="bg-black text-white">
+            {LANGUAGE_NAMES[code]}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
 
 type NamedOption = { id: string; name: string };
 type EnvTimeOption = NamedOption;
@@ -368,6 +400,7 @@ function PresetControls({
   loadSavedPreset: (id: string) => void;
   deleteSavedPreset: (id: string) => void;
 }) {
+  const { t } = useTranslation();
   const scoped = savedPresets.filter((p) => p.scope === scope);
   const [selected, setSelected] = useState("");
   const activeId = scoped.some((p) => p.id === selected) ? selected : "";
@@ -379,21 +412,21 @@ function PresetControls({
       <span className="text-[9px] font-light tracking-[0.28em] text-white/40">{label}</span>
       <button
         onClick={() => {
-          const name = window.prompt("Spara som:");
+          const name = window.prompt(t("presets.savePromptTitle"));
           if (name && name.trim()) savePresetAs(scope, name.trim());
         }}
         className={btnClass}
       >
-        SPARA
+        {t("presets.save")}
       </button>
       <button onClick={() => exportSettingsFile(scope)} className={btnClass}>
-        EXPORTERA
+        {t("presets.export")}
       </button>
       <button
         onClick={() => pickJsonFile((file) => importSettingsFile(scope, file))}
         className={btnClass}
       >
-        IMPORTERA
+        {t("presets.import")}
       </button>
       {scoped.length > 0 && (
         <>
@@ -403,7 +436,7 @@ function PresetControls({
             className="rounded-full border border-white/15 bg-black/40 px-2 py-0.5 text-[9px] text-white/70"
           >
             <option value="" disabled>
-              VÄLJ SPARAD…
+              {t("presets.choosePreset")}
             </option>
             {scoped.map((p) => (
               <option key={p.id} value={p.id}>
@@ -416,19 +449,19 @@ function PresetControls({
             onClick={() => activeId && loadSavedPreset(activeId)}
             className={btnClass}
           >
-            LÄS IN
+            {t("presets.load")}
           </button>
           <button
             disabled={!activeId}
             onClick={() => {
-              if (activeId && window.confirm("Ta bort sparad preset?")) {
+              if (activeId && window.confirm(t("presets.deleteConfirm"))) {
                 deleteSavedPreset(activeId);
                 setSelected("");
               }
             }}
             className={btnClass}
           >
-            RADERA
+            {t("presets.delete")}
           </button>
         </>
       )}
@@ -457,6 +490,7 @@ function StateControls({
   loadSavedStateById: (id: string) => void;
   deleteSavedState: (id: string) => void;
 }) {
+  const { t } = useTranslation();
   const [selected, setSelected] = useState("");
   const activeId = savedStates.some((s) => s.id === selected) ? selected : "";
   const btnClass =
@@ -467,18 +501,18 @@ function StateControls({
       <span className="text-[9px] font-light tracking-[0.28em] text-white/40">{label}</span>
       <button
         onClick={() => {
-          const name = window.prompt("Spara tillstånd som:");
+          const name = window.prompt(t("presets.saveStatePromptTitle"));
           if (name && name.trim()) saveStateAs(name.trim());
         }}
         className={btnClass}
       >
-        SPARA
+        {t("presets.save")}
       </button>
       <button onClick={() => exportStateFile()} className={btnClass}>
-        EXPORTERA
+        {t("presets.export")}
       </button>
       <button onClick={() => pickJsonFile((file) => importStateFile(file))} className={btnClass}>
-        IMPORTERA
+        {t("presets.import")}
       </button>
       {savedStates.length > 0 && (
         <>
@@ -488,7 +522,7 @@ function StateControls({
             className="rounded-full border border-white/15 bg-black/40 px-2 py-0.5 text-[9px] text-white/70"
           >
             <option value="" disabled>
-              VÄLJ SPARAT…
+              {t("presets.chooseState")}
             </option>
             {savedStates.map((s) => (
               <option key={s.id} value={s.id}>
@@ -501,19 +535,19 @@ function StateControls({
             onClick={() => activeId && loadSavedStateById(activeId)}
             className={btnClass}
           >
-            LÄS IN
+            {t("presets.load")}
           </button>
           <button
             disabled={!activeId}
             onClick={() => {
-              if (activeId && window.confirm("Ta bort sparat tillstånd?")) {
+              if (activeId && window.confirm(t("presets.deleteStateConfirm"))) {
                 deleteSavedState(activeId);
                 setSelected("");
               }
             }}
             className={btnClass}
           >
-            RADERA
+            {t("presets.delete")}
           </button>
         </>
       )}
@@ -763,33 +797,39 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setAudioSpatial,
   } = props;
 
+  const { t } = useTranslation();
+  const onOff = (v: boolean) => (v ? t("common.on") : t("common.off"));
+
   return (
     <>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-white/90">
-        <span className="text-[10px] font-light tracking-[0.4em] text-white/60">INSTÄLLNINGAR</span>
-        <div className="flex gap-2">
+        <span className="text-[10px] font-light tracking-[0.4em] text-white/60">
+          {t("settings.title")}
+        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <LanguageSwitcher />
           <button
             onClick={restoreCameraPosition}
             className="rounded-full border border-white/20 bg-white/5 px-3 py-1 text-[9px] font-light tracking-wider text-white/80 transition active:scale-95 active:bg-white/15"
-            aria-label="Återgå till senast sparade kameraposition"
-            title="Återgå till senast sparade kameraposition och riktning"
+            aria-label={t("settings.restoreAriaLabel")}
+            title={t("settings.restoreTitle")}
           >
-            ÅTERGÅ
+            {t("settings.restore")}
           </button>
           <button
             onClick={resetToDefaults}
             className="rounded-full border border-white/20 bg-white/5 px-3 py-1 text-[9px] font-light tracking-wider text-white/80 transition active:scale-95 active:bg-white/15"
-            aria-label="Återställ reglage till standardvärden"
-            title="Återställ reglage (tid på dygnet påverkas inte)"
+            aria-label={t("settings.resetAriaLabel")}
+            title={t("settings.resetTitle")}
           >
-            ÅTERSTÄLL
+            {t("settings.reset")}
           </button>
         </div>
       </div>
       <div
         className="mb-3 flex flex-wrap justify-center gap-1.5"
         role="tablist"
-        aria-label="Inställningsflikar"
+        aria-label={t("settings.tabsAriaLabel")}
       >
         {SETTINGS_TABS.map((tab) => (
           <button
@@ -803,13 +843,13 @@ export function SettingsPanel(props: SettingsPanelProps) {
                 : "border-white/10 bg-white/5 text-white/60 active:bg-white/15"
             }`}
           >
-            {tab.label}
+            {t(tab.labelKey)}
           </button>
         ))}
       </div>
       <PresetControls
         scope="all"
-        label="ALLA INSTÄLLNINGAR"
+        label={t("presets.all")}
         savedPresets={savedPresets}
         exportSettingsFile={exportSettingsFile}
         importSettingsFile={importSettingsFile}
@@ -818,7 +858,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
         deleteSavedPreset={deleteSavedPreset}
       />
       <StateControls
-        label="TILLSTÅND (allt + position, blick, ström, svaj)"
+        label={t("presets.state")}
         savedStates={savedStates}
         exportStateFile={exportStateFile}
         importStateFile={importStateFile}
@@ -831,7 +871,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
           <>
             <PresetControls
               scope="vagor"
-              label="VÅGOR-PRESET"
+              label={t("presets.scope.vagor")}
               savedPresets={savedPresets}
               exportSettingsFile={exportSettingsFile}
               importSettingsFile={importSettingsFile}
@@ -840,7 +880,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
               deleteSavedPreset={deleteSavedPreset}
             />
             <PadDial
-              label="VÅG"
+              label={t("dial.wave.amp")}
               mode="number"
               value={`${waveAmp.toFixed(2)}m`}
               rawValue={waveAmp}
@@ -852,7 +892,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setWaveAmp((v) => Math.min(100, +(v + 0.5).toFixed(2)))}
             />
             <PadDial
-              label="TEMPO"
+              label={t("dial.wave.speed")}
               mode="number"
               value={`${waveSpeed.toFixed(2)}×`}
               rawValue={waveSpeed}
@@ -864,7 +904,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setWaveSpeed((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
             />
             <PadDial
-              label="FREKVENS"
+              label={t("dial.wave.freq")}
               mode="number"
               value={`${waveFreq.toFixed(2)}×`}
               rawValue={waveFreq}
@@ -876,7 +916,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setWaveFreq((v) => Math.min(WAVE_FREQ_MAX, +(v + 0.05).toFixed(2)))}
             />
             <PadDial
-              label="HÖJD"
+              label={t("dial.wave.height")}
               mode="number"
               value={`${heightOffset >= 0 ? "+" : ""}${heightOffset.toFixed(2)}m`}
               rawValue={heightOffset}
@@ -888,7 +928,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setHeightOffset((v) => Math.min(5, +(v + 0.2).toFixed(2)))}
             />
             <PadDial
-              label="DYK"
+              label={t("dial.wave.dive")}
               mode="number"
               value={`${submergeAmp.toFixed(2)}×`}
               rawValue={submergeAmp}
@@ -900,7 +940,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setSubmergeAmp((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
             />
             <PadDial
-              label="FLYT"
+              label={t("dial.wave.floatLift")}
               mode="number"
               value={`${floatLift.toFixed(2)}×`}
               rawValue={floatLift}
@@ -912,7 +952,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setFloatLift((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
             />
             <PadDial
-              label="STRÖM RIKTNING"
+              label={t("dial.wave.currentDirection")}
               mode="number"
               value={`${Math.round(worldXZBearing(driftWorldRef.current.x, driftWorldRef.current.z))}°`}
               rawValue={worldXZBearing(driftWorldRef.current.x, driftWorldRef.current.z)}
@@ -938,7 +978,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
               }
             />
             <PadDial
-              label="SVAJ"
+              label={t("dial.wave.sway")}
               mode="number"
               value={`${swayAmp.toFixed(1)}m`}
               rawValue={swayAmp}
@@ -950,7 +990,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setSwayAmp((v) => Math.min(30, +(v + 0.5).toFixed(2)))}
             />
             <PadDial
-              label="SVAJ TEMPO"
+              label={t("dial.wave.swaySpeed")}
               mode="number"
               value={`${swaySpeed.toFixed(2)}×`}
               rawValue={swaySpeed}
@@ -962,14 +1002,14 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setSwaySpeed((v) => Math.min(1, +(v + 0.01).toFixed(2)))}
             />
             <PadDial
-              label="SVAJ DRIFT"
+              label={t("dial.wave.swayDrift")}
               mode="number"
               value={
                 swayBias === 0
-                  ? "NEUTRAL"
+                  ? t("common.neutral")
                   : swayBias > 0
-                    ? `MED ${swayBias.toFixed(2)}`
-                    : `MOT ${Math.abs(swayBias).toFixed(2)}`
+                    ? `${t("common.with")} ${swayBias.toFixed(2)}`
+                    : `${t("common.against")} ${Math.abs(swayBias).toFixed(2)}`
               }
               rawValue={swayBias}
               onSet={setSwayBias}
@@ -980,7 +1020,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setSwayBias((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
             />
             <PadDial
-              label="SVAJ RIKTNING"
+              label={t("dial.wave.swayDirection")}
               mode="number"
               value={`${Math.round(worldXZBearing(swayWorldRef.current.x, swayWorldRef.current.z))}°`}
               rawValue={worldXZBearing(swayWorldRef.current.x, swayWorldRef.current.z)}
@@ -1006,7 +1046,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
               }
             />
             <PadDial
-              label="GUPP"
+              label={t("dial.wave.bob")}
               mode="number"
               value={`${buoyAmp.toFixed(2)}×`}
               rawValue={buoyAmp}
@@ -1018,7 +1058,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setBuoyAmp((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
             />
             <PadDial
-              label="GUPP TEMPO"
+              label={t("dial.wave.bobSpeed")}
               mode="number"
               value={`${bobSpeed.toFixed(2)}×`}
               rawValue={bobSpeed}
@@ -1030,31 +1070,35 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setBobSpeed((v) => Math.min(5, +(v + 0.1).toFixed(2)))}
             />
             <PadDial
-              label="VÅGFORM"
-              value={regularWaves ? "REGELBUNDEN" : "SPRIDD"}
+              label={t("dial.wave.waveform")}
+              value={
+                regularWaves
+                  ? t("dial.wave.waveformValue.regular")
+                  : t("dial.wave.waveformValue.spread")
+              }
               onDec={() => setRegularWaves(false)}
               onInc={() => setRegularWaves(true)}
             />
             <PadDial
-              label="REALISTISKA VÅGOR"
-              value={realisticWaves ? "FFT-HAV" : "AV"}
+              label={t("dial.wave.realistic")}
+              value={realisticWaves ? t("dial.wave.realisticValue.on") : t("common.off")}
               onDec={() => setRealisticWaves(false)}
               onInc={() => setRealisticWaves(true)}
             />
             <PadDial
-              label="VÅGPRESET"
-              value={WAVE_PRESET_LABELS[wavePreset]}
+              label={t("dial.wave.preset")}
+              value={t(WAVE_PRESET_LABEL_KEYS[wavePreset])}
               onDec={() => applyWavePreset("legacy")}
               onInc={() => applyWavePreset("standard")}
             />
             <PadDial
-              label="DÖENDE VÅG"
-              value={dyingWave ? "PÅ" : "AV"}
+              label={t("dial.wave.dyingWave")}
+              value={onOff(dyingWave)}
               onDec={() => setDyingWave(false)}
               onInc={() => setDyingWave(true)}
             />
             <PadDial
-              label="DÖD VÅG HÖJD"
+              label={t("dial.wave.dyingWaveHeight")}
               mode="number"
               value={`${dyingWaveAmp.toFixed(2)}m`}
               rawValue={dyingWaveAmp}
@@ -1066,7 +1110,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setDyingWaveAmp((v) => Math.min(20, +(v + 0.1).toFixed(2)))}
             />
             <PadDial
-              label="DÖD VÅG TEMPO"
+              label={t("dial.wave.dyingWaveSpeed")}
               mode="number"
               value={`${dyingWaveSpeed.toFixed(2)}×`}
               rawValue={dyingWaveSpeed}
@@ -1078,19 +1122,19 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setDyingWaveSpeed((v) => Math.min(5, +(v + 0.05).toFixed(2)))}
             />
             <PadDial
-              label="SLUMPA VÅGOR"
-              value={randomizeWaves ? "PÅ" : "AV"}
+              label={t("dial.wave.randomize")}
+              value={onOff(randomizeWaves)}
               onDec={() => setRandomizeWaves(false)}
               onInc={() => setRandomizeWaves(true)}
             />
             <PadDial
-              label="KORSVÅG"
-              value={regularCross ? "PÅ" : "AV"}
+              label={t("dial.wave.crossWave")}
+              value={onOff(regularCross)}
               onDec={() => setRegularCross(false)}
               onInc={() => setRegularCross(true)}
             />
             <PadDial
-              label="VÅGPERIOD"
+              label={t("dial.wave.wavePeriod")}
               mode="number"
               value={`${regularPeriod.toFixed(2)}x`}
               rawValue={regularPeriod}
@@ -1102,7 +1146,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setRegularPeriod((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
             />
             <PadDial
-              label="SPETS"
+              label={t("dial.wave.peak")}
               mode="number"
               value={`${wavePeak.toFixed(2)}`}
               rawValue={wavePeak}
@@ -1114,9 +1158,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setWavePeak((v) => Math.min(6, +(v + 0.25).toFixed(2)))}
             />
             <PadDial
-              label="TROKOID"
+              label={t("dial.wave.trochoid")}
               mode="number"
-              value={trochoid <= 0.001 ? "AV" : `${Math.round(trochoid * 100)}%`}
+              value={trochoid <= 0.001 ? t("common.off") : `${Math.round(trochoid * 100)}%`}
               rawValue={trochoid}
               onSet={(v) => setTrochoid(Math.max(0, Math.min(1, v)))}
               min={0}
@@ -1126,13 +1170,13 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setTrochoid((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
             />
             <PadDial
-              label="KVALITET"
-              value={waveHighQuality ? "HÖG" : "LÅG"}
+              label={t("dial.wave.quality")}
+              value={waveHighQuality ? t("common.high") : t("common.low")}
               onDec={() => setWaveHighQuality(false)}
               onInc={() => setWaveHighQuality(true)}
             />
             <PadDial
-              label="VÅGRIKTNING"
+              label={t("dial.wave.waveDirection")}
               mode="number"
               value={`${Math.round(((waveDir % 360) + 360) % 360)}°`}
               rawValue={waveDir}
@@ -1144,13 +1188,13 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setWaveDir((v) => (((v + 15) % 360) + 360) % 360)}
             />
             <PadDial
-              label="LÄGE"
-              value={vortexMode ? "VIRVEL" : "HAV"}
+              label={t("dial.wave.mode")}
+              value={vortexMode ? t("dial.wave.modeValue.vortex") : t("dial.wave.modeValue.ocean")}
               onDec={() => setVortexMode(false)}
               onInc={() => setVortexMode(true)}
             />
             <PadDial
-              label="ÖPPNING"
+              label={t("dial.wave.opening")}
               mode="number"
               value={`${vortexOpening.toFixed(1)}m`}
               rawValue={vortexOpening}
@@ -1162,7 +1206,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setVortexOpening((v) => Math.min(60, +(v + 0.5).toFixed(2)))}
             />
             <PadDial
-              label="AVSTÅND"
+              label={t("dial.wave.distance")}
               mode="number"
               value={`${vortexRadius.toFixed(1)}m`}
               rawValue={vortexRadius}
@@ -1174,7 +1218,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setVortexRadius((v) => Math.min(220, +(v + 1).toFixed(2)))}
             />
             <PadDial
-              label="VIRVEL TEMPO"
+              label={t("dial.wave.vortexSpeed")}
               mode="number"
               value={`${vortexSpeed.toFixed(2)}x`}
               rawValue={vortexSpeed}
@@ -1191,7 +1235,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
           <>
             <PresetControls
               scope="kamera"
-              label="KAMERA-PRESET"
+              label={t("presets.scope.kamera")}
               savedPresets={savedPresets}
               exportSettingsFile={exportSettingsFile}
               importSettingsFile={importSettingsFile}
@@ -1202,17 +1246,17 @@ export function SettingsPanel(props: SettingsPanelProps) {
             {intervalSessionOn ? (
               <div className="flex min-w-[86px] flex-col items-start justify-center gap-0.5 rounded-full border border-white/15 bg-black/40 px-3 py-2 leading-tight">
                 <span className="text-[9px] font-light tracking-[0.28em] text-white/60">
-                  KAMERALÄGE
+                  {t("dial.camera.mode")}
                 </span>
                 <span className="text-xs font-medium tracking-wider text-white/80">
-                  {CAMERA_MODE_LABELS[cameraMode]} (AUTO)
+                  {t(CAMERA_MODE_LABEL_KEYS[cameraMode])} {t("camera.mode.autoSuffix")}
                 </span>
               </div>
             ) : (
               <PadDial
-                label="KAMERALÄGE"
-                value={CAMERA_MODE_LABELS[cameraMode]}
-                options={CAMERA_MODES.map((m) => CAMERA_MODE_LABELS[m])}
+                label={t("dial.camera.mode")}
+                value={t(CAMERA_MODE_LABEL_KEYS[cameraMode])}
+                options={CAMERA_MODES.map((m) => t(CAMERA_MODE_LABEL_KEYS[m]))}
                 selectedIndex={CAMERA_MODES.indexOf(cameraMode)}
                 onSelectIndex={(i) => setCameraMode(CAMERA_MODES[i])}
                 onDec={() => cycleCameraMode(-1)}
@@ -1221,7 +1265,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
             )}
             {cameraMode === "noclip" && (
               <PadDial
-                label="NOCLIP FART"
+                label={t("dial.camera.noclipSpeed")}
                 mode="number"
                 value={`${noclipSpeed.toFixed(1)}x`}
                 rawValue={noclipSpeed}
@@ -1236,16 +1280,16 @@ export function SettingsPanel(props: SettingsPanelProps) {
             {cameraMode === "swing" && (
               <>
                 <PadDial
-                  label="GUNGA START"
-                  value={SWING_PRESET_LABELS[swingPreset]}
-                  options={SWING_PRESETS.map((p) => SWING_PRESET_LABELS[p])}
+                  label={t("dial.camera.swingStart")}
+                  value={t(SWING_PRESET_LABEL_KEYS[swingPreset])}
+                  options={SWING_PRESETS.map((p) => t(SWING_PRESET_LABEL_KEYS[p]))}
                   selectedIndex={SWING_PRESETS.indexOf(swingPreset)}
                   onSelectIndex={(i) => applySwingPreset(SWING_PRESETS[i])}
                   onDec={() => cycleSwingPreset(-1)}
                   onInc={() => cycleSwingPreset(1)}
                 />
                 <PadDial
-                  label="GUNGA POSITION Y"
+                  label={t("dial.camera.swingPositionY")}
                   mode="number"
                   value={`${swingPositionY.toFixed(0)}m`}
                   rawValue={swingPositionY}
@@ -1257,7 +1301,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   onInc={() => setSwingPositionY((v) => Math.min(100000, +(v + 100).toFixed(0)))}
                 />
                 <PadDial
-                  label="GUNGA INTENSITET"
+                  label={t("dial.camera.swingIntensity")}
                   mode="number"
                   value={`${swingIntensity.toFixed(4)}x`}
                   rawValue={swingIntensity}
@@ -1269,9 +1313,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   onInc={() => setSwingIntensity((v) => Math.min(2.5, +(v + 0.05).toFixed(4)))}
                 />
                 <PadDial
-                  label="GUNGA X"
+                  label={t("dial.camera.swingXFactor")}
                   mode="number"
-                  value={swingXFactor <= 0.001 ? "AV" : `${swingXFactor.toFixed(2)}x`}
+                  value={swingXFactor <= 0.001 ? t("common.off") : `${swingXFactor.toFixed(2)}x`}
                   rawValue={swingXFactor}
                   onSet={(v) => setSwingXFactor(Math.max(0, Math.min(2, v)))}
                   min={0}
@@ -1281,7 +1325,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   onInc={() => setSwingXFactor((v) => Math.min(2, +(v + 0.1).toFixed(2)))}
                 />
                 <PadDial
-                  label="GUNGA HÖJD"
+                  label={t("dial.camera.swingHeight")}
                   mode="number"
                   value={`${swingHeight.toFixed(0)}m`}
                   rawValue={swingHeight}
@@ -1293,9 +1337,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   onInc={() => setSwingHeight((v) => Math.min(100000, +(v + 100).toFixed(0)))}
                 />
                 <PadDial
-                  label="GUNGA Y VÅGFORM"
-                  value={SWING_Y_WAVEFORM_LABELS[swingYWaveform]}
-                  options={SWING_Y_WAVEFORMS.map((w) => SWING_Y_WAVEFORM_LABELS[w])}
+                  label={t("dial.camera.swingYWaveform")}
+                  value={t(SWING_Y_WAVEFORM_LABEL_KEYS[swingYWaveform])}
+                  options={SWING_Y_WAVEFORMS.map((w) => t(SWING_Y_WAVEFORM_LABEL_KEYS[w]))}
                   selectedIndex={SWING_Y_WAVEFORMS.indexOf(swingYWaveform)}
                   onSelectIndex={(i) => setSwingYWaveform(SWING_Y_WAVEFORMS[i])}
                   onDec={() => cycleSwingYWaveform(-1)}
@@ -1304,13 +1348,13 @@ export function SettingsPanel(props: SettingsPanelProps) {
               </>
             )}
             <PadDial
-              label="INTERVALLPASS"
-              value={intervalSessionOn ? "PÅ" : "AV"}
+              label={t("dial.camera.intervalSession")}
+              value={onOff(intervalSessionOn)}
               onDec={() => setIntervalSessionOn(false)}
               onInc={() => setIntervalSessionOn(true)}
             />
             <PadDial
-              label="INTERVALL"
+              label={t("dial.camera.intervalDuration")}
               mode="number"
               value={formatClock(intervalDuration)}
               rawValue={intervalDuration}
@@ -1322,9 +1366,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setIntervalDuration((v) => Math.min(3600, v + 5))}
             />
             <PadDial
-              label="PASSTYP"
-              value={INTERVAL_SESSION_TYPE_LABELS[intervalSessionType]}
-              options={INTERVAL_SESSION_TYPES.map((t) => INTERVAL_SESSION_TYPE_LABELS[t])}
+              label={t("dial.camera.sessionType")}
+              value={t(INTERVAL_SESSION_TYPE_LABEL_KEYS[intervalSessionType])}
+              options={INTERVAL_SESSION_TYPES.map((it) => t(INTERVAL_SESSION_TYPE_LABEL_KEYS[it]))}
               selectedIndex={INTERVAL_SESSION_TYPES.indexOf(intervalSessionType)}
               onSelectIndex={(i) => setIntervalSessionType(INTERVAL_SESSION_TYPES[i])}
               onDec={() => setIntervalSessionType((t) => (t === "infinite" ? "fixed" : "infinite"))}
@@ -1332,7 +1376,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
             />
             {intervalSessionType === "fixed" && (
               <PadDial
-                label="ANTAL INTERVALL"
+                label={t("dial.camera.intervalCount")}
                 mode="number"
                 value={`${intervalCount}`}
                 rawValue={intervalCount}
@@ -1345,13 +1389,13 @@ export function SettingsPanel(props: SettingsPanelProps) {
               />
             )}
             <PadDial
-              label="VISA TID"
-              value={intervalShowStats ? "PÅ" : "AV"}
+              label={t("dial.camera.showStats")}
+              value={onOff(intervalShowStats)}
               onDec={() => setIntervalShowStats(false)}
               onInc={() => setIntervalShowStats(true)}
             />
             <PadDial
-              label="POS X"
+              label={t("dial.camera.posX")}
               mode="number"
               value={`${camOffX.toFixed(2)}m`}
               rawValue={camOffX}
@@ -1363,7 +1407,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setCamOffX((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
             />
             <PadDial
-              label="POS Y"
+              label={t("dial.camera.posY")}
               mode="number"
               value={`${camOffY.toFixed(2)}m`}
               rawValue={camOffY}
@@ -1375,7 +1419,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setCamOffY((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
             />
             <PadDial
-              label="POS Z"
+              label={t("dial.camera.posZ")}
               mode="number"
               value={`${camOffZ.toFixed(2)}m`}
               rawValue={camOffZ}
@@ -1387,7 +1431,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setCamOffZ((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
             />
             <PadDial
-              label="FOV"
+              label={t("dial.camera.fov")}
               mode="number"
               value={`${camFov.toFixed(0)}°`}
               rawValue={camFov}
@@ -1399,7 +1443,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setCamFov((v) => Math.min(140, +(v + 1).toFixed(0)))}
             />
             <PadDial
-              label="NÄRA"
+              label={t("dial.camera.near")}
               mode="number"
               value={`${camNear.toFixed(3)}`}
               rawValue={camNear}
@@ -1411,7 +1455,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setCamNear((v) => Math.min(10, +(v + 0.01).toFixed(3)))}
             />
             <PadDial
-              label="FJÄRRSIKT"
+              label={t("dial.camera.far")}
               mode="number"
               value={`${camFar.toFixed(0)}`}
               rawValue={camFar}
@@ -1423,25 +1467,29 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setCamFar((v) => Math.min(300000, +(v + 100).toFixed(0)))}
             />
             <PadDial
-              label="ROTERING"
-              value={leanEnabled ? "FRAMÅTLUT" : "FIXERAD"}
+              label={t("dial.camera.rotation")}
+              value={
+                leanEnabled
+                  ? t("camera.rotationValue.leanForward")
+                  : t("camera.rotationValue.fixed")
+              }
               onDec={() => setLeanEnabled(false)}
               onInc={() => setLeanEnabled(true)}
             />
             <PadDial
-              label="VAKEN"
-              value={wakeLock ? "PÅ" : "AV"}
+              label={t("dial.camera.wakeLock")}
+              value={onOff(wakeLock)}
               onDec={() => setWakeLock(false)}
               onInc={() => setWakeLock(true)}
             />
             <PadDial
-              label="SIMGLASÖGON"
-              value={gogglesOn ? "PÅ" : "AV"}
+              label={t("dial.camera.goggles")}
+              value={onOff(gogglesOn)}
               onDec={() => setGogglesOn(false)}
               onInc={() => setGogglesOn(true)}
             />
             <PadDial
-              label="LINSOSKÄRPA"
+              label={t("dial.camera.gogglesBlur")}
               mode="number"
               value={`${Math.round(gogglesBlur * 100)}%`}
               rawValue={gogglesBlur}
@@ -1453,13 +1501,13 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setGogglesBlur((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
             />
             <PadDial
-              label="DROPPLOOP"
-              value={gogglesLoop ? "PÅ" : "AV"}
+              label={t("dial.camera.gogglesLoop")}
+              value={onOff(gogglesLoop)}
               onDec={() => setGogglesLoop(false)}
               onInc={() => setGogglesLoop(true)}
             />
             <PadDial
-              label="INTENSITET"
+              label={t("dial.camera.gogglesIntensity")}
               mode="number"
               value={`${Math.round(gogglesIntensity * 100)}%`}
               rawValue={gogglesIntensity}
@@ -1471,7 +1519,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setGogglesIntensity((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
             />
             <PadDial
-              label="BILDFREKVENS"
+              label={t("dial.camera.gogglesFpsCap")}
               mode="number"
               value={`${gogglesFpsCap} fps`}
               rawValue={gogglesFpsCap}
@@ -1488,7 +1536,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
           <>
             <PresetControls
               scope="vatten"
-              label="VATTEN-PRESET"
+              label={t("presets.scope.vatten")}
               savedPresets={savedPresets}
               exportSettingsFile={exportSettingsFile}
               importSettingsFile={importSettingsFile}
@@ -1497,9 +1545,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
               deleteSavedPreset={deleteSavedPreset}
             />
             <PadDial
-              label="VATTEN"
-              value={WATER_TINTS[waterTintIdx].name}
-              options={WATER_TINTS.map((w) => w.name)}
+              label={t("dial.water.tint")}
+              value={t(WATER_TINT_LABEL_KEYS[WATER_TINTS[waterTintIdx].id])}
+              options={WATER_TINTS.map((w) => t(WATER_TINT_LABEL_KEYS[w.id]))}
               selectedIndex={waterTintIdx}
               onSelectIndex={setWaterTintIdx}
               onDec={() =>
@@ -1509,11 +1557,13 @@ export function SettingsPanel(props: SettingsPanelProps) {
             />
             {surfaces.length > 0 && (
               <PadDial
-                label="SPEGLING"
+                label={t("dial.water.reflection")}
                 value={
-                  surfaceId ? (surfaces.find((s) => s.id === surfaceId)?.name ?? surfaceId) : "AV"
+                  surfaceId
+                    ? (surfaces.find((s) => s.id === surfaceId)?.name ?? surfaceId)
+                    : t("common.off")
                 }
-                options={["AV", ...surfaces.map((s) => s.name)]}
+                options={[t("common.off"), ...surfaces.map((s) => s.name)]}
                 selectedIndex={surfaceId ? 1 + surfaces.findIndex((s) => s.id === surfaceId) : 0}
                 onSelectIndex={(i) => setSurfaceId(i === 0 ? null : (surfaces[i - 1]?.id ?? null))}
                 onDec={() => cycleSurface(-1)}
@@ -1522,7 +1572,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
             )}
             {surfaceId && (
               <PadDial
-                label="STYRKA"
+                label={t("dial.water.reflStrength")}
                 mode="number"
                 value={`${Math.round(reflStrength * 100)}%`}
                 rawValue={reflStrength}
@@ -1535,14 +1585,18 @@ export function SettingsPanel(props: SettingsPanelProps) {
               />
             )}
             <PadDial
-              label="VÅGMATERIAL"
-              value={sphereMaterial ? "SFÄRKARTA" : "STANDARD"}
+              label={t("dial.water.waveMaterial")}
+              value={
+                sphereMaterial
+                  ? t("dial.water.waveMaterialValue.sphereMap")
+                  : t("dial.water.waveMaterialValue.standard")
+              }
               onDec={() => setSphereMaterial(false)}
               onInc={() => setSphereMaterial(true)}
             />
             {sphereMaterial && (
               <PadDial
-                label="SFÄR-STYRKA"
+                label={t("dial.water.sphereStrength")}
                 mode="number"
                 value={`${Math.round(sphereStrength * 100)}%`}
                 rawValue={sphereStrength}
@@ -1555,7 +1609,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
               />
             )}
             <PadDial
-              label="OPACITET"
+              label={t("common.opacity")}
               mode="number"
               value={`${Math.round(waterOpacity * 100)}%`}
               rawValue={waterOpacity}
@@ -1567,7 +1621,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setWaterOpacity((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
             />
             <PadDial
-              label="TON"
+              label={t("dial.water.hue")}
               mode="number"
               value={`${Math.round(waterHue)}°`}
               rawValue={waterHue}
@@ -1579,7 +1633,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setWaterHue((v) => Math.min(180, +(v + 5).toFixed(0)))}
             />
             <PadDial
-              label="MÄTTNAD"
+              label={t("dial.water.saturation")}
               mode="number"
               value={`${waterSat.toFixed(2)}x`}
               rawValue={waterSat}
@@ -1591,7 +1645,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setWaterSat((v) => Math.min(2, +(v + 0.05).toFixed(2)))}
             />
             <PadDial
-              label="LJUSSTYRKA"
+              label={t("dial.water.brightness")}
               mode="number"
               value={`${waterBright.toFixed(2)}x`}
               rawValue={waterBright}
@@ -1603,7 +1657,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setWaterBright((v) => Math.min(2.5, +(v + 0.05).toFixed(2)))}
             />
             <PadDial
-              label="YT-LJUS"
+              label={t("dial.water.surfBright")}
               mode="number"
               value={`${surfBright.toFixed(2)}x`}
               rawValue={surfBright}
@@ -1615,7 +1669,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setSurfBright((v) => Math.min(3, +(v + 0.05).toFixed(2)))}
             />
             <PadDial
-              label="YT-MÄTTNAD"
+              label={t("dial.water.surfSat")}
               mode="number"
               value={`${surfSat.toFixed(2)}x`}
               rawValue={surfSat}
@@ -1627,9 +1681,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setSurfSat((v) => Math.min(2, +(v + 0.05).toFixed(2)))}
             />
             <PadDial
-              label="GRUMLIGHET"
+              label={t("dial.water.turbidity")}
               mode="number"
-              value={turbidity <= 0.001 ? "AV" : `${Math.round(turbidity * 100)}%`}
+              value={turbidity <= 0.001 ? t("common.off") : `${Math.round(turbidity * 100)}%`}
               rawValue={turbidity}
               onSet={(v) => setTurbidity(Math.max(0, Math.min(1, v)))}
               min={0}
@@ -1639,9 +1693,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setTurbidity((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
             />
             <PadDial
-              label="BOTTEN"
-              value={BOTTOM_OPTIONS[bottomIdx].name}
-              options={BOTTOM_OPTIONS.map((b) => b.name)}
+              label={t("dial.water.bottom")}
+              value={t(BOTTOM_LABEL_KEYS[BOTTOM_OPTIONS[bottomIdx].id])}
+              options={BOTTOM_OPTIONS.map((b) => t(BOTTOM_LABEL_KEYS[b.id]))}
               selectedIndex={bottomIdx}
               onSelectIndex={setBottomIdx}
               onDec={() =>
@@ -1649,10 +1703,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
               }
               onInc={() => setBottomIdx((i) => (i + 1) % BOTTOM_OPTIONS.length)}
             />
-            {BOTTOM_OPTIONS[bottomIdx].name === "Anpassad" && (
+            {BOTTOM_OPTIONS[bottomIdx].id === "custom" && (
               <label className="flex items-center gap-2 rounded-full border border-white/15 bg-black/40 py-1 pl-3 pr-1 backdrop-blur-md">
                 <span className="text-[9px] font-light tracking-[0.28em] text-white/60">
-                  BOTTENFÄRG
+                  {t("dial.water.bottomColor")}
                 </span>
                 <input
                   type="color"
@@ -1663,7 +1717,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
               </label>
             )}
             <PadDial
-              label="DJUP"
+              label={t("dial.water.depth")}
               mode="number"
               value={`${floorDepth.toFixed(1)}m`}
               rawValue={floorDepth}
@@ -1675,19 +1729,19 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setFloorDepth((v) => Math.min(60, +(v + 0.5).toFixed(2)))}
             />
             <PadDial
-              label="TEXTUR"
-              value={floorTexture ? "PÅ" : "AV"}
+              label={t("common.texture")}
+              value={onOff(floorTexture)}
               onDec={() => setFloorTexture(false)}
               onInc={() => setFloorTexture(true)}
             />
             <PadDial
-              label="DJUP-SINUS"
-              value={depthSineOn ? "PÅ" : "AV"}
+              label={t("dial.water.depthSine")}
+              value={onOff(depthSineOn)}
               onDec={() => setDepthSineOn(false)}
               onInc={() => setDepthSineOn(true)}
             />
             <PadDial
-              label="SINUS AMP"
+              label={t("dial.water.sineAmp")}
               mode="number"
               value={`${depthSineAmp.toFixed(2)}m`}
               rawValue={depthSineAmp}
@@ -1699,7 +1753,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setDepthSineAmp((v) => Math.min(30, +(v + 0.25).toFixed(2)))}
             />
             <PadDial
-              label="SINUS FREK"
+              label={t("dial.water.sineFreq")}
               mode="number"
               value={`${depthSineFreq.toFixed(2)}Hz`}
               rawValue={depthSineFreq}
@@ -1711,14 +1765,16 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setDepthSineFreq((v) => Math.min(2, +(v + 0.01).toFixed(3)))}
             />
             <PadDial
-              label="VATTENYTA"
-              value={hideWater ? "DÖLJ" : "SYNLIGT"}
+              label={t("dial.water.surface")}
+              value={
+                hideWater ? t("dial.water.surfaceValue.hide") : t("dial.water.surfaceValue.visible")
+              }
               onDec={() => setHideWater(true)}
               onInc={() => setHideWater(false)}
             />
             <PadDial
-              label="ÄKTA KAUSTIK"
-              value={causticsOn ? "PÅ" : "AV"}
+              label={t("dial.water.caustics")}
+              value={onOff(causticsOn)}
               onDec={() => setCausticsOn(false)}
               onInc={() => setCausticsOn(true)}
             />
@@ -1728,7 +1784,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
           <>
             <PresetControls
               scope="miljo"
-              label="MILJÖ-PRESET"
+              label={t("presets.scope.miljo")}
               savedPresets={savedPresets}
               exportSettingsFile={exportSettingsFile}
               importSettingsFile={importSettingsFile}
@@ -1737,19 +1793,19 @@ export function SettingsPanel(props: SettingsPanelProps) {
               deleteSavedPreset={deleteSavedPreset}
             />
             <PadDial
-              label="TID"
+              label={t("dial.env.time")}
               value={todLabel}
               onDec={() => setTimeOfDay((v) => (v - 0.02 + 1) % 1)}
               onInc={() => setTimeOfDay((v) => (v + 0.02) % 1)}
             />
             <PadDial
-              label="MELLAN-MOLN"
-              value={midCloudsOn ? "PÅ" : "AV"}
+              label={t("dial.env.midClouds")}
+              value={onOff(midCloudsOn)}
               onDec={() => setMidCloudsOn(false)}
               onInc={() => setMidCloudsOn(true)}
             />
             <PadDial
-              label="MOLNHÖJD"
+              label={t("dial.env.midCloudsHeight")}
               mode="number"
               value={`${Math.round(midCloudsHeight * 100)}%`}
               rawValue={midCloudsHeight}
@@ -1761,13 +1817,13 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setMidCloudsHeight((v) => Math.min(0.95, +(v + 0.05).toFixed(2)))}
             />
             <PadDial
-              label="HIMMEL-MOLN"
-              value={skyCloudsOn ? "PÅ" : "AV"}
+              label={t("dial.env.skyClouds")}
+              value={onOff(skyCloudsOn)}
               onDec={() => setSkyCloudsOn(false)}
               onInc={() => setSkyCloudsOn(true)}
             />
             <PadDial
-              label="HIMMEL-MOLNHÖJD"
+              label={t("dial.env.skyCloudsHeight")}
               mode="number"
               value={`${Math.round(skyCloudsHeight * 100)}%`}
               rawValue={skyCloudsHeight}
@@ -1779,7 +1835,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setSkyCloudsHeight((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
             />
             <PadDial
-              label="RUMSSTORLEK"
+              label={t("dial.env.roomSize")}
               mode="number"
               value={`${surfaceArea.toFixed(0)}m`}
               rawValue={surfaceArea}
@@ -1792,9 +1848,13 @@ export function SettingsPanel(props: SettingsPanelProps) {
             />
             {scenes.length > 0 && (
               <PadDial
-                label="SCEN"
-                value={sceneId ? (scenes.find((s) => s.id === sceneId)?.name ?? sceneId) : "AV"}
-                options={["AV", ...scenes.map((s) => s.name)]}
+                label={t("dial.env.scene")}
+                value={
+                  sceneId
+                    ? (scenes.find((s) => s.id === sceneId)?.name ?? sceneId)
+                    : t("common.off")
+                }
+                options={[t("common.off"), ...scenes.map((s) => s.name)]}
                 selectedIndex={sceneId ? 1 + scenes.findIndex((s) => s.id === sceneId) : 0}
                 onSelectIndex={(i) => setSceneId(i === 0 ? null : (scenes[i - 1]?.id ?? null))}
                 onDec={() => cycleScene(-1)}
@@ -1804,9 +1864,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
             {environments.length > 0 && (
               <>
                 <PadDial
-                  label="MILJÖ"
-                  value={curEnv ? curEnv.name : "AV"}
-                  options={["AV", ...environments.map((e) => e.name)]}
+                  label={t("dial.env.environment")}
+                  value={curEnv ? curEnv.name : t("common.off")}
+                  options={[t("common.off"), ...environments.map((e) => e.name)]}
                   selectedIndex={curEnv ? 1 + environments.findIndex((e) => e.id === curEnv.id) : 0}
                   onSelectIndex={(i) =>
                     applyEnv(i === 0 ? null : (environments[i - 1]?.id ?? null))
@@ -1816,7 +1876,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                 />
                 {curEnv && curEnv.eras.length > 1 && (
                   <PadDial
-                    label="EPOK"
+                    label={t("dial.env.era")}
                     value={curEra?.name ?? "—"}
                     options={curEnv.eras.map((e) => e.name)}
                     selectedIndex={Math.max(
@@ -1830,7 +1890,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                 )}
                 {curEra && curEra.times.length > 1 && (
                   <PadDial
-                    label="DYGN"
+                    label={t("dial.env.dayTime")}
                     value={curTime?.name ?? "—"}
                     options={curEra.times.map((tm) => tm.name)}
                     selectedIndex={Math.max(
@@ -1845,30 +1905,30 @@ export function SettingsPanel(props: SettingsPanelProps) {
               </>
             )}
             <PadDial
-              label="BAKGRUND"
-              value={BACKDROPS[backdropIdx].name}
-              options={BACKDROPS.map((b) => b.name)}
+              label={t("dial.env.backdrop")}
+              value={t(BACKDROP_LABEL_KEYS[BACKDROPS[backdropIdx].id])}
+              options={BACKDROPS.map((b) => t(BACKDROP_LABEL_KEYS[b.id]))}
               selectedIndex={backdropIdx}
               onSelectIndex={setBackdropIdx}
               onDec={() => setBackdropIdx((i) => (i - 1 + BACKDROPS.length) % BACKDROPS.length)}
               onInc={() => setBackdropIdx((i) => (i + 1) % BACKDROPS.length)}
             />
             <PadDial
-              label="LIVE"
-              value={liveMode ? "PÅ" : "AV"}
+              label={t("dial.env.live")}
+              value={onOff(liveMode)}
               onDec={() => setLiveMode(false)}
               onInc={() => setLiveMode(true)}
             />
             <PadDial
-              label="BADRINGAR"
-              value={torusRingsOn ? "PÅ" : "AV"}
+              label={t("dial.env.torusRings")}
+              value={onOff(torusRingsOn)}
               onDec={() => setTorusRingsOn(false)}
               onInc={() => setTorusRingsOn(true)}
             />
             {torusRingsOn && (
               <>
                 <PadDial
-                  label="RADIE"
+                  label={t("dial.env.torusRadius")}
                   mode="number"
                   value={`${torusRadius.toFixed(2)}m`}
                   rawValue={torusRadius}
@@ -1880,7 +1940,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   onInc={() => setTorusRadius((v) => Math.min(5, +(v + 0.05).toFixed(2)))}
                 />
                 <PadDial
-                  label="TJOCKLEK"
+                  label={t("dial.env.torusTube")}
                   mode="number"
                   value={`${torusTube.toFixed(2)}m`}
                   rawValue={torusTube}
@@ -1892,7 +1952,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   onInc={() => setTorusTube((v) => Math.min(1, +(v + 0.01).toFixed(2)))}
                 />
                 <PadDial
-                  label="STORLEK"
+                  label={t("dial.env.torusScale")}
                   mode="number"
                   value={`${torusScale.toFixed(2)}x`}
                   rawValue={torusScale}
@@ -1904,7 +1964,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   onInc={() => setTorusScale((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
                 />
                 <PadDial
-                  label="OPACITET"
+                  label={t("common.opacity")}
                   mode="number"
                   value={`${Math.round(torusOpacity * 100)}%`}
                   rawValue={torusOpacity}
@@ -1916,8 +1976,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   onInc={() => setTorusOpacity((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
                 />
                 <PadDial
-                  label="TEXTUR"
-                  value={TORUS_RING_TEXTURES[torusTextureIdx].name}
+                  label={t("common.texture")}
+                  value={t(TORUS_TEXTURE_LABEL_KEYS[TORUS_RING_TEXTURES[torusTextureIdx].id])}
                   onDec={() =>
                     setTorusTextureIdx(
                       (i) => (i - 1 + TORUS_RING_TEXTURES.length) % TORUS_RING_TEXTURES.length,
@@ -1926,7 +1986,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   onInc={() => setTorusTextureIdx((i) => (i + 1) % TORUS_RING_TEXTURES.length)}
                 />
                 <PadDial
-                  label="RUTNÄT XZ"
+                  label={t("dial.env.torusCellSize")}
                   mode="number"
                   value={`${torusCellSize.toFixed(0)}m`}
                   rawValue={torusCellSize}
@@ -1938,7 +1998,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   onInc={() => setTorusCellSize((v) => Math.min(60, +(v + 1).toFixed(0)))}
                 />
                 <PadDial
-                  label="RUTNÄT HÖJD"
+                  label={t("dial.env.torusVerticalSpacing")}
                   mode="number"
                   value={`${torusVerticalSpacing.toFixed(1)}m`}
                   rawValue={torusVerticalSpacing}
@@ -1950,7 +2010,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   onInc={() => setTorusVerticalSpacing((v) => Math.min(20, +(v + 0.1).toFixed(2)))}
                 />
                 <PadDial
-                  label="RINGAR/KOLONN"
+                  label={t("dial.env.torusVerticalCount")}
                   mode="number"
                   value={`${torusVerticalCount}`}
                   rawValue={torusVerticalCount}
@@ -1962,7 +2022,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   onInc={() => setTorusVerticalCount((v) => Math.min(21, v + 2))}
                 />
                 <PadDial
-                  label="RÄCKVIDD"
+                  label={t("dial.env.torusViewDistance")}
                   mode="number"
                   value={`${torusViewDistance.toFixed(0)}m`}
                   rawValue={torusViewDistance}
@@ -1976,7 +2036,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   onInc={() => setTorusViewDistance((v) => Math.min(400, +(v + 2).toFixed(0)))}
                 />
                 <PadDial
-                  label="TONING"
+                  label={t("dial.env.torusFadeDistance")}
                   mode="number"
                   value={`${torusFadeDistance.toFixed(1)}m`}
                   rawValue={torusFadeDistance}
@@ -1995,7 +2055,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
           <>
             <PresetControls
               scope="ljud"
-              label="LJUD-PRESET"
+              label={t("presets.scope.ljud")}
               savedPresets={savedPresets}
               exportSettingsFile={exportSettingsFile}
               importSettingsFile={importSettingsFile}
@@ -2004,7 +2064,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
               deleteSavedPreset={deleteSavedPreset}
             />
             <PadDial
-              label={audioOn ? "LJUD PÅ" : "LJUD AV"}
+              label={audioOn ? t("dial.audio.on") : t("dial.audio.off")}
               value={audioOn ? `${Math.round(audioVol * 100)}%` : "—"}
               onDec={() => {
                 if (!audioOn) {
@@ -2029,14 +2089,14 @@ export function SettingsPanel(props: SettingsPanelProps) {
               }}
             />
             <PadDial
-              label="LJUDSYNK"
-              value={audioSyncSpeed ? "PÅ" : "AV"}
+              label={t("dial.audio.syncSpeed")}
+              value={onOff(audioSyncSpeed)}
               onDec={() => setAudioSyncSpeed(false)}
               onInc={() => setAudioSyncSpeed(true)}
             />
             <PadDial
-              label="SPATIAL"
-              value={audioSpatial ? "PÅ" : "AV"}
+              label={t("dial.audio.spatial")}
+              value={onOff(audioSpatial)}
               onDec={() => setAudioSpatial(false)}
               onInc={() => setAudioSpatial(true)}
             />

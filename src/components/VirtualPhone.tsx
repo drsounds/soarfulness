@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { useTranslation } from "react-i18next";
 import type { DeviceKind } from "@/lib/tv/CSS3DTVManager";
 import { resolveAddress } from "@/lib/tv/CSS3DTVManager";
 import { toEmbedUrl } from "@/lib/tv/youtubeEmbed";
@@ -370,6 +371,7 @@ export function VirtualPhone({
   editMode,
   setEditMode,
 }: Props) {
+  const { t } = useTranslation();
   const [state, setState] = useState<PhoneState>(loadPhoneState);
   const [addressValue, setAddressValue] = useState(state.url);
   // Bumped after adding/removing a display from the "Skärmar" app so its
@@ -562,12 +564,14 @@ export function VirtualPhone({
         onPointerUp={onTitleUp}
         onPointerCancel={onTitleUp}
       >
-        <span className="text-[9px] font-light tracking-[0.25em] text-white/50">TELEFON</span>
+        <span className="text-[9px] font-light tracking-[0.25em] text-white/50">
+          {t("phone.title")}
+        </span>
         <div className="flex items-center gap-1.5 text-white/80">
           <button
             onClick={toggleOrientation}
             onPointerDown={(e) => e.stopPropagation()}
-            title="Rotera (stående/liggande)"
+            title={t("phone.rotateTitle")}
             className="flex h-6 w-6 touch-none items-center justify-center rounded-full border border-white/20 bg-white/5 active:scale-95 active:bg-white/20"
           >
             {Icon.rotate}
@@ -575,7 +579,7 @@ export function VirtualPhone({
           <button
             onClick={onClose}
             onPointerDown={(e) => e.stopPropagation()}
-            title="Stäng"
+            title={t("phone.closeTitle")}
             className="flex h-6 w-6 touch-none items-center justify-center rounded-full border border-white/20 bg-white/5 text-xs active:scale-95 active:bg-white/20"
           >
             ✕
@@ -595,11 +599,11 @@ export function VirtualPhone({
             onClick={goHome}
             disabled={state.locked || state.screen === "home"}
             className="flex h-4 w-4 items-center justify-center text-white/85 disabled:opacity-25"
-            title="Hem"
+            title={t("phone.homeTitle")}
           >
             {Icon.back}
           </button>
-          <span className="flex items-center text-white/85" title="Signal">
+          <span className="flex items-center text-white/85" title={t("phone.signalTitle")}>
             {Icon.signal}
           </span>
         </div>
@@ -609,10 +613,10 @@ export function VirtualPhone({
               onClick={unlock}
               className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-gradient-to-b from-[#2c7be5] via-[#0a1e40] to-[#030b1a] p-3 text-center"
             >
-              <div className="text-[11px] opacity-85">bathOS</div>
+              <div className="text-[11px] opacity-85">{t("phone.bathOS")}</div>
               <PhoneClock />
               <div className="absolute bottom-3 left-0 right-0 text-center text-[10px] tracking-wider opacity-70">
-                Tryck för att låsa upp
+                {t("phone.unlockHint")}
               </div>
             </button>
           ) : state.screen === "home" ? (
@@ -630,7 +634,7 @@ export function VirtualPhone({
                       setSearchValue("");
                     }
                   }}
-                  placeholder="Sök"
+                  placeholder={t("phone.searchPlaceholder")}
                   autoComplete="off"
                   spellCheck={false}
                   className="min-w-0 flex-1 bg-transparent text-[11px] outline-none placeholder:text-black/45"
@@ -649,7 +653,7 @@ export function VirtualPhone({
                     {Icon.gear}
                   </div>
                   <div className="w-full truncate text-center text-[9px] opacity-90">
-                    Inställningar
+                    {t("phone.appSettings")}
                   </div>
                 </button>
                 {/* Built-in, non-removable app — STRÖM/HÖJD/SVAJ/VÅGRIKT,
@@ -665,7 +669,7 @@ export function VirtualPhone({
                     {Icon.remote}
                   </div>
                   <div className="w-full truncate text-center text-[9px] opacity-90">
-                    Fjärrkontroll
+                    {t("phone.appRemote")}
                   </div>
                 </button>
                 {/* Built-in, non-removable app — the edit-mode ("pencil")
@@ -679,7 +683,9 @@ export function VirtualPhone({
                   <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-white/15 text-white">
                     {Icon.pencil}
                   </div>
-                  <div className="w-full truncate text-center text-[9px] opacity-90">Skärmar</div>
+                  <div className="w-full truncate text-center text-[9px] opacity-90">
+                    {t("phone.appScreens")}
+                  </div>
                 </button>
                 {state.apps.map((app) => (
                   <button
@@ -720,7 +726,7 @@ export function VirtualPhone({
                   <div className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-dashed border-white/50 bg-white/10 text-lg">
                     +
                   </div>
-                  <div className="text-center text-[9px] opacity-90">Lägg till</div>
+                  <div className="text-center text-[9px] opacity-90">{t("phone.addLabel")}</div>
                 </button>
               </div>
               {addFormOpen && (
@@ -730,7 +736,7 @@ export function VirtualPhone({
                     value={addName}
                     onChange={(e) => setAddName(e.target.value)}
                     onKeyDown={(e) => e.stopPropagation()}
-                    placeholder="Namn"
+                    placeholder={t("phone.namePlaceholder")}
                     className="rounded-md border-0 bg-white/90 px-2 py-1 text-[10px] text-black outline-none"
                   />
                   <input
@@ -738,7 +744,7 @@ export function VirtualPhone({
                     value={addUrl}
                     onChange={(e) => setAddUrl(e.target.value)}
                     onKeyDown={(e) => e.stopPropagation()}
-                    placeholder="Webbadress"
+                    placeholder={t("phone.urlPlaceholder")}
                     className="rounded-md border-0 bg-white/90 px-2 py-1 text-[10px] text-black outline-none"
                   />
                   <div className="flex justify-end gap-1.5">
@@ -787,14 +793,14 @@ export function VirtualPhone({
                 <button
                   onClick={goBack}
                   className="flex h-5 w-5 flex-shrink-0 items-center justify-center text-[#333]"
-                  title="Bakåt"
+                  title={t("phone.backTitle")}
                 >
                   {Icon.back}
                 </button>
                 <button
                   onClick={goForward}
                   className="flex h-5 w-5 flex-shrink-0 items-center justify-center text-[#333]"
-                  title="Framåt"
+                  title={t("phone.forwardTitle")}
                 >
                   {Icon.forward}
                 </button>
@@ -807,7 +813,7 @@ export function VirtualPhone({
                       e.stopPropagation();
                       if (e.key === "Enter") applyUrl(addressValue);
                     }}
-                    placeholder="Sök eller ange webbadress"
+                    placeholder={t("phone.searchOrEnterUrlShort")}
                     autoComplete="off"
                     spellCheck={false}
                     className="min-w-0 flex-1 border-0 bg-transparent text-[10px] text-[#222] outline-none"
@@ -817,7 +823,7 @@ export function VirtualPhone({
                   onClick={toggleBookmark}
                   className="flex h-5 w-5 flex-shrink-0 items-center justify-center"
                   style={{ color: isBookmarked ? "#e0245e" : "#333" }}
-                  title="Bokmärk"
+                  title={t("phone.bookmarkTitle")}
                 >
                   <svg
                     viewBox="0 0 24 24"
@@ -835,7 +841,7 @@ export function VirtualPhone({
                 <button
                   onClick={openCastMenu}
                   className="flex h-5 w-5 flex-shrink-0 items-center justify-center text-[#333]"
-                  title="Cast till skärm"
+                  title={t("phone.castTitle")}
                 >
                   {Icon.cast}
                 </button>
@@ -845,7 +851,7 @@ export function VirtualPhone({
                     setCastMenuOpen(false);
                   }}
                   className="flex h-5 w-5 flex-shrink-0 items-center justify-center text-[#333]"
-                  title="Meny"
+                  title={t("phone.menuTitle")}
                 >
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
                     <circle cx="12" cy="5" r="1.6" />
@@ -860,7 +866,7 @@ export function VirtualPhone({
                       onClick={lockNow}
                       className="whitespace-nowrap px-3 py-2 text-left text-[10px] text-[#eee] active:bg-white/10"
                     >
-                      Lås skärmen
+                      {t("phone.lockScreen")}
                     </button>
                   </div>
                 )}
@@ -874,7 +880,7 @@ export function VirtualPhone({
                       }}
                       className="whitespace-nowrap px-3 py-2 text-left text-[10px] text-[#eee] active:bg-white/10"
                     >
-                      Ny smart-TV
+                      {t("phone.newSmartTv")}
                     </button>
                     <button
                       onClick={() => {
@@ -883,19 +889,19 @@ export function VirtualPhone({
                       }}
                       className="whitespace-nowrap px-3 py-2 text-left text-[10px] text-[#eee] active:bg-white/10"
                     >
-                      Ny mobil
+                      {t("phone.newMobile")}
                     </button>
                     {castTargets.length > 0 && <div className="my-1 border-t border-white/10" />}
-                    {castTargets.map((t) => (
+                    {castTargets.map((target) => (
                       <button
-                        key={t.id}
+                        key={target.id}
                         onClick={() => {
-                          onCastTo(t.id, state.url);
+                          onCastTo(target.id, state.url);
                           setCastMenuOpen(false);
                         }}
                         className="truncate whitespace-nowrap px-3 py-2 text-left text-[10px] text-[#eee] active:bg-white/10"
                       >
-                        {t.url || "(tom skärm)"}
+                        {target.url || t("phone.emptyScreen")}
                       </button>
                     ))}
                     {castTargets.length > 0 && (
@@ -909,7 +915,7 @@ export function VirtualPhone({
                           }}
                           className="whitespace-nowrap px-3 py-2 text-left text-[10px] text-red-400 active:bg-white/10"
                         >
-                          Ta bort alla skärmar
+                          {t("phone.removeAllScreens")}
                         </button>
                       </>
                     )}
@@ -927,7 +933,7 @@ export function VirtualPhone({
                   />
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center px-4 text-center text-[11px] tracking-wide text-white/35">
-                    SÖK ELLER ANGE EN WEBBADRESS
+                    {t("phone.searchOrEnterUrl").toUpperCase()}
                   </div>
                 )}
               </div>
@@ -948,19 +954,18 @@ export function VirtualPhone({
             // remoteControllerProps.
             <div className="flex h-full flex-col gap-3 overflow-y-auto bg-[#111] p-3 text-white">
               <div className="text-center text-[10px] font-light tracking-[0.4em] text-white/60">
-                FJÄRRKONTROLL
+                {t("remote.title")}
               </div>
               {remoteControllerProps.cameraMode === "swing" ? (
                 <div className="mt-6 text-center text-[10px] leading-relaxed text-white/50">
-                  I GUNGA-läge styrs kamerans position helt av gungans fysik — inga spakar att styra
-                  här.
+                  {t("remote.swingHint")}
                 </div>
               ) : (
                 <>
                   <div className="flex flex-wrap items-start justify-center gap-3">
                     {remoteControllerProps.cameraMode === "float" && (
                       <JoystickPad
-                        label="STRÖM"
+                        label={t("remote.strom")}
                         value={remoteControllerProps.driftStick}
                         onChange={remoteControllerProps.onDriftChange}
                         sticky
@@ -968,14 +973,14 @@ export function VirtualPhone({
                     )}
                     {remoteControllerProps.cameraMode === "noclip" && (
                       <JoystickPad
-                        label="HÖJD"
+                        label={t("remote.hojd")}
                         value={remoteControllerProps.vertStick}
                         onChange={remoteControllerProps.onVertChange}
                       />
                     )}
                     {remoteControllerProps.cameraMode === "float" && (
                       <JoystickPad
-                        label="SVAJ"
+                        label={t("remote.svaj")}
                         value={remoteControllerProps.swayStick}
                         onChange={remoteControllerProps.onSwayChange}
                         sticky
@@ -983,7 +988,7 @@ export function VirtualPhone({
                     )}
                     {remoteControllerProps.cameraMode === "float" && (
                       <JoystickPad
-                        label="VÅGRIKT"
+                        label={t("remote.vagrikt")}
                         value={remoteControllerProps.waveDirStick}
                         onChange={remoteControllerProps.onWaveDirChange}
                         sticky
@@ -999,9 +1004,13 @@ export function VirtualPhone({
                           : "border-white/15 bg-white/5 text-white/60"
                       }`}
                       aria-pressed={remoteControllerProps.syncWaveWithSway}
-                      title="Låt VÅGRIKTNING följa SVAJ RIKTNING automatiskt (standard: på)"
+                      title={t("remote.syncTitle")}
                     >
-                      SYNKA VÅG MED SVAJ: {remoteControllerProps.syncWaveWithSway ? "PÅ" : "AV"}
+                      {t("remote.syncButton", {
+                        state: remoteControllerProps.syncWaveWithSway
+                          ? t("common.on")
+                          : t("common.off"),
+                      })}
                     </button>
                   )}
                 </>
@@ -1013,7 +1022,7 @@ export function VirtualPhone({
             // add/remove controls for the TVs/mobiles it lets you rearrange.
             <div className="flex h-full flex-col gap-3 overflow-y-auto bg-[#111] p-3 text-white">
               <div className="text-center text-[10px] font-light tracking-[0.4em] text-white/60">
-                SKÄRMHANTERING
+                {t("screens.title")}
               </div>
               <button
                 onClick={() => setEditMode((v) => !v)}
@@ -1023,37 +1032,32 @@ export function VirtualPhone({
                     : "border-white/15 bg-white/5 text-white/70"
                 }`}
                 aria-pressed={editMode}
-                title={
-                  editMode
-                    ? "Avsluta redigeringsläge"
-                    : "Redigeringsläge (pausar vågor och rörelse)"
-                }
+                title={editMode ? t("screens.editModeTitleOn") : t("screens.editModeTitleOff")}
               >
                 {Icon.pencil}
-                {editMode ? "AVSLUTA REDIGERING" : "REDIGERINGSLÄGE"}
+                {editMode ? t("screens.editModeOn") : t("screens.editModeOff")}
               </button>
               <div className="text-[9px] leading-relaxed text-white/45">
-                Pausar vågor och kamerarörelse så att TV/mobil-skärmarna i 3D-vyn kan flyttas,
-                roteras och ändras i storlek exakt.
+                {t("screens.editModeDescription")}
               </div>
               <div className="mt-1 flex flex-col gap-1.5">
                 <button
                   onClick={() => {
                     onCastNew("tv", "");
-                    setScreensTick((t) => t + 1);
+                    setScreensTick((tick) => tick + 1);
                   }}
                   className="rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[9px] font-light tracking-wider text-white/80 active:scale-95 active:bg-white/15"
                 >
-                  + Ny smart-TV
+                  + {t("phone.newSmartTv")}
                 </button>
                 <button
                   onClick={() => {
                     onCastNew("mobile", "");
-                    setScreensTick((t) => t + 1);
+                    setScreensTick((tick) => tick + 1);
                   }}
                   className="rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[9px] font-light tracking-wider text-white/80 active:scale-95 active:bg-white/15"
                 >
-                  + Ny mobil
+                  + {t("phone.newMobile")}
                 </button>
               </div>
               {(() => {
@@ -1064,18 +1068,19 @@ export function VirtualPhone({
                     <div className="mt-1 flex flex-col gap-1 text-[9px] text-white/50">
                       {entries.map((d) => (
                         <div key={d.id} className="truncate rounded-md bg-white/5 px-2 py-1">
-                          {d.device === "tv" ? "TV" : "Mobil"} — {d.url || "(tom skärm)"}
+                          {d.device === "tv" ? t("phone.tvLabel") : t("phone.mobileLabel")} —{" "}
+                          {d.url || t("phone.emptyScreen")}
                         </div>
                       ))}
                     </div>
                     <button
                       onClick={() => {
                         onRemoveAll();
-                        setScreensTick((t) => t + 1);
+                        setScreensTick((tick) => tick + 1);
                       }}
                       className="rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[9px] font-light tracking-wider text-red-400 active:scale-95 active:bg-white/15"
                     >
-                      Ta bort alla skärmar
+                      {t("phone.removeAllScreens")}
                     </button>
                   </>
                 );
@@ -1091,14 +1096,14 @@ export function VirtualPhone({
           <button
             onClick={goHome}
             className="flex h-6 w-6 items-center justify-center text-white/85"
-            title="Hem"
+            title={t("phone.homeTitle")}
           >
             {Icon.home}
           </button>
           <button
             onClick={lockNow}
             className="flex h-6 w-6 items-center justify-center text-white/85"
-            title="Lås"
+            title={t("phone.lockTitle")}
           >
             {Icon.lock}
           </button>
@@ -1115,7 +1120,7 @@ export function VirtualPhone({
         onPointerMove={onResizeMove}
         onPointerUp={onResizeUp}
         onPointerCancel={onResizeUp}
-        title="Ändra storlek"
+        title={t("phone.resizeTitle")}
       >
         {Icon.resizeGrip}
       </div>

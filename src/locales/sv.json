@@ -1,0 +1,365 @@
+{
+  "camera": {
+    "mode": {
+      "autoSuffix": "(AUTO)",
+      "float": "FRI",
+      "noclip": "NOCLIP",
+      "swing": "GUNGA"
+    },
+    "rotationValue": {
+      "fixed": "FIXERAD",
+      "leanForward": "FRAMÅTLUT"
+    }
+  },
+  "common": {
+    "against": "MOT",
+    "auto": "AUTO",
+    "decreaseAria": "{{label}} minska",
+    "high": "HÖG",
+    "increaseAria": "{{label}} öka",
+    "low": "LÅG",
+    "neutral": "NEUTRAL",
+    "none": "—",
+    "off": "AV",
+    "on": "PÅ",
+    "opacity": "OPACITET",
+    "texture": "TEXTUR",
+    "with": "MED"
+  },
+  "dial": {
+    "audio": {
+      "off": "LJUD AV",
+      "on": "LJUD PÅ",
+      "spatial": "SPATIAL",
+      "syncSpeed": "LJUDSYNK"
+    },
+    "camera": {
+      "far": "FJÄRRSIKT",
+      "fov": "FOV",
+      "goggles": "SIMGLASÖGON",
+      "gogglesBlur": "LINSOSKÄRPA",
+      "gogglesFpsCap": "BILDFREKVENS",
+      "gogglesIntensity": "INTENSITET",
+      "gogglesLoop": "DROPPLOOP",
+      "intervalCount": "ANTAL INTERVALL",
+      "intervalDuration": "INTERVALL",
+      "intervalSession": "INTERVALLPASS",
+      "mode": "KAMERALÄGE",
+      "near": "NÄRA",
+      "noclipSpeed": "NOCLIP FART",
+      "posX": "POS X",
+      "posY": "POS Y",
+      "posZ": "POS Z",
+      "rotation": "ROTERING",
+      "sessionType": "PASSTYP",
+      "showStats": "VISA TID",
+      "swingHeight": "GUNGA HÖJD",
+      "swingIntensity": "GUNGA INTENSITET",
+      "swingPositionY": "GUNGA POSITION Y",
+      "swingStart": "GUNGA START",
+      "swingXFactor": "GUNGA X",
+      "swingYWaveform": "GUNGA Y VÅGFORM",
+      "wakeLock": "VAKEN"
+    },
+    "env": {
+      "backdrop": "BAKGRUND",
+      "dayTime": "DYGN",
+      "environment": "MILJÖ",
+      "era": "EPOK",
+      "live": "LIVE",
+      "midClouds": "MELLAN-MOLN",
+      "midCloudsHeight": "MOLNHÖJD",
+      "roomSize": "RUMSSTORLEK",
+      "scene": "SCEN",
+      "skyClouds": "HIMMEL-MOLN",
+      "skyCloudsHeight": "HIMMEL-MOLNHÖJD",
+      "time": "TID",
+      "torusCellSize": "RUTNÄT XZ",
+      "torusFadeDistance": "TONING",
+      "torusOpacity": "OPACITET",
+      "torusRadius": "RADIE",
+      "torusRings": "BADRINGAR",
+      "torusScale": "STORLEK",
+      "torusTexture": "TEXTUR",
+      "torusTube": "TJOCKLEK",
+      "torusVerticalCount": "RINGAR/KOLONN",
+      "torusVerticalSpacing": "RUTNÄT HÖJD",
+      "torusViewDistance": "RÄCKVIDD"
+    },
+    "water": {
+      "bottom": "BOTTEN",
+      "bottomColor": "BOTTENFÄRG",
+      "brightness": "LJUSSTYRKA",
+      "caustics": "ÄKTA KAUSTIK",
+      "depth": "DJUP",
+      "depthSine": "DJUP-SINUS",
+      "floorTexture": "TEXTUR",
+      "hue": "TON",
+      "reflStrength": "STYRKA",
+      "reflection": "SPEGLING",
+      "saturation": "MÄTTNAD",
+      "sineAmp": "SINUS AMP",
+      "sineFreq": "SINUS FREK",
+      "sphereStrength": "SFÄR-STYRKA",
+      "surfBright": "YT-LJUS",
+      "surfSat": "YT-MÄTTNAD",
+      "surface": "VATTENYTA",
+      "surfaceValue": {
+        "hide": "DÖLJ",
+        "visible": "SYNLIGT"
+      },
+      "tint": "VATTEN",
+      "turbidity": "GRUMLIGHET",
+      "waveMaterial": "VÅGMATERIAL",
+      "waveMaterialValue": {
+        "sphereMap": "SFÄRKARTA",
+        "standard": "STANDARD"
+      }
+    },
+    "wave": {
+      "amp": "VÅG",
+      "bob": "GUPP",
+      "bobSpeed": "GUPP TEMPO",
+      "crossWave": "KORSVÅG",
+      "currentDirection": "STRÖM RIKTNING",
+      "distance": "AVSTÅND",
+      "dive": "DYK",
+      "dyingWave": "DÖENDE VÅG",
+      "dyingWaveHeight": "DÖD VÅG HÖJD",
+      "dyingWaveSpeed": "DÖD VÅG TEMPO",
+      "floatLift": "FLYT",
+      "freq": "FREKVENS",
+      "height": "HÖJD",
+      "mode": "LÄGE",
+      "modeValue": {
+        "ocean": "HAV",
+        "vortex": "VIRVEL"
+      },
+      "opening": "ÖPPNING",
+      "peak": "SPETS",
+      "preset": "VÅGPRESET",
+      "quality": "KVALITET",
+      "randomize": "SLUMPA VÅGOR",
+      "realistic": "REALISTISKA VÅGOR",
+      "realisticValue": {
+        "on": "FFT-HAV"
+      },
+      "speed": "TEMPO",
+      "sway": "SVAJ",
+      "swayDirection": "SVAJ RIKTNING",
+      "swayDrift": "SVAJ DRIFT",
+      "swaySpeed": "SVAJ TEMPO",
+      "trochoid": "TROKOID",
+      "trochoidOff": "AV",
+      "vortexSpeed": "VIRVEL TEMPO",
+      "waveDirection": "VÅGRIKTNING",
+      "wavePeriod": "VÅGPERIOD",
+      "waveform": "VÅGFORM",
+      "waveformValue": {
+        "regular": "REGELBUNDEN",
+        "spread": "SPRIDD"
+      }
+    }
+  },
+  "hud": {
+    "audioMuteAria": "Stäng av ljud",
+    "audioOffTitle": "Ljud av",
+    "audioOnTitle": "Ljud på",
+    "audioUnmuteAria": "Slå på ljud",
+    "fullscreenEnterAria": "Helskärm",
+    "fullscreenExitAria": "Avsluta helskärm",
+    "intervalFixedLabel": "Intervall {{n}}/{{total}}",
+    "intervalInfiniteLabel": "Intervall {{n}}",
+    "intervalRemaining": "kvar {{time}}",
+    "joystick": {
+      "current": "STRÖM",
+      "look": "LOOK",
+      "nav": "NAV",
+      "sway": "SVAJ",
+      "waveDirection": "VÅGRIKT"
+    },
+    "offline": "OFFLINE",
+    "phoneCloseAria": "Stäng telefon",
+    "phoneCloseTitle": "Stäng telefon",
+    "phoneOpenAria": "Öppna telefon",
+    "phoneOpenTitle": "Öppna telefon (bathOS, cast till skärmar)",
+    "settingsCloseAria": "Stäng inställningar",
+    "settingsCloseLabel": "STÄNG",
+    "settingsOpenAria": "Öppna inställningar",
+    "settingsOpenLabel": "INSTÄLLNINGAR",
+    "slider": {
+      "frequency": "FREKVENS",
+      "tempo": "TEMPO",
+      "wave": "VÅG"
+    },
+    "totalLabel": " · Totalt "
+  },
+  "interval": {
+    "type": {
+      "fixed": "FASTA INTERVALL",
+      "infinite": "OÄNDLIGT"
+    }
+  },
+  "language": {
+    "da": "Danska",
+    "en": "Engelska",
+    "fi": "Finska",
+    "label": "SPRÅK",
+    "no": "Norska",
+    "sv": "Svenska"
+  },
+  "live": {
+    "badge": "LIVE",
+    "cellsUnit": "celler",
+    "followerFlow": "Qi-flöde till 28 mdr följare",
+    "viewerBillion": "mdr",
+    "viewerMillion": "mn",
+    "viewerThousand": "t"
+  },
+  "options": {
+    "backdrop": {
+      "off": "AV",
+      "vanern": "Vänern"
+    },
+    "bottom": {
+      "clouds": "Moln",
+      "coral": "Korall",
+      "custom": "Anpassad",
+      "darkBottom": "Mörk botten",
+      "lightSand": "Ljus sand",
+      "off": "AV",
+      "sand": "Sand",
+      "stone": "Sten"
+    },
+    "torusTexture": {
+      "off": "AV",
+      "sand": "Sand"
+    },
+    "waterTint": {
+      "archipelago": "Skärgård",
+      "caribbean": "Karibisk",
+      "deepSea": "Djuphav",
+      "mediterranean": "Medelhav",
+      "nordic": "Nordhav",
+      "tropical": "Tropisk"
+    }
+  },
+  "phone": {
+    "addLabel": "Lägg till",
+    "appRemote": "Fjärrkontroll",
+    "appScreens": "Skärmar",
+    "appSettings": "Inställningar",
+    "backTitle": "Bakåt",
+    "bathOS": "bathOS",
+    "bookmarkTitle": "Bokmärk",
+    "castTitle": "Cast till skärm",
+    "closeTitle": "Stäng",
+    "emptyScreen": "(tom skärm)",
+    "forwardTitle": "Framåt",
+    "homeTitle": "Hem",
+    "lockScreen": "Lås skärmen",
+    "lockTitle": "Lås",
+    "menuTitle": "Meny",
+    "mobileLabel": "Mobil",
+    "namePlaceholder": "Namn",
+    "newMobile": "Ny mobil",
+    "newSmartTv": "Ny smart-TV",
+    "removeAllScreens": "Ta bort alla skärmar",
+    "resizeTitle": "Ändra storlek",
+    "rotateTitle": "Rotera (stående/liggande)",
+    "searchOrEnterUrl": "Sök eller ange en webbadress",
+    "searchOrEnterUrlShort": "Sök eller ange webbadress",
+    "searchPlaceholder": "Sök",
+    "signalTitle": "Signal",
+    "title": "TELEFON",
+    "tvLabel": "TV",
+    "unlockHint": "Tryck för att låsa upp",
+    "urlPlaceholder": "Webbadress"
+  },
+  "presets": {
+    "all": "ALLA INSTÄLLNINGAR",
+    "choosePreset": "VÄLJ SPARAD…",
+    "chooseState": "VÄLJ SPARAT…",
+    "delete": "RADERA",
+    "deleteConfirm": "Ta bort sparad preset?",
+    "deleteStateConfirm": "Ta bort sparat tillstånd?",
+    "export": "EXPORTERA",
+    "import": "IMPORTERA",
+    "invalidPresetFile": "Kunde inte läsa presetfilen — kontrollera att den är en giltig JSON-fil.",
+    "invalidStateFile": "Kunde inte läsa tillståndsfilen — kontrollera att den är en giltig JSON-fil.",
+    "load": "LÄS IN",
+    "save": "SPARA",
+    "savePromptTitle": "Spara som:",
+    "saveStatePromptTitle": "Spara tillstånd som:",
+    "scope": {
+      "kamera": "KAMERA-PRESET",
+      "ljud": "LJUD-PRESET",
+      "miljo": "MILJÖ-PRESET",
+      "vagor": "VÅGOR-PRESET",
+      "vatten": "VATTEN-PRESET"
+    },
+    "state": "TILLSTÅND (allt + position, blick, ström, svaj)"
+  },
+  "remote": {
+    "hojd": "HÖJD",
+    "strom": "STRÖM",
+    "svaj": "SVAJ",
+    "swingHint": "I GUNGA-läge styrs kamerans position helt av gungans fysik — inga spakar att styra här.",
+    "syncButton": "SYNKA VÅG MED SVAJ: {{state}}",
+    "syncTitle": "Låt VÅGRIKTNING följa SVAJ RIKTNING automatiskt (standard: på)",
+    "title": "FJÄRRKONTROLL",
+    "vagrikt": "VÅGRIKT"
+  },
+  "screens": {
+    "editModeDescription": "Pausar vågor och kamerarörelse så att TV/mobil-skärmarna i 3D-vyn kan flyttas, roteras och ändras i storlek exakt.",
+    "editModeOff": "REDIGERINGSLÄGE",
+    "editModeOn": "AVSLUTA REDIGERING",
+    "editModeTitleOff": "Redigeringsläge (pausar vågor och rörelse)",
+    "editModeTitleOn": "Avsluta redigeringsläge",
+    "title": "SKÄRMHANTERING"
+  },
+  "settings": {
+    "reset": "ÅTERSTÄLL",
+    "resetAriaLabel": "Återställ reglage till standardvärden",
+    "resetTitle": "Återställ reglage (tid på dygnet påverkas inte)",
+    "restore": "ÅTERGÅ",
+    "restoreAriaLabel": "Återgå till senast sparade kameraposition",
+    "restoreTitle": "Återgå till senast sparade kameraposition och riktning",
+    "tabs": {
+      "kamera": "KAMERA",
+      "ljud": "LJUD",
+      "miljo": "MILJÖ",
+      "vagor": "VÅGOR",
+      "vatten": "VATTEN"
+    },
+    "tabsAriaLabel": "Inställningsflikar",
+    "title": "INSTÄLLNINGAR"
+  },
+  "swing": {
+    "preset": {
+      "clouds": "MOLN",
+      "custom": "ANPASSAD",
+      "water": "VATTEN"
+    },
+    "waveform": {
+      "pendulum": "PENDEL",
+      "sine": "SINUS",
+      "square": "FYRKANT",
+      "triangle": "TRIANGEL"
+    }
+  },
+  "tod": {
+    "afternoon": "Eftermiddag",
+    "dawn": "Gryning",
+    "dusk": "Skymning",
+    "midday": "Middag",
+    "morning": "Morgon",
+    "night": "Natt"
+  },
+  "wave": {
+    "preset": {
+      "legacy": "LEGACY",
+      "standard": "STANDARD"
+    }
+  }
+}
