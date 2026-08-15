@@ -194,7 +194,13 @@
       "tempo": "TEMPO",
       "wave": "BØLGE"
     },
-    "totalLabel": " · I alt "
+    "totalLabel": " · I alt ",
+    "waveDrawer": {
+      "closeAria": "Luk bølgeindstillinger",
+      "closeLabel": "LUK",
+      "openAria": "Åbn bølgeindstillinger",
+      "openLabel": "BØLGER"
+    }
   },
   "interval": {
     "type": {

@@ -194,7 +194,13 @@
       "tempo": "TEMPO",
       "wave": "VÅG"
     },
-    "totalLabel": " · Totalt "
+    "totalLabel": " · Totalt ",
+    "waveDrawer": {
+      "closeAria": "Stäng våginställningar",
+      "closeLabel": "STÄNG",
+      "openAria": "Öppna våginställningar",
+      "openLabel": "VÅGOR"
+    }
   },
   "interval": {
     "type": {

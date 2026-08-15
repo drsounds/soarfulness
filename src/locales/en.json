@@ -194,7 +194,13 @@
       "tempo": "TEMPO",
       "wave": "WAVE"
     },
-    "totalLabel": " · Total "
+    "totalLabel": " · Total ",
+    "waveDrawer": {
+      "closeAria": "Close wave settings",
+      "closeLabel": "CLOSE",
+      "openAria": "Open wave settings",
+      "openLabel": "WAVES"
+    }
   },
   "interval": {
     "type": {

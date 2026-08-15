@@ -111,7 +111,7 @@ export function Joystick({
   onChange,
   value,
   label = "NAV",
-  positionClass = "bottom-6 left-6",
+  positionClass = "bottom-8 left-8",
   sticky = false,
 }: {
   onChange: (v: StickValue) => void;
