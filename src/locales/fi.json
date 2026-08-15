@@ -1,0 +1,365 @@
+{
+  "camera": {
+    "mode": {
+      "autoSuffix": "(AUTO)",
+      "float": "VAPAA",
+      "noclip": "NOCLIP",
+      "swing": "KEINU"
+    },
+    "rotationValue": {
+      "fixed": "KIINTEÄ",
+      "leanForward": "KALLISTUS ETEEN"
+    }
+  },
+  "common": {
+    "against": "VASTAAN",
+    "auto": "AUTO",
+    "decreaseAria": "{{label}} pienennä",
+    "high": "KORKEA",
+    "increaseAria": "{{label}} suurenna",
+    "low": "MATALA",
+    "neutral": "NEUTRAALI",
+    "none": "—",
+    "off": "POIS",
+    "on": "PÄÄLLÄ",
+    "opacity": "PEITTÄVYYS",
+    "texture": "TEKSTUURI",
+    "with": "MYÖTÄ"
+  },
+  "dial": {
+    "audio": {
+      "off": "ÄÄNI POIS",
+      "on": "ÄÄNI PÄÄLLÄ",
+      "spatial": "TILALLINEN",
+      "syncSpeed": "ÄÄNISYNKRONOINTI"
+    },
+    "camera": {
+      "far": "KAUKOTASO",
+      "fov": "FOV",
+      "goggles": "UIMALASIT",
+      "gogglesBlur": "LINSSIN SUMEUS",
+      "gogglesFpsCap": "KUVATAAJUUS",
+      "gogglesIntensity": "INTENSITEETTI",
+      "gogglesLoop": "PISARASILMUKKA",
+      "intervalCount": "INTERVALLIEN MÄÄRÄ",
+      "intervalDuration": "INTERVALLI",
+      "intervalSession": "INTERVALLIHARJOITUS",
+      "mode": "KAMERATILA",
+      "near": "LÄHI",
+      "noclipSpeed": "NOCLIP-NOPEUS",
+      "posX": "SIJAINTI X",
+      "posY": "SIJAINTI Y",
+      "posZ": "SIJAINTI Z",
+      "rotation": "KIERTO",
+      "sessionType": "HARJOITUSTYYPPI",
+      "showStats": "NÄYTÄ AIKA",
+      "swingHeight": "KEINUN KORKEUS",
+      "swingIntensity": "KEINUN INTENSITEETTI",
+      "swingPositionY": "KEINUN Y-SIJAINTI",
+      "swingStart": "KEINU ALOITUS",
+      "swingXFactor": "KEINU X",
+      "swingYWaveform": "KEINUN Y-AALTOMUOTO",
+      "wakeLock": "VALVEILLA"
+    },
+    "env": {
+      "backdrop": "TAUSTA",
+      "dayTime": "VUOROKAUDENAIKA",
+      "environment": "YMPÄRISTÖ",
+      "era": "AIKAKAUSI",
+      "live": "LIVE",
+      "midClouds": "KESKIPILVET",
+      "midCloudsHeight": "PILVEN KORKEUS",
+      "roomSize": "TILAN KOKO",
+      "scene": "NÄYTTÄMÖ",
+      "skyClouds": "TAIVAAN PILVET",
+      "skyCloudsHeight": "TAIVAAN PILVEN KORKEUS",
+      "time": "AIKA",
+      "torusCellSize": "RUUDUKKO XZ",
+      "torusFadeDistance": "HÄIVYTYS",
+      "torusOpacity": "PEITTÄVYYS",
+      "torusRadius": "SÄDE",
+      "torusRings": "UIMARENKAAT",
+      "torusScale": "KOKO",
+      "torusTexture": "TEKSTUURI",
+      "torusTube": "PAKSUUS",
+      "torusVerticalCount": "RENKAITA/SARAKE",
+      "torusVerticalSpacing": "RUUDUKON KORKEUS",
+      "torusViewDistance": "NÄKYVYYS"
+    },
+    "water": {
+      "bottom": "POHJA",
+      "bottomColor": "POHJAN VÄRI",
+      "brightness": "KIRKKAUS",
+      "caustics": "AITO KAUSTIIKKA",
+      "depth": "SYVYYS",
+      "depthSine": "SYVYYS-SINI",
+      "floorTexture": "TEKSTUURI",
+      "hue": "SÄVY",
+      "reflStrength": "VOIMAKKUUS",
+      "reflection": "HEIJASTUS",
+      "saturation": "KYLLÄISYYS",
+      "sineAmp": "SININ AMPLITUDI",
+      "sineFreq": "SININ TAAJUUS",
+      "sphereStrength": "PALLON VOIMAKKUUS",
+      "surfBright": "PINNAN VALO",
+      "surfSat": "PINNAN KYLLÄISYYS",
+      "surface": "VEDENPINTA",
+      "surfaceValue": {
+        "hide": "PIILOTA",
+        "visible": "NÄKYVÄ"
+      },
+      "tint": "VESI",
+      "turbidity": "SAMEUS",
+      "waveMaterial": "AALLON MATERIAALI",
+      "waveMaterialValue": {
+        "sphereMap": "PALLOKARTTA",
+        "standard": "STANDARDI"
+      }
+    },
+    "wave": {
+      "amp": "AALTO",
+      "bob": "KEINUNTA",
+      "bobSpeed": "KEINUNNAN TEMPO",
+      "crossWave": "RISTIAALTO",
+      "currentDirection": "VIRTAUKSEN SUUNTA",
+      "distance": "ETÄISYYS",
+      "dive": "SUKELLUS",
+      "dyingWave": "VAIMENEVA AALTO",
+      "dyingWaveHeight": "VAIMENEVAN AALLON KORKEUS",
+      "dyingWaveSpeed": "VAIMENEVAN AALLON TEMPO",
+      "floatLift": "KELLUNTA",
+      "freq": "TAAJUUS",
+      "height": "KORKEUS",
+      "mode": "TILA",
+      "modeValue": {
+        "ocean": "MERI",
+        "vortex": "PYÖRRE"
+      },
+      "opening": "AUKKO",
+      "peak": "HUIPPU",
+      "preset": "AALTO-ESIASETUS",
+      "quality": "LAATU",
+      "randomize": "SATUNNAISET AALLOT",
+      "realistic": "REALISTISET AALLOT",
+      "realisticValue": {
+        "on": "FFT-MERI"
+      },
+      "speed": "TEMPO",
+      "sway": "HEILUNTA",
+      "swayDirection": "HEILUNNAN SUUNTA",
+      "swayDrift": "HEILUNNAN AJAUTUMA",
+      "swaySpeed": "HEILUNNAN TEMPO",
+      "trochoid": "TROKOIDI",
+      "trochoidOff": "POIS",
+      "vortexSpeed": "PYÖRTEEN TEMPO",
+      "waveDirection": "AALLON SUUNTA",
+      "wavePeriod": "AALLON JAKSO",
+      "waveform": "AALTOMUOTO",
+      "waveformValue": {
+        "regular": "SÄÄNNÖLLINEN",
+        "spread": "HAJONTA"
+      }
+    }
+  },
+  "hud": {
+    "audioMuteAria": "Mykistä ääni",
+    "audioOffTitle": "Ääni pois",
+    "audioOnTitle": "Ääni päällä",
+    "audioUnmuteAria": "Poista mykistys",
+    "fullscreenEnterAria": "Koko näyttö",
+    "fullscreenExitAria": "Poistu koko näytöstä",
+    "intervalFixedLabel": "Intervalli {{n}}/{{total}}",
+    "intervalInfiniteLabel": "Intervalli {{n}}",
+    "intervalRemaining": "{{time}} jäljellä",
+    "joystick": {
+      "current": "VIRTAUS",
+      "look": "LOOK",
+      "nav": "NAV",
+      "sway": "HEILUNTA",
+      "waveDirection": "AALLON SUUNTA"
+    },
+    "offline": "OFFLINE",
+    "phoneCloseAria": "Sulje puhelin",
+    "phoneCloseTitle": "Sulje puhelin",
+    "phoneOpenAria": "Avaa puhelin",
+    "phoneOpenTitle": "Avaa puhelin (bathOS, casta näytöille)",
+    "settingsCloseAria": "Sulje asetukset",
+    "settingsCloseLabel": "SULJE",
+    "settingsOpenAria": "Avaa asetukset",
+    "settingsOpenLabel": "ASETUKSET",
+    "slider": {
+      "frequency": "TAAJUUS",
+      "tempo": "TEMPO",
+      "wave": "AALTO"
+    },
+    "totalLabel": " · Yhteensä "
+  },
+  "interval": {
+    "type": {
+      "fixed": "KIINTEÄT INTERVALLIT",
+      "infinite": "LOPUTON"
+    }
+  },
+  "language": {
+    "da": "Tanska",
+    "en": "Englanti",
+    "fi": "Suomi",
+    "label": "KIELI",
+    "no": "Norja",
+    "sv": "Ruotsi"
+  },
+  "live": {
+    "badge": "LIVE",
+    "cellsUnit": "solua",
+    "followerFlow": "Qi-virtaus 28 mrd seuraajalle",
+    "viewerBillion": "mrd",
+    "viewerMillion": "milj",
+    "viewerThousand": "t"
+  },
+  "options": {
+    "backdrop": {
+      "off": "POIS",
+      "vanern": "Vänern"
+    },
+    "bottom": {
+      "clouds": "Pilvet",
+      "coral": "Koralli",
+      "custom": "Mukautettu",
+      "darkBottom": "Tumma pohja",
+      "lightSand": "Vaalea hiekka",
+      "off": "POIS",
+      "sand": "Hiekka",
+      "stone": "Kivi"
+    },
+    "torusTexture": {
+      "off": "POIS",
+      "sand": "Hiekka"
+    },
+    "waterTint": {
+      "archipelago": "Saaristo",
+      "caribbean": "Karibia",
+      "deepSea": "Syvänmeri",
+      "mediterranean": "Välimeri",
+      "nordic": "Pohjanmeri",
+      "tropical": "Trooppinen"
+    }
+  },
+  "phone": {
+    "addLabel": "Lisää",
+    "appRemote": "Kaukosäädin",
+    "appScreens": "Näytöt",
+    "appSettings": "Asetukset",
+    "backTitle": "Takaisin",
+    "bathOS": "bathOS",
+    "bookmarkTitle": "Kirjanmerkki",
+    "castTitle": "Casta näytölle",
+    "closeTitle": "Sulje",
+    "emptyScreen": "(tyhjä näyttö)",
+    "forwardTitle": "Eteenpäin",
+    "homeTitle": "Koti",
+    "lockScreen": "Lukitse näyttö",
+    "lockTitle": "Lukitse",
+    "menuTitle": "Valikko",
+    "mobileLabel": "Mobiili",
+    "namePlaceholder": "Nimi",
+    "newMobile": "Uusi mobiili",
+    "newSmartTv": "Uusi älytv",
+    "removeAllScreens": "Poista kaikki näytöt",
+    "resizeTitle": "Muuta kokoa",
+    "rotateTitle": "Käännä (pysty/vaaka)",
+    "searchOrEnterUrl": "Hae tai kirjoita verkko-osoite",
+    "searchOrEnterUrlShort": "Hae tai kirjoita osoite",
+    "searchPlaceholder": "Haku",
+    "signalTitle": "Signaali",
+    "title": "PUHELIN",
+    "tvLabel": "TV",
+    "unlockHint": "Napauta avataksesi lukituksen",
+    "urlPlaceholder": "Verkko-osoite"
+  },
+  "presets": {
+    "all": "KAIKKI ASETUKSET",
+    "choosePreset": "VALITSE TALLENNETTU…",
+    "chooseState": "VALITSE TALLENNETTU…",
+    "delete": "POISTA",
+    "deleteConfirm": "Poistetaanko tallennettu esiasetus?",
+    "deleteStateConfirm": "Poistetaanko tallennettu tila?",
+    "export": "VIE",
+    "import": "TUO",
+    "invalidPresetFile": "Esiasetustiedostoa ei voitu lukea — varmista, että se on kelvollinen JSON-tiedosto.",
+    "invalidStateFile": "Tilatiedostoa ei voitu lukea — varmista, että se on kelvollinen JSON-tiedosto.",
+    "load": "LATAA",
+    "save": "TALLENNA",
+    "savePromptTitle": "Tallenna nimellä:",
+    "saveStatePromptTitle": "Tallenna tila nimellä:",
+    "scope": {
+      "kamera": "KAMERA-ESIASETUS",
+      "ljud": "ÄÄNI-ESIASETUS",
+      "miljo": "YMPÄRISTÖ-ESIASETUS",
+      "vagor": "AALLOT-ESIASETUS",
+      "vatten": "VESI-ESIASETUS"
+    },
+    "state": "TILA (kaikki + sijainti, katse, virtaus, heilunta)"
+  },
+  "remote": {
+    "hojd": "KORKEUS",
+    "strom": "VIRTAUS",
+    "svaj": "HEILUNTA",
+    "swingHint": "KEINU-tilassa kameran sijainti määräytyy kokonaan keinun fysiikasta — ei ohjaimia täällä.",
+    "syncButton": "SYNKRONOI AALTO HEILUNNAN KANSSA: {{state}}",
+    "syncTitle": "Anna AALLON SUUNNAN seurata HEILUNNAN SUUNTAA automaattisesti (oletus: päällä)",
+    "title": "KAUKOSÄÄDIN",
+    "vagrikt": "AALLON SUUNTA"
+  },
+  "screens": {
+    "editModeDescription": "Pysäyttää aallot ja kameran liikkeen, jotta 3D-näkymän TV/mobiilinäytöt voidaan siirtää, kääntää ja mitoittaa tarkasti.",
+    "editModeOff": "MUOKKAUSTILA",
+    "editModeOn": "LOPETA MUOKKAUS",
+    "editModeTitleOff": "Muokkaustila (pysäyttää aallot ja liikkeen)",
+    "editModeTitleOn": "Lopeta muokkaustila",
+    "title": "NÄYTÖNHALLINTA"
+  },
+  "settings": {
+    "reset": "NOLLAA",
+    "resetAriaLabel": "Palauta säätimet oletusarvoihin",
+    "resetTitle": "Palauta säätimet (vuorokaudenaika ei muutu)",
+    "restore": "PALAUTA",
+    "restoreAriaLabel": "Palaa viimeksi tallennettuun kameran sijaintiin",
+    "restoreTitle": "Palaa viimeksi tallennettuun kameran sijaintiin ja suuntaan",
+    "tabs": {
+      "kamera": "KAMERA",
+      "ljud": "ÄÄNI",
+      "miljo": "YMPÄRISTÖ",
+      "vagor": "AALLOT",
+      "vatten": "VESI"
+    },
+    "tabsAriaLabel": "Asetusvälilehdet",
+    "title": "ASETUKSET"
+  },
+  "swing": {
+    "preset": {
+      "clouds": "PILVET",
+      "custom": "MUKAUTETTU",
+      "water": "VESI"
+    },
+    "waveform": {
+      "pendulum": "HEILURI",
+      "sine": "SINI",
+      "square": "NELIÖ",
+      "triangle": "KOLMIO"
+    }
+  },
+  "tod": {
+    "afternoon": "Iltapäivä",
+    "dawn": "Aamunkoitto",
+    "dusk": "Hämärä",
+    "midday": "Keskipäivä",
+    "morning": "Aamu",
+    "night": "Yö"
+  },
+  "wave": {
+    "preset": {
+      "legacy": "LEGACY",
+      "standard": "STANDARDI"
+    }
+  }
+}

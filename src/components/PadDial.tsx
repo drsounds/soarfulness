@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 // Shared between the main HUD's settings dialog (routes/index.tsx) and its
 // clone rendered as the "Inställningar" app inside the virtual phone's bathOS
@@ -39,6 +40,7 @@ export function PadDial({
   selectedIndex?: number;
   onSelectIndex?: (i: number) => void;
 }) {
+  const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const isSelect =
@@ -125,7 +127,7 @@ export function PadDial({
       <button
         onClick={onDec}
         className="h-7 w-7 rounded-full border border-white/20 bg-white/5 text-white/90 transition active:scale-95 active:bg-white/15"
-        aria-label={`${label} minska`}
+        aria-label={t("common.decreaseAria", { label })}
         tabIndex={-1}
       >
         −
@@ -133,7 +135,7 @@ export function PadDial({
       <button
         onClick={onInc}
         className="h-7 w-7 rounded-full border border-white/20 bg-white/5 text-white/90 transition active:scale-95 active:bg-white/15"
-        aria-label={`${label} öka`}
+        aria-label={t("common.increaseAria", { label })}
         tabIndex={-1}
       >
         +

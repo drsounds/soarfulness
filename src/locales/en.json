@@ -1,0 +1,365 @@
+{
+  "camera": {
+    "mode": {
+      "autoSuffix": "(AUTO)",
+      "float": "FREE",
+      "noclip": "NOCLIP",
+      "swing": "SWING"
+    },
+    "rotationValue": {
+      "fixed": "FIXED",
+      "leanForward": "LEAN FORWARD"
+    }
+  },
+  "common": {
+    "against": "AGAINST",
+    "auto": "AUTO",
+    "decreaseAria": "{{label}} decrease",
+    "high": "HÖG",
+    "increaseAria": "{{label}} increase",
+    "low": "LÅG",
+    "neutral": "NEUTRAL",
+    "none": "—",
+    "off": "OFF",
+    "on": "ON",
+    "opacity": "OPACITY",
+    "texture": "TEXTURE",
+    "with": "WITH"
+  },
+  "dial": {
+    "audio": {
+      "off": "SOUND OFF",
+      "on": "SOUND ON",
+      "spatial": "SPATIAL",
+      "syncSpeed": "SOUND SYNC"
+    },
+    "camera": {
+      "far": "FAR",
+      "fov": "FOV",
+      "goggles": "SWIMMING GOGGLES",
+      "gogglesBlur": "LENS BLUR",
+      "gogglesFpsCap": "FRAME RATE",
+      "gogglesIntensity": "INTENSITY",
+      "gogglesLoop": "DROPLET LOOP",
+      "intervalCount": "NUMBER OF INTERVALS",
+      "intervalDuration": "INTERVAL",
+      "intervalSession": "INTERVAL SESSION",
+      "mode": "CAMERA MODE",
+      "near": "NEAR",
+      "noclipSpeed": "NOCLIP SPEED",
+      "posX": "POS X",
+      "posY": "POS Y",
+      "posZ": "POS Z",
+      "rotation": "ROTATION",
+      "sessionType": "SESSION TYPE",
+      "showStats": "SHOW TIME",
+      "swingHeight": "SWING HEIGHT",
+      "swingIntensity": "SWING INTENSITY",
+      "swingPositionY": "SWING POSITION Y",
+      "swingStart": "SWING START",
+      "swingXFactor": "SWING X",
+      "swingYWaveform": "SWING Y WAVEFORM",
+      "wakeLock": "AWAKE"
+    },
+    "env": {
+      "backdrop": "BACKDROP",
+      "dayTime": "TIME OF DAY",
+      "environment": "ENVIRONMENT",
+      "era": "ERA",
+      "live": "LIVE",
+      "midClouds": "MID CLOUDS",
+      "midCloudsHeight": "CLOUD HEIGHT",
+      "roomSize": "ROOM SIZE",
+      "scene": "SCENE",
+      "skyClouds": "SKY CLOUDS",
+      "skyCloudsHeight": "SKY CLOUD HEIGHT",
+      "time": "TIME",
+      "torusCellSize": "GRID XZ",
+      "torusFadeDistance": "FADE",
+      "torusOpacity": "OPACITY",
+      "torusRadius": "RADIUS",
+      "torusRings": "POOL RINGS",
+      "torusScale": "SIZE",
+      "torusTexture": "TEXTURE",
+      "torusTube": "THICKNESS",
+      "torusVerticalCount": "RINGS/COLUMN",
+      "torusVerticalSpacing": "GRID HEIGHT",
+      "torusViewDistance": "VIEW DISTANCE"
+    },
+    "water": {
+      "bottom": "BOTTOM",
+      "bottomColor": "BOTTOM COLOR",
+      "brightness": "BRIGHTNESS",
+      "caustics": "TRUE CAUSTICS",
+      "depth": "DEPTH",
+      "depthSine": "DEPTH SINE",
+      "floorTexture": "TEXTURE",
+      "hue": "HUE",
+      "reflStrength": "STRENGTH",
+      "reflection": "REFLECTION",
+      "saturation": "SATURATION",
+      "sineAmp": "SINE AMP",
+      "sineFreq": "SINE FREQ",
+      "sphereStrength": "SPHERE STRENGTH",
+      "surfBright": "SURFACE LIGHT",
+      "surfSat": "SURFACE SATURATION",
+      "surface": "WATER SURFACE",
+      "surfaceValue": {
+        "hide": "HIDE",
+        "visible": "VISIBLE"
+      },
+      "tint": "WATER",
+      "turbidity": "TURBIDITY",
+      "waveMaterial": "WAVE MATERIAL",
+      "waveMaterialValue": {
+        "sphereMap": "SPHERE MAP",
+        "standard": "STANDARD"
+      }
+    },
+    "wave": {
+      "amp": "WAVE",
+      "bob": "BOB",
+      "bobSpeed": "BOB TEMPO",
+      "crossWave": "CROSS WAVE",
+      "currentDirection": "CURRENT DIRECTION",
+      "distance": "DISTANCE",
+      "dive": "DIVE",
+      "dyingWave": "DYING WAVE",
+      "dyingWaveHeight": "DYING WAVE HEIGHT",
+      "dyingWaveSpeed": "DYING WAVE TEMPO",
+      "floatLift": "FLOAT",
+      "freq": "FREQUENCY",
+      "height": "HEIGHT",
+      "mode": "MODE",
+      "modeValue": {
+        "ocean": "OCEAN",
+        "vortex": "VORTEX"
+      },
+      "opening": "OPENING",
+      "peak": "PEAK",
+      "preset": "WAVE PRESET",
+      "quality": "QUALITY",
+      "randomize": "RANDOMIZE WAVES",
+      "realistic": "REALISTIC WAVES",
+      "realisticValue": {
+        "on": "FFT OCEAN"
+      },
+      "speed": "TEMPO",
+      "sway": "SWAY",
+      "swayDirection": "SWAY DIRECTION",
+      "swayDrift": "SWAY DRIFT",
+      "swaySpeed": "SWAY TEMPO",
+      "trochoid": "TROCHOID",
+      "trochoidOff": "OFF",
+      "vortexSpeed": "VORTEX TEMPO",
+      "waveDirection": "WAVE DIRECTION",
+      "wavePeriod": "WAVE PERIOD",
+      "waveform": "WAVEFORM",
+      "waveformValue": {
+        "regular": "REGULAR",
+        "spread": "SPREAD"
+      }
+    }
+  },
+  "hud": {
+    "audioMuteAria": "Mute sound",
+    "audioOffTitle": "Sound off",
+    "audioOnTitle": "Sound on",
+    "audioUnmuteAria": "Unmute sound",
+    "fullscreenEnterAria": "Fullscreen",
+    "fullscreenExitAria": "Exit fullscreen",
+    "intervalFixedLabel": "Interval {{n}}/{{total}}",
+    "intervalInfiniteLabel": "Interval {{n}}",
+    "intervalRemaining": "{{time}} left",
+    "joystick": {
+      "current": "CURRENT",
+      "look": "LOOK",
+      "nav": "NAV",
+      "sway": "SWAY",
+      "waveDirection": "WAVE DIR"
+    },
+    "offline": "OFFLINE",
+    "phoneCloseAria": "Close phone",
+    "phoneCloseTitle": "Close phone",
+    "phoneOpenAria": "Open phone",
+    "phoneOpenTitle": "Open phone (bathOS, cast to screens)",
+    "settingsCloseAria": "Close settings",
+    "settingsCloseLabel": "CLOSE",
+    "settingsOpenAria": "Open settings",
+    "settingsOpenLabel": "SETTINGS",
+    "slider": {
+      "frequency": "FREQUENCY",
+      "tempo": "TEMPO",
+      "wave": "WAVE"
+    },
+    "totalLabel": " · Total "
+  },
+  "interval": {
+    "type": {
+      "fixed": "FIXED INTERVALS",
+      "infinite": "INFINITE"
+    }
+  },
+  "language": {
+    "da": "Danish",
+    "en": "English",
+    "fi": "Finnish",
+    "label": "LANGUAGE",
+    "no": "Norwegian",
+    "sv": "Swedish"
+  },
+  "live": {
+    "badge": "LIVE",
+    "cellsUnit": "cells",
+    "followerFlow": "Qi flow to 28B followers",
+    "viewerBillion": "B",
+    "viewerMillion": "M",
+    "viewerThousand": "K"
+  },
+  "options": {
+    "backdrop": {
+      "off": "OFF",
+      "vanern": "Vänern"
+    },
+    "bottom": {
+      "clouds": "Clouds",
+      "coral": "Coral",
+      "custom": "Custom",
+      "darkBottom": "Dark bottom",
+      "lightSand": "Light sand",
+      "off": "OFF",
+      "sand": "Sand",
+      "stone": "Stone"
+    },
+    "torusTexture": {
+      "off": "OFF",
+      "sand": "Sand"
+    },
+    "waterTint": {
+      "archipelago": "Archipelago",
+      "caribbean": "Caribbean",
+      "deepSea": "Deep Sea",
+      "mediterranean": "Mediterranean",
+      "nordic": "Nordic Sea",
+      "tropical": "Tropical"
+    }
+  },
+  "phone": {
+    "addLabel": "Add",
+    "appRemote": "Remote",
+    "appScreens": "Screens",
+    "appSettings": "Settings",
+    "backTitle": "Back",
+    "bathOS": "bathOS",
+    "bookmarkTitle": "Bookmark",
+    "castTitle": "Cast to screen",
+    "closeTitle": "Close",
+    "emptyScreen": "(empty screen)",
+    "forwardTitle": "Forward",
+    "homeTitle": "Home",
+    "lockScreen": "Lock screen",
+    "lockTitle": "Lock",
+    "menuTitle": "Menu",
+    "mobileLabel": "Mobile",
+    "namePlaceholder": "Name",
+    "newMobile": "New mobile",
+    "newSmartTv": "New smart TV",
+    "removeAllScreens": "Remove all screens",
+    "resizeTitle": "Resize",
+    "rotateTitle": "Rotate (portrait/landscape)",
+    "searchOrEnterUrl": "Search or enter a web address",
+    "searchOrEnterUrlShort": "Search or enter web address",
+    "searchPlaceholder": "Search",
+    "signalTitle": "Signal",
+    "title": "PHONE",
+    "tvLabel": "TV",
+    "unlockHint": "Tap to unlock",
+    "urlPlaceholder": "Web address"
+  },
+  "presets": {
+    "all": "ALL SETTINGS",
+    "choosePreset": "CHOOSE SAVED…",
+    "chooseState": "CHOOSE SAVED…",
+    "delete": "DELETE",
+    "deleteConfirm": "Delete this saved preset?",
+    "deleteStateConfirm": "Delete this saved state?",
+    "export": "EXPORT",
+    "import": "IMPORT",
+    "invalidPresetFile": "Could not read the preset file — make sure it's a valid JSON file.",
+    "invalidStateFile": "Could not read the state file — make sure it's a valid JSON file.",
+    "load": "LOAD",
+    "save": "SAVE",
+    "savePromptTitle": "Save as:",
+    "saveStatePromptTitle": "Save state as:",
+    "scope": {
+      "kamera": "CAMERA PRESET",
+      "ljud": "SOUND PRESET",
+      "miljo": "ENVIRONMENT PRESET",
+      "vagor": "WAVES PRESET",
+      "vatten": "WATER PRESET"
+    },
+    "state": "STATE (everything + position, look, current, sway)"
+  },
+  "remote": {
+    "hojd": "HEIGHT",
+    "strom": "CURRENT",
+    "svaj": "SWAY",
+    "swingHint": "In SWING mode the camera's position is fully driven by the swing's physics — no sticks to control here.",
+    "syncButton": "SYNC WAVE WITH SWAY: {{state}}",
+    "syncTitle": "Let WAVE DIRECTION automatically follow SWAY DIRECTION (default: on)",
+    "title": "REMOTE",
+    "vagrikt": "WAVE DIR"
+  },
+  "screens": {
+    "editModeDescription": "Pauses waves and camera movement so the TV/mobile screens in the 3D view can be moved, rotated and resized precisely.",
+    "editModeOff": "EDIT MODE",
+    "editModeOn": "EXIT EDIT MODE",
+    "editModeTitleOff": "Edit mode (pauses waves and movement)",
+    "editModeTitleOn": "Exit edit mode",
+    "title": "SCREEN MANAGEMENT"
+  },
+  "settings": {
+    "reset": "RESET",
+    "resetAriaLabel": "Reset controls to default values",
+    "resetTitle": "Reset controls (time of day is not affected)",
+    "restore": "RESTORE",
+    "restoreAriaLabel": "Return to the last saved camera position",
+    "restoreTitle": "Return to the last saved camera position and heading",
+    "tabs": {
+      "kamera": "CAMERA",
+      "ljud": "SOUND",
+      "miljo": "ENVIRONMENT",
+      "vagor": "WAVES",
+      "vatten": "WATER"
+    },
+    "tabsAriaLabel": "Settings tabs",
+    "title": "SETTINGS"
+  },
+  "swing": {
+    "preset": {
+      "clouds": "CLOUDS",
+      "custom": "CUSTOM",
+      "water": "WATER"
+    },
+    "waveform": {
+      "pendulum": "PENDULUM",
+      "sine": "SINE",
+      "square": "SQUARE",
+      "triangle": "TRIANGLE"
+    }
+  },
+  "tod": {
+    "afternoon": "Afternoon",
+    "dawn": "Dawn",
+    "dusk": "Dusk",
+    "midday": "Midday",
+    "morning": "Morning",
+    "night": "Night"
+  },
+  "wave": {
+    "preset": {
+      "legacy": "LEGACY",
+      "standard": "STANDARD"
+    }
+  }
+}
