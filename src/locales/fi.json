@@ -194,7 +194,13 @@
       "tempo": "TEMPO",
       "wave": "AALTO"
     },
-    "totalLabel": " · Yhteensä "
+    "totalLabel": " · Yhteensä ",
+    "waveDrawer": {
+      "closeAria": "Sulje aaltoasetukset",
+      "closeLabel": "SULJE",
+      "openAria": "Avaa aaltoasetukset",
+      "openLabel": "AALLOT"
+    }
   },
   "interval": {
     "type": {

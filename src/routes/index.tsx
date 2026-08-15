@@ -854,6 +854,10 @@ function Aquafulness() {
   const [vertStick, setVertStick] = useState({ x: 0, y: 0 });
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("vagor");
+  // VÅG/TEMPO/FREKVENS live behind their own bottom drawer (like SETTINGS)
+  // rather than as always-on sliders, so a stray touch near bottom-center
+  // can't accidentally nudge wave height/speed/wavelength mid-session.
+  const [waveDrawerOpen, setWaveDrawerOpen] = useState(false);
   // Named settings presets (save/load, in addition to file export/import
   // below) — kept in their own localStorage list, separate from the
   // always-on autosave under STORAGE_KEY. See src/lib/presets.ts.
@@ -4994,15 +4998,15 @@ function Aquafulness() {
         />
       )}
 
-      {/* Persistent brand mark — inverted (white), semi-transparent, 24pt, 5pt margin */}
+      {/* Persistent brand mark — inverted (white), semi-transparent, 24pt, 12pt margin */}
       <img
         src={appIconAsset.url}
         alt="Aquafulness"
         aria-hidden="true"
         className="pointer-events-none absolute z-30"
         style={{
-          top: "5pt",
-          right: "5pt",
+          top: "12pt",
+          right: "12pt",
           width: "24pt",
           height: "24pt",
           filter: "invert(1)",
@@ -5015,7 +5019,7 @@ function Aquafulness() {
           available while it's shown. */}
       {!online && (
         <div
-          className="pointer-events-none absolute left-1/2 top-[5pt] z-30 -translate-x-1/2 rounded-full border border-white/20 bg-black/40 px-3 py-1 text-[10px] font-light tracking-[0.2em] text-white/80 backdrop-blur-md"
+          className="pointer-events-none absolute left-1/2 top-[12pt] z-30 -translate-x-1/2 rounded-full border border-white/20 bg-black/40 px-3 py-1 text-[10px] font-light tracking-[0.2em] text-white/80 backdrop-blur-md"
           role="status"
         >
           {t("hud.offline")}
@@ -5039,7 +5043,7 @@ function Aquafulness() {
         {/* Top bar: settings + speaker toggle + phone + fullscreen.
             Edit-mode (the "pencil") no longer lives here — it moved into the
             bathOS phone's dedicated Skärmar app. */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between px-4 pt-4">
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between px-6 pt-6">
           <button
             onClick={() => setAudioOn((v) => !v)}
             className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white/90 backdrop-blur-md transition active:scale-95 active:bg-white/15"
@@ -5160,7 +5164,7 @@ function Aquafulness() {
 
         {/* Collapsible settings panel */}
         {settingsOpen && (
-          <div className="pointer-events-auto absolute inset-x-0 top-14 z-20 mx-auto max-w-2xl px-4">
+          <div className="pointer-events-auto absolute inset-x-0 top-16 z-20 mx-auto max-w-2xl px-6">
             <div className="max-h-[70vh] overflow-y-auto rounded-3xl border border-white/15 bg-black/60 p-4 shadow-2xl backdrop-blur-xl">
               <SettingsPanel {...settingsPanelProps} />
             </div>
@@ -5183,7 +5187,7 @@ function Aquafulness() {
             onChange={setStick}
             value={stick}
             label={t("hud.joystick.nav")}
-            positionClass="bottom-6 left-6"
+            positionClass="bottom-8 left-8"
           />
         )}
         {cameraMode === "float" && (
@@ -5191,7 +5195,7 @@ function Aquafulness() {
             onChange={remoteControllerProps.onDriftChange}
             value={remoteControllerProps.driftStick}
             label={t("hud.joystick.current")}
-            positionClass="bottom-36 left-6"
+            positionClass="bottom-36 left-8"
             sticky
           />
         )}
@@ -5200,7 +5204,7 @@ function Aquafulness() {
             onChange={remoteControllerProps.onSwayChange}
             value={remoteControllerProps.swayStick}
             label={t("hud.joystick.sway")}
-            positionClass="bottom-64 left-6"
+            positionClass="bottom-64 left-8"
             sticky
           />
         )}
@@ -5208,61 +5212,78 @@ function Aquafulness() {
           onChange={setRotStick}
           value={rotStick}
           label={t("hud.joystick.look")}
-          positionClass="bottom-6 right-6"
+          positionClass="bottom-8 right-8"
         />
         {cameraMode === "float" && (
           <Joystick
             onChange={remoteControllerProps.onWaveDirChange}
             value={remoteControllerProps.waveDirStick}
             label={t("hud.joystick.waveDirection")}
-            positionClass="bottom-36 right-6"
+            positionClass="bottom-36 right-8"
             sticky
           />
         )}
 
-        {/* VÅG/TEMPO/FREKVENS sliders — live on the main HUD next to the
-            joysticks (not tucked into the SETTINGS dialog) so wave height,
-            speed and wavelength can be nudged without opening settings.
-            Bottom-center, clear of the joystick columns hugging each side;
-            always shown regardless of camera mode since all three affect the
-            wave mesh itself, not just float-mode physics.
-            Each is curved rather than linear (see PadSliderCurve): the useful
-            settings all live near the bottom of these ranges — VÅG's default
-            is 0.5 of 100 — so a linear track put every calm sea inside its
-            first pixel and made the first touch of the slider a cliff. */}
-        <div className="pointer-events-auto absolute bottom-6 left-1/2 flex -translate-x-1/2 flex-col items-center gap-2">
-          <PadSlider
-            label={t("hud.slider.wave")}
-            value={waveAmp}
-            min={0}
-            max={100}
-            step={0.5}
-            curve={4}
-            format={(v) => `${v.toFixed(2)}m`}
-            onChange={setWaveAmp}
-          />
-          <PadSlider
-            label={t("hud.slider.tempo")}
-            value={waveSpeed}
-            min={0}
-            max={10}
-            step={0.1}
-            curve={2}
-            format={(v) => `${v.toFixed(2)}×`}
-            onChange={setWaveSpeed}
-          />
-          {/* Geometric, not power-curved: FREKVENS is a multiplier, so half
-              speed (0.5×) and double (2×) should sit equally far from 1×. */}
-          <PadSlider
-            label={t("hud.slider.frequency")}
-            value={waveFreq}
-            min={WAVE_FREQ_MIN}
-            max={WAVE_FREQ_MAX}
-            step={0.05}
-            curve="log"
-            format={(v) => `${v.toFixed(2)}×`}
-            onChange={setWaveFreq}
-          />
+        {/* VÅG/TEMPO/FREKVENS — tucked behind their own bottom drawer (like
+            SETTINGS) instead of always-on sliders sitting right next to the
+            joysticks, so a stray touch near bottom-center can't accidentally
+            nudge wave height/speed/wavelength mid-session. Bottom-center,
+            clear of the joystick columns hugging each side; the drawer is
+            offered regardless of camera mode since all three affect the wave
+            mesh itself, not just float-mode physics.
+            Each slider is curved rather than linear (see PadSliderCurve): the
+            useful settings all live near the bottom of these ranges — VÅG's
+            default is 0.5 of 100 — so a linear track put every calm sea
+            inside its first pixel and made the first touch of the slider a
+            cliff. */}
+        <div className="pointer-events-auto absolute bottom-8 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center gap-2">
+          {waveDrawerOpen && (
+            <div className="flex flex-col items-center gap-2 rounded-3xl border border-white/15 bg-black/60 p-4 shadow-2xl backdrop-blur-xl">
+              <PadSlider
+                label={t("hud.slider.wave")}
+                value={waveAmp}
+                min={0}
+                max={100}
+                step={0.5}
+                curve={4}
+                format={(v) => `${v.toFixed(2)}m`}
+                onChange={setWaveAmp}
+              />
+              <PadSlider
+                label={t("hud.slider.tempo")}
+                value={waveSpeed}
+                min={0}
+                max={10}
+                step={0.1}
+                curve={2}
+                format={(v) => `${v.toFixed(2)}×`}
+                onChange={setWaveSpeed}
+              />
+              {/* Geometric, not power-curved: FREKVENS is a multiplier, so
+                  half speed (0.5×) and double (2×) should sit equally far
+                  from 1×. */}
+              <PadSlider
+                label={t("hud.slider.frequency")}
+                value={waveFreq}
+                min={WAVE_FREQ_MIN}
+                max={WAVE_FREQ_MAX}
+                step={0.05}
+                curve="log"
+                format={(v) => `${v.toFixed(2)}×`}
+                onChange={setWaveFreq}
+              />
+            </div>
+          )}
+          <button
+            onClick={() => setWaveDrawerOpen((v) => !v)}
+            className="rounded-full border border-white/20 bg-black/40 px-5 py-2 text-[10px] font-light tracking-[0.35em] text-white/90 backdrop-blur-md transition active:scale-95 active:bg-white/15"
+            aria-label={
+              waveDrawerOpen ? t("hud.waveDrawer.closeAria") : t("hud.waveDrawer.openAria")
+            }
+            aria-expanded={waveDrawerOpen}
+          >
+            {waveDrawerOpen ? t("hud.waveDrawer.closeLabel") : t("hud.waveDrawer.openLabel")}
+          </button>
         </div>
       </div>
 
