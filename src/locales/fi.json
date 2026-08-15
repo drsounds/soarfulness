@@ -50,6 +50,7 @@
       "posX": "SIJAINTI X",
       "posY": "SIJAINTI Y",
       "posZ": "SIJAINTI Z",
+      "resolutionScale": "RESOLUUTIO",
       "rotation": "KIERTO",
       "sessionType": "HARJOITUSTYYPPI",
       "showStats": "NÄYTÄ AIKA",
@@ -59,6 +60,7 @@
       "swingStart": "KEINU ALOITUS",
       "swingXFactor": "KEINU X",
       "swingYWaveform": "KEINUN Y-AALTOMUOTO",
+      "targetFps": "KUVATAAJUUSKATTO",
       "wakeLock": "VALVEILLA"
     },
     "env": {

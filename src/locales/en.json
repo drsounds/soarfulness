@@ -50,6 +50,7 @@
       "posX": "POS X",
       "posY": "POS Y",
       "posZ": "POS Z",
+      "resolutionScale": "RESOLUTION",
       "rotation": "ROTATION",
       "sessionType": "SESSION TYPE",
       "showStats": "SHOW TIME",
@@ -59,6 +60,7 @@
       "swingStart": "SWING START",
       "swingXFactor": "SWING X",
       "swingYWaveform": "SWING Y WAVEFORM",
+      "targetFps": "FRAME RATE CAP",
       "wakeLock": "AWAKE"
     },
     "env": {
