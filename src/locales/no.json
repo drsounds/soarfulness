@@ -50,6 +50,7 @@
       "posX": "POS X",
       "posY": "POS Y",
       "posZ": "POS Z",
+      "resolutionScale": "OPPLØSNING",
       "rotation": "ROTASJON",
       "sessionType": "ØKTTYPE",
       "showStats": "VIS TID",
@@ -59,6 +60,7 @@
       "swingStart": "HUSKE START",
       "swingXFactor": "HUSKE X",
       "swingYWaveform": "HUSKE Y BØLGEFORM",
+      "targetFps": "BILDEFREKVENSTAK",
       "wakeLock": "VÅKEN"
     },
     "env": {

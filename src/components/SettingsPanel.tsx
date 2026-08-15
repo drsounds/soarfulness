@@ -264,6 +264,12 @@ export type SettingsPanelProps = {
   setGogglesIntensity: Dispatch<SetStateAction<number>>;
   gogglesFpsCap: number;
   setGogglesFpsCap: Dispatch<SetStateAction<number>>;
+  // General performance controls (independent of SIMGLASÖGON): caps the
+  // main render loop's fps and scales the renderer's internal resolution.
+  targetFps: number;
+  setTargetFps: Dispatch<SetStateAction<number>>;
+  resolutionScale: number;
+  setResolutionScale: Dispatch<SetStateAction<number>>;
   wakeLock: boolean;
   setWakeLock: Dispatch<SetStateAction<boolean>>;
 
@@ -689,6 +695,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setGogglesIntensity,
     gogglesFpsCap,
     setGogglesFpsCap,
+    targetFps,
+    setTargetFps,
+    resolutionScale,
+    setResolutionScale,
     wakeLock,
     setWakeLock,
     waterTintIdx,
@@ -1529,6 +1539,30 @@ export function SettingsPanel(props: SettingsPanelProps) {
               step={5}
               onDec={() => setGogglesFpsCap((v) => Math.max(10, v - 5))}
               onInc={() => setGogglesFpsCap((v) => Math.min(60, v + 5))}
+            />
+            <PadDial
+              label={t("dial.camera.targetFps")}
+              mode="number"
+              value={`${targetFps} fps`}
+              rawValue={targetFps}
+              onSet={(v) => setTargetFps(Math.max(10, Math.min(120, Math.round(v))))}
+              min={10}
+              max={120}
+              step={5}
+              onDec={() => setTargetFps((v) => Math.max(10, v - 5))}
+              onInc={() => setTargetFps((v) => Math.min(120, v + 5))}
+            />
+            <PadDial
+              label={t("dial.camera.resolutionScale")}
+              mode="number"
+              value={`${Math.round(resolutionScale * 100)}%`}
+              rawValue={resolutionScale}
+              onSet={(v) => setResolutionScale(Math.max(0.25, Math.min(1.5, v)))}
+              min={0.25}
+              max={1.5}
+              step={0.05}
+              onDec={() => setResolutionScale((v) => Math.max(0.25, +(v - 0.05).toFixed(2)))}
+              onInc={() => setResolutionScale((v) => Math.min(1.5, +(v + 0.05).toFixed(2)))}
             />
           </>
         )}

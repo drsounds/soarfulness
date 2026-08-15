@@ -532,6 +532,15 @@ const DEFAULTS: Persisted = {
   // meaningfully less GPU/thermal load during the effect. Has no effect at
   // all while SIMGLASÖGON is off.
   gogglesFpsCap: 25,
+  // General performance controls, independent of SIMGLASÖGON: targetFps caps
+  // renderer.render() calls at all times (not just while goggles are on —
+  // see the fpsCap logic in the animate() loop below), and resolutionScale
+  // multiplies the renderer's pixel ratio to trade sharpness for GPU load.
+  // Both default to a conservative preset since this scene is expensive
+  // (FFT ocean, reflections, torus rings) and many devices can't sustain a
+  // full-resolution 60fps render.
+  targetFps: 30,
+  resolutionScale: 0.75,
   waveHighQuality: true,
   backdropIdx: 0,
   wakeLock: true,
@@ -698,6 +707,8 @@ function Aquafulness() {
   const [gogglesLoop, setGogglesLoop] = useState(initial.gogglesLoop);
   const [gogglesIntensity, setGogglesIntensity] = useState(initial.gogglesIntensity);
   const [gogglesFpsCap, setGogglesFpsCap] = useState(initial.gogglesFpsCap);
+  const [targetFps, setTargetFps] = useState(initial.targetFps);
+  const [resolutionScale, setResolutionScale] = useState(initial.resolutionScale);
   const [regularWaves, setRegularWaves] = useState(initial.regularWaves);
   // Realistic (JONSWAP/FFT-ocean) waveform — see src/lib/ocean/fftOceanSpectrum.ts.
   const [realisticWaves, setRealisticWaves] = useState(initial.realisticWaves);
@@ -942,6 +953,8 @@ function Aquafulness() {
     gogglesLoop,
     gogglesIntensity,
     gogglesFpsCap,
+    targetFps,
+    resolutionScale,
     regularWaves,
     realisticWaves,
     dyingWave,
@@ -1056,6 +1069,8 @@ function Aquafulness() {
     gogglesLoop,
     gogglesIntensity,
     gogglesFpsCap,
+    targetFps,
+    resolutionScale,
     regularWaves,
     realisticWaves,
     dyingWave,
@@ -1233,6 +1248,12 @@ function Aquafulness() {
   // closure below and GogglesOverlay's own matching cap.
   const gogglesOnRef = useRef(gogglesOn);
   const gogglesFpsCapRef = useRef(gogglesFpsCap);
+  // General performance controls — read every frame by the animate() loop
+  // below (targetFps: caps renderer.render() calls whenever SIMGLASÖGON is
+  // off, mirroring gogglesFpsCapRef's cap for when it's on; resolutionScale:
+  // multiplies the renderer's pixel ratio).
+  const targetFpsRef = useRef(targetFps);
+  const resolutionScaleRef = useRef(resolutionScale);
   const camNearRef = useRef(camNear);
   const camFarRef = useRef(camFar);
   const waveDirRef = useRef(waveDir);
@@ -1374,6 +1395,12 @@ function Aquafulness() {
   useEffect(() => {
     gogglesFpsCapRef.current = gogglesFpsCap;
   }, [gogglesFpsCap]);
+  useEffect(() => {
+    targetFpsRef.current = targetFps;
+  }, [targetFps]);
+  useEffect(() => {
+    resolutionScaleRef.current = resolutionScale;
+  }, [resolutionScale]);
   useEffect(() => {
     camNearRef.current = camNear;
   }, [camNear]);
@@ -1672,6 +1699,8 @@ function Aquafulness() {
     setGogglesLoop(DEFAULTS.gogglesLoop);
     setGogglesIntensity(DEFAULTS.gogglesIntensity);
     setGogglesFpsCap(DEFAULTS.gogglesFpsCap);
+    setTargetFps(DEFAULTS.targetFps);
+    setResolutionScale(DEFAULTS.resolutionScale);
     setRegularWaves(DEFAULTS.regularWaves);
     setRealisticWaves(DEFAULTS.realisticWaves);
     setDyingWave(DEFAULTS.dyingWave);
@@ -1780,6 +1809,8 @@ function Aquafulness() {
     if (patch.gogglesLoop !== undefined) setGogglesLoop(patch.gogglesLoop);
     if (patch.gogglesIntensity !== undefined) setGogglesIntensity(patch.gogglesIntensity);
     if (patch.gogglesFpsCap !== undefined) setGogglesFpsCap(patch.gogglesFpsCap);
+    if (patch.targetFps !== undefined) setTargetFps(patch.targetFps);
+    if (patch.resolutionScale !== undefined) setResolutionScale(patch.resolutionScale);
     if (patch.regularWaves !== undefined) setRegularWaves(patch.regularWaves);
     if (patch.realisticWaves !== undefined) setRealisticWaves(patch.realisticWaves);
     if (patch.dyingWave !== undefined) setDyingWave(patch.dyingWave);
@@ -2426,7 +2457,7 @@ function Aquafulness() {
     if (!mount) return;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2) * resolutionScaleRef.current);
     renderer.setSize(mount.clientWidth, mount.clientHeight);
     renderer.setClearColor(0x032033, 1);
     // Positioned (not static) to match the CSS3D layer's own `position:
@@ -3563,9 +3594,13 @@ function Aquafulness() {
     let raf = 0;
     let lastMs = performance.now();
     let lastCamSaveMs = 0;
-    // Throttles renderer.render() (see below) while SIMGLASÖGON is on —
-    // 0 means "render this frame" is still due.
+    // Throttles renderer.render() (see below) to targetFps (or gogglesFpsCap
+    // while SIMGLASÖGON is on) — 0 means "render this frame" is still due.
     let lastRenderMs = 0;
+    // Re-applied only when resolutionScale actually changes (see animate()
+    // below), rather than every frame, since setPixelRatio touches the GL
+    // context's drawing-buffer size.
+    let lastResolutionScale = resolutionScaleRef.current;
     let waveT = 0;
     // DÖENDE VÅG runs on its own clock (own TEMPO dial), independent of the
     // shared waveT above, so it can be a long, slow swell regardless of how
@@ -3583,6 +3618,13 @@ function Aquafulness() {
     };
     window.addEventListener("pagehide", saveCameraPoseNow);
     const animate = () => {
+      // resolutionScale multiplies the renderer's pixel ratio to trade
+      // sharpness for GPU load — only touch the renderer when the setting
+      // actually changed.
+      if (resolutionScaleRef.current !== lastResolutionScale) {
+        lastResolutionScale = resolutionScaleRef.current;
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2) * lastResolutionScale);
+      }
       // Sync camera lens (FOV / near / far clip) with live settings.
       if (
         camera.fov !== camFovRef.current ||
@@ -4361,12 +4403,13 @@ function Aquafulness() {
       // position is final for the frame.
       torusRingField.update(camera.position, dt);
 
-      // While SIMGLASÖGON is on, cap actual GPU renders to gogglesFpsCap —
+      // Cap actual GPU renders to targetFps (gogglesFpsCap instead while
+      // SIMGLASÖGON is on, for its own lower thermal-friendly ceiling) —
       // camera/physics/uniforms above still update every rAF tick (cheap,
       // keeps input response and motion timing correct), only the expensive
       // renderer.render() draw call itself is skipped on the frames in
-      // between. Off (the default), this never skips a render.
-      const fpsCap = gogglesOnRef.current ? gogglesFpsCapRef.current : 0;
+      // between. A cap of 0 or less renders every frame, uncapped.
+      const fpsCap = gogglesOnRef.current ? gogglesFpsCapRef.current : targetFpsRef.current;
       const renderDue = fpsCap <= 0 || now - lastRenderMs >= 1000 / fpsCap;
       if (renderDue) {
         lastRenderMs = now;
@@ -4773,6 +4816,10 @@ function Aquafulness() {
     setGogglesIntensity,
     gogglesFpsCap,
     setGogglesFpsCap,
+    targetFps,
+    setTargetFps,
+    resolutionScale,
+    setResolutionScale,
     wakeLock,
     setWakeLock,
     waterTintIdx,
