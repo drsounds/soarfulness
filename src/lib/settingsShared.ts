@@ -39,44 +39,80 @@ export function bearingToWorldXZ(deg: number, mag: number) {
   return { x: Math.sin(rad) * mag, z: Math.cos(rad) * mag };
 }
 
-export const WATER_TINTS: { name: string; rgb: [number, number, number] }[] = [
-  { name: "Nordhav", rgb: [1, 1, 1] },
-  { name: "Tropisk", rgb: [0.55, 1.15, 1.25] },
-  { name: "Karibisk", rgb: [0.6, 1.35, 1.1] },
-  { name: "Medelhav", rgb: [0.8, 1.15, 1.3] },
-  { name: "Skärgård", rgb: [0.85, 1.0, 0.75] },
-  { name: "Djuphav", rgb: [0.55, 0.7, 1.15] },
+// Each option's `id` is a stable, language-independent identifier — used for
+// equality checks in the render loop (routes/index.tsx) and as the lookup
+// key into the matching *_LABEL_KEYS map below, whose values are i18next
+// keys (see src/locales/*.json) resolved via t() wherever the option's
+// display name is actually shown (SettingsPanel.tsx).
+export const WATER_TINTS: { id: string; rgb: [number, number, number] }[] = [
+  { id: "nordic", rgb: [1, 1, 1] },
+  { id: "tropical", rgb: [0.55, 1.15, 1.25] },
+  { id: "caribbean", rgb: [0.6, 1.35, 1.1] },
+  { id: "mediterranean", rgb: [0.8, 1.15, 1.3] },
+  { id: "archipelago", rgb: [0.85, 1.0, 0.75] },
+  { id: "deepSea", rgb: [0.55, 0.7, 1.15] },
 ];
-export const BOTTOM_OPTIONS: { name: string; rgb: [number, number, number] | null }[] = [
-  { name: "AV", rgb: null },
-  { name: "Sand", rgb: [0.85, 0.75, 0.5] },
-  { name: "Ljus sand", rgb: [0.95, 0.9, 0.72] },
-  { name: "Sten", rgb: [0.35, 0.32, 0.28] },
-  { name: "Korall", rgb: [0.9, 0.5, 0.45] },
-  { name: "Mörk botten", rgb: [0.08, 0.1, 0.12] },
-  { name: "Moln", rgb: [1, 1, 1] },
-  { name: "Anpassad", rgb: [0.6, 0.55, 0.45] },
+export const WATER_TINT_LABEL_KEYS: Record<string, string> = {
+  nordic: "options.waterTint.nordic",
+  tropical: "options.waterTint.tropical",
+  caribbean: "options.waterTint.caribbean",
+  mediterranean: "options.waterTint.mediterranean",
+  archipelago: "options.waterTint.archipelago",
+  deepSea: "options.waterTint.deepSea",
+};
+
+export const BOTTOM_OPTIONS: { id: string; rgb: [number, number, number] | null }[] = [
+  { id: "off", rgb: null },
+  { id: "sand", rgb: [0.85, 0.75, 0.5] },
+  { id: "lightSand", rgb: [0.95, 0.9, 0.72] },
+  { id: "stone", rgb: [0.35, 0.32, 0.28] },
+  { id: "coral", rgb: [0.9, 0.5, 0.45] },
+  { id: "darkBottom", rgb: [0.08, 0.1, 0.12] },
+  { id: "clouds", rgb: [1, 1, 1] },
+  { id: "custom", rgb: [0.6, 0.55, 0.45] },
 ];
-export const BACKDROPS: { name: string; url: string | null }[] = [
-  { name: "AV", url: null },
-  { name: "Vänern", url: vanernBackdrop.url },
+export const BOTTOM_LABEL_KEYS: Record<string, string> = {
+  off: "options.bottom.off",
+  sand: "options.bottom.sand",
+  lightSand: "options.bottom.lightSand",
+  stone: "options.bottom.stone",
+  coral: "options.bottom.coral",
+  darkBottom: "options.bottom.darkBottom",
+  clouds: "options.bottom.clouds",
+  custom: "options.bottom.custom",
+};
+
+export const BACKDROPS: { id: string; url: string | null }[] = [
+  { id: "off", url: null },
+  { id: "vanern", url: vanernBackdrop.url },
 ];
+export const BACKDROP_LABEL_KEYS: Record<string, string> = {
+  off: "options.backdrop.off",
+  vanern: "options.backdrop.vanern",
+};
 
 // Surface presets for the floating torus "bath rings" field (see
-// src/lib/torusRings/TorusRingField.ts) — "AV" renders a flat emissive
+// src/lib/torusRings/TorusRingField.ts) — "off" renders a flat emissive
 // color with no texture map at all.
-export const TORUS_RING_TEXTURES: { name: string; url: string | null }[] = [
-  { name: "AV", url: null },
-  { name: "Sand", url: sandTextureAsset.url },
+export const TORUS_RING_TEXTURES: { id: string; url: string | null }[] = [
+  { id: "off", url: null },
+  { id: "sand", url: sandTextureAsset.url },
 ];
+export const TORUS_TEXTURE_LABEL_KEYS: Record<string, string> = {
+  off: "options.torusTexture.off",
+  sand: "options.torusTexture.sand",
+};
 
 export type SettingsTab = "vagor" | "kamera" | "vatten" | "miljo" | "ljud";
-export const SETTINGS_TABS: { id: SettingsTab; label: string }[] = [
-  { id: "vagor", label: "VÅGOR" },
-  { id: "kamera", label: "KAMERA" },
-  { id: "vatten", label: "VATTEN" },
-  { id: "miljo", label: "MILJÖ" },
-  { id: "ljud", label: "LJUD" },
+// labelKey is an i18next key (see src/locales/*.json), resolved via t() in
+// SettingsPanel.tsx — kept here rather than a literal label so this stays
+// the single source of truth for tab order/ids.
+export const SETTINGS_TABS: { id: SettingsTab; labelKey: string }[] = [
+  { id: "vagor", labelKey: "settings.tabs.vagor" },
+  { id: "kamera", labelKey: "settings.tabs.kamera" },
+  { id: "vatten", labelKey: "settings.tabs.vatten" },
+  { id: "miljo", labelKey: "settings.tabs.miljo" },
+  { id: "ljud", labelKey: "settings.tabs.ljud" },
 ];
 
 // Three mutually-exclusive camera movement schemes:
@@ -98,12 +134,13 @@ export const SWING_PRESETS: SwingPreset[] = ["water", "clouds", "custom"];
 export type SwingYWaveform = "pendulum" | "sine" | "triangle" | "square";
 export const SWING_Y_WAVEFORMS: SwingYWaveform[] = ["pendulum", "sine", "triangle", "square"];
 
-// Swedish display labels for camera modes — shared by the settings dial
-// (SettingsPanel.tsx) and the interval-session HUD readout (routes/index.tsx).
-export const CAMERA_MODE_LABELS: Record<CameraMode, string> = {
-  float: "FRI",
-  noclip: "NOCLIP",
-  swing: "GUNGA",
+// i18next key for each camera mode's display label — shared by the settings
+// dial (SettingsPanel.tsx) and the interval-session HUD readout
+// (routes/index.tsx), each of which resolves it via t().
+export const CAMERA_MODE_LABEL_KEYS: Record<CameraMode, string> = {
+  float: "camera.mode.float",
+  noclip: "camera.mode.noclip",
+  swing: "camera.mode.swing",
 };
 
 // An interval session automatically alternates the camera between "float"

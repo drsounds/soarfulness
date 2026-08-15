@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { useOnlineStatus } from "@/hooks/use-online-status";
@@ -20,7 +21,7 @@ import {
   BACKDROPS,
   SETTINGS_TABS,
   CAMERA_MODES,
-  CAMERA_MODE_LABELS,
+  CAMERA_MODE_LABEL_KEYS,
   SWING_PRESETS,
   TORUS_RING_TEXTURES,
   SWING_Y_WAVEFORMS,
@@ -86,7 +87,8 @@ export const Route = createFileRoute("/")({
       { property: "og:title", content: "Ocean Wave Meditation" },
       {
         property: "og:description",
-        content: "A calming WebGL ocean where the camera drifts on the waves. Adjust swell, time of day, and wander across the sea.",
+        content:
+          "A calming WebGL ocean where the camera drifts on the waves. Adjust swell, time of day, and wander across the sea.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -125,9 +127,11 @@ function shapedWave(theta: number, p: number) {
   // as periodic glitching across the whole ocean), this is a pure trig
   // term: smooth everywhere, no kinks, safe at any SPETS value.
   const stokes = -Math.cos(2 * theta) * k * 0.01;
-  return (base + stokes + amount * (crest - mean) + k * 0.55 * peakBoost) / (1 + amount * 0.28 + k * 0.35 + k * 0.01);
+  return (
+    (base + stokes + amount * (crest - mean) + k * 0.55 * peakBoost) /
+    (1 + amount * 0.28 + k * 0.35 + k * 0.01)
+  );
 }
-
 
 // Gerstner-like sum of sines. Keep in sync with vertex shader.
 // `realistic` swaps in the JONSWAP/FFT-ocean waveform (see
@@ -171,7 +175,8 @@ function waveHeight(
   // *decreases* as t grows — i.e. crests travel toward -xr, not +xr. Without
   // the negation the wave would visibly travel exactly opposite the bearing
   // the dial (and the linked SVAJ push) claim.
-  const c = -Math.sin(dir), s = -Math.cos(dir);
+  const c = -Math.sin(dir),
+    s = -Math.cos(dir);
   const xr = c * x + s * z;
   const zr = -s * x + c * z;
   if (dying && dyingComponents) {
@@ -407,14 +412,10 @@ function parseEnvironments(data: unknown): EnvironmentEntry[] {
                 : null;
             })
             .filter((t): t is EnvTime => t !== null);
-          return times.length
-            ? { id: era.id, name: str(era.name, era.id), times }
-            : null;
+          return times.length ? { id: era.id, name: str(era.name, era.id), times } : null;
         })
         .filter((er): er is EnvEra => er !== null);
-      return eras.length
-        ? { id: env.id, name: str(env.name, env.id), eras }
-        : null;
+      return eras.length ? { id: env.id, name: str(env.name, env.id), eras } : null;
     })
     .filter((e): e is EnvironmentEntry => e !== null);
 }
@@ -635,7 +636,13 @@ function loadCameraPose(): CameraPose | null {
     const raw = window.localStorage.getItem(CAMERA_STORAGE_KEY);
     if (!raw) return null;
     const p = JSON.parse(raw);
-    if (typeof p.x !== "number" || typeof p.z !== "number" || typeof p.yaw !== "number" || typeof p.pitch !== "number") return null;
+    if (
+      typeof p.x !== "number" ||
+      typeof p.z !== "number" ||
+      typeof p.yaw !== "number" ||
+      typeof p.pitch !== "number"
+    )
+      return null;
     return p;
   } catch {
     return null;
@@ -650,6 +657,7 @@ function saveCameraPose(pose: CameraPose) {
 }
 
 function Aquafulness() {
+  const { t } = useTranslation();
   const online = useOnlineStatus();
   const mountRef = useRef<HTMLDivElement>(null);
   const initial = useRef<Persisted>(loadSettings()).current;
@@ -703,7 +711,9 @@ function Aquafulness() {
   // and shared by the vertex shader (uFftWave/uFftPhase uniforms) and the
   // camera's wave-following physics (waveHeight()'s realistic branch).
   const fftWaveComponents = useRef<OceanWaveComponent[]>(
-    generateOceanWaveComponents(initial.randomizeWaves ? Math.random : createSeededRandom(FFT_WAVE_SEED)),
+    generateOceanWaveComponents(
+      initial.randomizeWaves ? Math.random : createSeededRandom(FFT_WAVE_SEED),
+    ),
   ).current;
   // DÖENDE VÅG (dying wave) — a long, decaying-swell overlay that blends in
   // on top of whichever base waveform is active, the same way REALISTISKA
@@ -714,7 +724,9 @@ function Aquafulness() {
   const [dyingWaveAmp, setDyingWaveAmp] = useState(initial.dyingWaveAmp);
   const [dyingWaveSpeed, setDyingWaveSpeed] = useState(initial.dyingWaveSpeed);
   const dyingWaveComponents = useRef<OceanWaveComponent[]>(
-    generateDyingWaveComponents(initial.randomizeWaves ? Math.random : createSeededRandom(DYING_WAVE_SEED)),
+    generateDyingWaveComponents(
+      initial.randomizeWaves ? Math.random : createSeededRandom(DYING_WAVE_SEED),
+    ),
   ).current;
   const [wavePreset, setWavePreset] = useState<WavePresetName>(initial.wavePreset);
   const [regularCross, setRegularCross] = useState(initial.regularCross);
@@ -898,7 +910,111 @@ function Aquafulness() {
   // shape saved to localStorage below — also reused by the preset save/
   // export feature (see exportSettingsFile/savePresetAs) so there's only one
   // place that enumerates every field.
-  const buildPersistedSnapshot = (): Persisted => ({ waveAmp, timeOfDay, waveSpeed, waveFreq, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, gogglesOn, gogglesBlur, gogglesLoop, gogglesIntensity, gogglesFpsCap, regularWaves, realisticWaves, dyingWave, dyingWaveAmp, dyingWaveSpeed, randomizeWaves, wavePreset, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, causticsOn, cameraMode, noclipSpeed, swingPositionY, swingIntensity, swingXFactor, swingHeight, swingPreset, swingYWaveform, intervalSessionOn, intervalDuration, intervalSessionType, intervalCount, intervalShowStats, surfaceArea, torusRingsOn, torusRadius, torusTube, torusScale, torusOpacity, torusTextureIdx, torusCellSize, torusVerticalSpacing, torusVerticalCount, torusViewDistance, torusFadeDistance });
+  const buildPersistedSnapshot = (): Persisted => ({
+    waveAmp,
+    timeOfDay,
+    waveSpeed,
+    waveFreq,
+    bobSpeed,
+    buoyAmp,
+    heightOffset,
+    submergeAmp,
+    floatLift,
+    camOffX,
+    camOffY,
+    camOffZ,
+    audioOn,
+    audioVol,
+    audioSyncSpeed,
+    audioSpatial,
+    waterTintIdx,
+    waterOpacity,
+    waterHue,
+    waterSat,
+    waterBright,
+    surfBright,
+    surfSat,
+    turbidity,
+    bottomIdx,
+    leanEnabled,
+    gogglesOn,
+    gogglesBlur,
+    gogglesLoop,
+    gogglesIntensity,
+    gogglesFpsCap,
+    regularWaves,
+    realisticWaves,
+    dyingWave,
+    dyingWaveAmp,
+    dyingWaveSpeed,
+    randomizeWaves,
+    wavePreset,
+    regularCross,
+    regularPeriod,
+    wavePeak,
+    waveHighQuality,
+    backdropIdx,
+    wakeLock,
+    camFov,
+    camNear,
+    camFar,
+    waveDir,
+    floorDepth,
+    floorTexture,
+    vortexMode,
+    vortexOpening,
+    vortexRadius,
+    vortexSpeed,
+    depthSineOn,
+    depthSineAmp,
+    depthSineFreq,
+    hideWater,
+    midCloudsOn,
+    midCloudsHeight,
+    skyCloudsOn,
+    skyCloudsHeight,
+    swayAmp,
+    swaySpeed,
+    swayBias,
+    syncWaveWithSway,
+    liveMode,
+    sceneId,
+    envId,
+    envEra,
+    envTime,
+    surfaceId,
+    reflStrength,
+    bottomColor,
+    sphereMaterial,
+    sphereStrength,
+    trochoid,
+    causticsOn,
+    cameraMode,
+    noclipSpeed,
+    swingPositionY,
+    swingIntensity,
+    swingXFactor,
+    swingHeight,
+    swingPreset,
+    swingYWaveform,
+    intervalSessionOn,
+    intervalDuration,
+    intervalSessionType,
+    intervalCount,
+    intervalShowStats,
+    surfaceArea,
+    torusRingsOn,
+    torusRadius,
+    torusTube,
+    torusScale,
+    torusOpacity,
+    torusTextureIdx,
+    torusCellSize,
+    torusVerticalSpacing,
+    torusVerticalCount,
+    torusViewDistance,
+    torusFadeDistance,
+  });
 
   // Persist settings to localStorage whenever they change (SSR-safe, hydration-safe).
   useEffect(() => {
@@ -908,7 +1024,111 @@ function Aquafulness() {
     } catch {
       /* quota or privacy mode — ignore */
     }
-  }, [waveAmp, timeOfDay, waveSpeed, waveFreq, bobSpeed, buoyAmp, heightOffset, submergeAmp, floatLift, camOffX, camOffY, camOffZ, audioOn, audioVol, audioSyncSpeed, audioSpatial, waterTintIdx, waterOpacity, waterHue, waterSat, waterBright, surfBright, surfSat, turbidity, bottomIdx, leanEnabled, gogglesOn, gogglesBlur, gogglesLoop, gogglesIntensity, gogglesFpsCap, regularWaves, realisticWaves, dyingWave, dyingWaveAmp, dyingWaveSpeed, randomizeWaves, wavePreset, regularCross, regularPeriod, wavePeak, waveHighQuality, backdropIdx, wakeLock, camFov, camNear, camFar, waveDir, floorDepth, floorTexture, vortexMode, vortexOpening, vortexRadius, vortexSpeed, depthSineOn, depthSineAmp, depthSineFreq, hideWater, midCloudsOn, midCloudsHeight, skyCloudsOn, skyCloudsHeight, swayAmp, swaySpeed, swayBias, syncWaveWithSway, liveMode, sceneId, envId, envEra, envTime, surfaceId, reflStrength, bottomColor, sphereMaterial, sphereStrength, trochoid, causticsOn, cameraMode, noclipSpeed, swingPositionY, swingIntensity, swingXFactor, swingHeight, swingPreset, swingYWaveform, intervalSessionOn, intervalDuration, intervalSessionType, intervalCount, intervalShowStats, surfaceArea, torusRingsOn, torusRadius, torusTube, torusScale, torusOpacity, torusTextureIdx, torusCellSize, torusVerticalSpacing, torusVerticalCount, torusViewDistance, torusFadeDistance]);
+  }, [
+    waveAmp,
+    timeOfDay,
+    waveSpeed,
+    waveFreq,
+    bobSpeed,
+    buoyAmp,
+    heightOffset,
+    submergeAmp,
+    floatLift,
+    camOffX,
+    camOffY,
+    camOffZ,
+    audioOn,
+    audioVol,
+    audioSyncSpeed,
+    audioSpatial,
+    waterTintIdx,
+    waterOpacity,
+    waterHue,
+    waterSat,
+    waterBright,
+    surfBright,
+    surfSat,
+    turbidity,
+    bottomIdx,
+    leanEnabled,
+    gogglesOn,
+    gogglesBlur,
+    gogglesLoop,
+    gogglesIntensity,
+    gogglesFpsCap,
+    regularWaves,
+    realisticWaves,
+    dyingWave,
+    dyingWaveAmp,
+    dyingWaveSpeed,
+    randomizeWaves,
+    wavePreset,
+    regularCross,
+    regularPeriod,
+    wavePeak,
+    waveHighQuality,
+    backdropIdx,
+    wakeLock,
+    camFov,
+    camNear,
+    camFar,
+    waveDir,
+    floorDepth,
+    floorTexture,
+    vortexMode,
+    vortexOpening,
+    vortexRadius,
+    vortexSpeed,
+    depthSineOn,
+    depthSineAmp,
+    depthSineFreq,
+    hideWater,
+    midCloudsOn,
+    midCloudsHeight,
+    skyCloudsOn,
+    skyCloudsHeight,
+    swayAmp,
+    swaySpeed,
+    swayBias,
+    syncWaveWithSway,
+    liveMode,
+    sceneId,
+    envId,
+    envEra,
+    envTime,
+    surfaceId,
+    reflStrength,
+    bottomColor,
+    sphereMaterial,
+    sphereStrength,
+    trochoid,
+    causticsOn,
+    cameraMode,
+    noclipSpeed,
+    swingPositionY,
+    swingIntensity,
+    swingXFactor,
+    swingHeight,
+    swingPreset,
+    swingYWaveform,
+    intervalSessionOn,
+    intervalDuration,
+    intervalSessionType,
+    intervalCount,
+    intervalShowStats,
+    surfaceArea,
+    torusRingsOn,
+    torusRadius,
+    torusTube,
+    torusScale,
+    torusOpacity,
+    torusTextureIdx,
+    torusCellSize,
+    torusVerticalSpacing,
+    torusVerticalCount,
+    torusViewDistance,
+    torusFadeDistance,
+  ]);
   const audioRef = useRef<{
     ctx: AudioContext;
     el: HTMLAudioElement;
@@ -1034,83 +1254,225 @@ function Aquafulness() {
   const swayAmpRef = useRef(swayAmp);
   const swaySpeedRef = useRef(swaySpeed);
   const swayBiasRef = useRef(swayBias);
-  useEffect(() => { ampRef.current = waveAmp; }, [waveAmp]);
-  useEffect(() => { todRef.current = timeOfDay; }, [timeOfDay]);
-  useEffect(() => { speedRef.current = waveSpeed; }, [waveSpeed]);
-  useEffect(() => { freqRef.current = waveFreq; }, [waveFreq]);
-  useEffect(() => { bobSpeedRef.current = bobSpeed; }, [bobSpeed]);
-  useEffect(() => { buoyRef.current = buoyAmp; }, [buoyAmp]);
-  useEffect(() => { heightRef.current = heightOffset; }, [heightOffset]);
-  useEffect(() => { submergeRef.current = submergeAmp; }, [submergeAmp]);
-  useEffect(() => { floatLiftRef.current = floatLift; }, [floatLift]);
-  useEffect(() => { camOffXRef.current = camOffX; }, [camOffX]);
-  useEffect(() => { camOffYRef.current = camOffY; }, [camOffY]);
-  useEffect(() => { camOffZRef.current = camOffZ; }, [camOffZ]);
-  useEffect(() => { stickRef.current = stick; }, [stick]);
-  useEffect(() => { vertStickRef.current = vertStick; }, [vertStick]);
-  useEffect(() => { rotStickRef.current = rotStick; }, [rotStick]);
-  useEffect(() => { waterTintRef.current = waterTintIdx; }, [waterTintIdx]);
-  useEffect(() => { waterOpacityRef.current = waterOpacity; }, [waterOpacity]);
-  useEffect(() => { waterHueRef.current = waterHue; }, [waterHue]);
-  useEffect(() => { waterSatRef.current = waterSat; }, [waterSat]);
-  useEffect(() => { waterBrightRef.current = waterBright; }, [waterBright]);
-  useEffect(() => { surfBrightRef.current = surfBright; }, [surfBright]);
-  useEffect(() => { surfSatRef.current = surfSat; }, [surfSat]);
-  useEffect(() => { turbidityRef.current = turbidity; }, [turbidity]);
-  useEffect(() => { bottomIdxRef.current = bottomIdx; }, [bottomIdx]);
-  useEffect(() => { leanRef.current = leanEnabled; }, [leanEnabled]);
-  useEffect(() => { regularRef.current = regularWaves; }, [regularWaves]);
-  useEffect(() => { realisticRef.current = realisticWaves; }, [realisticWaves]);
-  useEffect(() => { dyingRef.current = dyingWave; }, [dyingWave]);
-  useEffect(() => { dyingAmpRef.current = dyingWaveAmp; }, [dyingWaveAmp]);
-  useEffect(() => { dyingSpeedRef.current = dyingWaveSpeed; }, [dyingWaveSpeed]);
-  useEffect(() => { regularCrossRef.current = regularCross; }, [regularCross]);
-  useEffect(() => { regularPeriodRef.current = regularPeriod; }, [regularPeriod]);
-  useEffect(() => { wavePeakRef.current = wavePeak; }, [wavePeak]);
-  useEffect(() => { waveHighQualityRef.current = waveHighQuality; }, [waveHighQuality]);
-  useEffect(() => { backdropRef.current = backdropIdx; }, [backdropIdx]);
-  useEffect(() => { wakeLockRef.current = wakeLock; }, [wakeLock]);
-  useEffect(() => { audioSpatialRef.current = audioSpatial; }, [audioSpatial]);
-  useEffect(() => { camFovRef.current = camFov; }, [camFov]);
-  useEffect(() => { gogglesOnRef.current = gogglesOn; }, [gogglesOn]);
-  useEffect(() => { gogglesFpsCapRef.current = gogglesFpsCap; }, [gogglesFpsCap]);
-  useEffect(() => { camNearRef.current = camNear; }, [camNear]);
-  useEffect(() => { camFarRef.current = camFar; }, [camFar]);
-  useEffect(() => { waveDirRef.current = waveDir; }, [waveDir]);
-  useEffect(() => { floorDepthRef.current = floorDepth; }, [floorDepth]);
-  useEffect(() => { floorTextureRef.current = floorTexture; }, [floorTexture]);
-  useEffect(() => { vortexModeRef.current = vortexMode; }, [vortexMode]);
-  useEffect(() => { vortexOpeningRef.current = vortexOpening; }, [vortexOpening]);
-  useEffect(() => { vortexRadiusRef.current = vortexRadius; }, [vortexRadius]);
-  useEffect(() => { vortexSpeedRef.current = vortexSpeed; }, [vortexSpeed]);
-  useEffect(() => { depthSineOnRef.current = depthSineOn; }, [depthSineOn]);
-  useEffect(() => { depthSineAmpRef.current = depthSineAmp; }, [depthSineAmp]);
-  useEffect(() => { depthSineFreqRef.current = depthSineFreq; }, [depthSineFreq]);
-  useEffect(() => { hideWaterRef.current = hideWater; }, [hideWater]);
-  useEffect(() => { midCloudsOnRef.current = midCloudsOn; }, [midCloudsOn]);
-  useEffect(() => { midCloudsHeightRef.current = midCloudsHeight; }, [midCloudsHeight]);
-  useEffect(() => { skyCloudsOnRef.current = skyCloudsOn; }, [skyCloudsOn]);
-  useEffect(() => { skyCloudsHeightRef.current = skyCloudsHeight; }, [skyCloudsHeight]);
-  useEffect(() => { swayAmpRef.current = swayAmp; }, [swayAmp]);
-  useEffect(() => { swaySpeedRef.current = swaySpeed; }, [swaySpeed]);
-  useEffect(() => { swayBiasRef.current = swayBias; }, [swayBias]);
+  useEffect(() => {
+    ampRef.current = waveAmp;
+  }, [waveAmp]);
+  useEffect(() => {
+    todRef.current = timeOfDay;
+  }, [timeOfDay]);
+  useEffect(() => {
+    speedRef.current = waveSpeed;
+  }, [waveSpeed]);
+  useEffect(() => {
+    freqRef.current = waveFreq;
+  }, [waveFreq]);
+  useEffect(() => {
+    bobSpeedRef.current = bobSpeed;
+  }, [bobSpeed]);
+  useEffect(() => {
+    buoyRef.current = buoyAmp;
+  }, [buoyAmp]);
+  useEffect(() => {
+    heightRef.current = heightOffset;
+  }, [heightOffset]);
+  useEffect(() => {
+    submergeRef.current = submergeAmp;
+  }, [submergeAmp]);
+  useEffect(() => {
+    floatLiftRef.current = floatLift;
+  }, [floatLift]);
+  useEffect(() => {
+    camOffXRef.current = camOffX;
+  }, [camOffX]);
+  useEffect(() => {
+    camOffYRef.current = camOffY;
+  }, [camOffY]);
+  useEffect(() => {
+    camOffZRef.current = camOffZ;
+  }, [camOffZ]);
+  useEffect(() => {
+    stickRef.current = stick;
+  }, [stick]);
+  useEffect(() => {
+    vertStickRef.current = vertStick;
+  }, [vertStick]);
+  useEffect(() => {
+    rotStickRef.current = rotStick;
+  }, [rotStick]);
+  useEffect(() => {
+    waterTintRef.current = waterTintIdx;
+  }, [waterTintIdx]);
+  useEffect(() => {
+    waterOpacityRef.current = waterOpacity;
+  }, [waterOpacity]);
+  useEffect(() => {
+    waterHueRef.current = waterHue;
+  }, [waterHue]);
+  useEffect(() => {
+    waterSatRef.current = waterSat;
+  }, [waterSat]);
+  useEffect(() => {
+    waterBrightRef.current = waterBright;
+  }, [waterBright]);
+  useEffect(() => {
+    surfBrightRef.current = surfBright;
+  }, [surfBright]);
+  useEffect(() => {
+    surfSatRef.current = surfSat;
+  }, [surfSat]);
+  useEffect(() => {
+    turbidityRef.current = turbidity;
+  }, [turbidity]);
+  useEffect(() => {
+    bottomIdxRef.current = bottomIdx;
+  }, [bottomIdx]);
+  useEffect(() => {
+    leanRef.current = leanEnabled;
+  }, [leanEnabled]);
+  useEffect(() => {
+    regularRef.current = regularWaves;
+  }, [regularWaves]);
+  useEffect(() => {
+    realisticRef.current = realisticWaves;
+  }, [realisticWaves]);
+  useEffect(() => {
+    dyingRef.current = dyingWave;
+  }, [dyingWave]);
+  useEffect(() => {
+    dyingAmpRef.current = dyingWaveAmp;
+  }, [dyingWaveAmp]);
+  useEffect(() => {
+    dyingSpeedRef.current = dyingWaveSpeed;
+  }, [dyingWaveSpeed]);
+  useEffect(() => {
+    regularCrossRef.current = regularCross;
+  }, [regularCross]);
+  useEffect(() => {
+    regularPeriodRef.current = regularPeriod;
+  }, [regularPeriod]);
+  useEffect(() => {
+    wavePeakRef.current = wavePeak;
+  }, [wavePeak]);
+  useEffect(() => {
+    waveHighQualityRef.current = waveHighQuality;
+  }, [waveHighQuality]);
+  useEffect(() => {
+    backdropRef.current = backdropIdx;
+  }, [backdropIdx]);
+  useEffect(() => {
+    wakeLockRef.current = wakeLock;
+  }, [wakeLock]);
+  useEffect(() => {
+    audioSpatialRef.current = audioSpatial;
+  }, [audioSpatial]);
+  useEffect(() => {
+    camFovRef.current = camFov;
+  }, [camFov]);
+  useEffect(() => {
+    gogglesOnRef.current = gogglesOn;
+  }, [gogglesOn]);
+  useEffect(() => {
+    gogglesFpsCapRef.current = gogglesFpsCap;
+  }, [gogglesFpsCap]);
+  useEffect(() => {
+    camNearRef.current = camNear;
+  }, [camNear]);
+  useEffect(() => {
+    camFarRef.current = camFar;
+  }, [camFar]);
+  useEffect(() => {
+    waveDirRef.current = waveDir;
+  }, [waveDir]);
+  useEffect(() => {
+    floorDepthRef.current = floorDepth;
+  }, [floorDepth]);
+  useEffect(() => {
+    floorTextureRef.current = floorTexture;
+  }, [floorTexture]);
+  useEffect(() => {
+    vortexModeRef.current = vortexMode;
+  }, [vortexMode]);
+  useEffect(() => {
+    vortexOpeningRef.current = vortexOpening;
+  }, [vortexOpening]);
+  useEffect(() => {
+    vortexRadiusRef.current = vortexRadius;
+  }, [vortexRadius]);
+  useEffect(() => {
+    vortexSpeedRef.current = vortexSpeed;
+  }, [vortexSpeed]);
+  useEffect(() => {
+    depthSineOnRef.current = depthSineOn;
+  }, [depthSineOn]);
+  useEffect(() => {
+    depthSineAmpRef.current = depthSineAmp;
+  }, [depthSineAmp]);
+  useEffect(() => {
+    depthSineFreqRef.current = depthSineFreq;
+  }, [depthSineFreq]);
+  useEffect(() => {
+    hideWaterRef.current = hideWater;
+  }, [hideWater]);
+  useEffect(() => {
+    midCloudsOnRef.current = midCloudsOn;
+  }, [midCloudsOn]);
+  useEffect(() => {
+    midCloudsHeightRef.current = midCloudsHeight;
+  }, [midCloudsHeight]);
+  useEffect(() => {
+    skyCloudsOnRef.current = skyCloudsOn;
+  }, [skyCloudsOn]);
+  useEffect(() => {
+    skyCloudsHeightRef.current = skyCloudsHeight;
+  }, [skyCloudsHeight]);
+  useEffect(() => {
+    swayAmpRef.current = swayAmp;
+  }, [swayAmp]);
+  useEffect(() => {
+    swaySpeedRef.current = swaySpeed;
+  }, [swaySpeed]);
+  useEffect(() => {
+    swayBiasRef.current = swayBias;
+  }, [swayBias]);
   // Live reflection-strength dial → shader (multiplies the surface's base).
   useEffect(() => {
     reflStrengthRef.current = reflStrength;
     applyReflMix();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reflStrength]);
-  useEffect(() => { bottomColorRef.current = bottomColor; }, [bottomColor]);
-  useEffect(() => { sphereMaterialRef.current = sphereMaterial; }, [sphereMaterial]);
-  useEffect(() => { causticsOnRef.current = causticsOn; }, [causticsOn]);
-  useEffect(() => { sphereStrengthRef.current = sphereStrength; }, [sphereStrength]);
-  useEffect(() => { trochoidRef.current = trochoid; }, [trochoid]);
-  useEffect(() => { noclipSpeedRef.current = noclipSpeed; }, [noclipSpeed]);
-  useEffect(() => { swingPositionYRef.current = swingPositionY; }, [swingPositionY]);
-  useEffect(() => { swingIntensityRef.current = swingIntensity; }, [swingIntensity]);
-  useEffect(() => { swingXFactorRef.current = swingXFactor; }, [swingXFactor]);
-  useEffect(() => { swingHeightRef.current = swingHeight; }, [swingHeight]);
-  useEffect(() => { swingYWaveformRef.current = swingYWaveform; }, [swingYWaveform]);
+  useEffect(() => {
+    bottomColorRef.current = bottomColor;
+  }, [bottomColor]);
+  useEffect(() => {
+    sphereMaterialRef.current = sphereMaterial;
+  }, [sphereMaterial]);
+  useEffect(() => {
+    causticsOnRef.current = causticsOn;
+  }, [causticsOn]);
+  useEffect(() => {
+    sphereStrengthRef.current = sphereStrength;
+  }, [sphereStrength]);
+  useEffect(() => {
+    trochoidRef.current = trochoid;
+  }, [trochoid]);
+  useEffect(() => {
+    noclipSpeedRef.current = noclipSpeed;
+  }, [noclipSpeed]);
+  useEffect(() => {
+    swingPositionYRef.current = swingPositionY;
+  }, [swingPositionY]);
+  useEffect(() => {
+    swingIntensityRef.current = swingIntensity;
+  }, [swingIntensity]);
+  useEffect(() => {
+    swingXFactorRef.current = swingXFactor;
+  }, [swingXFactor]);
+  useEffect(() => {
+    swingHeightRef.current = swingHeight;
+  }, [swingHeight]);
+  useEffect(() => {
+    swingYWaveformRef.current = swingYWaveform;
+  }, [swingYWaveform]);
   // Live YTA dial → rescale the already-created water/cloud meshes (a no-op
   // until the WebGL mount effect below has run and populated the refs; that
   // effect applies the same scale itself when first creating them).
@@ -1145,7 +1507,19 @@ function Aquafulness() {
       viewDistance: torusViewDistance,
       fadeDistance: torusFadeDistance,
     });
-  }, [torusRingsOn, torusRadius, torusTube, torusScale, torusOpacity, torusTextureIdx, torusCellSize, torusVerticalSpacing, torusVerticalCount, torusViewDistance, torusFadeDistance]);
+  }, [
+    torusRingsOn,
+    torusRadius,
+    torusTube,
+    torusScale,
+    torusOpacity,
+    torusTextureIdx,
+    torusCellSize,
+    torusVerticalSpacing,
+    torusVerticalCount,
+    torusViewDistance,
+    torusFadeDistance,
+  ]);
   // Mode switch: hand off position/orientation continuity between schemes so
   // switching never teleports the camera. Entering noclip seeds its vertical
   // position from wherever the wave spring last had the camera; entering
@@ -1474,7 +1848,8 @@ function Aquafulness() {
     if (patch.torusOpacity !== undefined) setTorusOpacity(patch.torusOpacity);
     if (patch.torusTextureIdx !== undefined) setTorusTextureIdx(patch.torusTextureIdx);
     if (patch.torusCellSize !== undefined) setTorusCellSize(patch.torusCellSize);
-    if (patch.torusVerticalSpacing !== undefined) setTorusVerticalSpacing(patch.torusVerticalSpacing);
+    if (patch.torusVerticalSpacing !== undefined)
+      setTorusVerticalSpacing(patch.torusVerticalSpacing);
     if (patch.torusVerticalCount !== undefined) setTorusVerticalCount(patch.torusVerticalCount);
     if (patch.torusViewDistance !== undefined) setTorusViewDistance(patch.torusViewDistance);
     if (patch.torusFadeDistance !== undefined) setTorusFadeDistance(patch.torusFadeDistance);
@@ -1515,7 +1890,7 @@ function Aquafulness() {
       if (!data) throw new Error("invalid preset file");
       applySettingsPatch(filterToScope(scope, data));
     } catch {
-      window.alert("Kunde inte läsa presetfilen — kontrollera att den är en giltig JSON-fil.");
+      window.alert(t("presets.invalidPresetFile"));
     }
   };
 
@@ -1563,7 +1938,13 @@ function Aquafulness() {
     posRef.current.z = runtime.camera.z;
     yawRef.current = runtime.camera.yaw;
     pitchRef.current = runtime.camera.pitch;
-    saveCameraPose({ x: posRef.current.x, y: posRef.current.y, z: posRef.current.z, yaw: yawRef.current, pitch: pitchRef.current });
+    saveCameraPose({
+      x: posRef.current.x,
+      y: posRef.current.y,
+      z: posRef.current.z,
+      yaw: yawRef.current,
+      pitch: pitchRef.current,
+    });
 
     driftWorldRef.current = runtime.driftDir;
     const driftDisp = worldXZToPad(runtime.driftDir.x, runtime.driftDir.z, yawRef.current);
@@ -1596,7 +1977,10 @@ function Aquafulness() {
   // position/look + current/sway) as a JSON file via the File API.
   const exportStateFile = () => {
     const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-    downloadJsonFile(`aquafulness-state-${stamp}.json`, buildStateFilePayload(buildFullStateSnapshot()));
+    downloadJsonFile(
+      `aquafulness-state-${stamp}.json`,
+      buildStateFilePayload(buildFullStateSnapshot()),
+    );
   };
 
   // TILLSTÅND IMPORTERA: reads a JSON state file and applies it in full.
@@ -1607,7 +1991,7 @@ function Aquafulness() {
       if (!data) throw new Error("invalid state file");
       applyFullState(data);
     } catch {
-      window.alert("Kunde inte läsa tillståndsfilen — kontrollera att den är en giltig JSON-fil.");
+      window.alert(t("presets.invalidStateFile"));
     }
   };
 
@@ -1732,14 +2116,20 @@ function Aquafulness() {
   const cycleEra = (dir: number) => {
     if (!curEnv || curEnv.eras.length === 0) return;
     const eras = curEnv.eras;
-    const i = Math.max(0, eras.findIndex((e) => e.id === envEra));
+    const i = Math.max(
+      0,
+      eras.findIndex((e) => e.id === envEra),
+    );
     applyEra(eras[(i + dir + eras.length) % eras.length].id);
   };
 
   const cycleTime = (dir: number) => {
     if (!curEra || curEra.times.length === 0) return;
     const times = curEra.times;
-    const i = Math.max(0, times.findIndex((t) => t.id === envTime));
+    const i = Math.max(
+      0,
+      times.findIndex((t) => t.id === envTime),
+    );
     setEnvTime(times[(i + dir + times.length) % times.length].id);
   };
 
@@ -1769,14 +2159,24 @@ function Aquafulness() {
         a.master.gain.setTargetAtTime(0, a.ctx.currentTime, 0.4);
         const dying = a;
         setTimeout(() => {
-          try { dying.el.pause(); } catch { /* noop */ }
-          try { dying.ctx.close(); } catch { /* noop */ }
+          try {
+            dying.el.pause();
+          } catch {
+            /* noop */
+          }
+          try {
+            dying.ctx.close();
+          } catch {
+            /* noop */
+          }
         }, 600);
         audioRef.current = null;
       }
       return;
     }
-    const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const Ctx =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     const ctx = new Ctx();
 
     const el = new Audio(waterAsset.url);
@@ -1803,7 +2203,9 @@ function Aquafulness() {
 
     src.connect(lp).connect(master).connect(depthGain).connect(ctx.destination);
 
-    el.play().catch(() => { /* user gesture required — will retry on next toggle */ });
+    el.play().catch(() => {
+      /* user gesture required — will retry on next toggle */
+    });
     master.gain.setTargetAtTime(audioVol, ctx.currentTime, 0.6);
 
     audioRef.current = { ctx, el, master, depthGain, lp };
@@ -1829,7 +2231,9 @@ function Aquafulness() {
   // re-request it when the tab becomes visible again.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const nav = navigator as Navigator & { wakeLock?: { request: (type: "screen") => Promise<WakeLockSentinel> } };
+    const nav = navigator as Navigator & {
+      wakeLock?: { request: (type: "screen") => Promise<WakeLockSentinel> };
+    };
     if (!nav.wakeLock) return;
 
     let sentinel: WakeLockSentinel | null = null;
@@ -1840,7 +2244,9 @@ function Aquafulness() {
       try {
         const s = await nav.wakeLock!.request("screen");
         if (!active) {
-          s.release().catch(() => { /* noop */ });
+          s.release().catch(() => {
+            /* noop */
+          });
           return;
         }
         sentinel = s;
@@ -1854,7 +2260,9 @@ function Aquafulness() {
 
     const release = () => {
       if (sentinel) {
-        sentinel.release().catch(() => { /* noop */ });
+        sentinel.release().catch(() => {
+          /* noop */
+        });
         sentinel = null;
       }
     };
@@ -1903,7 +2311,6 @@ function Aquafulness() {
     };
   }, [settingsOpen]);
 
-
   // Fullscreen state tracking.
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -1915,9 +2322,13 @@ function Aquafulness() {
   const toggleFullscreen = () => {
     if (typeof document === "undefined") return;
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen?.().catch(() => { /* noop */ });
+      document.documentElement.requestFullscreen?.().catch(() => {
+        /* noop */
+      });
     } else {
-      document.exitFullscreen?.().catch(() => { /* noop */ });
+      document.exitFullscreen?.().catch(() => {
+        /* noop */
+      });
     }
   };
 
@@ -1928,9 +2339,7 @@ function Aquafulness() {
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error("no scenes.json"))))
       .then((data: unknown) => {
         if (!alive) return;
-        const raw = Array.isArray(data)
-          ? data
-          : ((data as { scenes?: unknown }).scenes ?? []);
+        const raw = Array.isArray(data) ? data : ((data as { scenes?: unknown }).scenes ?? []);
         const list: SceneEntry[] = (Array.isArray(raw) ? raw : [])
           .map((s) => {
             const e = s as { id?: unknown; name?: unknown };
@@ -1992,9 +2401,7 @@ function Aquafulness() {
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error("no surfaces.json"))))
       .then((data: unknown) => {
         if (!alive) return;
-        const raw = Array.isArray(data)
-          ? data
-          : ((data as { surfaces?: unknown }).surfaces ?? []);
+        const raw = Array.isArray(data) ? data : ((data as { surfaces?: unknown }).surfaces ?? []);
         const list: SurfaceEntry[] = (Array.isArray(raw) ? raw : [])
           .map((s) => {
             const e = s as { id?: unknown; name?: unknown };
@@ -2013,9 +2420,6 @@ function Aquafulness() {
       alive = false;
     };
   }, []);
-
-
-
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -2052,7 +2456,13 @@ function Aquafulness() {
       camFarRef.current,
     );
 
-    const tvManager = new CSS3DTVManager(mount, camera, scene, mount.clientWidth, mount.clientHeight);
+    const tvManager = new CSS3DTVManager(
+      mount,
+      camera,
+      scene,
+      mount.clientWidth,
+      mount.clientHeight,
+    );
     tvManager.setEditMode(editModeRef.current);
     tvManagerRef.current = tvManager;
 
@@ -2091,7 +2501,8 @@ function Aquafulness() {
     reflWhiteTexRef.current = whiteTex;
 
     const { wave: fftWaveData, phase: fftPhaseData } = packOceanWaveComponents(fftWaveComponents);
-    const { wave: dyingWaveData, phase: dyingPhaseData } = packOceanWaveComponents(dyingWaveComponents);
+    const { wave: dyingWaveData, phase: dyingPhaseData } =
+      packOceanWaveComponents(dyingWaveComponents);
     const uniforms = {
       uTime: { value: 0 },
       uAmp: { value: waveAmp },
@@ -2676,7 +3087,6 @@ function Aquafulness() {
       }
     `;
 
-
     const mat = new THREE.ShaderMaterial({
       uniforms,
       vertexShader,
@@ -3118,16 +3528,27 @@ function Aquafulness() {
 
       let a: typeof night, b: typeof night, k: number;
       if (t < 0.25) {
-        a = night; b = dawn; k = t / 0.25;
+        a = night;
+        b = dawn;
+        k = t / 0.25;
       } else if (t < 0.5) {
-        a = dawn; b = day; k = (t - 0.25) / 0.25;
+        a = dawn;
+        b = day;
+        k = (t - 0.25) / 0.25;
       } else if (t < 0.75) {
-        a = day; b = dusk; k = (t - 0.5) / 0.25;
+        a = day;
+        b = dusk;
+        k = (t - 0.5) / 0.25;
       } else {
-        a = dusk; b = night; k = (t - 0.75) / 0.25;
+        a = dusk;
+        b = night;
+        k = (t - 0.75) / 0.25;
       }
-      const lerp = (x: number[], y: number[], k: number) =>
-        [x[0] + (y[0] - x[0]) * k, x[1] + (y[1] - x[1]) * k, x[2] + (y[2] - x[2]) * k];
+      const lerp = (x: number[], y: number[], k: number) => [
+        x[0] + (y[0] - x[0]) * k,
+        x[1] + (y[1] - x[1]) * k,
+        x[2] + (y[2] - x[2]) * k,
+      ];
       const top = lerp(a.top, b.top, k);
       const bot = lerp(a.bot, b.bot, k);
       const sun = lerp(a.sun, b.sun, k);
@@ -3152,12 +3573,22 @@ function Aquafulness() {
     let dyingWaveT = 0;
     const clock = new THREE.Clock();
     const saveCameraPoseNow = () => {
-      saveCameraPose({ x: posRef.current.x, z: posRef.current.z, y: posRef.current.y, yaw: yawRef.current, pitch: pitchRef.current });
+      saveCameraPose({
+        x: posRef.current.x,
+        z: posRef.current.z,
+        y: posRef.current.y,
+        yaw: yawRef.current,
+        pitch: pitchRef.current,
+      });
     };
     window.addEventListener("pagehide", saveCameraPoseNow);
     const animate = () => {
       // Sync camera lens (FOV / near / far clip) with live settings.
-      if (camera.fov !== camFovRef.current || camera.near !== camNearRef.current || camera.far !== camFarRef.current) {
+      if (
+        camera.fov !== camFovRef.current ||
+        camera.near !== camNearRef.current ||
+        camera.far !== camFarRef.current
+      ) {
         camera.fov = camFovRef.current;
         camera.near = camNearRef.current;
         camera.far = camFarRef.current;
@@ -3184,12 +3615,18 @@ function Aquafulness() {
       uniforms.uAmp.value = ampRef.current;
       uniforms.uDyingTime.value = dyingWaveT;
       uniforms.uDyingAmp.value = dyingAmpRef.current;
-      uniforms.uQuality.value += ((waveHighQualityRef.current ? 1 : 0) - uniforms.uQuality.value) * Math.min(1, dt * 4);
-      uniforms.uRegular.value += ((regularRef.current ? 1 : 0) - uniforms.uRegular.value) * Math.min(1, dt * 4);
-      uniforms.uFft.value += ((realisticRef.current ? 1 : 0) - uniforms.uFft.value) * Math.min(1, dt * 4);
-      uniforms.uDying.value += ((dyingRef.current ? 1 : 0) - uniforms.uDying.value) * Math.min(1, dt * 4);
-      uniforms.uCross.value += ((regularCrossRef.current ? 1 : 0) - uniforms.uCross.value) * Math.min(1, dt * 4);
-      uniforms.uPeriod.value += (regularPeriodRef.current - uniforms.uPeriod.value) * Math.min(1, dt * 4);
+      uniforms.uQuality.value +=
+        ((waveHighQualityRef.current ? 1 : 0) - uniforms.uQuality.value) * Math.min(1, dt * 4);
+      uniforms.uRegular.value +=
+        ((regularRef.current ? 1 : 0) - uniforms.uRegular.value) * Math.min(1, dt * 4);
+      uniforms.uFft.value +=
+        ((realisticRef.current ? 1 : 0) - uniforms.uFft.value) * Math.min(1, dt * 4);
+      uniforms.uDying.value +=
+        ((dyingRef.current ? 1 : 0) - uniforms.uDying.value) * Math.min(1, dt * 4);
+      uniforms.uCross.value +=
+        ((regularCrossRef.current ? 1 : 0) - uniforms.uCross.value) * Math.min(1, dt * 4);
+      uniforms.uPeriod.value +=
+        (regularPeriodRef.current - uniforms.uPeriod.value) * Math.min(1, dt * 4);
       uniforms.uFreq.value += (freqRef.current - uniforms.uFreq.value) * Math.min(1, dt * 4);
       uniforms.uPeak.value += (wavePeakRef.current - uniforms.uPeak.value) * Math.min(1, dt * 4);
       // Wave direction stored in degrees; smoothly interpolate the shortest
@@ -3204,18 +3641,15 @@ function Aquafulness() {
       // Smoothly blend the vortex funnel in/out (also drives camera behaviour).
       const vortexTarget = vortexModeRef.current ? 1 : 0;
       uniforms.uVortex.value += (vortexTarget - uniforms.uVortex.value) * Math.min(1, dt * 3);
-      uniforms.uVortexOpening.value += (vortexOpeningRef.current - uniforms.uVortexOpening.value) * Math.min(1, dt * 4);
+      uniforms.uVortexOpening.value +=
+        (vortexOpeningRef.current - uniforms.uVortexOpening.value) * Math.min(1, dt * 4);
 
       const p = palette(todRef.current);
       uniforms.uSunDir.value.copy(p.sunDir);
       uniforms.uSkyColor.value.setRGB(p.top[0], p.top[1], p.top[2]);
       uniforms.uHorizonColor.value.setRGB(p.bot[0], p.bot[1], p.bot[2]);
       uniforms.uSunColor.value.setRGB(p.sun[0], p.sun[1], p.sun[2]);
-      uniforms.uWaterShallow.value.setRGB(
-        p.waterShallow[0],
-        p.waterShallow[1],
-        p.waterShallow[2],
-      );
+      uniforms.uWaterShallow.value.setRGB(p.waterShallow[0], p.waterShallow[1], p.waterShallow[2]);
       uniforms.uWaterDeep.value.setRGB(p.waterDeep[0], p.waterDeep[1], p.waterDeep[2]);
       uniforms.uFogColor.value.setRGB(p.bot[0], p.bot[1], p.bot[2]);
       skyUniforms.uTop.value.copy(uniforms.uSkyColor.value);
@@ -3226,13 +3660,20 @@ function Aquafulness() {
       // Water tint + optional seafloor
       const tint = WATER_TINTS[waterTintRef.current] ?? WATER_TINTS[0];
       uniforms.uWaterTint.value.set(tint.rgb[0], tint.rgb[1], tint.rgb[2]);
-      uniforms.uOpacity.value += (waterOpacityRef.current - uniforms.uOpacity.value) * Math.min(1, dt * 6);
-      uniforms.uTintHue.value += (waterHueRef.current * 0.01745329252 - uniforms.uTintHue.value) * Math.min(1, dt * 6);
-      uniforms.uTintSat.value += (waterSatRef.current - uniforms.uTintSat.value) * Math.min(1, dt * 6);
-      uniforms.uTintBright.value += (waterBrightRef.current - uniforms.uTintBright.value) * Math.min(1, dt * 6);
-      uniforms.uSurfBright.value += (surfBrightRef.current - uniforms.uSurfBright.value) * Math.min(1, dt * 6);
-      uniforms.uSurfSat.value += (surfSatRef.current - uniforms.uSurfSat.value) * Math.min(1, dt * 6);
-      uniforms.uRefraction.value += ((causticsOnRef.current ? 1 : 0) - uniforms.uRefraction.value) * Math.min(1, dt * 4);
+      uniforms.uOpacity.value +=
+        (waterOpacityRef.current - uniforms.uOpacity.value) * Math.min(1, dt * 6);
+      uniforms.uTintHue.value +=
+        (waterHueRef.current * 0.01745329252 - uniforms.uTintHue.value) * Math.min(1, dt * 6);
+      uniforms.uTintSat.value +=
+        (waterSatRef.current - uniforms.uTintSat.value) * Math.min(1, dt * 6);
+      uniforms.uTintBright.value +=
+        (waterBrightRef.current - uniforms.uTintBright.value) * Math.min(1, dt * 6);
+      uniforms.uSurfBright.value +=
+        (surfBrightRef.current - uniforms.uSurfBright.value) * Math.min(1, dt * 6);
+      uniforms.uSurfSat.value +=
+        (surfSatRef.current - uniforms.uSurfSat.value) * Math.min(1, dt * 6);
+      uniforms.uRefraction.value +=
+        ((causticsOnRef.current ? 1 : 0) - uniforms.uRefraction.value) * Math.min(1, dt * 4);
       const bot = BOTTOM_OPTIONS[bottomIdxRef.current] ?? BOTTOM_OPTIONS[0];
       // Sinus-modulerat "havsnivå"-offset. Vi flyttar hela scenen (yta, botten,
       // mellan-moln, kamera) rigidt i Y istället för att modulera bottendjupet
@@ -3246,7 +3687,7 @@ function Aquafulness() {
       farOcean.position.y = levelY;
       if (bot.rgb) {
         floor.visible = true;
-        const botRgb = bot.name === "Anpassad" ? hexToRgbNorm(bottomColorRef.current) : bot.rgb;
+        const botRgb = bot.id === "custom" ? hexToRgbNorm(bottomColorRef.current) : bot.rgb;
         floorUniforms.uColor.value.setRGB(botRgb[0], botRgb[1], botRgb[2]);
         uniforms.uFloorColor.value.setRGB(botRgb[0], botRgb[1], botRgb[2]);
         uniforms.uFloorDepth.value = effectiveDepth;
@@ -3255,13 +3696,16 @@ function Aquafulness() {
         floorUniforms.uCausticDepth.value = effectiveDepth;
         floorUniforms.uCausticAmp.value = ampRef.current;
         floorUniforms.uCausticFreq.value = uniforms.uFreq.value;
-        floorUniforms.uCausticsOn.value += ((causticsOnRef.current ? 1 : 0) - floorUniforms.uCausticsOn.value) * Math.min(1, dt * 4);
-        const isClouds = bot.name === "Moln";
+        floorUniforms.uCausticsOn.value +=
+          ((causticsOnRef.current ? 1 : 0) - floorUniforms.uCausticsOn.value) * Math.min(1, dt * 4);
+        const isClouds = bot.id === "clouds";
         // Cloud mode blends independently of the sand-texture toggle.
         const cloudTarget = isClouds ? 1 : 0;
-        floorUniforms.uClouds.value += (cloudTarget - floorUniforms.uClouds.value) * Math.min(1, dt * 4);
+        floorUniforms.uClouds.value +=
+          (cloudTarget - floorUniforms.uClouds.value) * Math.min(1, dt * 4);
         const target = isClouds ? 0 : floorTextureRef.current ? 1 : 0;
-        floorUniforms.uTextured.value += (target - floorUniforms.uTextured.value) * Math.min(1, dt * 4);
+        floorUniforms.uTextured.value +=
+          (target - floorUniforms.uTextured.value) * Math.min(1, dt * 4);
         // Drift moln-lagret långsamt över tid.
         floorUniforms.uCloudScroll.value.x = t * 0.015;
         floorUniforms.uCloudScroll.value.y = t * 0.01;
@@ -3339,7 +3783,8 @@ function Aquafulness() {
         const fwdX = -Math.sin(yaw) * cosPitch;
         const fwdY = Math.sin(pitch);
         const fwdZ = -Math.cos(yaw) * cosPitch;
-        const rightX = Math.cos(yaw), rightZ = -Math.sin(yaw);
+        const rightX = Math.cos(yaw),
+          rightZ = -Math.sin(yaw);
         const speed = walkSpeed * Math.max(0.1, noclipSpeedRef.current);
         const moveX = stickRef.current.x * rightX + stickRef.current.y * fwdX;
         const moveZ = stickRef.current.x * rightZ + stickRef.current.y * fwdZ;
@@ -3367,7 +3812,8 @@ function Aquafulness() {
         // truly settles toward a motionless hover instead of bottoming out
         // at a fixed minimum swing; intensity 1 still matches the
         // original tuning (40° arc, omega 0.55).
-        const rightX = Math.cos(swingYawRef.current), rightZ = -Math.sin(swingYawRef.current);
+        const rightX = Math.cos(swingYawRef.current),
+          rightZ = -Math.sin(swingYawRef.current);
         const omega = swingOmegaNow;
         const theta = swingThetaNow;
         const horizArmLen = Math.max(8, Math.min(60, swingPositionYRef.current * 0.6));
@@ -3415,7 +3861,10 @@ function Aquafulness() {
         const radialVel = -stickRef.current.y * walkSpeed + driftWorldRef.current.z * driftSpeed;
         const minR = Math.max(op * 0.55, 3); // don't dive into the throat
         const maxR = 220;
-        vortexRadiusRef.current = Math.max(minR, Math.min(maxR, vortexRadiusRef.current + radialVel * physDt));
+        vortexRadiusRef.current = Math.max(
+          minR,
+          Math.min(maxR, vortexRadiusRef.current + radialVel * physDt),
+        );
         setVortexRadius(vortexRadiusRef.current);
         const ang = vortexAngleRef.current;
         camX = Math.cos(ang) * vortexRadiusRef.current;
@@ -3427,8 +3876,10 @@ function Aquafulness() {
         // STRÖM (driften) representerar en ström i en fast riktning och
         // förblir därför i världsrymden, orörd av kamerans rotation.
         const yaw = yawRef.current;
-        const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
-        const rightX = Math.cos(yaw), rightZ = -Math.sin(yaw);
+        const fwdX = -Math.sin(yaw),
+          fwdZ = -Math.cos(yaw);
+        const rightX = Math.cos(yaw),
+          rightZ = -Math.sin(yaw);
         const walkX = stickRef.current.x * rightX + stickRef.current.y * fwdX;
         const walkZ = stickRef.current.x * rightZ + stickRef.current.y * fwdZ;
         posRef.current.x += (walkX * walkSpeed + driftWorldRef.current.x * driftSpeed) * physDt;
@@ -3457,8 +3908,33 @@ function Aquafulness() {
 
       const dirRad = (waveDirRef.current * Math.PI) / 180;
       const surfaceY = inVortex
-        ? vortexSurfaceHeight(camX, camZ, t, ampRef.current, regularPeriodRef.current, vortexOpeningRef.current, freqRef.current)
-        : waveHeight(camX, camZ, t, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad, realisticRef.current, fftWaveComponents, dyingRef.current, dyingWaveComponents, dyingAmpRef.current, dyingWaveT, freqRef.current);
+        ? vortexSurfaceHeight(
+            camX,
+            camZ,
+            t,
+            ampRef.current,
+            regularPeriodRef.current,
+            vortexOpeningRef.current,
+            freqRef.current,
+          )
+        : waveHeight(
+            camX,
+            camZ,
+            t,
+            ampRef.current,
+            regularRef.current,
+            regularCrossRef.current,
+            regularPeriodRef.current,
+            wavePeakRef.current,
+            dirRad,
+            realisticRef.current,
+            fftWaveComponents,
+            dyingRef.current,
+            dyingWaveComponents,
+            dyingAmpRef.current,
+            dyingWaveT,
+            freqRef.current,
+          );
 
       // The wave-following buoyancy spring and current/sway drift only apply
       // in float mode — noclip flies free of the wave surface and swing
@@ -3474,7 +3950,10 @@ function Aquafulness() {
         // for.
         if (prevSurfaceRef.current === null) prevSurfaceRef.current = surfaceY;
         const maxBaseSlope = ampRef.current * 8.0;
-        const surfVel = Math.max(-maxBaseSlope, Math.min(maxBaseSlope, (surfaceY - prevSurfaceRef.current) / Math.max(dt, 1e-4)));
+        const surfVel = Math.max(
+          -maxBaseSlope,
+          Math.min(maxBaseSlope, (surfaceY - prevSurfaceRef.current) / Math.max(dt, 1e-4)),
+        );
         prevSurfaceRef.current = surfaceY;
 
         // Anticipatory velocity: peek slightly into the future so buoyancy
@@ -3491,8 +3970,33 @@ function Aquafulness() {
         // rise, not after it has already lifted the surface past the camera.
         const lead = 0.7 / (1 + peakK * 6.0);
         const futureSurf = inVortex
-          ? vortexSurfaceHeight(camX, camZ, t + lead, ampRef.current, regularPeriodRef.current, vortexOpeningRef.current, freqRef.current)
-          : waveHeight(camX, camZ, t + lead, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad, realisticRef.current, fftWaveComponents, dyingRef.current, dyingWaveComponents, dyingAmpRef.current, dyingWaveT + lead, freqRef.current);
+          ? vortexSurfaceHeight(
+              camX,
+              camZ,
+              t + lead,
+              ampRef.current,
+              regularPeriodRef.current,
+              vortexOpeningRef.current,
+              freqRef.current,
+            )
+          : waveHeight(
+              camX,
+              camZ,
+              t + lead,
+              ampRef.current,
+              regularRef.current,
+              regularCrossRef.current,
+              regularPeriodRef.current,
+              wavePeakRef.current,
+              dirRad,
+              realisticRef.current,
+              fftWaveComponents,
+              dyingRef.current,
+              dyingWaveComponents,
+              dyingAmpRef.current,
+              dyingWaveT + lead,
+              freqRef.current,
+            );
         const maxSlope = ampRef.current * 6.0;
         const rawAnticip = Math.max(-maxSlope, Math.min(maxSlope, (futureSurf - surfaceY) / lead));
         const blend = 1 - peakK * 0.85;
@@ -3536,7 +4040,10 @@ function Aquafulness() {
         // there. Softness is a small fraction of maxSlope so the ramp still
         // reads as max(0, x) away from the crossing.
         const diveSoftness = maxSlope * 0.12;
-        const diveRamp = (anticipVelSmoothed + Math.sqrt(anticipVelSmoothed * anticipVelSmoothed + diveSoftness * diveSoftness)) / 2;
+        const diveRamp =
+          (anticipVelSmoothed +
+            Math.sqrt(anticipVelSmoothed * anticipVelSmoothed + diveSoftness * diveSoftness)) /
+          2;
         const rawDive = diveRamp * sub * 0.6 * (0.6 + amp * 0.6);
         const rawLift = anticipVelSmoothed * lift * 0.35 * (0.6 + amp * 0.6);
         const diveOffset = Math.min(cap, rawDive);
@@ -3573,7 +4080,8 @@ function Aquafulness() {
         const heaveNorm = amp > 0.0001 ? Math.tanh(surfaceY / (amp * 2.2)) : 0;
 
         const swAmp = swayAmpRef.current;
-        let swayTargetX = 0, swayTargetZ = 0;
+        let swayTargetX = 0,
+          swayTargetZ = 0;
         if (swAmp > 0.001) {
           const ws = swaySpeedRef.current; // 0..1
           const dirRadS = (waveDirRef.current * Math.PI) / 180;
@@ -3630,7 +4138,6 @@ function Aquafulness() {
         swayZ = swayPosRef.current.z;
       }
 
-
       // Manual XYZ camera offset (POS X/Y/Z dials) — applied after physics so
       // the user can nudge the viewpoint without disturbing the buoyancy loop.
       // camYRef.current is only null before the very first frame sets it (in
@@ -3678,13 +4185,23 @@ function Aquafulness() {
       // to the *current* look angle so the knobs visually rotate in place as
       // the camera looks around, instead of silently staying put while the
       // real direction they show drifts out of sync with the view.
-      const driftDisp = worldXZToPad(driftWorldRef.current.x, driftWorldRef.current.z, yawRef.current);
-      if (Math.abs(driftDisp.x - driftDisplayRef.current.x) > 0.0015 || Math.abs(driftDisp.y - driftDisplayRef.current.y) > 0.0015) {
+      const driftDisp = worldXZToPad(
+        driftWorldRef.current.x,
+        driftWorldRef.current.z,
+        yawRef.current,
+      );
+      if (
+        Math.abs(driftDisp.x - driftDisplayRef.current.x) > 0.0015 ||
+        Math.abs(driftDisp.y - driftDisplayRef.current.y) > 0.0015
+      ) {
         driftDisplayRef.current = driftDisp;
         setDriftStick(driftDisp);
       }
       const swayDisp = worldXZToPad(swayWorldRef.current.x, swayWorldRef.current.z, yawRef.current);
-      if (Math.abs(swayDisp.x - swayDisplayRef.current.x) > 0.0015 || Math.abs(swayDisp.y - swayDisplayRef.current.y) > 0.0015) {
+      if (
+        Math.abs(swayDisp.x - swayDisplayRef.current.x) > 0.0015 ||
+        Math.abs(swayDisp.y - swayDisplayRef.current.y) > 0.0015
+      ) {
         swayDisplayRef.current = swayDisp;
         setSwayStick(swayDisp);
       }
@@ -3693,7 +4210,13 @@ function Aquafulness() {
       // survives a reload and can be jumped back to via the restore button.
       if (now - lastCamSaveMs > 1000) {
         lastCamSaveMs = now;
-        saveCameraPose({ x: posRef.current.x, z: posRef.current.z, y: posRef.current.y, yaw: yawRef.current, pitch: pitchRef.current });
+        saveCameraPose({
+          x: posRef.current.x,
+          z: posRef.current.z,
+          y: posRef.current.y,
+          yaw: yawRef.current,
+          pitch: pitchRef.current,
+        });
       }
 
       // Optional forward-leaning rotation: pitch into the direction of travel.
@@ -3733,7 +4256,8 @@ function Aquafulness() {
       // the current deep-water hue so the murk color matches the water
       // tint/time of day. Smoothed once here and fanned out everywhere else
       // reads it, so every surface stays in lockstep.
-      floorUniforms.uTurbidity.value += (turbidityRef.current - floorUniforms.uTurbidity.value) * Math.min(1, dt * 6);
+      floorUniforms.uTurbidity.value +=
+        (turbidityRef.current - floorUniforms.uTurbidity.value) * Math.min(1, dt * 6);
       floorUniforms.uUnderwater.value = uniforms.uUnderwater.value;
       floorUniforms.uFogColor.value.copy(uniforms.uWaterDeep.value);
       midCloudUniforms.uTurbidity.value = floorUniforms.uTurbidity.value;
@@ -3753,12 +4277,20 @@ function Aquafulness() {
       // their real color/shape instead of washing out to the fog tint.
       const fog = scene.fog as THREE.FogExp2;
       fog.density = floorUniforms.uTurbidity.value * uniforms.uUnderwater.value * 0.05;
-      fog.color.copy(uniforms.uFogColor.value).lerp(uniforms.uWaterDeep.value, floorUniforms.uTurbidity.value * uniforms.uUnderwater.value);
+      fog.color
+        .copy(uniforms.uFogColor.value)
+        .lerp(
+          uniforms.uWaterDeep.value,
+          floorUniforms.uTurbidity.value * uniforms.uUnderwater.value,
+        );
 
       // Selectable wave material (sphere-map "matcap") + trochoidal wave
       // shape — both purely cosmetic dials on the ocean shader.
-      uniforms.uSphereMix.value += ((sphereMaterialRef.current ? sphereStrengthRef.current : 0) - uniforms.uSphereMix.value) * Math.min(1, dt * 6);
-      uniforms.uTrochoid.value += (trochoidRef.current - uniforms.uTrochoid.value) * Math.min(1, dt * 6);
+      uniforms.uSphereMix.value +=
+        ((sphereMaterialRef.current ? sphereStrengthRef.current : 0) - uniforms.uSphereMix.value) *
+        Math.min(1, dt * 6);
+      uniforms.uTrochoid.value +=
+        (trochoidRef.current - uniforms.uTrochoid.value) * Math.min(1, dt * 6);
 
       // Keep horizon level: no extra pitch/roll from buoyancy.
 
@@ -3790,8 +4322,33 @@ function Aquafulness() {
         let h: number;
         if (mb.bob.follow) {
           const s = inVortex
-            ? vortexSurfaceHeight(mb.base.x, mb.base.z, t, ampRef.current, regularPeriodRef.current, vortexOpeningRef.current, freqRef.current)
-            : waveHeight(mb.base.x, mb.base.z, t, ampRef.current, regularRef.current, regularCrossRef.current, regularPeriodRef.current, wavePeakRef.current, dirRad, realisticRef.current, fftWaveComponents, dyingRef.current, dyingWaveComponents, dyingAmpRef.current, dyingWaveT, freqRef.current);
+            ? vortexSurfaceHeight(
+                mb.base.x,
+                mb.base.z,
+                t,
+                ampRef.current,
+                regularPeriodRef.current,
+                vortexOpeningRef.current,
+                freqRef.current,
+              )
+            : waveHeight(
+                mb.base.x,
+                mb.base.z,
+                t,
+                ampRef.current,
+                regularRef.current,
+                regularCrossRef.current,
+                regularPeriodRef.current,
+                wavePeakRef.current,
+                dirRad,
+                realisticRef.current,
+                fftWaveComponents,
+                dyingRef.current,
+                dyingWaveComponents,
+                dyingAmpRef.current,
+                dyingWaveT,
+                freqRef.current,
+              );
           h = s * mb.bob.amp;
         } else {
           h = Math.sin(t * mb.bob.speed) * mb.bob.amp;
@@ -3901,7 +4458,7 @@ function Aquafulness() {
 
     fetch(`${base}/manifest.json`)
       .then((r) => (r.ok ? (r.json() as Promise<SceneManifest>) : {}))
-      .catch(() => ({} as SceneManifest))
+      .catch(() => ({}) as SceneManifest)
       .then((manifest: SceneManifest) => {
         if (cancelled) return;
         loader.load(
@@ -3916,9 +4473,7 @@ function Aquafulness() {
             scene.add(model);
             modelRef.current = model;
             const bob = resolveBob(manifest.bob);
-            modelBobRef.current = bob
-              ? { base: model.position.clone(), bob }
-              : null;
+            modelBobRef.current = bob ? { base: model.position.clone(), bob } : null;
           },
           undefined,
           (err) => console.error(`Failed to load scene "${sceneId}"`, err),
@@ -3958,7 +4513,7 @@ function Aquafulness() {
 
     fetch(`${dir}/manifest.json`)
       .then((r) => (r.ok ? (r.json() as Promise<EnvManifest>) : {}))
-      .catch(() => ({} as EnvManifest))
+      .catch(() => ({}) as EnvManifest)
       .then((manifest: EnvManifest) => {
         if (cancelled) return;
         const image = manifest.image ?? "skybox.png";
@@ -3975,11 +4530,7 @@ function Aquafulness() {
             if (envTextureRef.current) envTextureRef.current.dispose();
             envTextureRef.current = tex;
             scene.background = tex;
-            scene.backgroundRotation.set(
-              0,
-              ((manifest.rotationY ?? 0) * Math.PI) / 180,
-              0,
-            );
+            scene.backgroundRotation.set(0, ((manifest.rotationY ?? 0) * Math.PI) / 180, 0);
             envActiveRef.current = true;
             // Sync the water/lighting palette to this skybox's time-of-day.
             if (typeof manifest.timeOfDay === "number") {
@@ -4025,7 +4576,7 @@ function Aquafulness() {
 
     fetch(`${dir}/manifest.json`)
       .then((r) => (r.ok ? (r.json() as Promise<SurfaceManifest>) : {}))
-      .catch(() => ({} as SurfaceManifest))
+      .catch(() => ({}) as SurfaceManifest)
       .then((manifest: SurfaceManifest) => {
         if (cancelled) return;
         const image = manifest.image ?? "surface.png";
@@ -4066,13 +4617,13 @@ function Aquafulness() {
 
   // Time-of-day label
   const todLabel = (() => {
-    const t = timeOfDay;
-    if (t < 0.15 || t > 0.9) return "Natt";
-    if (t < 0.3) return "Gryning";
-    if (t < 0.45) return "Morgon";
-    if (t < 0.6) return "Middag";
-    if (t < 0.75) return "Eftermiddag";
-    return "Skymning";
+    const tod = timeOfDay;
+    if (tod < 0.15 || tod > 0.9) return t("tod.night");
+    if (tod < 0.3) return t("tod.dawn");
+    if (tod < 0.45) return t("tod.morning");
+    if (tod < 0.6) return t("tod.midday");
+    if (tod < 0.75) return t("tod.afternoon");
+    return t("tod.dusk");
   })();
 
   // Derived interval-session readouts for the bottom HUD's optional
@@ -4420,7 +4971,7 @@ function Aquafulness() {
           className="pointer-events-none absolute left-1/2 top-[5pt] z-30 -translate-x-1/2 rounded-full border border-white/20 bg-black/40 px-3 py-1 text-[10px] font-light tracking-[0.2em] text-white/80 backdrop-blur-md"
           role="status"
         >
-          OFFLINE
+          {t("hud.offline")}
         </div>
       )}
 
@@ -4445,18 +4996,38 @@ function Aquafulness() {
           <button
             onClick={() => setAudioOn((v) => !v)}
             className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white/90 backdrop-blur-md transition active:scale-95 active:bg-white/15"
-            aria-label={audioOn ? "Stäng av ljud" : "Slå på ljud"}
+            aria-label={audioOn ? t("hud.audioMuteAria") : t("hud.audioUnmuteAria")}
             aria-pressed={audioOn}
-            title={audioOn ? "Ljud på" : "Ljud av"}
+            title={audioOn ? t("hud.audioOnTitle") : t("hud.audioOffTitle")}
           >
             {audioOn ? (
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                width="20"
+                height="20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
                 <path d="M4 10v4h3l5 4V6L7 10H4z" />
                 <path d="M16 8.5a4 4 0 010 7" />
                 <path d="M18.5 6a7 7 0 010 12" />
               </svg>
             ) : (
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                width="20"
+                height="20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
                 <path d="M4 10v4h3l5 4V6L7 10H4z" />
                 <path d="M22 9l-6 6M16 9l6 6" />
               </svg>
@@ -4466,10 +5037,10 @@ function Aquafulness() {
           <button
             onClick={() => setSettingsOpen((s) => !s)}
             className="pointer-events-auto rounded-full border border-white/20 bg-black/40 px-5 py-2 text-[10px] font-light tracking-[0.35em] text-white/90 backdrop-blur-md transition active:scale-95 active:bg-white/15"
-            aria-label={settingsOpen ? "Stäng inställningar" : "Öppna inställningar"}
+            aria-label={settingsOpen ? t("hud.settingsCloseAria") : t("hud.settingsOpenAria")}
             aria-expanded={settingsOpen}
           >
-            {settingsOpen ? "STÄNG" : "SETTINGS"}
+            {settingsOpen ? t("hud.settingsCloseLabel") : t("hud.settingsOpenLabel")}
           </button>
 
           <div className="flex gap-2">
@@ -4480,11 +5051,21 @@ function Aquafulness() {
                   ? "border-white/40 bg-white/25 text-white"
                   : "border-white/20 bg-black/40 text-white/90 active:bg-white/15"
               }`}
-              aria-label={phoneOpen ? "Stäng telefon" : "Öppna telefon"}
+              aria-label={phoneOpen ? t("hud.phoneCloseAria") : t("hud.phoneOpenAria")}
               aria-pressed={phoneOpen}
-              title={phoneOpen ? "Stäng telefon" : "Öppna telefon (bathOS, cast till skärmar)"}
+              title={phoneOpen ? t("hud.phoneCloseTitle") : t("hud.phoneOpenTitle")}
             >
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                width="20"
+                height="20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
                 <rect x="7" y="2.5" width="10" height="19" rx="2" />
                 <path d="M11 18h2" />
               </svg>
@@ -4493,16 +5074,36 @@ function Aquafulness() {
             <button
               onClick={toggleFullscreen}
               className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white/90 backdrop-blur-md transition active:scale-95 active:bg-white/15"
-              aria-label={isFullscreen ? "Avsluta helskärm" : "Helskärm"}
+              aria-label={isFullscreen ? t("hud.fullscreenExitAria") : t("hud.fullscreenEnterAria")}
               aria-pressed={isFullscreen}
-              title={isFullscreen ? "Avsluta helskärm" : "Helskärm"}
+              title={isFullscreen ? t("hud.fullscreenExitAria") : t("hud.fullscreenEnterAria")}
             >
               {isFullscreen ? (
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <svg
+                  viewBox="0 0 24 24"
+                  width="20"
+                  height="20"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
                   <path d="M9 4v4H5M15 4v4h4M9 20v-4H5M15 20v-4h4" />
                 </svg>
               ) : (
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <svg
+                  viewBox="0 0 24 24"
+                  width="20"
+                  height="20"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
                   <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
                 </svg>
               )}
@@ -4531,13 +5132,18 @@ function Aquafulness() {
             att inte tränga undan de andra spakarna. I GUNGA-läget styrs
             positionen helt av gungans fysik, så bara LOOK visas. */}
         {cameraMode !== "swing" && (
-          <Joystick onChange={setStick} value={stick} label="NAV" positionClass="bottom-6 left-6" />
+          <Joystick
+            onChange={setStick}
+            value={stick}
+            label={t("hud.joystick.nav")}
+            positionClass="bottom-6 left-6"
+          />
         )}
         {cameraMode === "float" && (
           <Joystick
             onChange={remoteControllerProps.onDriftChange}
             value={remoteControllerProps.driftStick}
-            label="STRÖM"
+            label={t("hud.joystick.current")}
             positionClass="bottom-36 left-6"
             sticky
           />
@@ -4546,7 +5152,7 @@ function Aquafulness() {
           <Joystick
             onChange={remoteControllerProps.onSwayChange}
             value={remoteControllerProps.swayStick}
-            label="SVAJ"
+            label={t("hud.joystick.sway")}
             positionClass="bottom-64 left-6"
             sticky
           />
@@ -4554,14 +5160,14 @@ function Aquafulness() {
         <Joystick
           onChange={setRotStick}
           value={rotStick}
-          label="LOOK"
+          label={t("hud.joystick.look")}
           positionClass="bottom-6 right-6"
         />
         {cameraMode === "float" && (
           <Joystick
             onChange={remoteControllerProps.onWaveDirChange}
             value={remoteControllerProps.waveDirStick}
-            label="VÅGRIKT"
+            label={t("hud.joystick.waveDirection")}
             positionClass="bottom-36 right-6"
             sticky
           />
@@ -4579,7 +5185,7 @@ function Aquafulness() {
             first pixel and made the first touch of the slider a cliff. */}
         <div className="pointer-events-auto absolute bottom-6 left-1/2 flex -translate-x-1/2 flex-col items-center gap-2">
           <PadSlider
-            label="VÅG"
+            label={t("hud.slider.wave")}
             value={waveAmp}
             min={0}
             max={100}
@@ -4589,7 +5195,7 @@ function Aquafulness() {
             onChange={setWaveAmp}
           />
           <PadSlider
-            label="TEMPO"
+            label={t("hud.slider.tempo")}
             value={waveSpeed}
             min={0}
             max={10}
@@ -4601,7 +5207,7 @@ function Aquafulness() {
           {/* Geometric, not power-curved: FREKVENS is a multiplier, so half
               speed (0.5×) and double (2×) should sit equally far from 1×. */}
           <PadSlider
-            label="FREKVENS"
+            label={t("hud.slider.frequency")}
             value={waveFreq}
             min={WAVE_FREQ_MIN}
             max={WAVE_FREQ_MAX}
@@ -4650,15 +5256,16 @@ function Aquafulness() {
           {intervalShowStats && (
             <div className="mb-2 flex justify-center px-4">
               <span className="rounded-full border border-white/15 bg-black/40 px-3 py-1 text-center text-[10px] font-light tracking-[0.15em] text-white/80 backdrop-blur-md">
-                {CAMERA_MODE_LABELS[cameraMode]} · {formatClock(curIntervalElapsed)}/
-                {formatClock(intervalDuration)} (kvar {formatClock(curIntervalRemaining)})
+                {t(CAMERA_MODE_LABEL_KEYS[cameraMode])} · {formatClock(curIntervalElapsed)}/
+                {formatClock(intervalDuration)} (
+                {t("hud.intervalRemaining", { time: formatClock(curIntervalRemaining) })})
                 {intervalSessionType === "fixed"
-                  ? ` · Intervall ${intervalIndex + 1}/${intervalCount}`
-                  : ` · Intervall ${intervalIndex + 1}`}
-                {" · Totalt "}
+                  ? ` · ${t("hud.intervalFixedLabel", { n: intervalIndex + 1, total: intervalCount })}`
+                  : ` · ${t("hud.intervalInfiniteLabel", { n: intervalIndex + 1 })}`}
+                {t("hud.totalLabel")}
                 {formatClock(intervalElapsedTotal)}
                 {totalPlannedDuration !== null
-                  ? `/${formatClock(totalPlannedDuration)} (kvar ${formatClock(totalIntervalRemaining!)})`
+                  ? `/${formatClock(totalPlannedDuration)} (${t("hud.intervalRemaining", { time: formatClock(totalIntervalRemaining!) })})`
                   : ""}
               </span>
             </div>
@@ -4699,18 +5306,41 @@ function Aquafulness() {
 // cells: pulsing LIVE badge, animated viewer counter, floating reaction
 // emojis. Purely presentational — no network, no analytics.
 // ---------------------------------------------------------------------------
-type Reaction = { id: number; emoji: string; x: number; drift: number; duration: number; scale: number };
+type Reaction = {
+  id: number;
+  emoji: string;
+  x: number;
+  drift: number;
+  duration: number;
+  scale: number;
+};
 
-const REACTION_EMOJIS = ["❤️", "👍", "✨", "🌊", "💧", "🙏", "😊", "💖", "🔥", "🫧", "☯️", "💫", "🧘", "🥰"];
+const REACTION_EMOJIS = [
+  "❤️",
+  "👍",
+  "✨",
+  "🌊",
+  "💧",
+  "🙏",
+  "😊",
+  "💖",
+  "🔥",
+  "🫧",
+  "☯️",
+  "💫",
+  "🧘",
+  "🥰",
+];
 
-function formatViewerCount(n: number): string {
-  if (n >= 1e9) return `${(n / 1e9).toFixed(2)} mdr`;
-  if (n >= 1e6) return `${(n / 1e6).toFixed(2)} mn`;
-  if (n >= 1e3) return `${(n / 1e3).toFixed(1)} t`;
+function formatViewerCount(n: number, t: (key: string) => string): string {
+  if (n >= 1e9) return `${(n / 1e9).toFixed(2)} ${t("live.viewerBillion")}`;
+  if (n >= 1e6) return `${(n / 1e6).toFixed(2)} ${t("live.viewerMillion")}`;
+  if (n >= 1e3) return `${(n / 1e3).toFixed(1)} ${t("live.viewerThousand")}`;
   return `${Math.round(n)}`;
 }
 
 function LiveBroadcast() {
+  const { t, i18n } = useTranslation();
   // Base ~28 billion cells; wander with correlated random walk so it feels alive.
   const [viewers, setViewers] = useState<number>(28_000_000_000);
   const [likes, setLikes] = useState<number>(0);
@@ -4731,7 +5361,10 @@ function LiveBroadcast() {
       });
     };
     const id = window.setInterval(tick, 700);
-    return () => { alive = false; window.clearInterval(id); };
+    return () => {
+      alive = false;
+      window.clearInterval(id);
+    };
   }, []);
 
   // Likes trickle in.
@@ -4771,7 +5404,10 @@ function LiveBroadcast() {
       timeoutId = window.setTimeout(spawn, 260 + Math.random() * 620);
     };
     timeoutId = window.setTimeout(spawn, 400);
-    return () => { alive = false; window.clearTimeout(timeoutId); };
+    return () => {
+      alive = false;
+      window.clearTimeout(timeoutId);
+    };
   }, []);
 
   return (
@@ -4801,28 +5437,42 @@ function LiveBroadcast() {
             style={{ animation: "aq-live-pulse 1.4s ease-in-out infinite" }}
             aria-hidden="true"
           />
-          <span className="text-[10px] font-bold tracking-[0.25em]">LIVE</span>
+          <span className="text-[10px] font-bold tracking-[0.25em]">{t("live.badge")}</span>
         </div>
         <div
           className="flex items-center gap-1.5 rounded-md bg-black/55 px-2 py-1 text-white/95 backdrop-blur-sm"
           style={{ animation: "aq-viewer-blip 2.6s ease-in-out infinite" }}
         >
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <svg
+            viewBox="0 0 24 24"
+            width="14"
+            height="14"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
             <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" />
             <circle cx="12" cy="12" r="3" />
           </svg>
-          <span className="text-[11px] font-medium tabular-nums tracking-wide">{formatViewerCount(viewers)}</span>
-          <span className="text-[9px] text-white/60">celler</span>
+          <span className="text-[11px] font-medium tabular-nums tracking-wide">
+            {formatViewerCount(viewers, t)}
+          </span>
+          <span className="text-[9px] text-white/60">{t("live.cellsUnit")}</span>
         </div>
         <div className="rounded-md bg-black/45 px-2 py-1 text-[10px] text-white/80 backdrop-blur-sm">
-          Qi-flöde till 28 mdr följare
+          {t("live.followerFlow")}
         </div>
       </div>
 
       {/* Bottom-left engagement counter */}
       <div className="absolute bottom-[calc(env(safe-area-inset-bottom,0px)+8rem)] right-4 flex items-center gap-1.5 rounded-full bg-black/50 px-2.5 py-1 text-white/95 backdrop-blur-sm">
         <span className="text-sm leading-none">❤️</span>
-        <span className="text-[11px] font-medium tabular-nums">{likes.toLocaleString("sv-SE")}</span>
+        <span className="text-[11px] font-medium tabular-nums">
+          {likes.toLocaleString(i18n.language)}
+        </span>
       </div>
 
       {/* Floating reactions rising from the bottom-right */}
@@ -4831,15 +5481,17 @@ function LiveBroadcast() {
           <span
             key={r.id}
             className="absolute select-none"
-            style={{
-              left: `${r.x}vw`,
-              bottom: "6rem",
-              fontSize: "26px",
-              filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.4))",
-              animation: `aq-reaction-rise ${r.duration}ms ease-out forwards`,
-              ["--aq-dx" as string]: `${r.drift}vw`,
-              ["--aq-s" as string]: r.scale,
-            } as React.CSSProperties}
+            style={
+              {
+                left: `${r.x}vw`,
+                bottom: "6rem",
+                fontSize: "26px",
+                filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.4))",
+                animation: `aq-reaction-rise ${r.duration}ms ease-out forwards`,
+                ["--aq-dx" as string]: `${r.drift}vw`,
+                ["--aq-s" as string]: r.scale,
+              } as React.CSSProperties
+            }
             aria-hidden="true"
           >
             {r.emoji}
