@@ -14,6 +14,7 @@
   "common": {
     "against": "AGAINST",
     "auto": "AUTO",
+    "cancel": "CANCEL",
     "decreaseAria": "{{label}} decrease",
     "high": "HÖG",
     "increaseAria": "{{label}} increase",
@@ -299,6 +300,10 @@
     "invalidPresetFile": "Could not read the preset file — make sure it's a valid JSON file.",
     "invalidStateFile": "Could not read the state file — make sure it's a valid JSON file.",
     "load": "LOAD",
+    "loadConfirm": "This replaces your current settings for this scope. Unsaved changes will be lost.",
+    "loadConfirmTitle": "Load this preset?",
+    "loadStateConfirm": "This replaces your current settings, position, look and current. Unsaved changes will be lost.",
+    "loadStateConfirmTitle": "Load this state?",
     "save": "SAVE",
     "savePromptTitle": "Save as:",
     "saveStatePromptTitle": "Save state as:",
@@ -332,6 +337,8 @@
   "settings": {
     "reset": "RESET",
     "resetAriaLabel": "Reset controls to default values",
+    "resetConfirm": "This resets all controls to their default values (time of day is not affected).",
+    "resetConfirmTitle": "Reset to defaults?",
     "resetTitle": "Reset controls (time of day is not affected)",
     "restore": "RESTORE",
     "restoreAriaLabel": "Return to the last saved camera position",

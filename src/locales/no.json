@@ -14,6 +14,7 @@
   "common": {
     "against": "MOT",
     "auto": "AUTO",
+    "cancel": "AVBRYT",
     "decreaseAria": "{{label}} reduser",
     "high": "HØY",
     "increaseAria": "{{label}} øk",
@@ -299,6 +300,10 @@
     "invalidPresetFile": "Kunne ikke lese presetfilen — kontroller at den er en gyldig JSON-fil.",
     "invalidStateFile": "Kunne ikke lese tilstandsfilen — kontroller at den er en gyldig JSON-fil.",
     "load": "LAST INN",
+    "loadConfirm": "Dette erstatter dine nåværende innstillinger for dette området. Ulagrede endringer går tapt.",
+    "loadConfirmTitle": "Laste inn denne forhåndsinnstillingen?",
+    "loadStateConfirm": "Dette erstatter dine nåværende innstillinger, posisjon, retning og strøm. Ulagrede endringer går tapt.",
+    "loadStateConfirmTitle": "Laste inn denne tilstanden?",
     "save": "LAGRE",
     "savePromptTitle": "Lagre som:",
     "saveStatePromptTitle": "Lagre tilstand som:",
@@ -332,6 +337,8 @@
   "settings": {
     "reset": "TILBAKESTILL",
     "resetAriaLabel": "Tilbakestill kontroller til standardverdier",
+    "resetConfirm": "Dette tilbakestiller alle kontroller til standardverdiene (tid på døgnet påvirkes ikke).",
+    "resetConfirmTitle": "Tilbakestille til standard?",
     "resetTitle": "Tilbakestill kontroller (tid på døgnet påvirkes ikke)",
     "restore": "TILBAKE",
     "restoreAriaLabel": "Gå tilbake til sist lagrede kameraposisjon",
