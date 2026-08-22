@@ -14,6 +14,7 @@
   "common": {
     "against": "MOD",
     "auto": "AUTO",
+    "cancel": "ANNULLÉR",
     "decreaseAria": "{{label}} formindsk",
     "high": "HØJ",
     "increaseAria": "{{label}} forøg",
@@ -299,6 +300,10 @@
     "invalidPresetFile": "Kunne ikke læse presetfilen — kontrollér at den er en gyldig JSON-fil.",
     "invalidStateFile": "Kunne ikke læse tilstandsfilen — kontrollér at den er en gyldig JSON-fil.",
     "load": "INDLÆS",
+    "loadConfirm": "Dette erstatter dine nuværende indstillinger for dette område. Ikke-gemte ændringer går tabt.",
+    "loadConfirmTitle": "Indlæs denne forudindstilling?",
+    "loadStateConfirm": "Dette erstatter dine nuværende indstillinger, position, retning og strøm. Ikke-gemte ændringer går tabt.",
+    "loadStateConfirmTitle": "Indlæs denne tilstand?",
     "save": "GEM",
     "savePromptTitle": "Gem som:",
     "saveStatePromptTitle": "Gem tilstand som:",
@@ -332,6 +337,8 @@
   "settings": {
     "reset": "NULSTIL",
     "resetAriaLabel": "Nulstil kontroller til standardværdier",
+    "resetConfirm": "Dette nulstiller alle kontroller til deres standardværdier (tidspunkt på dagen påvirkes ikke).",
+    "resetConfirmTitle": "Nulstil til standard?",
     "resetTitle": "Nulstil kontroller (tidspunkt på dagen påvirkes ikke)",
     "restore": "GENDAN",
     "restoreAriaLabel": "Vend tilbage til senest gemte kameraposition",

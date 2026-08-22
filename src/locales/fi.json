@@ -14,6 +14,7 @@
   "common": {
     "against": "VASTAAN",
     "auto": "AUTO",
+    "cancel": "PERUUTA",
     "decreaseAria": "{{label}} pienennä",
     "high": "KORKEA",
     "increaseAria": "{{label}} suurenna",
@@ -299,6 +300,10 @@
     "invalidPresetFile": "Esiasetustiedostoa ei voitu lukea — varmista, että se on kelvollinen JSON-tiedosto.",
     "invalidStateFile": "Tilatiedostoa ei voitu lukea — varmista, että se on kelvollinen JSON-tiedosto.",
     "load": "LATAA",
+    "loadConfirm": "Tämä korvaa nykyiset asetuksesi tälle alueelle. Tallentamattomat muutokset menetetään.",
+    "loadConfirmTitle": "Ladataanko tämä esiasetus?",
+    "loadStateConfirm": "Tämä korvaa nykyiset asetuksesi, sijaintisi, katseesi ja virtauksen. Tallentamattomat muutokset menetetään.",
+    "loadStateConfirmTitle": "Ladataanko tämä tila?",
     "save": "TALLENNA",
     "savePromptTitle": "Tallenna nimellä:",
     "saveStatePromptTitle": "Tallenna tila nimellä:",
@@ -332,6 +337,8 @@
   "settings": {
     "reset": "NOLLAA",
     "resetAriaLabel": "Palauta säätimet oletusarvoihin",
+    "resetConfirm": "Tämä palauttaa kaikki säätimet oletusarvoihinsa (vuorokaudenaika ei muutu).",
+    "resetConfirmTitle": "Palautetaanko oletusarvot?",
     "resetTitle": "Palauta säätimet (vuorokaudenaika ei muutu)",
     "restore": "PALAUTA",
     "restoreAriaLabel": "Palaa viimeksi tallennettuun kameran sijaintiin",

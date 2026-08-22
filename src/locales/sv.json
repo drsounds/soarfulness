@@ -14,6 +14,7 @@
   "common": {
     "against": "MOT",
     "auto": "AUTO",
+    "cancel": "AVBRYT",
     "decreaseAria": "{{label}} minska",
     "high": "HÖG",
     "increaseAria": "{{label}} öka",
@@ -299,6 +300,10 @@
     "invalidPresetFile": "Kunde inte läsa presetfilen — kontrollera att den är en giltig JSON-fil.",
     "invalidStateFile": "Kunde inte läsa tillståndsfilen — kontrollera att den är en giltig JSON-fil.",
     "load": "LÄS IN",
+    "loadConfirm": "Detta ersätter dina nuvarande inställningar för detta område. Osparade ändringar går förlorade.",
+    "loadConfirmTitle": "Läsa in denna förinställning?",
+    "loadStateConfirm": "Detta ersätter dina nuvarande inställningar, position, riktning och ström. Osparade ändringar går förlorade.",
+    "loadStateConfirmTitle": "Läsa in detta tillstånd?",
     "save": "SPARA",
     "savePromptTitle": "Spara som:",
     "saveStatePromptTitle": "Spara tillstånd som:",
@@ -332,6 +337,8 @@
   "settings": {
     "reset": "ÅTERSTÄLL",
     "resetAriaLabel": "Återställ reglage till standardvärden",
+    "resetConfirm": "Detta återställer alla reglage till standardvärden (tid på dygnet påverkas inte).",
+    "resetConfirmTitle": "Återställa till standard?",
     "resetTitle": "Återställ reglage (tid på dygnet påverkas inte)",
     "restore": "ÅTERGÅ",
     "restoreAriaLabel": "Återgå till senast sparade kameraposition",

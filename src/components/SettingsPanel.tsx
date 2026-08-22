@@ -1,6 +1,7 @@
 import { useState, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 import { useTranslation } from "react-i18next";
 import { PadDial } from "@/components/PadDial";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import {
   SETTINGS_TABS,
   WATER_TINTS,
@@ -416,6 +417,7 @@ function PresetControls({
   const { t } = useTranslation();
   const scoped = savedPresets.filter((p) => p.scope === scope);
   const [selected, setSelected] = useState("");
+  const [confirmLoadOpen, setConfirmLoadOpen] = useState(false);
   const activeId = scoped.some((p) => p.id === selected) ? selected : "";
   const btnClass =
     "rounded-full border border-white/15 bg-white/5 px-2.5 py-0.5 text-[9px] font-light tracking-wider text-white/70 transition active:scale-95 active:bg-white/15 disabled:opacity-30";
@@ -459,7 +461,7 @@ function PresetControls({
           </select>
           <button
             disabled={!activeId}
-            onClick={() => activeId && loadSavedPreset(activeId)}
+            onClick={() => activeId && setConfirmLoadOpen(true)}
             className={btnClass}
           >
             {t("presets.load")}
@@ -476,6 +478,18 @@ function PresetControls({
           >
             {t("presets.delete")}
           </button>
+          <ConfirmDialog
+            open={confirmLoadOpen}
+            title={t("presets.loadConfirmTitle")}
+            message={t("presets.loadConfirm")}
+            confirmLabel={t("presets.load")}
+            cancelLabel={t("common.cancel")}
+            onCancel={() => setConfirmLoadOpen(false)}
+            onConfirm={() => {
+              setConfirmLoadOpen(false);
+              if (activeId) loadSavedPreset(activeId);
+            }}
+          />
         </>
       )}
     </div>
@@ -505,6 +519,7 @@ function StateControls({
 }) {
   const { t } = useTranslation();
   const [selected, setSelected] = useState("");
+  const [confirmLoadOpen, setConfirmLoadOpen] = useState(false);
   const activeId = savedStates.some((s) => s.id === selected) ? selected : "";
   const btnClass =
     "rounded-full border border-white/15 bg-white/5 px-2.5 py-0.5 text-[9px] font-light tracking-wider text-white/70 transition active:scale-95 active:bg-white/15 disabled:opacity-30";
@@ -545,7 +560,7 @@ function StateControls({
           </select>
           <button
             disabled={!activeId}
-            onClick={() => activeId && loadSavedStateById(activeId)}
+            onClick={() => activeId && setConfirmLoadOpen(true)}
             className={btnClass}
           >
             {t("presets.load")}
@@ -562,6 +577,18 @@ function StateControls({
           >
             {t("presets.delete")}
           </button>
+          <ConfirmDialog
+            open={confirmLoadOpen}
+            title={t("presets.loadStateConfirmTitle")}
+            message={t("presets.loadStateConfirm")}
+            confirmLabel={t("presets.load")}
+            cancelLabel={t("common.cancel")}
+            onCancel={() => setConfirmLoadOpen(false)}
+            onConfirm={() => {
+              setConfirmLoadOpen(false);
+              if (activeId) loadSavedStateById(activeId);
+            }}
+          />
         </>
       )}
     </div>
@@ -820,6 +847,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
 
   const { t } = useTranslation();
   const onOff = (v: boolean) => (v ? t("common.on") : t("common.off"));
+  const [confirmResetOpen, setConfirmResetOpen] = useState(false);
 
   return (
     <>
@@ -838,13 +866,25 @@ export function SettingsPanel(props: SettingsPanelProps) {
             {t("settings.restore")}
           </button>
           <button
-            onClick={resetToDefaults}
+            onClick={() => setConfirmResetOpen(true)}
             className="rounded-full border border-white/20 bg-white/5 px-3 py-1 text-[9px] font-light tracking-wider text-white/80 transition active:scale-95 active:bg-white/15"
             aria-label={t("settings.resetAriaLabel")}
             title={t("settings.resetTitle")}
           >
             {t("settings.reset")}
           </button>
+          <ConfirmDialog
+            open={confirmResetOpen}
+            title={t("settings.resetConfirmTitle")}
+            message={t("settings.resetConfirm")}
+            confirmLabel={t("settings.reset")}
+            cancelLabel={t("common.cancel")}
+            onCancel={() => setConfirmResetOpen(false)}
+            onConfirm={() => {
+              setConfirmResetOpen(false);
+              resetToDefaults();
+            }}
+          />
         </div>
       </div>
       <div
