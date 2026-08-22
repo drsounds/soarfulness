@@ -23,6 +23,7 @@
     "off": "POIS",
     "on": "PÄÄLLÄ",
     "opacity": "PEITTÄVYYS",
+    "resetAria": "{{label}} nollaa",
     "texture": "TEKSTUURI",
     "with": "MYÖTÄ"
   },

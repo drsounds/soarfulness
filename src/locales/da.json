@@ -23,6 +23,7 @@
     "off": "SLUKKET",
     "on": "TÆND",
     "opacity": "OPACITET",
+    "resetAria": "{{label}} nulstil",
     "texture": "TEKSTUR",
     "with": "MED"
   },
