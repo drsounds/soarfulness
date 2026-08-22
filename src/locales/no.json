@@ -23,6 +23,7 @@
     "off": "AV",
     "on": "PÅ",
     "opacity": "OPASITET",
+    "resetAria": "{{label}} tilbakestill",
     "texture": "TEKSTUR",
     "with": "MED"
   },

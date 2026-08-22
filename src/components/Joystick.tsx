@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import { useTranslation } from "react-i18next";
 
 export type StickValue = { x: number; y: number };
 
@@ -21,23 +22,15 @@ export function JoystickPad({
   sticky?: boolean;
   radius?: number;
 }) {
+  const { t } = useTranslation();
   const baseRef = useRef<HTMLDivElement>(null);
   const activeId = useRef<number | null>(null);
-  const startPt = useRef<{ x: number; y: number } | null>(null);
-  const moved = useRef(false);
-  // Sticky joysticks only snap right at the center, so a release/tap there
-  // reliably zeroes them out — everything past that is left alone for full,
-  // fine-grained control instead of being squeezed into a smaller range.
-  const deadzone = sticky ? 0.02 : 0;
 
-  const emit = (nx: number, ny: number) => {
-    if (deadzone > 0 && Math.hypot(nx, ny) < deadzone) {
-      onChange({ x: 0, y: 0 });
-    } else {
-      onChange({ x: nx, y: ny });
-    }
-  };
-
+  // No deadzone: sticky pads used to snap to (0,0) whenever a drag or tap
+  // landed within ~2% of center, which made it impossible to hold a small,
+  // deliberate value right next to the middle. Full, uninterrupted travel is
+  // reported now; sticky pads get an explicit reset button below instead of
+  // relying on that implicit snap to get back to zero.
   const setFromPointer = (clientX: number, clientY: number) => {
     const base = baseRef.current;
     if (!base) return;
@@ -51,37 +44,25 @@ export function JoystickPad({
       dx = (dx / dist) * radius;
       dy = (dy / dist) * radius;
     }
-    emit(dx / radius, -dy / radius);
+    onChange({ x: dx / radius, y: -dy / radius });
   };
 
   return (
     <div
       ref={baseRef}
-      onDoubleClick={() => {
-        if (sticky) onChange({ x: 0, y: 0 });
-      }}
       onPointerDown={(e) => {
         if (activeId.current !== null) return;
         activeId.current = e.pointerId;
-        startPt.current = { x: e.clientX, y: e.clientY };
-        moved.current = false;
         (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
         setFromPointer(e.clientX, e.clientY);
       }}
       onPointerMove={(e) => {
         if (activeId.current !== e.pointerId) return;
-        if (startPt.current) {
-          const d = Math.hypot(e.clientX - startPt.current.x, e.clientY - startPt.current.y);
-          if (d > 4) moved.current = true;
-        }
         setFromPointer(e.clientX, e.clientY);
       }}
       onPointerUp={(e) => {
         if (activeId.current !== e.pointerId) return;
         activeId.current = null;
-        // Sticky: a tap without meaningful movement clears the stick
-        // (so grazing/pressing lightly doesn't leave a stuck drift).
-        if (sticky && !moved.current) onChange({ x: 0, y: 0 });
         if (!sticky) onChange({ x: 0, y: 0 });
       }}
       onPointerCancel={() => {
@@ -101,6 +82,29 @@ export function JoystickPad({
       <span className="pointer-events-none absolute inset-x-0 top-1 text-center text-[8px] font-light tracking-[0.28em] text-white/60">
         {label}
       </span>
+      {sticky && (
+        <button
+          type="button"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={() => onChange({ x: 0, y: 0 })}
+          aria-label={t("common.resetAria", { label })}
+          tabIndex={-1}
+          className="pointer-events-auto absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full border border-white/25 bg-black/50 text-white/70 transition hover:border-white/50 hover:text-white active:scale-95"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-3 w-3"
+          >
+            <path d="M3 12a9 9 0 1 0 3-6.7" />
+            <path d="M3 4v5h5" />
+          </svg>
+        </button>
+      )}
     </div>
   );
 }

@@ -1005,10 +1005,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
               rawValue={swayAmp}
               onSet={setSwayAmp}
               min={0}
-              max={30}
+              max={60}
               step={0.5}
               onDec={() => setSwayAmp((v) => Math.max(0, +(v - 0.5).toFixed(2)))}
-              onInc={() => setSwayAmp((v) => Math.min(30, +(v + 0.5).toFixed(2)))}
+              onInc={() => setSwayAmp((v) => Math.min(60, +(v + 0.5).toFixed(2)))}
             />
             <PadDial
               label={t("dial.wave.swaySpeed")}

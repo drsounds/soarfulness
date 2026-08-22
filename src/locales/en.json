@@ -23,6 +23,7 @@
     "off": "OFF",
     "on": "ON",
     "opacity": "OPACITY",
+    "resetAria": "{{label}} reset",
     "texture": "TEXTURE",
     "with": "WITH"
   },

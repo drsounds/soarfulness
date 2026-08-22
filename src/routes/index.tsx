@@ -3893,8 +3893,8 @@ function Aquafulness() {
       // virvelns centrum, stick.x = vridriktning kring virveln.
       const camMode = cameraModeRef.current;
       const inVortex = camMode === "float" && vortexModeRef.current;
-      const walkSpeed = 8; // m/s at full deflection
-      const driftSpeed = 2.2; // m/s at full deflection — mjukare än aktiv rörelse
+      const walkSpeed = 16; // m/s at full deflection
+      const driftSpeed = 4.4; // m/s at full deflection — mjukare än aktiv rörelse
       let camX: number, camZ: number;
       if (camMode === "noclip") {
         // Free 3D flight, no wave physics: NAV's y-axis moves along the full
@@ -4238,7 +4238,7 @@ function Aquafulness() {
         if (Math.abs(dirX) + Math.abs(dirZ) > 0.001) {
           // Base amplitude scale in meters — reuse SVAJ dial if set, otherwise
           // give the pad its own reasonable range so it works standalone.
-          const padAmp = swAmp > 0.001 ? swAmp : 6;
+          const padAmp = swAmp > 0.001 ? swAmp : 12;
           swayTargetX += padAmp * dirX * heaveNorm;
           swayTargetZ += padAmp * dirZ * heaveNorm;
         }
