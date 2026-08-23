@@ -2329,7 +2329,11 @@ function Aquafulness() {
 
   // Screen Wake Lock: keep the display awake while the app is active.
   // The lock is automatically released when the page is hidden, so we
-  // re-request it when the tab becomes visible again.
+  // re-request it when the tab becomes visible again. The OS/browser can
+  // also drop the lock on its own while the page stays visible (observed
+  // on Android Chrome under thermal throttling); the sentinel's "release"
+  // event fires either way, so we re-acquire there too unless it was us
+  // releasing it on purpose (tab hide, toggle off, unmount).
   useEffect(() => {
     if (typeof window === "undefined") return;
     const nav = navigator as Navigator & {
@@ -2339,6 +2343,7 @@ function Aquafulness() {
 
     let sentinel: WakeLockSentinel | null = null;
     let active = true;
+    let releasingManually = false;
 
     const request = async () => {
       if (!wakeLock || document.hidden) return;
@@ -2353,6 +2358,13 @@ function Aquafulness() {
         sentinel = s;
         s.addEventListener("release", () => {
           sentinel = null;
+          if (releasingManually) {
+            releasingManually = false;
+            return;
+          }
+          if (active && wakeLock && !document.hidden) {
+            request();
+          }
         });
       } catch {
         // User gesture or permission may be missing — silently fail.
@@ -2361,8 +2373,9 @@ function Aquafulness() {
 
     const release = () => {
       if (sentinel) {
+        releasingManually = true;
         sentinel.release().catch(() => {
-          /* noop */
+          releasingManually = false;
         });
         sentinel = null;
       }
