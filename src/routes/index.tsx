@@ -492,6 +492,14 @@ const WAVE_PRESETS: Record<
 const DEFAULTS: Persisted = {
   ...WAVE_PRESETS.standard,
   wavePreset: "standard",
+  // Overrides on top of the "standard" wave preset — the app's default
+  // initial state (see aquafulness-state export) tunes these away from that
+  // preset's own values.
+  waveAmp: 2.94,
+  waveSpeed: 5.21,
+  waveFreq: 0.51,
+  realisticWaves: false,
+  regularCross: false,
   // Off by default: the FFT wave modes stay the same fixed shape every load
   // (see FFT_WAVE_SEED/DYING_WAVE_SEED above) rather than reshuffling.
   randomizeWaves: false,
@@ -502,30 +510,30 @@ const DEFAULTS: Persisted = {
   submergeAmp: 0,
   floatLift: 0,
   camOffX: 0,
-  camOffY: 0,
+  camOffY: -0.1,
   camOffZ: 0,
-  audioOn: false,
+  audioOn: true,
   audioVol: 0.8,
   audioSyncSpeed: false,
   audioSpatial: false,
-  waterTintIdx: 1,
-  waterOpacity: 1,
+  waterTintIdx: 4,
+  waterOpacity: 0.5,
   waterHue: 0,
-  waterSat: 1,
+  waterSat: 0.95,
   waterBright: 1,
   surfBright: 1,
   surfSat: 1,
   turbidity: 0,
-  bottomIdx: 2,
+  bottomIdx: 0,
   leanEnabled: false,
   // Off by default: an optional "swimming goggles" overlay — static water
   // droplets on the lens, plus an optional whole-screen blur (0 = none).
   gogglesOn: false,
   gogglesBlur: 0,
-  // Off by default: droplets fade out approaching the waterline and recycle
-  // above it. On disables that recycling entirely so droplets just keep
-  // falling and wrap from the top, for an unbroken continuous stream.
-  gogglesLoop: false,
+  // On by default: droplets just keep falling and wrap from the top for an
+  // unbroken continuous stream, rather than fading out approaching the
+  // waterline and recycling above it.
+  gogglesLoop: true,
   // Maps to a droplet count via GogglesOverlay's MIN_DROPLETS/MAX_DROPLETS —
   // 0.5 lands on 22, this effect's original fixed count.
   gogglesIntensity: 0.5,
@@ -542,15 +550,15 @@ const DEFAULTS: Persisted = {
   // Both default to a conservative preset since this scene is expensive
   // (FFT ocean, reflections, torus rings) and many devices can't sustain a
   // full-resolution 60fps render.
-  targetFps: 30,
-  resolutionScale: 0.75,
+  targetFps: 40,
+  resolutionScale: 0.5,
   waveHighQuality: true,
   backdropIdx: 0,
   wakeLock: true,
-  camFov: 65,
+  camFov: 77,
   camNear: 5,
-  camFar: 50000,
-  waveDir: 0,
+  camFar: 100000,
+  waveDir: 109.07895869915376,
   floorDepth: 28,
   floorTexture: true,
   vortexMode: false,
@@ -563,7 +571,7 @@ const DEFAULTS: Persisted = {
   hideWater: false,
   midCloudsOn: false,
   midCloudsHeight: 0.5,
-  skyCloudsOn: false,
+  skyCloudsOn: true,
   skyCloudsHeight: 0.4,
   swayAmp: 0,
   swaySpeed: 0.15,
@@ -573,10 +581,10 @@ const DEFAULTS: Persisted = {
   // independently-aimed controls.
   syncWaveWithSway: true,
   liveMode: false,
-  sceneId: null,
-  envId: null,
-  envEra: null,
-  envTime: null,
+  sceneId: "Strandpark",
+  envId: "vanern",
+  envEra: "future",
+  envTime: "day",
   surfaceId: null,
   reflStrength: 1,
   bottomColor: "#8a7550",
@@ -595,13 +603,13 @@ const DEFAULTS: Persisted = {
   // CHROMATIC_ABERRATION_SHADER above. chromaticAberrationAmount is the
   // dial's 0..1 value (shown as a %), independent of whether the effect is on.
   chromaticAberrationOn: false,
-  chromaticAberrationAmount: 0.4,
+  chromaticAberrationAmount: 0.3,
   cameraMode: "float",
   noclipSpeed: 1,
   swingPositionY: 25,
   swingIntensity: 0.3,
   swingXFactor: 0,
-  swingHeight: 50000,
+  swingHeight: 20000,
   swingPreset: "water",
   swingYWaveform: "pendulum",
   // Interval session off by default; a 30s FRI/GUNGA alternation running
@@ -611,7 +619,7 @@ const DEFAULTS: Persisted = {
   intervalSessionType: "infinite",
   intervalCount: 6,
   intervalShowStats: true,
-  surfaceArea: 150000,
+  surfaceArea: 1000,
   // Floating torus "bath rings" field — off by default so existing scenes
   // look unchanged until explicitly turned on. Defaults per the feature
   // spec: emissive white, 50% opacity.
