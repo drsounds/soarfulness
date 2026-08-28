@@ -32,6 +32,7 @@
     "audio": {
       "off": "SOUND OFF",
       "on": "SOUND ON",
+      "sound": "WATER SOUND",
       "spatial": "SPATIAL",
       "syncSpeed": "SOUND SYNC"
     },
@@ -246,6 +247,10 @@
     "torusTexture": {
       "off": "OFF",
       "sand": "Sand"
+    },
+    "waterSound": {
+      "advanced": "Advanced",
+      "simple": "Simple"
     },
     "waterTint": {
       "archipelago": "Archipelago",

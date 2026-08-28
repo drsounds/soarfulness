@@ -32,6 +32,7 @@
     "audio": {
       "off": "LJUD AV",
       "on": "LJUD PÅ",
+      "sound": "VATTENLJUD",
       "spatial": "SPATIAL",
       "syncSpeed": "LJUDSYNK"
     },
@@ -246,6 +247,10 @@
     "torusTexture": {
       "off": "AV",
       "sand": "Sand"
+    },
+    "waterSound": {
+      "advanced": "Avancerat",
+      "simple": "Enkelt"
     },
     "waterTint": {
       "archipelago": "Skärgård",

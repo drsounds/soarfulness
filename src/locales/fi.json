@@ -32,6 +32,7 @@
     "audio": {
       "off": "ÄÄNI POIS",
       "on": "ÄÄNI PÄÄLLÄ",
+      "sound": "VEDEN ÄÄNI",
       "spatial": "TILALLINEN",
       "syncSpeed": "ÄÄNISYNKRONOINTI"
     },
@@ -246,6 +247,10 @@
     "torusTexture": {
       "off": "POIS",
       "sand": "Hiekka"
+    },
+    "waterSound": {
+      "advanced": "Edistynyt",
+      "simple": "Yksinkertainen"
     },
     "waterTint": {
       "archipelago": "Saaristo",

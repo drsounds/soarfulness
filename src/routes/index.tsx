@@ -22,6 +22,7 @@ import {
   WATER_TINTS,
   BOTTOM_OPTIONS,
   BACKDROPS,
+  WATER_SOUNDS,
   SETTINGS_TABS,
   CAMERA_MODES,
   CAMERA_MODE_LABEL_KEYS,
@@ -73,7 +74,6 @@ import {
   K_ALIAS_FADE_GLSL,
   type OceanWaveComponent,
 } from "@/lib/ocean/fftOceanSpectrum";
-import waterAsset from "@/assets/water.mp3.asset.json";
 import sandTextureAsset from "@/assets/sand_cc0_512.jpg.asset.json";
 import appIconAsset from "@/assets/AppIconBlack.png.asset.json";
 
@@ -516,6 +516,7 @@ const DEFAULTS: Persisted = {
   audioVol: 0.8,
   audioSyncSpeed: false,
   audioSpatial: false,
+  waterSoundIdx: 1,
   waterTintIdx: 4,
   waterOpacity: 0.5,
   waterHue: 0,
@@ -744,6 +745,7 @@ function Aquafulness() {
   const [audioVol, setAudioVol] = useState(initial.audioVol);
   const [audioSyncSpeed, setAudioSyncSpeed] = useState(initial.audioSyncSpeed);
   const [audioSpatial, setAudioSpatial] = useState(initial.audioSpatial);
+  const [waterSoundIdx, setWaterSoundIdx] = useState(initial.waterSoundIdx);
   const [waterTintIdx, setWaterTintIdx] = useState(initial.waterTintIdx);
   const [waterOpacity, setWaterOpacity] = useState(initial.waterOpacity);
   const [waterHue, setWaterHue] = useState(initial.waterHue);
@@ -1000,6 +1002,7 @@ function Aquafulness() {
     audioVol,
     audioSyncSpeed,
     audioSpatial,
+    waterSoundIdx,
     waterTintIdx,
     waterOpacity,
     waterHue,
@@ -1118,6 +1121,7 @@ function Aquafulness() {
     audioVol,
     audioSyncSpeed,
     audioSpatial,
+    waterSoundIdx,
     waterTintIdx,
     waterOpacity,
     waterHue,
@@ -1756,6 +1760,7 @@ function Aquafulness() {
     setAudioVol(DEFAULTS.audioVol);
     setAudioSyncSpeed(DEFAULTS.audioSyncSpeed);
     setAudioSpatial(DEFAULTS.audioSpatial);
+    setWaterSoundIdx(DEFAULTS.waterSoundIdx);
     setWaterTintIdx(DEFAULTS.waterTintIdx);
     setWaterOpacity(DEFAULTS.waterOpacity);
     setWaterHue(DEFAULTS.waterHue);
@@ -1868,6 +1873,7 @@ function Aquafulness() {
     if (patch.audioVol !== undefined) setAudioVol(patch.audioVol);
     if (patch.audioSyncSpeed !== undefined) setAudioSyncSpeed(patch.audioSyncSpeed);
     if (patch.audioSpatial !== undefined) setAudioSpatial(patch.audioSpatial);
+    if (patch.waterSoundIdx !== undefined) setWaterSoundIdx(patch.waterSoundIdx);
     if (patch.waterTintIdx !== undefined) setWaterTintIdx(patch.waterTintIdx);
     if (patch.waterOpacity !== undefined) setWaterOpacity(patch.waterOpacity);
     if (patch.waterHue !== undefined) setWaterHue(patch.waterHue);
@@ -2258,8 +2264,9 @@ function Aquafulness() {
     u.uReflMix.value = Math.max(0, Math.min(1, reflBaseRef.current * reflStrengthRef.current));
   };
 
-  // Ocean sound: loop the recorded water track through a lowpass + depth gain
-  // so we can still muffle & boost it based on how deep the camera is.
+  // Ocean sound: loop the selected recorded water track (see WATER_SOUNDS)
+  // through a lowpass + depth gain so we can still muffle & boost it based
+  // on how deep the camera is.
   useEffect(() => {
     if (!audioOn) {
       if (audioRef.current) {
@@ -2283,12 +2290,29 @@ function Aquafulness() {
       }
       return;
     }
+    // This effect also re-runs when the selected water sound changes while
+    // audio is already on, so tear down any existing graph immediately
+    // (no fade — it's a deliberate track swap, not a mute) before rebuilding.
+    if (audioRef.current) {
+      const prev = audioRef.current;
+      try {
+        prev.el.pause();
+      } catch {
+        /* noop */
+      }
+      try {
+        prev.ctx.close();
+      } catch {
+        /* noop */
+      }
+      audioRef.current = null;
+    }
     const Ctx =
       window.AudioContext ||
       (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     const ctx = new Ctx();
 
-    const el = new Audio(waterAsset.url);
+    const el = new Audio(WATER_SOUNDS[waterSoundIdx]?.url ?? WATER_SOUNDS[0].url);
     el.loop = true;
     el.crossOrigin = "anonymous";
     el.preload = "auto";
@@ -2318,7 +2342,7 @@ function Aquafulness() {
     master.gain.setTargetAtTime(audioVol, ctx.currentTime, 0.6);
 
     audioRef.current = { ctx, el, master, depthGain, lp };
-  }, [audioOn]);
+  }, [audioOn, waterSoundIdx]);
 
   // React to volume changes
   useEffect(() => {
@@ -5045,6 +5069,8 @@ function Aquafulness() {
     setAudioSyncSpeed,
     audioSpatial,
     setAudioSpatial,
+    waterSoundIdx,
+    setWaterSoundIdx,
   };
 
   // STRÖM/HÖJD/SVAJ/VÅGRIKT — every on-screen joystick except NAV and LOOK —
