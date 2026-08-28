@@ -135,6 +135,8 @@
       "bottomColor": "BUNNFARGE",
       "brightness": "LYSSTYRKE",
       "caustics": "EKTE KAUSTIKK",
+      "color": "VANN",
+      "colorAlpha": "FARGE ALFA",
       "depth": "DYBDE",
       "depthSine": "DYBDE-SINUS",
       "floorTexture": "TEKSTUR",
@@ -152,7 +154,6 @@
         "hide": "SKJUL",
         "visible": "SYNLIG"
       },
-      "tint": "VANN",
       "turbidity": "GRUMSETHET",
       "waveMaterial": "BØLGEMATERIALE",
       "waveMaterialValue": {
@@ -285,17 +286,17 @@
       "off": "AV",
       "sand": "Sand"
     },
-    "waterSound": {
-      "advanced": "Avansert",
-      "simple": "Enkel"
-    },
-    "waterTint": {
+    "waterColor": {
       "archipelago": "Skjærgård",
       "caribbean": "Karibisk",
       "deepSea": "Dyphav",
       "mediterranean": "Middelhavet",
       "nordic": "Nordsjø",
       "tropical": "Tropisk"
+    },
+    "waterSound": {
+      "advanced": "Avansert",
+      "simple": "Enkel"
     }
   },
   "phone": {

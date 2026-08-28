@@ -45,7 +45,7 @@ export function bearingToWorldXZ(deg: number, mag: number) {
 // key into the matching *_LABEL_KEYS map below, whose values are i18next
 // keys (see src/locales/*.json) resolved via t() wherever the option's
 // display name is actually shown (SettingsPanel.tsx).
-export const WATER_TINTS: { id: string; rgb: [number, number, number] }[] = [
+export const WATER_COLORS: { id: string; rgb: [number, number, number] }[] = [
   { id: "nordic", rgb: [1, 1, 1] },
   { id: "tropical", rgb: [0.55, 1.15, 1.25] },
   { id: "caribbean", rgb: [0.6, 1.35, 1.1] },
@@ -53,13 +53,13 @@ export const WATER_TINTS: { id: string; rgb: [number, number, number] }[] = [
   { id: "archipelago", rgb: [0.85, 1.0, 0.75] },
   { id: "deepSea", rgb: [0.55, 0.7, 1.15] },
 ];
-export const WATER_TINT_LABEL_KEYS: Record<string, string> = {
-  nordic: "options.waterTint.nordic",
-  tropical: "options.waterTint.tropical",
-  caribbean: "options.waterTint.caribbean",
-  mediterranean: "options.waterTint.mediterranean",
-  archipelago: "options.waterTint.archipelago",
-  deepSea: "options.waterTint.deepSea",
+export const WATER_COLOR_LABEL_KEYS: Record<string, string> = {
+  nordic: "options.waterColor.nordic",
+  tropical: "options.waterColor.tropical",
+  caribbean: "options.waterColor.caribbean",
+  mediterranean: "options.waterColor.mediterranean",
+  archipelago: "options.waterColor.archipelago",
+  deepSea: "options.waterColor.deepSea",
 };
 
 export const BOTTOM_OPTIONS: { id: string; rgb: [number, number, number] | null }[] = [
@@ -215,8 +215,16 @@ export type Persisted = {
   audioSyncSpeed: boolean;
   audioSpatial: boolean;
   waterSoundIdx: number;
-  waterTintIdx: number;
+  waterColorIdx: number;
   waterOpacity: number;
+  // Blends the flat WATER_COLORS tint directly over the fully lit/reflected/
+  // textured result (see uWaterColorAlpha in the ocean fragment shader) —
+  // independent of waterOpacity (translucency to whatever's behind the
+  // water) and of waterHue/waterSat/waterBright (which only affect the tint
+  // that feeds the lit shading, not this overlay). 1 gives the flat,
+  // saturated look of Super Mario Sunshine's water; 0 keeps the previous,
+  // fully lit/textured appearance.
+  waterColorAlpha: number;
   waterHue: number;
   waterSat: number;
   waterBright: number;
@@ -379,12 +387,13 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "chromaticAberrationAmount",
   ],
   vatten: [
-    "waterTintIdx",
+    "waterColorIdx",
     "surfaceId",
     "reflStrength",
     "sphereMaterial",
     "sphereStrength",
     "waterOpacity",
+    "waterColorAlpha",
     "waterHue",
     "waterSat",
     "waterBright",

@@ -5,8 +5,8 @@ import { PadDial } from "@/components/PadDial";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import {
   SETTINGS_TABS,
-  WATER_TINTS,
-  WATER_TINT_LABEL_KEYS,
+  WATER_COLORS,
+  WATER_COLOR_LABEL_KEYS,
   BOTTOM_OPTIONS,
   BOTTOM_LABEL_KEYS,
   BACKDROPS,
@@ -285,8 +285,8 @@ export type SettingsPanelProps = {
   setWakeLock: Dispatch<SetStateAction<boolean>>;
 
   // Vatten
-  waterTintIdx: number;
-  setWaterTintIdx: Dispatch<SetStateAction<number>>;
+  waterColorIdx: number;
+  setWaterColorIdx: Dispatch<SetStateAction<number>>;
   surfaces: NamedOption[];
   surfaceId: string | null;
   setSurfaceId: Dispatch<SetStateAction<string | null>>;
@@ -299,6 +299,8 @@ export type SettingsPanelProps = {
   setSphereStrength: Dispatch<SetStateAction<number>>;
   waterOpacity: number;
   setWaterOpacity: Dispatch<SetStateAction<number>>;
+  waterColorAlpha: number;
+  setWaterColorAlpha: Dispatch<SetStateAction<number>>;
   waterHue: number;
   setWaterHue: Dispatch<SetStateAction<number>>;
   waterSat: number;
@@ -744,8 +746,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setChromaticAberrationAmount,
     wakeLock,
     setWakeLock,
-    waterTintIdx,
-    setWaterTintIdx,
+    waterColorIdx,
+    setWaterColorIdx,
+    waterColorAlpha,
+    setWaterColorAlpha,
     surfaces,
     surfaceId,
     setSurfaceId,
@@ -1661,15 +1665,15 @@ export function SettingsPanel(props: SettingsPanelProps) {
               deleteSavedPreset={deleteSavedPreset}
             />
             <PadDial
-              label={t("dial.water.tint")}
-              value={t(WATER_TINT_LABEL_KEYS[WATER_TINTS[waterTintIdx].id])}
-              options={WATER_TINTS.map((w) => t(WATER_TINT_LABEL_KEYS[w.id]))}
-              selectedIndex={waterTintIdx}
-              onSelectIndex={setWaterTintIdx}
+              label={t("dial.water.color")}
+              value={t(WATER_COLOR_LABEL_KEYS[WATER_COLORS[waterColorIdx].id])}
+              options={WATER_COLORS.map((w) => t(WATER_COLOR_LABEL_KEYS[w.id]))}
+              selectedIndex={waterColorIdx}
+              onSelectIndex={setWaterColorIdx}
               onDec={() =>
-                setWaterTintIdx((i) => (i - 1 + WATER_TINTS.length) % WATER_TINTS.length)
+                setWaterColorIdx((i) => (i - 1 + WATER_COLORS.length) % WATER_COLORS.length)
               }
-              onInc={() => setWaterTintIdx((i) => (i + 1) % WATER_TINTS.length)}
+              onInc={() => setWaterColorIdx((i) => (i + 1) % WATER_COLORS.length)}
             />
             {surfaces.length > 0 && (
               <PadDial
@@ -1735,6 +1739,18 @@ export function SettingsPanel(props: SettingsPanelProps) {
               step={0.05}
               onDec={() => setWaterOpacity((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
               onInc={() => setWaterOpacity((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+            />
+            <PadDial
+              label={t("dial.water.colorAlpha")}
+              mode="number"
+              value={`${Math.round(waterColorAlpha * 100)}%`}
+              rawValue={waterColorAlpha}
+              onSet={setWaterColorAlpha}
+              min={0}
+              max={1}
+              step={0.05}
+              onDec={() => setWaterColorAlpha((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+              onInc={() => setWaterColorAlpha((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
             />
             <PadDial
               label={t("dial.water.hue")}

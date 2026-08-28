@@ -135,6 +135,8 @@
       "bottomColor": "POHJAN VÄRI",
       "brightness": "KIRKKAUS",
       "caustics": "AITO KAUSTIIKKA",
+      "color": "VESI",
+      "colorAlpha": "VÄRIN ALFA",
       "depth": "SYVYYS",
       "depthSine": "SYVYYS-SINI",
       "floorTexture": "TEKSTUURI",
@@ -152,7 +154,6 @@
         "hide": "PIILOTA",
         "visible": "NÄKYVÄ"
       },
-      "tint": "VESI",
       "turbidity": "SAMEUS",
       "waveMaterial": "AALLON MATERIAALI",
       "waveMaterialValue": {
@@ -285,17 +286,17 @@
       "off": "POIS",
       "sand": "Hiekka"
     },
-    "waterSound": {
-      "advanced": "Edistynyt",
-      "simple": "Yksinkertainen"
-    },
-    "waterTint": {
+    "waterColor": {
       "archipelago": "Saaristo",
       "caribbean": "Karibia",
       "deepSea": "Syvänmeri",
       "mediterranean": "Välimeri",
       "nordic": "Pohjanmeri",
       "tropical": "Trooppinen"
+    },
+    "waterSound": {
+      "advanced": "Edistynyt",
+      "simple": "Yksinkertainen"
     }
   },
   "phone": {

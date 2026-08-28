@@ -135,6 +135,8 @@
       "bottomColor": "BOTTENFÄRG",
       "brightness": "LJUSSTYRKA",
       "caustics": "ÄKTA KAUSTIK",
+      "color": "VATTEN",
+      "colorAlpha": "FÄRG ALFA",
       "depth": "DJUP",
       "depthSine": "DJUP-SINUS",
       "floorTexture": "TEXTUR",
@@ -152,7 +154,6 @@
         "hide": "DÖLJ",
         "visible": "SYNLIGT"
       },
-      "tint": "VATTEN",
       "turbidity": "GRUMLIGHET",
       "waveMaterial": "VÅGMATERIAL",
       "waveMaterialValue": {
@@ -285,17 +286,17 @@
       "off": "AV",
       "sand": "Sand"
     },
-    "waterSound": {
-      "advanced": "Avancerat",
-      "simple": "Enkelt"
-    },
-    "waterTint": {
+    "waterColor": {
       "archipelago": "Skärgård",
       "caribbean": "Karibisk",
       "deepSea": "Djuphav",
       "mediterranean": "Medelhav",
       "nordic": "Nordhav",
       "tropical": "Tropisk"
+    },
+    "waterSound": {
+      "advanced": "Avancerat",
+      "simple": "Enkelt"
     }
   },
   "phone": {
