@@ -41,11 +41,20 @@
       "autoSuffix": "(AUTO)",
       "float": "FRI",
       "noclip": "NOCLIP",
-      "swing": "GYNGE"
+      "swing": "GYNGE",
+      "whirlpool": "HVIRVEL"
     },
     "rotationValue": {
       "fixed": "FAST",
       "leanForward": "FREMOVERLÆNET"
+    },
+    "whirlpoolDirection": {
+      "cw": "MED URET",
+      "ccw": "MOD URET"
+    },
+    "whirlpoolExitMode": {
+      "throwBack": "KASTES TILBAGE",
+      "reverseSpin": "OMVENDT SNURR"
     }
   },
   "common": {
@@ -85,6 +94,9 @@
       "gogglesLoop": "DRÅBELØKKE",
       "intervalCount": "ANTAL INTERVALLER",
       "intervalDuration": "INTERVAL",
+      "intervalIncludeFloat": "INTERVAL: STANDARD",
+      "intervalIncludeSwing": "INTERVAL: GYNGE",
+      "intervalIncludeWhirlpool": "INTERVAL: HVIRVEL",
       "intervalSession": "INTERVALSESSION",
       "mode": "KAMERATILSTAND",
       "near": "NÆR",
@@ -100,6 +112,10 @@
       "swingIntensity": "GYNGE INTENSITET",
       "swingPositionY": "GYNGE POSITION Y",
       "swingStart": "GYNGE START",
+      "swingTornado": "TORNADO",
+      "swingTornadoDirection": "TORNADO RETNING",
+      "swingTornadoRadius": "TORNADO RADIUS",
+      "swingTornadoSpeed": "TORNADO TEMPO",
       "swingXFactor": "GYNGE X",
       "swingYWaveform": "GYNGE Y BØLGEFORM",
       "targetFps": "BILLEDFREKVENSLOFT",
@@ -171,7 +187,6 @@
       "bobSpeed": "VUGGE TEMPO",
       "crossWave": "KRYDSBØLGE",
       "currentDirection": "STRØM RETNING",
-      "distance": "AFSTAND",
       "dive": "DYK",
       "dyingWave": "DØENDE BØLGE",
       "dyingWaveHeight": "DØENDE BØLGE HØJDE",
@@ -179,12 +194,6 @@
       "floatLift": "FLYD",
       "freq": "FREKVENS",
       "height": "HØJDE",
-      "mode": "TILSTAND",
-      "modeValue": {
-        "ocean": "HAV",
-        "vortex": "HVIRVEL"
-      },
-      "opening": "ÅBNING",
       "peak": "TOP",
       "preset": "BØLGE-PRESET",
       "quality": "KVALITET",
@@ -200,14 +209,23 @@
       "swaySpeed": "SVAJ TEMPO",
       "trochoid": "TROKOIDE",
       "trochoidOff": "SLUKKET",
-      "vortexSpeed": "HVIRVEL TEMPO",
       "waveDirection": "BØLGERETNING",
       "wavePeriod": "BØLGEPERIODE",
       "waveform": "BØLGEFORM",
       "waveformValue": {
         "regular": "REGELMÆSSIG",
         "spread": "SPREDT"
-      }
+      },
+      "whirlpoolDirection": "HVIRVEL RETNING",
+      "whirlpoolDistance": "AFSTAND TIL CENTRUM",
+      "whirlpoolDragDuration": "INDTRÆKNINGSLÆNGDE",
+      "whirlpoolDragSpeed": "INDTRÆKNINGSHASTIGHED",
+      "whirlpoolExitMode": "AFGANGSTILSTAND",
+      "whirlpoolExitSpeed": "AFGANGSHASTIGHED",
+      "whirlpoolOpening": "ÅBNING",
+      "whirlpoolSequence": "AUTO-SEKVENS",
+      "whirlpoolSpeed": "HVIRVEL TEMPO",
+      "whirlpoolStayDuration": "BLIV INDENFOR"
     }
   },
   "hud": {
@@ -403,7 +421,8 @@
     "syncButton": "SYNK BØLGE MED SVAJ: {{state}}",
     "syncTitle": "Lad BØLGERETNING automatisk følge SVAJ RETNING (standard: til)",
     "title": "FJERNBETJENING",
-    "vagrikt": "BØLGERETN"
+    "vagrikt": "BØLGERETN",
+    "whirlpoolHint": "I HVIRVEL-tilstand kredser kameraet automatisk om hvirvlen — ingen styrepinde her."
   },
   "screens": {
     "editModeDescription": "Pauser bølger og kamerabevægelse, så tv/mobil-skærmene i 3D-visningen kan flyttes, roteres og ændre størrelse præcist.",

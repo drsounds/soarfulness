@@ -129,12 +129,28 @@ export const SETTINGS_TABS: { id: SettingsTab; labelKey: string }[] = [
   { id: "ljud", labelKey: "settings.tabs.ljud" },
 ];
 
-// Three mutually-exclusive camera movement schemes:
-//  - "float"  the default: buoyant, wave-riding camera (all existing behavior).
-//  - "noclip" free 3D flight in any direction, ignoring the water/wave physics.
-//  - "swing"  a pendulum that swings back and forth high above the water.
-export type CameraMode = "float" | "noclip" | "swing";
-export const CAMERA_MODES: CameraMode[] = ["float", "noclip", "swing"];
+// Four mutually-exclusive camera movement schemes:
+//  - "float"     the default: buoyant, wave-riding camera (all existing behavior).
+//  - "noclip"    free 3D flight in any direction, ignoring the water/wave physics.
+//  - "whirlpool" orbits a whirlpool at the world origin — steady spin, or an
+//                automatic drag-in/stay/exit sequence (see whirlpool* fields).
+//  - "swing"     a pendulum that swings back and forth high above the water
+//                (optionally spun into a circular "tornado" orbit instead —
+//                see swingTornado* fields).
+export type CameraMode = "float" | "noclip" | "whirlpool" | "swing";
+export const CAMERA_MODES: CameraMode[] = ["float", "noclip", "whirlpool", "swing"];
+
+// Angular direction shared by the whirlpool orbit and the swing's optional
+// tornado spin: "cw"/"ccw" as seen from above (+y looking down).
+export type WhirlpoolDirection = "cw" | "ccw";
+export const WHIRLPOOL_DIRECTIONS: WhirlpoolDirection[] = ["cw", "ccw"];
+
+// How the whirlpool's optional automatic sequence releases the camera after
+// its "stay inside" phase: "throwBack" flings it back out to the outer
+// radius (fast launch, easing to a stop); "reverseSpin" instead unwinds it
+// back out while spinning the opposite way it dragged in.
+export type WhirlpoolExitMode = "throwBack" | "reverseSpin";
+export const WHIRLPOOL_EXIT_MODES: WhirlpoolExitMode[] = ["throwBack", "reverseSpin"];
 // Quick-jump starting heights for sky-swing mode: a fixed preset, or "custom"
 // meaning the GUNGA POSITION Y dial is left exactly as the user set it.
 export type SwingPreset = "water" | "clouds" | "custom";
@@ -154,7 +170,18 @@ export const SWING_Y_WAVEFORMS: SwingYWaveform[] = ["pendulum", "sine", "triangl
 export const CAMERA_MODE_LABEL_KEYS: Record<CameraMode, string> = {
   float: "camera.mode.float",
   noclip: "camera.mode.noclip",
+  whirlpool: "camera.mode.whirlpool",
   swing: "camera.mode.swing",
+};
+
+export const WHIRLPOOL_DIRECTION_LABEL_KEYS: Record<WhirlpoolDirection, string> = {
+  cw: "camera.whirlpoolDirection.cw",
+  ccw: "camera.whirlpoolDirection.ccw",
+};
+
+export const WHIRLPOOL_EXIT_MODE_LABEL_KEYS: Record<WhirlpoolExitMode, string> = {
+  throwBack: "camera.whirlpoolExitMode.throwBack",
+  reverseSpin: "camera.whirlpoolExitMode.reverseSpin",
 };
 
 // An interval session automatically alternates the camera between "float"
@@ -259,10 +286,23 @@ export type Persisted = {
   waveDir: number;
   floorDepth: number;
   floorTexture: boolean;
-  vortexMode: boolean;
-  vortexOpening: number;
-  vortexRadius: number;
-  vortexSpeed: number;
+  whirlpoolOpening: number;
+  whirlpoolRadius: number;
+  whirlpoolSpeed: number;
+  whirlpoolDirection: WhirlpoolDirection;
+  whirlpoolSequenceOn: boolean;
+  whirlpoolDragSpeed: number;
+  whirlpoolDragDuration: number;
+  whirlpoolStayDuration: number;
+  whirlpoolExitMode: WhirlpoolExitMode;
+  whirlpoolExitSpeed: number;
+  swingTornadoOn: boolean;
+  swingTornadoRadius: number;
+  swingTornadoSpeed: number;
+  swingTornadoDirection: WhirlpoolDirection;
+  intervalIncludeFloat: boolean;
+  intervalIncludeWhirlpool: boolean;
+  intervalIncludeSwing: boolean;
   depthSineOn: boolean;
   depthSineAmp: number;
   depthSineFreq: number;
@@ -360,10 +400,16 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "trochoid",
     "waveHighQuality",
     "waveDir",
-    "vortexMode",
-    "vortexOpening",
-    "vortexRadius",
-    "vortexSpeed",
+    "whirlpoolOpening",
+    "whirlpoolRadius",
+    "whirlpoolSpeed",
+    "whirlpoolDirection",
+    "whirlpoolSequenceOn",
+    "whirlpoolDragSpeed",
+    "whirlpoolDragDuration",
+    "whirlpoolStayDuration",
+    "whirlpoolExitMode",
+    "whirlpoolExitSpeed",
   ],
   kamera: [
     "cameraMode",
@@ -374,11 +420,18 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "swingXFactor",
     "swingHeight",
     "swingYWaveform",
+    "swingTornadoOn",
+    "swingTornadoRadius",
+    "swingTornadoSpeed",
+    "swingTornadoDirection",
     "intervalSessionOn",
     "intervalDuration",
     "intervalSessionType",
     "intervalCount",
     "intervalShowStats",
+    "intervalIncludeFloat",
+    "intervalIncludeWhirlpool",
+    "intervalIncludeSwing",
     "camOffX",
     "camOffY",
     "camOffZ",

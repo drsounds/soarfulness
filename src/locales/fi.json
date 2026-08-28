@@ -41,11 +41,20 @@
       "autoSuffix": "(AUTO)",
       "float": "VAPAA",
       "noclip": "NOCLIP",
-      "swing": "KEINU"
+      "swing": "KEINU",
+      "whirlpool": "PYÖRRE"
     },
     "rotationValue": {
       "fixed": "KIINTEÄ",
       "leanForward": "KALLISTUS ETEEN"
+    },
+    "whirlpoolDirection": {
+      "cw": "MYÖTÄPÄIVÄÄN",
+      "ccw": "VASTAPÄIVÄÄN"
+    },
+    "whirlpoolExitMode": {
+      "throwBack": "HEITETÄÄN TAKAISIN",
+      "reverseSpin": "KÄÄNTEINEN PYÖRITYS"
     }
   },
   "common": {
@@ -85,6 +94,9 @@
       "gogglesLoop": "PISARASILMUKKA",
       "intervalCount": "INTERVALLIEN MÄÄRÄ",
       "intervalDuration": "INTERVALLI",
+      "intervalIncludeFloat": "INTERVALLI: VAKIO",
+      "intervalIncludeSwing": "INTERVALLI: KEINU",
+      "intervalIncludeWhirlpool": "INTERVALLI: PYÖRRE",
       "intervalSession": "INTERVALLIHARJOITUS",
       "mode": "KAMERATILA",
       "near": "LÄHI",
@@ -100,6 +112,10 @@
       "swingIntensity": "KEINUN INTENSITEETTI",
       "swingPositionY": "KEINUN Y-SIJAINTI",
       "swingStart": "KEINU ALOITUS",
+      "swingTornado": "TORNADO",
+      "swingTornadoDirection": "TORNADON SUUNTA",
+      "swingTornadoRadius": "TORNADON SÄDE",
+      "swingTornadoSpeed": "TORNADON TEMPO",
       "swingXFactor": "KEINU X",
       "swingYWaveform": "KEINUN Y-AALTOMUOTO",
       "targetFps": "KUVATAAJUUSKATTO",
@@ -171,7 +187,6 @@
       "bobSpeed": "KEINUNNAN TEMPO",
       "crossWave": "RISTIAALTO",
       "currentDirection": "VIRTAUKSEN SUUNTA",
-      "distance": "ETÄISYYS",
       "dive": "SUKELLUS",
       "dyingWave": "VAIMENEVA AALTO",
       "dyingWaveHeight": "VAIMENEVAN AALLON KORKEUS",
@@ -179,12 +194,6 @@
       "floatLift": "KELLUNTA",
       "freq": "TAAJUUS",
       "height": "KORKEUS",
-      "mode": "TILA",
-      "modeValue": {
-        "ocean": "MERI",
-        "vortex": "PYÖRRE"
-      },
-      "opening": "AUKKO",
       "peak": "HUIPPU",
       "preset": "AALTO-ESIASETUS",
       "quality": "LAATU",
@@ -200,14 +209,23 @@
       "swaySpeed": "HEILUNNAN TEMPO",
       "trochoid": "TROKOIDI",
       "trochoidOff": "POIS",
-      "vortexSpeed": "PYÖRTEEN TEMPO",
       "waveDirection": "AALLON SUUNTA",
       "wavePeriod": "AALLON JAKSO",
       "waveform": "AALTOMUOTO",
       "waveformValue": {
         "regular": "SÄÄNNÖLLINEN",
         "spread": "HAJONTA"
-      }
+      },
+      "whirlpoolDirection": "PYÖRTEEN SUUNTA",
+      "whirlpoolDistance": "ETÄISYYS KESKUSTAAN",
+      "whirlpoolDragDuration": "VEDON KESTO",
+      "whirlpoolDragSpeed": "VETONOPEUS",
+      "whirlpoolExitMode": "POISTUMISTILA",
+      "whirlpoolExitSpeed": "POISTUMISNOPEUS",
+      "whirlpoolOpening": "AUKKO",
+      "whirlpoolSequence": "AUTOSEKVENSSI",
+      "whirlpoolSpeed": "PYÖRTEEN TEMPO",
+      "whirlpoolStayDuration": "PYSY SISÄLLÄ"
     }
   },
   "hud": {
@@ -403,7 +421,8 @@
     "syncButton": "SYNKRONOI AALTO HEILUNNAN KANSSA: {{state}}",
     "syncTitle": "Anna AALLON SUUNNAN seurata HEILUNNAN SUUNTAA automaattisesti (oletus: päällä)",
     "title": "KAUKOSÄÄDIN",
-    "vagrikt": "AALLON SUUNTA"
+    "vagrikt": "AALLON SUUNTA",
+    "whirlpoolHint": "PYÖRRE-tilassa kamera kiertää automaattisesti — ei ohjaimia täällä."
   },
   "screens": {
     "editModeDescription": "Pysäyttää aallot ja kameran liikkeen, jotta 3D-näkymän TV/mobiilinäytöt voidaan siirtää, kääntää ja mitoittaa tarkasti.",
