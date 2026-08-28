@@ -1,4 +1,41 @@
 {
+  "about": {
+    "backToApp": "Tillbaka till appen",
+    "lastUpdated": "Senast uppdaterad: 28 augusti 2026",
+    "navLabel": "OM",
+    "sections": {
+      "disclaimer": {
+        "heading": "Ansvarsfriskrivning",
+        "points": [
+          "Appen tillhandahålls endast i underhållningssyfte.",
+          "Den erbjuder inte, och ska inte användas som grund för, någon ekonomisk, medicinsk eller hälsomässig nytta eller rådgivning.",
+          "Inget i appen utgör professionell rådgivning; rådfråga en kvalificerad expert i ekonomiska, medicinska eller hälsorelaterade frågor.",
+          "Appen tillhandahålls \"i befintligt skick\" utan garantier av något slag, och Alexander Forselius ansvarar, i den utsträckning lagen tillåter, inte för förlust, skada eller men som uppstår genom dess användning."
+        ]
+      },
+      "intro": {
+        "body": "Aquafulness är en lugnande, webbläsarbaserad visualisering av havsvågor skapad för personlig avkoppling och atmosfärisk avslappning. Det är ett fristående hobbyprojekt, ingen kommersiell produkt och ingen medicinteknisk produkt.",
+        "heading": "Om appen"
+      },
+      "product": {
+        "body": "Aquafulness är gratis underhållningsmjukvara utan reklam: en interaktiv 3D-havsscen som körs i webbläsaren med hjälp av WebGL. Appen kräver ingen installation, inget konto och ingen betalning, och den kopplar inte upp sig mot någon extern tjänst utöver den värdplattform som beskrivs i integritetspolicyn nedan.",
+        "heading": "Det digitala innehållets art"
+      },
+      "trader": {
+        "address": "Floragatan 21D, 531 37 Lidköping, Sverige",
+        "addressLabel": "Adress",
+        "capacity": "Appen tillhandahålls av Alexander Forselius som privatperson, inte via ett registrerat företag.",
+        "email": "drsounds@gmail.com",
+        "emailLabel": "E-post",
+        "heading": "Ansvarig och kontaktuppgifter",
+        "name": "Alexander Forselius",
+        "note": "I linje med EU:s konsumentskydds- och produktsäkerhetskrav för digitala produkter — bland annat direktiv (EU) 2019/770 om digitalt innehåll och digitala tjänster, konsumenträttighetsdirektivet 2011/83/EU och e-handelsdirektivet 2000/31/EG — anges här vem som ansvarar för appen och hur du når personen.",
+        "phone": "+46 (0) 728-87 28 90",
+        "phoneLabel": "Telefon"
+      }
+    },
+    "title": "Om Aquafulness"
+  },
   "camera": {
     "mode": {
       "autoSuffix": "(AUTO)",
@@ -315,6 +352,34 @@
       "vatten": "VATTEN-PRESET"
     },
     "state": "TILLSTÅND (allt + position, blick, ström, svaj)"
+  },
+  "privacy": {
+    "backToApp": "Tillbaka till appen",
+    "intro": "Den här sidan förklarar, i klarspråk, vad som händer med dina data när du använder Aquafulness.",
+    "lastUpdated": "Senast uppdaterad: 28 augusti 2026",
+    "sections": {
+      "contact": {
+        "body": "Vid frågor om denna integritetspolicy, kontakta Alexander Forselius på drsounds@gmail.com.",
+        "heading": "Frågor"
+      },
+      "localStorage": {
+        "body": "Aquafulness använder webbläsarens lokala lagring (localStorage) för att komma ihåg dina inställningar och anpassa upplevelsen — till exempel valt språk, våg- och kamerainställningar samt sparade förinställningar. Denna data stannar på din enhet, skickas aldrig till Alexander Forselius eller någon tredje part, och kan raderas när som helst genom att rensa webbläsarens webbplatsdata för appen.",
+        "heading": "Lokal lagring"
+      },
+      "thirdParty": {
+        "body": "Aquafulness innehåller ingen egen reklam från tredje part, inga spårningspixlar och inga widgetar för sociala medier.",
+        "heading": "Tredje part"
+      },
+      "tracking": {
+        "heading": "Datainsamling och spårning",
+        "points": [
+          "Aquafulness varken spårar, samlar in eller säljer några personuppgifter.",
+          "Appen är driftad hos Lovable, vars plattform tillämpar sin egen standardmässiga drift- och infrastrukturloggning och kan aktivera anonymiserad användningsstatistik (till exempel Google Analytics) som en del av sin standardtjänst — detta konfigureras av värdplattformen, inte av appens ansvariga, och används inte för att identifiera dig personligen.",
+          "Inget konto krävs och appen ber dig aldrig om personlig information."
+        ]
+      }
+    },
+    "title": "Integritetspolicy"
   },
   "remote": {
     "hojd": "HÖJD",
