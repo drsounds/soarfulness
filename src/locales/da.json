@@ -128,7 +128,11 @@
       "torusTube": "TYKKELSE",
       "torusVerticalCount": "RINGE/KOLONNE",
       "torusVerticalSpacing": "GITTER HØJDE",
-      "torusViewDistance": "REKKEVIDDE"
+      "torusViewDistance": "REKKEVIDDE",
+      "worldBoundary": "VERDENSGRÆNSE",
+      "worldBoundaryHeight": "GRÆNSEHØJDE (Y)",
+      "worldBoundarySize": "GRÆNSESTØRRELSE (XZ)",
+      "worldBoundaryYExtend": "UENDELIGE SKYLAG"
     },
     "water": {
       "bottom": "BUND",
@@ -218,8 +222,12 @@
     "intervalRemaining": "{{time}} tilbage",
     "joystick": {
       "current": "STRØM",
+      "freeFall": "FRIT FALD",
       "look": "LOOK",
       "nav": "NAV",
+      "noclipDriftXZ": "DRIV XZ",
+      "noclipDriftY": "DRIV Y",
+      "reverseRise": "OMVENDT STIGNING",
       "sway": "SVAJ",
       "waveDirection": "BØLGERETN"
     },

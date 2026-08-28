@@ -275,6 +275,17 @@ export type Persisted = {
   swaySpeed: number;
   swayBias: number;
   syncWaveWithSway: boolean;
+  // VÄRLDSGRÄNS (world boundary): once on, the camera's x/z and y wrap to the
+  // opposite edge on crossing ±worldBoundarySize/Height — see wrapAxis in
+  // routes/index.tsx. worldBoundaryYExtend is the *default* y behavior:
+  // instead of a bare wrap, extra sky-cloud layers tile around the camera's
+  // altitude (EXTEND_CLOUD_LAYER_* in routes/index.tsx) so climbing/diving
+  // through the boundary always looks like more of the same infinite cloud
+  // deck, hiding the wrap entirely.
+  worldBoundaryOn: boolean;
+  worldBoundarySize: number;
+  worldBoundaryHeight: number;
+  worldBoundaryYExtend: boolean;
   liveMode: boolean;
   sceneId: string | null;
   envId: string | null;
@@ -416,6 +427,10 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "midCloudsHeight",
     "skyCloudsOn",
     "skyCloudsHeight",
+    "worldBoundaryOn",
+    "worldBoundarySize",
+    "worldBoundaryHeight",
+    "worldBoundaryYExtend",
     "surfaceArea",
     "sceneId",
     "envId",

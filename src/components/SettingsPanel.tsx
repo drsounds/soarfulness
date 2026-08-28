@@ -343,6 +343,14 @@ export type SettingsPanelProps = {
   setSkyCloudsOn: Dispatch<SetStateAction<boolean>>;
   skyCloudsHeight: number;
   setSkyCloudsHeight: Dispatch<SetStateAction<number>>;
+  worldBoundaryOn: boolean;
+  setWorldBoundaryOn: Dispatch<SetStateAction<boolean>>;
+  worldBoundarySize: number;
+  setWorldBoundarySize: Dispatch<SetStateAction<number>>;
+  worldBoundaryHeight: number;
+  setWorldBoundaryHeight: Dispatch<SetStateAction<number>>;
+  worldBoundaryYExtend: boolean;
+  setWorldBoundaryYExtend: Dispatch<SetStateAction<boolean>>;
   surfaceArea: number;
   setSurfaceArea: Dispatch<SetStateAction<number>>;
   torusRingsOn: boolean;
@@ -802,6 +810,14 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setSkyCloudsOn,
     skyCloudsHeight,
     setSkyCloudsHeight,
+    worldBoundaryOn,
+    setWorldBoundaryOn,
+    worldBoundarySize,
+    setWorldBoundarySize,
+    worldBoundaryHeight,
+    setWorldBoundaryHeight,
+    worldBoundaryYExtend,
+    setWorldBoundaryYExtend,
     surfaceArea,
     setSurfaceArea,
     torusRingsOn,
@@ -1966,6 +1982,48 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onDec={() => setSkyCloudsHeight((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
               onInc={() => setSkyCloudsHeight((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
             />
+            <PadDial
+              label={t("dial.env.worldBoundary")}
+              value={onOff(worldBoundaryOn)}
+              onDec={() => setWorldBoundaryOn(false)}
+              onInc={() => setWorldBoundaryOn(true)}
+            />
+            {worldBoundaryOn && (
+              <>
+                <PadDial
+                  label={t("dial.env.worldBoundarySize")}
+                  mode="number"
+                  value={`${worldBoundarySize.toFixed(0)}m`}
+                  rawValue={worldBoundarySize}
+                  onSet={(v) => setWorldBoundarySize(Math.max(200, Math.min(500000, v)))}
+                  min={200}
+                  max={500000}
+                  step={500}
+                  onDec={() => setWorldBoundarySize((v) => Math.max(200, +(v - 500).toFixed(0)))}
+                  onInc={() => setWorldBoundarySize((v) => Math.min(500000, +(v + 500).toFixed(0)))}
+                />
+                <PadDial
+                  label={t("dial.env.worldBoundaryHeight")}
+                  mode="number"
+                  value={`${worldBoundaryHeight.toFixed(0)}m`}
+                  rawValue={worldBoundaryHeight}
+                  onSet={(v) => setWorldBoundaryHeight(Math.max(200, Math.min(500000, v)))}
+                  min={200}
+                  max={500000}
+                  step={200}
+                  onDec={() => setWorldBoundaryHeight((v) => Math.max(200, +(v - 200).toFixed(0)))}
+                  onInc={() =>
+                    setWorldBoundaryHeight((v) => Math.min(500000, +(v + 200).toFixed(0)))
+                  }
+                />
+                <PadDial
+                  label={t("dial.env.worldBoundaryYExtend")}
+                  value={onOff(worldBoundaryYExtend)}
+                  onDec={() => setWorldBoundaryYExtend(false)}
+                  onInc={() => setWorldBoundaryYExtend(true)}
+                />
+              </>
+            )}
             <PadDial
               label={t("dial.env.roomSize")}
               mode="number"

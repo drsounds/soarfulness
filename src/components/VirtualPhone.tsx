@@ -24,6 +24,14 @@ export type RemoteControllerProps = {
   onDriftChange: (v: StickValue) => void;
   vertStick: StickValue;
   onVertChange: (v: StickValue) => void;
+  // NOCLIP's own sticky drift dials — DRIFT XZ (world-space, like STRÖM) and
+  // FRITT FALL/OMVÄND STIGNING (constant dive/climb toggles flanking HÖJD).
+  noclipDriftStick: StickValue;
+  onNoclipDriftChange: (v: StickValue) => void;
+  noclipFreeFallOn: boolean;
+  setNoclipFreeFallOn: Dispatch<SetStateAction<boolean>>;
+  noclipReverseRiseOn: boolean;
+  setNoclipReverseRiseOn: Dispatch<SetStateAction<boolean>>;
   swayStick: StickValue;
   onSwayChange: (v: StickValue) => void;
   waveDirStick: StickValue;
@@ -973,9 +981,18 @@ export function VirtualPhone({
                     )}
                     {remoteControllerProps.cameraMode === "noclip" && (
                       <JoystickPad
+                        label={t("hud.joystick.noclipDriftXZ")}
+                        value={remoteControllerProps.noclipDriftStick}
+                        onChange={remoteControllerProps.onNoclipDriftChange}
+                        sticky
+                      />
+                    )}
+                    {remoteControllerProps.cameraMode === "noclip" && (
+                      <JoystickPad
                         label={t("remote.hojd")}
                         value={remoteControllerProps.vertStick}
                         onChange={remoteControllerProps.onVertChange}
+                        sticky
                       />
                     )}
                     {remoteControllerProps.cameraMode === "float" && (
@@ -995,6 +1012,32 @@ export function VirtualPhone({
                       />
                     )}
                   </div>
+                  {remoteControllerProps.cameraMode === "noclip" && (
+                    <div className="flex justify-center gap-3">
+                      <button
+                        onClick={() => remoteControllerProps.setNoclipReverseRiseOn((v) => !v)}
+                        className={`rounded-full border px-3 py-1.5 text-center text-[9px] font-light tracking-wider transition active:scale-95 ${
+                          remoteControllerProps.noclipReverseRiseOn
+                            ? "border-white/40 bg-white/20 text-white"
+                            : "border-white/15 bg-white/5 text-white/60"
+                        }`}
+                        aria-pressed={remoteControllerProps.noclipReverseRiseOn}
+                      >
+                        {t("hud.joystick.reverseRise")}
+                      </button>
+                      <button
+                        onClick={() => remoteControllerProps.setNoclipFreeFallOn((v) => !v)}
+                        className={`rounded-full border px-3 py-1.5 text-center text-[9px] font-light tracking-wider transition active:scale-95 ${
+                          remoteControllerProps.noclipFreeFallOn
+                            ? "border-white/40 bg-white/20 text-white"
+                            : "border-white/15 bg-white/5 text-white/60"
+                        }`}
+                        aria-pressed={remoteControllerProps.noclipFreeFallOn}
+                      >
+                        {t("hud.joystick.freeFall")}
+                      </button>
+                    </div>
+                  )}
                   {remoteControllerProps.cameraMode === "float" && (
                     <button
                       onClick={() => remoteControllerProps.setSyncWaveWithSway((v) => !v)}
