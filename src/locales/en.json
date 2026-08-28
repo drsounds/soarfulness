@@ -41,11 +41,20 @@
       "autoSuffix": "(AUTO)",
       "float": "FREE",
       "noclip": "NOCLIP",
-      "swing": "SWING"
+      "swing": "SWING",
+      "whirlpool": "WHIRLPOOL"
     },
     "rotationValue": {
       "fixed": "FIXED",
       "leanForward": "LEAN FORWARD"
+    },
+    "whirlpoolDirection": {
+      "cw": "CLOCKWISE",
+      "ccw": "COUNTER-CLOCKWISE"
+    },
+    "whirlpoolExitMode": {
+      "throwBack": "THROWN BACK",
+      "reverseSpin": "REVERSE SPIN"
     }
   },
   "common": {
@@ -85,6 +94,9 @@
       "gogglesLoop": "DROPLET LOOP",
       "intervalCount": "NUMBER OF INTERVALS",
       "intervalDuration": "INTERVAL",
+      "intervalIncludeFloat": "INTERVAL: DEFAULT",
+      "intervalIncludeSwing": "INTERVAL: SWING",
+      "intervalIncludeWhirlpool": "INTERVAL: WHIRLPOOL",
       "intervalSession": "INTERVAL SESSION",
       "mode": "CAMERA MODE",
       "near": "NEAR",
@@ -100,6 +112,10 @@
       "swingIntensity": "SWING INTENSITY",
       "swingPositionY": "SWING POSITION Y",
       "swingStart": "SWING START",
+      "swingTornado": "TORNADO",
+      "swingTornadoDirection": "TORNADO DIRECTION",
+      "swingTornadoRadius": "TORNADO RADIUS",
+      "swingTornadoSpeed": "TORNADO SPEED",
       "swingXFactor": "SWING X",
       "swingYWaveform": "SWING Y WAVEFORM",
       "targetFps": "FRAME RATE CAP",
@@ -167,7 +183,6 @@
       "bobSpeed": "BOB TEMPO",
       "crossWave": "CROSS WAVE",
       "currentDirection": "CURRENT DIRECTION",
-      "distance": "DISTANCE",
       "dive": "DIVE",
       "dyingWave": "DYING WAVE",
       "dyingWaveHeight": "DYING WAVE HEIGHT",
@@ -175,12 +190,6 @@
       "floatLift": "FLOAT",
       "freq": "FREQUENCY",
       "height": "HEIGHT",
-      "mode": "MODE",
-      "modeValue": {
-        "ocean": "OCEAN",
-        "vortex": "VORTEX"
-      },
-      "opening": "OPENING",
       "peak": "PEAK",
       "preset": "WAVE PRESET",
       "quality": "QUALITY",
@@ -196,14 +205,23 @@
       "swaySpeed": "SWAY TEMPO",
       "trochoid": "TROCHOID",
       "trochoidOff": "OFF",
-      "vortexSpeed": "VORTEX TEMPO",
       "waveDirection": "WAVE DIRECTION",
       "wavePeriod": "WAVE PERIOD",
       "waveform": "WAVEFORM",
       "waveformValue": {
         "regular": "REGULAR",
         "spread": "SPREAD"
-      }
+      },
+      "whirlpoolDirection": "WHIRLPOOL DIRECTION",
+      "whirlpoolDistance": "DISTANCE TO CENTER",
+      "whirlpoolDragDuration": "DRAG-IN LENGTH",
+      "whirlpoolDragSpeed": "DRAG-IN SPEED",
+      "whirlpoolExitMode": "EXIT MODE",
+      "whirlpoolExitSpeed": "EXIT SPEED",
+      "whirlpoolOpening": "OPENING",
+      "whirlpoolSequence": "AUTO SEQUENCE",
+      "whirlpoolSpeed": "WHIRLPOOL SPEED",
+      "whirlpoolStayDuration": "STAY INSIDE"
     }
   },
   "hud": {
@@ -395,7 +413,8 @@
     "syncButton": "SYNC WAVE WITH SWAY: {{state}}",
     "syncTitle": "Let WAVE DIRECTION automatically follow SWAY DIRECTION (default: on)",
     "title": "REMOTE",
-    "vagrikt": "WAVE DIR"
+    "vagrikt": "WAVE DIR",
+    "whirlpoolHint": "In WHIRLPOOL mode the camera orbits automatically — no sticks to control here."
   },
   "screens": {
     "editModeDescription": "Pauses waves and camera movement so the TV/mobile screens in the 3D view can be moved, rotated and resized precisely.",

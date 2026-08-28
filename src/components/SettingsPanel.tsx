@@ -17,6 +17,10 @@ import {
   TORUS_TEXTURE_LABEL_KEYS,
   CAMERA_MODES,
   CAMERA_MODE_LABEL_KEYS,
+  WHIRLPOOL_DIRECTIONS,
+  WHIRLPOOL_DIRECTION_LABEL_KEYS,
+  WHIRLPOOL_EXIT_MODES,
+  WHIRLPOOL_EXIT_MODE_LABEL_KEYS,
   SWING_PRESETS,
   SWING_Y_WAVEFORMS,
   INTERVAL_SESSION_TYPES,
@@ -30,6 +34,8 @@ import {
   type SwingYWaveform,
   type IntervalSessionType,
   type WavePresetName,
+  type WhirlpoolDirection,
+  type WhirlpoolExitMode,
 } from "@/lib/settingsShared";
 import { pickJsonFile, type PresetScope, type SavedPreset, type SavedState } from "@/lib/presets";
 import { changeLanguage, SUPPORTED_LANGUAGES, LANGUAGE_NAMES, type LanguageCode } from "@/lib/i18n";
@@ -200,14 +206,31 @@ export type SettingsPanelProps = {
   setWaveHighQuality: Dispatch<SetStateAction<boolean>>;
   waveDir: number;
   setWaveDir: Dispatch<SetStateAction<number>>;
-  vortexMode: boolean;
-  setVortexMode: Dispatch<SetStateAction<boolean>>;
-  vortexOpening: number;
-  setVortexOpening: Dispatch<SetStateAction<number>>;
-  vortexRadius: number;
-  setVortexRadius: Dispatch<SetStateAction<number>>;
-  vortexSpeed: number;
-  setVortexSpeed: Dispatch<SetStateAction<number>>;
+  // VIRVEL (whirlpool camera mode) — shown here in place of the wave dials
+  // above whenever cameraMode === "whirlpool" (see the vagor tab render
+  // below). whirlpoolOpening/Radius/Speed/Direction drive the steady orbit;
+  // the rest only matter while whirlpoolSequenceOn loops the camera through
+  // drag-in / stay inside / thrown-back-or-reverse-spin automatically.
+  whirlpoolOpening: number;
+  setWhirlpoolOpening: Dispatch<SetStateAction<number>>;
+  whirlpoolRadius: number;
+  setWhirlpoolRadius: Dispatch<SetStateAction<number>>;
+  whirlpoolSpeed: number;
+  setWhirlpoolSpeed: Dispatch<SetStateAction<number>>;
+  whirlpoolDirection: WhirlpoolDirection;
+  setWhirlpoolDirection: Dispatch<SetStateAction<WhirlpoolDirection>>;
+  whirlpoolSequenceOn: boolean;
+  setWhirlpoolSequenceOn: Dispatch<SetStateAction<boolean>>;
+  whirlpoolDragSpeed: number;
+  setWhirlpoolDragSpeed: Dispatch<SetStateAction<number>>;
+  whirlpoolDragDuration: number;
+  setWhirlpoolDragDuration: Dispatch<SetStateAction<number>>;
+  whirlpoolStayDuration: number;
+  setWhirlpoolStayDuration: Dispatch<SetStateAction<number>>;
+  whirlpoolExitMode: WhirlpoolExitMode;
+  setWhirlpoolExitMode: Dispatch<SetStateAction<WhirlpoolExitMode>>;
+  whirlpoolExitSpeed: number;
+  setWhirlpoolExitSpeed: Dispatch<SetStateAction<number>>;
 
   // Kamera
   cameraMode: CameraMode;
@@ -232,8 +255,19 @@ export type SettingsPanelProps = {
   swingYWaveform: SwingYWaveform;
   setSwingYWaveform: Dispatch<SetStateAction<SwingYWaveform>>;
   cycleSwingYWaveform: (dir: number) => void;
-  // Interval session: automatically alternates FRI/GUNGA every
-  // intervalDuration seconds, either forever or for a fixed intervalCount.
+  // TORNADO: optional whirlpool-style circular orbit for GUNGA, instead of
+  // its default back-and-forth pendulum arc — a whirlpool in the sky.
+  swingTornadoOn: boolean;
+  setSwingTornadoOn: Dispatch<SetStateAction<boolean>>;
+  swingTornadoRadius: number;
+  setSwingTornadoRadius: Dispatch<SetStateAction<number>>;
+  swingTornadoSpeed: number;
+  setSwingTornadoSpeed: Dispatch<SetStateAction<number>>;
+  swingTornadoDirection: WhirlpoolDirection;
+  setSwingTornadoDirection: Dispatch<SetStateAction<WhirlpoolDirection>>;
+  // Interval session: automatically cycles cameraMode through whichever of
+  // FRI/VIRVEL/GUNGA are enabled below, every intervalDuration seconds,
+  // either forever or for a fixed intervalCount.
   intervalSessionOn: boolean;
   setIntervalSessionOn: Dispatch<SetStateAction<boolean>>;
   intervalDuration: number;
@@ -244,6 +278,12 @@ export type SettingsPanelProps = {
   setIntervalCount: Dispatch<SetStateAction<number>>;
   intervalShowStats: boolean;
   setIntervalShowStats: Dispatch<SetStateAction<boolean>>;
+  intervalIncludeFloat: boolean;
+  setIntervalIncludeFloat: Dispatch<SetStateAction<boolean>>;
+  intervalIncludeWhirlpool: boolean;
+  setIntervalIncludeWhirlpool: Dispatch<SetStateAction<boolean>>;
+  intervalIncludeSwing: boolean;
+  setIntervalIncludeSwing: Dispatch<SetStateAction<boolean>>;
   camOffX: number;
   setCamOffX: Dispatch<SetStateAction<number>>;
   camOffY: number;
@@ -675,14 +715,26 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setWaveHighQuality,
     waveDir,
     setWaveDir,
-    vortexMode,
-    setVortexMode,
-    vortexOpening,
-    setVortexOpening,
-    vortexRadius,
-    setVortexRadius,
-    vortexSpeed,
-    setVortexSpeed,
+    whirlpoolOpening,
+    setWhirlpoolOpening,
+    whirlpoolRadius,
+    setWhirlpoolRadius,
+    whirlpoolSpeed,
+    setWhirlpoolSpeed,
+    whirlpoolDirection,
+    setWhirlpoolDirection,
+    whirlpoolSequenceOn,
+    setWhirlpoolSequenceOn,
+    whirlpoolDragSpeed,
+    setWhirlpoolDragSpeed,
+    whirlpoolDragDuration,
+    setWhirlpoolDragDuration,
+    whirlpoolStayDuration,
+    setWhirlpoolStayDuration,
+    whirlpoolExitMode,
+    setWhirlpoolExitMode,
+    whirlpoolExitSpeed,
+    setWhirlpoolExitSpeed,
     cameraMode,
     setCameraMode,
     cycleCameraMode,
@@ -702,6 +754,14 @@ export function SettingsPanel(props: SettingsPanelProps) {
     swingYWaveform,
     setSwingYWaveform,
     cycleSwingYWaveform,
+    swingTornadoOn,
+    setSwingTornadoOn,
+    swingTornadoRadius,
+    setSwingTornadoRadius,
+    swingTornadoSpeed,
+    setSwingTornadoSpeed,
+    swingTornadoDirection,
+    setSwingTornadoDirection,
     intervalSessionOn,
     setIntervalSessionOn,
     intervalDuration,
@@ -712,6 +772,12 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setIntervalCount,
     intervalShowStats,
     setIntervalShowStats,
+    intervalIncludeFloat,
+    setIntervalIncludeFloat,
+    intervalIncludeWhirlpool,
+    setIntervalIncludeWhirlpool,
+    intervalIncludeSwing,
+    setIntervalIncludeSwing,
     camOffX,
     setCamOffX,
     camOffY,
@@ -957,356 +1023,451 @@ export function SettingsPanel(props: SettingsPanelProps) {
               loadSavedPreset={loadSavedPreset}
               deleteSavedPreset={deleteSavedPreset}
             />
-            <PadDial
-              label={t("dial.wave.amp")}
-              mode="number"
-              value={`${waveAmp.toFixed(2)}m`}
-              rawValue={waveAmp}
-              onSet={setWaveAmp}
-              min={0}
-              max={100}
-              step={0.5}
-              onDec={() => setWaveAmp((v) => Math.max(0, +(v - 0.5).toFixed(2)))}
-              onInc={() => setWaveAmp((v) => Math.min(100, +(v + 0.5).toFixed(2)))}
-            />
-            <PadDial
-              label={t("dial.wave.speed")}
-              mode="number"
-              value={`${waveSpeed.toFixed(2)}×`}
-              rawValue={waveSpeed}
-              onSet={setWaveSpeed}
-              min={0}
-              max={10}
-              step={0.1}
-              onDec={() => setWaveSpeed((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
-              onInc={() => setWaveSpeed((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
-            />
-            <PadDial
-              label={t("dial.wave.freq")}
-              mode="number"
-              value={`${waveFreq.toFixed(2)}×`}
-              rawValue={waveFreq}
-              onSet={(v) => setWaveFreq(Math.max(WAVE_FREQ_MIN, Math.min(WAVE_FREQ_MAX, v)))}
-              min={WAVE_FREQ_MIN}
-              max={WAVE_FREQ_MAX}
-              step={0.05}
-              onDec={() => setWaveFreq((v) => Math.max(WAVE_FREQ_MIN, +(v - 0.05).toFixed(2)))}
-              onInc={() => setWaveFreq((v) => Math.min(WAVE_FREQ_MAX, +(v + 0.05).toFixed(2)))}
-            />
-            <PadDial
-              label={t("dial.wave.height")}
-              mode="number"
-              value={`${heightOffset >= 0 ? "+" : ""}${heightOffset.toFixed(2)}m`}
-              rawValue={heightOffset}
-              onSet={setHeightOffset}
-              min={-5}
-              max={5}
-              step={0.2}
-              onDec={() => setHeightOffset((v) => Math.max(-5, +(v - 0.2).toFixed(2)))}
-              onInc={() => setHeightOffset((v) => Math.min(5, +(v + 0.2).toFixed(2)))}
-            />
-            <PadDial
-              label={t("dial.wave.dive")}
-              mode="number"
-              value={`${submergeAmp.toFixed(2)}×`}
-              rawValue={submergeAmp}
-              onSet={setSubmergeAmp}
-              min={0}
-              max={4}
-              step={0.1}
-              onDec={() => setSubmergeAmp((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
-              onInc={() => setSubmergeAmp((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
-            />
-            <PadDial
-              label={t("dial.wave.floatLift")}
-              mode="number"
-              value={`${floatLift.toFixed(2)}×`}
-              rawValue={floatLift}
-              onSet={setFloatLift}
-              min={0}
-              max={4}
-              step={0.1}
-              onDec={() => setFloatLift((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
-              onInc={() => setFloatLift((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
-            />
-            <PadDial
-              label={t("dial.wave.currentDirection")}
-              mode="number"
-              value={`${Math.round(worldXZBearing(driftWorldRef.current.x, driftWorldRef.current.z))}°`}
-              rawValue={worldXZBearing(driftWorldRef.current.x, driftWorldRef.current.z)}
-              onSet={(v) => setStickBearing(driftWorldRef, driftDisplayRef, setDriftStick, v)}
-              min={0}
-              max={360}
-              step={5}
-              onDec={() =>
-                setStickBearing(
-                  driftWorldRef,
-                  driftDisplayRef,
-                  setDriftStick,
-                  worldXZBearing(driftWorldRef.current.x, driftWorldRef.current.z) - 15,
-                )
-              }
-              onInc={() =>
-                setStickBearing(
-                  driftWorldRef,
-                  driftDisplayRef,
-                  setDriftStick,
-                  worldXZBearing(driftWorldRef.current.x, driftWorldRef.current.z) + 15,
-                )
-              }
-            />
-            <PadDial
-              label={t("dial.wave.sway")}
-              mode="number"
-              value={`${swayAmp.toFixed(1)}m`}
-              rawValue={swayAmp}
-              onSet={setSwayAmp}
-              min={0}
-              max={60}
-              step={0.5}
-              onDec={() => setSwayAmp((v) => Math.max(0, +(v - 0.5).toFixed(2)))}
-              onInc={() => setSwayAmp((v) => Math.min(60, +(v + 0.5).toFixed(2)))}
-            />
-            <PadDial
-              label={t("dial.wave.swaySpeed")}
-              mode="number"
-              value={`${swaySpeed.toFixed(2)}×`}
-              rawValue={swaySpeed}
-              onSet={setSwaySpeed}
-              min={0.01}
-              max={10}
-              step={0.01}
-              onDec={() => setSwaySpeed((v) => Math.max(0.01, +(v - 0.01).toFixed(2)))}
-              onInc={() => setSwaySpeed((v) => Math.min(1, +(v + 0.01).toFixed(2)))}
-            />
-            <PadDial
-              label={t("dial.wave.swayDrift")}
-              mode="number"
-              value={
-                swayBias === 0
-                  ? t("common.neutral")
-                  : swayBias > 0
-                    ? `${t("common.with")} ${swayBias.toFixed(2)}`
-                    : `${t("common.against")} ${Math.abs(swayBias).toFixed(2)}`
-              }
-              rawValue={swayBias}
-              onSet={setSwayBias}
-              min={-10}
-              max={10}
-              step={0.05}
-              onDec={() => setSwayBias((v) => Math.max(-1, +(v - 0.05).toFixed(2)))}
-              onInc={() => setSwayBias((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
-            />
-            <PadDial
-              label={t("dial.wave.swayDirection")}
-              mode="number"
-              value={`${Math.round(worldXZBearing(swayWorldRef.current.x, swayWorldRef.current.z))}°`}
-              rawValue={worldXZBearing(swayWorldRef.current.x, swayWorldRef.current.z)}
-              onSet={(v) => setStickBearing(swayWorldRef, swayDisplayRef, setSwayStick, v)}
-              min={0}
-              max={360}
-              step={5}
-              onDec={() =>
-                setStickBearing(
-                  swayWorldRef,
-                  swayDisplayRef,
-                  setSwayStick,
-                  worldXZBearing(swayWorldRef.current.x, swayWorldRef.current.z) - 15,
-                )
-              }
-              onInc={() =>
-                setStickBearing(
-                  swayWorldRef,
-                  swayDisplayRef,
-                  setSwayStick,
-                  worldXZBearing(swayWorldRef.current.x, swayWorldRef.current.z) + 15,
-                )
-              }
-            />
-            <PadDial
-              label={t("dial.wave.bob")}
-              mode="number"
-              value={`${buoyAmp.toFixed(2)}×`}
-              rawValue={buoyAmp}
-              onSet={setBuoyAmp}
-              min={0}
-              max={4}
-              step={0.1}
-              onDec={() => setBuoyAmp((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
-              onInc={() => setBuoyAmp((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
-            />
-            <PadDial
-              label={t("dial.wave.bobSpeed")}
-              mode="number"
-              value={`${bobSpeed.toFixed(2)}×`}
-              rawValue={bobSpeed}
-              onSet={setBobSpeed}
-              min={0}
-              max={5}
-              step={0.1}
-              onDec={() => setBobSpeed((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
-              onInc={() => setBobSpeed((v) => Math.min(5, +(v + 0.1).toFixed(2)))}
-            />
-            <PadDial
-              label={t("dial.wave.waveform")}
-              value={
-                regularWaves
-                  ? t("dial.wave.waveformValue.regular")
-                  : t("dial.wave.waveformValue.spread")
-              }
-              onDec={() => setRegularWaves(false)}
-              onInc={() => setRegularWaves(true)}
-            />
-            <PadDial
-              label={t("dial.wave.realistic")}
-              value={realisticWaves ? t("dial.wave.realisticValue.on") : t("common.off")}
-              onDec={() => setRealisticWaves(false)}
-              onInc={() => setRealisticWaves(true)}
-            />
-            <PadDial
-              label={t("dial.wave.preset")}
-              value={t(WAVE_PRESET_LABEL_KEYS[wavePreset])}
-              onDec={() => applyWavePreset("legacy")}
-              onInc={() => applyWavePreset("standard")}
-            />
-            <PadDial
-              label={t("dial.wave.dyingWave")}
-              value={onOff(dyingWave)}
-              onDec={() => setDyingWave(false)}
-              onInc={() => setDyingWave(true)}
-            />
-            <PadDial
-              label={t("dial.wave.dyingWaveHeight")}
-              mode="number"
-              value={`${dyingWaveAmp.toFixed(2)}m`}
-              rawValue={dyingWaveAmp}
-              onSet={setDyingWaveAmp}
-              min={0}
-              max={20}
-              step={0.1}
-              onDec={() => setDyingWaveAmp((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
-              onInc={() => setDyingWaveAmp((v) => Math.min(20, +(v + 0.1).toFixed(2)))}
-            />
-            <PadDial
-              label={t("dial.wave.dyingWaveSpeed")}
-              mode="number"
-              value={`${dyingWaveSpeed.toFixed(2)}×`}
-              rawValue={dyingWaveSpeed}
-              onSet={setDyingWaveSpeed}
-              min={0}
-              max={5}
-              step={0.05}
-              onDec={() => setDyingWaveSpeed((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
-              onInc={() => setDyingWaveSpeed((v) => Math.min(5, +(v + 0.05).toFixed(2)))}
-            />
-            <PadDial
-              label={t("dial.wave.randomize")}
-              value={onOff(randomizeWaves)}
-              onDec={() => setRandomizeWaves(false)}
-              onInc={() => setRandomizeWaves(true)}
-            />
-            <PadDial
-              label={t("dial.wave.crossWave")}
-              value={onOff(regularCross)}
-              onDec={() => setRegularCross(false)}
-              onInc={() => setRegularCross(true)}
-            />
-            <PadDial
-              label={t("dial.wave.wavePeriod")}
-              mode="number"
-              value={`${regularPeriod.toFixed(2)}x`}
-              rawValue={regularPeriod}
-              onSet={setRegularPeriod}
-              min={0.3}
-              max={4}
-              step={0.1}
-              onDec={() => setRegularPeriod((v) => Math.max(0.3, +(v - 0.1).toFixed(2)))}
-              onInc={() => setRegularPeriod((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
-            />
-            <PadDial
-              label={t("dial.wave.peak")}
-              mode="number"
-              value={`${wavePeak.toFixed(2)}`}
-              rawValue={wavePeak}
-              onSet={setWavePeak}
-              min={1}
-              max={6}
-              step={0.25}
-              onDec={() => setWavePeak((v) => Math.max(1, +(v - 0.25).toFixed(2)))}
-              onInc={() => setWavePeak((v) => Math.min(6, +(v + 0.25).toFixed(2)))}
-            />
-            <PadDial
-              label={t("dial.wave.trochoid")}
-              mode="number"
-              value={trochoid <= 0.001 ? t("common.off") : `${Math.round(trochoid * 100)}%`}
-              rawValue={trochoid}
-              onSet={(v) => setTrochoid(Math.max(0, Math.min(1, v)))}
-              min={0}
-              max={1}
-              step={0.05}
-              onDec={() => setTrochoid((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
-              onInc={() => setTrochoid((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
-            />
-            <PadDial
-              label={t("dial.wave.quality")}
-              value={waveHighQuality ? t("common.high") : t("common.low")}
-              onDec={() => setWaveHighQuality(false)}
-              onInc={() => setWaveHighQuality(true)}
-            />
-            <PadDial
-              label={t("dial.wave.waveDirection")}
-              mode="number"
-              value={`${Math.round(((waveDir % 360) + 360) % 360)}°`}
-              rawValue={waveDir}
-              onSet={(v) => setWaveDir(((v % 360) + 360) % 360)}
-              min={0}
-              max={360}
-              step={5}
-              onDec={() => setWaveDir((v) => (((v - 15) % 360) + 360) % 360)}
-              onInc={() => setWaveDir((v) => (((v + 15) % 360) + 360) % 360)}
-            />
-            <PadDial
-              label={t("dial.wave.mode")}
-              value={vortexMode ? t("dial.wave.modeValue.vortex") : t("dial.wave.modeValue.ocean")}
-              onDec={() => setVortexMode(false)}
-              onInc={() => setVortexMode(true)}
-            />
-            <PadDial
-              label={t("dial.wave.opening")}
-              mode="number"
-              value={`${vortexOpening.toFixed(1)}m`}
-              rawValue={vortexOpening}
-              onSet={(v) => setVortexOpening(Math.max(3, Math.min(60, v)))}
-              min={3}
-              max={60}
-              step={0.5}
-              onDec={() => setVortexOpening((v) => Math.max(3, +(v - 0.5).toFixed(2)))}
-              onInc={() => setVortexOpening((v) => Math.min(60, +(v + 0.5).toFixed(2)))}
-            />
-            <PadDial
-              label={t("dial.wave.distance")}
-              mode="number"
-              value={`${vortexRadius.toFixed(1)}m`}
-              rawValue={vortexRadius}
-              onSet={(v) => setVortexRadius(Math.max(3, Math.min(220, v)))}
-              min={3}
-              max={220}
-              step={1}
-              onDec={() => setVortexRadius((v) => Math.max(3, +(v - 1).toFixed(2)))}
-              onInc={() => setVortexRadius((v) => Math.min(220, +(v + 1).toFixed(2)))}
-            />
-            <PadDial
-              label={t("dial.wave.vortexSpeed")}
-              mode="number"
-              value={`${vortexSpeed.toFixed(2)}x`}
-              rawValue={vortexSpeed}
-              onSet={(v) => setVortexSpeed(Math.max(-3, Math.min(10, v)))}
-              min={-3}
-              max={10}
-              step={0.1}
-              onDec={() => setVortexSpeed((v) => Math.max(-3, +(v - 0.1).toFixed(2)))}
-              onInc={() => setVortexSpeed((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
-            />
+            {cameraMode === "whirlpool" ? (
+              <>
+                <PadDial
+                  label={t("dial.wave.whirlpoolSpeed")}
+                  mode="number"
+                  value={`${whirlpoolSpeed.toFixed(2)}x`}
+                  rawValue={whirlpoolSpeed}
+                  onSet={(v) => setWhirlpoolSpeed(Math.max(0, Math.min(10, v)))}
+                  min={0}
+                  max={10}
+                  step={0.1}
+                  onDec={() => setWhirlpoolSpeed((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
+                  onInc={() => setWhirlpoolSpeed((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
+                />
+                <PadDial
+                  label={t("dial.wave.whirlpoolDirection")}
+                  value={t(WHIRLPOOL_DIRECTION_LABEL_KEYS[whirlpoolDirection])}
+                  options={WHIRLPOOL_DIRECTIONS.map((d) => t(WHIRLPOOL_DIRECTION_LABEL_KEYS[d]))}
+                  selectedIndex={WHIRLPOOL_DIRECTIONS.indexOf(whirlpoolDirection)}
+                  onSelectIndex={(i) => setWhirlpoolDirection(WHIRLPOOL_DIRECTIONS[i])}
+                  onDec={() => setWhirlpoolDirection("cw")}
+                  onInc={() => setWhirlpoolDirection("ccw")}
+                />
+                <PadDial
+                  label={t("dial.wave.whirlpoolDistance")}
+                  mode="number"
+                  value={`${whirlpoolRadius.toFixed(1)}m`}
+                  rawValue={whirlpoolRadius}
+                  onSet={(v) => setWhirlpoolRadius(Math.max(3, Math.min(220, v)))}
+                  min={3}
+                  max={220}
+                  step={1}
+                  onDec={() => setWhirlpoolRadius((v) => Math.max(3, +(v - 1).toFixed(2)))}
+                  onInc={() => setWhirlpoolRadius((v) => Math.min(220, +(v + 1).toFixed(2)))}
+                />
+                <PadDial
+                  label={t("dial.wave.whirlpoolOpening")}
+                  mode="number"
+                  value={`${whirlpoolOpening.toFixed(1)}m`}
+                  rawValue={whirlpoolOpening}
+                  onSet={(v) => setWhirlpoolOpening(Math.max(3, Math.min(60, v)))}
+                  min={3}
+                  max={60}
+                  step={0.5}
+                  onDec={() => setWhirlpoolOpening((v) => Math.max(3, +(v - 0.5).toFixed(2)))}
+                  onInc={() => setWhirlpoolOpening((v) => Math.min(60, +(v + 0.5).toFixed(2)))}
+                />
+                <PadDial
+                  label={t("dial.wave.whirlpoolSequence")}
+                  value={onOff(whirlpoolSequenceOn)}
+                  onDec={() => setWhirlpoolSequenceOn(false)}
+                  onInc={() => setWhirlpoolSequenceOn(true)}
+                />
+                {whirlpoolSequenceOn && (
+                  <>
+                    <PadDial
+                      label={t("dial.wave.whirlpoolDragSpeed")}
+                      mode="number"
+                      value={`${whirlpoolDragSpeed.toFixed(1)}m/s`}
+                      rawValue={whirlpoolDragSpeed}
+                      onSet={(v) => setWhirlpoolDragSpeed(Math.max(0.5, Math.min(60, v)))}
+                      min={0.5}
+                      max={60}
+                      step={0.5}
+                      onDec={() =>
+                        setWhirlpoolDragSpeed((v) => Math.max(0.5, +(v - 0.5).toFixed(2)))
+                      }
+                      onInc={() =>
+                        setWhirlpoolDragSpeed((v) => Math.min(60, +(v + 0.5).toFixed(2)))
+                      }
+                    />
+                    <PadDial
+                      label={t("dial.wave.whirlpoolDragDuration")}
+                      mode="number"
+                      value={formatClock(whirlpoolDragDuration)}
+                      rawValue={whirlpoolDragDuration}
+                      onSet={(v) => setWhirlpoolDragDuration(Math.max(0.5, Math.min(120, v)))}
+                      min={0.5}
+                      max={120}
+                      step={0.5}
+                      onDec={() =>
+                        setWhirlpoolDragDuration((v) => Math.max(0.5, +(v - 0.5).toFixed(2)))
+                      }
+                      onInc={() =>
+                        setWhirlpoolDragDuration((v) => Math.min(120, +(v + 0.5).toFixed(2)))
+                      }
+                    />
+                    <PadDial
+                      label={t("dial.wave.whirlpoolStayDuration")}
+                      mode="number"
+                      value={formatClock(whirlpoolStayDuration)}
+                      rawValue={whirlpoolStayDuration}
+                      onSet={(v) => setWhirlpoolStayDuration(Math.max(0, Math.min(120, v)))}
+                      min={0}
+                      max={120}
+                      step={0.5}
+                      onDec={() =>
+                        setWhirlpoolStayDuration((v) => Math.max(0, +(v - 0.5).toFixed(2)))
+                      }
+                      onInc={() =>
+                        setWhirlpoolStayDuration((v) => Math.min(120, +(v + 0.5).toFixed(2)))
+                      }
+                    />
+                    <PadDial
+                      label={t("dial.wave.whirlpoolExitMode")}
+                      value={t(WHIRLPOOL_EXIT_MODE_LABEL_KEYS[whirlpoolExitMode])}
+                      options={WHIRLPOOL_EXIT_MODES.map((m) =>
+                        t(WHIRLPOOL_EXIT_MODE_LABEL_KEYS[m]),
+                      )}
+                      selectedIndex={WHIRLPOOL_EXIT_MODES.indexOf(whirlpoolExitMode)}
+                      onSelectIndex={(i) => setWhirlpoolExitMode(WHIRLPOOL_EXIT_MODES[i])}
+                      onDec={() => setWhirlpoolExitMode("throwBack")}
+                      onInc={() => setWhirlpoolExitMode("reverseSpin")}
+                    />
+                    <PadDial
+                      label={t("dial.wave.whirlpoolExitSpeed")}
+                      mode="number"
+                      value={`${whirlpoolExitSpeed.toFixed(1)}m/s`}
+                      rawValue={whirlpoolExitSpeed}
+                      onSet={(v) => setWhirlpoolExitSpeed(Math.max(0.5, Math.min(60, v)))}
+                      min={0.5}
+                      max={60}
+                      step={0.5}
+                      onDec={() =>
+                        setWhirlpoolExitSpeed((v) => Math.max(0.5, +(v - 0.5).toFixed(2)))
+                      }
+                      onInc={() =>
+                        setWhirlpoolExitSpeed((v) => Math.min(60, +(v + 0.5).toFixed(2)))
+                      }
+                    />
+                  </>
+                )}
+              </>
+            ) : (
+              <>
+                <PadDial
+                  label={t("dial.wave.amp")}
+                  mode="number"
+                  value={`${waveAmp.toFixed(2)}m`}
+                  rawValue={waveAmp}
+                  onSet={setWaveAmp}
+                  min={0}
+                  max={100}
+                  step={0.5}
+                  onDec={() => setWaveAmp((v) => Math.max(0, +(v - 0.5).toFixed(2)))}
+                  onInc={() => setWaveAmp((v) => Math.min(100, +(v + 0.5).toFixed(2)))}
+                />
+                <PadDial
+                  label={t("dial.wave.speed")}
+                  mode="number"
+                  value={`${waveSpeed.toFixed(2)}×`}
+                  rawValue={waveSpeed}
+                  onSet={setWaveSpeed}
+                  min={0}
+                  max={10}
+                  step={0.1}
+                  onDec={() => setWaveSpeed((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
+                  onInc={() => setWaveSpeed((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
+                />
+                <PadDial
+                  label={t("dial.wave.freq")}
+                  mode="number"
+                  value={`${waveFreq.toFixed(2)}×`}
+                  rawValue={waveFreq}
+                  onSet={(v) => setWaveFreq(Math.max(WAVE_FREQ_MIN, Math.min(WAVE_FREQ_MAX, v)))}
+                  min={WAVE_FREQ_MIN}
+                  max={WAVE_FREQ_MAX}
+                  step={0.05}
+                  onDec={() => setWaveFreq((v) => Math.max(WAVE_FREQ_MIN, +(v - 0.05).toFixed(2)))}
+                  onInc={() => setWaveFreq((v) => Math.min(WAVE_FREQ_MAX, +(v + 0.05).toFixed(2)))}
+                />
+                <PadDial
+                  label={t("dial.wave.height")}
+                  mode="number"
+                  value={`${heightOffset >= 0 ? "+" : ""}${heightOffset.toFixed(2)}m`}
+                  rawValue={heightOffset}
+                  onSet={setHeightOffset}
+                  min={-5}
+                  max={5}
+                  step={0.2}
+                  onDec={() => setHeightOffset((v) => Math.max(-5, +(v - 0.2).toFixed(2)))}
+                  onInc={() => setHeightOffset((v) => Math.min(5, +(v + 0.2).toFixed(2)))}
+                />
+                <PadDial
+                  label={t("dial.wave.dive")}
+                  mode="number"
+                  value={`${submergeAmp.toFixed(2)}×`}
+                  rawValue={submergeAmp}
+                  onSet={setSubmergeAmp}
+                  min={0}
+                  max={4}
+                  step={0.1}
+                  onDec={() => setSubmergeAmp((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
+                  onInc={() => setSubmergeAmp((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
+                />
+                <PadDial
+                  label={t("dial.wave.floatLift")}
+                  mode="number"
+                  value={`${floatLift.toFixed(2)}×`}
+                  rawValue={floatLift}
+                  onSet={setFloatLift}
+                  min={0}
+                  max={4}
+                  step={0.1}
+                  onDec={() => setFloatLift((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
+                  onInc={() => setFloatLift((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
+                />
+                <PadDial
+                  label={t("dial.wave.currentDirection")}
+                  mode="number"
+                  value={`${Math.round(worldXZBearing(driftWorldRef.current.x, driftWorldRef.current.z))}°`}
+                  rawValue={worldXZBearing(driftWorldRef.current.x, driftWorldRef.current.z)}
+                  onSet={(v) => setStickBearing(driftWorldRef, driftDisplayRef, setDriftStick, v)}
+                  min={0}
+                  max={360}
+                  step={5}
+                  onDec={() =>
+                    setStickBearing(
+                      driftWorldRef,
+                      driftDisplayRef,
+                      setDriftStick,
+                      worldXZBearing(driftWorldRef.current.x, driftWorldRef.current.z) - 15,
+                    )
+                  }
+                  onInc={() =>
+                    setStickBearing(
+                      driftWorldRef,
+                      driftDisplayRef,
+                      setDriftStick,
+                      worldXZBearing(driftWorldRef.current.x, driftWorldRef.current.z) + 15,
+                    )
+                  }
+                />
+                <PadDial
+                  label={t("dial.wave.sway")}
+                  mode="number"
+                  value={`${swayAmp.toFixed(1)}m`}
+                  rawValue={swayAmp}
+                  onSet={setSwayAmp}
+                  min={0}
+                  max={60}
+                  step={0.5}
+                  onDec={() => setSwayAmp((v) => Math.max(0, +(v - 0.5).toFixed(2)))}
+                  onInc={() => setSwayAmp((v) => Math.min(60, +(v + 0.5).toFixed(2)))}
+                />
+                <PadDial
+                  label={t("dial.wave.swaySpeed")}
+                  mode="number"
+                  value={`${swaySpeed.toFixed(2)}×`}
+                  rawValue={swaySpeed}
+                  onSet={setSwaySpeed}
+                  min={0.01}
+                  max={10}
+                  step={0.01}
+                  onDec={() => setSwaySpeed((v) => Math.max(0.01, +(v - 0.01).toFixed(2)))}
+                  onInc={() => setSwaySpeed((v) => Math.min(1, +(v + 0.01).toFixed(2)))}
+                />
+                <PadDial
+                  label={t("dial.wave.swayDrift")}
+                  mode="number"
+                  value={
+                    swayBias === 0
+                      ? t("common.neutral")
+                      : swayBias > 0
+                        ? `${t("common.with")} ${swayBias.toFixed(2)}`
+                        : `${t("common.against")} ${Math.abs(swayBias).toFixed(2)}`
+                  }
+                  rawValue={swayBias}
+                  onSet={setSwayBias}
+                  min={-10}
+                  max={10}
+                  step={0.05}
+                  onDec={() => setSwayBias((v) => Math.max(-1, +(v - 0.05).toFixed(2)))}
+                  onInc={() => setSwayBias((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+                />
+                <PadDial
+                  label={t("dial.wave.swayDirection")}
+                  mode="number"
+                  value={`${Math.round(worldXZBearing(swayWorldRef.current.x, swayWorldRef.current.z))}°`}
+                  rawValue={worldXZBearing(swayWorldRef.current.x, swayWorldRef.current.z)}
+                  onSet={(v) => setStickBearing(swayWorldRef, swayDisplayRef, setSwayStick, v)}
+                  min={0}
+                  max={360}
+                  step={5}
+                  onDec={() =>
+                    setStickBearing(
+                      swayWorldRef,
+                      swayDisplayRef,
+                      setSwayStick,
+                      worldXZBearing(swayWorldRef.current.x, swayWorldRef.current.z) - 15,
+                    )
+                  }
+                  onInc={() =>
+                    setStickBearing(
+                      swayWorldRef,
+                      swayDisplayRef,
+                      setSwayStick,
+                      worldXZBearing(swayWorldRef.current.x, swayWorldRef.current.z) + 15,
+                    )
+                  }
+                />
+                <PadDial
+                  label={t("dial.wave.bob")}
+                  mode="number"
+                  value={`${buoyAmp.toFixed(2)}×`}
+                  rawValue={buoyAmp}
+                  onSet={setBuoyAmp}
+                  min={0}
+                  max={4}
+                  step={0.1}
+                  onDec={() => setBuoyAmp((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
+                  onInc={() => setBuoyAmp((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
+                />
+                <PadDial
+                  label={t("dial.wave.bobSpeed")}
+                  mode="number"
+                  value={`${bobSpeed.toFixed(2)}×`}
+                  rawValue={bobSpeed}
+                  onSet={setBobSpeed}
+                  min={0}
+                  max={5}
+                  step={0.1}
+                  onDec={() => setBobSpeed((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
+                  onInc={() => setBobSpeed((v) => Math.min(5, +(v + 0.1).toFixed(2)))}
+                />
+                <PadDial
+                  label={t("dial.wave.waveform")}
+                  value={
+                    regularWaves
+                      ? t("dial.wave.waveformValue.regular")
+                      : t("dial.wave.waveformValue.spread")
+                  }
+                  onDec={() => setRegularWaves(false)}
+                  onInc={() => setRegularWaves(true)}
+                />
+                <PadDial
+                  label={t("dial.wave.realistic")}
+                  value={realisticWaves ? t("dial.wave.realisticValue.on") : t("common.off")}
+                  onDec={() => setRealisticWaves(false)}
+                  onInc={() => setRealisticWaves(true)}
+                />
+                <PadDial
+                  label={t("dial.wave.preset")}
+                  value={t(WAVE_PRESET_LABEL_KEYS[wavePreset])}
+                  onDec={() => applyWavePreset("legacy")}
+                  onInc={() => applyWavePreset("standard")}
+                />
+                <PadDial
+                  label={t("dial.wave.dyingWave")}
+                  value={onOff(dyingWave)}
+                  onDec={() => setDyingWave(false)}
+                  onInc={() => setDyingWave(true)}
+                />
+                <PadDial
+                  label={t("dial.wave.dyingWaveHeight")}
+                  mode="number"
+                  value={`${dyingWaveAmp.toFixed(2)}m`}
+                  rawValue={dyingWaveAmp}
+                  onSet={setDyingWaveAmp}
+                  min={0}
+                  max={20}
+                  step={0.1}
+                  onDec={() => setDyingWaveAmp((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
+                  onInc={() => setDyingWaveAmp((v) => Math.min(20, +(v + 0.1).toFixed(2)))}
+                />
+                <PadDial
+                  label={t("dial.wave.dyingWaveSpeed")}
+                  mode="number"
+                  value={`${dyingWaveSpeed.toFixed(2)}×`}
+                  rawValue={dyingWaveSpeed}
+                  onSet={setDyingWaveSpeed}
+                  min={0}
+                  max={5}
+                  step={0.05}
+                  onDec={() => setDyingWaveSpeed((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                  onInc={() => setDyingWaveSpeed((v) => Math.min(5, +(v + 0.05).toFixed(2)))}
+                />
+                <PadDial
+                  label={t("dial.wave.randomize")}
+                  value={onOff(randomizeWaves)}
+                  onDec={() => setRandomizeWaves(false)}
+                  onInc={() => setRandomizeWaves(true)}
+                />
+                <PadDial
+                  label={t("dial.wave.crossWave")}
+                  value={onOff(regularCross)}
+                  onDec={() => setRegularCross(false)}
+                  onInc={() => setRegularCross(true)}
+                />
+                <PadDial
+                  label={t("dial.wave.wavePeriod")}
+                  mode="number"
+                  value={`${regularPeriod.toFixed(2)}x`}
+                  rawValue={regularPeriod}
+                  onSet={setRegularPeriod}
+                  min={0.3}
+                  max={4}
+                  step={0.1}
+                  onDec={() => setRegularPeriod((v) => Math.max(0.3, +(v - 0.1).toFixed(2)))}
+                  onInc={() => setRegularPeriod((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
+                />
+                <PadDial
+                  label={t("dial.wave.peak")}
+                  mode="number"
+                  value={`${wavePeak.toFixed(2)}`}
+                  rawValue={wavePeak}
+                  onSet={setWavePeak}
+                  min={1}
+                  max={6}
+                  step={0.25}
+                  onDec={() => setWavePeak((v) => Math.max(1, +(v - 0.25).toFixed(2)))}
+                  onInc={() => setWavePeak((v) => Math.min(6, +(v + 0.25).toFixed(2)))}
+                />
+                <PadDial
+                  label={t("dial.wave.trochoid")}
+                  mode="number"
+                  value={trochoid <= 0.001 ? t("common.off") : `${Math.round(trochoid * 100)}%`}
+                  rawValue={trochoid}
+                  onSet={(v) => setTrochoid(Math.max(0, Math.min(1, v)))}
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  onDec={() => setTrochoid((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                  onInc={() => setTrochoid((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+                />
+                <PadDial
+                  label={t("dial.wave.quality")}
+                  value={waveHighQuality ? t("common.high") : t("common.low")}
+                  onDec={() => setWaveHighQuality(false)}
+                  onInc={() => setWaveHighQuality(true)}
+                />
+                <PadDial
+                  label={t("dial.wave.waveDirection")}
+                  mode="number"
+                  value={`${Math.round(((waveDir % 360) + 360) % 360)}°`}
+                  rawValue={waveDir}
+                  onSet={(v) => setWaveDir(((v % 360) + 360) % 360)}
+                  min={0}
+                  max={360}
+                  step={5}
+                  onDec={() => setWaveDir((v) => (((v - 15) % 360) + 360) % 360)}
+                  onInc={() => setWaveDir((v) => (((v + 15) % 360) + 360) % 360)}
+                />
+              </>
+            )}
           </>
         )}
         {settingsTab === "kamera" && (
@@ -1423,6 +1584,53 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   onDec={() => cycleSwingYWaveform(-1)}
                   onInc={() => cycleSwingYWaveform(1)}
                 />
+                <PadDial
+                  label={t("dial.camera.swingTornado")}
+                  value={onOff(swingTornadoOn)}
+                  onDec={() => setSwingTornadoOn(false)}
+                  onInc={() => setSwingTornadoOn(true)}
+                />
+                {swingTornadoOn && (
+                  <>
+                    <PadDial
+                      label={t("dial.camera.swingTornadoRadius")}
+                      mode="number"
+                      value={`${swingTornadoRadius.toFixed(0)}m`}
+                      rawValue={swingTornadoRadius}
+                      onSet={(v) => setSwingTornadoRadius(Math.max(0, Math.min(2000, v)))}
+                      min={0}
+                      max={2000}
+                      step={5}
+                      onDec={() => setSwingTornadoRadius((v) => Math.max(0, +(v - 5).toFixed(0)))}
+                      onInc={() =>
+                        setSwingTornadoRadius((v) => Math.min(2000, +(v + 5).toFixed(0)))
+                      }
+                    />
+                    <PadDial
+                      label={t("dial.camera.swingTornadoSpeed")}
+                      mode="number"
+                      value={`${swingTornadoSpeed.toFixed(2)}x`}
+                      rawValue={swingTornadoSpeed}
+                      onSet={(v) => setSwingTornadoSpeed(Math.max(0, Math.min(10, v)))}
+                      min={0}
+                      max={10}
+                      step={0.1}
+                      onDec={() => setSwingTornadoSpeed((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
+                      onInc={() => setSwingTornadoSpeed((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
+                    />
+                    <PadDial
+                      label={t("dial.camera.swingTornadoDirection")}
+                      value={t(WHIRLPOOL_DIRECTION_LABEL_KEYS[swingTornadoDirection])}
+                      options={WHIRLPOOL_DIRECTIONS.map((d) =>
+                        t(WHIRLPOOL_DIRECTION_LABEL_KEYS[d]),
+                      )}
+                      selectedIndex={WHIRLPOOL_DIRECTIONS.indexOf(swingTornadoDirection)}
+                      onSelectIndex={(i) => setSwingTornadoDirection(WHIRLPOOL_DIRECTIONS[i])}
+                      onDec={() => setSwingTornadoDirection("cw")}
+                      onInc={() => setSwingTornadoDirection("ccw")}
+                    />
+                  </>
+                )}
               </>
             )}
             <PadDial
@@ -1471,6 +1679,24 @@ export function SettingsPanel(props: SettingsPanelProps) {
               value={onOff(intervalShowStats)}
               onDec={() => setIntervalShowStats(false)}
               onInc={() => setIntervalShowStats(true)}
+            />
+            <PadDial
+              label={t("dial.camera.intervalIncludeFloat")}
+              value={onOff(intervalIncludeFloat)}
+              onDec={() => setIntervalIncludeFloat(false)}
+              onInc={() => setIntervalIncludeFloat(true)}
+            />
+            <PadDial
+              label={t("dial.camera.intervalIncludeWhirlpool")}
+              value={onOff(intervalIncludeWhirlpool)}
+              onDec={() => setIntervalIncludeWhirlpool(false)}
+              onInc={() => setIntervalIncludeWhirlpool(true)}
+            />
+            <PadDial
+              label={t("dial.camera.intervalIncludeSwing")}
+              value={onOff(intervalIncludeSwing)}
+              onDec={() => setIntervalIncludeSwing(false)}
+              onInc={() => setIntervalIncludeSwing(true)}
             />
             <PadDial
               label={t("dial.camera.posX")}
