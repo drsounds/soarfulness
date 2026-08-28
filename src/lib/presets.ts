@@ -178,10 +178,16 @@ export function extractStateData(raw: unknown): Record<string, unknown> | null {
 // the STRÖM (current) and SVAJ (sway) world-space direction vectors. Built/
 // applied by routes/index.tsx (which owns the refs these mirror); validated
 // here since it round-trips through untrusted JSON on import.
+// noclipDriftDir/noclipVertDrift are optional: they're the noclip-mode
+// analogue of driftDir/swayDir (see routes/index.tsx's noclipDriftWorldRef/
+// vertStickRef), added after the original shape shipped — optional so older
+// saved/exported states without them still round-trip fine.
 export type RuntimeState = {
   camera: { x: number; y: number; z: number; yaw: number; pitch: number };
   driftDir: { x: number; z: number };
   swayDir: { x: number; z: number };
+  noclipDriftDir?: { x: number; z: number };
+  noclipVertDrift?: { x: number; y: number };
 };
 
 function isFiniteNumber(v: unknown): v is number {
@@ -209,7 +215,15 @@ export function isValidRuntimeState(v: unknown): v is RuntimeState {
   ) {
     return false;
   }
-  return isVec2(o.driftDir) && isVec2(o.swayDir);
+  if (!isVec2(o.driftDir) || !isVec2(o.swayDir)) return false;
+  if (o.noclipDriftDir !== undefined && !isVec2(o.noclipDriftDir)) return false;
+  if (o.noclipVertDrift !== undefined) {
+    const nv = o.noclipVertDrift as Record<string, unknown>;
+    if (!nv || typeof nv !== "object" || !isFiniteNumber(nv.x) || !isFiniteNumber(nv.y)) {
+      return false;
+    }
+  }
+  return true;
 }
 
 export type SavedState = {

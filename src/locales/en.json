@@ -144,7 +144,11 @@
       "torusTube": "THICKNESS",
       "torusVerticalCount": "RINGS/COLUMN",
       "torusVerticalSpacing": "GRID HEIGHT",
-      "torusViewDistance": "VIEW DISTANCE"
+      "torusViewDistance": "VIEW DISTANCE",
+      "worldBoundary": "WORLD BOUNDARY",
+      "worldBoundaryHeight": "BOUNDARY HEIGHT (Y)",
+      "worldBoundarySize": "BOUNDARY SIZE (XZ)",
+      "worldBoundaryYExtend": "INFINITE CLOUD LAYERS"
     },
     "water": {
       "bottom": "BOTTOM",
@@ -236,8 +240,12 @@
     "intervalRemaining": "{{time}} left",
     "joystick": {
       "current": "CURRENT",
+      "freeFall": "FREE FALL",
       "look": "LOOK",
       "nav": "NAV",
+      "noclipDriftXZ": "DRIFT XZ",
+      "noclipDriftY": "DRIFT Y",
+      "reverseRise": "REVERSE RISE",
       "sway": "SWAY",
       "waveDirection": "WAVE DIR"
     },

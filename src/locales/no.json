@@ -144,7 +144,11 @@
       "torusTube": "TYKKELSE",
       "torusVerticalCount": "RINGER/KOLONNE",
       "torusVerticalSpacing": "RUTENETT HØYDE",
-      "torusViewDistance": "REKKEVIDDE"
+      "torusViewDistance": "REKKEVIDDE",
+      "worldBoundary": "VERDENSGRENSE",
+      "worldBoundaryHeight": "GRENSEHØYDE (Y)",
+      "worldBoundarySize": "GRENSESTØRRELSE (XZ)",
+      "worldBoundaryYExtend": "UENDELIGE SKYLAG"
     },
     "water": {
       "bottom": "BUNN",
@@ -236,8 +240,12 @@
     "intervalRemaining": "{{time}} igjen",
     "joystick": {
       "current": "STRØM",
+      "freeFall": "FRITT FALL",
       "look": "LOOK",
       "nav": "NAV",
+      "noclipDriftXZ": "DRIV XZ",
+      "noclipDriftY": "DRIV Y",
+      "reverseRise": "OMVENDT STIGNING",
       "sway": "SVAI",
       "waveDirection": "BØLGERETN"
     },

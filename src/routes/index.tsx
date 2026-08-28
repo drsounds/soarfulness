@@ -13,7 +13,7 @@ import { VirtualPhone, type RemoteControllerProps } from "@/components/VirtualPh
 import { SettingsPanel, type SettingsPanelProps } from "@/components/SettingsPanel";
 import { GogglesOverlay } from "@/components/GogglesOverlay";
 import { PadSlider } from "@/components/PadDial";
-import { Joystick } from "@/components/Joystick";
+import { Joystick, JoystickPad } from "@/components/Joystick";
 import {
   padToWorldXZ,
   worldXZToPad,
@@ -288,6 +288,41 @@ function swingYWaveformValue(kind: SwingYWaveform, theta: number, phase: number)
 const OCEAN_BASE_SIZE = 1200;
 const OCEAN_FAR_INNER_RADIUS = OCEAN_BASE_SIZE / 2;
 const CLOUD_BASE_SIZE = 200000;
+
+// VÄRLDSGRÄNS (world boundary): wraps `value` back into [-half, half) once it
+// crosses either edge, teleporting to the opposite side instead of just
+// clamping — e.g. crossing +half re-enters at -half plus whatever the camera
+// overshot by, so a fast pass through the boundary never loses momentum.
+// Used for x/z always, and for y whenever worldBoundaryYExtend is off (see
+// the animate() loop below) or the seamless extension is on but the camera
+// still somehow overshoots several boundary-widths in one frame.
+function wrapAxis(value: number, half: number): number {
+  if (!(half > 0)) return value;
+  const period = half * 2;
+  return ((((value + half) % period) + period) % period) - half;
+}
+
+// VÄRLDSGRÄNS's y-extension: rather than a hard wrap, more instances of the
+// same sky-cloud layer (see EXTEND_CLOUD_LAYER_COUNT below, and the skyClouds
+// setup + animate() loop) tile every EXTEND_CLOUD_LAYER_SPACING meters of
+// altitude around wherever the camera currently is, so climbing or diving
+// forever always has another cloud deck coming up — the wrap at
+// ±worldBoundaryHeight becomes invisible since every altitude already looks
+// the same as any other. cloudLayerJitter gives each altitude band's layer a
+// small, deterministic (same index -> same offset every time) horizontal
+// offset so passing through many bands doesn't read as the exact same cloud
+// pattern repeating in place — same trick as hashing in the wave/noise code
+// above, just used to pick a *position* instead of a value.
+const EXTEND_CLOUD_LAYER_SPACING = 500;
+const EXTEND_CLOUD_LAYER_COUNT = 5;
+function cloudLayerJitter(layerIndex: number): { x: number; z: number } {
+  const s1 = Math.sin(layerIndex * 12.9898) * 43758.5453;
+  const s2 = Math.sin(layerIndex * 78.233) * 12543.231;
+  return {
+    x: (s1 - Math.floor(s1) - 0.5) * 8000,
+    z: (s2 - Math.floor(s2) - 0.5) * 8000,
+  };
+}
 
 // Builds the far ocean ring at the given RUMSSTORLEK/surfaceArea outer
 // extent — see OCEAN_FAR_INNER_RADIUS above for why this is a ring (fixed
@@ -591,6 +626,15 @@ const DEFAULTS: Persisted = {
   // match, so the waves read as the cause of the sway instead of two
   // independently-aimed controls.
   syncWaveWithSway: true,
+  // On by default, generous enough (20km horizontally, 3km up/down) that
+  // normal float-mode swimming near origin never brushes it — mainly meant
+  // to be discovered by flying far in NOCLIP. worldBoundaryYExtend on means
+  // the y edge is masked by extra cloud layers (see EXTEND_CLOUD_LAYER_*)
+  // rather than an abrupt wrap.
+  worldBoundaryOn: true,
+  worldBoundarySize: 20000,
+  worldBoundaryHeight: 3000,
+  worldBoundaryYExtend: true,
   liveMode: false,
   sceneId: "Strandpark",
   envId: "strandpark",
@@ -860,6 +904,10 @@ function Aquafulness() {
   const [swaySpeed, setSwaySpeed] = useState(initial.swaySpeed);
   const [swayBias, setSwayBias] = useState(initial.swayBias);
   const [syncWaveWithSway, setSyncWaveWithSway] = useState(initial.syncWaveWithSway);
+  const [worldBoundaryOn, setWorldBoundaryOn] = useState(initial.worldBoundaryOn);
+  const [worldBoundarySize, setWorldBoundarySize] = useState(initial.worldBoundarySize);
+  const [worldBoundaryHeight, setWorldBoundaryHeight] = useState(initial.worldBoundaryHeight);
+  const [worldBoundaryYExtend, setWorldBoundaryYExtend] = useState(initial.worldBoundaryYExtend);
   const [liveMode, setLiveMode] = useState(initial.liveMode);
   // Loadable .glb scenes discovered from public/scenes/scenes.json.
   const [scenes, setScenes] = useState<SceneEntry[]>([]);
@@ -960,8 +1008,22 @@ function Aquafulness() {
   const [waveDirStick, setWaveDirStick] = useState({ x: 0, y: 0 });
   const [swayStick, setSwayStick] = useState({ x: 0, y: 0 });
   // Noclip's dedicated vertical (ascend/descend) joystick, shown in place of
-  // STRÖM which has no meaning outside float mode.
+  // STRÖM which has no meaning outside float mode. Sticky in the main HUD/
+  // remote (see the JSX below) — it's noclip's own persistent "current",
+  // not a momentary nudge, so it keeps climbing/descending after release.
   const [vertStick, setVertStick] = useState({ x: 0, y: 0 });
+  // NOCLIP's horizontal counterpart to vertStick above — a sticky world-space
+  // drift dial (same idea as float mode's STRÖM/driftStick, just its own
+  // state since the two modes' drift directions are independent) that
+  // replaces STRÖM/SVAJ's spot in the main HUD while in noclip.
+  const [noclipDriftStick, setNoclipDriftStick] = useState({ x: 0, y: 0 });
+  // FRITT FALL / OMVÄND STIGNING: two small toggle dials flanking the y
+  // drift pad in noclip, each pinning the vertical rate to a strong constant
+  // dive/climb (overriding vertStick) while active — a quick way to commit to
+  // a long, hands-off descent/ascent through the VÄRLDSGRÄNS y extension.
+  // Mutually exclusive; toggling one off falls back to vertStick's own value.
+  const [noclipFreeFallOn, setNoclipFreeFallOn] = useState(false);
+  const [noclipReverseRiseOn, setNoclipReverseRiseOn] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("vagor");
   // VÅG/TEMPO/FREKVENS live behind their own bottom drawer (like SETTINGS)
@@ -1002,6 +1064,9 @@ function Aquafulness() {
   const farOceanRef = useRef<THREE.Mesh | null>(null);
   const midCloudsMeshRef = useRef<THREE.Mesh | null>(null);
   const skyCloudsMeshRef = useRef<THREE.Mesh | null>(null);
+  // VÄRLDSGRÄNS's extra sky-cloud layers (see EXTEND_CLOUD_LAYER_* above) —
+  // created once alongside skyClouds, repositioned every frame in animate().
+  const extendCloudLayersRef = useRef<THREE.Mesh[]>([]);
   // Manages the CSS3DRenderer-backed "TV apparatus" panels layered on top of
   // the WebGL scene, sharing the same camera; see CSS3DTVManager.
   const tvManagerRef = useRef<CSS3DTVManager | null>(null);
@@ -1114,6 +1179,10 @@ function Aquafulness() {
     swaySpeed,
     swayBias,
     syncWaveWithSway,
+    worldBoundaryOn,
+    worldBoundarySize,
+    worldBoundaryHeight,
+    worldBoundaryYExtend,
     liveMode,
     sceneId,
     envId,
@@ -1247,6 +1316,10 @@ function Aquafulness() {
     swaySpeed,
     swayBias,
     syncWaveWithSway,
+    worldBoundaryOn,
+    worldBoundarySize,
+    worldBoundaryHeight,
+    worldBoundaryYExtend,
     liveMode,
     sceneId,
     envId,
@@ -1382,11 +1455,14 @@ function Aquafulness() {
   // around, instead of the real direction silently rotating with the camera.
   const driftWorldRef = useRef({ x: 0, z: 0 });
   const swayWorldRef = useRef({ x: 0, z: 0 });
+  // Same idea as driftWorldRef, for noclip's own DRIFT XZ dial.
+  const noclipDriftWorldRef = useRef({ x: 0, z: 0 });
   // Last pad-local coordinates pushed to the STRÖM/SVAJ knobs, so the render
   // loop only calls setState when the re-derived display value actually
   // moved (yaw changed) instead of every single frame.
   const driftDisplayRef = useRef({ x: 0, y: 0 });
   const swayDisplayRef = useRef({ x: 0, y: 0 });
+  const noclipDriftDisplayRef = useRef({ x: 0, y: 0 });
   const yawRef = useRef(initialCameraPose?.yaw ?? 0);
   const pitchRef = useRef(initialCameraPose?.pitch ?? 0);
   const prevSurfaceRef = useRef<number | null>(null);
@@ -1447,6 +1523,12 @@ function Aquafulness() {
   const swayAmpRef = useRef(swayAmp);
   const swaySpeedRef = useRef(swaySpeed);
   const swayBiasRef = useRef(swayBias);
+  const worldBoundaryOnRef = useRef(worldBoundaryOn);
+  const worldBoundarySizeRef = useRef(worldBoundarySize);
+  const worldBoundaryHeightRef = useRef(worldBoundaryHeight);
+  const worldBoundaryYExtendRef = useRef(worldBoundaryYExtend);
+  const noclipFreeFallOnRef = useRef(noclipFreeFallOn);
+  const noclipReverseRiseOnRef = useRef(noclipReverseRiseOn);
   useEffect(() => {
     ampRef.current = waveAmp;
   }, [waveAmp]);
@@ -1675,11 +1757,31 @@ function Aquafulness() {
   useEffect(() => {
     swayBiasRef.current = swayBias;
   }, [swayBias]);
+  useEffect(() => {
+    worldBoundaryOnRef.current = worldBoundaryOn;
+  }, [worldBoundaryOn]);
+  useEffect(() => {
+    worldBoundarySizeRef.current = worldBoundarySize;
+  }, [worldBoundarySize]);
+  useEffect(() => {
+    worldBoundaryHeightRef.current = worldBoundaryHeight;
+  }, [worldBoundaryHeight]);
+  useEffect(() => {
+    worldBoundaryYExtendRef.current = worldBoundaryYExtend;
+  }, [worldBoundaryYExtend]);
+  useEffect(() => {
+    noclipFreeFallOnRef.current = noclipFreeFallOn;
+    // Mutually exclusive: turning FRITT FALL on cancels OMVÄND STIGNING.
+    if (noclipFreeFallOn) setNoclipReverseRiseOn(false);
+  }, [noclipFreeFallOn]);
+  useEffect(() => {
+    noclipReverseRiseOnRef.current = noclipReverseRiseOn;
+    if (noclipReverseRiseOn) setNoclipFreeFallOn(false);
+  }, [noclipReverseRiseOn]);
   // Live reflection-strength dial → shader (multiplies the surface's base).
   useEffect(() => {
     reflStrengthRef.current = reflStrength;
     applyReflMix();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reflStrength]);
   useEffect(() => {
     bottomColorRef.current = bottomColor;
@@ -1988,6 +2090,10 @@ function Aquafulness() {
     setSwaySpeed(DEFAULTS.swaySpeed);
     setSwayBias(DEFAULTS.swayBias);
     setSyncWaveWithSway(DEFAULTS.syncWaveWithSway);
+    setWorldBoundaryOn(DEFAULTS.worldBoundaryOn);
+    setWorldBoundarySize(DEFAULTS.worldBoundarySize);
+    setWorldBoundaryHeight(DEFAULTS.worldBoundaryHeight);
+    setWorldBoundaryYExtend(DEFAULTS.worldBoundaryYExtend);
     setLiveMode(DEFAULTS.liveMode);
     setReflStrength(DEFAULTS.reflStrength);
     setBottomColor(DEFAULTS.bottomColor);
@@ -2117,6 +2223,11 @@ function Aquafulness() {
     if (patch.swaySpeed !== undefined) setSwaySpeed(patch.swaySpeed);
     if (patch.swayBias !== undefined) setSwayBias(patch.swayBias);
     if (patch.syncWaveWithSway !== undefined) setSyncWaveWithSway(patch.syncWaveWithSway);
+    if (patch.worldBoundaryOn !== undefined) setWorldBoundaryOn(patch.worldBoundaryOn);
+    if (patch.worldBoundarySize !== undefined) setWorldBoundarySize(patch.worldBoundarySize);
+    if (patch.worldBoundaryHeight !== undefined) setWorldBoundaryHeight(patch.worldBoundaryHeight);
+    if (patch.worldBoundaryYExtend !== undefined)
+      setWorldBoundaryYExtend(patch.worldBoundaryYExtend);
     if (patch.liveMode !== undefined) setLiveMode(patch.liveMode);
     if (patch.sceneId !== undefined) setSceneId(patch.sceneId);
     if (patch.envId !== undefined) setEnvId(patch.envId);
@@ -2247,6 +2358,8 @@ function Aquafulness() {
     },
     driftDir: { x: driftWorldRef.current.x, z: driftWorldRef.current.z },
     swayDir: { x: swayWorldRef.current.x, z: swayWorldRef.current.z },
+    noclipDriftDir: { x: noclipDriftWorldRef.current.x, z: noclipDriftWorldRef.current.z },
+    noclipVertDrift: { x: vertStickRef.current.x, y: vertStickRef.current.y },
   });
 
   const applyRuntimeState = (runtime: RuntimeState) => {
@@ -2272,6 +2385,21 @@ function Aquafulness() {
     const swayDisp = worldXZToPad(runtime.swayDir.x, runtime.swayDir.z, yawRef.current);
     swayDisplayRef.current = swayDisp;
     setSwayStick(swayDisp);
+
+    if (runtime.noclipDriftDir) {
+      noclipDriftWorldRef.current = runtime.noclipDriftDir;
+      const noclipDriftDisp = worldXZToPad(
+        runtime.noclipDriftDir.x,
+        runtime.noclipDriftDir.z,
+        yawRef.current,
+      );
+      noclipDriftDisplayRef.current = noclipDriftDisp;
+      setNoclipDriftStick(noclipDriftDisp);
+    }
+    if (runtime.noclipVertDrift) {
+      vertStickRef.current = runtime.noclipVertDrift;
+      setVertStick(runtime.noclipVertDrift);
+    }
   };
 
   // A full state snapshot is every settings field (like an "all"-scope
@@ -3820,6 +3948,22 @@ function Aquafulness() {
     skyCloudsMeshRef.current = skyClouds;
     scene.add(skyClouds);
 
+    // VÄRLDSGRÄNS's extra sky-cloud layers (see EXTEND_CLOUD_LAYER_* and
+    // wrapAxis above) — plain instances of the exact same geometry/material
+    // as skyClouds (cheap: geometry/material aren't duplicated, just
+    // referenced by more Mesh objects), each repositioned every frame in
+    // animate() to tile around the camera's current altitude.
+    const extendCloudLayers: THREE.Mesh[] = [];
+    for (let i = 0; i < EXTEND_CLOUD_LAYER_COUNT; i++) {
+      const layer = new THREE.Mesh(skyCloudGeo, skyCloudMat);
+      layer.visible = false;
+      layer.renderOrder = -1;
+      layer.scale.set(cloudScale0, 1, cloudScale0);
+      extendCloudLayers.push(layer);
+      scene.add(layer);
+    }
+    extendCloudLayersRef.current = extendCloudLayers;
+
     // Sky dome
     const skyGeo = new THREE.SphereGeometry(800, 32, 32);
     const skyUniforms = {
@@ -4176,12 +4320,27 @@ function Aquafulness() {
         const rightX = Math.cos(yaw),
           rightZ = -Math.sin(yaw);
         const speed = walkSpeed * Math.max(0.1, noclipSpeedRef.current);
+        // DRIFT XZ (noclipDriftWorldRef, a sticky world-space dial — same
+        // idea as float mode's STRÖM) keeps carrying the camera even with
+        // NAV at rest, just like STRÖM does in FRI.
+        const driftSpeedNoclip = driftSpeed * Math.max(0.1, noclipSpeedRef.current);
         const moveX = stickRef.current.x * rightX + stickRef.current.y * fwdX;
         const moveZ = stickRef.current.x * rightZ + stickRef.current.y * fwdZ;
-        const moveY = stickRef.current.y * fwdY + vertStickRef.current.y;
-        posRef.current.x += moveX * speed * physDt;
-        posRef.current.y += moveY * speed * physDt;
-        posRef.current.z += moveZ * speed * physDt;
+        // FRITT FALL / OMVÄND STIGNING pin the vertical rate to a strong,
+        // constant dive/climb, overriding HÖJD (vertStickRef) while active —
+        // a quick way to commit to a long, hands-off descent/ascent through
+        // VÄRLDSGRÄNS's y extension below instead of holding HÖJD deflected.
+        const fallRiseSpeed = walkSpeed * 3 * Math.max(0.1, noclipSpeedRef.current);
+        const vertRate = noclipFreeFallOnRef.current
+          ? -fallRiseSpeed
+          : noclipReverseRiseOnRef.current
+            ? fallRiseSpeed
+            : (stickRef.current.y * fwdY + vertStickRef.current.y) * speed;
+        posRef.current.x +=
+          (moveX * speed + noclipDriftWorldRef.current.x * driftSpeedNoclip) * physDt;
+        posRef.current.y += vertRate * physDt;
+        posRef.current.z +=
+          (moveZ * speed + noclipDriftWorldRef.current.z * driftSpeedNoclip) * physDt;
         camX = posRef.current.x;
         camZ = posRef.current.z;
         camYRef.current = posRef.current.y;
@@ -4354,6 +4513,26 @@ function Aquafulness() {
         camZ = posRef.current.z;
       }
 
+      // VÄRLDSGRÄNS (world boundary): wrap x/z to the opposite edge once the
+      // camera crosses ±worldBoundarySize — invisible below since the ocean/
+      // floor/cloud planes recenter on the camera every frame regardless of
+      // its absolute position (see wrapAxis above). VIRVEL (whirlpool) is
+      // exempt: it's already bounded near the origin by whirlpoolRadiusRef's
+      // own max.
+      if (worldBoundaryOnRef.current && !inWhirlpool) {
+        const halfXZ = Math.max(50, worldBoundarySizeRef.current);
+        const wrappedX = wrapAxis(posRef.current.x, halfXZ);
+        const wrappedZ = wrapAxis(posRef.current.z, halfXZ);
+        if (wrappedX !== posRef.current.x) {
+          camX += wrappedX - posRef.current.x;
+          posRef.current.x = wrappedX;
+        }
+        if (wrappedZ !== posRef.current.z) {
+          camZ += wrappedZ - posRef.current.z;
+          posRef.current.z = wrappedZ;
+        }
+      }
+
       // Rekentrera ytan, botten och molnlagret runt kameran varje frame så
       // de ändliga planen (och havsringen, se OCEAN_FAR_INNER_RADIUS) alltid
       // täcker synfältet — vågorna och sandtexturen räknas ut i world space
@@ -4371,6 +4550,35 @@ function Aquafulness() {
       midClouds.position.z = camZ;
       skyClouds.position.x = camX;
       skyClouds.position.z = camZ;
+
+      // VÄRLDSGRÄNS's y extension: tile more of the same sky-cloud layer at
+      // fixed altitude steps around wherever the camera currently is (see
+      // EXTEND_CLOUD_LAYER_*/cloudLayerJitter above), so climbing or diving
+      // through the y boundary always shows more cloud deck ahead instead of
+      // a hard edge. camYRef.current here is last frame's height in FRI
+      // (float) mode (its own buoyancy spring hasn't run yet this frame) —
+      // an imperceptible one-frame lag for a value this smooth-moving.
+      const extendLayers = extendCloudLayersRef.current;
+      if (worldBoundaryOnRef.current && worldBoundaryYExtendRef.current && skyCloudsOnRef.current) {
+        const spacing = EXTEND_CLOUD_LAYER_SPACING;
+        const camYNow = camYRef.current ?? 0;
+        const baseIdx = Math.floor(camYNow / spacing);
+        const half = Math.floor(extendLayers.length / 2);
+        const cloudScaleNow = surfaceAreaRef.current / CLOUD_BASE_SIZE;
+        for (let i = 0; i < extendLayers.length; i++) {
+          const layerIdx = baseIdx + (i - half);
+          const jitter = cloudLayerJitter(layerIdx);
+          const layer = extendLayers[i];
+          layer.visible = true;
+          layer.position.set(camX + jitter.x, layerIdx * spacing + levelY, camZ + jitter.z);
+          layer.scale.set(cloudScaleNow, 1, cloudScaleNow);
+        }
+        skyCloudUniforms.uTime.value = t;
+        skyCloudUniforms.uCloudScroll.value.x = t * 0.02;
+        skyCloudUniforms.uCloudScroll.value.y = t * 0.013;
+      } else {
+        for (const layer of extendLayers) layer.visible = false;
+      }
 
       const dirRad = (waveDirRef.current * Math.PI) / 180;
       const surfaceY = inWhirlpool
@@ -4606,6 +4814,22 @@ function Aquafulness() {
         swayZ = swayPosRef.current.z;
       }
 
+      // VÄRLDSGRÄNS (world boundary): y wraps the same way as x/z above, once
+      // it crosses ±worldBoundaryHeight — skipped for GUNGA (swing), whose
+      // height is a bounded pendulum formula recomputed fresh every frame
+      // (see rawSwingY above), not a free-roaming position that needs a loop
+      // back around. When worldBoundaryYExtend is on (the default) the extra
+      // cloud layers above already make this wrap invisible; when it's off,
+      // y still wraps, just without that cover.
+      if (worldBoundaryOnRef.current && camMode !== "swing" && camYRef.current !== null) {
+        const halfY = Math.max(50, worldBoundaryHeightRef.current);
+        const wrappedY = wrapAxis(camYRef.current, halfY);
+        if (wrappedY !== camYRef.current) {
+          camYRef.current = wrappedY;
+          posRef.current.y = wrappedY;
+        }
+      }
+
       // Manual XYZ camera offset (POS X/Y/Z dials) — applied after physics so
       // the user can nudge the viewpoint without disturbing the buoyancy loop.
       // camYRef.current is only null before the very first frame sets it (in
@@ -4672,6 +4896,18 @@ function Aquafulness() {
       ) {
         swayDisplayRef.current = swayDisp;
         setSwayStick(swayDisp);
+      }
+      const noclipDriftDisp = worldXZToPad(
+        noclipDriftWorldRef.current.x,
+        noclipDriftWorldRef.current.z,
+        yawRef.current,
+      );
+      if (
+        Math.abs(noclipDriftDisp.x - noclipDriftDisplayRef.current.x) > 0.0015 ||
+        Math.abs(noclipDriftDisp.y - noclipDriftDisplayRef.current.y) > 0.0015
+      ) {
+        noclipDriftDisplayRef.current = noclipDriftDisp;
+        setNoclipDriftStick(noclipDriftDisp);
       }
 
       // Autosave the free-roam position/look direction (throttled) so it
@@ -4877,6 +5113,7 @@ function Aquafulness() {
       midCloudMat.dispose();
       skyCloudGeo.dispose();
       skyCloudMat.dispose();
+      extendCloudLayersRef.current = [];
       sandTex.dispose();
       skyGeo.dispose();
       skyMat.dispose();
@@ -5344,6 +5581,14 @@ function Aquafulness() {
     setSkyCloudsOn,
     skyCloudsHeight,
     setSkyCloudsHeight,
+    worldBoundaryOn,
+    setWorldBoundaryOn,
+    worldBoundarySize,
+    setWorldBoundarySize,
+    worldBoundaryHeight,
+    setWorldBoundaryHeight,
+    worldBoundaryYExtend,
+    setWorldBoundaryYExtend,
     surfaceArea,
     setSurfaceArea,
     torusRingsOn,
@@ -5414,6 +5659,16 @@ function Aquafulness() {
     },
     vertStick,
     onVertChange: setVertStick,
+    noclipDriftStick,
+    onNoclipDriftChange: (v) => {
+      setNoclipDriftStick(v);
+      noclipDriftDisplayRef.current = v;
+      noclipDriftWorldRef.current = padToWorldXZ(v.x, v.y, yawRef.current);
+    },
+    noclipFreeFallOn,
+    setNoclipFreeFallOn,
+    noclipReverseRiseOn,
+    setNoclipReverseRiseOn,
     swayStick,
     onSwayChange: (v) => {
       setSwayStick(v);
@@ -5638,16 +5893,16 @@ function Aquafulness() {
         )}
 
         {/* PS-liknande layout:
-            Vänster sida: NAV (rörelse, momentan) längst ned, STRÖM (drift,
-            sticky) ovanför.
+            Vänster sida: NAV (rörelse, momentan) längst ned, STRÖM/NOCLIP
+            DRIFT XZ (drift, sticky) ovanför.
             Höger sida: LOOK (rotation, momentan) längst ned, VÅGRIKT
             (sticky) ovanför.
-            SVAJ delar STRÖM:s kolumn, ovanför STRÖM.
-            STRÖM/SVAJ/VÅGRIKT finns även i "Fjärrkontroll"-appen i
+            SVAJ (FRI) eller HÖJD + FRITT FALL/OMVÄND STIGNING (NOCLIP) delar
+            STRÖM/DRIFT XZ:s kolumn, ovanför den.
+            STRÖM/HÖJD/SVAJ/VÅGRIKT finns även i "Fjärrkontroll"-appen i
             bathOS-telefonen (se VirtualPhone.tsx) — samma state/handlers,
-            bara ett andra sätt att nå dem. HÖJD (noclip) finns bara där, för
-            att inte tränga undan de andra spakarna. I GUNGA-läget styrs
-            positionen helt av gungans fysik, så bara LOOK visas. */}
+            bara ett andra sätt att nå dem. I GUNGA-läget styrs positionen
+            helt av gungans fysik, så bara LOOK visas. */}
         {cameraMode !== "swing" && (
           <Joystick
             onChange={setStick}
@@ -5673,6 +5928,56 @@ function Aquafulness() {
             positionClass="bottom-64 left-8"
             sticky
           />
+        )}
+        {/* NOCLIP replaces STRÖM/SVAJ's two slots with its own sticky drift
+            dials: DRIFT XZ (STRÖM's spot) and, above it (SVAJ's spot), a Y
+            drift pad (HÖJD/vertStick, made sticky here) flanked by two small
+            toggle buttons — OMVÄND STIGNING above, FRITT FALL below — that
+            each pin the vertical rate to a strong constant climb/dive. */}
+        {cameraMode === "noclip" && (
+          <Joystick
+            onChange={remoteControllerProps.onNoclipDriftChange}
+            value={remoteControllerProps.noclipDriftStick}
+            label={t("hud.joystick.noclipDriftXZ")}
+            positionClass="bottom-36 left-8"
+            sticky
+          />
+        )}
+        {cameraMode === "noclip" && (
+          <div className="pointer-events-none absolute bottom-64 left-8 z-10 select-none">
+            <div className="flex flex-col items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setNoclipReverseRiseOn((v) => !v)}
+                aria-pressed={noclipReverseRiseOn}
+                className={`pointer-events-auto rounded-full border px-2 py-0.5 text-[8px] font-light tracking-[0.2em] backdrop-blur-md transition active:scale-95 ${
+                  noclipReverseRiseOn
+                    ? "border-white/50 bg-white/25 text-white"
+                    : "border-white/20 bg-black/40 text-white/70"
+                }`}
+              >
+                {t("hud.joystick.reverseRise")}
+              </button>
+              <JoystickPad
+                label={t("hud.joystick.noclipDriftY")}
+                value={vertStick}
+                onChange={setVertStick}
+                sticky
+              />
+              <button
+                type="button"
+                onClick={() => setNoclipFreeFallOn((v) => !v)}
+                aria-pressed={noclipFreeFallOn}
+                className={`pointer-events-auto rounded-full border px-2 py-0.5 text-[8px] font-light tracking-[0.2em] backdrop-blur-md transition active:scale-95 ${
+                  noclipFreeFallOn
+                    ? "border-white/50 bg-white/25 text-white"
+                    : "border-white/20 bg-black/40 text-white/70"
+                }`}
+              >
+                {t("hud.joystick.freeFall")}
+              </button>
+            </div>
+          </div>
         )}
         <Joystick
           onChange={setRotStick}

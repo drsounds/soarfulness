@@ -144,7 +144,11 @@
       "torusTube": "PAKSUUS",
       "torusVerticalCount": "RENKAITA/SARAKE",
       "torusVerticalSpacing": "RUUDUKON KORKEUS",
-      "torusViewDistance": "NÄKYVYYS"
+      "torusViewDistance": "NÄKYVYYS",
+      "worldBoundary": "MAAILMAN RAJA",
+      "worldBoundaryHeight": "RAJAN KORKEUS (Y)",
+      "worldBoundarySize": "RAJAN KOKO (XZ)",
+      "worldBoundaryYExtend": "ÄÄRETTÖMÄT PILVIKERROKSET"
     },
     "water": {
       "bottom": "POHJA",
@@ -236,8 +240,12 @@
     "intervalRemaining": "{{time}} jäljellä",
     "joystick": {
       "current": "VIRTAUS",
+      "freeFall": "VAPAA PUDOTUS",
       "look": "LOOK",
       "nav": "NAV",
+      "noclipDriftXZ": "AJAUTUS XZ",
+      "noclipDriftY": "AJAUTUS Y",
+      "reverseRise": "KÄÄNTEINEN NOUSU",
       "sway": "HEILUNTA",
       "waveDirection": "AALLON SUUNTA"
     },

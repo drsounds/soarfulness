@@ -144,7 +144,11 @@
       "torusTube": "TJOCKLEK",
       "torusVerticalCount": "RINGAR/KOLONN",
       "torusVerticalSpacing": "RUTNÄT HÖJD",
-      "torusViewDistance": "RÄCKVIDD"
+      "torusViewDistance": "RÄCKVIDD",
+      "worldBoundary": "VÄRLDSGRÄNS",
+      "worldBoundaryHeight": "GRÄNSHÖJD (Y)",
+      "worldBoundarySize": "GRÄNSSTORLEK (XZ)",
+      "worldBoundaryYExtend": "OÄNDLIGA MOLNLAGER"
     },
     "water": {
       "bottom": "BOTTEN",
@@ -236,8 +240,12 @@
     "intervalRemaining": "kvar {{time}}",
     "joystick": {
       "current": "STRÖM",
+      "freeFall": "FRITT FALL",
       "look": "LOOK",
       "nav": "NAV",
+      "noclipDriftXZ": "DRIVA XZ",
+      "noclipDriftY": "DRIVA Y",
+      "reverseRise": "OMVÄND STIGNING",
       "sway": "SVAJ",
       "waveDirection": "VÅGRIKT"
     },
