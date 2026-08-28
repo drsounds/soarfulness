@@ -69,6 +69,7 @@
     "audio": {
       "off": "LYD AV",
       "on": "LYD PÅ",
+      "sound": "VANNLYD",
       "spatial": "ROMLIG",
       "syncSpeed": "LYDSYNK"
     },
@@ -283,6 +284,10 @@
     "torusTexture": {
       "off": "AV",
       "sand": "Sand"
+    },
+    "waterSound": {
+      "advanced": "Avansert",
+      "simple": "Enkel"
     },
     "waterTint": {
       "archipelago": "Skjærgård",
