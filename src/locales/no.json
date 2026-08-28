@@ -1,4 +1,41 @@
 {
+  "about": {
+    "backToApp": "Tilbake til appen",
+    "lastUpdated": "Sist oppdatert: 28. august 2026",
+    "navLabel": "OM",
+    "sections": {
+      "disclaimer": {
+        "heading": "Ansvarsfraskrivelse",
+        "points": [
+          "Denne appen tilbys utelukkende i underholdningsøyemed.",
+          "Den gir ikke, og skal ikke brukes som grunnlag for, noen økonomisk, medisinsk eller helsemessig fordel eller rådgivning.",
+          "Ingenting i appen utgjør profesjonell rådgivning; kontakt en kvalifisert fagperson for økonomiske, medisinske eller helserelaterte spørsmål.",
+          "Appen leveres \"som den er\", uten garantier av noe slag, og Alexander Forselius påtar seg, i den grad loven tillater det, intet ansvar for tap, skade eller mén som følge av bruken."
+        ]
+      },
+      "intro": {
+        "body": "Aquafulness er en avslappende, nettleserbasert visualisering av havbølger, laget for personlig avkobling og atmosfærisk avslapning. Det er et frittstående hobbyprosjekt, ikke et kommersielt produkt og ikke medisinsk utstyr.",
+        "heading": "Om denne appen"
+      },
+      "product": {
+        "body": "Aquafulness er gratis underholdningsprogramvare uten reklame: en interaktiv 3D-havscene som kjører i nettleseren med WebGL. Appen krever ingen installasjon, ingen konto og ingen betaling, og den kobler seg ikke til noen ekstern tjeneste utover vertsplattformen beskrevet i personvernerklæringen under.",
+        "heading": "Det digitale innholdets art"
+      },
+      "trader": {
+        "address": "Floragatan 21D, 531 37 Lidköping, Sverige",
+        "addressLabel": "Adresse",
+        "capacity": "Appen tilbys av Alexander Forselius som privatperson, ikke gjennom et registrert selskap.",
+        "email": "drsounds@gmail.com",
+        "emailLabel": "E-post",
+        "heading": "Ansvarlig og kontaktinformasjon",
+        "name": "Alexander Forselius",
+        "note": "I tråd med EUs krav til forbrukervern og produktsikkerhet for digitale produkter — blant annet direktiv (EU) 2019/770 om digitalt innhold og digitale tjenester, forbrukerrettighetsdirektivet 2011/83/EU og e-handelsdirektivet 2000/31/EF — oppgis her hvem som er ansvarlig for appen og hvordan du kan nå vedkommende.",
+        "phone": "+46 (0) 728-87 28 90",
+        "phoneLabel": "Telefon"
+      }
+    },
+    "title": "Om Aquafulness"
+  },
   "camera": {
     "mode": {
       "autoSuffix": "(AUTO)",
@@ -315,6 +352,34 @@
       "vatten": "VANN-PRESET"
     },
     "state": "TILSTAND (alt + posisjon, blikk, strøm, sving)"
+  },
+  "privacy": {
+    "backToApp": "Tilbake til appen",
+    "intro": "Denne siden forklarer, i klartekst, hva som skjer med dine data når du bruker Aquafulness.",
+    "lastUpdated": "Sist oppdatert: 28. august 2026",
+    "sections": {
+      "contact": {
+        "body": "Ved spørsmål om denne personvernerklæringen, kontakt Alexander Forselius på drsounds@gmail.com.",
+        "heading": "Spørsmål"
+      },
+      "localStorage": {
+        "body": "Aquafulness bruker nettleserens lokale lagring (localStorage) til å huske innstillingene dine og tilpasse opplevelsen — for eksempel valgt språk, bølge- og kamerainnstillinger og lagrede forhåndsinnstillinger. Disse dataene blir værende på din enhet, sendes aldri til Alexander Forselius eller noen tredjepart, og kan slettes når som helst ved å tømme nettleserens nettstedsdata for appen.",
+        "heading": "Lokal lagring"
+      },
+      "thirdParty": {
+        "body": "Aquafulness inneholder ingen egen tredjeparts reklame, sporingspiksler eller widgeter for sosiale medier.",
+        "heading": "Tredjeparter"
+      },
+      "tracking": {
+        "heading": "Datainnsamling og sporing",
+        "points": [
+          "Aquafulness sporer, samler ikke inn og selger ikke personopplysninger.",
+          "Appen driftes hos Lovable, hvis plattform benytter sin egen standard drifts- og infrastrukturlogging, og kan aktivere anonymisert bruksstatistikk (som Google Analytics) som del av sin standardtjeneste — dette konfigureres av vertsplattformen, ikke av appens ansvarlige, og brukes ikke til å identifisere deg personlig.",
+          "Ingen konto kreves, og appen ber deg aldri om personlig informasjon."
+        ]
+      }
+    },
+    "title": "Personvernerklæring"
   },
   "remote": {
     "hojd": "HØYDE",
