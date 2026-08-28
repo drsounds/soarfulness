@@ -70,8 +70,9 @@ function createOceanUniforms() {
     uWaterDeep: uniform(new THREE.Color(0x022244)),
     uWaterShallow: uniform(new THREE.Color(0x2a89b8)),
     uSunColor: uniform(new THREE.Color(0xffe6b0)),
-    uWaterTint: uniform(new THREE.Vector3(1, 1, 1)),
+    uWaterColor: uniform(new THREE.Vector3(1, 1, 1)),
     uOpacity: uniform(1),
+    uWaterColorAlpha: uniform(0),
     uTintHue: uniform(0),
     uTintSat: uniform(1),
     uTintBright: uniform(1),
@@ -339,7 +340,7 @@ export function createOceanMaterial(reflectionTexture?: THREE.Texture) {
     const V = normalize(cameraPosition.sub(vWorldPos));
     const L = normalize(u.uSunDir);
 
-    let tint: ReturnType<typeof vec3> = u.uWaterTint.mul(u.uTintBright);
+    let tint: ReturnType<typeof vec3> = u.uWaterColor.mul(u.uTintBright);
     tint = hueRotate(tint, u.uTintHue);
     const gray = vec3(dot(tint, vec3(0.299, 0.587, 0.114)));
     tint = mix(gray, tint, u.uTintSat);
@@ -408,6 +409,10 @@ export function createOceanMaterial(reflectionTexture?: THREE.Texture) {
     If(u.uSphereMix.greaterThan(0.001), () => {
       col.assign(mix(col, sphereMapShade(Nshim, water), u.uSphereMix));
     });
+
+    // Water color overlay (Super Mario Sunshine-style) — see the matching
+    // block in the web app's GLSL fragment shader (src/routes/index.tsx).
+    col.assign(mix(col, water, clamp(u.uWaterColorAlpha, 0.0, 1.0)));
 
     col.mulAssign(u.uSurfBright);
     const sg = dot(col, vec3(0.299, 0.587, 0.114));

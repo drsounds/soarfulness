@@ -97,6 +97,8 @@
       "bottomColor": "BUNDFARVE",
       "brightness": "LYSSTYRKE",
       "caustics": "EKTE KAUSTIK",
+      "color": "VAND",
+      "colorAlpha": "FARVE ALFA",
       "depth": "DYBDE",
       "depthSine": "DYBDE-SINUS",
       "floorTexture": "TEKSTUR",
@@ -114,7 +116,6 @@
         "hide": "SKJUL",
         "visible": "SYNLIG"
       },
-      "tint": "VAND",
       "turbidity": "GRUMSETHED",
       "waveMaterial": "BØLGEMATERIALE",
       "waveMaterialValue": {
@@ -247,7 +248,7 @@
       "off": "SLUKKET",
       "sand": "Sand"
     },
-    "waterTint": {
+    "waterColor": {
       "archipelago": "Skærgård",
       "caribbean": "Caribisk",
       "deepSea": "Dybhav",

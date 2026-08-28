@@ -97,6 +97,8 @@
       "bottomColor": "BOTTOM COLOR",
       "brightness": "BRIGHTNESS",
       "caustics": "TRUE CAUSTICS",
+      "color": "WATER",
+      "colorAlpha": "COLOR ALPHA",
       "depth": "DEPTH",
       "depthSine": "DEPTH SINE",
       "floorTexture": "TEXTURE",
@@ -114,7 +116,6 @@
         "hide": "HIDE",
         "visible": "VISIBLE"
       },
-      "tint": "WATER",
       "turbidity": "TURBIDITY",
       "waveMaterial": "WAVE MATERIAL",
       "waveMaterialValue": {
@@ -247,7 +248,7 @@
       "off": "OFF",
       "sand": "Sand"
     },
-    "waterTint": {
+    "waterColor": {
       "archipelago": "Archipelago",
       "caribbean": "Caribbean",
       "deepSea": "Deep Sea",

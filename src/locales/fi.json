@@ -97,6 +97,8 @@
       "bottomColor": "POHJAN VÄRI",
       "brightness": "KIRKKAUS",
       "caustics": "AITO KAUSTIIKKA",
+      "color": "VESI",
+      "colorAlpha": "VÄRIN ALFA",
       "depth": "SYVYYS",
       "depthSine": "SYVYYS-SINI",
       "floorTexture": "TEKSTUURI",
@@ -114,7 +116,6 @@
         "hide": "PIILOTA",
         "visible": "NÄKYVÄ"
       },
-      "tint": "VESI",
       "turbidity": "SAMEUS",
       "waveMaterial": "AALLON MATERIAALI",
       "waveMaterialValue": {
@@ -247,7 +248,7 @@
       "off": "POIS",
       "sand": "Hiekka"
     },
-    "waterTint": {
+    "waterColor": {
       "archipelago": "Saaristo",
       "caribbean": "Karibia",
       "deepSea": "Syvänmeri",

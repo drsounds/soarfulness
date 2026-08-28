@@ -19,7 +19,7 @@ import {
   worldXZToPad,
   worldXZBearing,
   bearingToWorldXZ,
-  WATER_TINTS,
+  WATER_COLORS,
   BOTTOM_OPTIONS,
   BACKDROPS,
   SETTINGS_TABS,
@@ -516,8 +516,9 @@ const DEFAULTS: Persisted = {
   audioVol: 0.8,
   audioSyncSpeed: false,
   audioSpatial: false,
-  waterTintIdx: 4,
+  waterColorIdx: 4,
   waterOpacity: 0.5,
+  waterColorAlpha: 0,
   waterHue: 0,
   waterSat: 0.95,
   waterBright: 1,
@@ -744,8 +745,9 @@ function Aquafulness() {
   const [audioVol, setAudioVol] = useState(initial.audioVol);
   const [audioSyncSpeed, setAudioSyncSpeed] = useState(initial.audioSyncSpeed);
   const [audioSpatial, setAudioSpatial] = useState(initial.audioSpatial);
-  const [waterTintIdx, setWaterTintIdx] = useState(initial.waterTintIdx);
+  const [waterColorIdx, setWaterColorIdx] = useState(initial.waterColorIdx);
   const [waterOpacity, setWaterOpacity] = useState(initial.waterOpacity);
+  const [waterColorAlpha, setWaterColorAlpha] = useState(initial.waterColorAlpha);
   const [waterHue, setWaterHue] = useState(initial.waterHue);
   const [waterSat, setWaterSat] = useState(initial.waterSat);
   const [waterBright, setWaterBright] = useState(initial.waterBright);
@@ -1000,8 +1002,9 @@ function Aquafulness() {
     audioVol,
     audioSyncSpeed,
     audioSpatial,
-    waterTintIdx,
+    waterColorIdx,
     waterOpacity,
+    waterColorAlpha,
     waterHue,
     waterSat,
     waterBright,
@@ -1118,8 +1121,9 @@ function Aquafulness() {
     audioVol,
     audioSyncSpeed,
     audioSpatial,
-    waterTintIdx,
+    waterColorIdx,
     waterOpacity,
+    waterColorAlpha,
     waterHue,
     waterSat,
     waterBright,
@@ -1267,8 +1271,9 @@ function Aquafulness() {
   const swingYawRef = useRef(0);
   const swayPosRef = useRef({ x: 0, z: 0 });
   const swayVelRef = useRef({ x: 0, z: 0 });
-  const waterTintRef = useRef(waterTintIdx);
+  const waterColorRef = useRef(waterColorIdx);
   const waterOpacityRef = useRef(waterOpacity);
+  const waterColorAlphaRef = useRef(waterColorAlpha);
   const waterHueRef = useRef(waterHue);
   const waterSatRef = useRef(waterSat);
   const waterBrightRef = useRef(waterBright);
@@ -1387,11 +1392,14 @@ function Aquafulness() {
     rotStickRef.current = rotStick;
   }, [rotStick]);
   useEffect(() => {
-    waterTintRef.current = waterTintIdx;
-  }, [waterTintIdx]);
+    waterColorRef.current = waterColorIdx;
+  }, [waterColorIdx]);
   useEffect(() => {
     waterOpacityRef.current = waterOpacity;
   }, [waterOpacity]);
+  useEffect(() => {
+    waterColorAlphaRef.current = waterColorAlpha;
+  }, [waterColorAlpha]);
   useEffect(() => {
     waterHueRef.current = waterHue;
   }, [waterHue]);
@@ -1756,8 +1764,9 @@ function Aquafulness() {
     setAudioVol(DEFAULTS.audioVol);
     setAudioSyncSpeed(DEFAULTS.audioSyncSpeed);
     setAudioSpatial(DEFAULTS.audioSpatial);
-    setWaterTintIdx(DEFAULTS.waterTintIdx);
+    setWaterColorIdx(DEFAULTS.waterColorIdx);
     setWaterOpacity(DEFAULTS.waterOpacity);
+    setWaterColorAlpha(DEFAULTS.waterColorAlpha);
     setWaterHue(DEFAULTS.waterHue);
     setWaterSat(DEFAULTS.waterSat);
     setWaterBright(DEFAULTS.waterBright);
@@ -1868,8 +1877,9 @@ function Aquafulness() {
     if (patch.audioVol !== undefined) setAudioVol(patch.audioVol);
     if (patch.audioSyncSpeed !== undefined) setAudioSyncSpeed(patch.audioSyncSpeed);
     if (patch.audioSpatial !== undefined) setAudioSpatial(patch.audioSpatial);
-    if (patch.waterTintIdx !== undefined) setWaterTintIdx(patch.waterTintIdx);
+    if (patch.waterColorIdx !== undefined) setWaterColorIdx(patch.waterColorIdx);
     if (patch.waterOpacity !== undefined) setWaterOpacity(patch.waterOpacity);
+    if (patch.waterColorAlpha !== undefined) setWaterColorAlpha(patch.waterColorAlpha);
     if (patch.waterHue !== undefined) setWaterHue(patch.waterHue);
     if (patch.waterSat !== undefined) setWaterSat(patch.waterSat);
     if (patch.waterBright !== undefined) setWaterBright(patch.waterBright);
@@ -2661,8 +2671,9 @@ function Aquafulness() {
       uWaterShallow: { value: new THREE.Color(0x2a89b8) },
       uSunColor: { value: new THREE.Color(0xffe6b0) },
       uFogColor: { value: new THREE.Color(0x88aacc) },
-      uWaterTint: { value: new THREE.Vector3(1, 1, 1) },
+      uWaterColor: { value: new THREE.Vector3(1, 1, 1) },
       uOpacity: { value: 1 },
+      uWaterColorAlpha: { value: 0 },
       uTintHue: { value: 0 },
       uTintSat: { value: 1 },
       uTintBright: { value: 1 },
@@ -2944,8 +2955,12 @@ function Aquafulness() {
       uniform vec3 uWaterDeep;
       uniform vec3 uWaterShallow;
       uniform vec3 uSunColor;
-      uniform vec3 uWaterTint;
+      uniform vec3 uWaterColor;
       uniform float uOpacity;
+      // Independent alpha for the flat WATER COLOR overlay blended in below
+      // (see the "Water color overlay" block) — separate from uOpacity
+      // (translucency to whatever's behind the water).
+      uniform float uWaterColorAlpha;
       uniform float uTintHue;
       uniform float uTintSat;
       uniform float uTintBright;
@@ -3019,8 +3034,8 @@ function Aquafulness() {
         vec3 V = normalize(cameraPosition - vWorldPos);
         vec3 L = normalize(uSunDir);
 
-        // Apply user color adjustments on top of the water-tint preset.
-        vec3 tint = uWaterTint * uTintBright;
+        // Apply user color adjustments on top of the water-color preset.
+        vec3 tint = uWaterColor * uTintBright;
         tint = hueRotate(uTintHue) * tint;
         vec3 gray = vec3(dot(tint, vec3(0.299, 0.587, 0.114)));
         tint = mix(gray, tint, uTintSat);
@@ -3160,6 +3175,16 @@ function Aquafulness() {
         if (uSphereMix > 0.001) {
           col = mix(col, sphereMapShade(Nshim, water), uSphereMix);
         }
+
+        // Water color overlay (Super Mario Sunshine-style): blend the flat,
+        // tinted water body ("water" — deep/shallow color × WATER COLOR
+        // preset, pre-reflection/pre-sun/pre-foam) back over the fully lit
+        // and textured result. uWaterColorAlpha is intentionally its own
+        // dial, independent of uOpacity (translucency to what's behind the
+        // water) and of uSurfBright/uSurfSat below (light/texture on the
+        // final look) — at 1 the water reads as a flat, saturated color
+        // regardless of lighting or reflections; at 0 it's unchanged.
+        col = mix(col, water, clamp(uWaterColorAlpha, 0.0, 1.0));
 
         // Final surface color adjustment (independent of internal tint).
         col *= uSurfBright;
@@ -3804,11 +3829,13 @@ function Aquafulness() {
       skyUniforms.uSunColor.value.copy(uniforms.uSunColor.value);
       (scene.fog as THREE.FogExp2).color.copy(uniforms.uFogColor.value);
 
-      // Water tint + optional seafloor
-      const tint = WATER_TINTS[waterTintRef.current] ?? WATER_TINTS[0];
-      uniforms.uWaterTint.value.set(tint.rgb[0], tint.rgb[1], tint.rgb[2]);
+      // Water color + optional seafloor
+      const waterColor = WATER_COLORS[waterColorRef.current] ?? WATER_COLORS[0];
+      uniforms.uWaterColor.value.set(waterColor.rgb[0], waterColor.rgb[1], waterColor.rgb[2]);
       uniforms.uOpacity.value +=
         (waterOpacityRef.current - uniforms.uOpacity.value) * Math.min(1, dt * 6);
+      uniforms.uWaterColorAlpha.value +=
+        (waterColorAlphaRef.current - uniforms.uWaterColorAlpha.value) * Math.min(1, dt * 6);
       uniforms.uTintHue.value +=
         (waterHueRef.current * 0.01745329252 - uniforms.uTintHue.value) * Math.min(1, dt * 6);
       uniforms.uTintSat.value +=
@@ -4941,8 +4968,10 @@ function Aquafulness() {
     setChromaticAberrationAmount,
     wakeLock,
     setWakeLock,
-    waterTintIdx,
-    setWaterTintIdx,
+    waterColorIdx,
+    setWaterColorIdx,
+    waterColorAlpha,
+    setWaterColorAlpha,
     surfaces,
     surfaceId,
     setSurfaceId,
