@@ -4,11 +4,20 @@
       "autoSuffix": "(AUTO)",
       "float": "FRI",
       "noclip": "NOCLIP",
-      "swing": "GUNGA"
+      "swing": "GUNGA",
+      "whirlpool": "VIRVEL"
     },
     "rotationValue": {
       "fixed": "FIXERAD",
       "leanForward": "FRAMÅTLUT"
+    },
+    "whirlpoolDirection": {
+      "cw": "MEDURS",
+      "ccw": "MOTURS"
+    },
+    "whirlpoolExitMode": {
+      "throwBack": "KASTAS TILLBAKA",
+      "reverseSpin": "OMVÄND SNURR"
     }
   },
   "common": {
@@ -47,6 +56,9 @@
       "gogglesLoop": "DROPPLOOP",
       "intervalCount": "ANTAL INTERVALL",
       "intervalDuration": "INTERVALL",
+      "intervalIncludeFloat": "INTERVALL: STANDARD",
+      "intervalIncludeSwing": "INTERVALL: GUNGA",
+      "intervalIncludeWhirlpool": "INTERVALL: VIRVEL",
       "intervalSession": "INTERVALLPASS",
       "mode": "KAMERALÄGE",
       "near": "NÄRA",
@@ -62,6 +74,10 @@
       "swingIntensity": "GUNGA INTENSITET",
       "swingPositionY": "GUNGA POSITION Y",
       "swingStart": "GUNGA START",
+      "swingTornado": "TORNADO",
+      "swingTornadoDirection": "TORNADO RIKTNING",
+      "swingTornadoRadius": "TORNADO RADIE",
+      "swingTornadoSpeed": "TORNADO TEMPO",
       "swingXFactor": "GUNGA X",
       "swingYWaveform": "GUNGA Y VÅGFORM",
       "targetFps": "BILDFREKVENS-TAK",
@@ -128,7 +144,6 @@
       "bobSpeed": "GUPP TEMPO",
       "crossWave": "KORSVÅG",
       "currentDirection": "STRÖM RIKTNING",
-      "distance": "AVSTÅND",
       "dive": "DYK",
       "dyingWave": "DÖENDE VÅG",
       "dyingWaveHeight": "DÖD VÅG HÖJD",
@@ -136,12 +151,6 @@
       "floatLift": "FLYT",
       "freq": "FREKVENS",
       "height": "HÖJD",
-      "mode": "LÄGE",
-      "modeValue": {
-        "ocean": "HAV",
-        "vortex": "VIRVEL"
-      },
-      "opening": "ÖPPNING",
       "peak": "SPETS",
       "preset": "VÅGPRESET",
       "quality": "KVALITET",
@@ -157,14 +166,23 @@
       "swaySpeed": "SVAJ TEMPO",
       "trochoid": "TROKOID",
       "trochoidOff": "AV",
-      "vortexSpeed": "VIRVEL TEMPO",
       "waveDirection": "VÅGRIKTNING",
       "wavePeriod": "VÅGPERIOD",
       "waveform": "VÅGFORM",
       "waveformValue": {
         "regular": "REGELBUNDEN",
         "spread": "SPRIDD"
-      }
+      },
+      "whirlpoolDirection": "VIRVEL RIKTNING",
+      "whirlpoolDistance": "AVSTÅND TILL CENTRUM",
+      "whirlpoolDragDuration": "INDRAGNINGSLÄNGD",
+      "whirlpoolDragSpeed": "INDRAGNINGSHASTIGHET",
+      "whirlpoolExitMode": "UTGÅNGSLÄGE",
+      "whirlpoolExitSpeed": "UTGÅNGSHASTIGHET",
+      "whirlpoolOpening": "ÖPPNING",
+      "whirlpoolSequence": "AUTO-SEKVENS",
+      "whirlpoolSpeed": "VIRVEL TEMPO",
+      "whirlpoolStayDuration": "STANNA INNE"
     }
   },
   "hud": {
@@ -324,7 +342,8 @@
     "syncButton": "SYNKA VÅG MED SVAJ: {{state}}",
     "syncTitle": "Låt VÅGRIKTNING följa SVAJ RIKTNING automatiskt (standard: på)",
     "title": "FJÄRRKONTROLL",
-    "vagrikt": "VÅGRIKT"
+    "vagrikt": "VÅGRIKT",
+    "whirlpoolHint": "I VIRVEL-läge kretsar kameran automatiskt runt virveln — inga spakar att styra här."
   },
   "screens": {
     "editModeDescription": "Pausar vågor och kamerarörelse så att TV/mobil-skärmarna i 3D-vyn kan flyttas, roteras och ändras i storlek exakt.",
