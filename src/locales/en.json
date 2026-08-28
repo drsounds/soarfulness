@@ -1,4 +1,41 @@
 {
+  "about": {
+    "backToApp": "Back to app",
+    "lastUpdated": "Last updated: August 28, 2026",
+    "navLabel": "ABOUT",
+    "sections": {
+      "disclaimer": {
+        "heading": "Disclaimer",
+        "points": [
+          "This app is provided for entertainment purposes only.",
+          "It does not offer, and must not be relied on for, any financial, medical, health, or wellbeing benefit or advice.",
+          "Nothing in the app constitutes professional advice; consult a qualified professional for financial, medical, or health matters.",
+          "The app is provided \"as is\", without warranties of any kind, and to the maximum extent permitted by law, Alexander Forselius accepts no liability for any loss, injury, or damage arising from its use."
+        ]
+      },
+      "intro": {
+        "body": "Aquafulness is a calming, browser-based ocean wave visualization created for personal relaxation and ambient viewing. It is an independent hobby project, not a commercial product, and not a medical device.",
+        "heading": "About this app"
+      },
+      "product": {
+        "body": "Aquafulness is free, ad-free entertainment software: an interactive 3D ocean scene that runs in your browser using WebGL. It requires no installation, no account, and no payment, and it does not connect to any external service beyond the hosting platform described in the Privacy Policy below.",
+        "heading": "Nature of the digital content"
+      },
+      "trader": {
+        "address": "Floragatan 21D, 531 37 Lidköping, Sweden",
+        "addressLabel": "Address",
+        "capacity": "This app is provided by Alexander Forselius as a private individual, not through a registered company.",
+        "email": "drsounds@gmail.com",
+        "emailLabel": "Email",
+        "heading": "Operator and contact details",
+        "name": "Alexander Forselius",
+        "note": "In line with EU consumer protection and product safety requirements for digital products — including Directive (EU) 2019/770 on digital content and services, the Consumer Rights Directive 2011/83/EU, and the e-Commerce Directive 2000/31/EC — here is who is responsible for this app and how to reach them.",
+        "phone": "+46 (0) 728-87 28 90",
+        "phoneLabel": "Phone"
+      }
+    },
+    "title": "About Aquafulness"
+  },
   "camera": {
     "mode": {
       "autoSuffix": "(AUTO)",
@@ -320,6 +357,34 @@
       "vatten": "WATER PRESET"
     },
     "state": "STATE (everything + position, look, current, sway)"
+  },
+  "privacy": {
+    "backToApp": "Back to app",
+    "intro": "This page explains, in plain terms, what happens to your data when you use Aquafulness.",
+    "lastUpdated": "Last updated: August 28, 2026",
+    "sections": {
+      "contact": {
+        "body": "For any question about this privacy policy, contact Alexander Forselius at drsounds@gmail.com.",
+        "heading": "Questions"
+      },
+      "localStorage": {
+        "body": "Aquafulness uses your browser's local storage to remember your settings and personalize your experience — for example your chosen language, wave and camera preferences, and saved presets. This data stays on your device, is never transmitted to Alexander Forselius or any third party, and can be erased at any time by clearing your browser's site data for this app.",
+        "heading": "Local storage"
+      },
+      "thirdParty": {
+        "body": "Aquafulness does not embed third-party advertising, tracking pixels, or social media widgets of its own.",
+        "heading": "Third parties"
+      },
+      "tracking": {
+        "heading": "Data collection and tracking",
+        "points": [
+          "Aquafulness itself does not track, collect, or sell any personal data.",
+          "The app is hosted on Lovable, whose platform applies its own standard hosting and infrastructure logging, and may enable anonymized usage analytics (such as Google Analytics) as part of its standard service — this is configured by the hosting platform, not by the app's operator, and is not used to identify you personally.",
+          "No account is required and the app itself never asks you for personal information."
+        ]
+      }
+    },
+    "title": "Privacy Policy"
   },
   "remote": {
     "hojd": "HEIGHT",
