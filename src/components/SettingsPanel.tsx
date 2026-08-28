@@ -11,6 +11,8 @@ import {
   BOTTOM_LABEL_KEYS,
   BACKDROPS,
   BACKDROP_LABEL_KEYS,
+  WATER_SOUNDS,
+  WATER_SOUND_LABEL_KEYS,
   TORUS_RING_TEXTURES,
   TORUS_TEXTURE_LABEL_KEYS,
   CAMERA_MODES,
@@ -393,6 +395,8 @@ export type SettingsPanelProps = {
   setAudioSyncSpeed: Dispatch<SetStateAction<boolean>>;
   audioSpatial: boolean;
   setAudioSpatial: Dispatch<SetStateAction<boolean>>;
+  waterSoundIdx: number;
+  setWaterSoundIdx: Dispatch<SetStateAction<number>>;
 };
 
 // Compact save/load/export/import row for one preset scope ("all", or a
@@ -848,6 +852,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setAudioSyncSpeed,
     audioSpatial,
     setAudioSpatial,
+    waterSoundIdx,
+    setWaterSoundIdx,
   } = props;
 
   const { t } = useTranslation();
@@ -2213,6 +2219,17 @@ export function SettingsPanel(props: SettingsPanelProps) {
                 }
                 setAudioVol((v) => Math.min(1, +(v + 0.1).toFixed(2)));
               }}
+            />
+            <PadDial
+              label={t("dial.audio.sound")}
+              value={t(WATER_SOUND_LABEL_KEYS[WATER_SOUNDS[waterSoundIdx].id])}
+              options={WATER_SOUNDS.map((s) => t(WATER_SOUND_LABEL_KEYS[s.id]))}
+              selectedIndex={waterSoundIdx}
+              onSelectIndex={setWaterSoundIdx}
+              onDec={() =>
+                setWaterSoundIdx((i) => (i - 1 + WATER_SOUNDS.length) % WATER_SOUNDS.length)
+              }
+              onInc={() => setWaterSoundIdx((i) => (i + 1) % WATER_SOUNDS.length)}
             />
             <PadDial
               label={t("dial.audio.syncSpeed")}

@@ -1,5 +1,6 @@
 import vanernBackdrop from "@/assets/vanern-backdrop.png.asset.json";
 import sandTextureAsset from "@/assets/sand_cc0_512.jpg.asset.json";
+import waterAsset from "@/assets/water.mp3.asset.json";
 
 // Shared between the main HUD's settings dialog (routes/index.tsx) and its
 // clone rendered as the "Inställningar" app inside the virtual phone's bathOS
@@ -103,6 +104,19 @@ export const TORUS_TEXTURE_LABEL_KEYS: Record<string, string> = {
   sand: "options.torusTexture.sand",
 };
 
+// Two available water-sound loops: "simple" is a plain single-take field
+// recording (no processing beyond what the audio graph already applies to
+// any source — lowpass/depth gain), "advanced" is the original, more
+// layered recorded track this app shipped with.
+export const WATER_SOUNDS: { id: string; url: string }[] = [
+  { id: "simple", url: "/audio/water-simple.m4a" },
+  { id: "advanced", url: waterAsset.url },
+];
+export const WATER_SOUND_LABEL_KEYS: Record<string, string> = {
+  simple: "options.waterSound.simple",
+  advanced: "options.waterSound.advanced",
+};
+
 export type SettingsTab = "vagor" | "kamera" | "vatten" | "miljo" | "ljud";
 // labelKey is an i18next key (see src/locales/*.json), resolved via t() in
 // SettingsPanel.tsx — kept here rather than a literal label so this stays
@@ -200,6 +214,7 @@ export type Persisted = {
   audioVol: number;
   audioSyncSpeed: boolean;
   audioSpatial: boolean;
+  waterSoundIdx: number;
   waterColorIdx: number;
   waterOpacity: number;
   // Blends the flat WATER_COLORS tint directly over the fully lit/reflected/
@@ -420,7 +435,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "torusViewDistance",
     "torusFadeDistance",
   ],
-  ljud: ["audioOn", "audioVol", "audioSyncSpeed", "audioSpatial"],
+  ljud: ["audioOn", "audioVol", "audioSyncSpeed", "audioSpatial", "waterSoundIdx"],
 };
 
 export const PRESET_ALL_FIELDS: (keyof Persisted)[] = Object.values(PRESET_TAB_FIELDS).flat();

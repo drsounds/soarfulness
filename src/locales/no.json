@@ -69,6 +69,7 @@
     "audio": {
       "off": "LYD AV",
       "on": "LYD PÅ",
+      "sound": "VANNLYD",
       "spatial": "ROMLIG",
       "syncSpeed": "LYDSYNK"
     },
@@ -292,6 +293,10 @@
       "mediterranean": "Middelhavet",
       "nordic": "Nordsjø",
       "tropical": "Tropisk"
+    },
+    "waterSound": {
+      "advanced": "Avansert",
+      "simple": "Enkel"
     }
   },
   "phone": {

@@ -69,6 +69,7 @@
     "audio": {
       "off": "LJUD AV",
       "on": "LJUD PÅ",
+      "sound": "VATTENLJUD",
       "spatial": "SPATIAL",
       "syncSpeed": "LJUDSYNK"
     },
@@ -292,6 +293,10 @@
       "mediterranean": "Medelhav",
       "nordic": "Nordhav",
       "tropical": "Tropisk"
+    },
+    "waterSound": {
+      "advanced": "Avancerat",
+      "simple": "Enkelt"
     }
   },
   "phone": {

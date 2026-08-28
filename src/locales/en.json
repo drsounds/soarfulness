@@ -69,6 +69,7 @@
     "audio": {
       "off": "SOUND OFF",
       "on": "SOUND ON",
+      "sound": "WATER SOUND",
       "spatial": "SPATIAL",
       "syncSpeed": "SOUND SYNC"
     },
@@ -292,6 +293,10 @@
       "mediterranean": "Mediterranean",
       "nordic": "Nordic Sea",
       "tropical": "Tropical"
+    },
+    "waterSound": {
+      "advanced": "Advanced",
+      "simple": "Simple"
     }
   },
   "phone": {
