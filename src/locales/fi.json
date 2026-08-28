@@ -1,4 +1,41 @@
 {
+  "about": {
+    "backToApp": "Takaisin sovellukseen",
+    "lastUpdated": "Päivitetty viimeksi: 28. elokuuta 2026",
+    "navLabel": "TIETOA",
+    "sections": {
+      "disclaimer": {
+        "heading": "Vastuuvapauslauseke",
+        "points": [
+          "Tämä sovellus on tarkoitettu ainoastaan viihdekäyttöön.",
+          "Se ei tarjoa, eikä sitä tule käyttää perusteena, minkäänlaiselle taloudelliselle, lääketieteelliselle tai terveydelliselle hyödylle tai neuvonnalle.",
+          "Mikään sovelluksessa ei ole ammatillista neuvontaa; käänny pätevän asiantuntijan puoleen taloudellisissa, lääketieteellisissä tai terveyteen liittyvissä kysymyksissä.",
+          "Sovellus tarjotaan \"sellaisenaan\" ilman minkäänlaisia takuita, eikä Alexander Forselius lain sallimissa rajoissa vastaa mistään käytöstä aiheutuvasta menetyksestä, vahingosta tai haitasta."
+        ]
+      },
+      "intro": {
+        "body": "Aquafulness on rauhoittava, selaimessa toimiva merenaaltojen visualisointi, joka on luotu henkilökohtaiseen rentoutumiseen ja tunnelmalliseen katseluun. Se on itsenäinen harrastusprojekti, ei kaupallinen tuote eikä lääkinnällinen laite.",
+        "heading": "Tietoa sovelluksesta"
+      },
+      "product": {
+        "body": "Aquafulness on ilmainen, mainokseton viihdesovellus: interaktiivinen 3D-merinäkymä, joka toimii selaimessa WebGL-tekniikalla. Sovellus ei vaadi asennusta, tiliä eikä maksua, eikä se muodosta yhteyttä mihinkään ulkoiseen palveluun lukuun ottamatta alla olevassa tietosuojaselosteessa kuvattua isännöintialustaa.",
+        "heading": "Digitaalisen sisällön luonne"
+      },
+      "trader": {
+        "address": "Floragatan 21D, 531 37 Lidköping, Ruotsi",
+        "addressLabel": "Osoite",
+        "capacity": "Sovelluksen tarjoaa Alexander Forselius yksityishenkilönä, ei rekisteröidyn yrityksen kautta.",
+        "email": "drsounds@gmail.com",
+        "emailLabel": "Sähköposti",
+        "heading": "Vastuuhenkilö ja yhteystiedot",
+        "name": "Alexander Forselius",
+        "note": "EU:n kuluttajansuoja- ja tuoteturvallisuusvaatimusten mukaisesti digitaalisille tuotteille — mukaan lukien digitaalisen sisällön ja digitaalisten palvelujen direktiivi (EU) 2019/770, kuluttajaoikeusdirektiivi 2011/83/EU sekä sähköistä kaupankäyntiä koskeva direktiivi 2000/31/EY — tässä kerrotaan, kuka vastaa sovelluksesta ja miten hänet tavoittaa.",
+        "phone": "+46 (0) 728-87 28 90",
+        "phoneLabel": "Puhelin"
+      }
+    },
+    "title": "Tietoja Aquafulnessista"
+  },
   "camera": {
     "mode": {
       "autoSuffix": "(AUTO)",
@@ -316,6 +353,34 @@
       "vatten": "VESI-ESIASETUS"
     },
     "state": "TILA (kaikki + sijainti, katse, virtaus, heilunta)"
+  },
+  "privacy": {
+    "backToApp": "Takaisin sovellukseen",
+    "intro": "Tämä sivu selittää selkeästi, mitä tapahtuu tiedoillesi, kun käytät Aquafulnessia.",
+    "lastUpdated": "Päivitetty viimeksi: 28. elokuuta 2026",
+    "sections": {
+      "contact": {
+        "body": "Jos sinulla on kysyttävää tästä tietosuojaselosteesta, ota yhteyttä Alexander Forseliukseen osoitteessa drsounds@gmail.com.",
+        "heading": "Kysymykset"
+      },
+      "localStorage": {
+        "body": "Aquafulness käyttää selaimesi paikallista tallennustilaa (localStorage) muistaakseen asetuksesi ja mukauttaakseen kokemustasi — esimerkiksi valitun kielen, aalto- ja kamera-asetukset sekä tallennetut esiasetukset. Nämä tiedot pysyvät laitteellasi, niitä ei koskaan lähetetä Alexander Forseliukselle tai kolmansille osapuolille, ja ne voidaan poistaa milloin tahansa tyhjentämällä selaimen sivustotiedot tälle sovellukselle.",
+        "heading": "Paikallinen tallennustila"
+      },
+      "thirdParty": {
+        "body": "Aquafulness ei sisällä omaa kolmannen osapuolen mainontaa, seurantapikseleitä tai sosiaalisen median widgettejä.",
+        "heading": "Kolmannet osapuolet"
+      },
+      "tracking": {
+        "heading": "Tiedonkeruu ja seuranta",
+        "points": [
+          "Aquafulness ei itse seuraa, kerää eikä myy henkilötietoja.",
+          "Sovellus isännöidään Lovable-alustalla, joka soveltaa omaa vakiomuotoista käyttö- ja infrastruktuurilokitustaan ja voi ottaa käyttöön anonymisoitua käyttöanalytiikkaa (kuten Google Analyticsin) osana vakiopalveluaan — tämän määrittää isännöintialusta, ei sovelluksen vastuuhenkilö, eikä sitä käytetä sinun henkilökohtaiseen tunnistamiseesi.",
+          "Tiliä ei tarvita, eikä sovellus koskaan pyydä sinulta henkilötietoja."
+        ]
+      }
+    },
+    "title": "Tietosuojaseloste"
   },
   "remote": {
     "hojd": "KORKEUS",

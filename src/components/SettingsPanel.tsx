@@ -1,5 +1,6 @@
 import { useState, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 import { useTranslation } from "react-i18next";
+import { Link } from "@tanstack/react-router";
 import { PadDial } from "@/components/PadDial";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import {
@@ -861,6 +862,12 @@ export function SettingsPanel(props: SettingsPanelProps) {
         </span>
         <div className="flex flex-wrap items-center gap-2">
           <LanguageSwitcher />
+          <Link
+            to="/about"
+            className="rounded-full border border-white/20 bg-white/5 px-3 py-1 text-[9px] font-light tracking-wider text-white/80 transition active:scale-95 active:bg-white/15"
+          >
+            {t("about.navLabel")}
+          </Link>
           <button
             onClick={restoreCameraPosition}
             className="rounded-full border border-white/20 bg-white/5 px-3 py-1 text-[9px] font-light tracking-wider text-white/80 transition active:scale-95 active:bg-white/15"
