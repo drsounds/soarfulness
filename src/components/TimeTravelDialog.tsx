@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { isFuturisticYear, simulatedDate, toDateTimeLocalValue } from "@/lib/timeTravel";
 
-// Time-travel dialog opened by tapping the clock under the dog icon (top
-// right of the HUD). Lets you pin the simulated date/time to any moment
+// Time-travel dialog opened by tapping the clock below the persistent brand
+// mark (top right of the HUD). Lets you pin the simulated date/time to any moment
 // (it then keeps ticking forward in real time from there — see
 // simulatedDate()), toggle whether TIMEOFDAY should follow the real
 // northern-hemisphere sunrise/sunset for that date, and jump back to "now".

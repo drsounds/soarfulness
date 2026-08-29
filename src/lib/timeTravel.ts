@@ -1,5 +1,5 @@
-// Helpers backing the DATE & TIME TRAVEL feature (routes/index.tsx's dog-icon
-// clock + TimeTravelDialog): a simulated "current" date that can be pinned to
+// Helpers backing the DATE & TIME TRAVEL feature (routes/index.tsx's clock
+// readout + TimeTravelDialog): a simulated "current" date that can be pinned to
 // an arbitrary moment and keeps ticking forward in real time from there, an
 // optional mapping of that date's local time-of-day onto the app's existing
 // 0..1 TIMEOFDAY dial via a northern-hemisphere sunrise/sunset approximation,
