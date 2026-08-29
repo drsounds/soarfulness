@@ -1028,8 +1028,8 @@ export function Aquafulness() {
   const [envId, setEnvId] = useState<string | null>(initial.envId);
   const [envEra, setEnvEra] = useState<string | null>(initial.envEra);
   const [envTime, setEnvTime] = useState<string | null>(initial.envTime);
-  // DATE & TIME TRAVEL — see src/lib/timeTravel.ts and the dog-icon clock/
-  // dialog in the HUD below.
+  // DATE & TIME TRAVEL — see src/lib/timeTravel.ts and the clock readout/
+  // dialog below the persistent brand mark in the HUD.
   const [timeTravelBaseMs, setTimeTravelBaseMs] = useState(initial.timeTravelBaseMs);
   const [timeTravelSetAtMs, setTimeTravelSetAtMs] = useState(initial.timeTravelSetAtMs);
   const [timeSeasonalSync, setTimeSeasonalSync] = useState(initial.timeSeasonalSync);
@@ -5974,6 +5974,36 @@ export function Aquafulness() {
         }}
       />
 
+      {/* Simulated clock — plain text (no button chrome), directly below the
+          brand mark above, always up regardless of HUD fade. Tap to open the
+          time-travel dialog. */}
+      <button
+        onClick={() => setTimeTravelOpen(true)}
+        className="absolute z-30 text-right text-[10px] font-light tabular-nums text-white/50 transition active:text-white/80"
+        style={{ top: "40pt", right: "12pt" }}
+        aria-label={t("hud.timeTravelOpenAria")}
+        title={t("hud.timeTravelOpenAria")}
+      >
+        {simNow.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+      </button>
+
+      <TimeTravelDialog
+        open={timeTravelOpen}
+        onClose={() => setTimeTravelOpen(false)}
+        timeTravelBaseMs={timeTravelBaseMs}
+        timeTravelSetAtMs={timeTravelSetAtMs}
+        onTravel={(targetMs) => {
+          setTimeTravelBaseMs(targetMs);
+          setTimeTravelSetAtMs(Date.now());
+        }}
+        onReturnToNow={() => {
+          setTimeTravelBaseMs(null);
+          setTimeTravelSetAtMs(null);
+        }}
+        timeSeasonalSync={timeSeasonalSync}
+        onSeasonalSyncChange={setTimeSeasonalSync}
+      />
+
       {/* Offline indicator — stays up regardless of HUD fade so it's never
           mistaken for a stall; only cached scenes/environments/surfaces are
           available while it's shown. */}
@@ -6055,38 +6085,6 @@ export function Aquafulness() {
           </button>
 
           <div className="flex gap-2">
-            <button
-              onClick={() => setTimeTravelOpen(true)}
-              className="pointer-events-auto flex flex-col items-center justify-center rounded-2xl border border-white/20 bg-black/40 px-2.5 py-1.5 text-white/90 backdrop-blur-md transition active:scale-95 active:bg-white/15"
-              aria-label={t("hud.timeTravelOpenAria")}
-              title={t("hud.timeTravelOpenAria")}
-            >
-              <svg
-                viewBox="0 0 24 24"
-                width="18"
-                height="18"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M6 9c-1.5-2.5-1-5 .5-5.5.8-.3 1.5.3 1.5 1.2V7" />
-                <path d="M18 9c1.5-2.5 1-5-.5-5.5-.8-.3-1.5.3-1.5 1.2V7" />
-                <path d="M7 9.5C7 7 9.2 5.5 12 5.5s5 1.5 5 4c0 2-1 3-1 5 0 2.5-1.8 4-4 4s-4-1.5-4-4c0-2-1-3-1-5z" />
-                <circle cx="10" cy="10.5" r="0.6" fill="currentColor" stroke="none" />
-                <circle cx="14" cy="10.5" r="0.6" fill="currentColor" stroke="none" />
-                <path d="M11 13h2" />
-              </svg>
-              <span className="mt-0.5 text-[9px] leading-none font-light tabular-nums text-white/85">
-                {simNow.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-              </span>
-              <span className="mt-0.5 text-[7px] leading-none font-light tabular-nums text-white/50">
-                {simNow.toLocaleDateString()}
-              </span>
-            </button>
-
             <button
               onClick={() => setPhoneOpen((v) => !v)}
               className={`pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur-md transition active:scale-95 ${
@@ -6177,23 +6175,6 @@ export function Aquafulness() {
             </button>
           </div>
         </div>
-
-        <TimeTravelDialog
-          open={timeTravelOpen}
-          onClose={() => setTimeTravelOpen(false)}
-          timeTravelBaseMs={timeTravelBaseMs}
-          timeTravelSetAtMs={timeTravelSetAtMs}
-          onTravel={(targetMs) => {
-            setTimeTravelBaseMs(targetMs);
-            setTimeTravelSetAtMs(Date.now());
-          }}
-          onReturnToNow={() => {
-            setTimeTravelBaseMs(null);
-            setTimeTravelSetAtMs(null);
-          }}
-          timeSeasonalSync={timeSeasonalSync}
-          onSeasonalSyncChange={setTimeSeasonalSync}
-        />
 
         <ShareBathDialog
           open={shareBathOpen}
