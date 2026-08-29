@@ -615,7 +615,13 @@ const DEFAULTS: Persisted = {
   // full-resolution 60fps render.
   targetFps: 40,
   resolutionScale: 0.5,
-  waveHighQuality: true,
+  // Off by default like every other optional shading extra below (caustics,
+  // chromatic aberration, torus rings, mid clouds) — this fbm-based
+  // micro-chop + foam layer runs two 3-octave noise samples plus another for
+  // foam, all per fragment, over the entire visible ocean surface. Real,
+  // always-on GPU cost that had been the one exception to this file's
+  // otherwise consistent "expensive extras stay opt-in" default policy.
+  waveHighQuality: false,
   backdropIdx: 0,
   wakeLock: true,
   camFov: 77,
