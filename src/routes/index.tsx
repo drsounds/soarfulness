@@ -4209,6 +4209,16 @@ export function Aquafulness() {
     const skyMat = new THREE.ShaderMaterial({
       uniforms: skyUniforms,
       side: THREE.BackSide,
+      // The dome recenters on the camera every frame (see sky.position.copy
+      // below) but its geometry is only 800 units in radius — far short of
+      // the extend-cloud-layer altitudes VÄRLDSGRÄNS tiles at (hundreds to
+      // low thousands of units away once the camera's altitude diverges from
+      // a layer's). Without this, the dome's default depthWrite left an
+      // opaque depth value at 800 units in every direction, which silently
+      // failed the depth test for any transparent cloud fragment drawn
+      // farther than that — invisible clouds, not missing ones. A pure
+      // background dome should never occlude anything.
+      depthWrite: false,
       vertexShader: `
         varying vec3 vDir;
         void main() {
