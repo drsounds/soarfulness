@@ -299,6 +299,14 @@ const OCEAN_BASE_SIZE = 1200;
 const OCEAN_FAR_INNER_RADIUS = OCEAN_BASE_SIZE / 2;
 const CLOUD_BASE_SIZE = 200000;
 
+// TEMPORARY performance-diagnostic flag: fully disables the DATE & TIME
+// TRAVEL feature (its once-a-minute tick effect and the clock button/dialog
+// in the HUD) to test whether it's contributing to reported lag, isolated
+// from the other fixes already shipped this round (WAVE_PRESET/CROSS WAVE
+// wiring, WAVE QUALITY default, cloud-layer visibility gating, frame-pacing).
+// Flip back to false once confirmed either way.
+const CLOCK_DISABLED_FOR_PERF_TEST = true;
+
 // VÄRLDSGRÄNS (world boundary): wraps `value` back into [-half, half) once it
 // crosses either edge, teleporting to the opposite side instead of just
 // clamping — e.g. crossing +half re-enters at -half plus whatever the camera
@@ -2786,7 +2794,14 @@ export function Aquafulness() {
   // (rather than a second) is plenty for a HH:MM readout and for how slowly
   // sunrise/sunset actually drifts, and keeps this from re-rendering the
   // whole component — a real cost given its size — more than once a minute.
+  //
+  // TEMPORARILY DISABLED (early return below) as a diagnostic: to test
+  // whether this feature is contributing to reported lag, independent of
+  // its own update rate — see CLOCK_DISABLED_FOR_PERF_TEST below, which also
+  // hides the clock button/dialog in the HUD. Revert both once confirmed
+  // either way.
   useEffect(() => {
+    if (CLOCK_DISABLED_FOR_PERF_TEST) return;
     const tick = () => {
       const date = simulatedDate(timeTravelBaseMs, timeTravelSetAtMs);
       setSimNow(date);
@@ -6065,7 +6080,7 @@ export function Aquafulness() {
           time-travel dialog. Only rendered once simNowLabel is set client-
           side (see simNow's useState above) so the server-rendered markup
           never includes a live time value. */}
-      {simNowLabel && (
+      {!CLOCK_DISABLED_FOR_PERF_TEST && simNowLabel && (
         <button
           onClick={() => setTimeTravelOpen(true)}
           className="absolute z-30 text-right text-[10px] font-light tabular-nums text-white/50 transition active:text-white/80"
@@ -6080,7 +6095,7 @@ export function Aquafulness() {
       {/* Only mounted while open, so its hooks don't run on every one of
           this large component's re-renders while the dialog is closed
           (i.e. almost always). */}
-      {timeTravelOpen && (
+      {!CLOCK_DISABLED_FOR_PERF_TEST && timeTravelOpen && (
         <TimeTravelDialog
           open={timeTravelOpen}
           onClose={() => setTimeTravelOpen(false)}
