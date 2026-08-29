@@ -331,7 +331,8 @@
     },
     "waterSound": {
       "advanced": "Edistynyt",
-      "simple": "Yksinkertainen"
+      "simple": "Yksinkertainen",
+      "ocean": "Meri"
     }
   },
   "phone": {

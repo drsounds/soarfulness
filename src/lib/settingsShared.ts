@@ -104,17 +104,20 @@ export const TORUS_TEXTURE_LABEL_KEYS: Record<string, string> = {
   sand: "options.torusTexture.sand",
 };
 
-// Two available water-sound loops: "simple" is a plain single-take field
+// Three available water-sound loops: "simple" is a plain single-take field
 // recording (no processing beyond what the audio graph already applies to
 // any source — lowpass/depth gain), "advanced" is the original, more
-// layered recorded track this app shipped with.
+// layered recorded track this app shipped with, and "ocean" is a recorded
+// ocean/wave ambience — the default track.
 export const WATER_SOUNDS: { id: string; url: string }[] = [
   { id: "simple", url: "/audio/water-simple.m4a" },
   { id: "advanced", url: waterAsset.url },
+  { id: "ocean", url: "/audio/ocean.m4a" },
 ];
 export const WATER_SOUND_LABEL_KEYS: Record<string, string> = {
   simple: "options.waterSound.simple",
   advanced: "options.waterSound.advanced",
+  ocean: "options.waterSound.ocean",
 };
 
 export type SettingsTab = "vagor" | "kamera" | "vatten" | "miljo" | "ljud";

@@ -565,7 +565,7 @@ const DEFAULTS: Persisted = {
   audioVol: 0.8,
   audioSyncSpeed: false,
   audioSpatial: false,
-  waterSoundIdx: 1,
+  waterSoundIdx: 2,
   waterColorIdx: 4,
   waterOpacity: 0.5,
   waterColorAlpha: 0,

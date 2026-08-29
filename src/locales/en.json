@@ -331,7 +331,8 @@
     },
     "waterSound": {
       "advanced": "Advanced",
-      "simple": "Simple"
+      "simple": "Simple",
+      "ocean": "Ocean"
     }
   },
   "phone": {
