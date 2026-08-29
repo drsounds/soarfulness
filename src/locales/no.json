@@ -299,6 +299,7 @@
       "tempo": "TEMPO",
       "wave": "BØLGE"
     },
+    "timeTravelOpenAria": "Åpne tidsreise",
     "totalLabel": " · Totalt ",
     "waveDrawer": {
       "closeAria": "Lukk bølgeinnstillinger",
@@ -528,6 +529,18 @@
       "square": "FIRKANT",
       "triangle": "TREKANT"
     }
+  },
+  "timeTravel": {
+    "applyButton": "Reis i tid",
+    "closeButton": "Lukk",
+    "dateLabel": "Dato & tid",
+    "description": "Sett en simulert dato og et klokkeslett — tiden fortsetter deretter å tikke i sanntid derfra.",
+    "futuristicNote": "Etter år 2100 viser miljøene sitt futuristiske utseende.",
+    "liveButton": "Gå tilbake til nå",
+    "liveStatus": "Live",
+    "seasonalLabel": "Synkroniser med ekte soloppgang/solnedgang (sesong)",
+    "title": "Tidsreise",
+    "travelingStatus": "Tidsreise pågår"
   },
   "tod": {
     "afternoon": "Ettermiddag",

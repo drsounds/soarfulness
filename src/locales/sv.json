@@ -299,6 +299,7 @@
       "tempo": "TEMPO",
       "wave": "VÅG"
     },
+    "timeTravelOpenAria": "Öppna tidsresa",
     "totalLabel": " · Totalt ",
     "waveDrawer": {
       "closeAria": "Stäng våginställningar",
@@ -528,6 +529,18 @@
       "square": "FYRKANT",
       "triangle": "TRIANGEL"
     }
+  },
+  "timeTravel": {
+    "applyButton": "Res i tiden",
+    "closeButton": "Stäng",
+    "dateLabel": "Datum & tid",
+    "description": "Ställ in ett simulerat datum och klockslag — tiden fortsätter sedan att ticka i realtid därifrån.",
+    "futuristicNote": "Efter år 2100 visar miljöerna sitt futuristiska utseende.",
+    "liveButton": "Återgå till nu",
+    "liveStatus": "Live",
+    "seasonalLabel": "Synka med verklig soluppgång/solnedgång (säsong)",
+    "title": "Tidsresa",
+    "travelingStatus": "Tidsresa pågår"
   },
   "tod": {
     "afternoon": "Eftermiddag",
