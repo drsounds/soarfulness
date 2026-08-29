@@ -1,23 +1,14 @@
 name: Docker image
 
-# Builds the production container image (see Dockerfile) and, on pushes to
-# main or version tags, publishes it to GitHub Container Registry along
-# with an SBOM and build provenance as workflow artifacts/attestations.
-# PRs and other branches only build + smoke-test (no push).
+# Builds the production container image (see Dockerfile) and publishes it
+# to GitHub Container Registry along with an SBOM and build provenance as
+# workflow artifacts/attestations, when run on main or a version tag.
+#
+# No automatic push/pull_request trigger: this repeatedly hit "Artifact
+# storage quota has been hit" on every PR run (see git history for the
+# repeated workarounds), burning the account's free Actions quota on
+# builds nobody was waiting on. Run manually via workflow_dispatch instead.
 on:
-  push:
-    branches: [main]
-    tags: ["v*.*.*"]
-  pull_request:
-    paths:
-      - "Dockerfile"
-      - ".dockerignore"
-      - "package.json"
-      - "package-lock.json"
-      - "src/**"
-      - "public/**"
-      - "vite.config.ts"
-      - ".github/workflows/docker-image.yml"
   workflow_dispatch: {}
 
 env:
