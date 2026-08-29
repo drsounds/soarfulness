@@ -490,12 +490,21 @@ type SurfaceManifest = {
 };
 
 // VÅGPRESET bundles — everything the wave-only preset selector applies in
-// one step. "standard" is this app's current default (calm FFT-hav swell);
-// "legacy" restores the exact wave settings from before that change (tall,
-// fast REGELBUNDEN waves, no FFT-hav) for anyone who preferred the original
-// feel. DÖENDE VÅG (dying wave) is a newer, separate overlay and defaults
-// off in both presets — turn it on explicitly to layer a long, slow, dying
-// swell on top of whichever base preset is active.
+// one step. "standard" is this app's current default; "legacy" restores the
+// exact wave settings from before that change (tall, fast REGELBUNDEN
+// waves) for anyone who preferred the original feel. Both keep
+// realisticWaves off — DEFAULTS below independently pins it to false as the
+// app's real shipped default, and applyWavePreset() re-derives realisticWaves
+// straight from this object on every dial click, so a "standard" bundled
+// with realisticWaves: true would silently re-enable the expensive FFT wave
+// simulation (a 32-term sum evaluated per vertex, up to 6x per fragment for
+// caustics) the instant someone touches the WAVE PRESET dial — completely
+// independent of, and overriding, whatever they'd set the dedicated
+// REALISTIC WAVES toggle to. That's its own separate control; pick this
+// preset's calmer "FFT-hav swell" look through it explicitly instead.
+// DÖENDE VÅG (dying wave) is a newer, separate overlay and defaults off in
+// both presets — turn it on explicitly to layer a long, slow, dying swell on
+// top of whichever base preset is active.
 const WAVE_PRESETS: Record<
   WavePresetName,
   Pick<
@@ -518,7 +527,7 @@ const WAVE_PRESETS: Record<
     waveSpeed: 2.8,
     waveFreq: 1,
     regularWaves: true,
-    realisticWaves: true,
+    realisticWaves: false,
     dyingWave: false,
     dyingWaveAmp: 1.2,
     dyingWaveSpeed: 0.6,
@@ -550,7 +559,6 @@ const DEFAULTS: Persisted = {
   waveAmp: 2.94,
   waveSpeed: 5.21,
   waveFreq: 0.51,
-  realisticWaves: false,
   regularCross: false,
   // Off by default: the FFT wave modes stay the same fixed shape every load
   // (see FFT_WAVE_SEED/DYING_WAVE_SEED above) rather than reshuffling.
