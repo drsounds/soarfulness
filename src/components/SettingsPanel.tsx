@@ -39,6 +39,7 @@ import {
 } from "@/lib/settingsShared";
 import { pickJsonFile, type PresetScope, type SavedPreset, type SavedState } from "@/lib/presets";
 import { changeLanguage, SUPPORTED_LANGUAGES, LANGUAGE_NAMES, type LanguageCode } from "@/lib/i18n";
+import { BATH_TITLE_MAX_LENGTH, BATH_DESCRIPTION_MAX_LENGTH } from "@/lib/shareState";
 
 // i18next keys for enum values that don't already carry a human-readable
 // "name" (unlike scenes/environments/surfaces, which come from data with
@@ -127,6 +128,12 @@ export type SettingsPanelProps = {
   saveStateAs: (name: string) => void;
   loadSavedStateById: (id: string) => void;
   deleteSavedState: (id: string) => void;
+
+  // DELA BADLÄNK: encodes the full live state (settings + camera pose) plus
+  // an optional title/description into a self-contained /bathing/<base62>
+  // URL — no server storage, see src/lib/shareState.ts and
+  // routes/bathing.$payload.tsx.
+  buildBathLink: (title: string, description: string) => Promise<string>;
 
   // Vågor
   waveAmp: number;
@@ -650,6 +657,144 @@ function StateControls({
   );
 }
 
+// DELA BADLÄNK: a small self-contained dialog that turns the live state
+// into a shareable /bathing/<base62> URL (see src/lib/shareState.ts) —
+// title/description are optional and only feed the link's Open Graph
+// preview (routes/bathing.$payload.tsx's head()), never applied in-app.
+function ShareBathLink({
+  buildBathLink,
+}: {
+  buildBathLink: (title: string, description: string) => Promise<string>;
+}) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [status, setStatus] = useState<"idle" | "generating" | "ready" | "error">("idle");
+  const [link, setLink] = useState("");
+  const [copied, setCopied] = useState(false);
+  const btnClass =
+    "rounded-full border border-white/15 bg-white/5 px-2.5 py-0.5 text-[9px] font-light tracking-wider text-white/70 transition active:scale-95 active:bg-white/15 disabled:opacity-30";
+
+  const openDialog = () => {
+    setStatus("idle");
+    setLink("");
+    setCopied(false);
+    setOpen(true);
+  };
+
+  const generate = async () => {
+    setStatus("generating");
+    try {
+      const url = await buildBathLink(title, description);
+      setLink(url);
+      setStatus("ready");
+    } catch {
+      setStatus("error");
+    }
+  };
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* clipboard unavailable (older browser/permissions) — the link field
+         below is still selectable for a manual copy. */
+    }
+  };
+
+  const shareNative = async () => {
+    try {
+      await navigator.share({
+        title: title.trim() || undefined,
+        text: description.trim() || undefined,
+        url: link,
+      });
+    } catch {
+      /* user dismissed the native share sheet, or it's unsupported — the
+         Copy button above always works as a fallback. */
+    }
+  };
+
+  return (
+    <div className="mb-2 flex w-full flex-wrap items-center justify-center gap-1.5">
+      <button onClick={openDialog} className={btnClass}>
+        {t("presets.shareBathLink")}
+      </button>
+      {open && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={t("presets.shareBathLink")}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-xs rounded-2xl border border-white/15 bg-black/85 p-4 text-center shadow-2xl backdrop-blur-xl"
+          >
+            <p className="mb-3 text-[11px] font-medium tracking-wide text-white/90">
+              {t("presets.shareBathLink")}
+            </p>
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder={t("presets.shareBathTitlePlaceholder")}
+              maxLength={BATH_TITLE_MAX_LENGTH}
+              className="mb-2 w-full rounded-full border border-white/15 bg-black/40 px-3 py-1.5 text-center text-[10px] text-white outline-none placeholder:text-white/30"
+            />
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder={t("presets.shareBathDescriptionPlaceholder")}
+              maxLength={BATH_DESCRIPTION_MAX_LENGTH}
+              rows={2}
+              className="mb-3 w-full resize-none rounded-2xl border border-white/15 bg-black/40 px-3 py-1.5 text-center text-[10px] text-white outline-none placeholder:text-white/30"
+            />
+            {status === "ready" ? (
+              <>
+                <input
+                  readOnly
+                  value={link}
+                  onFocus={(e) => e.currentTarget.select()}
+                  className="mb-2 w-full rounded-full border border-white/15 bg-black/40 px-3 py-1.5 text-center text-[9px] text-white/70 outline-none"
+                />
+                <div className="flex flex-wrap justify-center gap-2">
+                  <button onClick={copyLink} className={btnClass}>
+                    {copied ? t("presets.copied") : t("presets.copyLink")}
+                  </button>
+                  {typeof navigator !== "undefined" && !!navigator.share && (
+                    <button onClick={shareNative} className={btnClass}>
+                      {t("presets.shareNative")}
+                    </button>
+                  )}
+                  <button onClick={() => setOpen(false)} className={btnClass}>
+                    {t("common.cancel")}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="flex justify-center gap-2">
+                <button onClick={() => setOpen(false)} className={btnClass}>
+                  {t("common.cancel")}
+                </button>
+                <button disabled={status === "generating"} onClick={generate} className={btnClass}>
+                  {status === "generating" ? t("presets.generating") : t("presets.generateLink")}
+                </button>
+              </div>
+            )}
+            {status === "error" && (
+              <p className="mt-2 text-[9px] text-red-300/80">{t("presets.shareBathError")}</p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function SettingsPanel(props: SettingsPanelProps) {
   const {
     settingsTab,
@@ -668,6 +813,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
     saveStateAs,
     loadSavedStateById,
     deleteSavedState,
+    buildBathLink,
     waveAmp,
     setWaveAmp,
     waveSpeed,
@@ -1026,6 +1172,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
         loadSavedStateById={loadSavedStateById}
         deleteSavedState={deleteSavedState}
       />
+      <ShareBathLink buildBathLink={buildBathLink} />
       <div className="flex flex-wrap justify-center gap-2">
         {settingsTab === "vagor" && (
           <>
