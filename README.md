@@ -19,3 +19,29 @@ correction, short-wave fade, and the three length-scale cascades — is
 re-implemented in [`src/lib/ocean/fftOceanSpectrum.ts`](src/lib/ocean/fftOceanSpectrum.ts)
 as an analytic sum-of-sinusoids sampled from that same spectrum, rather than
 an inverse FFT. See that file's header comment for the full derivation.
+
+## Running in a container
+
+The app builds to a plain Node.js server via Nitro's `node-server` preset
+(instead of this repo's default Cloudflare Workers target), so it runs
+anywhere Docker does.
+
+```sh
+docker compose up --build
+# or
+docker build -t aquafulness .
+docker run -p 3000:3000 aquafulness
+```
+
+The server listens on `PORT` (default `3000`) and `HOST` (default
+`0.0.0.0`). On every push to `main` and on version tags (`vX.Y.Z`), CI
+builds and publishes a multi-arch (amd64/arm64) image to
+[GitHub Container Registry](https://github.com/drsounds/aqua-wave-dream/pkgs/container/aqua-wave-dream):
+
+```sh
+docker run -p 3000:3000 ghcr.io/drsounds/aqua-wave-dream:latest
+```
+
+See [`.github/workflows/docker-image.yml`](.github/workflows/docker-image.yml)
+for the build/publish pipeline, which also attaches an SBOM and signed build
+provenance attestation to each release.
