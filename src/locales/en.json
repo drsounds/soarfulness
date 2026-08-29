@@ -23,6 +23,11 @@
           "The app is provided \"as is\", without warranties of any kind, and to the maximum extent permitted by law, Alexander Forselius accepts no liability for any loss, injury, or damage arising from its use."
         ]
       },
+      "documentation": {
+        "body": "Curious about the theory behind Aquafulness — digital bathing, the sine-oscillation theory, and why watching waves is designed to feel calming? Read the full case study.",
+        "heading": "Documentation",
+        "linkLabel": "Read the documentation"
+      },
       "intro": {
         "body": "Aquafulness is a calming, browser-based ocean wave visualization created for personal relaxation and ambient viewing. It is an independent hobby project, not a commercial product, and not a medical device.",
         "heading": "About this app"
