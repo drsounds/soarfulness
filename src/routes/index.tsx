@@ -4796,7 +4796,21 @@ export function Aquafulness() {
       // (float) mode (its own buoyancy spring hasn't run yet this frame) —
       // an imperceptible one-frame lag for a value this smooth-moving.
       const extendLayers = extendCloudLayersRef.current;
-      if (worldBoundaryOnRef.current && worldBoundaryYExtendRef.current && skyCloudsOnRef.current) {
+      // Same visibility gate as skyClouds itself (sky.visible/skyClouds.visible
+      // further below): a real skybox environment or a flat backdrop image
+      // replaces the procedural sky entirely, so these extra layers have
+      // nothing to extend and would just be dead weight — 5 extra full-scale,
+      // 5-octave-noise transparent planes shaded every frame for nothing,
+      // regardless of camera mode or altitude. envActiveRef/backdropRef are
+      // refs, so reading them this early in the frame (before the local
+      // envActive/useBackdrop consts further down) is safe.
+      if (
+        worldBoundaryOnRef.current &&
+        worldBoundaryYExtendRef.current &&
+        skyCloudsOnRef.current &&
+        !envActiveRef.current &&
+        backdropRef.current <= 0
+      ) {
         const spacing = EXTEND_CLOUD_LAYER_SPACING;
         const camYNow = camYRef.current ?? 0;
         const baseIdx = Math.floor(camYNow / spacing);
