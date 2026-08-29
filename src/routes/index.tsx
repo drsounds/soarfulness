@@ -11,6 +11,7 @@ import { CSS3DTVManager, type DeviceKind } from "@/lib/tv/CSS3DTVManager";
 import { TorusRingField } from "@/lib/torusRings/TorusRingField";
 import { VirtualPhone, type RemoteControllerProps } from "@/components/VirtualPhone";
 import { SettingsPanel, type SettingsPanelProps } from "@/components/SettingsPanel";
+import { ShareBathDialog } from "@/components/ShareBathDialog";
 import { GogglesOverlay } from "@/components/GogglesOverlay";
 import { PadSlider } from "@/components/PadDial";
 import { Joystick, JoystickPad } from "@/components/Joystick";
@@ -1146,6 +1147,7 @@ export function Aquafulness() {
   const [phoneOpen, setPhoneOpen] = useState(false);
   const [uiVisible, setUiVisible] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [shareBathOpen, setShareBathOpen] = useState(false);
   // Edit mode: freezes wave time and all camera bob/drift/walk physics so TV
   // panels can be moved/rotated/resized precisely without the world (or the
   // camera's own automatic buoyancy) shifting underneath the gesture.
@@ -5927,7 +5929,7 @@ export function Aquafulness() {
       <div
         className={`pointer-events-none absolute inset-0 z-10 transition-opacity duration-700 ${uiVisible ? "opacity-100" : "opacity-0"}`}
       >
-        {/* Top bar: settings + speaker toggle + phone + fullscreen.
+        {/* Top bar: settings + speaker toggle + phone + fullscreen + share.
             Edit-mode (the "pencil") no longer lives here — it moved into the
             bathOS phone's dedicated Skärmar app. */}
         <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between px-6 pt-6">
@@ -6046,8 +6048,38 @@ export function Aquafulness() {
                 </svg>
               )}
             </button>
+
+            <button
+              onClick={() => setShareBathOpen(true)}
+              className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white/90 backdrop-blur-md transition active:scale-95 active:bg-white/15"
+              aria-label={t("hud.shareBathAria")}
+              title={t("hud.shareBathAria")}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width="20"
+                height="20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="18" cy="5" r="3" />
+                <circle cx="6" cy="12" r="3" />
+                <circle cx="18" cy="19" r="3" />
+                <path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4" />
+              </svg>
+            </button>
           </div>
         </div>
+
+        <ShareBathDialog
+          open={shareBathOpen}
+          onClose={() => setShareBathOpen(false)}
+          buildBathLink={buildBathLink}
+        />
 
         {/* Collapsible settings panel */}
         {settingsOpen && (
