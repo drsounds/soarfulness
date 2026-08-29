@@ -211,6 +211,8 @@ export type SettingsPanelProps = {
   setWavePeak: Dispatch<SetStateAction<number>>;
   trochoid: number;
   setTrochoid: Dispatch<SetStateAction<number>>;
+  heaveSkew: number;
+  setHeaveSkew: Dispatch<SetStateAction<number>>;
   waveHighQuality: boolean;
   setWaveHighQuality: Dispatch<SetStateAction<boolean>>;
   waveDir: number;
@@ -755,6 +757,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setWavePeak,
     trochoid,
     setTrochoid,
+    heaveSkew,
+    setHeaveSkew,
     waveHighQuality,
     setWaveHighQuality,
     waveDir,
@@ -1512,6 +1516,18 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   step={0.05}
                   onDec={() => setTrochoid((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
                   onInc={() => setTrochoid((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+                />
+                <PadDial
+                  label={t("dial.wave.heaveSkew")}
+                  mode="number"
+                  value={heaveSkew <= 0.001 ? t("common.off") : `${Math.round(heaveSkew * 100)}%`}
+                  rawValue={heaveSkew}
+                  onSet={(v) => setHeaveSkew(Math.max(0, Math.min(0.9, v)))}
+                  min={0}
+                  max={0.9}
+                  step={0.05}
+                  onDec={() => setHeaveSkew((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                  onInc={() => setHeaveSkew((v) => Math.min(0.9, +(v + 0.05).toFixed(2)))}
                 />
                 <PadDial
                   label={t("dial.wave.quality")}

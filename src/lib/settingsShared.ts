@@ -360,6 +360,17 @@ export type Persisted = {
   sphereMaterial: boolean;
   sphereStrength: number;
   trochoid: number;
+  // HEAVE SKEW: a phase-warp (0 = untouched sine, up to ~0.9 before phase
+  // folding) applied to every sine term behind REGELBUNDEN/SPRIDD — see
+  // shapedWave() in routes/index.tsx for the exact math. Unlike TROCHOID
+  // (a purely visual horizontal mesh displacement that never reaches the
+  // camera, see uTrochoid there), this warps the *time* profile itself in
+  // both the rendered surface and the JS-side waveHeight() the camera
+  // buoyancy reads — so a fixed point on the water rises quickly to a sharp
+  // peak and sinks back slowly, and the camera's heave actually feels that
+  // asymmetry instead of pure sine. Off by default so it's an opt-in look
+  // to compare against the existing motion.
+  heaveSkew: number;
   causticsOn: boolean;
   chromaticAberrationOn: boolean;
   chromaticAberrationAmount: number;
@@ -422,6 +433,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "regularPeriod",
     "wavePeak",
     "trochoid",
+    "heaveSkew",
     "waveHighQuality",
     "waveDir",
     "whirlpoolOpening",

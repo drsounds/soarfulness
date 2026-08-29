@@ -148,6 +148,28 @@ function shapedWave(theta: number, p: number) {
   );
 }
 
+// HEAVE SKEW: warps a *temporal* phase (t*speed [+ a fixed per-term offset],
+// never anything that also depends on x/z) so it advances faster through the
+// rising half of its cycle and slower through the falling half — a fixed
+// point on the water then rises quickly to a peak and sinks back slowly,
+// instead of the perfectly symmetric rise/fall a plain sine gives. This is
+// intentionally applied to the temporal argument alone, *before* it's added
+// to any spatial phase term: warping the combined spatiotemporal phase
+// (like shapedWave()/shp()'s SPETS shaping does deliberately, for a
+// different reason) would reintroduce exactly the near-vertical, phase-
+// bunched mesh faces the comment on shapedWave() above warns a *previous*
+// phase warp caused — because at a fixed instant, the wave's shape across
+// space would then no longer be a clean, evenly-sampled sine. Warping only
+// the time-dependent term keeps every spatial snapshot undistorted (the
+// warp is just a constant offset from x/z's point of view) while still
+// reshaping how a stationary point's height changes *over time* — exactly
+// what camera heave feels. Clamped below 1 to avoid the phase going
+// non-monotonic (which would fold the waveform back on itself).
+function warpPhase(phase: number, skew: number): number {
+  if (skew <= 0.001) return phase;
+  return phase + Math.min(0.9, Math.max(0, skew)) * Math.sin(phase);
+}
+
 // Gerstner-like sum of sines. Keep in sync with vertex shader.
 // `realistic` swaps in the JONSWAP/FFT-ocean waveform (see
 // src/lib/ocean/fftOceanSpectrum.ts) so the camera floats correctly on it
@@ -181,6 +203,7 @@ function waveHeight(
   dyingAmp: number = 0,
   dyingT: number = 0,
   freq: number = 1,
+  skew: number = 0,
 ) {
   // Use compass-bearing convention (matches bearingToWorldXZ / the dial:
   // 0deg = world +z, 90deg = world +x) rather than the math-angle
@@ -203,14 +226,16 @@ function waveHeight(
   if (regular) {
     const kx = (0.12 * freq) / period;
     const kz = (0.09 * freq) / period;
-    const rx = shapedWave(xr * kx + t * 0.9, peak) * 2.6 * amp;
-    const rz = cross ? shapedWave(zr * kz + t * 0.7 + 1.1, peak) * 1.4 * amp : 0;
+    const rx = shapedWave(xr * kx + warpPhase(t * 0.9, skew), peak) * 2.6 * amp;
+    const rz = cross ? shapedWave(zr * kz + warpPhase(t * 0.7 + 1.1, skew), peak) * 1.4 * amp : 0;
     return rx + rz;
   }
-  const w1 = shapedWave(xr * 0.12 * freq + t * 0.9, peak) * 1.0;
-  const w2 = shapedWave(zr * 0.17 * freq + t * 0.7 + 1.3, peak) * 0.75;
-  const w3 = shapedWave((xr * 0.22 + zr * 0.19) * freq + t * 1.4 + 2.1, peak) * 0.5;
-  const w4 = shapedWave((xr * 0.31 - zr * 0.11) * freq + t * 1.8 + 0.4, peak) * 0.35;
+  const w1 = shapedWave(xr * 0.12 * freq + warpPhase(t * 0.9, skew), peak) * 1.0;
+  const w2 = shapedWave(zr * 0.17 * freq + warpPhase(t * 0.7 + 1.3, skew), peak) * 0.75;
+  const w3 =
+    shapedWave((xr * 0.22 + zr * 0.19) * freq + warpPhase(t * 1.4 + 2.1, skew), peak) * 0.5;
+  const w4 =
+    shapedWave((xr * 0.31 - zr * 0.11) * freq + warpPhase(t * 1.8 + 0.4, skew), peak) * 0.35;
   return (w1 + w2 + w3 + w4) * amp;
 }
 
@@ -690,6 +715,7 @@ const DEFAULTS: Persisted = {
   sphereMaterial: false,
   sphereStrength: 0.7,
   trochoid: 0,
+  heaveSkew: 0,
   // Off by default: swaps the flat sine-noise "fake" caustic for a real
   // Snell's-law refraction + ray-density caustic driven by the actual FFT
   // wave field (see uCausticsOn in the ocean/floor shaders), and lets the
@@ -1086,6 +1112,7 @@ export function Aquafulness() {
   const [sphereMaterial, setSphereMaterial] = useState(initial.sphereMaterial);
   const [sphereStrength, setSphereStrength] = useState(initial.sphereStrength);
   const [trochoid, setTrochoid] = useState(initial.trochoid);
+  const [heaveSkew, setHeaveSkew] = useState(initial.heaveSkew);
   const [causticsOn, setCausticsOn] = useState(initial.causticsOn);
   const [chromaticAberrationOn, setChromaticAberrationOn] = useState(initial.chromaticAberrationOn);
   const [chromaticAberrationAmount, setChromaticAberrationAmount] = useState(
@@ -1256,6 +1283,7 @@ export function Aquafulness() {
   const sphereMaterialRef = useRef(sphereMaterial);
   const sphereStrengthRef = useRef(sphereStrength);
   const trochoidRef = useRef(trochoid);
+  const heaveSkewRef = useRef(heaveSkew);
   const causticsOnRef = useRef(causticsOn);
   const chromaticAberrationOnRef = useRef(chromaticAberrationOn);
   const chromaticAberrationAmountRef = useRef(chromaticAberrationAmount);
@@ -1360,6 +1388,7 @@ export function Aquafulness() {
     sphereMaterial,
     sphereStrength,
     trochoid,
+    heaveSkew,
     causticsOn,
     chromaticAberrationOn,
     chromaticAberrationAmount,
@@ -1501,6 +1530,7 @@ export function Aquafulness() {
     sphereMaterial,
     sphereStrength,
     trochoid,
+    heaveSkew,
     causticsOn,
     chromaticAberrationOn,
     chromaticAberrationAmount,
@@ -1979,6 +2009,9 @@ export function Aquafulness() {
     trochoidRef.current = trochoid;
   }, [trochoid]);
   useEffect(() => {
+    heaveSkewRef.current = heaveSkew;
+  }, [heaveSkew]);
+  useEffect(() => {
     noclipSpeedRef.current = noclipSpeed;
   }, [noclipSpeed]);
   useEffect(() => {
@@ -2275,6 +2308,7 @@ export function Aquafulness() {
     setSphereMaterial(DEFAULTS.sphereMaterial);
     setSphereStrength(DEFAULTS.sphereStrength);
     setTrochoid(DEFAULTS.trochoid);
+    setHeaveSkew(DEFAULTS.heaveSkew);
     setCausticsOn(DEFAULTS.causticsOn);
     setChromaticAberrationOn(DEFAULTS.chromaticAberrationOn);
     setChromaticAberrationAmount(DEFAULTS.chromaticAberrationAmount);
@@ -2418,6 +2452,7 @@ export function Aquafulness() {
     if (patch.sphereMaterial !== undefined) setSphereMaterial(patch.sphereMaterial);
     if (patch.sphereStrength !== undefined) setSphereStrength(patch.sphereStrength);
     if (patch.trochoid !== undefined) setTrochoid(patch.trochoid);
+    if (patch.heaveSkew !== undefined) setHeaveSkew(patch.heaveSkew);
     if (patch.causticsOn !== undefined) setCausticsOn(patch.causticsOn);
     if (patch.chromaticAberrationOn !== undefined)
       setChromaticAberrationOn(patch.chromaticAberrationOn);
@@ -3309,6 +3344,11 @@ export function Aquafulness() {
       // of the existing sine/shaped height — purely a vertex-shader visual,
       // never fed into the JS-side waveHeight() the camera physics reads.
       uTrochoid: { value: 0 },
+      // HEAVE SKEW: a temporal phase warp shared with the JS-side
+      // waveHeight() the camera physics reads (see warpPhase() there) — so
+      // the rendered surface's own rise/sink timing actually matches what's
+      // lifting the camera, unlike uTrochoid above.
+      uSkew: { value: 0 },
       // Grumlighet (turbidity), shared with the seafloor/mid-cloud/sky
       // shaders — see uTurbidity handling in the fragment shader below.
       uTurbidity: { value: 0 },
@@ -3332,6 +3372,7 @@ export function Aquafulness() {
       uniform float uFreq;
       uniform float uPeak;
       uniform float uTrochoid;
+      uniform float uSkew;
       uniform float uDir;
       uniform float uVortex;
       uniform float uVortexOpening;
@@ -3389,6 +3430,15 @@ export function Aquafulness() {
         return h;
       }
 
+      // HEAVE SKEW — see warpPhase() in the JS above, kept in sync: warps
+      // only a temporal phase (never a term that also carries x/z), applied
+      // at each wave()/waveHeight() call site *before* combining with that
+      // term's spatial phase, so any fixed-time snapshot of the mesh stays
+      // an undistorted sine — no new phase-bunched faces.
+      float warpPhase(float phase, float skew) {
+        return phase + clamp(skew, 0.0, 0.9) * sin(phase);
+      }
+
       // Rounded Gaussian crest boost — sharpens the wave top without creating
       // near-vertical phase-bunched faces that alias when viewed from the side.
       float shp(float theta) {
@@ -3430,15 +3480,15 @@ export function Aquafulness() {
         // spatial wavelength (higher = longer, calmer swells); uFreq (FREKVENS)
         // scales it the other way, and unlike uPeriod also reaches the swell
         // and FFT terms below.
-        float regX = shp(p.x * (0.12 * uFreq / uPeriod) + t * 0.9) * 2.6 * amp;
-        float regZ = shp(p.z * (0.09 * uFreq / uPeriod) + t * 0.7 + 1.1) * 1.4 * amp * uCross;
+        float regX = shp(p.x * (0.12 * uFreq / uPeriod) + warpPhase(t * 0.9, uSkew)) * 2.6 * amp;
+        float regZ = shp(p.z * (0.09 * uFreq / uPeriod) + warpPhase(t * 0.7 + 1.1, uSkew)) * 1.4 * amp * uCross;
         float reg = regX + regZ;
 
         // Large primary swell (chaotic sum of sines)
-        float w1 = shp(p.x * 0.12 * uFreq + t * 0.9) * 1.0;
-        float w2 = shp(p.z * 0.17 * uFreq + t * 0.7 + 1.3) * 0.75;
-        float w3 = shp((p.x * 0.22 + p.z * 0.19) * uFreq + t * 1.4 + 2.1) * 0.5;
-        float w4 = shp((p.x * 0.31 - p.z * 0.11) * uFreq + t * 1.8 + 0.4) * 0.35;
+        float w1 = shp(p.x * 0.12 * uFreq + warpPhase(t * 0.9, uSkew)) * 1.0;
+        float w2 = shp(p.z * 0.17 * uFreq + warpPhase(t * 0.7 + 1.3, uSkew)) * 0.75;
+        float w3 = shp((p.x * 0.22 + p.z * 0.19) * uFreq + warpPhase(t * 1.4 + 2.1, uSkew)) * 0.5;
+        float w4 = shp((p.x * 0.31 - p.z * 0.11) * uFreq + warpPhase(t * 1.8 + 0.4, uSkew)) * 0.35;
         float big = (w1 + w2 + w3 + w4) * amp;
 
         // Small ripples on top of the swell — high frequency, so they must
@@ -4456,6 +4506,7 @@ export function Aquafulness() {
         (regularPeriodRef.current - uniforms.uPeriod.value) * Math.min(1, dt * 4);
       uniforms.uFreq.value += (freqRef.current - uniforms.uFreq.value) * Math.min(1, dt * 4);
       uniforms.uPeak.value += (wavePeakRef.current - uniforms.uPeak.value) * Math.min(1, dt * 4);
+      uniforms.uSkew.value += (heaveSkewRef.current - uniforms.uSkew.value) * Math.min(1, dt * 4);
       // Wave direction stored in degrees; smoothly interpolate the shortest
       // angular path so wrapping around 360° doesn't spin the ocean.
       {
@@ -4917,6 +4968,7 @@ export function Aquafulness() {
             dyingAmpRef.current,
             dyingWaveT,
             freqRef.current,
+            heaveSkewRef.current,
           );
 
       // The wave-following buoyancy spring and current/sway drift apply in
@@ -4995,6 +5047,7 @@ export function Aquafulness() {
               dyingAmpRef.current,
               dyingWaveT + lead,
               freqRef.current,
+              heaveSkewRef.current,
             );
         const maxSlope = ampRef.current * 6.0;
         const rawAnticip = Math.max(
@@ -5384,6 +5437,7 @@ export function Aquafulness() {
                 dyingAmpRef.current,
                 dyingWaveT,
                 freqRef.current,
+                heaveSkewRef.current,
               );
           h = s * mb.bob.amp;
         } else {
@@ -5764,6 +5818,8 @@ export function Aquafulness() {
     setWavePeak,
     trochoid,
     setTrochoid,
+    heaveSkew,
+    setHeaveSkew,
     waveHighQuality,
     setWaveHighQuality,
     waveDir,
