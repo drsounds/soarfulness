@@ -218,6 +218,7 @@
     },
     "wave": {
       "amp": "WAVE",
+      "anticipation": "ANTICIPATION",
       "bob": "BOB",
       "bobSpeed": "BOB TEMPO",
       "crossWave": "CROSS WAVE",

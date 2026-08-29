@@ -237,6 +237,12 @@ export type Persisted = {
   heightOffset: number;
   submergeAmp: number;
   floatLift: number;
+  // Multiplier on the float-mode buoyancy spring's forward lookahead (how far
+  // ahead it peeks, and how much that peek biases its target) — see the
+  // ANTICIPATION dial's use in routes/index.tsx's animate(). 0 makes the
+  // camera purely reactive to the wave's current height (prone to visibly
+  // lagging a crest); 1 is the tuned default.
+  waveAnticipation: number;
   camOffX: number;
   camOffY: number;
   camOffZ: number;
@@ -384,6 +390,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "heightOffset",
     "submergeAmp",
     "floatLift",
+    "waveAnticipation",
     "swayAmp",
     "swaySpeed",
     "swayBias",
