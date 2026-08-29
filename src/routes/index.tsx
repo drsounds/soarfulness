@@ -2750,13 +2750,16 @@ export function Aquafulness() {
     setEnvTime(times[(i + dir + times.length) % times.length].id);
   };
 
-  // DATE & TIME TRAVEL: once a second, advance the simulated clock (real
+  // DATE & TIME TRAVEL: once a minute, advance the simulated clock (real
   // time, or a time-traveled date ticking forward from wherever it was
   // pinned — see simulatedDate()), optionally sync TIMEOFDAY to that date's
   // real northern-hemisphere sunrise/sunset, and gate the current
   // environment's era to its futuristic look once the simulated year passes
   // FUTURISTIC_YEAR (only for environments that actually have a "future"
-  // era, and never overriding an era the user picked by hand).
+  // era, and never overriding an era the user picked by hand). A minute
+  // (rather than a second) is plenty for a HH:MM readout and for how slowly
+  // sunrise/sunset actually drifts, and keeps this from re-rendering the
+  // whole component — a real cost given its size — more than once a minute.
   useEffect(() => {
     const tick = () => {
       const date = simulatedDate(timeTravelBaseMs, timeTravelSetAtMs);
@@ -2790,7 +2793,7 @@ export function Aquafulness() {
       }
     };
     tick();
-    const id = window.setInterval(tick, 1000);
+    const id = window.setInterval(tick, 60_000);
     return () => window.clearInterval(id);
   }, [timeTravelBaseMs, timeTravelSetAtMs, timeSeasonalSync, environments, envId, envEra]);
 
