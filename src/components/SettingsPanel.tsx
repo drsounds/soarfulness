@@ -152,6 +152,8 @@ export type SettingsPanelProps = {
   setSubmergeAmp: Dispatch<SetStateAction<number>>;
   floatLift: number;
   setFloatLift: Dispatch<SetStateAction<number>>;
+  waveAnticipation: number;
+  setWaveAnticipation: Dispatch<SetStateAction<number>>;
   driftWorldRef: MutableRefObject<{ x: number; z: number }>;
   driftDisplayRef: MutableRefObject<{ x: number; y: number }>;
   setDriftStick: (v: { x: number; y: number }) => void;
@@ -826,6 +828,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setSubmergeAmp,
     floatLift,
     setFloatLift,
+    waveAnticipation,
+    setWaveAnticipation,
     driftWorldRef,
     driftDisplayRef,
     setDriftStick,
@@ -1392,6 +1396,18 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   step={0.1}
                   onDec={() => setFloatLift((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
                   onInc={() => setFloatLift((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
+                />
+                <PadDial
+                  label={t("dial.wave.anticipation")}
+                  mode="number"
+                  value={`${waveAnticipation.toFixed(2)}×`}
+                  rawValue={waveAnticipation}
+                  onSet={setWaveAnticipation}
+                  min={0}
+                  max={2}
+                  step={0.1}
+                  onDec={() => setWaveAnticipation((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
+                  onInc={() => setWaveAnticipation((v) => Math.min(2, +(v + 0.1).toFixed(2)))}
                 />
                 <PadDial
                   label={t("dial.wave.currentDirection")}

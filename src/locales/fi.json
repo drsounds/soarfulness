@@ -218,6 +218,7 @@
     },
     "wave": {
       "amp": "AALTO",
+      "anticipation": "ENNAKOINTI",
       "bob": "KEINUNTA",
       "bobSpeed": "KEINUNNAN TEMPO",
       "crossWave": "RISTIAALTO",

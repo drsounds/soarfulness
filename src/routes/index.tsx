@@ -558,6 +558,7 @@ const DEFAULTS: Persisted = {
   heightOffset: 0,
   submergeAmp: 0,
   floatLift: 0,
+  waveAnticipation: 1,
   camOffX: 0,
   camOffY: -0.1,
   camOffZ: 0,
@@ -904,6 +905,7 @@ export function Aquafulness() {
   const [heightOffset, setHeightOffset] = useState(initial.heightOffset);
   const [submergeAmp, setSubmergeAmp] = useState(initial.submergeAmp);
   const [floatLift, setFloatLift] = useState(initial.floatLift);
+  const [waveAnticipation, setWaveAnticipation] = useState(initial.waveAnticipation);
   const [camOffX, setCamOffX] = useState(initial.camOffX);
   const [camOffY, setCamOffY] = useState(initial.camOffY);
   const [camOffZ, setCamOffZ] = useState(initial.camOffZ);
@@ -1215,6 +1217,7 @@ export function Aquafulness() {
     heightOffset,
     submergeAmp,
     floatLift,
+    waveAnticipation,
     camOffX,
     camOffY,
     camOffZ,
@@ -1352,6 +1355,7 @@ export function Aquafulness() {
     heightOffset,
     submergeAmp,
     floatLift,
+    waveAnticipation,
     camOffX,
     camOffY,
     camOffZ,
@@ -1488,6 +1492,7 @@ export function Aquafulness() {
   const heightRef = useRef(heightOffset);
   const submergeRef = useRef(submergeAmp);
   const floatLiftRef = useRef(floatLift);
+  const waveAnticipationRef = useRef(waveAnticipation);
   const camOffXRef = useRef(camOffX);
   const camOffYRef = useRef(camOffY);
   const camOffZRef = useRef(camOffZ);
@@ -1659,6 +1664,9 @@ export function Aquafulness() {
   useEffect(() => {
     floatLiftRef.current = floatLift;
   }, [floatLift]);
+  useEffect(() => {
+    waveAnticipationRef.current = waveAnticipation;
+  }, [waveAnticipation]);
   useEffect(() => {
     camOffXRef.current = camOffX;
   }, [camOffX]);
@@ -2126,6 +2134,7 @@ export function Aquafulness() {
     setHeightOffset(DEFAULTS.heightOffset);
     setSubmergeAmp(DEFAULTS.submergeAmp);
     setFloatLift(DEFAULTS.floatLift);
+    setWaveAnticipation(DEFAULTS.waveAnticipation);
     setCamOffX(DEFAULTS.camOffX);
     setCamOffY(DEFAULTS.camOffY);
     setCamOffZ(DEFAULTS.camOffZ);
@@ -2257,6 +2266,7 @@ export function Aquafulness() {
     if (patch.heightOffset !== undefined) setHeightOffset(patch.heightOffset);
     if (patch.submergeAmp !== undefined) setSubmergeAmp(patch.submergeAmp);
     if (patch.floatLift !== undefined) setFloatLift(patch.floatLift);
+    if (patch.waveAnticipation !== undefined) setWaveAnticipation(patch.waveAnticipation);
     if (patch.camOffX !== undefined) setCamOffX(patch.camOffX);
     if (patch.camOffY !== undefined) setCamOffY(patch.camOffY);
     if (patch.camOffZ !== undefined) setCamOffZ(patch.camOffZ);
@@ -4772,17 +4782,23 @@ export function Aquafulness() {
         // secant slope to a sane bound, and lean harder on the already-exact
         // small-dt surfVel instead of the error-prone long peek.
         const peakK = Math.min(1, Math.max(0, (wavePeakRef.current - 1) / 5));
-        // Larger base lead → buoyancy reacts as soon as the wave begins to
-        // rise, not after it has already lifted the surface past the camera.
-        // At the default TEMPO/GUNGA-hastighet the spring itself (see k/zeta
-        // below) lags its target by roughly a fifth of the wave period, so a
-        // lead of 0.7 (paired with the 0.55 futureBias below) under-corrected
-        // for it — the camera was still visibly rising after the surface had
-        // already crested, i.e. reacting to the wave hitting it instead of
-        // anticipating it. Raised until a numeric replay of this spring
-        // against the default wave settings puts the camera's own height
-        // peak within noise of the surface's peak instead of trailing it.
-        const lead = 1.0 / (1 + peakK * 6.0);
+        // ANTICIPATION (waveAnticipationRef, VÅGOR settings tab) scales both
+        // how far ahead this peeks and how much of that peek leans on the
+        // target below — 0 makes buoyancy purely reactive (tracks only the
+        // current surface height, prone to visibly lagging a crest), 1 is
+        // the tuned default. Larger base lead → buoyancy reacts as soon as
+        // the wave begins to rise, not after it has already lifted the
+        // surface past the camera. At the default TEMPO/GUNGA-hastighet the
+        // spring itself (see k/zeta below) lags its target by roughly a
+        // fifth of the wave period, so a lead of 0.7 (paired with a 0.55
+        // futureBias) under-corrected for it — the camera was still visibly
+        // rising after the surface had already crested, i.e. reacting to
+        // the wave hitting it instead of anticipating it. The default of 1
+        // was raised until a numeric replay of this spring against the
+        // default wave settings put the camera's own height peak within
+        // noise of the surface's peak instead of trailing it.
+        const anticipation = waveAnticipationRef.current;
+        const lead = anticipation / (1 + peakK * 6.0);
         const futureSurf = inWhirlpool
           ? whirlpoolSurfaceHeight(
               camX,
@@ -4812,7 +4828,10 @@ export function Aquafulness() {
               freqRef.current,
             );
         const maxSlope = ampRef.current * 6.0;
-        const rawAnticip = Math.max(-maxSlope, Math.min(maxSlope, (futureSurf - surfaceY) / lead));
+        const rawAnticip = Math.max(
+          -maxSlope,
+          Math.min(maxSlope, (futureSurf - surfaceY) / Math.max(lead, 1e-4)),
+        );
         const blend = 1 - peakK * 0.85;
         const anticipVel = rawAnticip * blend + surfVel * (1 - blend);
         // Low-pass the velocity estimate before it drives the spring — but
@@ -4843,11 +4862,13 @@ export function Aquafulness() {
         const lift = floatLiftRef.current;
         // Feed-forward the future surface height into the target so the camera
         // starts moving in sync with the incoming wave instead of chasing it.
-        // Weighted toward the future sample (see `lead` above) so most of the
-        // spring's own tracking lag gets cancelled by the time the real wave
-        // arrives, rather than leaving the camera to visibly catch up after
-        // the crest has already passed under it.
-        const futureBias = 0.75;
+        // Weighted toward the future sample (see `lead`/ANTICIPATION above)
+        // so most of the spring's own tracking lag gets cancelled by the
+        // time the real wave arrives, rather than leaving the camera to
+        // visibly catch up after the crest has already passed under it.
+        // Scales with the same ANTICIPATION dial as `lead`, clamped below 1
+        // so the target never extrapolates past the future sample itself.
+        const futureBias = Math.min(0.95, 0.75 * anticipation);
         const anticipSurf = surfaceY * (1 - futureBias) + futureSurf * futureBias;
         const cap = amp * 1.4;
         // Smooth ramp instead of Math.max(0, anticipVel): the hard clamp has
@@ -5528,6 +5549,8 @@ export function Aquafulness() {
     setSubmergeAmp,
     floatLift,
     setFloatLift,
+    waveAnticipation,
+    setWaveAnticipation,
     driftWorldRef,
     driftDisplayRef,
     setDriftStick,
