@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
@@ -1040,6 +1040,14 @@ export function Aquafulness() {
   // timezone), causing a hydration mismatch. The ticking effect below sets
   // it on mount instead, client-side only.
   const [simNow, setSimNow] = useState<Date | null>(null);
+  // Memoized so the Intl-backed formatting only runs when simNow itself
+  // changes (once a minute) rather than on every one of this large
+  // component's re-renders (e.g. every tick of a dragged slider) — Intl
+  // calls are comparatively expensive to redo that often.
+  const simNowLabel = useMemo(
+    () => simNow?.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) ?? null,
+    [simNow],
+  );
   // Tracks whether the current envEra="future" was applied automatically by
   // the year-2100 gate below, so it can be reverted automatically too —
   // without ever overriding an era the user picked by hand.
@@ -5982,10 +5990,10 @@ export function Aquafulness() {
 
       {/* Simulated clock — plain text (no button chrome), directly below the
           brand mark above, always up regardless of HUD fade. Tap to open the
-          time-travel dialog. Only rendered once simNow is set client-side
-          (see its useState above) so the server-rendered markup never
-          includes a live time value. */}
-      {simNow && (
+          time-travel dialog. Only rendered once simNowLabel is set client-
+          side (see simNow's useState above) so the server-rendered markup
+          never includes a live time value. */}
+      {simNowLabel && (
         <button
           onClick={() => setTimeTravelOpen(true)}
           className="absolute z-30 text-right text-[10px] font-light tabular-nums text-white/50 transition active:text-white/80"
@@ -5993,26 +6001,31 @@ export function Aquafulness() {
           aria-label={t("hud.timeTravelOpenAria")}
           title={t("hud.timeTravelOpenAria")}
         >
-          {simNow.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+          {simNowLabel}
         </button>
       )}
 
-      <TimeTravelDialog
-        open={timeTravelOpen}
-        onClose={() => setTimeTravelOpen(false)}
-        timeTravelBaseMs={timeTravelBaseMs}
-        timeTravelSetAtMs={timeTravelSetAtMs}
-        onTravel={(targetMs) => {
-          setTimeTravelBaseMs(targetMs);
-          setTimeTravelSetAtMs(Date.now());
-        }}
-        onReturnToNow={() => {
-          setTimeTravelBaseMs(null);
-          setTimeTravelSetAtMs(null);
-        }}
-        timeSeasonalSync={timeSeasonalSync}
-        onSeasonalSyncChange={setTimeSeasonalSync}
-      />
+      {/* Only mounted while open, so its hooks don't run on every one of
+          this large component's re-renders while the dialog is closed
+          (i.e. almost always). */}
+      {timeTravelOpen && (
+        <TimeTravelDialog
+          open={timeTravelOpen}
+          onClose={() => setTimeTravelOpen(false)}
+          timeTravelBaseMs={timeTravelBaseMs}
+          timeTravelSetAtMs={timeTravelSetAtMs}
+          onTravel={(targetMs) => {
+            setTimeTravelBaseMs(targetMs);
+            setTimeTravelSetAtMs(Date.now());
+          }}
+          onReturnToNow={() => {
+            setTimeTravelBaseMs(null);
+            setTimeTravelSetAtMs(null);
+          }}
+          timeSeasonalSync={timeSeasonalSync}
+          onSeasonalSyncChange={setTimeSeasonalSync}
+        />
+      )}
 
       {/* Offline indicator — stays up regardless of HUD fade so it's never
           mistaken for a stall; only cached scenes/environments/surfaces are
