@@ -32,6 +32,11 @@
         "body": "Aquafulness er en avslappende, nettleserbasert visualisering av havbølger, laget for personlig avkobling og atmosfærisk avslapning. Det er et frittstående hobbyprosjekt, ikke et kommersielt produkt og ikke medisinsk utstyr.",
         "heading": "Om denne appen"
       },
+      "openSource": {
+        "body": "Flere fantastiske gratis og åpen kildekode-programvarer har gjort Aquafulness mulig. Siden noen av dem krever at en lenke eller lisens inkluderes, ønsker vi å hedre all den fantastiske programvaren som har gjort denne appen mulig.",
+        "heading": "Åpen kildekode",
+        "linkLabel": "Vis tredjepartslisenser"
+      },
       "product": {
         "body": "Aquafulness er gratis underholdningsprogramvare uten reklame: en interaktiv 3D-havscene som kjører i nettleseren med WebGL. Appen krever ingen installasjon, ingen konto og ingen betaling, og den kobler seg ikke til noen ekstern tjeneste utover vertsplattformen beskrevet i personvernerklæringen under.",
         "heading": "Det digitale innholdets art"
@@ -314,6 +319,19 @@
     "label": "SPRÅK",
     "no": "Norsk",
     "sv": "Svensk"
+  },
+  "licenses": {
+    "backToAbout": "Om",
+    "backToApp": "Tilbake til appen",
+    "columns": {
+      "license": "Lisens",
+      "package": "Pakke",
+      "version": "Versjon"
+    },
+    "count": "{{count}} programmer med åpen kildekode",
+    "intro": "Flere fantastiske gratis og åpen kildekode-programvarer har gjort Aquafulness mulig. Siden noen av dem krever at en lenke eller lisens inkluderes, ønsker vi å hedre all den fantastiske programvaren som har gjort denne appen mulig — her er hele listen.",
+    "tableHeading": "Pakker",
+    "title": "Tredjepartslisenser"
   },
   "live": {
     "badge": "LIVE",

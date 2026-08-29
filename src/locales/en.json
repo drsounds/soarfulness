@@ -32,6 +32,11 @@
         "body": "Aquafulness is a calming, browser-based ocean wave visualization created for personal relaxation and ambient viewing. It is an independent hobby project, not a commercial product, and not a medical device.",
         "heading": "About this app"
       },
+      "openSource": {
+        "body": "Several pieces of amazing free and open source software made Aquafulness possible. As some of them require a link or license to be included, we want to honor all the amazing software that made this app possible.",
+        "heading": "Open source software",
+        "linkLabel": "View third-party licenses"
+      },
       "product": {
         "body": "Aquafulness is free, ad-free entertainment software: an interactive 3D ocean scene that runs in your browser using WebGL. It requires no installation, no account, and no payment, and it does not connect to any external service beyond the hosting platform described in the Privacy Policy below.",
         "heading": "Nature of the digital content"
@@ -314,6 +319,19 @@
     "label": "LANGUAGE",
     "no": "Norwegian",
     "sv": "Swedish"
+  },
+  "licenses": {
+    "backToAbout": "About",
+    "backToApp": "Back to app",
+    "columns": {
+      "license": "License",
+      "package": "Package",
+      "version": "Version"
+    },
+    "count": "{{count}} open source packages",
+    "intro": "Several pieces of amazing free and open source software made Aquafulness possible. As some of them require a link or license to be included, we want to honor all the amazing software that made this app possible — here is the full list.",
+    "tableHeading": "Packages",
+    "title": "Third-party licenses"
   },
   "live": {
     "badge": "LIVE",

@@ -32,6 +32,11 @@
         "body": "Aquafulness on rauhoittava, selaimessa toimiva merenaaltojen visualisointi, joka on luotu henkilökohtaiseen rentoutumiseen ja tunnelmalliseen katseluun. Se on itsenäinen harrastusprojekti, ei kaupallinen tuote eikä lääkinnällinen laite.",
         "heading": "Tietoa sovelluksesta"
       },
+      "openSource": {
+        "body": "Useat mahtavat ilmaiset ja avoimen lähdekoodin ohjelmistot ovat tehneet Aquafulnessista mahdollisen. Koska osa niistä edellyttää linkin tai lisenssin sisällyttämistä, haluamme kunnioittaa kaikkea mahtavaa ohjelmistoa, joka on tehnyt tämän sovelluksen mahdolliseksi.",
+        "heading": "Avoin lähdekoodi",
+        "linkLabel": "Näytä kolmannen osapuolen lisenssit"
+      },
       "product": {
         "body": "Aquafulness on ilmainen, mainokseton viihdesovellus: interaktiivinen 3D-merinäkymä, joka toimii selaimessa WebGL-tekniikalla. Sovellus ei vaadi asennusta, tiliä eikä maksua, eikä se muodosta yhteyttä mihinkään ulkoiseen palveluun lukuun ottamatta alla olevassa tietosuojaselosteessa kuvattua isännöintialustaa.",
         "heading": "Digitaalisen sisällön luonne"
@@ -314,6 +319,19 @@
     "label": "KIELI",
     "no": "Norja",
     "sv": "Ruotsi"
+  },
+  "licenses": {
+    "backToAbout": "Tietoa",
+    "backToApp": "Takaisin sovellukseen",
+    "columns": {
+      "license": "Lisenssi",
+      "package": "Paketti",
+      "version": "Versio"
+    },
+    "count": "{{count}} avoimen lähdekoodin pakettia",
+    "intro": "Useat mahtavat ilmaiset ja avoimen lähdekoodin ohjelmistot ovat tehneet Aquafulnessista mahdollisen. Koska osa niistä edellyttää linkin tai lisenssin sisällyttämistä, haluamme kunnioittaa kaikkea mahtavaa ohjelmistoa, joka on tehnyt tämän sovelluksen mahdolliseksi — tässä koko luettelo.",
+    "tableHeading": "Paketit",
+    "title": "Kolmannen osapuolen lisenssit"
   },
   "live": {
     "badge": "LIVE",
