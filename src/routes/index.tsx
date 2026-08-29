@@ -4774,7 +4774,15 @@ export function Aquafulness() {
         const peakK = Math.min(1, Math.max(0, (wavePeakRef.current - 1) / 5));
         // Larger base lead → buoyancy reacts as soon as the wave begins to
         // rise, not after it has already lifted the surface past the camera.
-        const lead = 0.7 / (1 + peakK * 6.0);
+        // At the default TEMPO/GUNGA-hastighet the spring itself (see k/zeta
+        // below) lags its target by roughly a fifth of the wave period, so a
+        // lead of 0.7 (paired with the 0.55 futureBias below) under-corrected
+        // for it — the camera was still visibly rising after the surface had
+        // already crested, i.e. reacting to the wave hitting it instead of
+        // anticipating it. Raised until a numeric replay of this spring
+        // against the default wave settings puts the camera's own height
+        // peak within noise of the surface's peak instead of trailing it.
+        const lead = 1.0 / (1 + peakK * 6.0);
         const futureSurf = inWhirlpool
           ? whirlpoolSurfaceHeight(
               camX,
@@ -4835,7 +4843,11 @@ export function Aquafulness() {
         const lift = floatLiftRef.current;
         // Feed-forward the future surface height into the target so the camera
         // starts moving in sync with the incoming wave instead of chasing it.
-        const futureBias = 0.55;
+        // Weighted toward the future sample (see `lead` above) so most of the
+        // spring's own tracking lag gets cancelled by the time the real wave
+        // arrives, rather than leaving the camera to visibly catch up after
+        // the crest has already passed under it.
+        const futureBias = 0.75;
         const anticipSurf = surfaceY * (1 - futureBias) + futureSurf * futureBias;
         const cap = amp * 1.4;
         // Smooth ramp instead of Math.max(0, anticipVel): the hard clamp has
