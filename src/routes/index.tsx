@@ -1034,9 +1034,12 @@ export function Aquafulness() {
   const [timeTravelSetAtMs, setTimeTravelSetAtMs] = useState(initial.timeTravelSetAtMs);
   const [timeSeasonalSync, setTimeSeasonalSync] = useState(initial.timeSeasonalSync);
   const [timeTravelOpen, setTimeTravelOpen] = useState(false);
-  const [simNow, setSimNow] = useState(() =>
-    simulatedDate(initial.timeTravelBaseMs, initial.timeTravelSetAtMs),
-  );
+  // Starts null (rather than `new Date()`) so the server-rendered markup and
+  // the client's first pass agree — a live clock value would almost always
+  // differ between the two (different instant, and often a different
+  // timezone), causing a hydration mismatch. The ticking effect below sets
+  // it on mount instead, client-side only.
+  const [simNow, setSimNow] = useState<Date | null>(null);
   // Tracks whether the current envEra="future" was applied automatically by
   // the year-2100 gate below, so it can be reverted automatically too —
   // without ever overriding an era the user picked by hand.
@@ -2747,13 +2750,16 @@ export function Aquafulness() {
     setEnvTime(times[(i + dir + times.length) % times.length].id);
   };
 
-  // DATE & TIME TRAVEL: once a second, advance the simulated clock (real
+  // DATE & TIME TRAVEL: once a minute, advance the simulated clock (real
   // time, or a time-traveled date ticking forward from wherever it was
   // pinned — see simulatedDate()), optionally sync TIMEOFDAY to that date's
   // real northern-hemisphere sunrise/sunset, and gate the current
   // environment's era to its futuristic look once the simulated year passes
   // FUTURISTIC_YEAR (only for environments that actually have a "future"
-  // era, and never overriding an era the user picked by hand).
+  // era, and never overriding an era the user picked by hand). A minute
+  // (rather than a second) is plenty for a HH:MM readout and for how slowly
+  // sunrise/sunset actually drifts, and keeps this from re-rendering the
+  // whole component — a real cost given its size — more than once a minute.
   useEffect(() => {
     const tick = () => {
       const date = simulatedDate(timeTravelBaseMs, timeTravelSetAtMs);
@@ -2787,7 +2793,7 @@ export function Aquafulness() {
       }
     };
     tick();
-    const id = window.setInterval(tick, 1000);
+    const id = window.setInterval(tick, 60_000);
     return () => window.clearInterval(id);
   }, [timeTravelBaseMs, timeTravelSetAtMs, timeSeasonalSync, environments, envId, envEra]);
 
@@ -5976,16 +5982,20 @@ export function Aquafulness() {
 
       {/* Simulated clock — plain text (no button chrome), directly below the
           brand mark above, always up regardless of HUD fade. Tap to open the
-          time-travel dialog. */}
-      <button
-        onClick={() => setTimeTravelOpen(true)}
-        className="absolute z-30 text-right text-[10px] font-light tabular-nums text-white/50 transition active:text-white/80"
-        style={{ top: "40pt", right: "12pt" }}
-        aria-label={t("hud.timeTravelOpenAria")}
-        title={t("hud.timeTravelOpenAria")}
-      >
-        {simNow.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-      </button>
+          time-travel dialog. Only rendered once simNow is set client-side
+          (see its useState above) so the server-rendered markup never
+          includes a live time value. */}
+      {simNow && (
+        <button
+          onClick={() => setTimeTravelOpen(true)}
+          className="absolute z-30 text-right text-[10px] font-light tabular-nums text-white/50 transition active:text-white/80"
+          style={{ top: "40pt", right: "12pt" }}
+          aria-label={t("hud.timeTravelOpenAria")}
+          title={t("hud.timeTravelOpenAria")}
+        >
+          {simNow.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+        </button>
+      )}
 
       <TimeTravelDialog
         open={timeTravelOpen}
