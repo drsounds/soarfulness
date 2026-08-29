@@ -300,6 +300,7 @@
       "tempo": "TEMPO",
       "wave": "AALTO"
     },
+    "timeTravelOpenAria": "Avaa aikamatka",
     "totalLabel": " · Yhteensä ",
     "waveDrawer": {
       "closeAria": "Sulje aaltoasetukset",
@@ -529,6 +530,18 @@
       "square": "NELIÖ",
       "triangle": "KOLMIO"
     }
+  },
+  "timeTravel": {
+    "applyButton": "Matkusta ajassa",
+    "closeButton": "Sulje",
+    "dateLabel": "Päivämäärä ja aika",
+    "description": "Aseta simuloitu päivämäärä ja kellonaika — aika jatkaa siitä eteenpäin reaaliajassa.",
+    "futuristicNote": "Vuoden 2100 jälkeen ympäristöt näyttävät futuristisen ulkoasunsa.",
+    "liveButton": "Palaa nykyhetkeen",
+    "liveStatus": "Live",
+    "seasonalLabel": "Synkronoi todelliseen auringonnousuun/-laskuun (kausivaihtelu)",
+    "title": "Aikamatka",
+    "travelingStatus": "Aikamatka käynnissä"
   },
   "tod": {
     "afternoon": "Iltapäivä",

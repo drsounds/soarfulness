@@ -13,6 +13,8 @@ import { VirtualPhone, type RemoteControllerProps } from "@/components/VirtualPh
 import { SettingsPanel, type SettingsPanelProps } from "@/components/SettingsPanel";
 import { ShareBathDialog } from "@/components/ShareBathDialog";
 import { GogglesOverlay } from "@/components/GogglesOverlay";
+import { TimeTravelDialog } from "@/components/TimeTravelDialog";
+import { isFuturisticYear, northernHemisphereTimeOfDay, simulatedDate } from "@/lib/timeTravel";
 import { PadSlider } from "@/components/PadDial";
 import { Joystick, JoystickPad } from "@/components/Joystick";
 import {
@@ -653,6 +655,9 @@ const DEFAULTS: Persisted = {
   envId: "strandpark",
   envEra: "present",
   envTime: "day",
+  timeTravelBaseMs: null,
+  timeTravelSetAtMs: null,
+  timeSeasonalSync: false,
   surfaceId: null,
   reflStrength: 1,
   bottomColor: "#8a7550",
@@ -1023,6 +1028,19 @@ export function Aquafulness() {
   const [envId, setEnvId] = useState<string | null>(initial.envId);
   const [envEra, setEnvEra] = useState<string | null>(initial.envEra);
   const [envTime, setEnvTime] = useState<string | null>(initial.envTime);
+  // DATE & TIME TRAVEL — see src/lib/timeTravel.ts and the dog-icon clock/
+  // dialog in the HUD below.
+  const [timeTravelBaseMs, setTimeTravelBaseMs] = useState(initial.timeTravelBaseMs);
+  const [timeTravelSetAtMs, setTimeTravelSetAtMs] = useState(initial.timeTravelSetAtMs);
+  const [timeSeasonalSync, setTimeSeasonalSync] = useState(initial.timeSeasonalSync);
+  const [timeTravelOpen, setTimeTravelOpen] = useState(false);
+  const [simNow, setSimNow] = useState(() =>
+    simulatedDate(initial.timeTravelBaseMs, initial.timeTravelSetAtMs),
+  );
+  // Tracks whether the current envEra="future" was applied automatically by
+  // the year-2100 gate below, so it can be reverted automatically too —
+  // without ever overriding an era the user picked by hand.
+  const autoFuturisticEraRef = useRef(false);
   // Selectable water-surface reflection presets from public/surfaces/surfaces.json.
   const [surfaces, setSurfaces] = useState<SurfaceEntry[]>([]);
   const [surfaceId, setSurfaceId] = useState<string | null>(initial.surfaceId);
@@ -1296,6 +1314,9 @@ export function Aquafulness() {
     envId,
     envEra,
     envTime,
+    timeTravelBaseMs,
+    timeTravelSetAtMs,
+    timeSeasonalSync,
     surfaceId,
     reflStrength,
     bottomColor,
@@ -1434,6 +1455,9 @@ export function Aquafulness() {
     envId,
     envEra,
     envTime,
+    timeTravelBaseMs,
+    timeTravelSetAtMs,
+    timeSeasonalSync,
     surfaceId,
     reflStrength,
     bottomColor,
@@ -2348,6 +2372,9 @@ export function Aquafulness() {
     if (patch.envId !== undefined) setEnvId(patch.envId);
     if (patch.envEra !== undefined) setEnvEra(patch.envEra);
     if (patch.envTime !== undefined) setEnvTime(patch.envTime);
+    if (patch.timeTravelBaseMs !== undefined) setTimeTravelBaseMs(patch.timeTravelBaseMs);
+    if (patch.timeTravelSetAtMs !== undefined) setTimeTravelSetAtMs(patch.timeTravelSetAtMs);
+    if (patch.timeSeasonalSync !== undefined) setTimeSeasonalSync(patch.timeSeasonalSync);
     if (patch.surfaceId !== undefined) setSurfaceId(patch.surfaceId);
     if (patch.reflStrength !== undefined) setReflStrength(patch.reflStrength);
     if (patch.bottomColor !== undefined) setBottomColor(patch.bottomColor);
@@ -2719,6 +2746,50 @@ export function Aquafulness() {
     );
     setEnvTime(times[(i + dir + times.length) % times.length].id);
   };
+
+  // DATE & TIME TRAVEL: once a second, advance the simulated clock (real
+  // time, or a time-traveled date ticking forward from wherever it was
+  // pinned — see simulatedDate()), optionally sync TIMEOFDAY to that date's
+  // real northern-hemisphere sunrise/sunset, and gate the current
+  // environment's era to its futuristic look once the simulated year passes
+  // FUTURISTIC_YEAR (only for environments that actually have a "future"
+  // era, and never overriding an era the user picked by hand).
+  useEffect(() => {
+    const tick = () => {
+      const date = simulatedDate(timeTravelBaseMs, timeTravelSetAtMs);
+      setSimNow(date);
+
+      if (timeSeasonalSync) {
+        setTimeOfDay(northernHemisphereTimeOfDay(date));
+      }
+
+      const env = environments.find((e) => e.id === envId);
+      const wantFuturistic = isFuturisticYear(date);
+      const hasFutureEra = env?.eras.some((e) => e.id === "future") ?? false;
+      const hasPresentEra = env?.eras.some((e) => e.id === "present") ?? false;
+      if (wantFuturistic && hasFutureEra && envEra !== "future") {
+        autoFuturisticEraRef.current = true;
+        setEnvEra("future");
+        setEnvTime((prev) => {
+          const era = env?.eras.find((e) => e.id === "future");
+          return era?.times.some((tm) => tm.id === prev) ? prev : (era?.times[0]?.id ?? prev);
+        });
+      } else if (!wantFuturistic && autoFuturisticEraRef.current && envEra === "future") {
+        autoFuturisticEraRef.current = false;
+        const fallback = hasPresentEra ? "present" : (env?.eras[0]?.id ?? null);
+        if (fallback) {
+          setEnvEra(fallback);
+          setEnvTime((prev) => {
+            const era = env?.eras.find((e) => e.id === fallback);
+            return era?.times.some((tm) => tm.id === prev) ? prev : (era?.times[0]?.id ?? prev);
+          });
+        }
+      }
+    };
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, [timeTravelBaseMs, timeTravelSetAtMs, timeSeasonalSync, environments, envId, envEra]);
 
   // Step through the reflection surfaces, including an "AV" (gradient-only) slot.
   const cycleSurface = (dir: number) => {
@@ -5985,6 +6056,38 @@ export function Aquafulness() {
 
           <div className="flex gap-2">
             <button
+              onClick={() => setTimeTravelOpen(true)}
+              className="pointer-events-auto flex flex-col items-center justify-center rounded-2xl border border-white/20 bg-black/40 px-2.5 py-1.5 text-white/90 backdrop-blur-md transition active:scale-95 active:bg-white/15"
+              aria-label={t("hud.timeTravelOpenAria")}
+              title={t("hud.timeTravelOpenAria")}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width="18"
+                height="18"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M6 9c-1.5-2.5-1-5 .5-5.5.8-.3 1.5.3 1.5 1.2V7" />
+                <path d="M18 9c1.5-2.5 1-5-.5-5.5-.8-.3-1.5.3-1.5 1.2V7" />
+                <path d="M7 9.5C7 7 9.2 5.5 12 5.5s5 1.5 5 4c0 2-1 3-1 5 0 2.5-1.8 4-4 4s-4-1.5-4-4c0-2-1-3-1-5z" />
+                <circle cx="10" cy="10.5" r="0.6" fill="currentColor" stroke="none" />
+                <circle cx="14" cy="10.5" r="0.6" fill="currentColor" stroke="none" />
+                <path d="M11 13h2" />
+              </svg>
+              <span className="mt-0.5 text-[9px] leading-none font-light tabular-nums text-white/85">
+                {simNow.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              </span>
+              <span className="mt-0.5 text-[7px] leading-none font-light tabular-nums text-white/50">
+                {simNow.toLocaleDateString()}
+              </span>
+            </button>
+
+            <button
               onClick={() => setPhoneOpen((v) => !v)}
               className={`pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur-md transition active:scale-95 ${
                 phoneOpen
@@ -6074,6 +6177,23 @@ export function Aquafulness() {
             </button>
           </div>
         </div>
+
+        <TimeTravelDialog
+          open={timeTravelOpen}
+          onClose={() => setTimeTravelOpen(false)}
+          timeTravelBaseMs={timeTravelBaseMs}
+          timeTravelSetAtMs={timeTravelSetAtMs}
+          onTravel={(targetMs) => {
+            setTimeTravelBaseMs(targetMs);
+            setTimeTravelSetAtMs(Date.now());
+          }}
+          onReturnToNow={() => {
+            setTimeTravelBaseMs(null);
+            setTimeTravelSetAtMs(null);
+          }}
+          timeSeasonalSync={timeSeasonalSync}
+          onSeasonalSyncChange={setTimeSeasonalSync}
+        />
 
         <ShareBathDialog
           open={shareBathOpen}

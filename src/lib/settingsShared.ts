@@ -340,6 +340,20 @@ export type Persisted = {
   envId: string | null;
   envEra: string | null;
   envTime: string | null;
+  // TIME TRAVEL: when set, the simulated clock (routes/index.tsx) starts from
+  // this date/time (ms since epoch) instead of the real current time, then
+  // keeps ticking forward in real time from there — see
+  // src/lib/timeTravel.ts's simulatedDate(). null = live (simulated clock ===
+  // real current time).
+  timeTravelBaseMs: number | null;
+  // Real Date.now() captured the moment timeTravelBaseMs was set, so the
+  // elapsed real time since then can be added back on.
+  timeTravelSetAtMs: number | null;
+  // When true, timeOfDay is continuously derived from the real sunrise/
+  // sunset for the simulated date (a fixed northern-hemisphere latitude)
+  // instead of staying at whatever value it was last set to — see
+  // northernHemisphereTimeOfDay() in src/lib/timeTravel.ts.
+  timeSeasonalSync: boolean;
   surfaceId: string | null;
   reflStrength: number;
   bottomColor: string;
@@ -499,6 +513,9 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "envId",
     "envEra",
     "envTime",
+    "timeTravelBaseMs",
+    "timeTravelSetAtMs",
+    "timeSeasonalSync",
     "backdropIdx",
     "liveMode",
     "torusRingsOn",

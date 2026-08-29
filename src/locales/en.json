@@ -300,6 +300,7 @@
       "tempo": "TEMPO",
       "wave": "WAVE"
     },
+    "timeTravelOpenAria": "Open time travel",
     "totalLabel": " · Total ",
     "waveDrawer": {
       "closeAria": "Close wave settings",
@@ -529,6 +530,18 @@
       "square": "SQUARE",
       "triangle": "TRIANGLE"
     }
+  },
+  "timeTravel": {
+    "applyButton": "Time travel",
+    "closeButton": "Close",
+    "dateLabel": "Date & time",
+    "description": "Pin the simulated date and time — it keeps ticking forward in real time from wherever you set it.",
+    "futuristicNote": "Past year 2100, environments show their futuristic look.",
+    "liveButton": "Return to now",
+    "liveStatus": "Live",
+    "seasonalLabel": "Sync to real sunrise/sunset (seasonal)",
+    "title": "Time travel",
+    "travelingStatus": "Time travelling"
   },
   "tod": {
     "afternoon": "Afternoon",
