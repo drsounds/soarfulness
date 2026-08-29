@@ -4,6 +4,16 @@
     "lastUpdated": "Last updated: August 28, 2026",
     "navLabel": "ABOUT",
     "sections": {
+      "aiTransparency": {
+        "body": "We believe in being upfront about how AI is used to build and create this experience.",
+        "heading": "AI transparency",
+        "points": [
+          "Coding: this app is built with AI coding tools, including Lovable and Claude Code.",
+          "Water sounds: generated with ElevenLabs.io and combined with mixed Creative Commons sounds from freesound.org.",
+          "Images: generated and processed using Gemini, Nano Banana, and Adobe Firefly.",
+          "Our stance: AI is a tool for expression and implementation. The underlying ideas are ours, and we never let AI make the creative decisions."
+        ]
+      },
       "disclaimer": {
         "heading": "Disclaimer",
         "points": [

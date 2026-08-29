@@ -4,6 +4,16 @@
     "lastUpdated": "Senest opdateret: 28. august 2026",
     "navLabel": "OM",
     "sections": {
+      "aiTransparency": {
+        "body": "Vi tror på åbenhed om, hvordan AI bruges til at bygge og skabe denne oplevelse.",
+        "heading": "AI-transparens",
+        "points": [
+          "Kodning: appen er bygget med AI-kodningsværktøjer, herunder Lovable og Claude Code.",
+          "Vandlyde: genereret med ElevenLabs.io og kombineret med blandede Creative Commons-lyde fra freesound.org.",
+          "Billeder: genereret og bearbejdet med Gemini, Nano Banana og Adobe Firefly.",
+          "Vores holdning: AI er et redskab til udtryk og udførelse. De underliggende idéer er vores egne, og vi lader aldrig AI træffe de kreative beslutninger."
+        ]
+      },
       "disclaimer": {
         "heading": "Ansvarsfraskrivelse",
         "points": [

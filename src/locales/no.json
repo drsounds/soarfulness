@@ -4,6 +4,16 @@
     "lastUpdated": "Sist oppdatert: 28. august 2026",
     "navLabel": "OM",
     "sections": {
+      "aiTransparency": {
+        "body": "Vi tror på åpenhet om hvordan AI brukes til å bygge og skape denne opplevelsen.",
+        "heading": "AI-åpenhet",
+        "points": [
+          "Koding: appen er bygget med AI-kodeverktøy, inkludert Lovable og Claude Code.",
+          "Vannlyder: generert med ElevenLabs.io og kombinert med blandede Creative Commons-lyder fra freesound.org.",
+          "Bilder: generert og bearbeidet med Gemini, Nano Banana og Adobe Firefly.",
+          "Vårt standpunkt: AI er et verktøy for uttrykk og gjennomføring. De underliggende idéene er våre egne, og vi lar aldri AI ta de kreative beslutningene."
+        ]
+      },
       "disclaimer": {
         "heading": "Ansvarsfraskrivelse",
         "points": [

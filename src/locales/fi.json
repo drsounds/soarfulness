@@ -4,6 +4,16 @@
     "lastUpdated": "Päivitetty viimeksi: 28. elokuuta 2026",
     "navLabel": "TIETOA",
     "sections": {
+      "aiTransparency": {
+        "body": "Uskomme avoimuuteen sen suhteen, miten tekoälyä käytetään tämän kokemuksen rakentamisessa ja luomisessa.",
+        "heading": "Tekoälyn läpinäkyvyys",
+        "points": [
+          "Koodaus: sovellus on rakennettu tekoälypohjaisilla koodaustyökaluilla, kuten Lovablella ja Claude Codella.",
+          "Vedenäänet: luotu ElevenLabs.io-palvelulla ja yhdistetty freesound.org-sivuston sekoitettuihin Creative Commons -ääniin.",
+          "Kuvat: luotu ja käsitelty Geminillä, Nano Bananalla ja Adobe Fireflyllä.",
+          "Kantamme: tekoäly on ilmaisun ja toteutuksen työkalu. Taustalla olevat ideat ovat omiamme, emmekä koskaan anna tekoälyn tehdä luovia päätöksiä."
+        ]
+      },
       "disclaimer": {
         "heading": "Vastuuvapauslauseke",
         "points": [
