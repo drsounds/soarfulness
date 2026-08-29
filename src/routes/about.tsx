@@ -42,6 +42,9 @@ function InlineLanguageSwitcher() {
 
 function AboutPage() {
   const { t } = useTranslation();
+  const aiTransparencyPoints = t("about.sections.aiTransparency.points", {
+    returnObjects: true,
+  }) as string[];
   const disclaimerPoints = t("about.sections.disclaimer.points", {
     returnObjects: true,
   }) as string[];
@@ -121,6 +124,20 @@ function AboutPage() {
           </CardHeader>
           <CardContent className="text-sm leading-relaxed text-muted-foreground">
             <p>{t("about.sections.product.body")}</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("about.sections.aiTransparency.heading")}</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3 text-sm leading-relaxed">
+            <p className="text-muted-foreground">{t("about.sections.aiTransparency.body")}</p>
+            <ul className="list-disc space-y-2 pl-5 text-sm leading-relaxed text-muted-foreground">
+              {aiTransparencyPoints.map((point) => (
+                <li key={point}>{point}</li>
+              ))}
+            </ul>
           </CardContent>
         </Card>
 
