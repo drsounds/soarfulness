@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
@@ -11,7 +11,10 @@ import { CSS3DTVManager, type DeviceKind } from "@/lib/tv/CSS3DTVManager";
 import { TorusRingField } from "@/lib/torusRings/TorusRingField";
 import { VirtualPhone, type RemoteControllerProps } from "@/components/VirtualPhone";
 import { SettingsPanel, type SettingsPanelProps } from "@/components/SettingsPanel";
+import { ShareBathDialog } from "@/components/ShareBathDialog";
 import { GogglesOverlay } from "@/components/GogglesOverlay";
+import { TimeTravelDialog } from "@/components/TimeTravelDialog";
+import { isFuturisticYear, northernHemisphereTimeOfDay, simulatedDate } from "@/lib/timeTravel";
 import { PadSlider } from "@/components/PadDial";
 import { Joystick, JoystickPad } from "@/components/Joystick";
 import {
@@ -652,6 +655,9 @@ const DEFAULTS: Persisted = {
   envId: "strandpark",
   envEra: "present",
   envTime: "day",
+  timeTravelBaseMs: null,
+  timeTravelSetAtMs: null,
+  timeSeasonalSync: false,
   surfaceId: null,
   reflStrength: 1,
   bottomColor: "#8a7550",
@@ -1022,6 +1028,30 @@ export function Aquafulness() {
   const [envId, setEnvId] = useState<string | null>(initial.envId);
   const [envEra, setEnvEra] = useState<string | null>(initial.envEra);
   const [envTime, setEnvTime] = useState<string | null>(initial.envTime);
+  // DATE & TIME TRAVEL — see src/lib/timeTravel.ts and the clock readout/
+  // dialog below the persistent brand mark in the HUD.
+  const [timeTravelBaseMs, setTimeTravelBaseMs] = useState(initial.timeTravelBaseMs);
+  const [timeTravelSetAtMs, setTimeTravelSetAtMs] = useState(initial.timeTravelSetAtMs);
+  const [timeSeasonalSync, setTimeSeasonalSync] = useState(initial.timeSeasonalSync);
+  const [timeTravelOpen, setTimeTravelOpen] = useState(false);
+  // Starts null (rather than `new Date()`) so the server-rendered markup and
+  // the client's first pass agree — a live clock value would almost always
+  // differ between the two (different instant, and often a different
+  // timezone), causing a hydration mismatch. The ticking effect below sets
+  // it on mount instead, client-side only.
+  const [simNow, setSimNow] = useState<Date | null>(null);
+  // Memoized so the Intl-backed formatting only runs when simNow itself
+  // changes (once a minute) rather than on every one of this large
+  // component's re-renders (e.g. every tick of a dragged slider) — Intl
+  // calls are comparatively expensive to redo that often.
+  const simNowLabel = useMemo(
+    () => simNow?.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) ?? null,
+    [simNow],
+  );
+  // Tracks whether the current envEra="future" was applied automatically by
+  // the year-2100 gate below, so it can be reverted automatically too —
+  // without ever overriding an era the user picked by hand.
+  const autoFuturisticEraRef = useRef(false);
   // Selectable water-surface reflection presets from public/surfaces/surfaces.json.
   const [surfaces, setSurfaces] = useState<SurfaceEntry[]>([]);
   const [surfaceId, setSurfaceId] = useState<string | null>(initial.surfaceId);
@@ -1146,6 +1176,7 @@ export function Aquafulness() {
   const [phoneOpen, setPhoneOpen] = useState(false);
   const [uiVisible, setUiVisible] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [shareBathOpen, setShareBathOpen] = useState(false);
   // Edit mode: freezes wave time and all camera bob/drift/walk physics so TV
   // panels can be moved/rotated/resized precisely without the world (or the
   // camera's own automatic buoyancy) shifting underneath the gesture.
@@ -1294,6 +1325,9 @@ export function Aquafulness() {
     envId,
     envEra,
     envTime,
+    timeTravelBaseMs,
+    timeTravelSetAtMs,
+    timeSeasonalSync,
     surfaceId,
     reflStrength,
     bottomColor,
@@ -1432,6 +1466,9 @@ export function Aquafulness() {
     envId,
     envEra,
     envTime,
+    timeTravelBaseMs,
+    timeTravelSetAtMs,
+    timeSeasonalSync,
     surfaceId,
     reflStrength,
     bottomColor,
@@ -2346,6 +2383,9 @@ export function Aquafulness() {
     if (patch.envId !== undefined) setEnvId(patch.envId);
     if (patch.envEra !== undefined) setEnvEra(patch.envEra);
     if (patch.envTime !== undefined) setEnvTime(patch.envTime);
+    if (patch.timeTravelBaseMs !== undefined) setTimeTravelBaseMs(patch.timeTravelBaseMs);
+    if (patch.timeTravelSetAtMs !== undefined) setTimeTravelSetAtMs(patch.timeTravelSetAtMs);
+    if (patch.timeSeasonalSync !== undefined) setTimeSeasonalSync(patch.timeSeasonalSync);
     if (patch.surfaceId !== undefined) setSurfaceId(patch.surfaceId);
     if (patch.reflStrength !== undefined) setReflStrength(patch.reflStrength);
     if (patch.bottomColor !== undefined) setBottomColor(patch.bottomColor);
@@ -2717,6 +2757,53 @@ export function Aquafulness() {
     );
     setEnvTime(times[(i + dir + times.length) % times.length].id);
   };
+
+  // DATE & TIME TRAVEL: once a minute, advance the simulated clock (real
+  // time, or a time-traveled date ticking forward from wherever it was
+  // pinned — see simulatedDate()), optionally sync TIMEOFDAY to that date's
+  // real northern-hemisphere sunrise/sunset, and gate the current
+  // environment's era to its futuristic look once the simulated year passes
+  // FUTURISTIC_YEAR (only for environments that actually have a "future"
+  // era, and never overriding an era the user picked by hand). A minute
+  // (rather than a second) is plenty for a HH:MM readout and for how slowly
+  // sunrise/sunset actually drifts, and keeps this from re-rendering the
+  // whole component — a real cost given its size — more than once a minute.
+  useEffect(() => {
+    const tick = () => {
+      const date = simulatedDate(timeTravelBaseMs, timeTravelSetAtMs);
+      setSimNow(date);
+
+      if (timeSeasonalSync) {
+        setTimeOfDay(northernHemisphereTimeOfDay(date));
+      }
+
+      const env = environments.find((e) => e.id === envId);
+      const wantFuturistic = isFuturisticYear(date);
+      const hasFutureEra = env?.eras.some((e) => e.id === "future") ?? false;
+      const hasPresentEra = env?.eras.some((e) => e.id === "present") ?? false;
+      if (wantFuturistic && hasFutureEra && envEra !== "future") {
+        autoFuturisticEraRef.current = true;
+        setEnvEra("future");
+        setEnvTime((prev) => {
+          const era = env?.eras.find((e) => e.id === "future");
+          return era?.times.some((tm) => tm.id === prev) ? prev : (era?.times[0]?.id ?? prev);
+        });
+      } else if (!wantFuturistic && autoFuturisticEraRef.current && envEra === "future") {
+        autoFuturisticEraRef.current = false;
+        const fallback = hasPresentEra ? "present" : (env?.eras[0]?.id ?? null);
+        if (fallback) {
+          setEnvEra(fallback);
+          setEnvTime((prev) => {
+            const era = env?.eras.find((e) => e.id === fallback);
+            return era?.times.some((tm) => tm.id === prev) ? prev : (era?.times[0]?.id ?? prev);
+          });
+        }
+      }
+    };
+    tick();
+    const id = window.setInterval(tick, 60_000);
+    return () => window.clearInterval(id);
+  }, [timeTravelBaseMs, timeTravelSetAtMs, timeSeasonalSync, environments, envId, envEra]);
 
   // Step through the reflection surfaces, including an "AV" (gradient-only) slot.
   const cycleSurface = (dir: number) => {
@@ -5911,6 +5998,45 @@ export function Aquafulness() {
         }}
       />
 
+      {/* Simulated clock — plain text (no button chrome), directly below the
+          brand mark above, always up regardless of HUD fade. Tap to open the
+          time-travel dialog. Only rendered once simNowLabel is set client-
+          side (see simNow's useState above) so the server-rendered markup
+          never includes a live time value. */}
+      {simNowLabel && (
+        <button
+          onClick={() => setTimeTravelOpen(true)}
+          className="absolute z-30 text-right text-[10px] font-light tabular-nums text-white/50 transition active:text-white/80"
+          style={{ top: "40pt", right: "12pt" }}
+          aria-label={t("hud.timeTravelOpenAria")}
+          title={t("hud.timeTravelOpenAria")}
+        >
+          {simNowLabel}
+        </button>
+      )}
+
+      {/* Only mounted while open, so its hooks don't run on every one of
+          this large component's re-renders while the dialog is closed
+          (i.e. almost always). */}
+      {timeTravelOpen && (
+        <TimeTravelDialog
+          open={timeTravelOpen}
+          onClose={() => setTimeTravelOpen(false)}
+          timeTravelBaseMs={timeTravelBaseMs}
+          timeTravelSetAtMs={timeTravelSetAtMs}
+          onTravel={(targetMs) => {
+            setTimeTravelBaseMs(targetMs);
+            setTimeTravelSetAtMs(Date.now());
+          }}
+          onReturnToNow={() => {
+            setTimeTravelBaseMs(null);
+            setTimeTravelSetAtMs(null);
+          }}
+          timeSeasonalSync={timeSeasonalSync}
+          onSeasonalSyncChange={setTimeSeasonalSync}
+        />
+      )}
+
       {/* Offline indicator — stays up regardless of HUD fade so it's never
           mistaken for a stall; only cached scenes/environments/surfaces are
           available while it's shown. */}
@@ -5937,7 +6063,7 @@ export function Aquafulness() {
       <div
         className={`pointer-events-none absolute inset-0 z-10 transition-opacity duration-700 ${uiVisible ? "opacity-100" : "opacity-0"}`}
       >
-        {/* Top bar: settings + speaker toggle + phone + fullscreen.
+        {/* Top bar: settings + speaker toggle + phone + fullscreen + share.
             Edit-mode (the "pencil") no longer lives here — it moved into the
             bathOS phone's dedicated Skärmar app. */}
         <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between px-6 pt-6">
@@ -6056,8 +6182,38 @@ export function Aquafulness() {
                 </svg>
               )}
             </button>
+
+            <button
+              onClick={() => setShareBathOpen(true)}
+              className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white/90 backdrop-blur-md transition active:scale-95 active:bg-white/15"
+              aria-label={t("hud.shareBathAria")}
+              title={t("hud.shareBathAria")}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width="20"
+                height="20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="18" cy="5" r="3" />
+                <circle cx="6" cy="12" r="3" />
+                <circle cx="18" cy="19" r="3" />
+                <path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4" />
+              </svg>
+            </button>
           </div>
         </div>
+
+        <ShareBathDialog
+          open={shareBathOpen}
+          onClose={() => setShareBathOpen(false)}
+          buildBathLink={buildBathLink}
+        />
 
         {/* Collapsible settings panel */}
         {settingsOpen && (
