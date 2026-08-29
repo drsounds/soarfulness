@@ -1,6 +1,55 @@
 # Aquafulness
 
-A calming WebGL ocean where the camera drifts on the waves, built with three.js.
+A calming WebGL ocean where the camera drifts on the waves, built with
+three.js.
+
+> **Disclaimer:** Aquafulness is a wellness and relaxation visualization
+> grounded in the personal experience and design intuitions of its creator.
+> It makes **no medical claims**. It is not a medical device, not a therapy,
+> and not a substitute for professional health care. Statements about
+> calming, relaxation, or well-being describe design intent and subjective
+> experience, not clinically validated outcomes.
+
+## Background
+
+Aquafulness grew out of a case study on the concept of **digital bathing**.
+The observation at its core: immersion in warm water is a uniquely
+pleasurable and calming activity — it engages multiple senses at once with
+sensations of weightlessness, soothing and care, and swimming remains one of
+the most popular leisure activities there is. Yet real-world bathing carries
+practical downsides — safety, hygiene, access, cost, overcrowding and travel
+chief among them — that price or lock many people out of it most of the
+time. **Aquafulness asks how much of the pleasure can be delivered with none
+of the barriers** — no water, no pool, no travel, at any hour, at near-zero
+cost.
+
+The methodology rests on a few core ideas (see [`docs/`](docs/) for the full
+treatment):
+
+1. **Seeding.** The feeling of bathing can be induced artificially by
+   presenting stimuli the brain already associates with water — imagination,
+   sound, sight, and, most effective, the **audiovisual combination**.
+2. **The sine oscillation.** The common denominator of everything soothing
+   about calm water — the flow you see, the lapping you hear, the swell you
+   feel — is proposed to be **sinusoidal oscillation**: smooth, periodic,
+   predictable motion that entrains the mind toward the calm state the case
+   study coins **"aquaful."**
+3. **First-person floating.** The chosen design renders the point of view of
+   a bather immersed in warm water, with a camera that rocks the whole
+   projection to induce a *kinesthetic* perception of being carried by
+   water — the bobbing movement of being cared for.
+
+This repository is "Aquafulness Core" — the WebGL/three.js generation of the
+project, built with Lovable. It shares its underlying theory with the
+original Godot-based [`drsounds/aquafulness-2028`](https://github.com/drsounds/aquafulness-2028).
+
+## Documentation
+
+| Document | Contents |
+|---|---|
+| [`docs/README.md`](docs/README.md) | Documentation index |
+| [`docs/01-background-and-purpose.md`](docs/01-background-and-purpose.md) | Digital bathing, the case study, seeding, and the "aquaful" state |
+| [`docs/02-optic-flow-and-kinesthetics.md`](docs/02-optic-flow-and-kinesthetics.md) | The perceptual design: optic flow, vection and kinesthetic movement |
 
 ## Credits
 
