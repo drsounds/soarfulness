@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BathingPayloadRouteImport } from './routes/bathing.$payload'
+import { Route as BathingPayloadIndexRouteImport } from './routes/bathing.$payload.index'
+import { Route as BathingPayloadBatheRouteImport } from './routes/bathing.$payload.bathe'
 
 const AboutRoute = AboutRouteImport.update({
   id: '/about',
@@ -28,35 +30,61 @@ const BathingPayloadRoute = BathingPayloadRouteImport.update({
   path: '/bathing/$payload',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BathingPayloadIndexRoute = BathingPayloadIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => BathingPayloadRoute,
+} as any)
+const BathingPayloadBatheRoute = BathingPayloadBatheRouteImport.update({
+  id: '/bathe',
+  path: '/bathe',
+  getParentRoute: () => BathingPayloadRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/bathing/$payload': typeof BathingPayloadRoute
+  '/bathing/$payload': typeof BathingPayloadRouteWithChildren
+  '/bathing/$payload/bathe': typeof BathingPayloadBatheRoute
+  '/bathing/$payload/': typeof BathingPayloadIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/bathing/$payload': typeof BathingPayloadRoute
+  '/bathing/$payload/bathe': typeof BathingPayloadBatheRoute
+  '/bathing/$payload': typeof BathingPayloadIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/bathing/$payload': typeof BathingPayloadRoute
+  '/bathing/$payload': typeof BathingPayloadRouteWithChildren
+  '/bathing/$payload/bathe': typeof BathingPayloadBatheRoute
+  '/bathing/$payload/': typeof BathingPayloadIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about' | '/bathing/$payload'
+  fullPaths:
+    | '/'
+    | '/about'
+    | '/bathing/$payload'
+    | '/bathing/$payload/bathe'
+    | '/bathing/$payload/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/bathing/$payload'
-  id: '__root__' | '/' | '/about' | '/bathing/$payload'
+  to: '/' | '/about' | '/bathing/$payload/bathe' | '/bathing/$payload'
+  id:
+    | '__root__'
+    | '/'
+    | '/about'
+    | '/bathing/$payload'
+    | '/bathing/$payload/bathe'
+    | '/bathing/$payload/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
-  BathingPayloadRoute: typeof BathingPayloadRoute
+  BathingPayloadRoute: typeof BathingPayloadRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -82,13 +110,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BathingPayloadRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/bathing/$payload/': {
+      id: '/bathing/$payload/'
+      path: '/'
+      fullPath: '/bathing/$payload/'
+      preLoaderRoute: typeof BathingPayloadIndexRouteImport
+      parentRoute: typeof BathingPayloadRoute
+    }
+    '/bathing/$payload/bathe': {
+      id: '/bathing/$payload/bathe'
+      path: '/bathe'
+      fullPath: '/bathing/$payload/bathe'
+      preLoaderRoute: typeof BathingPayloadBatheRouteImport
+      parentRoute: typeof BathingPayloadRoute
+    }
   }
 }
+
+interface BathingPayloadRouteChildren {
+  BathingPayloadBatheRoute: typeof BathingPayloadBatheRoute
+  BathingPayloadIndexRoute: typeof BathingPayloadIndexRoute
+}
+
+const BathingPayloadRouteChildren: BathingPayloadRouteChildren = {
+  BathingPayloadBatheRoute: BathingPayloadBatheRoute,
+  BathingPayloadIndexRoute: BathingPayloadIndexRoute,
+}
+
+const BathingPayloadRouteWithChildren = BathingPayloadRoute._addFileChildren(
+  BathingPayloadRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
-  BathingPayloadRoute: BathingPayloadRoute,
+  BathingPayloadRoute: BathingPayloadRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

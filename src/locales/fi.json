@@ -36,6 +36,15 @@
     },
     "title": "Tietoja Aquafulnessista"
   },
+  "bathing": {
+    "bathe": "KYLVE",
+    "defaultDescription": "Astu suoraan tähän mereen juuri sellaisena kuin se jätettiin.",
+    "defaultTitle": "Jaettu kylpy",
+    "goHome": "Siirry etusivulle",
+    "invalidMessage": "Linkki saattaa olla katkennut tai vioittunut. Voit silti aloittaa alusta.",
+    "invalidTitle": "Kylpylinkkiä ei voitu lukea",
+    "shareAria": "Jaa tämä kylpy"
+  },
   "camera": {
     "mode": {
       "autoSuffix": "(AUTO)",

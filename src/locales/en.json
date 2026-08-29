@@ -36,6 +36,15 @@
     },
     "title": "About Aquafulness"
   },
+  "bathing": {
+    "bathe": "BATHE",
+    "defaultDescription": "Step into this ocean exactly as it was left.",
+    "defaultTitle": "A shared bath",
+    "goHome": "Go home",
+    "invalidMessage": "It may be truncated or corrupted. You can still start fresh instead.",
+    "invalidTitle": "This bath link couldn't be read",
+    "shareAria": "Share this bath"
+  },
   "camera": {
     "mode": {
       "autoSuffix": "(AUTO)",

@@ -36,6 +36,15 @@
     },
     "title": "Om Aquafulness"
   },
+  "bathing": {
+    "bathe": "BADA",
+    "defaultDescription": "Kliv rakt in i detta hav precis som det lämnades.",
+    "defaultTitle": "Ett delat bad",
+    "goHome": "Gå till startsidan",
+    "invalidMessage": "Länken kan vara trunkerad eller skadad. Du kan ändå börja om från början.",
+    "invalidTitle": "Kunde inte läsa badlänken",
+    "shareAria": "Dela detta bad"
+  },
   "camera": {
     "mode": {
       "autoSuffix": "(AUTO)",
