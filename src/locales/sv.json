@@ -23,6 +23,11 @@
           "Appen tillhandahålls \"i befintligt skick\" utan garantier av något slag, och Alexander Forselius ansvarar, i den utsträckning lagen tillåter, inte för förlust, skada eller men som uppstår genom dess användning."
         ]
       },
+      "documentation": {
+        "body": "Nyfiken på teorin bakom Aquafulness — digitalt badande, sinusvågsteorin och varför det är designat att kännas lugnande att titta på vågor? Läs hela fallstudien.",
+        "heading": "Dokumentation",
+        "linkLabel": "Läs dokumentationen"
+      },
       "intro": {
         "body": "Aquafulness är en lugnande, webbläsarbaserad visualisering av havsvågor skapad för personlig avkoppling och atmosfärisk avslappning. Det är ett fristående hobbyprojekt, ingen kommersiell produkt och ingen medicinteknisk produkt.",
         "heading": "Om appen"

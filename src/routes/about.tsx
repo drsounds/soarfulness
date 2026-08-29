@@ -129,6 +129,21 @@ function AboutPage() {
 
         <Card>
           <CardHeader>
+            <CardTitle>{t("about.sections.documentation.heading")}</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3 text-sm leading-relaxed">
+            <p className="text-muted-foreground">{t("about.sections.documentation.body")}</p>
+            <Link
+              to="/docs"
+              className="text-sm font-medium text-foreground underline underline-offset-4 hover:no-underline"
+            >
+              {t("about.sections.documentation.linkLabel")} →
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>{t("about.sections.aiTransparency.heading")}</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-3 text-sm leading-relaxed">

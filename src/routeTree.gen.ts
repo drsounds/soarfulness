@@ -11,7 +11,11 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DocsRouteImport } from './routes/docs'
 import { Route as BathingPayloadRouteImport } from './routes/bathing.$payload'
+import { Route as DocsIndexRouteImport } from './routes/docs.index'
+import { Route as DocsOpticFlowRouteImport } from './routes/docs.optic-flow'
+import { Route as DocsBackgroundRouteImport } from './routes/docs.background'
 import { Route as BathingPayloadIndexRouteImport } from './routes/bathing.$payload.index'
 import { Route as BathingPayloadBatheRouteImport } from './routes/bathing.$payload.bathe'
 
@@ -25,10 +29,30 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DocsRoute = DocsRouteImport.update({
+  id: '/docs',
+  path: '/docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BathingPayloadRoute = BathingPayloadRouteImport.update({
   id: '/bathing/$payload',
   path: '/bathing/$payload',
   getParentRoute: () => rootRouteImport,
+} as any)
+const DocsIndexRoute = DocsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DocsRoute,
+} as any)
+const DocsOpticFlowRoute = DocsOpticFlowRouteImport.update({
+  id: '/optic-flow',
+  path: '/optic-flow',
+  getParentRoute: () => DocsRoute,
+} as any)
+const DocsBackgroundRoute = DocsBackgroundRouteImport.update({
+  id: '/background',
+  path: '/background',
+  getParentRoute: () => DocsRoute,
 } as any)
 const BathingPayloadIndexRoute = BathingPayloadIndexRouteImport.update({
   id: '/',
@@ -44,46 +68,73 @@ const BathingPayloadBatheRoute = BathingPayloadBatheRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/docs': typeof DocsRouteWithChildren
   '/bathing/$payload': typeof BathingPayloadRouteWithChildren
   '/bathing/$payload/bathe': typeof BathingPayloadBatheRoute
+  '/docs/background': typeof DocsBackgroundRoute
+  '/docs/optic-flow': typeof DocsOpticFlowRoute
   '/bathing/$payload/': typeof BathingPayloadIndexRoute
+  '/docs/': typeof DocsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/bathing/$payload/bathe': typeof BathingPayloadBatheRoute
+  '/docs/background': typeof DocsBackgroundRoute
+  '/docs/optic-flow': typeof DocsOpticFlowRoute
   '/bathing/$payload': typeof BathingPayloadIndexRoute
+  '/docs': typeof DocsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/docs': typeof DocsRouteWithChildren
   '/bathing/$payload': typeof BathingPayloadRouteWithChildren
   '/bathing/$payload/bathe': typeof BathingPayloadBatheRoute
+  '/docs/background': typeof DocsBackgroundRoute
+  '/docs/optic-flow': typeof DocsOpticFlowRoute
   '/bathing/$payload/': typeof BathingPayloadIndexRoute
+  '/docs/': typeof DocsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/about'
+    | '/docs'
     | '/bathing/$payload'
     | '/bathing/$payload/bathe'
+    | '/docs/background'
+    | '/docs/optic-flow'
     | '/bathing/$payload/'
+    | '/docs/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/bathing/$payload/bathe' | '/bathing/$payload'
+  to:
+    | '/'
+    | '/about'
+    | '/bathing/$payload/bathe'
+    | '/docs/background'
+    | '/docs/optic-flow'
+    | '/bathing/$payload'
+    | '/docs'
   id:
     | '__root__'
     | '/'
     | '/about'
+    | '/docs'
     | '/bathing/$payload'
     | '/bathing/$payload/bathe'
+    | '/docs/background'
+    | '/docs/optic-flow'
     | '/bathing/$payload/'
+    | '/docs/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
+  DocsRoute: typeof DocsRouteWithChildren
   BathingPayloadRoute: typeof BathingPayloadRouteWithChildren
 }
 
@@ -103,12 +154,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/docs': {
+      id: '/docs'
+      path: '/docs'
+      fullPath: '/docs'
+      preLoaderRoute: typeof DocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/bathing/$payload': {
       id: '/bathing/$payload'
       path: '/bathing/$payload'
       fullPath: '/bathing/$payload'
       preLoaderRoute: typeof BathingPayloadRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/docs/background': {
+      id: '/docs/background'
+      path: '/background'
+      fullPath: '/docs/background'
+      preLoaderRoute: typeof DocsBackgroundRouteImport
+      parentRoute: typeof DocsRoute
+    }
+    '/docs/optic-flow': {
+      id: '/docs/optic-flow'
+      path: '/optic-flow'
+      fullPath: '/docs/optic-flow'
+      preLoaderRoute: typeof DocsOpticFlowRouteImport
+      parentRoute: typeof DocsRoute
     }
     '/bathing/$payload/': {
       id: '/bathing/$payload/'
@@ -123,6 +195,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/bathing/$payload/bathe'
       preLoaderRoute: typeof BathingPayloadBatheRouteImport
       parentRoute: typeof BathingPayloadRoute
+    }
+    '/docs/': {
+      id: '/docs/'
+      path: '/'
+      fullPath: '/docs/'
+      preLoaderRoute: typeof DocsIndexRouteImport
+      parentRoute: typeof DocsRoute
     }
   }
 }
@@ -141,9 +220,24 @@ const BathingPayloadRouteWithChildren = BathingPayloadRoute._addFileChildren(
   BathingPayloadRouteChildren,
 )
 
+interface DocsRouteChildren {
+  DocsBackgroundRoute: typeof DocsBackgroundRoute
+  DocsOpticFlowRoute: typeof DocsOpticFlowRoute
+  DocsIndexRoute: typeof DocsIndexRoute
+}
+
+const DocsRouteChildren: DocsRouteChildren = {
+  DocsBackgroundRoute: DocsBackgroundRoute,
+  DocsOpticFlowRoute: DocsOpticFlowRoute,
+  DocsIndexRoute: DocsIndexRoute,
+}
+
+const DocsRouteWithChildren = DocsRoute._addFileChildren(DocsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
+  DocsRoute: DocsRouteWithChildren,
   BathingPayloadRoute: BathingPayloadRouteWithChildren,
 }
 export const routeTree = rootRouteImport

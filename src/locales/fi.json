@@ -23,6 +23,11 @@
           "Sovellus tarjotaan \"sellaisenaan\" ilman minkäänlaisia takuita, eikä Alexander Forselius lain sallimissa rajoissa vastaa mistään käytöstä aiheutuvasta menetyksestä, vahingosta tai haitasta."
         ]
       },
+      "documentation": {
+        "body": "Kiinnostaako Aquafulnessin taustalla oleva teoria — digitaalinen kylpeminen, sinioskillaatioteoria ja miksi aaltojen katselu on suunniteltu tuntumaan rauhoittavalta? Lue koko tapaustutkimus.",
+        "heading": "Dokumentaatio",
+        "linkLabel": "Lue dokumentaatio"
+      },
       "intro": {
         "body": "Aquafulness on rauhoittava, selaimessa toimiva merenaaltojen visualisointi, joka on luotu henkilökohtaiseen rentoutumiseen ja tunnelmalliseen katseluun. Se on itsenäinen harrastusprojekti, ei kaupallinen tuote eikä lääkinnällinen laite.",
         "heading": "Tietoa sovelluksesta"
