@@ -66,6 +66,13 @@ import {
   removeSavedState,
 } from "@/lib/presets";
 import {
+  encodeStateToBase62,
+  buildBathUrl,
+  BATH_TITLE_MAX_LENGTH,
+  BATH_DESCRIPTION_MAX_LENGTH,
+  type BathPayload,
+} from "@/lib/shareState";
+import {
   FFT_WAVE_COUNT,
   generateOceanWaveComponents,
   DYING_WAVE_COUNT,
@@ -342,7 +349,11 @@ function buildFarOceanGeometry(surfaceArea: number) {
 const FFT_WAVE_SEED = 20260108;
 const DYING_WAVE_SEED = 19700101;
 
-const STORAGE_KEY = "aquafulness:settings:v1";
+// Exported so routes/bathing.$payload.tsx can seed the same localStorage
+// keys with a decoded shared-link state before this route's own component
+// (which reads them once at mount via loadSettings/loadCameraPose below)
+// ever renders.
+export const STORAGE_KEY = "aquafulness:settings:v1";
 // Parse a "#rrggbb" hex string into normalized [0,1] RGB. Falls back to a
 // neutral sand tone on malformed input rather than throwing.
 function hexToRgbNorm(hex: string): [number, number, number] {
@@ -717,11 +728,11 @@ function loadSettings(): Persisted {
 // autosaved continuously, separately from the dial settings above, so a
 // "restore" action can jump back to wherever the camera was left without
 // requiring that value to feed into the physics loop on every reload.
-const CAMERA_STORAGE_KEY = "aquafulness:camera:v1";
+export const CAMERA_STORAGE_KEY = "aquafulness:camera:v1";
 // y is only meaningful (and only saved) in noclip mode, where there is no
 // wave-surface spring to re-derive a height from — optional so old saves
 // without it still parse.
-type CameraPose = { x: number; z: number; yaw: number; pitch: number; y?: number };
+export type CameraPose = { x: number; z: number; yaw: number; pitch: number; y?: number };
 function loadCameraPose(): CameraPose | null {
   if (typeof window === "undefined") return null;
   try {
@@ -783,7 +794,10 @@ const CHROMATIC_ABERRATION_SHADER = {
   `,
 };
 
-function Aquafulness() {
+// Exported so routes/bathing.$payload.tsx can render the exact same app
+// after seeding its localStorage-backed settings/camera pose from a decoded
+// shared "bathing" link.
+export function Aquafulness() {
   const { t } = useTranslation();
   const online = useOnlineStatus();
   const mountRef = useRef<HTMLDivElement>(null);
@@ -2456,6 +2470,33 @@ function Aquafulness() {
   // TILLSTÅND RADERA: removes a previously saved named state.
   const deleteSavedState = (id: string) => {
     setSavedStates((list) => removeSavedState(list, id));
+  };
+
+  // DELA BADLÄNK: encodes every setting (same field set as an "all"-scope
+  // preset) plus the camera's live position/look, and an optional title/
+  // description meant for the link's Open Graph preview, into a single
+  // base62 string — no server round trip, the URL alone fully recreates
+  // this bath (see src/lib/shareState.ts and routes/bathing.$payload.tsx,
+  // which decodes it back and seeds STORAGE_KEY/CAMERA_STORAGE_KEY before
+  // this same component mounts again).
+  const buildBathLink = async (title: string, description: string): Promise<string> => {
+    const payload: BathPayload = {
+      v: 1,
+      s: pickFields(buildPersistedSnapshot(), PRESET_ALL_FIELDS) as Record<string, unknown>,
+      c: {
+        x: posRef.current.x,
+        y: posRef.current.y,
+        z: posRef.current.z,
+        yaw: yawRef.current,
+        pitch: pitchRef.current,
+      },
+    };
+    const trimmedTitle = title.trim().slice(0, BATH_TITLE_MAX_LENGTH);
+    const trimmedDescription = description.trim().slice(0, BATH_DESCRIPTION_MAX_LENGTH);
+    if (trimmedTitle) payload.t = trimmedTitle;
+    if (trimmedDescription) payload.d = trimmedDescription;
+    const encoded = await encodeStateToBase62(payload);
+    return buildBathUrl(window.location.origin, encoded);
   };
 
   // VÅGPRESET: applies a bundle of wave-only settings in one step (see
@@ -5373,6 +5414,7 @@ function Aquafulness() {
     saveStateAs,
     loadSavedStateById,
     deleteSavedState,
+    buildBathLink,
     waveAmp,
     setWaveAmp,
     waveSpeed,
