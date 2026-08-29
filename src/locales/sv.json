@@ -331,7 +331,8 @@
     },
     "waterSound": {
       "advanced": "Avancerat",
-      "simple": "Enkelt"
+      "simple": "Enkelt",
+      "ocean": "Hav"
     }
   },
   "phone": {
