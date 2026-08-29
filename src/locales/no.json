@@ -36,6 +36,15 @@
     },
     "title": "Om Aquafulness"
   },
+  "bathing": {
+    "bathe": "BAD",
+    "defaultDescription": "Tre rett inn i dette havet, akkurat slik det ble forlatt.",
+    "defaultTitle": "Et delt bad",
+    "goHome": "Gå til startsiden",
+    "invalidMessage": "Lenken kan være avkortet eller skadet. Du kan likevel starte på nytt.",
+    "invalidTitle": "Kunne ikke lese badelenken",
+    "shareAria": "Del dette badet"
+  },
   "camera": {
     "mode": {
       "autoSuffix": "(AUTO)",
