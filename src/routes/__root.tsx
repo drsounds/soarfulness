@@ -158,10 +158,32 @@ function RootComponent() {
   }, []);
 
   // Server and the first client render always use Swedish (see lib/i18n.ts)
-  // so hydration never mismatches; apply the user's stored or browser-
-  // detected language immediately after mount, before any interaction.
+  // so hydration never mismatches — but TanStack Router code-splits each
+  // route component behind React.lazy, so a route's own hydration can still
+  // be pending (its chunk still in flight) right after this (non-lazy,
+  // root-level) effect's mount. Switching the language immediately here
+  // used to race that pending hydration: this effect's setState could land
+  // before the lazy route's own hydration pass had finished comparing
+  // itself against its Swedish SSR markup, so React found English where the
+  // server had rendered Swedish, declared a hydration mismatch, and
+  // discarded + rebuilt the entire route subtree — visible as a glitch/flash
+  // right as the page should have become interactive. requestIdleCallback
+  // waits for a genuine gap in the browser's work (not just "next tick"),
+  // which in practice gives any in-flight chunk fetch/hydration time to
+  // finish first; the timeout is a bound for browsers that are never idle
+  // (or don't support it, e.g. Safari) so the language switch still always
+  // happens promptly.
   useEffect(() => {
-    changeLanguage(loadStoredLanguage() ?? detectBrowserLanguage());
+    const ric: typeof requestIdleCallback =
+      typeof requestIdleCallback === "function"
+        ? requestIdleCallback
+        : (cb) => window.setTimeout(() => cb(null as unknown as IdleDeadline), 300);
+    const cic: typeof cancelIdleCallback =
+      typeof cancelIdleCallback === "function" ? cancelIdleCallback : window.clearTimeout;
+    const id = ric(() => changeLanguage(loadStoredLanguage() ?? detectBrowserLanguage()), {
+      timeout: 2000,
+    });
+    return () => cic(id);
   }, []);
 
   // iOS Safari fires these non-standard gesture events for a pinch and
