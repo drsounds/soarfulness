@@ -58,12 +58,12 @@
       "leanForward": "FREMOVERLENT"
     },
     "whirlpoolDirection": {
-      "cw": "MED KLOKKEN",
-      "ccw": "MOT KLOKKEN"
+      "ccw": "MOT KLOKKEN",
+      "cw": "MED KLOKKEN"
     },
     "whirlpoolExitMode": {
-      "throwBack": "KASTES TILBAKE",
-      "reverseSpin": "OMVENDT SNURR"
+      "reverseSpin": "OMVENDT SNURR",
+      "throwBack": "KASTES TILBAKE"
     }
   },
   "common": {
@@ -82,6 +82,12 @@
     "resetAria": "{{label}} tilbakestill",
     "texture": "TEKSTUR",
     "with": "MED"
+  },
+  "consent": {
+    "accept": "GODTA",
+    "body": "Vi vil gjerne bruke Google Analytics for å forstå hvordan appen brukes. Ingen personopplysninger selges eller deles. Du kan takke nei uten at noe endres.",
+    "decline": "AVSLÅ",
+    "title": "Informasjonskapsler & statistikk"
   },
   "dial": {
     "audio": {
@@ -331,8 +337,8 @@
     },
     "waterSound": {
       "advanced": "Avansert",
-      "simple": "Enkel",
-      "ocean": "Hav"
+      "ocean": "Hav",
+      "simple": "Enkel"
     }
   },
   "phone": {
@@ -371,10 +377,14 @@
     "all": "ALLE INNSTILLINGER",
     "choosePreset": "VELG LAGRET…",
     "chooseState": "VELG LAGRET…",
+    "copied": "KOPIERT!",
+    "copyLink": "KOPIER LENKE",
     "delete": "SLETT",
     "deleteConfirm": "Slette lagret preset?",
     "deleteStateConfirm": "Slette lagret tilstand?",
     "export": "EKSPORTER",
+    "generateLink": "OPPRETT LENKE",
+    "generating": "OPPRETTER…",
     "import": "IMPORTER",
     "invalidPresetFile": "Kunne ikke lese presetfilen — kontroller at den er en gyldig JSON-fil.",
     "invalidStateFile": "Kunne ikke lese tilstandsfilen — kontroller at den er en gyldig JSON-fil.",
@@ -386,15 +396,6 @@
     "save": "LAGRE",
     "savePromptTitle": "Lagre som:",
     "saveStatePromptTitle": "Lagre tilstand som:",
-    "copied": "KOPIERT!",
-    "copyLink": "KOPIER LENKE",
-    "generateLink": "OPPRETT LENKE",
-    "generating": "OPPRETTER…",
-    "shareBathDescriptionPlaceholder": "Beskrivelse (valgfritt)",
-    "shareBathError": "Kunne ikke opprette en lenke — prøv igjen.",
-    "shareBathLink": "DEL BADELENKE",
-    "shareBathTitlePlaceholder": "Tittel (valgfritt)",
-    "shareNative": "DEL…",
     "scope": {
       "kamera": "KAMERA-PRESET",
       "ljud": "LYD-PRESET",
@@ -402,6 +403,11 @@
       "vagor": "BØLGER-PRESET",
       "vatten": "VANN-PRESET"
     },
+    "shareBathDescriptionPlaceholder": "Beskrivelse (valgfritt)",
+    "shareBathError": "Kunne ikke opprette en lenke — prøv igjen.",
+    "shareBathLink": "DEL BADELENKE",
+    "shareBathTitlePlaceholder": "Tittel (valgfritt)",
+    "shareNative": "DEL…",
     "state": "TILSTAND (alt + posisjon, blikk, strøm, sving)"
   },
   "privacy": {

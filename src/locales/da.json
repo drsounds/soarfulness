@@ -58,12 +58,12 @@
       "leanForward": "FREMOVERLÆNET"
     },
     "whirlpoolDirection": {
-      "cw": "MED URET",
-      "ccw": "MOD URET"
+      "ccw": "MOD URET",
+      "cw": "MED URET"
     },
     "whirlpoolExitMode": {
-      "throwBack": "KASTES TILBAGE",
-      "reverseSpin": "OMVENDT SNURR"
+      "reverseSpin": "OMVENDT SNURR",
+      "throwBack": "KASTES TILBAGE"
     }
   },
   "common": {
@@ -82,6 +82,12 @@
     "resetAria": "{{label}} nulstil",
     "texture": "TEKSTUR",
     "with": "MED"
+  },
+  "consent": {
+    "accept": "ACCEPTER",
+    "body": "Vi vil gerne bruge Google Analytics for at forstå, hvordan appen bruges. Ingen personoplysninger sælges eller deles. Du kan sige nej tak, uden at noget ændres.",
+    "decline": "AFVIS",
+    "title": "Cookies & statistik"
   },
   "dial": {
     "audio": {
@@ -331,8 +337,8 @@
     },
     "waterSound": {
       "advanced": "Avanceret",
-      "simple": "Enkel",
-      "ocean": "Ocean"
+      "ocean": "Ocean",
+      "simple": "Enkel"
     }
   },
   "phone": {
@@ -371,10 +377,14 @@
     "all": "ALLE INDSTILLINGER",
     "choosePreset": "VÆLG GEMT…",
     "chooseState": "VÆLG GEMT…",
+    "copied": "KOPIERET!",
+    "copyLink": "KOPIÉR LINK",
     "delete": "SLET",
     "deleteConfirm": "Slet gemt preset?",
     "deleteStateConfirm": "Slet gemt tilstand?",
     "export": "EKSPORTÉR",
+    "generateLink": "OPRET LINK",
+    "generating": "OPRETTER…",
     "import": "IMPORTÉR",
     "invalidPresetFile": "Kunne ikke læse presetfilen — kontrollér at den er en gyldig JSON-fil.",
     "invalidStateFile": "Kunne ikke læse tilstandsfilen — kontrollér at den er en gyldig JSON-fil.",
@@ -386,15 +396,6 @@
     "save": "GEM",
     "savePromptTitle": "Gem som:",
     "saveStatePromptTitle": "Gem tilstand som:",
-    "copied": "KOPIERET!",
-    "copyLink": "KOPIÉR LINK",
-    "generateLink": "OPRET LINK",
-    "generating": "OPRETTER…",
-    "shareBathDescriptionPlaceholder": "Beskrivelse (valgfrit)",
-    "shareBathError": "Kunne ikke oprette et link — prøv igen.",
-    "shareBathLink": "DEL BADELINK",
-    "shareBathTitlePlaceholder": "Titel (valgfrit)",
-    "shareNative": "DEL…",
     "scope": {
       "kamera": "KAMERA-PRESET",
       "ljud": "LYD-PRESET",
@@ -402,6 +403,11 @@
       "vagor": "BØLGER-PRESET",
       "vatten": "VAND-PRESET"
     },
+    "shareBathDescriptionPlaceholder": "Beskrivelse (valgfrit)",
+    "shareBathError": "Kunne ikke oprette et link — prøv igen.",
+    "shareBathLink": "DEL BADELINK",
+    "shareBathTitlePlaceholder": "Titel (valgfrit)",
+    "shareNative": "DEL…",
     "state": "TILSTAND (alt + position, blik, strøm, sving)"
   },
   "privacy": {

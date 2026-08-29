@@ -58,12 +58,12 @@
       "leanForward": "LEAN FORWARD"
     },
     "whirlpoolDirection": {
-      "cw": "CLOCKWISE",
-      "ccw": "COUNTER-CLOCKWISE"
+      "ccw": "COUNTER-CLOCKWISE",
+      "cw": "CLOCKWISE"
     },
     "whirlpoolExitMode": {
-      "throwBack": "THROWN BACK",
-      "reverseSpin": "REVERSE SPIN"
+      "reverseSpin": "REVERSE SPIN",
+      "throwBack": "THROWN BACK"
     }
   },
   "common": {
@@ -82,6 +82,12 @@
     "resetAria": "{{label}} reset",
     "texture": "TEXTURE",
     "with": "WITH"
+  },
+  "consent": {
+    "accept": "ACCEPT",
+    "body": "We'd like to use Google Analytics to understand how the app is used. No personal data is sold or shared. You can decline without anything changing.",
+    "decline": "DECLINE",
+    "title": "Cookies & analytics"
   },
   "dial": {
     "audio": {
@@ -331,8 +337,8 @@
     },
     "waterSound": {
       "advanced": "Advanced",
-      "simple": "Simple",
-      "ocean": "Ocean"
+      "ocean": "Ocean",
+      "simple": "Simple"
     }
   },
   "phone": {
@@ -371,10 +377,14 @@
     "all": "ALL SETTINGS",
     "choosePreset": "CHOOSE SAVED…",
     "chooseState": "CHOOSE SAVED…",
+    "copied": "COPIED!",
+    "copyLink": "COPY LINK",
     "delete": "DELETE",
     "deleteConfirm": "Delete this saved preset?",
     "deleteStateConfirm": "Delete this saved state?",
     "export": "EXPORT",
+    "generateLink": "GENERATE LINK",
+    "generating": "GENERATING…",
     "import": "IMPORT",
     "invalidPresetFile": "Could not read the preset file — make sure it's a valid JSON file.",
     "invalidStateFile": "Could not read the state file — make sure it's a valid JSON file.",
@@ -386,15 +396,6 @@
     "save": "SAVE",
     "savePromptTitle": "Save as:",
     "saveStatePromptTitle": "Save state as:",
-    "copied": "COPIED!",
-    "copyLink": "COPY LINK",
-    "generateLink": "GENERATE LINK",
-    "generating": "GENERATING…",
-    "shareBathDescriptionPlaceholder": "Description (optional)",
-    "shareBathError": "Could not generate a link — please try again.",
-    "shareBathLink": "SHARE BATH LINK",
-    "shareBathTitlePlaceholder": "Title (optional)",
-    "shareNative": "SHARE…",
     "scope": {
       "kamera": "CAMERA PRESET",
       "ljud": "SOUND PRESET",
@@ -402,6 +403,11 @@
       "vagor": "WAVES PRESET",
       "vatten": "WATER PRESET"
     },
+    "shareBathDescriptionPlaceholder": "Description (optional)",
+    "shareBathError": "Could not generate a link — please try again.",
+    "shareBathLink": "SHARE BATH LINK",
+    "shareBathTitlePlaceholder": "Title (optional)",
+    "shareNative": "SHARE…",
     "state": "STATE (everything + position, look, current, sway)"
   },
   "privacy": {

@@ -58,12 +58,12 @@
       "leanForward": "FRAMÅTLUT"
     },
     "whirlpoolDirection": {
-      "cw": "MEDURS",
-      "ccw": "MOTURS"
+      "ccw": "MOTURS",
+      "cw": "MEDURS"
     },
     "whirlpoolExitMode": {
-      "throwBack": "KASTAS TILLBAKA",
-      "reverseSpin": "OMVÄND SNURR"
+      "reverseSpin": "OMVÄND SNURR",
+      "throwBack": "KASTAS TILLBAKA"
     }
   },
   "common": {
@@ -82,6 +82,12 @@
     "resetAria": "{{label}} återställ",
     "texture": "TEXTUR",
     "with": "MED"
+  },
+  "consent": {
+    "accept": "GODKÄNN",
+    "body": "Vi skulle vilja använda Google Analytics för att förstå hur appen används. Inga personuppgifter säljs eller delas. Du kan tacka nej utan att något ändras.",
+    "decline": "AVBÖJ",
+    "title": "Cookies & statistik"
   },
   "dial": {
     "audio": {
@@ -331,8 +337,8 @@
     },
     "waterSound": {
       "advanced": "Avancerat",
-      "simple": "Enkelt",
-      "ocean": "Hav"
+      "ocean": "Hav",
+      "simple": "Enkelt"
     }
   },
   "phone": {
@@ -371,10 +377,14 @@
     "all": "ALLA INSTÄLLNINGAR",
     "choosePreset": "VÄLJ SPARAD…",
     "chooseState": "VÄLJ SPARAT…",
+    "copied": "KOPIERAD!",
+    "copyLink": "KOPIERA LÄNK",
     "delete": "RADERA",
     "deleteConfirm": "Ta bort sparad preset?",
     "deleteStateConfirm": "Ta bort sparat tillstånd?",
     "export": "EXPORTERA",
+    "generateLink": "SKAPA LÄNK",
+    "generating": "SKAPAR…",
     "import": "IMPORTERA",
     "invalidPresetFile": "Kunde inte läsa presetfilen — kontrollera att den är en giltig JSON-fil.",
     "invalidStateFile": "Kunde inte läsa tillståndsfilen — kontrollera att den är en giltig JSON-fil.",
@@ -386,15 +396,6 @@
     "save": "SPARA",
     "savePromptTitle": "Spara som:",
     "saveStatePromptTitle": "Spara tillstånd som:",
-    "copied": "KOPIERAD!",
-    "copyLink": "KOPIERA LÄNK",
-    "generateLink": "SKAPA LÄNK",
-    "generating": "SKAPAR…",
-    "shareBathDescriptionPlaceholder": "Beskrivning (valfritt)",
-    "shareBathError": "Kunde inte skapa en länk — försök igen.",
-    "shareBathLink": "DELA BADLÄNK",
-    "shareBathTitlePlaceholder": "Titel (valfritt)",
-    "shareNative": "DELA…",
     "scope": {
       "kamera": "KAMERA-PRESET",
       "ljud": "LJUD-PRESET",
@@ -402,6 +403,11 @@
       "vagor": "VÅGOR-PRESET",
       "vatten": "VATTEN-PRESET"
     },
+    "shareBathDescriptionPlaceholder": "Beskrivning (valfritt)",
+    "shareBathError": "Kunde inte skapa en länk — försök igen.",
+    "shareBathLink": "DELA BADLÄNK",
+    "shareBathTitlePlaceholder": "Titel (valfritt)",
+    "shareNative": "DELA…",
     "state": "TILLSTÅND (allt + position, blick, ström, svaj)"
   },
   "privacy": {

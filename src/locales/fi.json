@@ -58,12 +58,12 @@
       "leanForward": "KALLISTUS ETEEN"
     },
     "whirlpoolDirection": {
-      "cw": "MYÖTÄPÄIVÄÄN",
-      "ccw": "VASTAPÄIVÄÄN"
+      "ccw": "VASTAPÄIVÄÄN",
+      "cw": "MYÖTÄPÄIVÄÄN"
     },
     "whirlpoolExitMode": {
-      "throwBack": "HEITETÄÄN TAKAISIN",
-      "reverseSpin": "KÄÄNTEINEN PYÖRITYS"
+      "reverseSpin": "KÄÄNTEINEN PYÖRITYS",
+      "throwBack": "HEITETÄÄN TAKAISIN"
     }
   },
   "common": {
@@ -82,6 +82,12 @@
     "resetAria": "{{label}} nollaa",
     "texture": "TEKSTUURI",
     "with": "MYÖTÄ"
+  },
+  "consent": {
+    "accept": "HYVÄKSY",
+    "body": "Haluaisimme käyttää Google Analyticsiä ymmärtääksemme, miten sovellusta käytetään. Henkilötietoja ei myydä eikä jaeta. Voit kieltäytyä ilman, että mikään muuttuu.",
+    "decline": "KIELLÄ",
+    "title": "Evästeet & tilastointi"
   },
   "dial": {
     "audio": {
@@ -331,8 +337,8 @@
     },
     "waterSound": {
       "advanced": "Edistynyt",
-      "simple": "Yksinkertainen",
-      "ocean": "Meri"
+      "ocean": "Meri",
+      "simple": "Yksinkertainen"
     }
   },
   "phone": {
@@ -371,10 +377,14 @@
     "all": "KAIKKI ASETUKSET",
     "choosePreset": "VALITSE TALLENNETTU…",
     "chooseState": "VALITSE TALLENNETTU…",
+    "copied": "KOPIOITU!",
+    "copyLink": "KOPIOI LINKKI",
     "delete": "POISTA",
     "deleteConfirm": "Poistetaanko tallennettu esiasetus?",
     "deleteStateConfirm": "Poistetaanko tallennettu tila?",
     "export": "VIE",
+    "generateLink": "LUO LINKKI",
+    "generating": "LUODAAN…",
     "import": "TUO",
     "invalidPresetFile": "Esiasetustiedostoa ei voitu lukea — varmista, että se on kelvollinen JSON-tiedosto.",
     "invalidStateFile": "Tilatiedostoa ei voitu lukea — varmista, että se on kelvollinen JSON-tiedosto.",
@@ -386,15 +396,6 @@
     "save": "TALLENNA",
     "savePromptTitle": "Tallenna nimellä:",
     "saveStatePromptTitle": "Tallenna tila nimellä:",
-    "copied": "KOPIOITU!",
-    "copyLink": "KOPIOI LINKKI",
-    "generateLink": "LUO LINKKI",
-    "generating": "LUODAAN…",
-    "shareBathDescriptionPlaceholder": "Kuvaus (valinnainen)",
-    "shareBathError": "Linkin luominen epäonnistui — yritä uudelleen.",
-    "shareBathLink": "JAA KYLPYLINKKI",
-    "shareBathTitlePlaceholder": "Otsikko (valinnainen)",
-    "shareNative": "JAA…",
     "scope": {
       "kamera": "KAMERA-ESIASETUS",
       "ljud": "ÄÄNI-ESIASETUS",
@@ -402,6 +403,11 @@
       "vagor": "AALLOT-ESIASETUS",
       "vatten": "VESI-ESIASETUS"
     },
+    "shareBathDescriptionPlaceholder": "Kuvaus (valinnainen)",
+    "shareBathError": "Linkin luominen epäonnistui — yritä uudelleen.",
+    "shareBathLink": "JAA KYLPYLINKKI",
+    "shareBathTitlePlaceholder": "Otsikko (valinnainen)",
+    "shareNative": "JAA…",
     "state": "TILA (kaikki + sijainti, katse, virtaus, heilunta)"
   },
   "privacy": {
