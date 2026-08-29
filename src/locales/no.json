@@ -460,6 +460,12 @@
     "tabsAriaLabel": "Innstillingsfaner",
     "title": "INNSTILLINGER"
   },
+  "splash": {
+    "copyright": "© {{year}} {{name}}. Alle rettigheter forbeholdt.",
+    "logoAlt": "Aquafulness",
+    "startBath": "Start bad",
+    "starting": "Starter…"
+  },
   "swing": {
     "preset": {
       "clouds": "SKYER",

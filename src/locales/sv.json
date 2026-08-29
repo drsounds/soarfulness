@@ -460,6 +460,12 @@
     "tabsAriaLabel": "Inställningsflikar",
     "title": "INSTÄLLNINGAR"
   },
+  "splash": {
+    "copyright": "© {{year}} {{name}}. Alla rättigheter förbehållna.",
+    "logoAlt": "Aquafulness",
+    "startBath": "Starta bad",
+    "starting": "Startar…"
+  },
   "swing": {
     "preset": {
       "clouds": "MOLN",
