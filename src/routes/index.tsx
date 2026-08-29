@@ -4334,8 +4334,24 @@ export function Aquafulness() {
     let lastMs = performance.now();
     let lastCamSaveMs = 0;
     // Throttles renderer.render() (see below) to targetFps (or gogglesFpsCap
-    // while SIMGLASÖGON is on) — 0 means "render this frame" is still due.
-    let lastRenderMs = 0;
+    // while SIMGLASÖGON is on) by rendering every Nth rAF tick rather than
+    // "has enough wall-clock time passed" — see rafIntervalEstimate below
+    // for why.
+    let renderTickCount = 0;
+    // A rolling estimate of the display's actual vsync interval (ms), so the
+    // render cap can skip a *fixed number of ticks* between renders instead
+    // of comparing elapsed wall-clock time against 1000/fpsCap. The wall-
+    // clock version reads as juddery even though the underlying motion (camera
+    // physics/uniforms update every rAF tick regardless, see below) is
+    // perfectly smooth: 1000/fpsCap rarely divides the display's real frame
+    // interval evenly (e.g. 25ms at a 40fps cap vs. 16.7ms on a 60Hz panel),
+    // so the pattern of frames actually reaching the screen alternates
+    // between waiting 1 and 2 vsyncs — an uneven cadence that's exactly what
+    // "janky"/stuttery motion looks like, independent of raw performance.
+    // Rendering every Nth tick instead — N derived from this estimate —
+    // reproduces the cap as an exact, uniform fraction of the display's own
+    // refresh, which reads as smooth motion at a reduced rate instead.
+    let rafIntervalMsEstimate = 16.67;
     // Re-applied only when resolutionScale actually changes (see animate()
     // below), rather than every frame, since setPixelRatio touches the GL
     // context's drawing-buffer size.
@@ -4385,8 +4401,17 @@ export function Aquafulness() {
       midCloudUniforms.uCamNear.value = camera.near;
       midCloudUniforms.uCamFar.value = camera.far;
       const now = performance.now();
-      const dt = Math.min((now - lastMs) / 1000, 0.1);
+      const rawTickMs = now - lastMs;
+      const dt = Math.min(rawTickMs / 1000, 0.1);
       lastMs = now;
+      // Feed the render-cap's vsync-interval estimate (see
+      // rafIntervalMsEstimate above) — only from ticks that look like a
+      // real, undropped vsync (a wide plausible refresh-rate range), so a
+      // one-off stall or a backgrounded tab's throttled rAF doesn't drag the
+      // estimate away from the display's actual cadence.
+      if (rawTickMs > 4 && rawTickMs < 40) {
+        rafIntervalMsEstimate += (rawTickMs - rafIntervalMsEstimate) * 0.1;
+      }
       // Edit mode freezes wave time and camera bob/drift/walk (physDt below)
       // but leaves the LOOK stick's yaw/pitch (which still uses dt directly)
       // free, so the view can still be reoriented while editing.
@@ -5358,11 +5383,16 @@ export function Aquafulness() {
       // camera/physics/uniforms above still update every rAF tick (cheap,
       // keeps input response and motion timing correct), only the expensive
       // renderer.render() draw call itself is skipped on the frames in
-      // between. A cap of 0 or less renders every frame, uncapped.
+      // between. A cap of 0 or less renders every frame, uncapped. Render
+      // every Nth tick (N from rafIntervalMsEstimate above) rather than
+      // whenever enough wall-clock time has passed — see that estimate's
+      // comment for why the wall-clock version reads as juddery.
       const fpsCap = gogglesOnRef.current ? gogglesFpsCapRef.current : targetFpsRef.current;
-      const renderDue = fpsCap <= 0 || now - lastRenderMs >= 1000 / fpsCap;
+      renderTickCount++;
+      const ticksPerRender =
+        fpsCap <= 0 ? 1 : Math.max(1, Math.round(1000 / fpsCap / rafIntervalMsEstimate));
+      const renderDue = fpsCap <= 0 || renderTickCount % ticksPerRender === 0;
       if (renderDue) {
-        lastRenderMs = now;
         // Must run before renderer.render() below — it syncs each TV
         // panel's invisible occluder mesh (added to `scene`) to the
         // panel's current transform, so the depth test that lets other 3D
