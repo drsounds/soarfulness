@@ -492,19 +492,24 @@ type SurfaceManifest = {
 // VÅGPRESET bundles — everything the wave-only preset selector applies in
 // one step. "standard" is this app's current default; "legacy" restores the
 // exact wave settings from before that change (tall, fast REGELBUNDEN
-// waves) for anyone who preferred the original feel. Both keep
-// realisticWaves off — DEFAULTS below independently pins it to false as the
-// app's real shipped default, and applyWavePreset() re-derives realisticWaves
-// straight from this object on every dial click, so a "standard" bundled
-// with realisticWaves: true would silently re-enable the expensive FFT wave
-// simulation (a 32-term sum evaluated per vertex, up to 6x per fragment for
-// caustics) the instant someone touches the WAVE PRESET dial — completely
-// independent of, and overriding, whatever they'd set the dedicated
-// REALISTIC WAVES toggle to. That's its own separate control; pick this
-// preset's calmer "FFT-hav swell" look through it explicitly instead.
-// DÖENDE VÅG (dying wave) is a newer, separate overlay and defaults off in
-// both presets — turn it on explicitly to layer a long, slow, dying swell on
-// top of whichever base preset is active.
+// waves, crossed) for anyone who preferred the original feel.
+//
+// applyWavePreset() re-derives every field below straight from this object
+// on every WAVE PRESET dial click, so "standard" — the default, active on
+// every fresh load — must exactly match DEFAULTS' own real values for any
+// field that also has its own independent, dedicated toggle elsewhere
+// (REALISTIC WAVES, CROSS WAVE, ...): otherwise simply touching the dial
+// silently fights whatever the user set that toggle to, no matter which
+// preset they land on. Already bitten twice — realisticWaves (a "standard"
+// bundled with it true would re-enable the expensive FFT wave simulation:
+// a 32-term sum per vertex, up to 6x per fragment for caustics) and
+// regularCross — so "standard" keeps both off, matching DEFAULTS exactly.
+// "legacy" intentionally differs on both (see its own historical-snapshot
+// purpose above) since selecting it is itself a deliberate, explicit choice
+// — that's not the same failure mode as the default preset drifting from
+// the default settings. DÖENDE VÅG (dying wave) is a newer, separate
+// overlay and defaults off in both presets — turn it on explicitly to layer
+// a long, slow, dying swell on top of whichever base preset is active.
 const WAVE_PRESETS: Record<
   WavePresetName,
   Pick<
@@ -531,7 +536,7 @@ const WAVE_PRESETS: Record<
     dyingWave: false,
     dyingWaveAmp: 1.2,
     dyingWaveSpeed: 0.6,
-    regularCross: true,
+    regularCross: false,
     regularPeriod: 1,
     wavePeak: 1,
   },
@@ -559,7 +564,6 @@ const DEFAULTS: Persisted = {
   waveAmp: 2.94,
   waveSpeed: 5.21,
   waveFreq: 0.51,
-  regularCross: false,
   // Off by default: the FFT wave modes stay the same fixed shape every load
   // (see FFT_WAVE_SEED/DYING_WAVE_SEED above) rather than reshuffling.
   randomizeWaves: false,
