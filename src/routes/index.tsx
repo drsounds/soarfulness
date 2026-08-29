@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import * as THREE from "three";
@@ -87,7 +87,7 @@ import sandTextureAsset from "@/assets/sand_cc0_512.jpg.asset.json";
 import appIconAsset from "@/assets/AppIconBlack.png.asset.json";
 
 export const Route = createFileRoute("/")({
-  component: Aquafulness,
+  component: SplashScreen,
   head: () => ({
     meta: [
       { title: "Ocean Wave Meditation" },
@@ -757,6 +757,95 @@ function saveCameraPose(pose: CameraPose) {
   } catch {
     /* quota or privacy mode — ignore */
   }
+}
+
+// Splash screen's "Start bath" button: encodes whatever settings/camera pose
+// are already autosaved in localStorage (or the app's defaults, for a
+// first-time visitor) into the same bath-link payload shape as DELA
+// BADLÄNK inside the app itself (see buildBathLink further down) — so
+// tapping it opens straight into "the bath as it was left" via the
+// /bathing/$payload route, without ever mounting the full WebGL scene on
+// the splash screen. Camera pose is only included when a full x/y/z pose
+// (noclip mode) was saved — isValidBathPayload requires `y` once `c` is
+// present at all, and most saved poses only carry x/z/yaw/pitch.
+async function buildCurrentBathPayload(): Promise<string> {
+  const payload: BathPayload = {
+    v: 1,
+    s: pickFields(loadSettings(), PRESET_ALL_FIELDS) as Record<string, unknown>,
+  };
+  const pose = loadCameraPose();
+  if (pose && typeof pose.y === "number") {
+    payload.c = { x: pose.x, y: pose.y, z: pose.z, yaw: pose.yaw, pitch: pose.pitch };
+  }
+  return encodeStateToBase62(payload);
+}
+
+// The very first screen a visitor sees: brand mark, a "Start bath" button
+// that carries them into /bathing/$payload with today's settings already
+// encoded in the URL, and a link to /about — all in front of a slow,
+// looping meshed-gradient background (see .aq-splash-blob in styles.css).
+// Deliberately has no dependency on the ocean scene below, so it stays
+// instant to paint even before Three.js has loaded.
+function SplashScreen() {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [starting, setStarting] = useState(false);
+
+  const startBath = async () => {
+    if (starting) return;
+    setStarting(true);
+    try {
+      const payload = await buildCurrentBathPayload();
+      await navigate({ to: "/bathing/$payload", params: { payload } });
+    } catch {
+      setStarting(false);
+    }
+  };
+
+  return (
+    <div className="relative flex min-h-screen flex-col items-center overflow-hidden bg-[#dff3ef]">
+      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
+        <div className="absolute inset-0 bg-gradient-to-b from-[#eafff2] via-[#d9f5ee] to-[#eaf6ff]" />
+        <div className="aq-splash-blob aq-splash-blob--1" />
+        <div className="aq-splash-blob aq-splash-blob--2" />
+        <div className="aq-splash-blob aq-splash-blob--3" />
+        <div className="aq-splash-blob aq-splash-blob--4" />
+      </div>
+
+      <div className="relative z-10 flex flex-col items-center gap-6 px-6 pt-[calc(env(safe-area-inset-top,0px)+4rem)] text-center">
+        <img
+          src={appIconAsset.url}
+          alt={t("splash.logoAlt")}
+          className="h-20 w-20 drop-shadow-[0_6px_20px_rgba(11,61,92,0.25)]"
+        />
+
+        <div className="flex flex-col items-center gap-3">
+          <button
+            type="button"
+            onClick={() => void startBath()}
+            disabled={starting}
+            className="min-w-[220px] cursor-pointer rounded-full bg-[#0b3d5c] px-8 py-3.5 text-sm font-semibold tracking-[0.08em] text-white shadow-lg shadow-[#0b3d5c]/30 transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:cursor-default disabled:opacity-70"
+          >
+            {starting ? t("splash.starting") : t("splash.startBath")}
+          </button>
+
+          <Link
+            to="/about"
+            className="min-w-[220px] rounded-full border border-[#0b3d5c]/25 bg-white/40 px-8 py-3 text-sm font-medium tracking-[0.08em] text-[#0b3d5c] backdrop-blur-sm transition-colors hover:bg-white/60"
+          >
+            {t("about.navLabel")}
+          </Link>
+        </div>
+      </div>
+
+      <div className="relative z-10 mt-auto pt-6 pb-[calc(env(safe-area-inset-bottom,0px)+1.25rem)] text-center text-xs text-[#0b3d5c]/70">
+        {t("splash.copyright", {
+          year: new Date().getFullYear(),
+          name: t("about.sections.trader.name"),
+        })}
+      </div>
+    </div>
+  );
 }
 
 // Full-screen post-process pass for KROMATISK ABERRATION: samples the red and

@@ -460,6 +460,12 @@
     "tabsAriaLabel": "Settings tabs",
     "title": "SETTINGS"
   },
+  "splash": {
+    "copyright": "© {{year}} {{name}}. All rights reserved.",
+    "logoAlt": "Aquafulness",
+    "startBath": "Start bath",
+    "starting": "Starting…"
+  },
   "swing": {
     "preset": {
       "clouds": "CLOUDS",

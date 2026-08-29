@@ -460,6 +460,12 @@
     "tabsAriaLabel": "Asetusvälilehdet",
     "title": "ASETUKSET"
   },
+  "splash": {
+    "copyright": "© {{year}} {{name}}. Kaikki oikeudet pidätetään.",
+    "logoAlt": "Aquafulness",
+    "startBath": "Aloita kylpy",
+    "starting": "Aloitetaan…"
+  },
   "swing": {
     "preset": {
       "clouds": "PILVET",
