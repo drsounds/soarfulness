@@ -16,21 +16,9 @@ export function hueRotateTint(
   const oneThird = 1 / 3;
   const root3inv = 0.57735026919;
   const m: [number, number, number][] = [
-    [
-      c + oneThird * (1 - c),
-      -root3inv * s + oneThird * (1 - c),
-      root3inv * s + oneThird * (1 - c),
-    ],
-    [
-      root3inv * s + oneThird * (1 - c),
-      c + oneThird * (1 - c),
-      -root3inv * s + oneThird * (1 - c),
-    ],
-    [
-      -root3inv * s + oneThird * (1 - c),
-      root3inv * s + oneThird * (1 - c),
-      c + oneThird * (1 - c),
-    ],
+    [c + oneThird * (1 - c), -root3inv * s + oneThird * (1 - c), root3inv * s + oneThird * (1 - c)],
+    [root3inv * s + oneThird * (1 - c), c + oneThird * (1 - c), -root3inv * s + oneThird * (1 - c)],
+    [-root3inv * s + oneThird * (1 - c), root3inv * s + oneThird * (1 - c), c + oneThird * (1 - c)],
   ];
   const t: [number, number, number] = [base[0] * bright, base[1] * bright, base[2] * bright];
   const rotated: [number, number, number] = [
