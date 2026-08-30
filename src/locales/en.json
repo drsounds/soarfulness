@@ -191,7 +191,7 @@
       "brightness": "BRIGHTNESS",
       "caustics": "TRUE CAUSTICS",
       "color": "WATER",
-      "colorAlpha": "COLOR ALPHA",
+      "colorAlpha": "COLOR STRENGTH",
       "depth": "DEPTH",
       "depthSine": "DEPTH SINE",
       "floorTexture": "TEXTURE",

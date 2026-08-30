@@ -191,7 +191,7 @@
       "brightness": "LYSSTYRKE",
       "caustics": "EKTE KAUSTIKK",
       "color": "VANN",
-      "colorAlpha": "FARGE ALFA",
+      "colorAlpha": "FARGESTYRKE",
       "depth": "DYBDE",
       "depthSine": "DYBDE-SINUS",
       "floorTexture": "TEKSTUR",
