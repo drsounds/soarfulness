@@ -3840,7 +3840,7 @@ export function Aquafulness() {
         col = mix(col, water, clamp(uWaterColorAlpha, 0.0, 1.0));
 
         // Whitecap foam is applied *after* the color overlay above (rather
-        // than folded into `col` before it) so it stays visible at any
+        // than folded into col before it) so it stays visible at any
         // uWaterColorAlpha — the tint dial recolors the water body, not the
         // foam sitting on top of it.
         col = mix(col, vec3(0.95, 0.98, 1.0), foam * 0.85 * (1.0 - uUnderwater));
