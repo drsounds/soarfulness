@@ -191,7 +191,7 @@
       "brightness": "KIRKKAUS",
       "caustics": "AITO KAUSTIIKKA",
       "color": "VESI",
-      "colorAlpha": "VÄRIN ALFA",
+      "colorAlpha": "VÄRIN VOIMAKKUUS",
       "depth": "SYVYYS",
       "depthSine": "SYVYYS-SINI",
       "floorTexture": "TEKSTUURI",

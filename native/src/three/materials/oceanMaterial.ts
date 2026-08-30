@@ -404,7 +404,6 @@ export function createOceanMaterial(reflectionTexture?: THREE.Texture) {
       .mul(float(1.0).sub(u.uUnderwater));
 
     const col = mix(water, skyRef, fres.mul(float(1.0).sub(u.uUnderwater.mul(0.85)))).add(sun).toVar();
-    col.assign(mix(col, vec3(0.95, 0.98, 1.0), foam.mul(0.85).mul(float(1.0).sub(u.uUnderwater))));
 
     If(u.uSphereMix.greaterThan(0.001), () => {
       col.assign(mix(col, sphereMapShade(Nshim, water), u.uSphereMix));
@@ -413,6 +412,11 @@ export function createOceanMaterial(reflectionTexture?: THREE.Texture) {
     // Water color overlay (Super Mario Sunshine-style) — see the matching
     // block in the web app's GLSL fragment shader (src/routes/index.tsx).
     col.assign(mix(col, water, clamp(u.uWaterColorAlpha, 0.0, 1.0)));
+
+    // Whitecap foam is applied *after* the color overlay above so it stays
+    // visible at any uWaterColorAlpha — the tint dial recolors the water
+    // body, not the foam sitting on top of it.
+    col.assign(mix(col, vec3(0.95, 0.98, 1.0), foam.mul(0.85).mul(float(1.0).sub(u.uUnderwater))));
 
     col.mulAssign(u.uSurfBright);
     const sg = dot(col, vec3(0.299, 0.587, 0.114));

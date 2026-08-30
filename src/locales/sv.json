@@ -191,7 +191,7 @@
       "brightness": "LJUSSTYRKA",
       "caustics": "ÄKTA KAUSTIK",
       "color": "VATTEN",
-      "colorAlpha": "FÄRG ALFA",
+      "colorAlpha": "FÄRGSTYRKA",
       "depth": "DJUP",
       "depthSine": "DJUP-SINUS",
       "floorTexture": "TEXTUR",

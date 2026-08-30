@@ -3821,7 +3821,6 @@ export function Aquafulness() {
         // apart from the transmitted water body.
         float reflAmt = fres * (1.0 - uUnderwater * 0.85);
         vec3 col = mix(water, skyRef, reflAmt) + sun;
-        col = mix(col, vec3(0.95, 0.98, 1.0), foam * 0.85 * (1.0 - uUnderwater));
 
         // Selectable sphere-map ("matcap") material — a distinct, glossier
         // look the user opts into per VÅGMATERIAL, blended on top of the
@@ -3833,12 +3832,18 @@ export function Aquafulness() {
         // Water color overlay (Super Mario Sunshine-style): blend the flat,
         // tinted water body ("water" — deep/shallow color × WATER COLOR
         // preset, pre-reflection/pre-sun/pre-foam) back over the fully lit
-        // and textured result. uWaterColorAlpha is intentionally its own
-        // dial, independent of uOpacity (translucency to what's behind the
-        // water) and of uSurfBright/uSurfSat below (light/texture on the
-        // final look) — at 1 the water reads as a flat, saturated color
-        // regardless of lighting or reflections; at 0 it's unchanged.
+        // result. uWaterColorAlpha is intentionally its own dial, independent
+        // of uOpacity (translucency to what's behind the water) and of
+        // uSurfBright/uSurfSat below (light/texture on the final look) — at 1
+        // the water body reads as a flat, saturated color regardless of
+        // lighting or reflections; at 0 it's unchanged.
         col = mix(col, water, clamp(uWaterColorAlpha, 0.0, 1.0));
+
+        // Whitecap foam is applied *after* the color overlay above (rather
+        // than folded into `col` before it) so it stays visible at any
+        // uWaterColorAlpha — the tint dial recolors the water body, not the
+        // foam sitting on top of it.
+        col = mix(col, vec3(0.95, 0.98, 1.0), foam * 0.85 * (1.0 - uUnderwater));
 
         // Final surface color adjustment (independent of internal tint).
         col *= uSurfBright;
