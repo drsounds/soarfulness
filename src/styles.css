@@ -191,6 +191,75 @@ html, body {
   border: none;
 }
 
+/* Water tint color picker (SettingsPanel.tsx): plain <input type="range">
+   whose track is painted from the --aqua-track custom property instead of
+   the browser's flat default, so the hue slider reads as a real rainbow
+   swatch strip and the alpha slider reads as a real transparency ramp. The
+   --alpha variant layers a checkerboard under --aqua-track so a fading-out
+   gradient is still legible against the panel's own dark background. */
+.aqua-color-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 14px;
+  border-radius: 999px;
+  outline: none;
+  background: transparent;
+  cursor: pointer;
+}
+.aqua-color-slider::-webkit-slider-runnable-track {
+  height: 14px;
+  border-radius: 999px;
+  background: var(--aqua-track);
+}
+.aqua-color-slider::-moz-range-track {
+  height: 14px;
+  border-radius: 999px;
+  background: var(--aqua-track);
+}
+.aqua-color-slider--alpha::-webkit-slider-runnable-track {
+  background-image:
+    var(--aqua-track),
+    conic-gradient(
+      rgba(255, 255, 255, 0.35) 25%,
+      transparent 0 50%,
+      rgba(255, 255, 255, 0.35) 0 75%,
+      transparent 0
+    );
+  background-size: 100% 100%, 10px 10px;
+}
+.aqua-color-slider--alpha::-moz-range-track {
+  background-image:
+    var(--aqua-track),
+    conic-gradient(
+      rgba(255, 255, 255, 0.35) 25%,
+      transparent 0 50%,
+      rgba(255, 255, 255, 0.35) 0 75%,
+      transparent 0
+    );
+  background-size: 100% 100%, 10px 10px;
+}
+.aqua-color-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -1px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid rgba(0, 0, 0, 0.45);
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+}
+.aqua-color-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid rgba(0, 0, 0, 0.45);
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+}
+
 /* Splash screen's animated meshed-gradient background (see SplashScreen in
    routes/index.tsx): a handful of large, heavily blurred radial-gradient
    blobs, each drifting on its own slow loop so the blend between them keeps
