@@ -1,8 +1,15 @@
-import { useState, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
+import {
+  useState,
+  type CSSProperties,
+  type Dispatch,
+  type MutableRefObject,
+  type SetStateAction,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "@tanstack/react-router";
 import { PadDial } from "@/components/PadDial";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { hueRotateTint, tintToCss } from "@/lib/waterTint";
 import {
   SETTINGS_TABS,
   WATER_COLORS,
@@ -87,6 +94,104 @@ function LanguageSwitcher() {
         ))}
       </select>
     </label>
+  );
+}
+
+// Real color picker for the water tint — replaces the old plain numeric
+// HUE dial (a bare -180..180° stepper with no visual color feedback) with
+// a hue slider whose rainbow gradient is rendered from the exact same
+// hue-rotation math the ocean shader applies (lib/waterTint.ts), so the bar
+// always shows the actual resulting color for the current preset/
+// saturation/brightness. The old, separate COLOR ALPHA dial is folded into
+// this same widget as a checkerboard transparency slider, since alpha is
+// part of the same "what color is the water" decision.
+function WaterColorPicker({
+  hueLabel,
+  alphaLabel,
+  hue,
+  setHue,
+  alpha,
+  setAlpha,
+  baseRgb,
+  sat,
+  bright,
+}: {
+  hueLabel: string;
+  alphaLabel: string;
+  hue: number;
+  setHue: (v: number) => void;
+  alpha: number;
+  setAlpha: (v: number) => void;
+  baseRgb: readonly [number, number, number];
+  sat: number;
+  bright: number;
+}) {
+  const previewRgb = hueRotateTint(baseRgb, bright, hue, sat);
+  const hueTrack = Array.from({ length: 13 }, (_, i) =>
+    tintToCss(hueRotateTint(baseRgb, bright, -180 + (i * 360) / 12, sat), 1),
+  ).join(", ");
+  const alphaTrack = `${tintToCss(previewRgb, 0)}, ${tintToCss(previewRgb, 1)}`;
+
+  return (
+    <div className="flex w-full max-w-xs flex-col gap-2 rounded-2xl border border-white/15 bg-black/40 px-3 py-2.5 backdrop-blur-md">
+      <div className="flex items-center gap-2.5">
+        <div
+          className="h-8 w-8 shrink-0 overflow-hidden rounded-full border border-white/30"
+          style={{
+            backgroundImage:
+              "conic-gradient(rgba(255,255,255,0.25) 25%, transparent 0 50%, rgba(255,255,255,0.25) 0 75%, transparent 0)",
+            backgroundSize: "10px 10px",
+          }}
+        >
+          <div
+            className="h-full w-full"
+            style={{ backgroundColor: tintToCss(previewRgb, alpha) }}
+          />
+        </div>
+        <div className="flex flex-1 flex-col gap-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] font-light tracking-[0.28em] text-white/60">
+              {hueLabel}
+            </span>
+            <span className="text-[10px] font-medium tabular-nums tracking-wider text-white/80">
+              {Math.round(hue)}°
+            </span>
+          </div>
+          <input
+            type="range"
+            min={-180}
+            max={180}
+            step={1}
+            value={hue}
+            onChange={(e) => setHue(Number(e.target.value))}
+            aria-label={hueLabel}
+            className="aqua-color-slider w-full"
+            style={{ "--aqua-track": `linear-gradient(to right, ${hueTrack})` } as CSSProperties}
+          />
+        </div>
+      </div>
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center justify-between">
+          <span className="text-[9px] font-light tracking-[0.28em] text-white/60">
+            {alphaLabel}
+          </span>
+          <span className="text-[10px] font-medium tabular-nums tracking-wider text-white/80">
+            {Math.round(alpha * 100)}%
+          </span>
+        </div>
+        <input
+          type="range"
+          min={0}
+          max={1}
+          step={0.01}
+          value={alpha}
+          onChange={(e) => setAlpha(Number(e.target.value))}
+          aria-label={alphaLabel}
+          className="aqua-color-slider aqua-color-slider--alpha w-full"
+          style={{ "--aqua-track": `linear-gradient(to right, ${alphaTrack})` } as CSSProperties}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -2047,29 +2152,16 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onDec={() => setWaterOpacity((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
               onInc={() => setWaterOpacity((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
             />
-            <PadDial
-              label={t("dial.water.colorAlpha")}
-              mode="number"
-              value={`${Math.round(waterColorAlpha * 100)}%`}
-              rawValue={waterColorAlpha}
-              onSet={setWaterColorAlpha}
-              min={0}
-              max={1}
-              step={0.05}
-              onDec={() => setWaterColorAlpha((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
-              onInc={() => setWaterColorAlpha((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
-            />
-            <PadDial
-              label={t("dial.water.hue")}
-              mode="number"
-              value={`${Math.round(waterHue)}°`}
-              rawValue={waterHue}
-              onSet={setWaterHue}
-              min={-180}
-              max={180}
-              step={5}
-              onDec={() => setWaterHue((v) => Math.max(-180, +(v - 5).toFixed(0)))}
-              onInc={() => setWaterHue((v) => Math.min(180, +(v + 5).toFixed(0)))}
+            <WaterColorPicker
+              hueLabel={t("dial.water.hue")}
+              alphaLabel={t("dial.water.colorAlpha")}
+              hue={waterHue}
+              setHue={setWaterHue}
+              alpha={waterColorAlpha}
+              setAlpha={setWaterColorAlpha}
+              baseRgb={WATER_COLORS[waterColorIdx]?.rgb ?? WATER_COLORS[0].rgb}
+              sat={waterSat}
+              bright={waterBright}
             />
             <PadDial
               label={t("dial.water.saturation")}
