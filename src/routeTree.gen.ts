@@ -17,6 +17,7 @@ import { Route as BathingPayloadRouteImport } from './routes/bathing.$payload'
 import { Route as DocsIndexRouteImport } from './routes/docs.index'
 import { Route as DocsBackgroundRouteImport } from './routes/docs.background'
 import { Route as DocsOpticFlowRouteImport } from './routes/docs.optic-flow'
+import { Route as DocsReferencesRouteImport } from './routes/docs.references'
 import { Route as BathingPayloadIndexRouteImport } from './routes/bathing.$payload.index'
 import { Route as BathingPayloadBatheRouteImport } from './routes/bathing.$payload.bathe'
 
@@ -60,6 +61,11 @@ const DocsOpticFlowRoute = DocsOpticFlowRouteImport.update({
   path: '/optic-flow',
   getParentRoute: () => DocsRoute,
 } as any)
+const DocsReferencesRoute = DocsReferencesRouteImport.update({
+  id: '/references',
+  path: '/references',
+  getParentRoute: () => DocsRoute,
+} as any)
 const BathingPayloadIndexRoute = BathingPayloadIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -79,6 +85,7 @@ export interface FileRoutesByFullPath {
   '/bathing/$payload': typeof BathingPayloadRouteWithChildren
   '/docs/background': typeof DocsBackgroundRoute
   '/docs/optic-flow': typeof DocsOpticFlowRoute
+  '/docs/references': typeof DocsReferencesRoute
   '/docs/': typeof DocsIndexRoute
   '/bathing/$payload/bathe': typeof BathingPayloadBatheRoute
   '/bathing/$payload/': typeof BathingPayloadIndexRoute
@@ -89,6 +96,7 @@ export interface FileRoutesByTo {
   '/licenses': typeof LicensesRoute
   '/docs/background': typeof DocsBackgroundRoute
   '/docs/optic-flow': typeof DocsOpticFlowRoute
+  '/docs/references': typeof DocsReferencesRoute
   '/docs': typeof DocsIndexRoute
   '/bathing/$payload/bathe': typeof BathingPayloadBatheRoute
   '/bathing/$payload': typeof BathingPayloadIndexRoute
@@ -102,6 +110,7 @@ export interface FileRoutesById {
   '/bathing/$payload': typeof BathingPayloadRouteWithChildren
   '/docs/background': typeof DocsBackgroundRoute
   '/docs/optic-flow': typeof DocsOpticFlowRoute
+  '/docs/references': typeof DocsReferencesRoute
   '/docs/': typeof DocsIndexRoute
   '/bathing/$payload/bathe': typeof BathingPayloadBatheRoute
   '/bathing/$payload/': typeof BathingPayloadIndexRoute
@@ -116,6 +125,7 @@ export interface FileRouteTypes {
     | '/bathing/$payload'
     | '/docs/background'
     | '/docs/optic-flow'
+    | '/docs/references'
     | '/docs/'
     | '/bathing/$payload/bathe'
     | '/bathing/$payload/'
@@ -126,6 +136,7 @@ export interface FileRouteTypes {
     | '/licenses'
     | '/docs/background'
     | '/docs/optic-flow'
+    | '/docs/references'
     | '/docs'
     | '/bathing/$payload/bathe'
     | '/bathing/$payload'
@@ -138,6 +149,7 @@ export interface FileRouteTypes {
     | '/bathing/$payload'
     | '/docs/background'
     | '/docs/optic-flow'
+    | '/docs/references'
     | '/docs/'
     | '/bathing/$payload/bathe'
     | '/bathing/$payload/'
@@ -209,6 +221,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocsOpticFlowRouteImport
       parentRoute: typeof DocsRoute
     }
+    '/docs/references': {
+      id: '/docs/references'
+      path: '/references'
+      fullPath: '/docs/references'
+      preLoaderRoute: typeof DocsReferencesRouteImport
+      parentRoute: typeof DocsRoute
+    }
     '/bathing/$payload/': {
       id: '/bathing/$payload/'
       path: '/'
@@ -229,12 +248,14 @@ declare module '@tanstack/react-router' {
 interface DocsRouteChildren {
   DocsBackgroundRoute: typeof DocsBackgroundRoute
   DocsOpticFlowRoute: typeof DocsOpticFlowRoute
+  DocsReferencesRoute: typeof DocsReferencesRoute
   DocsIndexRoute: typeof DocsIndexRoute
 }
 
 const DocsRouteChildren: DocsRouteChildren = {
   DocsBackgroundRoute: DocsBackgroundRoute,
   DocsOpticFlowRoute: DocsOpticFlowRoute,
+  DocsReferencesRoute: DocsReferencesRoute,
   DocsIndexRoute: DocsIndexRoute,
 }
 

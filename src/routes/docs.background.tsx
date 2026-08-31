@@ -44,7 +44,7 @@ function BackgroundDocPage() {
         </AlertDescription>
       </Alert>
 
-      <Card>
+      <Card className="shadow-none">
         <CardHeader>
           <CardTitle>{t("docsPhilosophy.background.section1.title")}</CardTitle>
         </CardHeader>
@@ -110,7 +110,7 @@ function BackgroundDocPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="shadow-none">
         <CardHeader>
           <CardTitle>{t("docsPhilosophy.background.section2.title")}</CardTitle>
         </CardHeader>
@@ -152,7 +152,7 @@ function BackgroundDocPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="shadow-none">
         <CardHeader>
           <CardTitle>{t("docsPhilosophy.background.section3.title")}</CardTitle>
         </CardHeader>
@@ -175,7 +175,7 @@ function BackgroundDocPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="shadow-none">
         <CardHeader>
           <CardTitle>{t("docsPhilosophy.background.section4.title")}</CardTitle>
         </CardHeader>

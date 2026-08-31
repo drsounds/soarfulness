@@ -36,7 +36,7 @@ function DocsIndexPage() {
         </AlertDescription>
       </Alert>
 
-      <Card>
+      <Card className="shadow-none">
         <CardHeader>
           <CardTitle>
             <Link to="/docs/background" className="hover:underline">
@@ -53,7 +53,7 @@ function DocsIndexPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="shadow-none">
         <CardHeader>
           <CardTitle>
             <Link to="/docs/optic-flow" className="hover:underline">
@@ -63,6 +63,19 @@ function DocsIndexPage() {
         </CardHeader>
         <CardContent className="text-sm leading-relaxed text-muted-foreground">
           <p>{t("docsPhilosophy.index.card2.body")}</p>
+        </CardContent>
+      </Card>
+
+      <Card className="shadow-none">
+        <CardHeader>
+          <CardTitle>
+            <Link to="/docs/references" className="hover:underline">
+              {t("docsPhilosophy.index.card3.title")}
+            </Link>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm leading-relaxed text-muted-foreground">
+          <p>{t("docsPhilosophy.index.card3.body")}</p>
         </CardContent>
       </Card>
 
