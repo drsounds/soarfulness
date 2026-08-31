@@ -381,6 +381,13 @@ export type Persisted = {
   chromaticAberrationAmount: number;
   cameraMode: CameraMode;
   noclipSpeed: number;
+  // FRITT FALL/OMVÄND STIGNING's terminal vertical speed in m/s (at
+  // noclipSpeed 1x — still scaled by NOCLIP SPEED on top of this) and the
+  // exponential ease-in/out time constant ("grace") that ramps the actual
+  // applied rate toward it — see the noclip branch of the physics loop in
+  // routes/index.tsx for the exact math.
+  noclipFallRiseSpeed: number;
+  noclipVertEaseTime: number;
   swingPositionY: number;
   swingIntensity: number;
   swingXFactor: number;
@@ -455,6 +462,8 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
   kamera: [
     "cameraMode",
     "noclipSpeed",
+    "noclipFallRiseSpeed",
+    "noclipVertEaseTime",
     "swingPreset",
     "swingPositionY",
     "swingIntensity",

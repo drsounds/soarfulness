@@ -109,6 +109,83 @@ export function JoystickPad({
   );
 }
 
+export type VerticalMode = "rise" | "still" | "fall";
+
+// A vertical 3-position slider — drag (or tap) into the top/middle/bottom
+// third to pick "rise"/"still"/"fall". Used by noclip's JUMP control: a
+// single control for what used to be two separate toggle buttons (FRITT
+// FALL/OMVÄND STIGNING), with "still" as the natural middle ground between
+// them. Sticky like JoystickPad's sticky mode — it holds whatever position
+// it's set to rather than springing back — since the caller (routes/
+// index.tsx) already eases the actual applied vertical rate toward whatever
+// this picks, so snapping the *selection* here doesn't make the resulting
+// motion feel abrupt.
+export function VerticalModeSlider({
+  value,
+  onChange,
+  label = "JUMP",
+  height = 132,
+}: {
+  value: VerticalMode;
+  onChange: (v: VerticalMode) => void;
+  label?: string;
+  height?: number;
+}) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const activeId = useRef<number | null>(null);
+
+  const zoneFromPointer = (clientY: number): VerticalMode => {
+    const track = trackRef.current;
+    if (!track) return "still";
+    const rect = track.getBoundingClientRect();
+    const rel = (clientY - rect.top) / rect.height;
+    if (rel < 1 / 3) return "rise";
+    if (rel > 2 / 3) return "fall";
+    return "still";
+  };
+
+  const thumbFrac = value === "rise" ? 1 / 6 : value === "fall" ? 5 / 6 : 0.5;
+
+  return (
+    <div className="pointer-events-auto flex flex-col items-center gap-1 select-none">
+      <span className="text-[8px] font-light tracking-[0.28em] text-white/60">{label}</span>
+      <div
+        ref={trackRef}
+        onPointerDown={(e) => {
+          if (activeId.current !== null) return;
+          activeId.current = e.pointerId;
+          (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
+          onChange(zoneFromPointer(e.clientY));
+        }}
+        onPointerMove={(e) => {
+          if (activeId.current !== e.pointerId) return;
+          onChange(zoneFromPointer(e.clientY));
+        }}
+        onPointerUp={(e) => {
+          if (activeId.current !== e.pointerId) return;
+          activeId.current = null;
+        }}
+        onPointerCancel={() => {
+          activeId.current = null;
+        }}
+        className="relative w-10 touch-none rounded-full border border-white/20 bg-black/35 backdrop-blur-md"
+        style={{ height, boxShadow: "inset 0 0 30px rgba(255,255,255,0.05)" }}
+      >
+        <div className="pointer-events-none absolute inset-x-0 top-1.5 text-center text-[9px] leading-none text-white/40">
+          ▲
+        </div>
+        <div className="pointer-events-none absolute inset-x-0 bottom-1.5 text-center text-[9px] leading-none text-white/40">
+          ▼
+        </div>
+        <div
+          className="pointer-events-none absolute left-1/2 h-7 w-7 -translate-x-1/2 rounded-full border border-white/30 bg-white/80 shadow-[0_0_18px_rgba(255,255,255,0.35)] transition-[top] duration-200 ease-out"
+          style={{ top: `calc(${thumbFrac * 100}% - 14px)` }}
+        />
+      </div>
+    </div>
+  );
+}
+
 // Floating, fixed-position variant used directly over the 3D view (NAV/LOOK
 // on the main HUD) — a thin positioning wrapper around JoystickPad.
 export function Joystick({

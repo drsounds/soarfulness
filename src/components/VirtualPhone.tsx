@@ -32,6 +32,10 @@ export type RemoteControllerProps = {
   setNoclipFreeFallOn: Dispatch<SetStateAction<boolean>>;
   noclipReverseRiseOn: boolean;
   setNoclipReverseRiseOn: Dispatch<SetStateAction<boolean>>;
+  // Optional hands-off cycling between the two above (interval set in
+  // SETTINGS → KAMERA on the main HUD).
+  noclipAutoAlternateOn: boolean;
+  setNoclipAutoAlternateOn: Dispatch<SetStateAction<boolean>>;
   swayStick: StickValue;
   onSwayChange: (v: StickValue) => void;
   waveDirStick: StickValue;
@@ -1019,7 +1023,10 @@ export function VirtualPhone({
                   {remoteControllerProps.cameraMode === "noclip" && (
                     <div className="flex justify-center gap-3">
                       <button
-                        onClick={() => remoteControllerProps.setNoclipReverseRiseOn((v) => !v)}
+                        onClick={() => {
+                          remoteControllerProps.setNoclipAutoAlternateOn(false);
+                          remoteControllerProps.setNoclipReverseRiseOn((v) => !v);
+                        }}
                         className={`rounded-full border px-3 py-1.5 text-center text-[9px] font-light tracking-wider transition active:scale-95 ${
                           remoteControllerProps.noclipReverseRiseOn
                             ? "border-white/40 bg-white/20 text-white"
@@ -1030,7 +1037,10 @@ export function VirtualPhone({
                         {t("hud.joystick.reverseRise")}
                       </button>
                       <button
-                        onClick={() => remoteControllerProps.setNoclipFreeFallOn((v) => !v)}
+                        onClick={() => {
+                          remoteControllerProps.setNoclipAutoAlternateOn(false);
+                          remoteControllerProps.setNoclipFreeFallOn((v) => !v);
+                        }}
                         className={`rounded-full border px-3 py-1.5 text-center text-[9px] font-light tracking-wider transition active:scale-95 ${
                           remoteControllerProps.noclipFreeFallOn
                             ? "border-white/40 bg-white/20 text-white"
@@ -1039,6 +1049,17 @@ export function VirtualPhone({
                         aria-pressed={remoteControllerProps.noclipFreeFallOn}
                       >
                         {t("hud.joystick.freeFall")}
+                      </button>
+                      <button
+                        onClick={() => remoteControllerProps.setNoclipAutoAlternateOn((v) => !v)}
+                        className={`rounded-full border px-3 py-1.5 text-center text-[9px] font-light tracking-wider transition active:scale-95 ${
+                          remoteControllerProps.noclipAutoAlternateOn
+                            ? "border-white/40 bg-white/20 text-white"
+                            : "border-white/15 bg-white/5 text-white/60"
+                        }`}
+                        aria-pressed={remoteControllerProps.noclipAutoAlternateOn}
+                      >
+                        {t("hud.joystick.autoAlternate")}
                       </button>
                     </div>
                   )}

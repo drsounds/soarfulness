@@ -16,7 +16,12 @@ import { GogglesOverlay } from "@/components/GogglesOverlay";
 import { TimeTravelDialog } from "@/components/TimeTravelDialog";
 import { isFuturisticYear, northernHemisphereTimeOfDay, simulatedDate } from "@/lib/timeTravel";
 import { PadSlider } from "@/components/PadDial";
-import { Joystick, JoystickPad } from "@/components/Joystick";
+import {
+  Joystick,
+  JoystickPad,
+  VerticalModeSlider,
+  type VerticalMode,
+} from "@/components/Joystick";
 import { hsvToRgb } from "@/lib/waterTint";
 import {
   padToWorldXZ,
@@ -733,6 +738,8 @@ const DEFAULTS: Persisted = {
   chromaticAberrationAmount: 0.3,
   cameraMode: "float",
   noclipSpeed: 1,
+  noclipFallRiseSpeed: 48,
+  noclipVertEaseTime: 0.7,
   swingPositionY: 25,
   swingIntensity: 0.3,
   swingXFactor: 0,
@@ -1123,6 +1130,8 @@ export function Aquafulness() {
   );
   const [cameraMode, setCameraMode] = useState<CameraMode>(initial.cameraMode);
   const [noclipSpeed, setNoclipSpeed] = useState(initial.noclipSpeed);
+  const [noclipFallRiseSpeed, setNoclipFallRiseSpeed] = useState(initial.noclipFallRiseSpeed);
+  const [noclipVertEaseTime, setNoclipVertEaseTime] = useState(initial.noclipVertEaseTime);
   // Resting altitude the pendulum hangs from — GUNGA POSITION Y. Renamed from
   // the old "swingHeight" (which was confusingly close to swingYAmplitude,
   // the actual up/down excursion, now called GUNGA HÖJD below).
@@ -1215,6 +1224,21 @@ export function Aquafulness() {
   // Mutually exclusive; toggling one off falls back to vertStick's own value.
   const [noclipFreeFallOn, setNoclipFreeFallOn] = useState(false);
   const [noclipReverseRiseOn, setNoclipReverseRiseOn] = useState(false);
+  // Optional hands-off cycling between the two above: while on, flips FRITT
+  // FALL/OMVÄND STIGNING back and forth every noclipAutoAlternateInterval
+  // seconds, so noclip bobs up and down through the world boundary without
+  // needing either toggle held. See the driver effect near
+  // noclipAutoAlternateIntervalRef below.
+  const [noclipAutoAlternateOn, setNoclipAutoAlternateOn] = useState(false);
+  const [noclipAutoAlternateInterval, setNoclipAutoAlternateInterval] = useState(6);
+  // Ambient wave motion for noclip: while either is on and neither FRITT
+  // FALL nor OMVÄND STIGNING is active ("still"), the camera also picks up
+  // the wave's own vertical heave / horizontal sway on top of its free
+  // position — purely cosmetic, decoupled from actual depth (it applies the
+  // same whether the camera is high above or deep under the surface), unlike
+  // FLYT/VIRVEL's buoyancy which is the real physical response to floating.
+  const [noclipHeaveOn, setNoclipHeaveOn] = useState(false);
+  const [noclipSwayOn, setNoclipSwayOn] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("vagor");
   // VÅG/TEMPO/FREKVENS live behind their own bottom drawer (like SETTINGS)
@@ -1405,6 +1429,8 @@ export function Aquafulness() {
     chromaticAberrationAmount,
     cameraMode,
     noclipSpeed,
+    noclipFallRiseSpeed,
+    noclipVertEaseTime,
     swingPositionY,
     swingIntensity,
     swingXFactor,
@@ -1548,6 +1574,8 @@ export function Aquafulness() {
     chromaticAberrationAmount,
     cameraMode,
     noclipSpeed,
+    noclipFallRiseSpeed,
+    noclipVertEaseTime,
     swingPositionY,
     swingIntensity,
     swingXFactor,
@@ -1614,6 +1642,14 @@ export function Aquafulness() {
   const vertStickRef = useRef({ x: 0, y: 0 });
   const cameraModeRef = useRef<CameraMode>(cameraMode);
   const noclipSpeedRef = useRef(noclipSpeed);
+  const noclipFallRiseSpeedRef = useRef(noclipFallRiseSpeed);
+  const noclipVertEaseTimeRef = useRef(noclipVertEaseTime);
+  const noclipHeaveOnRef = useRef(noclipHeaveOn);
+  const noclipSwayOnRef = useRef(noclipSwayOn);
+  // Ambient noclip heave's own eased vertical offset (m), additive on top of
+  // posRef.current.y — see noclipVertVelRef above for the fall/rise rate this
+  // is analogous to.
+  const noclipHeaveOffsetRef = useRef(0);
   const swingPositionYRef = useRef(swingPositionY);
   const swingIntensityRef = useRef(swingIntensity);
   const swingXFactorRef = useRef(swingXFactor);
@@ -1747,6 +1783,11 @@ export function Aquafulness() {
   const worldBoundaryYExtendRef = useRef(worldBoundaryYExtend);
   const noclipFreeFallOnRef = useRef(noclipFreeFallOn);
   const noclipReverseRiseOnRef = useRef(noclipReverseRiseOn);
+  const noclipAutoAlternateIntervalRef = useRef(noclipAutoAlternateInterval);
+  // Eased vertical velocity actually applied in noclip mode (m/s): ramps
+  // toward whatever FRITT FALL/OMVÄND STIGNING/HÖJD currently target instead
+  // of snapping straight to it. See the physics loop below.
+  const noclipVertVelRef = useRef(0);
   useEffect(() => {
     ampRef.current = waveAmp;
   }, [waveAmp]);
@@ -2002,6 +2043,36 @@ export function Aquafulness() {
     noclipReverseRiseOnRef.current = noclipReverseRiseOn;
     if (noclipReverseRiseOn) setNoclipFreeFallOn(false);
   }, [noclipReverseRiseOn]);
+  useEffect(() => {
+    noclipAutoAlternateIntervalRef.current = noclipAutoAlternateInterval;
+  }, [noclipAutoAlternateInterval]);
+  // Auto-alternate driver: while on, flips FRITT FALL/OMVÄND STIGNING back
+  // and forth every noclipAutoAlternateInterval seconds. Reads the interval
+  // from a ref each tick (like the interval-session driver above) so dialing
+  // it live never restarts the cycle's current phase. Turning it off (via
+  // the toggle or unmount) clears both so noclip falls back to plain
+  // HÖJD/NAV control instead of freezing mid-fall or mid-rise.
+  useEffect(() => {
+    if (!noclipAutoAlternateOn) return;
+    let phaseIsFall = true;
+    let phaseStart = performance.now();
+    setNoclipFreeFallOn(true);
+    setNoclipReverseRiseOn(false);
+    const id = window.setInterval(() => {
+      const durationMs = Math.max(1, noclipAutoAlternateIntervalRef.current) * 1000;
+      if (performance.now() - phaseStart >= durationMs) {
+        phaseIsFall = !phaseIsFall;
+        phaseStart = performance.now();
+        setNoclipFreeFallOn(phaseIsFall);
+        setNoclipReverseRiseOn(!phaseIsFall);
+      }
+    }, 100);
+    return () => {
+      window.clearInterval(id);
+      setNoclipFreeFallOn(false);
+      setNoclipReverseRiseOn(false);
+    };
+  }, [noclipAutoAlternateOn]);
   // Live reflection-strength dial → shader (multiplies the surface's base).
   useEffect(() => {
     reflStrengthRef.current = reflStrength;
@@ -2034,6 +2105,18 @@ export function Aquafulness() {
   useEffect(() => {
     noclipSpeedRef.current = noclipSpeed;
   }, [noclipSpeed]);
+  useEffect(() => {
+    noclipFallRiseSpeedRef.current = noclipFallRiseSpeed;
+  }, [noclipFallRiseSpeed]);
+  useEffect(() => {
+    noclipVertEaseTimeRef.current = noclipVertEaseTime;
+  }, [noclipVertEaseTime]);
+  useEffect(() => {
+    noclipHeaveOnRef.current = noclipHeaveOn;
+  }, [noclipHeaveOn]);
+  useEffect(() => {
+    noclipSwayOnRef.current = noclipSwayOn;
+  }, [noclipSwayOn]);
   useEffect(() => {
     swingPositionYRef.current = swingPositionY;
   }, [swingPositionY]);
@@ -2110,6 +2193,8 @@ export function Aquafulness() {
     cameraModeRef.current = cameraMode;
     if (cameraMode === "noclip") {
       posRef.current.y = camYRef.current ?? swingPositionYRef.current;
+      noclipVertVelRef.current = 0;
+      noclipHeaveOffsetRef.current = 0;
     } else if (cameraMode === "whirlpool") {
       whirlpoolPhaseRef.current = { phase: "drag", startMs: performance.now() };
     } else if (cameraMode === "swing") {
@@ -2335,6 +2420,8 @@ export function Aquafulness() {
     setChromaticAberrationAmount(DEFAULTS.chromaticAberrationAmount);
     setCameraMode(DEFAULTS.cameraMode);
     setNoclipSpeed(DEFAULTS.noclipSpeed);
+    setNoclipFallRiseSpeed(DEFAULTS.noclipFallRiseSpeed);
+    setNoclipVertEaseTime(DEFAULTS.noclipVertEaseTime);
     setSwingPositionY(DEFAULTS.swingPositionY);
     setSwingIntensity(DEFAULTS.swingIntensity);
     setSwingXFactor(DEFAULTS.swingXFactor);
@@ -2482,6 +2569,8 @@ export function Aquafulness() {
       setChromaticAberrationAmount(patch.chromaticAberrationAmount);
     if (patch.cameraMode !== undefined) setCameraMode(patch.cameraMode);
     if (patch.noclipSpeed !== undefined) setNoclipSpeed(patch.noclipSpeed);
+    if (patch.noclipFallRiseSpeed !== undefined) setNoclipFallRiseSpeed(patch.noclipFallRiseSpeed);
+    if (patch.noclipVertEaseTime !== undefined) setNoclipVertEaseTime(patch.noclipVertEaseTime);
     if (patch.swingPositionY !== undefined) setSwingPositionY(patch.swingPositionY);
     if (patch.swingIntensity !== undefined) setSwingIntensity(patch.swingIntensity);
     if (patch.swingXFactor !== undefined) setSwingXFactor(patch.swingXFactor);
@@ -4741,15 +4830,30 @@ export function Aquafulness() {
         // constant dive/climb, overriding HÖJD (vertStickRef) while active —
         // a quick way to commit to a long, hands-off descent/ascent through
         // VÄRLDSGRÄNS's y extension below instead of holding HÖJD deflected.
-        const fallRiseSpeed = walkSpeed * 3 * Math.max(0.1, noclipSpeedRef.current);
-        const vertRate = noclipFreeFallOnRef.current
+        // NOCLIP FALL/RISE SPEED (noclipFallRiseSpeedRef, "throttle") and
+        // NOCLIP EASE (noclipVertEaseTimeRef, "grace") are both user-tunable
+        // in SETTINGS → KAMERA.
+        const fallRiseSpeed =
+          noclipFallRiseSpeedRef.current * Math.max(0.1, noclipSpeedRef.current);
+        const targetVertRate = noclipFreeFallOnRef.current
           ? -fallRiseSpeed
           : noclipReverseRiseOnRef.current
             ? fallRiseSpeed
             : (stickRef.current.y * fwdY + vertStickRef.current.y) * speed;
+        // Ease the applied vertical rate toward its target with a frame-rate-
+        // independent exponential (v += (target - v) * (1 - e^(-dt/tau))),
+        // instead of snapping straight to it. That's what makes FRITT
+        // FALL/OMVÄND STIGNING read as a real accelerating fall/climb rather
+        // than an instant terminal velocity, and — the same mechanic doing
+        // double duty — makes every transition between them (or back to
+        // HÖJD/NAV control, including the auto-alternate cycle above) a
+        // graceful glide instead of a jarring snap.
+        const vertTau = Math.max(0.02, noclipVertEaseTimeRef.current);
+        const vertBlend = 1 - Math.exp(-physDt / vertTau);
+        noclipVertVelRef.current += (targetVertRate - noclipVertVelRef.current) * vertBlend;
         posRef.current.x +=
           (moveX * speed + noclipDriftWorldRef.current.x * driftSpeedNoclip) * physDt;
-        posRef.current.y += vertRate * physDt;
+        posRef.current.y += noclipVertVelRef.current * physDt;
         posRef.current.z +=
           (moveZ * speed + noclipDriftWorldRef.current.z * driftSpeedNoclip) * physDt;
         camX = posRef.current.x;
@@ -5208,6 +5312,60 @@ export function Aquafulness() {
         // Giving sway the same kind of momentum makes it read as a floating
         // body being carried by the wave. SVAJ TEMPO still sets how snappy
         // that response is (higher = tighter to the heave, lower = looser).
+        const swK = 5 + 20 * Math.max(0.05, swaySpeedRef.current);
+        const swZeta = 0.6;
+        const swC = 2 * swZeta * Math.sqrt(swK);
+        const swayAX = swK * (swayTargetX - swayPosRef.current.x) - swC * swayVelRef.current.x;
+        const swayAZ = swK * (swayTargetZ - swayPosRef.current.z) - swC * swayVelRef.current.z;
+        swayVelRef.current.x += swayAX * physDt;
+        swayVelRef.current.z += swayAZ * physDt;
+        swayPosRef.current.x += swayVelRef.current.x * physDt;
+        swayPosRef.current.z += swayVelRef.current.z * physDt;
+        swayX = swayPosRef.current.x;
+        swayZ = swayPosRef.current.z;
+      } else if (camMode === "noclip") {
+        // Ambient HEAVE/SWAY: purely cosmetic wave motion layered on top of
+        // noclip's free-flight position, only while "still" (FRITT
+        // FALL/OMVÄND STIGNING already pin the vertical rate, so heave would
+        // just be swamped by it) — unlike FLYT/VIRVEL's buoyancy above, this
+        // isn't a physical response to floating, so it applies the same
+        // whether the camera is high above or deep under the surface.
+        // Targets fall back to 0 whenever a toggle is off or the camera is
+        // rising/falling, so the same easing that eases fall/rise (using the
+        // same NOCLIP EASE "grace" dial) also eases HEAVE/SWAY in and out
+        // instead of snapping.
+        const stillNow = !noclipFreeFallOnRef.current && !noclipReverseRiseOnRef.current;
+        const easeTau = Math.max(0.02, noclipVertEaseTimeRef.current);
+        const heaveBlend = 1 - Math.exp(-physDt / easeTau);
+        const heaveTarget = stillNow && noclipHeaveOnRef.current ? surfaceY : 0;
+        noclipHeaveOffsetRef.current += (heaveTarget - noclipHeaveOffsetRef.current) * heaveBlend;
+        camYRef.current = posRef.current.y + noclipHeaveOffsetRef.current;
+
+        let swayTargetX = 0,
+          swayTargetZ = 0;
+        if (stillNow && noclipSwayOnRef.current) {
+          const amp = ampRef.current;
+          const heaveNorm = amp > 0.0001 ? Math.tanh(surfaceY / (amp * 2.2)) : 0;
+          const swAmp = swayAmpRef.current;
+          if (swAmp > 0.001) {
+            const ws = swaySpeedRef.current;
+            const dirRadS = (waveDirRef.current * Math.PI) / 180;
+            const dx = Math.cos(dirRadS);
+            const dz = -Math.sin(dirRadS);
+            const bias = swayBiasRef.current;
+            const st = t * Math.max(0.02, ws);
+            const biasEnv = Math.sin(st * 0.09) * 0.5 + 0.5;
+            swayTargetX = swAmp * (heaveNorm * dx + bias * dx * biasEnv * 1.2);
+            swayTargetZ = swAmp * (heaveNorm * dz + bias * dz * biasEnv * 1.2);
+          }
+          const dirX = swayWorldRef.current.x;
+          const dirZ = swayWorldRef.current.z;
+          if (Math.abs(dirX) + Math.abs(dirZ) > 0.001) {
+            const padAmp = swAmp > 0.001 ? swAmp : 12;
+            swayTargetX += padAmp * dirX * heaveNorm;
+            swayTargetZ += padAmp * dirZ * heaveNorm;
+          }
+        }
         const swK = 5 + 20 * Math.max(0.05, swaySpeedRef.current);
         const swZeta = 0.6;
         const swC = 2 * swZeta * Math.sqrt(swK);
@@ -5956,6 +6114,14 @@ export function Aquafulness() {
     cycleCameraMode,
     noclipSpeed,
     setNoclipSpeed,
+    noclipFallRiseSpeed,
+    setNoclipFallRiseSpeed,
+    noclipVertEaseTime,
+    setNoclipVertEaseTime,
+    noclipAutoAlternateOn,
+    setNoclipAutoAlternateOn,
+    noclipAutoAlternateInterval,
+    setNoclipAutoAlternateInterval,
     swingPositionY,
     setSwingPositionY,
     swingIntensity,
@@ -6148,6 +6314,21 @@ export function Aquafulness() {
     setWaterSoundIdx,
   };
 
+  // JUMP: noclip's vertical mode slider condenses FRITT FALL/OMVÄND STIGNING/
+  // "neither" into a single tri-state control (see VerticalModeSlider) — this
+  // is just a two-way mirror between that tri-state and the pair of booleans
+  // the physics loop and the older pill buttons both still read/write.
+  const noclipVerticalMode: VerticalMode = noclipFreeFallOn
+    ? "fall"
+    : noclipReverseRiseOn
+      ? "rise"
+      : "still";
+  const setNoclipVerticalMode = (m: VerticalMode) => {
+    setNoclipAutoAlternateOn(false);
+    setNoclipFreeFallOn(m === "fall");
+    setNoclipReverseRiseOn(m === "rise");
+  };
+
   // STRÖM/HÖJD/SVAJ/VÅGRIKT — every on-screen joystick except NAV and LOOK —
   // also rendered inside the "Fjärrkontroll" app in the bathOS phone (see
   // VirtualPhone.tsx), in addition to STRÖM/SVAJ/VÅGRIKT's own spot on the
@@ -6174,6 +6355,8 @@ export function Aquafulness() {
     setNoclipFreeFallOn,
     noclipReverseRiseOn,
     setNoclipReverseRiseOn,
+    noclipAutoAlternateOn,
+    setNoclipAutoAlternateOn,
     swayStick,
     onSwayChange: (v) => {
       setSwayStick(v);
@@ -6540,7 +6723,10 @@ export function Aquafulness() {
             <div className="flex flex-col items-center gap-1">
               <button
                 type="button"
-                onClick={() => setNoclipReverseRiseOn((v) => !v)}
+                onClick={() => {
+                  setNoclipAutoAlternateOn(false);
+                  setNoclipReverseRiseOn((v) => !v);
+                }}
                 aria-pressed={noclipReverseRiseOn}
                 className={`pointer-events-auto rounded-full border px-2 py-0.5 text-[8px] font-light tracking-[0.2em] backdrop-blur-md transition active:scale-95 ${
                   noclipReverseRiseOn
@@ -6558,7 +6744,10 @@ export function Aquafulness() {
               />
               <button
                 type="button"
-                onClick={() => setNoclipFreeFallOn((v) => !v)}
+                onClick={() => {
+                  setNoclipAutoAlternateOn(false);
+                  setNoclipFreeFallOn((v) => !v);
+                }}
                 aria-pressed={noclipFreeFallOn}
                 className={`pointer-events-auto rounded-full border px-2 py-0.5 text-[8px] font-light tracking-[0.2em] backdrop-blur-md transition active:scale-95 ${
                   noclipFreeFallOn
@@ -6567,6 +6756,51 @@ export function Aquafulness() {
                 }`}
               >
                 {t("hud.joystick.freeFall")}
+              </button>
+              {/* Optional hands-off cycling between the two above, interval
+                  set in SETTINGS → KAMERA. */}
+              <button
+                type="button"
+                onClick={() => setNoclipAutoAlternateOn((v) => !v)}
+                aria-pressed={noclipAutoAlternateOn}
+                className={`pointer-events-auto rounded-full border px-2 py-0.5 text-[8px] font-light tracking-[0.2em] backdrop-blur-md transition active:scale-95 ${
+                  noclipAutoAlternateOn
+                    ? "border-white/50 bg-white/25 text-white"
+                    : "border-white/20 bg-black/40 text-white/70"
+                }`}
+              >
+                {t("hud.joystick.autoAlternate")}
+              </button>
+              {/* HEAVE/SWAY: opt in to riding the wave's own vertical bob/
+                  horizontal sway on top of the free-flight position — purely
+                  cosmetic (unlike FLYT/VIRVEL's real buoyancy), so it applies
+                  the same above or under the surface. Only takes effect while
+                  JUMP is in STILL (see the physics loop's noclip sway/heave
+                  branch), easing in/out with the same NOCLIP EASE dial as
+                  FRITT FALL/OMVÄND STIGNING. */}
+              <button
+                type="button"
+                onClick={() => setNoclipHeaveOn((v) => !v)}
+                aria-pressed={noclipHeaveOn}
+                className={`pointer-events-auto rounded-full border px-2 py-0.5 text-[8px] font-light tracking-[0.2em] backdrop-blur-md transition active:scale-95 ${
+                  noclipHeaveOn
+                    ? "border-white/50 bg-white/25 text-white"
+                    : "border-white/20 bg-black/40 text-white/70"
+                }`}
+              >
+                {t("hud.joystick.heave")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setNoclipSwayOn((v) => !v)}
+                aria-pressed={noclipSwayOn}
+                className={`pointer-events-auto rounded-full border px-2 py-0.5 text-[8px] font-light tracking-[0.2em] backdrop-blur-md transition active:scale-95 ${
+                  noclipSwayOn
+                    ? "border-white/50 bg-white/25 text-white"
+                    : "border-white/20 bg-black/40 text-white/70"
+                }`}
+              >
+                {t("hud.joystick.sway")}
               </button>
             </div>
           </div>
@@ -6585,6 +6819,21 @@ export function Aquafulness() {
             positionClass="bottom-36 right-8"
             sticky
           />
+        )}
+        {/* JUMP: a single tri-state slider (RISE/STILL/FALL) replacing the
+            left column's separate FRITT FALL/OMVÄND STIGNING pill buttons for
+            anyone who'd rather drag one control than tap two — both drive the
+            exact same state, so either stays in sync with the other. Sits in
+            VÅGRIKT's unused spot on the right since noclip has no wave
+            direction to steer. */}
+        {cameraMode === "noclip" && (
+          <div className="pointer-events-none absolute bottom-36 right-8 z-10 select-none">
+            <VerticalModeSlider
+              value={noclipVerticalMode}
+              onChange={setNoclipVerticalMode}
+              label={t("hud.joystick.jump")}
+            />
+          </div>
         )}
 
         {/* VÅG/TEMPO/FREKVENS — tucked behind their own bottom drawer (like
