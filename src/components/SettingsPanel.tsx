@@ -388,6 +388,14 @@ export type SettingsPanelProps = {
   cycleCameraMode: (dir: number) => void;
   noclipSpeed: number;
   setNoclipSpeed: Dispatch<SetStateAction<number>>;
+  noclipFallRiseSpeed: number;
+  setNoclipFallRiseSpeed: Dispatch<SetStateAction<number>>;
+  noclipVertEaseTime: number;
+  setNoclipVertEaseTime: Dispatch<SetStateAction<number>>;
+  noclipAutoAlternateOn: boolean;
+  setNoclipAutoAlternateOn: Dispatch<SetStateAction<boolean>>;
+  noclipAutoAlternateInterval: number;
+  setNoclipAutoAlternateInterval: Dispatch<SetStateAction<number>>;
   // Resting altitude the swing hangs from (formerly named "swingHeight",
   // renamed to avoid confusion with the vertical-excursion swingHeight below).
   swingPositionY: number;
@@ -927,6 +935,14 @@ export function SettingsPanel(props: SettingsPanelProps) {
     cycleCameraMode,
     noclipSpeed,
     setNoclipSpeed,
+    noclipFallRiseSpeed,
+    setNoclipFallRiseSpeed,
+    noclipVertEaseTime,
+    setNoclipVertEaseTime,
+    noclipAutoAlternateOn,
+    setNoclipAutoAlternateOn,
+    noclipAutoAlternateInterval,
+    setNoclipAutoAlternateInterval,
     swingPositionY,
     setSwingPositionY,
     swingIntensity,
@@ -1734,6 +1750,60 @@ export function SettingsPanel(props: SettingsPanelProps) {
                 step={0.1}
                 onDec={() => setNoclipSpeed((v) => Math.max(0.2, +(v - 0.1).toFixed(2)))}
                 onInc={() => setNoclipSpeed((v) => Math.min(6, +(v + 0.1).toFixed(2)))}
+              />
+            )}
+            {cameraMode === "noclip" && (
+              <PadDial
+                label={t("dial.camera.noclipFallRiseSpeed")}
+                mode="number"
+                value={`${noclipFallRiseSpeed.toFixed(0)}m/s`}
+                rawValue={noclipFallRiseSpeed}
+                onSet={(v) => setNoclipFallRiseSpeed(Math.max(2, Math.min(300, v)))}
+                min={2}
+                max={300}
+                step={2}
+                onDec={() => setNoclipFallRiseSpeed((v) => Math.max(2, +(v - 2).toFixed(0)))}
+                onInc={() => setNoclipFallRiseSpeed((v) => Math.min(300, +(v + 2).toFixed(0)))}
+              />
+            )}
+            {cameraMode === "noclip" && (
+              <PadDial
+                label={t("dial.camera.noclipVertEaseTime")}
+                mode="number"
+                value={`${noclipVertEaseTime.toFixed(2)}s`}
+                rawValue={noclipVertEaseTime}
+                onSet={(v) => setNoclipVertEaseTime(Math.max(0.05, Math.min(3, v)))}
+                min={0.05}
+                max={3}
+                step={0.05}
+                onDec={() => setNoclipVertEaseTime((v) => Math.max(0.05, +(v - 0.05).toFixed(2)))}
+                onInc={() => setNoclipVertEaseTime((v) => Math.min(3, +(v + 0.05).toFixed(2)))}
+              />
+            )}
+            {cameraMode === "noclip" && (
+              <PadDial
+                label={t("dial.camera.noclipAutoAlternate")}
+                value={onOff(noclipAutoAlternateOn)}
+                onDec={() => setNoclipAutoAlternateOn(false)}
+                onInc={() => setNoclipAutoAlternateOn(true)}
+              />
+            )}
+            {cameraMode === "noclip" && noclipAutoAlternateOn && (
+              <PadDial
+                label={t("dial.camera.noclipAutoAlternateInterval")}
+                mode="number"
+                value={`${noclipAutoAlternateInterval.toFixed(0)}s`}
+                rawValue={noclipAutoAlternateInterval}
+                onSet={(v) => setNoclipAutoAlternateInterval(Math.max(1, Math.min(120, v)))}
+                min={1}
+                max={120}
+                step={1}
+                onDec={() =>
+                  setNoclipAutoAlternateInterval((v) => Math.max(1, +(v - 1).toFixed(0)))
+                }
+                onInc={() =>
+                  setNoclipAutoAlternateInterval((v) => Math.min(120, +(v + 1).toFixed(0)))
+                }
               />
             )}
             {cameraMode === "swing" && (
