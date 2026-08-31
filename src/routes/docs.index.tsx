@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -17,23 +18,21 @@ export const Route = createFileRoute("/docs/")({
 });
 
 function DocsIndexPage() {
+  const { t } = useTranslation();
+
   return (
     <>
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Documentation</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("docsPhilosophy.index.title")}</h1>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          This is the theory behind Aquafulness: where the idea comes from, and the perceptual
-          principles — optic flow and kinesthetic movement — that the design leans on.
+          {t("docsPhilosophy.index.intro")}
         </p>
       </div>
 
       <Alert>
         <AlertDescription className="text-muted-foreground">
-          <strong className="text-foreground">Disclaimer:</strong> everything below describes
-          design intent grounded in the personal experience of the project's creator, together
-          with generally known perceptual concepts used as design inspiration. No medical claims
-          are made. Aquafulness is not a medical device or therapy, and no statement here about
-          calm, relaxation or well-being should be read as a clinically validated outcome.
+          <strong className="text-foreground">{t("docsPhilosophy.index.disclaimerLabel")}</strong>{" "}
+          {t("docsPhilosophy.index.disclaimerBody")}
         </AlertDescription>
       </Alert>
 
@@ -41,15 +40,15 @@ function DocsIndexPage() {
         <CardHeader>
           <CardTitle>
             <Link to="/docs/background" className="hover:underline">
-              1. Background and purpose
+              {t("docsPhilosophy.index.card1.title")}
             </Link>
           </CardTitle>
         </CardHeader>
         <CardContent className="text-sm leading-relaxed text-muted-foreground">
           <p>
-            The concept of digital bathing, the case study behind the project, the{" "}
-            <em>seeding</em> methodology, the sine-oscillation theory, and the "aquaful" state the
-            app tries to induce.
+            {t("docsPhilosophy.index.card1.bodyBefore")}{" "}
+            <em>{t("docsPhilosophy.index.card1.bodyEmphasis")}</em>{" "}
+            {t("docsPhilosophy.index.card1.bodyAfter")}
           </p>
         </CardContent>
       </Card>
@@ -58,30 +57,26 @@ function DocsIndexPage() {
         <CardHeader>
           <CardTitle>
             <Link to="/docs/optic-flow" className="hover:underline">
-              2. Optic flow and kinesthetic movement
+              {t("docsPhilosophy.index.card2.title")}
             </Link>
           </CardTitle>
         </CardHeader>
         <CardContent className="text-sm leading-relaxed text-muted-foreground">
-          <p>
-            How the visualization is designed around visual self-motion: slow coherent optic
-            flow, rocking of the whole visual field, and the goal of recreating the felt
-            experience of floating in warm water.
-          </p>
+          <p>{t("docsPhilosophy.index.card2.body")}</p>
         </CardContent>
       </Card>
 
       <p className="text-xs text-muted-foreground">
-        This app ("Aquafulness Core") shares its underlying theory with the original Godot-based{" "}
+        {t("docsPhilosophy.index.footerBefore")}{" "}
         <a
           href="https://github.com/drsounds/aquafulness-2028"
           target="_blank"
           rel="noopener noreferrer"
           className="underline hover:text-foreground"
         >
-          Aquafulness
+          {t("docsPhilosophy.index.footerLinkText")}
         </a>
-        , where this documentation originates.
+        {t("docsPhilosophy.index.footerAfter")}
       </p>
     </>
   );
