@@ -388,6 +388,10 @@ export type SettingsPanelProps = {
   cycleCameraMode: (dir: number) => void;
   noclipSpeed: number;
   setNoclipSpeed: Dispatch<SetStateAction<number>>;
+  noclipFallRiseSpeed: number;
+  setNoclipFallRiseSpeed: Dispatch<SetStateAction<number>>;
+  noclipVertEaseTime: number;
+  setNoclipVertEaseTime: Dispatch<SetStateAction<number>>;
   noclipAutoAlternateOn: boolean;
   setNoclipAutoAlternateOn: Dispatch<SetStateAction<boolean>>;
   noclipAutoAlternateInterval: number;
@@ -931,6 +935,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
     cycleCameraMode,
     noclipSpeed,
     setNoclipSpeed,
+    noclipFallRiseSpeed,
+    setNoclipFallRiseSpeed,
+    noclipVertEaseTime,
+    setNoclipVertEaseTime,
     noclipAutoAlternateOn,
     setNoclipAutoAlternateOn,
     noclipAutoAlternateInterval,
@@ -1742,6 +1750,34 @@ export function SettingsPanel(props: SettingsPanelProps) {
                 step={0.1}
                 onDec={() => setNoclipSpeed((v) => Math.max(0.2, +(v - 0.1).toFixed(2)))}
                 onInc={() => setNoclipSpeed((v) => Math.min(6, +(v + 0.1).toFixed(2)))}
+              />
+            )}
+            {cameraMode === "noclip" && (
+              <PadDial
+                label={t("dial.camera.noclipFallRiseSpeed")}
+                mode="number"
+                value={`${noclipFallRiseSpeed.toFixed(0)}m/s`}
+                rawValue={noclipFallRiseSpeed}
+                onSet={(v) => setNoclipFallRiseSpeed(Math.max(2, Math.min(300, v)))}
+                min={2}
+                max={300}
+                step={2}
+                onDec={() => setNoclipFallRiseSpeed((v) => Math.max(2, +(v - 2).toFixed(0)))}
+                onInc={() => setNoclipFallRiseSpeed((v) => Math.min(300, +(v + 2).toFixed(0)))}
+              />
+            )}
+            {cameraMode === "noclip" && (
+              <PadDial
+                label={t("dial.camera.noclipVertEaseTime")}
+                mode="number"
+                value={`${noclipVertEaseTime.toFixed(2)}s`}
+                rawValue={noclipVertEaseTime}
+                onSet={(v) => setNoclipVertEaseTime(Math.max(0.05, Math.min(3, v)))}
+                min={0.05}
+                max={3}
+                step={0.05}
+                onDec={() => setNoclipVertEaseTime((v) => Math.max(0.05, +(v - 0.05).toFixed(2)))}
+                onInc={() => setNoclipVertEaseTime((v) => Math.min(3, +(v + 0.05).toFixed(2)))}
               />
             )}
             {cameraMode === "noclip" && (
