@@ -265,6 +265,209 @@
       "whirlpoolStayDuration": "PYSY SISÄLLÄ"
     }
   },
+  "docsPhilosophy": {
+    "background": {
+      "disclaimer": {
+        "bodyAfter": "sekä tekijän henkilökohtaisen kokemuksen ja suunnitteluteorian. Se ei sisällä lääketieteellisiä väitteitä. Kun mielialaan tai rentoutumiseen liittyviä vaikutuksia kuvataan, ne kuvaavat subjektiivista kokemusta ja suunnittelutarkoitusta, ei kliinisesti todettuja tuloksia.",
+        "bodyBefore": "tämä sivu tiivistää",
+        "emphasis": "Aquafulness-tapaustutkimuksen",
+        "label": "Vastuuvapauslauseke:"
+      },
+      "section1": {
+        "availability": {
+          "body": "Toisin kuin juoksu tai pyöräily, uinti vaatii infrastruktuurin: uima-altaan tai luonnonveden oikeissa olosuhteissa. Altaat ovat kalliita rakentaa ja ylläpitää, tyypillisesti kunnallisia, ja niillä on rajoitetut aukioloajat. Luonnonvesi leudossa ilmastossa, kuten Ruotsissa, on keskimäärin 13–17 °C jopa heinäkuun huipulla — niin kylmää, että se ei suurimman osan vuotta yksinkertaisesti ole vaihtoehto — ja avovesi tuo mukanaan virtauksia, leväkukintoja ja kylmäsokin lisäksi valvonnan puuttumisen.",
+          "title": "Saatavuus"
+        },
+        "conclusionBody": "kylpeminen on kaksiteräinen miekka. Nautinto, rauha ja liikunta ovat todellisia; samoin ovat taloudelliset, hygieeniset, turvallisuus- ja saatavuusesteet. Aquafulnessin tavoitteena on herättää uudelleen joitakin kylpemisen kaivatuimpia myönteisiä vaikutuksia ilman upottautumista — saatavilla mihin vuorokaudenaikaan tahansa, missä säässä tahansa, kenelle tahansa, jolla on näyttö.",
+        "conclusionLabel": "Johtopäätös:",
+        "cost": {
+          "body": "Ruotsin julkisten kylpylöiden pääsymaksut ovat nousseet merkittävästi inflaation ja energian hintojen myötä — tyypillisesti 70–200 kruunua aikuisen käynniltä, kausikorttien maksaessa 1 500–3 000 kruunua. Vaikka opiskelijat, eläkeläiset ja reseptillä määrätty liikunta (FaR) saavat alennuksia, hinnat ovat monille kohtuuttomia.",
+          "title": "Kustannus"
+        },
+        "dressCodes": {
+          "body": "Hygienia- ja turvallisuussäännöt rajoittavat allasvaatetuksen uimatekstiileihin (lycra/spandex), koska tavallinen puuvillavaate irrottaa hiukkasia, kantaa bakteereja ja — vedestä raskaana — lisää hukkumisriskiä. Samaan aikaan yhä useampi vieras suosii uskonnollisista, kulttuurisista tai neurokirjon syistä uimavaatetusta, joka peittää vartalon enemmän. Tämä jännite on ollut aidosti kiistanalainen; laitokset vastaavat yhä useammin tarjoamalla vuokrattavia täysin peittäviä uimapukuja (kuten burkinin) sekä omia rauhallisia tunteja tai ryhmäajanvarauksia.",
+          "title": "Pukeutumissäännöt ja osallisuus"
+        },
+        "hygiene": {
+          "body": "Jaettu vesi ja jaetut tilat (pukuhuoneet, lattiat, kalusteet) aiheuttavat tartuntariskejä ihosairauksista vakaviin vesivälitteisiin tauteihin. Bakteerien torjuntaan käytetty kloori aiheuttaa omat huolensa sekä vakituisille kylpijöille että henkilökunnalle.",
+          "title": "Hygienia"
+        },
+        "overcrowding": {
+          "body": "Koska kylpeminen on niin suosittua, laitokset ja rannat ruuhkautuvat pahasti toimistoaikojen ulkopuolella ja lomilla — mikä lisää tartuntariskiä, törmäys- ja hukkumisriskiä sekä melua, joka itsessään sulkee ulkopuolelle ihmiset, joille väkijoukot ovat vaikeita.",
+          "title": "Ruuhkautuminen"
+        },
+        "p1": "Kylpeminen on harvinaislaatuinen toiminnan muoto. Upottautuminen lämpimään veteen aktivoi monia aisteja samanaikaisesti ja tuottaa, toisin kuin useimmat fyysisen aktiivisuuden muodot, tunteita rauhasta, rentoutumisesta, painottomuudesta ja lempeästä hieronnasta. Monille ihmisille vedessä vietetty aika on hyvinvoinnin kulmakivi, ja uinti on pitkään ollut yksi suosituimmista vapaa-ajan aktiviteeteista.",
+        "p2": "Mutta Aquafulnessin taustalla oleva tapaustutkimus listaa yhtä pitkän joukon esteitä ja haittapuolia todellisessa kylpemisessä:",
+        "safety": {
+          "body": "Hukkuminen on veden vakavin vaara sekä uima-altaissa että avovedessä. Liian myöhään — tai lähes liian myöhään — tuleva pelastus voi tarkoittaa kuolemaa tai pysyvää vammaa. Siksi altaissa on uimavalvojia, pukeutumissäännöt ja rajoitettu kylpijämäärä.",
+          "title": "Turvallisuus"
+        },
+        "title": "Miksi kylpeä digitaalisesti?",
+        "travel": {
+          "body": "Lämpimän veden jahtaaminen ulkomailta — Gran Canarialta, Thaimaasta, Mallorcalta — maksaa ruotsalaiselle kotitaloudelle arviolta 28 000–150 000 kruunua viikossa, yhä useammin luotolla rahoitettuna. Lisää siihen viisumit, vakuutus katastrofaalisia sairaalalaskuja vastaan, vieraat oikeusjärjestelmät, voimakas auringonpaiste ja meren vaarat karkaavista virtauksista pistäviin vesieläimiin. Tapaustutkimus huomauttaa myös, että 2020-luvun geopoliittiset kriisit — pandemia, sota Ukrainassa, kärjistyminen Lähi-idässä — ovat tehneet ulkomaanmatkoista riskialttiimpia ja epävarmempia kuin vuosikymmeniin.",
+          "title": "Matkustaminen"
+        }
+      },
+      "section2": {
+        "audiovisual": {
+          "body": "parhaiten toimiva menetelmä. Ääni ja kuva vahvistavat toisiaan, joten kummankaan kanavan ei tarvitse kantaa kokemusta yksin.",
+          "term": "Audiovisuaalinen yhdistelmä"
+        },
+        "auditory": {
+          "body": "historiallisesti yleisin menetelmä, 1980-luvun kenttänauhoitetuista meren aaltojen kasettinauhoista nykyaikaisiin generatiivisiin äänimaisemasovelluksiin. Tehokas, mutta nojaa silti mielikuvitukseen kuvan täydentämisessä, mikä tuo kognitiivisen kustannuksen.",
+          "term": "Kuulostimulaatio"
+        },
+        "conclusion": "Aquafulness rakentuu audiovisuaalisen yhdistelmän varaan.",
+        "imagination": {
+          "body": "alkeellisin menetelmä. Se toimii, mutta vaatii vapautta häiriötekijöistä ja on kognitiivisesti raskas; se onnistuu parhaiten, kun henkilö on jo rentoutunut.",
+          "term": "Mielikuvitus"
+        },
+        "p1After": ", ja se kartoittaa tärkeimmät seeding-kanavat:",
+        "p1Before": "Jotta kylpemisen mielentila voitaisiin herättää ilman vettä, kokemuksen täytyy aktivoida samat mielleyhtymät, jotka mieli yhdistää todelliseen kylpemiseen. Tapaustutkimuksen termi kylpemisen tunteen keinotekoiselle herättämiselle on",
+        "p1Emphasis": "seeding",
+        "title": "Menetelmä: veden tunteen kylväminen (seeding)",
+        "visual": {
+          "body": "veden näkeminen on itsessään rauhoittavaa; tapaustutkimus viittaa kansanomaisesti kutsuttuun \"blue mind\" -ilmiöön, joka syntyy merta tuijottaessa.",
+          "term": "Visuaalinen stimulaatio"
+        }
+      },
+      "section3": {
+        "p1": "Tapaustutkimus esittää sitten syvemmän kysymyksen: mikä oikeastaan on rauhoittavaa vedessä?",
+        "p2After": ". Tyynen, lämpimän veden koetut ominaisuudet — painottomuus, pehmeys, tunne kannateltuna, kannettuna ja hoivattuna olemisesta, ehkä juurtuen aina sikiöaikaan asti — jakavat kaikki yhden fyysisen tunnusmerkin: tyynen veden virtaus ja voima on sinimuotoista värähtelyä. Näetpä sitten veden liikkuvan, kuulet sen loiskuvan tai tunnet sen kannattelevan sinua, aisteihin saapuva ärsyke on tasainen, jaksollinen ja ennustettava. Teorian mukaan tämä värähtely synkronoi katsojan samaan rauhaan.",
+        "p2Before": "Vastaus — esitettynä henkilökohtaisena teoriana, ei vahvistettuna tieteenä — on",
+        "p2Emphasis": "siniaalto",
+        "p3After": "tälle stimulaation herättämälle rauhoittuneelle tilalle.",
+        "p3Before": "Tapaustutkimus lanseeraa termin",
+        "p3Emphasis": "\"aquaful\"",
+        "title": "Sinioskillaatioteoria ja \"aquaful\"-tila"
+      },
+      "section4": {
+        "footerAfter": "aihe.",
+        "footerBefore": "Tämä sovellus (\"Aquafulness Core\") toteuttaa saman algoritmin selaimessa three.js:llä ja WebGL:llä — täysin alusta rakennetun uudelleentoteutuksen alkuperäisestä",
+        "footerLinkText": "Godot-pohjaisesta Aquafulnessista",
+        "footerMiddle": "webille. Miksi näiden tekniikoiden odotetaan tuntuvan kellumiselta, on",
+        "footerPageLink": "havaintosivun",
+        "p1": "Teoriasta suunnitteluun ratkaisu ilmaistaan tapaustutkimuksessa suoraan:",
+        "p2": "Konkreettisesti tämä tarkoittaa:",
+        "quote": "Luo audiovisuaalinen digitaalinen kokemus, joka muistuttaa lämpimään järveen upottautuneen kylpijän näkökulmaa. Korosta värejä — veden luonnollista vaaleanruskeasta siniseen vaihtuvaa sävyä — ja anna sen kuvan olla peittokerros visualisoinnissa, jossa projektio liikkuu pehmeästi kuin aalto, herättääkseen kinesteettisen tunteen siitä, että on upottautunut veteen, joka virtaa mukanasi edestakaisin — tunteen hoivatuksi tulemisesta, keinuvasta liikkeestä.",
+        "quoteEmphasis": "Tämä on perusalgoritmi.",
+        "steps": [
+          "Ensimmäisen persoonan kamera sijoitettuna kylpijän korkeudelle meri- tai järvimaisemaan.",
+          "Kameran sijainti tasaisen jaksollisen liikkeen ohjaamana, joka keinuttaa koko renderöityä kuvaa samaan tapaan kuin kelluva vartalo keinuu.",
+          "Vesipinnat, joiden kärkipisteet ja tekstuurit liikkuvat hitaissa sinimuotoisissa aalloissa, luonnollisin vesivärein.",
+          "Meren ja tuulen äänisilmukat taustalla."
+        ],
+        "title": "Perusalgoritmi"
+      },
+      "title": "Tausta ja tarkoitus: digitaalinen kylpeminen"
+    },
+    "index": {
+      "card1": {
+        "bodyAfter": "-menetelmä, sinioskillaatioteoria ja \"aquaful\"-tila, jota sovellus pyrkii herättämään.",
+        "bodyBefore": "Digitaalisen kylpemisen käsite, projektin taustalla oleva tapaustutkimus,",
+        "bodyEmphasis": "seeding",
+        "title": "1. Tausta ja tarkoitus"
+      },
+      "card2": {
+        "body": "Miten visualisointi on suunniteltu visuaalisen itseliikkeen ympärille: hidas, yhtenäinen optinen virtaus, koko kuvakentän keinunta, ja tavoite herättää tunne lämpimässä vedessä kellumisesta.",
+        "title": "2. Optinen virtaus ja kinesteettinen liike"
+      },
+      "disclaimerBody": "kaikki alla oleva kuvaa suunnitteluperiaatteita, jotka pohjautuvat tekijän henkilökohtaiseen kokemukseen sekä yleisesti tunnettuihin havaintopsykologisiin käsitteisiin, joita on käytetty suunnittelun inspiraationa. Mitään lääketieteellisiä väitteitä ei esitetä. Aquafulness ei ole lääkinnällinen laite eikä terapiamuoto, eikä mitään täällä esitettyä väitettä rauhoittumisesta, rentoutumisesta tai hyvinvoinnista tule lukea kliinisesti vahvistettuna tuloksena.",
+      "disclaimerLabel": "Vastuuvapauslauseke:",
+      "footerAfter": "kanssa, josta tämä dokumentaatio on peräisin.",
+      "footerBefore": "Tämä sovellus (\"Aquafulness Core\") jakaa taustateoriansa alkuperäisen Godot-pohjaisen",
+      "footerLinkText": "Aquafulnessin",
+      "intro": "Tämä on Aquafulnessin taustalla oleva teoria: mistä idea on peräisin, ja ne havaintopsykologiset periaatteet — optinen virtaus ja kinesteettinen liike — joihin suunnittelu nojaa.",
+      "title": "Dokumentaatio"
+    },
+    "nav": {
+      "backToAbout": "Tietoa",
+      "backToApp": "Takaisin sovellukseen",
+      "backToDocs": "Dokumentaatio"
+    },
+    "opticFlow": {
+      "disclaimerBody": "tämä sivu kuvaa suunnitteluperusteluja, jotka pohjautuvat tekijän henkilökohtaiseen kokemukseen ja yleisesti tunnettuihin havaintopsykologisiin käsitteisiin, joita käytetään tässä inspiraationa. Se ei esitä lääketieteellisiä väitteitä. Aquafulnessia ei ole kliinisesti arvioitu; mikään alla oleva ei väitä terapeuttista vaikutusta, ja yksilöllinen kokemus vaihtelee.",
+      "disclaimerLabel": "Vastuuvapauslauseke:",
+      "section1": {
+        "p1After": "— on, että näkö ja kuulo, oikein toteutettuina, voivat herättää muiston lopusta. Aivot, jotka ovat kelluneet lämpimässä järvessä, tietävät miltä koko aistikokonaisuus tuntuu; riittävän puhutteleva audiovisuaalinen katkelma kutsuu ne täydentämään loput.",
+        "p1Before": "Todellinen kylpeminen on monisensorista: ihon lämpötila, niveliä keventävä kelluvuus, hydrostaattinen paine, keinumisen tasapainoaistin signaali, veden ääni, sen näky. Näyttö ja kaiutin voivat tavoittaa vain kaksi näistä kanavista. Aquafulnessin veto — tapaustutkimus kutsuu sitä",
+        "p1Emphasis": "seedingiksi",
+        "p2": "Kysymys on, mitä \"oikein toteutettu\" tarkoittaa. Aquafulnessin vastauksessa on kolme osaa: yhtenäinen optinen virtaus, koko kentän värähtely, ja siniaalto tyynen veden yhteisenä tunnusmerkkinä.",
+        "title": "Suunnitteluongelma"
+      },
+      "section2": {
+        "layer1": {
+          "body": "Kameran korkeus seuraa tasaista jaksollista värähtelyä, jolloin renderöidyn kuvan jokainen pikseli siirtyy ylös ja alas yhdessä, todellisen maininginkaltaisella pehmeällä kiihtyvyysprofiililla. Yhtenäinen koko kentän liike on juuri se ärsykeluokka, jonka näköjärjestelmä tulkitsee todisteeksi omasta liikkeestä eikä kohteen liikkeestä.",
+          "term": "Koko kentän keinunta."
+        },
+        "layer2": {
+          "body": "Veden tekstuuri ja siirtymä ajelehtivat hitaasti ja jatkuvasti pinnan yli. Tämä on klassinen laminaarinen virtauskuvio vedestä, joka liikkuu kelluvan havainnoijan ohi — kiireetön, tasainen, loputon. Sillä ei ole määränpäätä eikä tapahtumaa; virtaus vain viestii, että vesi elää ja kantaa sinua.",
+          "term": "Pintavirtaus."
+        },
+        "layer3": {
+          "body": "Vedenpinta itse nousee ja laskee päällekkäisten aaltojen interferenssikuviossa — tässä sovelluksessa suunnatusta aaltospektristä otetuista siniaalloista koostuvana summana — niin että lähellä olevat harjat ja kaukaiset pohjat liikkuvat samassa vastavaiheisessa rytmissä kuin todellinen mainingit, mikä antaa virtauskentälle uskottavan syvyysrakenteen litteän vieritysken sijaan.",
+          "term": "Aaltoilu."
+        },
+        "p1Body": "on liikkeen kuvio koko näkökentässä, jonka havainnoija kokee, kun hän — tai hänen ympäristönsä — liikkuu. Se on yksi vahvimmista visuaalisista vihjeistä, joita aivot käyttävät oman liikkeensä selvittämiseen: edessä olevasta pisteestä laajeneva virtauskenttä tulkitaan eteenpäin liikkumiseksi; koko näkymän pehmeä siirtyminen ylöspäin tulkitaan itsensä vajoamiseksi, ja alaspäin nousemiseksi.",
+        "p1Term": "Optinen virtaus",
+        "p2": "Aquafulness rakentaa optisen virtauksensa kolmesta kerroksesta:",
+        "p3After": ".",
+        "p3Before": "Yhdessä nämä tuottavat kylpijän tyypillisen optisen virtauksen ruokavalion: globaalin, hitaan, jaksollisen, yhtenäisen. Mikään näkymässä ei liiku äkkinäisesti; mikään ei vaadi sakkadia; mikään ei riko viimeisten sekuntien luomaa ennustetta. Tapaustutkimuksen sanastossa näkökanavaa ruokitaan",
+        "p3Emphasis": "puhtaalla siniväärähtelyllä",
+        "title": "Optinen virtaus: veden läpi liikkumisen visuaalinen tunnusmerkki"
+      },
+      "section3": {
+        "bullet1After": ", ei näkymän kohteisiin, jotta syntyvä tulkinta on \"kehoni keinuu\", ei \"tuo poiju keinuu\".",
+        "bullet1Before": "Keinunta kohdistuu",
+        "bullet1Emphasis": "kameraan",
+        "bullet2": "Keinunta pysyy hitaan, mukavan maininginkaltaisen tempossa — riippumaton tai hitaasti keinutetun kehdon rytmissä pikemminkin kuin aallokon tai turbulenssin. Tämänkaltainen hidas keinunta yhdistetään yleisesti arkikokemuksessa rauhoittumiseen; tapaustutkimus perustaa sen henkilökohtaisemmin tunteeseen kannateltuna ja hoivattuna olemisesta, ja arvelee sen voivan juontaa juurensa aina sikiöaikaan asti.",
+        "bullet3": "Aallon korkeus, nopeus ja tyyli ovat käyttäjän säädettävissä sovelluksen asetuksista, koska mukavuuskynnykset vaihtelevat — sama liike, joka tuntuu yhdestä ihmisestä ihanan keinuvalta, on toiselle liikaa.",
+        "p1After": "— vaikuttavan illuusion omasta liikkeestä ilman minkäänlaista fyysistä liikettä (junavaunuilmiö: viereinen juna lähtee liikkeelle, ja sinusta tuntuu, että sinä liikut). Vektio on silta veden katselemisesta sen kannattelemaksi tulemisen tunteeseen.",
+        "p1Before": "Kun suuri osa näkökentästä liikkuu yhtenäisesti, havainnoijat kokevat usein",
+        "p1Emphasis": "vektiota",
+        "p2": "Aquafulness on tarkoituksella rakennettu kutsumaan esiin lempeän, värähtelevän vektion:",
+        "p3After": "tarkoittaa tässä oman kehon asennon ja liikkeen tuntoaistimusta: tavoitteena ei ole, että käyttäjä arvioi veden näyttävän kauniilta, vaan että hänen kehonsa jollain tasolla tuntee itsensä keinutetuksi.",
+        "p3Before": "Tapaustutkimus nimeää tavoitellun tuloksen suoraan: pehmeästi aallon tavoin liikkuvan projektion tulisi \"herättää kinesteettinen tunne siitä, että on upottautunut veteen, joka virtaa mukanasi edestakaisin\" — keinuva liike, tunne hoivatuksi tulemisesta.",
+        "p3Term": "Kinesteettinen",
+        "p4": "Kaksi suunnitteluvalintaa tukevat mukavuutta tässä herätetyssä liikkeessä:",
+        "predictability": {
+          "body": "Sinimuotoinen liike on äärimmäisen ennustettavaa — aivot lukittuvat rytmiin yhden tai kahden jakson sisällä, jolloin visuaalis-vestibulaarinen ristiriita (silmät raportoivat keinuntaa, sisäkorva raportoi liikkumattomuutta) pysyy lievänä ja odotettuna. Epäsäännöllinen tai kiihtyvä liike samalla ristiriidalla on se, joka pyrkii aiheuttamaan epämukavuutta; puhdas, hidas siniaalto on suunnilleen lievin mahdollinen muoto siitä.",
+          "term": "Ennustettavuus."
+        },
+        "stableFrame": {
+          "body": "Puhelimen tai kannettavan näytöllä laitteen reunat ja niiden takana oleva huone pysyvät näkyvissä ja paikoillaan, mikä rajaa vektion luonnostaan miellyttäväksi, osittaiseksi tunteeksi epävakauttavan sijaan. Täysin ympäröivä näyttö on vastaavasti se ympäristö, jossa kelluntailluusio voi olla voimakkaimmillaan.",
+          "term": "Vakaa kehys."
+        },
+        "title": "Vektio ja kinesteettinen liike: liikkeen näkeminen, liikkeen tunteminen"
+      },
+      "section4": {
+        "p1": "Miksi mikään tästä olisi rauhoittavaa? Tapaustutkimuksen perustelu, esitettynä henkilökohtaisena teoriana:",
+        "p2After": "— kiireetön keinunta, elävä pinta, vedenvalo — niitä monia tilanteita varten, joissa todellinen kylpeminen on ulottumattomissa: väärä vuorokaudenaika, väärä vuodenaika, väärä budjetti, ruuhkautunut allas, keho tai mieli, jolle laitos on hankala, tai yksinkertaisesti viiden minuutin tauko työpöydän ääressä.",
+        "p2Before": "Tarkoitus on siis vaatimaton ja tarkka:",
+        "p2Emphasis": "herättää visualisoinnin kautta uudelleen kylpemisen rauhoittava tunne",
+        "reason1": {
+          "body": "Avoimen veden näky — kansanomaisesti kutsuttu \"blue mind\" -havainto — on rauhoittava useimmille ihmisille, riippumatta mistään liikeilluusiosta. Aquafulness hyödyntää tätä luonnollisella väripaletillaan: todellisen järven tai meren vaaleanruskeasta siniseen vaihtuvat värit, lämpimät sävyt läpikuultavan sinivihreän veden alla, kylläisyyttä korostettu taivas.",
+          "term": "Veden katseleminen on itsessään rauhoittavaa."
+        },
+        "reason2": {
+          "body": "Kaikki, mitä tyyni kylpy tarjoaa aisteille — tuntemasi mainingit, kuulemasi loiske, näkemäsi virtaus — on tasaista jaksollista värähtelyä. Teorian mukaan saman tunnusmerkin esittäminen käytettävissä olevien kanavien (silmien ja korvien) kautta synkronoi katsojan tilaan, jonka täysi upottautuminen tuottaa: tilaan, jonka tapaustutkimus nimeää \"aquaful\".",
+          "term": "Tyynen veden yhteinen nimittäjä on siniaalto."
+        },
+        "reason3": {
+          "body": "Kokemus on koottu vastaamaan muistoa tietystä, hyvästä paikasta — kellumisesta lämpimässä, avoimessa vedessä. Ääni vahvistaa näköä: meren ja tuulen äänet tarjoavat kuulonvaraisen siniaaltopohjan, jotta kuvien ei tarvitse kantaa mielleyhtymää yksin. Tämä on audiovisuaalinen yhdistelmä, jonka tapaustutkimus tunnistaa tehokkaimmaksi seeding-menetelmäksi — vahvempi kuin pelkkä ääni, joka yhä kuormittaa mielikuvitusta, ja huomattavasti kevyempi kognitiivisesti kuin pelkkä mielikuvitus.",
+          "term": "Mielleyhtymä täydentää kuvan."
+        },
+        "title": "Rauhoittava tarkoitus: kylvyn uudelleenluominen"
+      },
+      "section5": {
+        "p1": "On syytä toistaa vastuuvapauslausekkeen lisäksi: Aquafulness ei väitä alentavansa verenpainetta, hoitavansa ahdistusta, korvaavansa liikuntaa tai tuottavansa mitään mitattua kliinistä vaikutusta. Se on visualisointi, joka rakentuu yhden ihmisen huolelliseen tarkkailuun siitä, miksi kylpeminen tuntuu siltä miltä se tuntuu, sekä vakiintuneisiin havaintopsykologisiin ideoihin — optiseen virtaukseen, vektioon, hitaan rytmin rauhoittavaan laatuun — käytettyinä käsityötaitona, samaan tapaan kuin elokuvantekijä käyttää niitä, ei lääkkeenä. Jos se antaa sinulle kolme minuuttia merta keskellä talvea, se on tehnyt tehtävänsä.",
+        "title": "Mitä tämä ei ole"
+      },
+      "seeAlsoBefore": "Katso myös:",
+      "seeAlsoLink": "Tausta ja tarkoitus",
+      "title": "Optinen virtaus ja kinesteettinen liike"
+    }
+  },
   "hud": {
     "audioMuteAria": "Mykistä ääni",
     "audioOffTitle": "Ääni pois",

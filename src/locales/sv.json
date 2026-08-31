@@ -265,6 +265,209 @@
       "whirlpoolStayDuration": "STANNA INNE"
     }
   },
+  "docsPhilosophy": {
+    "background": {
+      "disclaimer": {
+        "bodyAfter": "och skaparens personliga erfarenhet och designteori. Den innehåller inga medicinska påståenden. Där effekter på humör eller avslappning beskrivs handlar det om subjektiv upplevelse och designintention, inte kliniskt fastställda resultat.",
+        "bodyBefore": "den här sidan sammanfattar",
+        "emphasis": "Aquafulness-fallstudien",
+        "label": "Ansvarsfriskrivning:"
+      },
+      "section1": {
+        "availability": {
+          "body": "Till skillnad från löpning eller cykling kräver simning infrastruktur: en bassäng, eller naturligt vatten med rätt förutsättningar. Bassänger är dyra att bygga och driva, är oftast kommunala och har begränsade öppettider. Naturligt vatten i ett tempererat klimat som Sveriges håller i genomsnitt 13–17 °C även vid julitoppen — tillräckligt kallt för att det stora delar av året helt enkelt inte är ett alternativ — och öppet vatten medför strömmar, algblomning och köldchock utöver avsaknad av tillsyn.",
+          "title": "Tillgänglighet"
+        },
+        "conclusionBody": "badande är dubbeleggat. Njutningen, lugnet och motionen är verkliga; det är även de ekonomiska, hygieniska, säkerhetsmässiga och tillgänglighetsrelaterade hindren. Målet med Aquafulness är att återskapa några av de mest efterlängtade positiva effekterna av badande utan nedsänkningen — tillgängligt när som helst på dygnet, i alla väder, för vem som helst med en skärm.",
+        "conclusionLabel": "Slutsatsen:",
+        "cost": {
+          "body": "Inträdesavgifterna till svenska allmänna bad har stigit kraftigt i takt med inflation och energipriser — vanligtvis 70–200 kronor per vuxenbesök, med säsongskort på 1 500–3 000 kronor. Även med rabatter för studenter, pensionärer och fysisk aktivitet på recept (FaR) är priserna oöverkomliga för många.",
+          "title": "Kostnad"
+        },
+        "dressCodes": {
+          "body": "Hygien- och säkerhetsregler begränsar badkläder till badtextilier (lycra/spandex), eftersom vanliga bomullskläder fäller partiklar, bär bakterier och — tunga av vatten — ökar drunkningsrisken. Samtidigt föredrar en växande andel gäster, av religiösa, kulturella eller neurodivergenta skäl, badkläder som täcker kroppen mer. Spänningen har varit genuint infekterad; anläggningar svarar allt oftare med heltäckande baddräkter (som burkini) för uthyrning, samt särskilda lugna timmar eller grupptider.",
+          "title": "Klädkoder och inkludering"
+        },
+        "hygiene": {
+          "body": "Delat vatten och delade utrymmen (omklädningsrum, golv, möbler) medför infektionsrisker som spänner från hudåkommor till allvarlig vattenburen sjukdom. Klor som används för att bekämpa bakterier medför egna problem för både återkommande badgäster och personal.",
+          "title": "Hygien"
+        },
+        "overcrowding": {
+          "body": "Eftersom badande är så populärt trängs anläggningar och stränder hårt utanför kontorstid och under helger — vilket höjer smittorisk, risk för kollisioner och drunkning, samt buller som i sig utestänger personer som har svårt för folksamlingar.",
+          "title": "Trängsel"
+        },
+        "p1": "Badande är en ovanlig sorts aktivitet. Nedsänkning i varmt vatten engagerar många sinnen samtidigt och ger, till skillnad från de flesta former av fysisk aktivitet, känslor av lugn, avslappning, viktlöshet och skön massage. För många människor är tid i vattnet en hörnsten i välbefinnandet, och simning har länge varit en av de populäraste fritidsaktiviteterna.",
+        "p2": "Men fallstudien bakom Aquafulness listar en lika lång rad hinder och nackdelar med badande i verkligheten:",
+        "safety": {
+          "body": "Drunkning är vattnets allvarligaste fara, i både bassänger och öppet vatten. Räddning som kommer för sent — eller nästan för sent — kan innebära dödsfall eller livslångt men. Det är därför bassänger bemannas med livräddare, tillämpar klädkoder och begränsar antalet badgäster.",
+          "title": "Säkerhet"
+        },
+        "title": "Varför bada digitalt?",
+        "travel": {
+          "body": "Att jaga varmt vatten utomlands — Gran Canaria, Thailand, Mallorca — kostar ett svenskt hushåll uppskattningsvis 28 000–150 000 kronor för en vecka, i allt högre grad finansierat med lån. Lägg till visum, försäkring mot katastrofala sjukhusräkningar, okända rättssystem, stark sol och havets faror från bakström till giftiga vattenlevande djur. Fallstudien noterar även att 2020-talets geopolitiska skakningar — pandemin, kriget i Ukraina, upptrappningen i Mellanöstern — har gjort utlandsresor mer riskfyllda och osäkra än på decennier.",
+          "title": "Resande"
+        }
+      },
+      "section2": {
+        "audiovisual": {
+          "body": "det som fungerar bäst. Ljud och bild förstärker varandra, så ingen av kanalerna behöver bära upplevelsen på egen hand.",
+          "term": "Audiovisuell kombination"
+        },
+        "auditory": {
+          "body": "historiskt den vanligaste metoden, från 1980-talets fältinspelade kassetter med havsvågor till moderna generativa ljudlandskapsappar. Effektivt, men det lutar sig ändå mot fantasin för att fylla i bilden, vilket medför en kognitiv kostnad.",
+          "term": "Auditiv stimulering"
+        },
+        "conclusion": "Aquafulness bygger på den audiovisuella kombinationen.",
+        "imagination": {
+          "body": "den mest primitiva metoden. Den fungerar, men kräver frihet från distraktion och är kognitivt kostsam; den lyckas bäst när personen redan är avslappnad.",
+          "term": "Fantasi"
+        },
+        "p1After": ", och den kartlägger de viktigaste kanalerna för seeding:",
+        "p1Before": "För att frammana den mentala känslan av badande utan vatten måste upplevelsen aktivera samma associationer som sinnet kopplar till verkligt badande. Fallstudiens term för att på konstgjord väg framkalla badkänslan är",
+        "p1Emphasis": "seeding",
+        "title": "Metodik: att så känslan av vatten (seeding)",
+        "visual": {
+          "body": "synen av vatten är i sig lugnande; fallstudien pekar på den populärt kallade \"blue mind\"-effekten av att blicka ut över havet.",
+          "term": "Visuell stimulering"
+        }
+      },
+      "section3": {
+        "p1": "Fallstudien ställer sedan den djupare frågan: vad är egentligen det lugnande med vatten?",
+        "p2After": ". De upplevda egenskaperna hos lugnt, varmt vatten — viktlöshet, mjukhet, känslan av att bli hållen, buren och omhändertagen, kanske rotad ända tillbaka till tiden i livmodern — delar alla en fysisk signatur: flödet och kraften i lugnt vatten är en sinusformad svängning. Oavsett om du ser vattnet röra sig, hör det skvalpa eller känner det bära dig, är stimulit som når sinnena mjukt, periodiskt och förutsägbart. Teorin är att denna svängning synkroniserar betraktaren mot samma lugn.",
+        "p2Before": "Svaret — som presenteras som en personlig teori, inte fastställd vetenskap — är",
+        "p2Emphasis": "sinusvågen",
+        "p3After": "för det lugnade tillstånd som denna stimulering framkallar.",
+        "p3Before": "Fallstudien myntar termen",
+        "p3Emphasis": "\"aquaful\"",
+        "title": "Sinusvågsteorin och \"aquaful\"-tillståndet"
+      },
+      "section4": {
+        "footerAfter": ".",
+        "footerBefore": "Den här appen (\"Aquafulness Core\") implementerar samma algoritm i webbläsaren med three.js och WebGL — en förnyad uppbyggnad från grunden av den ursprungliga",
+        "footerLinkText": "Godot-baserade Aquafulness",
+        "footerMiddle": "för webben. Varför dessa tekniker förväntas kännas som att flyta är ämnet för",
+        "footerPageLink": "perceptionssidan",
+        "p1": "Från teori till design formuleras lösningen rakt på sak i fallstudien:",
+        "p2": "Konkret blir det:",
+        "quote": "Skapa en audiovisuell digital upplevelse som liknar perspektivet hos en badare nedsänkt i en varm sjö. Betona färgerna — vattnets naturliga ljusbruna-till-blå nyanser — och låt den bilden vara ett överlägg på en visualisering där projektionen rör sig mjukt som en våg, för att framkalla en kinestetisk känsla av att vara nedsänkt i vatten som flödar med dig fram och tillbaka — känslan av att bli omhändertagen, den gungande rörelsen.",
+        "quoteEmphasis": "Detta är grundalgoritmen.",
+        "steps": [
+          "En förstapersonskamera placerad i badhöjd i en havs- eller sjöscen.",
+          "Kamerans position driven av mjuk periodisk rörelse, som gungar hela den renderade bilden på samma sätt som en flytande kropp gungar.",
+          "Vattenytor vars hörnpunkter och texturer rör sig i långsamma sinusformade vågor, i naturliga vattenfärger.",
+          "Havs- och vindljud som loopar under."
+        ],
+        "title": "Grundalgoritmen"
+      },
+      "title": "Bakgrund och syfte: digitalt badande"
+    },
+    "index": {
+      "card1": {
+        "bodyAfter": "-metodiken, sinusvågsteorin och det \"aquaful\"-tillstånd som appen försöker frammana.",
+        "bodyBefore": "Konceptet digitalt badande, fallstudien bakom projektet,",
+        "bodyEmphasis": "seeding",
+        "title": "1. Bakgrund och syfte"
+      },
+      "card2": {
+        "body": "Hur visualiseringen är designad kring visuell självrörelse: långsamt, sammanhängande optiskt flöde, gungning av hela bildfältet, och målet att återskapa känslan av att flyta i varmt vatten.",
+        "title": "2. Optiskt flöde och kinestetisk rörelse"
+      },
+      "disclaimerBody": "allt nedan beskriver designintentioner grundade i skaparens personliga erfarenhet, tillsammans med allmänt kända perceptuella begrepp som används som designinspiration. Inga medicinska påståenden görs. Aquafulness är ingen medicinteknisk produkt eller terapiform, och inget påstående här om lugn, avslappning eller välbefinnande ska läsas som ett kliniskt validerat resultat.",
+      "disclaimerLabel": "Ansvarsfriskrivning:",
+      "footerAfter": ", där den här dokumentationen har sitt ursprung.",
+      "footerBefore": "Den här appen (\"Aquafulness Core\") delar sin underliggande teori med den ursprungliga Godot-baserade",
+      "footerLinkText": "Aquafulness",
+      "intro": "Det här är teorin bakom Aquafulness: var idén kommer ifrån, och de perceptuella principerna — optiskt flöde och kinestetisk rörelse — som designen bygger på.",
+      "title": "Dokumentation"
+    },
+    "nav": {
+      "backToAbout": "Om",
+      "backToApp": "Tillbaka till appen",
+      "backToDocs": "Dokumentation"
+    },
+    "opticFlow": {
+      "disclaimerBody": "den här sidan beskriver designresonemang, grundat i skaparens personliga erfarenhet och i allmänt kända perceptuella begrepp som används här som inspiration. Den gör inga medicinska påståenden. Aquafulness har inte utvärderats kliniskt; inget nedan hävdar en terapeutisk effekt, och den individuella upplevelsen varierar.",
+      "disclaimerLabel": "Ansvarsfriskrivning:",
+      "section1": {
+        "p1After": "— är att syn och ljud, rätt utfört, kan väcka minnet av resten. Hjärnan som har flutit i en varm sjö vet hur den fulla sensoriska helheten känns; ett tillräckligt evokativt audiovisuellt fragment inbjuder den att fylla i resten.",
+        "p1Before": "Verkligt badande är multisensoriskt: hudtemperatur, flytkraft som avlastar lederna, hydrostatiskt tryck, den vestibulära signalen av att gungas, ljudet av vatten, synen av det. En skärm och en högtalare kan bara adressera två av dessa kanaler. Det Aquafulness satsar på — fallstudien kallar det",
+        "p1Emphasis": "seeding",
+        "p2": "Frågan är vad \"rätt utfört\" betyder. Aquafulness svar har tre delar: sammanhängande optiskt flöde, helfältssvängning, och sinusvågen som den gemensamma signaturen för lugnt vatten.",
+        "title": "Designproblemet"
+      },
+      "section2": {
+        "layer1": {
+          "body": "Kamerans höjd följer en mjuk periodisk svängning, så att varje bildpunkt i den renderade bilden translaterar upp och ner tillsammans, med samma mjuka accelerationsprofil som en verklig dyning. Sammanhängande helfältsrörelse är exakt den stimulusklass det visuella systemet tolkar som belägg för egen rörelse snarare än objektrörelse.",
+          "term": "Helfältsgungning."
+        },
+        "layer2": {
+          "body": "Vattnets textur och förskjutning driver långsamt och kontinuerligt över ytan. Det här är det klassiska laminära flödesmönstret hos vatten som rör sig förbi en flytande betraktare — obrådskande, jämnt, oändligt. Det finns ingen destination och ingen händelse; flödet signalerar bara att vattnet lever och bär dig.",
+          "term": "Ytflöde."
+        },
+        "layer3": {
+          "body": "Vattenytan själv höjs och sänks i ett interferensmönster av överlappande vågor — i den här appen en summa av sinusvågor hämtade från ett riktat vågspektrum — så att närliggande krön och avlägsna dalar rör sig i den motfasade rytm som verklig dyning gör, vilket ger flödesfältet en trovärdig djupstruktur snarare än en platt rullning.",
+          "term": "Vågrörelse."
+        },
+        "p1Body": "är mönstret av rörelse över hela synfältet som en betraktare upplever när de — eller omgivningen — rör sig. Det är en av de starkaste visuella ledtrådarna hjärnan använder för att räkna ut sin egen rörelse: ett flödesfält som expanderar från en punkt framför läses som rörelse framåt; hela scenen som mjukt translaterar uppåt läses som att man själv sjunker, och nedåt som att man stiger.",
+        "p1Term": "Optiskt flöde",
+        "p2": "Aquafulness bygger sitt optiska flöde av tre lager:",
+        "p3After": ".",
+        "p3Before": "Tillsammans ger dessa den specifika optiska flödesdiet en badare får: globalt, långsamt, periodiskt, sammanhängande. Inget i scenen rör sig abrupt; inget kräver en sackad; inget bryter mot den förutsägelse de senaste sekunderna etablerat. I fallstudiens vokabulär matas synkanalen med en",
+        "p3Emphasis": "ren sinussvängning",
+        "title": "Optiskt flöde: den visuella signaturen av rörelse genom vatten"
+      },
+      "section3": {
+        "bullet1After": ", inte på objekt i scenen, så att den framkallade tolkningen blir \"min kropp gungar\", inte \"den där bojen gungar\".",
+        "bullet1Before": "Gungningen appliceras på",
+        "bullet1Emphasis": "kameran",
+        "bullet2": "Gungningen ligger i tempot av en långsam, behaglig dyning — rytmen hos en hängmatta eller en sakta vaggad vagga snarare än krabb sjö eller turbulens. Långsam gungning av det här slaget associeras allmänt, i vardagserfarenhet, med lugn; fallstudien grundar det mer personligt i känslan av att bli hållen och omhändertagen, och spekulerar att den kan rota sig så djupt som i tiden i livmodern.",
+        "bullet3": "Våghöjd, hastighet och stil kan justeras av användaren i appens inställningar, eftersom komforttrösklarna skiljer sig — samma rörelse som upplevs som ljuvligt svajande av en person är för mycket för en annan.",
+        "p1After": "— den övertygande illusionen av egen rörelse i frånvaro av verklig fysisk rörelse (järnvägsvagns-effekten: tåget bredvid ditt eget glider iväg och du känner att det är du som rör dig). Vection är bryggan från att se vatten till att känna sig buren av det.",
+        "p1Before": "När en stor del av synfältet rör sig sammanhängande upplever betraktare ofta",
+        "p1Emphasis": "vection",
+        "p2": "Aquafulness är medvetet byggt för att bjuda in till en mjuk, svängande vection:",
+        "p3After": "betyder här den kroppsliga känslan av den egna kroppens position och rörelse: målet är inte att användaren bedömer att vattnet ser fint ut, utan att kroppen, på något plan, känner sig gungad.",
+        "p3Before": "Fallstudien namnger det avsedda resultatet direkt: projektionen som rör sig mjukt som en våg ska \"framkalla en kinestetisk känsla av att vara nedsänkt i vatten som flödar med dig fram och tillbaka\" — den gungande rörelsen, känslan av att bli omhändertagen.",
+        "p3Term": "Kinestetisk",
+        "p4": "Två designval stödjer komforten i denna framkallade rörelse:",
+        "predictability": {
+          "body": "Sinusformad rörelse är maximalt förutsägbar — hjärnan låser sig vid rytmen inom en cykel eller två, så att den visuell-vestibulära diskrepansen (ögonen rapporterar gungning, innerörat rapporterar stillhet) förblir mild och förväntad. Oregelbunden eller accelererande rörelse med samma diskrepans är det som tenderar mot obehag; en ren, långsam sinusvåg är nästan den mildaste möjliga formen av det.",
+          "term": "Förutsägbarhet."
+        },
+        "stableFrame": {
+          "body": "På en telefon- eller datorskärm förblir enhetens ram och rummet utanför synliga och stillastående, vilket naturligt begränsar vection till en behaglig, partiell känsla snarare än en destabiliserande. En helt omslutande skärm är följaktligen den miljö där flytillusionen kan bli som starkast.",
+          "term": "En stabil ram."
+        },
+        "title": "Vection och kinestetisk rörelse: att se rörelse, att känna rörelse"
+      },
+      "section4": {
+        "p1": "Varför skulle något av detta vara lugnande? Fallstudiens resonemang, framfört som personlig teori:",
+        "p2After": "— den obrådskande gungningen, den levande ytan, vattenljuset — för de många situationer där verkligt badande är utom räckhåll: fel tid på dygnet, fel årstid, fel budget, en överfull bassäng, en kropp eller ett sinne som har svårt för anläggningen, eller helt enkelt en femminuters paus vid skrivbordet.",
+        "p2Before": "Syftet är alltså blygsamt och specifikt:",
+        "p2Emphasis": "att genom visualisering återskapa badandets lugn",
+        "reason1": {
+          "body": "Synen av öppet vatten — den populärt kallade \"blue mind\"-iakttagelsen — är lugnande för de flesta, oberoende av någon rörelseillusion. Aquafulness bygger vidare på det med sin naturliga palett: de ljusbruna-till-blå nyanserna hos en verklig sjö eller ett hav, varma toner under genomskinligt blågrönt vatten, en himmel med lyft mättnad.",
+          "term": "Att se på vatten är lugnande i sig."
+        },
+        "reason2": {
+          "body": "Allt ett lugnt bad ger sinnena — dyningen du känner, skvalpet du hör, flödet du ser — är mjuk periodisk svängning. Teorin är att om man presenterar samma signatur genom de tillgängliga kanalerna (ögon och öron) synkroniserar man betraktaren mot det tillstånd den fulla nedsänkningen ger: tillståndet fallstudien myntar \"aquaful\".",
+          "term": "Lugnt vattens gemensamma nämnare är sinusvågen."
+        },
+        "reason3": {
+          "body": "Upplevelsen är sammansatt för att matcha minnet av en specifik, bra plats — att flyta i varmt, öppet vatten. Ljud förstärker synen: havs- och vindljud förser den auditiva sinusbädden så att bilden inte behöver bära associationen ensam. Det här är den audiovisuella kombination fallstudien pekar ut som den mest effektiva seeding-metoden — starkare än enbart ljud, som fortfarande belastar fantasin, och betydligt billigare kognitivt än enbart fantasi.",
+          "term": "Association fullbordar bilden."
+        },
+        "title": "Det lugnande syftet: att återskapa badet"
+      },
+      "section5": {
+        "p1": "Det tål att upprepas utöver ansvarsfriskrivningen: Aquafulness påstår inte att sänka blodtrycket, behandla ångest, ersätta motion eller ge någon mätbar klinisk effekt. Det är en visualisering byggd på en persons noggranna uppmärksamhet på varför badande känns som det gör, och på väletablerade perceptuella idéer — optiskt flöde, vection, den lugnande kvaliteten hos långsam rytm — använda som hantverk, på det sätt en filmskapare använder dem, inte som medicin. Om den ger dig tre minuter av havet mitt i vintern har den gjort sitt jobb.",
+        "title": "Vad det här inte är"
+      },
+      "seeAlsoBefore": "Se även:",
+      "seeAlsoLink": "Bakgrund och syfte",
+      "title": "Optiskt flöde och kinestetisk rörelse"
+    }
+  },
   "hud": {
     "audioMuteAria": "Stäng av ljud",
     "audioOffTitle": "Ljud av",
