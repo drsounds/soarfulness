@@ -152,3 +152,11 @@ careful attention to *why* bathing feels the way it does, and on well-worn
 perceptual ideas — optic flow, vection, the soothing quality of slow rhythm
 — used as craft, the way a filmmaker uses them, not as medicine. If it gives
 you three minutes of the ocean in the middle of winter, it has done its job.
+
+## Further reading
+
+The terms used above — optic flow, vection, and slow vestibular ("heave")
+stimulation — are established in the perception and sleep-science
+literature, though not tested on Aquafulness itself. See
+[Scientific references](03-references.md) for real, peer-reviewed studies
+with Harvard citations and PubMed/DOI links.
