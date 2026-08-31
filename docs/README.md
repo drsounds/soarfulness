@@ -29,3 +29,8 @@ notes specific to its Godot implementation.
    How the visualization is designed around visual self-motion: slow
    coherent optic flow, rocking of the whole visual field, and the goal of
    recreating the felt experience of floating in warm water.
+
+3. **[Scientific references](03-references.md)**
+   Real, peer-reviewed studies on optic flow, vection, rocking/vestibular
+   stimulation and watching water, with Harvard citations and PubMed/DOI
+   links, that the design reasoning above draws on.
