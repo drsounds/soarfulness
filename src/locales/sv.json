@@ -136,6 +136,8 @@
       "intervalSession": "INTERVALLPASS",
       "mode": "KAMERALÄGE",
       "near": "NÄRA",
+      "noclipAutoAlternate": "AUTO VÄXLING",
+      "noclipAutoAlternateInterval": "VÄXLINGSINTERVALL",
       "noclipSpeed": "NOCLIP FART",
       "posX": "POS X",
       "posY": "POS Y",
@@ -481,6 +483,7 @@
     "intervalInfiniteLabel": "Intervall {{n}}",
     "intervalRemaining": "kvar {{time}}",
     "joystick": {
+      "autoAlternate": "AUTO VÄXLA",
       "current": "STRÖM",
       "freeFall": "FRITT FALL",
       "look": "LOOK",

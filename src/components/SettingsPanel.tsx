@@ -388,6 +388,10 @@ export type SettingsPanelProps = {
   cycleCameraMode: (dir: number) => void;
   noclipSpeed: number;
   setNoclipSpeed: Dispatch<SetStateAction<number>>;
+  noclipAutoAlternateOn: boolean;
+  setNoclipAutoAlternateOn: Dispatch<SetStateAction<boolean>>;
+  noclipAutoAlternateInterval: number;
+  setNoclipAutoAlternateInterval: Dispatch<SetStateAction<number>>;
   // Resting altitude the swing hangs from (formerly named "swingHeight",
   // renamed to avoid confusion with the vertical-excursion swingHeight below).
   swingPositionY: number;
@@ -927,6 +931,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
     cycleCameraMode,
     noclipSpeed,
     setNoclipSpeed,
+    noclipAutoAlternateOn,
+    setNoclipAutoAlternateOn,
+    noclipAutoAlternateInterval,
+    setNoclipAutoAlternateInterval,
     swingPositionY,
     setSwingPositionY,
     swingIntensity,
@@ -1734,6 +1742,32 @@ export function SettingsPanel(props: SettingsPanelProps) {
                 step={0.1}
                 onDec={() => setNoclipSpeed((v) => Math.max(0.2, +(v - 0.1).toFixed(2)))}
                 onInc={() => setNoclipSpeed((v) => Math.min(6, +(v + 0.1).toFixed(2)))}
+              />
+            )}
+            {cameraMode === "noclip" && (
+              <PadDial
+                label={t("dial.camera.noclipAutoAlternate")}
+                value={onOff(noclipAutoAlternateOn)}
+                onDec={() => setNoclipAutoAlternateOn(false)}
+                onInc={() => setNoclipAutoAlternateOn(true)}
+              />
+            )}
+            {cameraMode === "noclip" && noclipAutoAlternateOn && (
+              <PadDial
+                label={t("dial.camera.noclipAutoAlternateInterval")}
+                mode="number"
+                value={`${noclipAutoAlternateInterval.toFixed(0)}s`}
+                rawValue={noclipAutoAlternateInterval}
+                onSet={(v) => setNoclipAutoAlternateInterval(Math.max(1, Math.min(120, v)))}
+                min={1}
+                max={120}
+                step={1}
+                onDec={() =>
+                  setNoclipAutoAlternateInterval((v) => Math.max(1, +(v - 1).toFixed(0)))
+                }
+                onInc={() =>
+                  setNoclipAutoAlternateInterval((v) => Math.min(120, +(v + 1).toFixed(0)))
+                }
               />
             )}
             {cameraMode === "swing" && (

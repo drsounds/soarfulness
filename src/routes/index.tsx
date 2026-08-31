@@ -1213,6 +1213,13 @@ export function Aquafulness() {
   // Mutually exclusive; toggling one off falls back to vertStick's own value.
   const [noclipFreeFallOn, setNoclipFreeFallOn] = useState(false);
   const [noclipReverseRiseOn, setNoclipReverseRiseOn] = useState(false);
+  // Optional hands-off cycling between the two above: while on, flips FRITT
+  // FALL/OMVÄND STIGNING back and forth every noclipAutoAlternateInterval
+  // seconds, so noclip bobs up and down through the world boundary without
+  // needing either toggle held. See the driver effect near
+  // noclipAutoAlternateIntervalRef below.
+  const [noclipAutoAlternateOn, setNoclipAutoAlternateOn] = useState(false);
+  const [noclipAutoAlternateInterval, setNoclipAutoAlternateInterval] = useState(6);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("vagor");
   // VÅG/TEMPO/FREKVENS live behind their own bottom drawer (like SETTINGS)
@@ -1731,6 +1738,11 @@ export function Aquafulness() {
   const worldBoundaryYExtendRef = useRef(worldBoundaryYExtend);
   const noclipFreeFallOnRef = useRef(noclipFreeFallOn);
   const noclipReverseRiseOnRef = useRef(noclipReverseRiseOn);
+  const noclipAutoAlternateIntervalRef = useRef(noclipAutoAlternateInterval);
+  // Eased vertical velocity actually applied in noclip mode (m/s): ramps
+  // toward whatever FRITT FALL/OMVÄND STIGNING/HÖJD currently target instead
+  // of snapping straight to it. See the physics loop below.
+  const noclipVertVelRef = useRef(0);
   useEffect(() => {
     ampRef.current = waveAmp;
   }, [waveAmp]);
@@ -1983,6 +1995,36 @@ export function Aquafulness() {
     noclipReverseRiseOnRef.current = noclipReverseRiseOn;
     if (noclipReverseRiseOn) setNoclipFreeFallOn(false);
   }, [noclipReverseRiseOn]);
+  useEffect(() => {
+    noclipAutoAlternateIntervalRef.current = noclipAutoAlternateInterval;
+  }, [noclipAutoAlternateInterval]);
+  // Auto-alternate driver: while on, flips FRITT FALL/OMVÄND STIGNING back
+  // and forth every noclipAutoAlternateInterval seconds. Reads the interval
+  // from a ref each tick (like the interval-session driver above) so dialing
+  // it live never restarts the cycle's current phase. Turning it off (via
+  // the toggle or unmount) clears both so noclip falls back to plain
+  // HÖJD/NAV control instead of freezing mid-fall or mid-rise.
+  useEffect(() => {
+    if (!noclipAutoAlternateOn) return;
+    let phaseIsFall = true;
+    let phaseStart = performance.now();
+    setNoclipFreeFallOn(true);
+    setNoclipReverseRiseOn(false);
+    const id = window.setInterval(() => {
+      const durationMs = Math.max(1, noclipAutoAlternateIntervalRef.current) * 1000;
+      if (performance.now() - phaseStart >= durationMs) {
+        phaseIsFall = !phaseIsFall;
+        phaseStart = performance.now();
+        setNoclipFreeFallOn(phaseIsFall);
+        setNoclipReverseRiseOn(!phaseIsFall);
+      }
+    }, 100);
+    return () => {
+      window.clearInterval(id);
+      setNoclipFreeFallOn(false);
+      setNoclipReverseRiseOn(false);
+    };
+  }, [noclipAutoAlternateOn]);
   // Live reflection-strength dial → shader (multiplies the surface's base).
   useEffect(() => {
     reflStrengthRef.current = reflStrength;
@@ -2091,6 +2133,7 @@ export function Aquafulness() {
     cameraModeRef.current = cameraMode;
     if (cameraMode === "noclip") {
       posRef.current.y = camYRef.current ?? swingPositionYRef.current;
+      noclipVertVelRef.current = 0;
     } else if (cameraMode === "whirlpool") {
       whirlpoolPhaseRef.current = { phase: "drag", startMs: performance.now() };
     } else if (cameraMode === "swing") {
@@ -4699,14 +4742,25 @@ export function Aquafulness() {
         // a quick way to commit to a long, hands-off descent/ascent through
         // VÄRLDSGRÄNS's y extension below instead of holding HÖJD deflected.
         const fallRiseSpeed = walkSpeed * 3 * Math.max(0.1, noclipSpeedRef.current);
-        const vertRate = noclipFreeFallOnRef.current
+        const targetVertRate = noclipFreeFallOnRef.current
           ? -fallRiseSpeed
           : noclipReverseRiseOnRef.current
             ? fallRiseSpeed
             : (stickRef.current.y * fwdY + vertStickRef.current.y) * speed;
+        // Ease the applied vertical rate toward its target with a frame-rate-
+        // independent exponential (v += (target - v) * (1 - e^(-dt/tau))),
+        // instead of snapping straight to it. That's what makes FRITT
+        // FALL/OMVÄND STIGNING read as a real accelerating fall/climb rather
+        // than an instant terminal velocity, and — the same mechanic doing
+        // double duty — makes every transition between them (or back to
+        // HÖJD/NAV control, including the auto-alternate cycle above) a
+        // graceful glide instead of a jarring snap.
+        const vertTau = 0.7;
+        const vertBlend = 1 - Math.exp(-physDt / vertTau);
+        noclipVertVelRef.current += (targetVertRate - noclipVertVelRef.current) * vertBlend;
         posRef.current.x +=
           (moveX * speed + noclipDriftWorldRef.current.x * driftSpeedNoclip) * physDt;
-        posRef.current.y += vertRate * physDt;
+        posRef.current.y += noclipVertVelRef.current * physDt;
         posRef.current.z +=
           (moveZ * speed + noclipDriftWorldRef.current.z * driftSpeedNoclip) * physDt;
         camX = posRef.current.x;
@@ -5871,6 +5925,10 @@ export function Aquafulness() {
     cycleCameraMode,
     noclipSpeed,
     setNoclipSpeed,
+    noclipAutoAlternateOn,
+    setNoclipAutoAlternateOn,
+    noclipAutoAlternateInterval,
+    setNoclipAutoAlternateInterval,
     swingPositionY,
     setSwingPositionY,
     swingIntensity,
@@ -6087,6 +6145,8 @@ export function Aquafulness() {
     setNoclipFreeFallOn,
     noclipReverseRiseOn,
     setNoclipReverseRiseOn,
+    noclipAutoAlternateOn,
+    setNoclipAutoAlternateOn,
     swayStick,
     onSwayChange: (v) => {
       setSwayStick(v);
@@ -6453,7 +6513,10 @@ export function Aquafulness() {
             <div className="flex flex-col items-center gap-1">
               <button
                 type="button"
-                onClick={() => setNoclipReverseRiseOn((v) => !v)}
+                onClick={() => {
+                  setNoclipAutoAlternateOn(false);
+                  setNoclipReverseRiseOn((v) => !v);
+                }}
                 aria-pressed={noclipReverseRiseOn}
                 className={`pointer-events-auto rounded-full border px-2 py-0.5 text-[8px] font-light tracking-[0.2em] backdrop-blur-md transition active:scale-95 ${
                   noclipReverseRiseOn
@@ -6471,7 +6534,10 @@ export function Aquafulness() {
               />
               <button
                 type="button"
-                onClick={() => setNoclipFreeFallOn((v) => !v)}
+                onClick={() => {
+                  setNoclipAutoAlternateOn(false);
+                  setNoclipFreeFallOn((v) => !v);
+                }}
                 aria-pressed={noclipFreeFallOn}
                 className={`pointer-events-auto rounded-full border px-2 py-0.5 text-[8px] font-light tracking-[0.2em] backdrop-blur-md transition active:scale-95 ${
                   noclipFreeFallOn
@@ -6480,6 +6546,20 @@ export function Aquafulness() {
                 }`}
               >
                 {t("hud.joystick.freeFall")}
+              </button>
+              {/* Optional hands-off cycling between the two above, interval
+                  set in SETTINGS → KAMERA. */}
+              <button
+                type="button"
+                onClick={() => setNoclipAutoAlternateOn((v) => !v)}
+                aria-pressed={noclipAutoAlternateOn}
+                className={`pointer-events-auto rounded-full border px-2 py-0.5 text-[8px] font-light tracking-[0.2em] backdrop-blur-md transition active:scale-95 ${
+                  noclipAutoAlternateOn
+                    ? "border-white/50 bg-white/25 text-white"
+                    : "border-white/20 bg-black/40 text-white/70"
+                }`}
+              >
+                {t("hud.joystick.autoAlternate")}
               </button>
             </div>
           </div>

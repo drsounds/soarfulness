@@ -136,6 +136,8 @@
       "intervalSession": "INTERVALSESSION",
       "mode": "KAMERATILSTAND",
       "near": "NÆR",
+      "noclipAutoAlternate": "AUTO SKIFT",
+      "noclipAutoAlternateInterval": "SKIFTEINTERVAL",
       "noclipSpeed": "NOCLIP HASTIGHED",
       "posX": "POS X",
       "posY": "POS Y",
@@ -481,6 +483,7 @@
     "intervalInfiniteLabel": "Interval {{n}}",
     "intervalRemaining": "{{time}} tilbage",
     "joystick": {
+      "autoAlternate": "AUTO SKIFT",
       "current": "STRØM",
       "freeFall": "FRIT FALD",
       "look": "LOOK",
