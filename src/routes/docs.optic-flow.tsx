@@ -41,7 +41,7 @@ function OpticFlowDocPage() {
         </AlertDescription>
       </Alert>
 
-      <Card>
+      <Card className="shadow-none">
         <CardHeader>
           <CardTitle>{t("docsPhilosophy.opticFlow.section1.title")}</CardTitle>
         </CardHeader>
@@ -55,7 +55,7 @@ function OpticFlowDocPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="shadow-none">
         <CardHeader>
           <CardTitle>{t("docsPhilosophy.opticFlow.section2.title")}</CardTitle>
         </CardHeader>
@@ -97,7 +97,7 @@ function OpticFlowDocPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="shadow-none">
         <CardHeader>
           <CardTitle>{t("docsPhilosophy.opticFlow.section3.title")}</CardTitle>
         </CardHeader>
@@ -146,7 +146,7 @@ function OpticFlowDocPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="shadow-none">
         <CardHeader>
           <CardTitle>{t("docsPhilosophy.opticFlow.section4.title")}</CardTitle>
         </CardHeader>
@@ -182,7 +182,7 @@ function OpticFlowDocPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="shadow-none">
         <CardHeader>
           <CardTitle>{t("docsPhilosophy.opticFlow.section5.title")}</CardTitle>
         </CardHeader>
@@ -196,6 +196,14 @@ function OpticFlowDocPage() {
         <Link to="/docs/background" className="underline hover:text-foreground">
           {t("docsPhilosophy.opticFlow.seeAlsoLink")}
         </Link>
+      </p>
+
+      <p className="text-xs text-muted-foreground">
+        {t("docsPhilosophy.opticFlow.furtherReading.before")}{" "}
+        <Link to="/docs/references" className="underline hover:text-foreground">
+          {t("docsPhilosophy.opticFlow.furtherReading.link")}
+        </Link>{" "}
+        {t("docsPhilosophy.opticFlow.furtherReading.after")}
       </p>
     </>
   );

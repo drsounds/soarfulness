@@ -163,6 +163,7 @@
     },
     "env": {
       "backdrop": "BAKGRUND",
+      "cloudFadeSpeed": "MOLN-TONINGSHASTIGHET",
       "dayTime": "DYGN",
       "environment": "MILJÖ",
       "era": "EPOK",
@@ -173,7 +174,6 @@
       "scene": "SCEN",
       "skyClouds": "HIMMEL-MOLN",
       "skyCloudsHeight": "HIMMEL-MOLNHÖJD",
-      "cloudFadeSpeed": "MOLN-TONINGSHASTIGHET",
       "time": "TID",
       "torusCellSize": "RUTNÄT XZ",
       "torusFadeDistance": "TONING",
@@ -203,19 +203,19 @@
       "floorTexture": "TEXTUR",
       "hue": "TON",
       "pickColor": "VÄLJ FÄRG",
-      "reflStrength": "STYRKA",
       "reflection": "SPEGLING",
+      "reflStrength": "STYRKA",
       "saturation": "MÄTTNAD",
       "sineAmp": "SINUS AMP",
       "sineFreq": "SINUS FREK",
       "sphereStrength": "SFÄR-STYRKA",
-      "surfBright": "YT-LJUS",
-      "surfSat": "YT-MÄTTNAD",
       "surface": "VATTENYTA",
       "surfaceValue": {
         "hide": "DÖLJ",
         "visible": "SYNLIGT"
       },
+      "surfBright": "YT-LJUS",
+      "surfSat": "YT-MÄTTNAD",
       "turbidity": "GRUMLIGHET",
       "waveMaterial": "VÅGMATERIAL",
       "waveMaterialValue": {
@@ -254,12 +254,12 @@
       "trochoid": "TROKOID",
       "trochoidOff": "AV",
       "waveDirection": "VÅGRIKTNING",
-      "wavePeriod": "VÅGPERIOD",
       "waveform": "VÅGFORM",
       "waveformValue": {
         "regular": "REGELBUNDEN",
         "spread": "SPRIDD"
       },
+      "wavePeriod": "VÅGPERIOD",
       "whirlpoolDirection": "VIRVEL RIKTNING",
       "whirlpoolDistance": "AVSTÅND TILL CENTRUM",
       "whirlpoolDragDuration": "INDRAGNINGSLÄNGD",
@@ -379,6 +379,10 @@
         "body": "Hur visualiseringen är designad kring visuell självrörelse: långsamt, sammanhängande optiskt flöde, gungning av hela bildfältet, och målet att återskapa känslan av att flyta i varmt vatten.",
         "title": "2. Optiskt flöde och kinestetisk rörelse"
       },
+      "card3": {
+        "body": "Verkliga, kollegialt granskade studier om optiskt flöde, vektion, gungning/vestibulär stimulering och att titta på vatten, med Harvard-referenser och länkar till PubMed/DOI.",
+        "title": "3. Vetenskapliga referenser"
+      },
       "disclaimerBody": "allt nedan beskriver designintentioner grundade i skaparens personliga erfarenhet, tillsammans med allmänt kända perceptuella begrepp som används som designinspiration. Inga medicinska påståenden görs. Aquafulness är ingen medicinteknisk produkt eller terapiform, och inget påstående här om lugn, avslappning eller välbefinnande ska läsas som ett kliniskt validerat resultat.",
       "disclaimerLabel": "Ansvarsfriskrivning:",
       "footerAfter": ", där den här dokumentationen har sitt ursprung.",
@@ -395,6 +399,11 @@
     "opticFlow": {
       "disclaimerBody": "den här sidan beskriver designresonemang, grundat i skaparens personliga erfarenhet och i allmänt kända perceptuella begrepp som används här som inspiration. Den gör inga medicinska påståenden. Aquafulness har inte utvärderats kliniskt; inget nedan hävdar en terapeutisk effekt, och den individuella upplevelsen varierar.",
       "disclaimerLabel": "Ansvarsfriskrivning:",
+      "furtherReading": {
+        "after": "för verkliga, kollegialt granskade studier med Harvard-referenser och länkar till PubMed/DOI.",
+        "before": "Begreppen ovan — optiskt flöde, vektion och långsam vestibulär (\"heave\") stimulering — är etablerade inom perceptions- och sömnforskningen, även om de inte testats på Aquafulness i sig. Se",
+        "link": "Vetenskapliga referenser"
+      },
       "section1": {
         "p1After": "— är att syn och ljud, rätt utfört, kan väcka minnet av resten. Hjärnan som har flutit i en varm sjö vet hur den fulla sensoriska helheten känns; ett tillräckligt evokativt audiovisuellt fragment inbjuder den att fylla i resten.",
         "p1Before": "Verkligt badande är multisensoriskt: hudtemperatur, flytkraft som avlastar lederna, hydrostatiskt tryck, den vestibulära signalen av att gungas, ljudet av vatten, synen av det. En skärm och en högtalare kan bara adressera två av dessa kanaler. Det Aquafulness satsar på — fallstudien kallar det",
@@ -473,6 +482,92 @@
       "seeAlsoBefore": "Se även:",
       "seeAlsoLink": "Bakgrund och syfte",
       "title": "Optiskt flöde och kinestetisk rörelse"
+    },
+    "references": {
+      "groups": [
+        {
+          "citations": [
+            {
+              "text": "Wright, W.G., DiZio, P. and Lackner, J.R. (2005) 'Vertical linear self-motion perception during visual and inertial motion: more than weighted summation of sensory inputs', Journal of Vestibular Research, 15(4), pp. 185–195.",
+              "url": "https://pubmed.ncbi.nlm.nih.gov/16286700/"
+            },
+            {
+              "text": "Nakamura, S., Palmisano, S. and Kim, J. (2016) 'Relative visual oscillation can facilitate visually induced self-motion perception', i-Perception, 7(4), pp. 1–18. doi: 10.1177/2041669516661903.",
+              "url": "https://pubmed.ncbi.nlm.nih.gov/27698982/"
+            },
+            {
+              "text": "Wang, W., Yang, K. and Zhu, Y. (2021) 'Optimal frequency and amplitude of vertical viewpoint oscillation for improving vection strength and reducing neural constraints on gait', Entropy, 23(5), 541. doi: 10.3390/e23050541.",
+              "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8145014/"
+            },
+            {
+              "text": "Nooij, S.A.E., Pretto, P. and Bülthoff, H.H. (2018) 'More vection means more velocity storage activity: a factor in visually induced motion sickness?', Experimental Brain Research, 236(11), pp. 3031–3041. doi: 10.1007/s00221-018-5340-1.",
+              "url": "https://pubmed.ncbi.nlm.nih.gov/30120498/"
+            }
+          ],
+          "note": "Tillsammans visar dessa studier att oscillerande visuell rörelse i sig — utan någon fysisk rörelse — framkallar upplevelsen av självrörelse, att vertikal oscillation av betraktarpunkten (appens \"helfältsgungning\") mätbart förstärker denna illusion, och, som en brasklapp, att starkare vektion också är kopplad till högre risk för visuellt inducerad rörelsesjuka — därför håller appen rörelsen långsam och användarjusterbar snarare än att maximera vektionsstyrkan.",
+          "title": "Optiskt flöde, vektion och självrörelseperception"
+        },
+        {
+          "citations": [
+            {
+              "text": "Yang, A.H.X., Khwaounjoo, P. and Cakmak, Y.O. (2021) 'Directional effects of whole-body spinning and visual flow in virtual reality on vagal neuromodulation', Journal of Vestibular Research, 31(6), pp. 479–494. doi: 10.3233/VES-201574.",
+              "url": "https://pubmed.ncbi.nlm.nih.gov/34024797/"
+            },
+            {
+              "text": "Kuldavletova, O., Denise, P., Normand, H., Quarck, G. and Etard, O.M. (2023) 'Both whole-body rotation and visual flow induce cardiovascular autonomic response in human, but visual response is overridden by vestibular stimulation', Scientific Reports, 13, 4191. doi: 10.1038/s41598-023-31431-z.",
+              "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10015060/"
+            }
+          ],
+          "note": "Båda studierna visar att optiskt flöde ensamt — utan någon fysisk rörelse — mätbart förskjuter den vagala/parasympatiska aktiviteten, den fysiologiska grunden för påståendet att koherent visuellt flöde är \"lugnande\".",
+          "title": "Visuellt flöde och autonom (vagal/parasympatisk) respons"
+        },
+        {
+          "citations": [
+            {
+              "text": "Bayer, L., Constantinescu, I., Perrig, S., Vienne, J., Vidal, P.-P., Mühlethaler, M. and Schwartz, S. (2011) 'Rocking synchronizes brain waves during a short nap', Current Biology, 21(12), pp. R461–R462. doi: 10.1016/j.cub.2011.05.012.",
+              "url": "https://pubmed.ncbi.nlm.nih.gov/21683897/"
+            },
+            {
+              "text": "Omlin, X., Crivelli, F., Näf, M., Heinicke, L., Skorucak, J., Malafeev, A., Fernandez Guerrero, A., Riener, R. and Achermann, P. (2018) 'The effect of a slowly rocking bed on sleep', Scientific Reports, 8, 2156. doi: 10.1038/s41598-018-19880-3.",
+              "url": "https://pubmed.ncbi.nlm.nih.gov/29391413/"
+            },
+            {
+              "text": "Perrault, A.A., Khani, A., Quairiaux, C., Kompotis, K., Franken, P., Mühlethaler, M., Schwartz, S. and Bayer, L. (2019) 'Whole-night continuous rocking entrains spontaneous neural oscillations with benefits for sleep and memory', Current Biology, 29(3), pp. 402–411.e3. doi: 10.1016/j.cub.2018.12.028.",
+              "url": "https://doi.org/10.1016/j.cub.2018.12.028"
+            },
+            {
+              "text": "van Sluijs, R.M., Rondei, Q.J., Schluep, D., Jäger, L., Riener, R., Achermann, P. and Wilhelm, E. (2020) 'Effect of rocking movements on afternoon sleep', Frontiers in Neuroscience, 13, 1446. doi: 10.3389/fnins.2019.01446.",
+              "url": "https://pubmed.ncbi.nlm.nih.gov/32038144/"
+            },
+            {
+              "text": "Subramaniam, A., Eberhard-Moscicka, A.K., Ertl, M. and Mast, F.W. (2023) 'Rocking devices and the role of vestibular stimulation on sleep — a systematic review', Clinical and Translational Neuroscience, 7(4), 40. doi: 10.3390/ctn7040040.",
+              "url": "https://doi.org/10.3390/ctn7040040"
+            }
+          ],
+          "note": "Dessa studier utgör den direkta bevisgrunden för appens centrala analogi: långsam (cirka 0,25 Hz), passiv gungning — samma lågfrekventa vertikala \"heave\"-rörelse som kameran applicerar på hela synfältet — främjar mätbart avslappning, snabbare insomning och djupare sömn hos människor, och antas verka genom rytmisk vestibulär stimulering.",
+          "title": "Gungning, vestibulär (\"heave\") stimulering, sömn och avslappning"
+        },
+        {
+          "citations": [
+            {
+              "text": "Ulrich, R.S., Simons, R.F., Losito, B.D., Fiorito, E., Miles, M.A. and Zelson, M. (1991) 'Stress recovery during exposure to natural and urban environments', Journal of Environmental Psychology, 11(3), pp. 201–230. doi: 10.1016/S0272-4944(05)80184-7.",
+              "url": "https://doi.org/10.1016/S0272-4944(05)80184-7"
+            },
+            {
+              "text": "White, M.P., Smith, A., Humphryes, K., Pahl, S., Snelling, D. and Depledge, M. (2010) 'Blue space: the importance of water for preference, affect, and restorativeness ratings of natural and built scenes', Journal of Environmental Psychology, 30(4), pp. 482–493. doi: 10.1016/j.jenvp.2010.04.004.",
+              "url": "https://doi.org/10.1016/j.jenvp.2010.04.004"
+            }
+          ],
+          "note": "Ulrichs grundläggande studie visar att video av naturmiljöer ger snabbare fysiologisk stressåterhämtning än video av stadsmiljöer; White m.fl. fann att scener som innehåller vatten får högre betyg för preferens, positiv affekt och upplevd återhämtande förmåga än motsvarande scener utan vatten — direkt empiriskt stöd för \"blue mind\"/vatten-effekten, oberoende av någon rörelseillusion.",
+          "title": "Att se på vatten och stressåterhämtning (\"blue mind\")"
+        }
+      ],
+      "intro": "Verkliga, kollegialt granskade studier kopplade till de perceptionsbegrepp som nämns på de föregående sidorna — optiskt flöde, vektion och lågfrekvent (gungande/\"heave\") vestibulär stimulering — samt till \"blue mind\"-observationen om att titta på vatten. Referenserna använder Harvard-stil, med en länk till PubMed/PMC eller utgivarens DOI för varje post.",
+      "scopeNoteBody": "Ingen av studierna nedan har genomförts på Aquafulness, och ingen testar specifikt en flytande havsvisualisering. De fastställer de underliggande perceptuella och fysiologiska effekterna — att koherent optiskt flöde och vektion kan skapas visuellt, att långsam gungning/vestibulär stimulering förknippas med avslappning och insomning, och att det att se på vatten och naturmiljöer förknippas med stressåterhämtning — som designen kombinerar analogt. Precis som friskrivningarna på andra ställen i appen anger är detta designresonemang grundat i befintlig litteratur och personlig erfarenhet, inte ett kliniskt påstående om Aquafulness i sig.",
+      "scopeNoteLabel": "Om omfattningen:",
+      "seeAlsoBefore": "Se även:",
+      "seeAlsoLink": "Optiskt flöde och kinestetisk rörelse",
+      "title": "Vetenskapliga referenser"
     }
   },
   "hud": {

@@ -163,6 +163,7 @@
     },
     "env": {
       "backdrop": "TAUSTA",
+      "cloudFadeSpeed": "PILVIEN HÄIVYTYSNOPEUS",
       "dayTime": "VUOROKAUDENAIKA",
       "environment": "YMPÄRISTÖ",
       "era": "AIKAKAUSI",
@@ -173,7 +174,6 @@
       "scene": "NÄYTTÄMÖ",
       "skyClouds": "TAIVAAN PILVET",
       "skyCloudsHeight": "TAIVAAN PILVEN KORKEUS",
-      "cloudFadeSpeed": "PILVIEN HÄIVYTYSNOPEUS",
       "time": "AIKA",
       "torusCellSize": "RUUDUKKO XZ",
       "torusFadeDistance": "HÄIVYTYS",
@@ -203,19 +203,19 @@
       "floorTexture": "TEKSTUURI",
       "hue": "SÄVY",
       "pickColor": "VALITSE VÄRI",
-      "reflStrength": "VOIMAKKUUS",
       "reflection": "HEIJASTUS",
+      "reflStrength": "VOIMAKKUUS",
       "saturation": "KYLLÄISYYS",
       "sineAmp": "SININ AMPLITUDI",
       "sineFreq": "SININ TAAJUUS",
       "sphereStrength": "PALLON VOIMAKKUUS",
-      "surfBright": "PINNAN VALO",
-      "surfSat": "PINNAN KYLLÄISYYS",
       "surface": "VEDENPINTA",
       "surfaceValue": {
         "hide": "PIILOTA",
         "visible": "NÄKYVÄ"
       },
+      "surfBright": "PINNAN VALO",
+      "surfSat": "PINNAN KYLLÄISYYS",
       "turbidity": "SAMEUS",
       "waveMaterial": "AALLON MATERIAALI",
       "waveMaterialValue": {
@@ -254,12 +254,12 @@
       "trochoid": "TROKOIDI",
       "trochoidOff": "POIS",
       "waveDirection": "AALLON SUUNTA",
-      "wavePeriod": "AALLON JAKSO",
       "waveform": "AALTOMUOTO",
       "waveformValue": {
         "regular": "SÄÄNNÖLLINEN",
         "spread": "HAJONTA"
       },
+      "wavePeriod": "AALLON JAKSO",
       "whirlpoolDirection": "PYÖRTEEN SUUNTA",
       "whirlpoolDistance": "ETÄISYYS KESKUSTAAN",
       "whirlpoolDragDuration": "VEDON KESTO",
@@ -379,6 +379,10 @@
         "body": "Miten visualisointi on suunniteltu visuaalisen itseliikkeen ympärille: hidas, yhtenäinen optinen virtaus, koko kuvakentän keinunta, ja tavoite herättää tunne lämpimässä vedessä kellumisesta.",
         "title": "2. Optinen virtaus ja kinesteettinen liike"
       },
+      "card3": {
+        "body": "Aitoja, vertaisarvioituja tutkimuksia optisesta virtauksesta, vektiosta, keinunnasta/tasapainoelinärsytyksestä ja veden katselusta, Harvard-lähdeviittein ja linkein PubMediin/DOI:hin.",
+        "title": "3. Tieteelliset lähteet"
+      },
       "disclaimerBody": "kaikki alla oleva kuvaa suunnitteluperiaatteita, jotka pohjautuvat tekijän henkilökohtaiseen kokemukseen sekä yleisesti tunnettuihin havaintopsykologisiin käsitteisiin, joita on käytetty suunnittelun inspiraationa. Mitään lääketieteellisiä väitteitä ei esitetä. Aquafulness ei ole lääkinnällinen laite eikä terapiamuoto, eikä mitään täällä esitettyä väitettä rauhoittumisesta, rentoutumisesta tai hyvinvoinnista tule lukea kliinisesti vahvistettuna tuloksena.",
       "disclaimerLabel": "Vastuuvapauslauseke:",
       "footerAfter": "kanssa, josta tämä dokumentaatio on peräisin.",
@@ -395,6 +399,11 @@
     "opticFlow": {
       "disclaimerBody": "tämä sivu kuvaa suunnitteluperusteluja, jotka pohjautuvat tekijän henkilökohtaiseen kokemukseen ja yleisesti tunnettuihin havaintopsykologisiin käsitteisiin, joita käytetään tässä inspiraationa. Se ei esitä lääketieteellisiä väitteitä. Aquafulnessia ei ole kliinisesti arvioitu; mikään alla oleva ei väitä terapeuttista vaikutusta, ja yksilöllinen kokemus vaihtelee.",
       "disclaimerLabel": "Vastuuvapauslauseke:",
+      "furtherReading": {
+        "after": "aidoista, vertaisarvioiduista tutkimuksista Harvard-lähdeviittein ja linkein PubMediin/DOI:hin.",
+        "before": "Yllä käytetyt käsitteet — optinen virtaus, vektio ja hidas tasapainoelin- (\"heave\") ärsytys — ovat vakiintuneita havaintopsykologian ja unitutkimuksen kirjallisuudessa, vaikkei niitä ole testattu itse Aquafulnessissa. Katso",
+        "link": "Tieteelliset lähteet"
+      },
       "section1": {
         "p1After": "— on, että näkö ja kuulo, oikein toteutettuina, voivat herättää muiston lopusta. Aivot, jotka ovat kelluneet lämpimässä järvessä, tietävät miltä koko aistikokonaisuus tuntuu; riittävän puhutteleva audiovisuaalinen katkelma kutsuu ne täydentämään loput.",
         "p1Before": "Todellinen kylpeminen on monisensorista: ihon lämpötila, niveliä keventävä kelluvuus, hydrostaattinen paine, keinumisen tasapainoaistin signaali, veden ääni, sen näky. Näyttö ja kaiutin voivat tavoittaa vain kaksi näistä kanavista. Aquafulnessin veto — tapaustutkimus kutsuu sitä",
@@ -473,6 +482,92 @@
       "seeAlsoBefore": "Katso myös:",
       "seeAlsoLink": "Tausta ja tarkoitus",
       "title": "Optinen virtaus ja kinesteettinen liike"
+    },
+    "references": {
+      "groups": [
+        {
+          "citations": [
+            {
+              "text": "Wright, W.G., DiZio, P. and Lackner, J.R. (2005) 'Vertical linear self-motion perception during visual and inertial motion: more than weighted summation of sensory inputs', Journal of Vestibular Research, 15(4), pp. 185–195.",
+              "url": "https://pubmed.ncbi.nlm.nih.gov/16286700/"
+            },
+            {
+              "text": "Nakamura, S., Palmisano, S. and Kim, J. (2016) 'Relative visual oscillation can facilitate visually induced self-motion perception', i-Perception, 7(4), pp. 1–18. doi: 10.1177/2041669516661903.",
+              "url": "https://pubmed.ncbi.nlm.nih.gov/27698982/"
+            },
+            {
+              "text": "Wang, W., Yang, K. and Zhu, Y. (2021) 'Optimal frequency and amplitude of vertical viewpoint oscillation for improving vection strength and reducing neural constraints on gait', Entropy, 23(5), 541. doi: 10.3390/e23050541.",
+              "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8145014/"
+            },
+            {
+              "text": "Nooij, S.A.E., Pretto, P. and Bülthoff, H.H. (2018) 'More vection means more velocity storage activity: a factor in visually induced motion sickness?', Experimental Brain Research, 236(11), pp. 3031–3041. doi: 10.1007/s00221-018-5340-1.",
+              "url": "https://pubmed.ncbi.nlm.nih.gov/30120498/"
+            }
+          ],
+          "note": "Yhdessä nämä tutkimukset osoittavat, että oskilloiva visuaalinen liike yksinään — ilman mitään fyysistä liikettä — synnyttää itseliikkeen tunteen, että katselupisteen pystysuuntainen oskillaatio (sovelluksen \"koko kentän keinunta\") vahvistaa mitattavasti tätä illuusiota, ja varauksena, että voimakkaampi vektio liittyy myös suurempaan visuaalisesti aiheutetun liikepahoinvoinnin riskiin — minkä vuoksi sovellus pitää liikkeen hitaana ja käyttäjän säädettävissä sen sijaan, että se maksimoisi vektion voimakkuuden.",
+          "title": "Optinen virtaus, vektio ja itseliikkeen havaitseminen"
+        },
+        {
+          "citations": [
+            {
+              "text": "Yang, A.H.X., Khwaounjoo, P. and Cakmak, Y.O. (2021) 'Directional effects of whole-body spinning and visual flow in virtual reality on vagal neuromodulation', Journal of Vestibular Research, 31(6), pp. 479–494. doi: 10.3233/VES-201574.",
+              "url": "https://pubmed.ncbi.nlm.nih.gov/34024797/"
+            },
+            {
+              "text": "Kuldavletova, O., Denise, P., Normand, H., Quarck, G. and Etard, O.M. (2023) 'Both whole-body rotation and visual flow induce cardiovascular autonomic response in human, but visual response is overridden by vestibular stimulation', Scientific Reports, 13, 4191. doi: 10.1038/s41598-023-31431-z.",
+              "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10015060/"
+            }
+          ],
+          "note": "Molemmat tutkimukset havaitsevat, että pelkkä optinen virtaus — ilman fyysistä liikettä — muuttaa mitattavasti vagaalista/parasympaattista aktiviteettia, mikä on fysiologinen perusta väitteelle, että koherentti visuaalinen virtaus on \"rauhoittavaa\".",
+          "title": "Visuaalinen virtaus ja autonominen (vagaalinen/parasympaattinen) vaste"
+        },
+        {
+          "citations": [
+            {
+              "text": "Bayer, L., Constantinescu, I., Perrig, S., Vienne, J., Vidal, P.-P., Mühlethaler, M. and Schwartz, S. (2011) 'Rocking synchronizes brain waves during a short nap', Current Biology, 21(12), pp. R461–R462. doi: 10.1016/j.cub.2011.05.012.",
+              "url": "https://pubmed.ncbi.nlm.nih.gov/21683897/"
+            },
+            {
+              "text": "Omlin, X., Crivelli, F., Näf, M., Heinicke, L., Skorucak, J., Malafeev, A., Fernandez Guerrero, A., Riener, R. and Achermann, P. (2018) 'The effect of a slowly rocking bed on sleep', Scientific Reports, 8, 2156. doi: 10.1038/s41598-018-19880-3.",
+              "url": "https://pubmed.ncbi.nlm.nih.gov/29391413/"
+            },
+            {
+              "text": "Perrault, A.A., Khani, A., Quairiaux, C., Kompotis, K., Franken, P., Mühlethaler, M., Schwartz, S. and Bayer, L. (2019) 'Whole-night continuous rocking entrains spontaneous neural oscillations with benefits for sleep and memory', Current Biology, 29(3), pp. 402–411.e3. doi: 10.1016/j.cub.2018.12.028.",
+              "url": "https://doi.org/10.1016/j.cub.2018.12.028"
+            },
+            {
+              "text": "van Sluijs, R.M., Rondei, Q.J., Schluep, D., Jäger, L., Riener, R., Achermann, P. and Wilhelm, E. (2020) 'Effect of rocking movements on afternoon sleep', Frontiers in Neuroscience, 13, 1446. doi: 10.3389/fnins.2019.01446.",
+              "url": "https://pubmed.ncbi.nlm.nih.gov/32038144/"
+            },
+            {
+              "text": "Subramaniam, A., Eberhard-Moscicka, A.K., Ertl, M. and Mast, F.W. (2023) 'Rocking devices and the role of vestibular stimulation on sleep — a systematic review', Clinical and Translational Neuroscience, 7(4), 40. doi: 10.3390/ctn7040040.",
+              "url": "https://doi.org/10.3390/ctn7040040"
+            }
+          ],
+          "note": "Nämä tutkimukset muodostavat suoran näytön sovelluksen keskeiselle analogialle: hidas (noin 0,25 Hz), passiivinen keinunta — sama matalataajuinen pystysuuntainen \"heave\"-liike, jota kamera soveltaa koko näkokenttään — edistää mitattavasti rentoutumista, nopeampaa nukahtamista ja syvempää unta ihmisillä, ja sen ymmärretään toimivan rytmisen tasapainoelinärsytyksen kautta.",
+          "title": "Keinuminen, tasapainoelinärsytys (\"heave\"), uni ja rentoutuminen"
+        },
+        {
+          "citations": [
+            {
+              "text": "Ulrich, R.S., Simons, R.F., Losito, B.D., Fiorito, E., Miles, M.A. and Zelson, M. (1991) 'Stress recovery during exposure to natural and urban environments', Journal of Environmental Psychology, 11(3), pp. 201–230. doi: 10.1016/S0272-4944(05)80184-7.",
+              "url": "https://doi.org/10.1016/S0272-4944(05)80184-7"
+            },
+            {
+              "text": "White, M.P., Smith, A., Humphryes, K., Pahl, S., Snelling, D. and Depledge, M. (2010) 'Blue space: the importance of water for preference, affect, and restorativeness ratings of natural and built scenes', Journal of Environmental Psychology, 30(4), pp. 482–493. doi: 10.1016/j.jenvp.2010.04.004.",
+              "url": "https://doi.org/10.1016/j.jenvp.2010.04.004"
+            }
+          ],
+          "note": "Ulrichin perustavanlaatuinen tutkimus osoittaa, että luontomaisemia esittävä video tuottaa nopeamman fysiologisen stressistä palautumisen kuin kaupunkimaisemia esittävä video; White ym. havaitsivat, että vettä sisältävät maisemat saavat korkeammat arviot mieltymyksestä, positiivisesta affektista ja koetusta elvyttävyydestä kuin vastaavat maisemat ilman vettä — suoraa empiiristä tukea \"blue mind\"- eli vedenkatseluvaikutukselle, riippumatta mistään liikeilluusiosta.",
+          "title": "Veden katselu ja stressistä palautuminen (\"blue mind\")"
+        }
+      ],
+      "intro": "Aitoja, vertaisarvioituja tutkimuksia, jotka liittyvät edellisillä sivuilla mainittuihin havaintopsykologisiin käsitteisiin — optiseen virtaukseen, vektioon ja matalataajuiseen (keinuvaan/\"heave\") tasapainoelinärsytykseen — sekä veden katselua koskevaan \"blue mind\" -havaintoon. Lähdeviitteet on merkitty Harvard-tyylillä, ja jokaiseen on liitetty linkki PubMediin/PMC:hen tai julkaisijan DOI-tunnukseen.",
+      "scopeNoteBody": "Yhtäkään alla listatuista tutkimuksista ei ole tehty Aquafulnessista, eikä yksikään niistä testaa nimenomaan kelluvaa merivisualisointia. Ne osoittavat osatekijöiden havaintopsykologiset ja fysiologiset vaikutukset — että koherentti optinen virtaus ja vektio voidaan tuottaa visuaalisesti, että hidas keinuminen/tasapainoelinärsytys liittyy rentoutumiseen ja nukahtamiseen, ja että veden ja luontomaisemien katselu liittyy stressistä palautumiseen — joita suunnittelu yhdistää analogian kautta. Kuten sovelluksen muualla olevat vastuuvapauslausekkeet toteavat, tämä on olemassa olevaan kirjallisuuteen ja henkilökohtaiseen kokemukseen perustuvaa suunnitteluperustelua, ei kliininen väite Aquafulnessista itsestään.",
+      "scopeNoteLabel": "Huomio soveltamisalasta:",
+      "seeAlsoBefore": "Katso myös:",
+      "seeAlsoLink": "Optinen virtaus ja kinesteettinen liike",
+      "title": "Tieteelliset lähteet"
     }
   },
   "hud": {
