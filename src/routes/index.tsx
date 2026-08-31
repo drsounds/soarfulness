@@ -17,6 +17,7 @@ import { TimeTravelDialog } from "@/components/TimeTravelDialog";
 import { isFuturisticYear, northernHemisphereTimeOfDay, simulatedDate } from "@/lib/timeTravel";
 import { PadSlider } from "@/components/PadDial";
 import { Joystick, JoystickPad } from "@/components/Joystick";
+import { hsvToRgb } from "@/lib/waterTint";
 import {
   padToWorldXZ,
   worldXZToPad,
@@ -3311,6 +3312,7 @@ export function Aquafulness() {
       uSunColor: { value: new THREE.Color(0xffe6b0) },
       uFogColor: { value: new THREE.Color(0x88aacc) },
       uWaterColor: { value: new THREE.Vector3(1, 1, 1) },
+      uOverlayColor: { value: new THREE.Vector3(1, 0, 0) },
       uOpacity: { value: 1 },
       uWaterColorAlpha: { value: 0 },
       uTintHue: { value: 0 },
@@ -3610,9 +3612,13 @@ export function Aquafulness() {
       uniform vec3 uWaterShallow;
       uniform vec3 uSunColor;
       uniform vec3 uWaterColor;
+      // The water color picker's own flat overlay color (see the "Water
+      // color overlay" block below) — independent of uWaterColor, which is
+      // the always-on WATER preset tint multiplier.
+      uniform vec3 uOverlayColor;
       uniform float uOpacity;
-      // Independent alpha for the flat WATER COLOR overlay blended in below
-      // (see the "Water color overlay" block) — separate from uOpacity
+      // Independent alpha for the flat overlay color blended in below (see
+      // the "Water color overlay" block) — separate from uOpacity
       // (translucency to whatever's behind the water).
       uniform float uWaterColorAlpha;
       uniform float uTintHue;
@@ -3829,15 +3835,16 @@ export function Aquafulness() {
           col = mix(col, sphereMapShade(Nshim, water), uSphereMix);
         }
 
-        // Water color overlay (Super Mario Sunshine-style): blend the flat,
-        // tinted water body ("water" — deep/shallow color × WATER COLOR
-        // preset, pre-reflection/pre-sun/pre-foam) back over the fully lit
+        // Water color overlay (Super Mario Sunshine-style): blend the color
+        // picker's own flat, vivid uOverlayColor (see WaterColorPicker in
+        // SettingsPanel.tsx — this is a real, standalone RGB color, not a
+        // rotation of the WATER preset tint above) back over the fully lit
         // result. uWaterColorAlpha is intentionally its own dial, independent
         // of uOpacity (translucency to what's behind the water) and of
         // uSurfBright/uSurfSat below (light/texture on the final look) — at 1
-        // the water body reads as a flat, saturated color regardless of
+        // the water body reads as a flat, fully painted color regardless of
         // lighting or reflections; at 0 it's unchanged.
-        col = mix(col, water, clamp(uWaterColorAlpha, 0.0, 1.0));
+        col = mix(col, uOverlayColor, clamp(uWaterColorAlpha, 0.0, 1.0));
 
         // Whitecap foam is applied *after* the color overlay above (rather
         // than folded into col before it) so it stays visible at any
@@ -4540,15 +4547,25 @@ export function Aquafulness() {
       skyUniforms.uSunColor.value.copy(uniforms.uSunColor.value);
       (scene.fog as THREE.FogExp2).color.copy(uniforms.uFogColor.value);
 
-      // Water color + optional seafloor
+      // Water color + optional seafloor. uWaterColor stays the always-on
+      // WATER preset tint (unaffected by the color picker). uOverlayColor is
+      // fed from the color picker's own hue instead (see WaterColorPicker in
+      // SettingsPanel.tsx and hsvToRgb in lib/waterTint.ts) — a real, vivid
+      // RGB color, independent of the preset — used only by the optional
+      // flat overlay below (uWaterColorAlpha / "COLOR STRENGTH").
       const waterColor = WATER_COLORS[waterColorRef.current] ?? WATER_COLORS[0];
       uniforms.uWaterColor.value.set(waterColor.rgb[0], waterColor.rgb[1], waterColor.rgb[2]);
+      const pickedOverlayColor = hsvToRgb(waterHueRef.current, 1, 1);
+      uniforms.uOverlayColor.value.x +=
+        (pickedOverlayColor[0] - uniforms.uOverlayColor.value.x) * Math.min(1, dt * 6);
+      uniforms.uOverlayColor.value.y +=
+        (pickedOverlayColor[1] - uniforms.uOverlayColor.value.y) * Math.min(1, dt * 6);
+      uniforms.uOverlayColor.value.z +=
+        (pickedOverlayColor[2] - uniforms.uOverlayColor.value.z) * Math.min(1, dt * 6);
       uniforms.uOpacity.value +=
         (waterOpacityRef.current - uniforms.uOpacity.value) * Math.min(1, dt * 6);
       uniforms.uWaterColorAlpha.value +=
         (waterColorAlphaRef.current - uniforms.uWaterColorAlpha.value) * Math.min(1, dt * 6);
-      uniforms.uTintHue.value +=
-        (waterHueRef.current * 0.01745329252 - uniforms.uTintHue.value) * Math.min(1, dt * 6);
       uniforms.uTintSat.value +=
         (waterSatRef.current - uniforms.uTintSat.value) * Math.min(1, dt * 6);
       uniforms.uTintBright.value +=
