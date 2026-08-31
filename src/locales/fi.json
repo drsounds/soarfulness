@@ -169,6 +169,7 @@
       "scene": "NÄYTTÄMÖ",
       "skyClouds": "TAIVAAN PILVET",
       "skyCloudsHeight": "TAIVAAN PILVEN KORKEUS",
+      "cloudFadeSpeed": "PILVIEN HÄIVYTYSNOPEUS",
       "time": "AIKA",
       "torusCellSize": "RUUDUKKO XZ",
       "torusFadeDistance": "HÄIVYTYS",

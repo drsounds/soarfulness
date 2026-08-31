@@ -169,6 +169,7 @@
       "scene": "SCENE",
       "skyClouds": "SKY CLOUDS",
       "skyCloudsHeight": "SKY CLOUD HEIGHT",
+      "cloudFadeSpeed": "CLOUD FADE SPEED",
       "time": "TIME",
       "torusCellSize": "GRID XZ",
       "torusFadeDistance": "FADE",

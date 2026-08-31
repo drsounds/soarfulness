@@ -533,6 +533,8 @@ export type SettingsPanelProps = {
   setSkyCloudsOn: Dispatch<SetStateAction<boolean>>;
   skyCloudsHeight: number;
   setSkyCloudsHeight: Dispatch<SetStateAction<number>>;
+  cloudFadeSpeed: number;
+  setCloudFadeSpeed: Dispatch<SetStateAction<number>>;
   worldBoundaryOn: boolean;
   setWorldBoundaryOn: Dispatch<SetStateAction<boolean>>;
   worldBoundarySize: number;
@@ -1055,6 +1057,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setSkyCloudsOn,
     skyCloudsHeight,
     setSkyCloudsHeight,
+    cloudFadeSpeed,
+    setCloudFadeSpeed,
     worldBoundaryOn,
     setWorldBoundaryOn,
     worldBoundarySize,
@@ -2396,6 +2400,18 @@ export function SettingsPanel(props: SettingsPanelProps) {
               step={0.05}
               onDec={() => setSkyCloudsHeight((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
               onInc={() => setSkyCloudsHeight((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+            />
+            <PadDial
+              label={t("dial.env.cloudFadeSpeed")}
+              mode="number"
+              value={`${cloudFadeSpeed.toFixed(1)}x`}
+              rawValue={cloudFadeSpeed}
+              onSet={(v) => setCloudFadeSpeed(Math.max(0.2, Math.min(12, v)))}
+              min={0.2}
+              max={12}
+              step={0.2}
+              onDec={() => setCloudFadeSpeed((v) => Math.max(0.2, +(v - 0.2).toFixed(1)))}
+              onInc={() => setCloudFadeSpeed((v) => Math.min(12, +(v + 0.2).toFixed(1)))}
             />
             <PadDial
               label={t("dial.env.worldBoundary")}

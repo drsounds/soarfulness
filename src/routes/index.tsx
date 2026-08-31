@@ -686,6 +686,7 @@ const DEFAULTS: Persisted = {
   midCloudsHeight: 0.5,
   skyCloudsOn: true,
   skyCloudsHeight: 0.4,
+  cloudFadeSpeed: 3,
   swayAmp: 0,
   swaySpeed: 0.15,
   swayBias: 0,
@@ -1064,6 +1065,7 @@ export function Aquafulness() {
   const [midCloudsHeight, setMidCloudsHeight] = useState(initial.midCloudsHeight);
   const [skyCloudsOn, setSkyCloudsOn] = useState(initial.skyCloudsOn);
   const [skyCloudsHeight, setSkyCloudsHeight] = useState(initial.skyCloudsHeight);
+  const [cloudFadeSpeed, setCloudFadeSpeed] = useState(initial.cloudFadeSpeed);
   const [swayAmp, setSwayAmp] = useState(initial.swayAmp);
   const [swaySpeed, setSwaySpeed] = useState(initial.swaySpeed);
   const [swayBias, setSwayBias] = useState(initial.swayBias);
@@ -1257,6 +1259,13 @@ export function Aquafulness() {
   // VÄRLDSGRÄNS's extra sky-cloud layers (see EXTEND_CLOUD_LAYER_* above) —
   // created once alongside skyClouds, repositioned every frame in animate().
   const extendCloudLayersRef = useRef<THREE.Mesh[]>([]);
+  // Per-slot fade state for the extend layers above — layerIdx is which
+  // altitude band each mesh slot last represented, opacity its current
+  // MOLN TONING-eased alpha. When a slot's computed layerIdx changes (its
+  // mesh just got recycled to tile a different, newly-approached altitude
+  // band) its opacity is reset to 0 so it fades back in there instead of
+  // popping in fully visible — see the animate() loop below.
+  const extendCloudLayerStateRef = useRef<{ layerIdx: number; opacity: number }[]>([]);
   // Manages the CSS3DRenderer-backed "TV apparatus" panels layered on top of
   // the WebGL scene, sharing the same camera; see CSS3DTVManager.
   const tvManagerRef = useRef<CSS3DTVManager | null>(null);
@@ -1367,6 +1376,7 @@ export function Aquafulness() {
     midCloudsHeight,
     skyCloudsOn,
     skyCloudsHeight,
+    cloudFadeSpeed,
     swayAmp,
     swaySpeed,
     swayBias,
@@ -1509,6 +1519,7 @@ export function Aquafulness() {
     midCloudsHeight,
     skyCloudsOn,
     skyCloudsHeight,
+    cloudFadeSpeed,
     swayAmp,
     swaySpeed,
     swayBias,
@@ -1722,7 +1733,12 @@ export function Aquafulness() {
   const midCloudsHeightRef = useRef(midCloudsHeight);
   const skyCloudsOnRef = useRef(skyCloudsOn);
   const skyCloudsHeightRef = useRef(skyCloudsHeight);
+  const cloudFadeSpeedRef = useRef(cloudFadeSpeed);
   const swayAmpRef = useRef(swayAmp);
+  // Per-mesh fade state (0..1) for the two main cloud decks — see
+  // uOpacity/cloudFadeSpeedRef usage in animate() below.
+  const midCloudFadeRef = useRef(0);
+  const skyCloudFadeRef = useRef(0);
   const swaySpeedRef = useRef(swaySpeed);
   const swayBiasRef = useRef(swayBias);
   const worldBoundaryOnRef = useRef(worldBoundaryOn);
@@ -1953,6 +1969,9 @@ export function Aquafulness() {
   useEffect(() => {
     skyCloudsHeightRef.current = skyCloudsHeight;
   }, [skyCloudsHeight]);
+  useEffect(() => {
+    cloudFadeSpeedRef.current = cloudFadeSpeed;
+  }, [cloudFadeSpeed]);
   useEffect(() => {
     swayAmpRef.current = swayAmp;
   }, [swayAmp]);
@@ -2295,6 +2314,7 @@ export function Aquafulness() {
     setMidCloudsHeight(DEFAULTS.midCloudsHeight);
     setSkyCloudsOn(DEFAULTS.skyCloudsOn);
     setSkyCloudsHeight(DEFAULTS.skyCloudsHeight);
+    setCloudFadeSpeed(DEFAULTS.cloudFadeSpeed);
     setSwayAmp(DEFAULTS.swayAmp);
     setSwaySpeed(DEFAULTS.swaySpeed);
     setSwayBias(DEFAULTS.swayBias);
@@ -2430,6 +2450,7 @@ export function Aquafulness() {
     if (patch.midCloudsHeight !== undefined) setMidCloudsHeight(patch.midCloudsHeight);
     if (patch.skyCloudsOn !== undefined) setSkyCloudsOn(patch.skyCloudsOn);
     if (patch.skyCloudsHeight !== undefined) setSkyCloudsHeight(patch.skyCloudsHeight);
+    if (patch.cloudFadeSpeed !== undefined) setCloudFadeSpeed(patch.cloudFadeSpeed);
     if (patch.swayAmp !== undefined) setSwayAmp(patch.swayAmp);
     if (patch.swaySpeed !== undefined) setSwaySpeed(patch.swaySpeed);
     if (patch.swayBias !== undefined) setSwayBias(patch.swayBias);
@@ -3987,6 +4008,7 @@ export function Aquafulness() {
       uCausticAmp: { value: waveAmp },
       uCausticFreq: { value: waveFreq },
       uCausticDepth: { value: 14 },
+      uOpacity: { value: 1 },
     };
     const floorMat = new THREE.ShaderMaterial({
       uniforms: floorUniforms,
@@ -4033,6 +4055,12 @@ export function Aquafulness() {
         uniform float uCausticAmp;
         uniform float uCausticFreq;
         uniform float uCausticDepth;
+        // Per-mesh fade-in/out multiplier (see uOpacity in floorUniforms/
+        // midCloudUniforms/skyCloudUniforms) — lets each cloud layer (the
+        // main mid/sky decks and VÄRLDSGRÄNS's extra y-extension layers,
+        // each with its own material instance) ease in/out independently
+        // instead of popping visible/invisible, at MOLN TONING's rate.
+        uniform float uOpacity;
 
         float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453123); }
         float vnoise(vec2 p){
@@ -4156,7 +4184,7 @@ export function Aquafulness() {
             float shade = 0.85 + 0.25 * fbm(p * 2.3 + 5.0);
             vec3 col = uColor * shade;
             col = applyTurbidity(col);
-            gl_FragColor = vec4(col, cloud);
+            gl_FragColor = vec4(col, cloud * uOpacity);
             return;
           }
           vec3 base = uColor;
@@ -4216,6 +4244,7 @@ export function Aquafulness() {
       uFogColor: { value: new THREE.Color(0x0a2a3a) },
       uCamNear: { value: camNearRef.current },
       uCamFar: { value: camFarRef.current },
+      uOpacity: { value: 0 },
     };
     const midCloudMat = new THREE.ShaderMaterial({
       uniforms: midCloudUniforms,
@@ -4253,6 +4282,7 @@ export function Aquafulness() {
       uFogColor: { value: new THREE.Color(0x0a2a3a) },
       uCamNear: { value: camNearRef.current },
       uCamFar: { value: camFarRef.current },
+      uOpacity: { value: 0 },
     };
     const skyCloudMat = new THREE.ShaderMaterial({
       uniforms: skyCloudUniforms,
@@ -4271,13 +4301,18 @@ export function Aquafulness() {
     scene.add(skyClouds);
 
     // VÄRLDSGRÄNS's extra sky-cloud layers (see EXTEND_CLOUD_LAYER_* and
-    // wrapAxis above) — plain instances of the exact same geometry/material
-    // as skyClouds (cheap: geometry/material aren't duplicated, just
-    // referenced by more Mesh objects), each repositioned every frame in
-    // animate() to tile around the camera's current altitude.
+    // wrapAxis above) — same geometry as skyClouds (cheap: not duplicated,
+    // just referenced by more Mesh objects), each repositioned every frame
+    // in animate() to tile around the camera's current altitude. Each gets
+    // its own cloned material (cheap — same shader source, so it still
+    // shares one compiled GL program) rather than reusing skyCloudMat
+    // directly, so each layer's uOpacity can fade in/out independently as
+    // it's recycled to a newly-approached altitude band.
     const extendCloudLayers: THREE.Mesh[] = [];
     for (let i = 0; i < EXTEND_CLOUD_LAYER_COUNT; i++) {
-      const layer = new THREE.Mesh(skyCloudGeo, skyCloudMat);
+      const layerMat = skyCloudMat.clone();
+      layerMat.uniforms.uOpacity.value = 0;
+      const layer = new THREE.Mesh(skyCloudGeo, layerMat);
       layer.visible = false;
       layer.renderOrder = -1;
       layer.scale.set(cloudScale0, 1, cloudScale0);
@@ -4285,6 +4320,10 @@ export function Aquafulness() {
       scene.add(layer);
     }
     extendCloudLayersRef.current = extendCloudLayers;
+    extendCloudLayerStateRef.current = extendCloudLayers.map(() => ({
+      layerIdx: Number.NaN,
+      opacity: 0,
+    }));
 
     // Sky dome
     const skyGeo = new THREE.SphereGeometry(800, 32, 32);
@@ -4625,16 +4664,20 @@ export function Aquafulness() {
 
       // Mellan-moln (drivande lager mellan botten och yta).
       if (midCloudsOnRef.current) {
-        midClouds.visible = true;
         const frac = Math.max(0.05, Math.min(0.95, midCloudsHeightRef.current));
         // frac=0 → precis över botten, frac=1 → nära ytan.
         midClouds.position.y = -effectiveDepth + effectiveDepth * frac + levelY;
         midCloudUniforms.uTime.value = t;
         midCloudUniforms.uCloudScroll.value.x = t * 0.04;
         midCloudUniforms.uCloudScroll.value.y = t * 0.025;
-      } else {
-        midClouds.visible = false;
       }
+      // MOLN TONING: ease opacity toward on/off (cloudFadeSpeedRef, user-
+      // adjustable) instead of popping visible/invisible on toggle.
+      midCloudFadeRef.current +=
+        ((midCloudsOnRef.current ? 1 : 0) - midCloudFadeRef.current) *
+        Math.min(1, dt * cloudFadeSpeedRef.current);
+      midCloudUniforms.uOpacity.value = midCloudFadeRef.current;
+      midClouds.visible = midCloudFadeRef.current > 0.003;
 
       // Himmel-moln (drivande molnlager högt ovanför ytan). Höjden hålls
       // fast i världsrymden (som botten/mellan-moln) istället för relativt
@@ -4918,49 +4961,6 @@ export function Aquafulness() {
       midClouds.position.z = camZ;
       skyClouds.position.x = camX;
       skyClouds.position.z = camZ;
-
-      // VÄRLDSGRÄNS's y extension: tile more of the same sky-cloud layer at
-      // fixed altitude steps around wherever the camera currently is (see
-      // EXTEND_CLOUD_LAYER_*/cloudLayerJitter above), so climbing or diving
-      // through the y boundary always shows more cloud deck ahead instead of
-      // a hard edge. camYRef.current here is last frame's height in FRI
-      // (float) mode (its own buoyancy spring hasn't run yet this frame) —
-      // an imperceptible one-frame lag for a value this smooth-moving.
-      const extendLayers = extendCloudLayersRef.current;
-      // Same visibility gate as skyClouds itself (sky.visible/skyClouds.visible
-      // further below): a real skybox environment or a flat backdrop image
-      // replaces the procedural sky entirely, so these extra layers have
-      // nothing to extend and would just be dead weight — 5 extra full-scale,
-      // 5-octave-noise transparent planes shaded every frame for nothing,
-      // regardless of camera mode or altitude. envActiveRef/backdropRef are
-      // refs, so reading them this early in the frame (before the local
-      // envActive/useBackdrop consts further down) is safe.
-      if (
-        worldBoundaryOnRef.current &&
-        worldBoundaryYExtendRef.current &&
-        skyCloudsOnRef.current &&
-        !envActiveRef.current &&
-        backdropRef.current <= 0
-      ) {
-        const spacing = EXTEND_CLOUD_LAYER_SPACING;
-        const camYNow = camYRef.current ?? 0;
-        const baseIdx = Math.floor(camYNow / spacing);
-        const half = Math.floor(extendLayers.length / 2);
-        const cloudScaleNow = surfaceAreaRef.current / CLOUD_BASE_SIZE;
-        for (let i = 0; i < extendLayers.length; i++) {
-          const layerIdx = baseIdx + (i - half);
-          const jitter = cloudLayerJitter(layerIdx);
-          const layer = extendLayers[i];
-          layer.visible = true;
-          layer.position.set(camX + jitter.x, layerIdx * spacing + levelY, camZ + jitter.z);
-          layer.scale.set(cloudScaleNow, 1, cloudScaleNow);
-        }
-        skyCloudUniforms.uTime.value = t;
-        skyCloudUniforms.uCloudScroll.value.x = t * 0.02;
-        skyCloudUniforms.uCloudScroll.value.y = t * 0.013;
-      } else {
-        for (const layer of extendLayers) layer.visible = false;
-      }
 
       const dirRad = (waveDirRef.current * Math.PI) / 180;
       const surfaceY = inWhirlpool
@@ -5377,6 +5377,81 @@ export function Aquafulness() {
       skyCloudUniforms.uTurbidity.value = floorUniforms.uTurbidity.value;
       skyCloudUniforms.uUnderwater.value = uniforms.uUnderwater.value;
       skyCloudUniforms.uFogColor.value.copy(uniforms.uWaterDeep.value);
+
+      // VÄRLDSGRÄNS's y extension: tile more of the same sky-cloud layer at
+      // fixed altitude steps around wherever the camera currently is (see
+      // EXTEND_CLOUD_LAYER_*/cloudLayerJitter above), so climbing or diving
+      // through the y boundary always shows more cloud deck ahead instead of
+      // a hard edge. Positioned here — after the y-wrap above, not earlier
+      // in the frame — so it always uses this frame's fully resolved (and,
+      // if a wrap just happened, already-wrapped) camY: doing it earlier
+      // left the layers positioned around the *pre-wrap* altitude for one
+      // frame while the camera had already jumped to the post-wrap side —
+      // the wrong world-space size/position, or entirely out of the
+      // frustum, for exactly the frame the boundary was crossed. Each layer
+      // has its own cloned material (see the setup effect above) so it can
+      // fade its own opacity in/out independently — MOLN TONING, user-
+      // adjustable — instead of popping visible/invisible when recycled to
+      // a new altitude band or when the whole feature gates off; the
+      // frame-varying uniforms skyCloudUniforms just got above (turbidity/
+      // underwater/fog) are copied into each clone here too, alongside
+      // time/scroll, since a clone's own uniforms object is independent.
+      const extendLayers = extendCloudLayersRef.current;
+      const extendLayerState = extendCloudLayerStateRef.current;
+      // Same visibility gate as skyClouds itself (sky.visible/skyClouds.visible
+      // further below): a real skybox environment or a flat backdrop image
+      // replaces the procedural sky entirely, so these extra layers have
+      // nothing to extend and would just be dead weight.
+      const extendGateOn =
+        worldBoundaryOnRef.current &&
+        worldBoundaryYExtendRef.current &&
+        skyCloudsOnRef.current &&
+        !envActiveRef.current &&
+        backdropRef.current <= 0;
+      const extendFadeStep = Math.min(1, dt * cloudFadeSpeedRef.current);
+      if (extendGateOn) {
+        const spacing = EXTEND_CLOUD_LAYER_SPACING;
+        const camYNow = camYRef.current ?? 0;
+        const baseIdx = Math.floor(camYNow / spacing);
+        const half = Math.floor(extendLayers.length / 2);
+        const cloudScaleNow = surfaceAreaRef.current / CLOUD_BASE_SIZE;
+        for (let i = 0; i < extendLayers.length; i++) {
+          const layerIdx = baseIdx + (i - half);
+          const jitter = cloudLayerJitter(layerIdx);
+          const layer = extendLayers[i];
+          const state = extendLayerState[i];
+          if (state.layerIdx !== layerIdx) {
+            state.layerIdx = layerIdx;
+            state.opacity = 0;
+          }
+          state.opacity += (1 - state.opacity) * extendFadeStep;
+          layer.visible = true;
+          layer.position.set(camX + jitter.x, layerIdx * spacing + levelY, camZ + jitter.z);
+          layer.scale.set(cloudScaleNow, 1, cloudScaleNow);
+          const lu = (layer.material as THREE.ShaderMaterial).uniforms;
+          lu.uOpacity.value = state.opacity;
+          lu.uTime.value = t;
+          lu.uCloudScroll.value.x = t * 0.02;
+          lu.uCloudScroll.value.y = t * 0.013;
+          lu.uTurbidity.value = skyCloudUniforms.uTurbidity.value;
+          lu.uUnderwater.value = skyCloudUniforms.uUnderwater.value;
+          lu.uFogColor.value.copy(skyCloudUniforms.uFogColor.value);
+        }
+      } else {
+        for (let i = 0; i < extendLayers.length; i++) {
+          const layer = extendLayers[i];
+          const state = extendLayerState[i];
+          state.opacity += (0 - state.opacity) * extendFadeStep;
+          if (state.opacity > 0.003) {
+            layer.visible = true;
+            (layer.material as THREE.ShaderMaterial).uniforms.uOpacity.value = state.opacity;
+          } else {
+            layer.visible = false;
+            state.layerIdx = Number.NaN;
+          }
+        }
+      }
+
       uniforms.uTurbidity.value = floorUniforms.uTurbidity.value;
       skyUniforms.uTurbidity.value = floorUniforms.uTurbidity.value;
       skyUniforms.uFogColor.value.copy(uniforms.uWaterDeep.value);
@@ -5422,7 +5497,13 @@ export function Aquafulness() {
       const envActive = envActiveRef.current;
       const useBackdrop = backdropRef.current > 0 && !envActive;
       sky.visible = !useBackdrop && !envActive;
-      skyClouds.visible = skyCloudsOnRef.current && !useBackdrop && !envActive;
+      // MOLN TONING: ease opacity toward on/off instead of popping visible.
+      const skyCloudsTargetOn = skyCloudsOnRef.current && !useBackdrop && !envActive;
+      skyCloudFadeRef.current +=
+        ((skyCloudsTargetOn ? 1 : 0) - skyCloudFadeRef.current) *
+        Math.min(1, dt * cloudFadeSpeedRef.current);
+      skyCloudUniforms.uOpacity.value = skyCloudFadeRef.current;
+      skyClouds.visible = skyCloudFadeRef.current > 0.003;
       renderer.setClearColor(0x032033, envActive ? 1 : 0);
 
       // Optional model bobbing — static scenes leave modelBobRef null and the
@@ -5526,7 +5607,11 @@ export function Aquafulness() {
       midCloudMat.dispose();
       skyCloudGeo.dispose();
       skyCloudMat.dispose();
+      for (const layer of extendCloudLayersRef.current) {
+        (layer.material as THREE.Material).dispose();
+      }
       extendCloudLayersRef.current = [];
+      extendCloudLayerStateRef.current = [];
       sandTex.dispose();
       skyGeo.dispose();
       skyMat.dispose();
@@ -5999,6 +6084,8 @@ export function Aquafulness() {
     setSkyCloudsOn,
     skyCloudsHeight,
     setSkyCloudsHeight,
+    cloudFadeSpeed,
+    setCloudFadeSpeed,
     worldBoundaryOn,
     setWorldBoundaryOn,
     worldBoundarySize,
