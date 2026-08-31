@@ -320,6 +320,11 @@ export type Persisted = {
   midCloudsHeight: number;
   skyCloudsOn: boolean;
   skyCloudsHeight: number;
+  // MOLN TONING: how fast cloud layers (mid/sky decks and VÄRLDSGRÄNS's
+  // y-extension layers) ease their opacity in/out as they're toggled or
+  // recycled to a new altitude band, instead of popping visible/invisible —
+  // see uOpacity/cloudFadeSpeedRef in routes/index.tsx. Higher = faster.
+  cloudFadeSpeed: number;
   swayAmp: number;
   swaySpeed: number;
   swayBias: number;
@@ -525,6 +530,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "midCloudsHeight",
     "skyCloudsOn",
     "skyCloudsHeight",
+    "cloudFadeSpeed",
     "worldBoundaryOn",
     "worldBoundarySize",
     "worldBoundaryHeight",

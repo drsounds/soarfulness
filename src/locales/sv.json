@@ -173,6 +173,7 @@
       "scene": "SCEN",
       "skyClouds": "HIMMEL-MOLN",
       "skyCloudsHeight": "HIMMEL-MOLNHÖJD",
+      "cloudFadeSpeed": "MOLN-TONINGSHASTIGHET",
       "time": "TID",
       "torusCellSize": "RUTNÄT XZ",
       "torusFadeDistance": "TONING",
