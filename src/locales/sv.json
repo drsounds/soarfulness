@@ -803,6 +803,7 @@
     "title": "SKÄRMHANTERING"
   },
   "settings": {
+    "backAriaLabel": "Tillbaka till inställningsavsnitten",
     "reset": "ÅTERSTÄLL",
     "resetAriaLabel": "Återställ reglage till standardvärden",
     "resetConfirm": "Detta återställer alla reglage till standardvärden (tid på dygnet påverkas inte).",

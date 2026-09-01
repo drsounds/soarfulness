@@ -803,6 +803,7 @@
     "title": "SKJERMHÅNDTERING"
   },
   "settings": {
+    "backAriaLabel": "Tilbake til innstillingsdelene",
     "reset": "TILBAKESTILL",
     "resetAriaLabel": "Tilbakestill kontroller til standardverdier",
     "resetConfirm": "Dette tilbakestiller alle kontroller til standardverdiene (tid på døgnet påvirkes ikke).",

@@ -803,6 +803,7 @@
     "title": "SCREEN MANAGEMENT"
   },
   "settings": {
+    "backAriaLabel": "Back to settings sections",
     "reset": "RESET",
     "resetAriaLabel": "Reset controls to default values",
     "resetConfirm": "This resets all controls to their default values (time of day is not affected).",

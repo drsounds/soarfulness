@@ -803,6 +803,7 @@
     "title": "SKÆRMHÅNDTERING"
   },
   "settings": {
+    "backAriaLabel": "Tilbage til indstillingsafsnit",
     "reset": "NULSTIL",
     "resetAriaLabel": "Nulstil kontroller til standardværdier",
     "resetConfirm": "Dette nulstiller alle kontroller til deres standardværdier (tidspunkt på dagen påvirkes ikke).",
