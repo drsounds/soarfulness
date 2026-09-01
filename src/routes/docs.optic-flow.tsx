@@ -34,14 +34,14 @@ function OpticFlowDocPage() {
         </h1>
       </div>
 
-      <Alert>
+      <Alert className="border-0 bg-transparent">
         <AlertDescription className="text-muted-foreground">
           <strong className="text-foreground">{t("docsPhilosophy.opticFlow.disclaimerLabel")}</strong>{" "}
           {t("docsPhilosophy.opticFlow.disclaimerBody")}
         </AlertDescription>
       </Alert>
 
-      <Card className="shadow-none">
+      <Card className="border-0 bg-transparent shadow-none">
         <CardHeader>
           <CardTitle>{t("docsPhilosophy.opticFlow.section1.title")}</CardTitle>
         </CardHeader>
@@ -55,7 +55,7 @@ function OpticFlowDocPage() {
         </CardContent>
       </Card>
 
-      <Card className="shadow-none">
+      <Card className="border-0 bg-transparent shadow-none">
         <CardHeader>
           <CardTitle>{t("docsPhilosophy.opticFlow.section2.title")}</CardTitle>
         </CardHeader>
@@ -97,7 +97,7 @@ function OpticFlowDocPage() {
         </CardContent>
       </Card>
 
-      <Card className="shadow-none">
+      <Card className="border-0 bg-transparent shadow-none">
         <CardHeader>
           <CardTitle>{t("docsPhilosophy.opticFlow.section3.title")}</CardTitle>
         </CardHeader>
@@ -146,7 +146,7 @@ function OpticFlowDocPage() {
         </CardContent>
       </Card>
 
-      <Card className="shadow-none">
+      <Card className="border-0 bg-transparent shadow-none">
         <CardHeader>
           <CardTitle>{t("docsPhilosophy.opticFlow.section4.title")}</CardTitle>
         </CardHeader>
@@ -182,7 +182,7 @@ function OpticFlowDocPage() {
         </CardContent>
       </Card>
 
-      <Card className="shadow-none">
+      <Card className="border-0 bg-transparent shadow-none">
         <CardHeader>
           <CardTitle>{t("docsPhilosophy.opticFlow.section5.title")}</CardTitle>
         </CardHeader>

@@ -49,7 +49,7 @@ function ReferencesDocPage() {
         </p>
       </div>
 
-      <Alert>
+      <Alert className="border-0 bg-transparent">
         <AlertDescription className="text-muted-foreground">
           <strong className="text-foreground">
             {t("docsPhilosophy.references.scopeNoteLabel")}
@@ -59,7 +59,7 @@ function ReferencesDocPage() {
       </Alert>
 
       {groups.map((group) => (
-        <Card key={group.title} className="shadow-none">
+        <Card key={group.title} className="border-0 bg-transparent shadow-none">
           <CardHeader>
             <CardTitle>{group.title}</CardTitle>
           </CardHeader>
