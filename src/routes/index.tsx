@@ -3945,22 +3945,11 @@ export function Aquafulness() {
           col = mix(col, sphereMapShade(Nshim, water), uSphereMix);
         }
 
-        // Water color overlay (Super Mario Sunshine-style): blend the color
-        // picker's own flat, vivid uOverlayColor (see WaterColorPicker in
-        // SettingsPanel.tsx — this is a real, standalone RGB color, not a
-        // rotation of the WATER preset tint above) back over the fully lit
-        // result. uWaterColorAlpha is intentionally its own dial, independent
-        // of uOpacity (translucency to what's behind the water) and of
-        // uSurfBright/uSurfSat below (light/texture on the final look) — at 1
-        // the water body reads as a flat, fully painted color regardless of
-        // lighting or reflections; at 0 it's unchanged.
-        col = mix(col, uOverlayColor, clamp(uWaterColorAlpha, 0.0, 1.0));
-
-        // Whitecap foam is applied *after* the color overlay above (rather
-        // than folded into col before it) so it stays visible at any
-        // uWaterColorAlpha — the tint dial recolors the water body, not the
-        // foam sitting on top of it.
-        col = mix(col, vec3(0.95, 0.98, 1.0), foam * 0.85 * (1.0 - uUnderwater));
+        // The color picker's flat uOverlayColor and the whitecap foam are
+        // *not* folded into col here — they're composited as their own
+        // layers, on top of the shaded water body, further down (see the
+        // Translucency block below) so they stay visible independently of
+        // how transparent uOpacity makes the body underneath.
 
         // Final surface color adjustment (independent of internal tint).
         col *= uSurfBright;
@@ -3987,35 +3976,44 @@ export function Aquafulness() {
         }
 
         // Translucency — uOpacity controls how see-through the water is.
-        // Give foam its own alpha curve (reflAlpha) that rises faster than
-        // the plain body fade (bodyAlpha) — so whitecaps stay visible
-        // through fairly transparent water — while both curves still start
-        // at exactly 0 (uOpacity = 0 is fully invisible, same as
-        // VATTENYTA/hideWater) and reach exactly 1 at uOpacity = 1 (fully
-        // opaque), so the whole dial stays continuously responsive end to
-        // end.
-        //
-        // keepAmt is driven by foam alone, not by reflAmt. reflAmt (the
-        // sky/photo Fresnel reflection baked into col above) is large
-        // across most of the visible surface, especially at the grazing
-        // angles a near-surface camera mostly sees — feeding it into
-        // keepAmt used to pin alpha to the boosted reflAlpha curve almost
-        // everywhere, so the blue sky reflection never actually faded as
-        // uOpacity was lowered, leaving a persisting blue tint instead of
-        // the water becoming see-through. With keepAmt tracking only foam,
-        // the reflection/water body fades all the way to transparent with
-        // bodyAlpha (revealing the color-picker's uOverlayColor mixed into
-        // col at whatever share uWaterColorAlpha set), while foam keeps its
-        // own boosted curve and stays visible on top.
+        // The water is built from three independent layers, each composited
+        // "over" the last with its own alpha (standard Porter-Duff, kept in
+        // premultiplied form — see mat.premultipliedAlpha below), instead of
+        // one flat mix of everything into a single alpha. That's what makes
+        // uOpacity actually empty the shaded body out to nothing rather than
+        // leaving a residual tinted haze:
+        //   1. body  — col as shaded above (tint, reflection, sun, sphere
+        //      material, underwater tone-down, turbidity). Alpha is
+        //      bodyAlpha, plain uOpacity with no boost: 0 is fully gone, 1
+        //      is fully opaque, and every value between fades linearly.
+        //   2. paint — the color picker's flat uOverlayColor (WaterColorPicker
+        //      in SettingsPanel.tsx). Alpha is uWaterColorAlpha ("COLOR
+        //      STRENGTH") times visGate — deliberately *not* multiplied by
+        //      bodyAlpha, so a chosen color reads as paint sitting on top of
+        //      however transparent the water is, not something that fades
+        //      away at the same rate the body does.
+        //   3. foam — whitecap highlights, alpha is the foam strength
+        //      computed above times visGate, unaffected by uSurfBright/
+        //      uSurfSat/underwater toning (those apply to the body only).
+        // visGate is a curve that's exactly 0 at uOpacity = 0 (so paint and
+        // foam still respect "0 = fully invisible", same as VATTENYTA/
+        // hideWater) but rises to ~1 almost immediately after, so neither
+        // layer fades proportionally with the body — they stay visible
+        // through fairly transparent water instead of thinning out with it.
         float bodyAlpha = clamp(uOpacity, 0.0, 1.0);
-        float reflAlpha = pow(bodyAlpha, 0.35);
-        float keepAmt = clamp(foam, 0.0, 1.0);
-        float alpha = mix(bodyAlpha, reflAlpha, keepAmt);
-        // Premultiplied compositing (see mat.premultipliedAlpha below):
-        // col * alpha is exactly mix(col * bodyAlpha, col * reflAlpha,
-        // keepAmt), i.e. each share pre-scaled by its own alpha before the
-        // GPU adds in (1 - alpha) of whatever's behind the water.
-        vec3 premult = col * alpha;
+        float visGate = pow(bodyAlpha, 0.35);
+
+        vec3 premult = col * bodyAlpha;
+        float alpha = bodyAlpha;
+
+        float paintAlpha = clamp(uWaterColorAlpha, 0.0, 1.0) * visGate;
+        premult = uOverlayColor * paintAlpha + premult * (1.0 - paintAlpha);
+        alpha = paintAlpha + alpha * (1.0 - paintAlpha);
+
+        float foamAlpha = clamp(foam * 0.85 * (1.0 - uUnderwater), 0.0, 1.0) * visGate;
+        premult = vec3(0.95, 0.98, 1.0) * foamAlpha + premult * (1.0 - foamAlpha);
+        alpha = foamAlpha + alpha * (1.0 - foamAlpha);
+
         gl_FragColor = vec4(premult, alpha);
       }
     `;
