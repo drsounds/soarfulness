@@ -46,21 +46,21 @@ export function ConfirmDialog({
         aria-modal="true"
         aria-label={title}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-xs rounded-2xl border border-white/15 bg-black/85 p-4 text-center shadow-2xl backdrop-blur-xl"
+        className="ui-surface-solid w-full max-w-xs rounded-2xl border p-4 text-center shadow-2xl backdrop-blur-xl"
       >
-        <p className="mb-1 text-[11px] font-medium tracking-wide text-white/90">{title}</p>
-        <p className="mb-4 text-[10px] font-light leading-relaxed text-white/60">{message}</p>
+        <p className="ui-ink mb-1 text-[11px] font-medium tracking-wide">{title}</p>
+        <p className="ui-ink-muted mb-4 text-[10px] font-light leading-relaxed">{message}</p>
         <div className="flex justify-center gap-2">
           <button
             ref={cancelRef}
             onClick={onCancel}
-            className="rounded-full border border-white/25 bg-white/10 px-4 py-1.5 text-[9px] font-medium tracking-wider text-white transition active:scale-95 active:bg-white/20"
+            className="ui-btn rounded-full border px-4 py-1.5 text-[9px] font-medium tracking-wider transition active:scale-95"
           >
             {cancelLabel}
           </button>
           <button
             onClick={onConfirm}
-            className="rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-[9px] font-light tracking-wider text-white/70 transition active:scale-95 active:bg-white/15"
+            className="ui-tint-1 ui-ink-muted ui-press rounded-full border px-4 py-1.5 text-[9px] font-light tracking-wider transition active:scale-95"
           >
             {confirmLabel}
           </button>

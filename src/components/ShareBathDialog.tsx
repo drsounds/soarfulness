@@ -25,7 +25,7 @@ export function ShareBathDialog({
   const [link, setLink] = useState("");
   const [copied, setCopied] = useState(false);
   const btnClass =
-    "rounded-full border border-white/15 bg-white/5 px-2.5 py-0.5 text-[9px] font-light tracking-wider text-white/70 transition active:scale-95 active:bg-white/15 disabled:opacity-30";
+    "ui-tint-1 ui-ink-muted ui-press rounded-full border px-2.5 py-0.5 text-[9px] font-light tracking-wider transition active:scale-95 disabled:opacity-30";
 
   useEffect(() => {
     if (open) {
@@ -82,9 +82,9 @@ export function ShareBathDialog({
         aria-modal="true"
         aria-label={t("presets.shareBathLink")}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-xs rounded-2xl border border-white/15 bg-black/85 p-4 text-center shadow-2xl backdrop-blur-xl"
+        className="ui-surface-solid w-full max-w-xs rounded-2xl border p-4 text-center shadow-2xl backdrop-blur-xl"
       >
-        <p className="mb-3 text-[11px] font-medium tracking-wide text-white/90">
+        <p className="ui-ink mb-3 text-[11px] font-medium tracking-wide">
           {t("presets.shareBathLink")}
         </p>
         <input
@@ -92,7 +92,7 @@ export function ShareBathDialog({
           onChange={(e) => setTitle(e.target.value)}
           placeholder={t("presets.shareBathTitlePlaceholder")}
           maxLength={BATH_TITLE_MAX_LENGTH}
-          className="mb-2 w-full rounded-full border border-white/15 bg-black/40 px-3 py-1.5 text-center text-[10px] text-white outline-none placeholder:text-white/30"
+          className="ui-surface ui-ink ui-placeholder mb-2 w-full rounded-full border px-3 py-1.5 text-center text-[10px] outline-none"
         />
         <textarea
           value={description}
@@ -100,7 +100,7 @@ export function ShareBathDialog({
           placeholder={t("presets.shareBathDescriptionPlaceholder")}
           maxLength={BATH_DESCRIPTION_MAX_LENGTH}
           rows={2}
-          className="mb-3 w-full resize-none rounded-2xl border border-white/15 bg-black/40 px-3 py-1.5 text-center text-[10px] text-white outline-none placeholder:text-white/30"
+          className="ui-surface ui-ink ui-placeholder mb-3 w-full resize-none rounded-2xl border px-3 py-1.5 text-center text-[10px] outline-none"
         />
         {status === "ready" ? (
           <>
@@ -108,7 +108,7 @@ export function ShareBathDialog({
               readOnly
               value={link}
               onFocus={(e) => e.currentTarget.select()}
-              className="mb-2 w-full rounded-full border border-white/15 bg-black/40 px-3 py-1.5 text-center text-[9px] text-white/70 outline-none"
+              className="ui-surface ui-ink-muted mb-2 w-full rounded-full border px-3 py-1.5 text-center text-[9px] outline-none"
             />
             <div className="flex flex-wrap justify-center gap-2">
               <button onClick={copyLink} className={btnClass}>
@@ -134,7 +134,9 @@ export function ShareBathDialog({
             </button>
           </div>
         )}
-        {status === "error" && <p className="mt-2 text-[9px] text-red-300/80">{t("presets.shareBathError")}</p>}
+        {status === "error" && (
+          <p className="mt-2 text-[9px] text-red-300/80">{t("presets.shareBathError")}</p>
+        )}
       </div>
     </div>
   );

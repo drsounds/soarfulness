@@ -815,6 +815,7 @@
       "kamera": "KAMERA",
       "ljud": "ÄÄNI",
       "miljo": "YMPÄRISTÖ",
+      "tema": "TEEMA",
       "vagor": "AALLOT",
       "vatten": "VESI"
     },
@@ -839,6 +840,21 @@
       "square": "NELIÖ",
       "triangle": "KOLMIO"
     }
+  },
+  "theme": {
+    "title": "TEEMA",
+    "aqua": "AQUA",
+    "aquaDescription": "Klassinen tumma lasimainen ulkoasu — ei muutoksia.",
+    "scifi": "SCI-FI",
+    "scifiDescription": "Hehkuva lasi ja diodimaiset viivat — valitse oma korostusvärisi alta.",
+    "spa": "SPA",
+    "spaDescription": "Minimalistinen, tasainen valkoinen tai musta pinta — painikkeissa pehmeä turkoosi liukuväri.",
+    "accentHue": "KOROSTUSVÄRI",
+    "colorScheme": "TILA",
+    "light": "VAALEA",
+    "dark": "TUMMA",
+    "blur": "LASIEFEKTI (SUMENNUS)",
+    "blurHint": "Paneelien takana näkyvä sumennusefekti. Oletuksena pois päältä paremman suorituskyvyn vuoksi."
   },
   "timeTravel": {
     "applyButton": "Matkusta ajassa",

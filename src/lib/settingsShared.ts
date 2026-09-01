@@ -120,7 +120,7 @@ export const WATER_SOUND_LABEL_KEYS: Record<string, string> = {
   ocean: "options.waterSound.ocean",
 };
 
-export type SettingsTab = "vagor" | "kamera" | "vatten" | "miljo" | "ljud";
+export type SettingsTab = "vagor" | "kamera" | "vatten" | "miljo" | "ljud" | "tema";
 // labelKey is an i18next key (see src/locales/*.json), resolved via t() in
 // SettingsPanel.tsx — kept here rather than a literal label so this stays
 // the single source of truth for tab order/ids.
@@ -130,6 +130,7 @@ export const SETTINGS_TABS: { id: SettingsTab; labelKey: string }[] = [
   { id: "vatten", labelKey: "settings.tabs.vatten" },
   { id: "miljo", labelKey: "settings.tabs.miljo" },
   { id: "ljud", labelKey: "settings.tabs.ljud" },
+  { id: "tema", labelKey: "settings.tabs.tema" },
 ];
 
 // Four mutually-exclusive camera movement schemes:
@@ -558,6 +559,11 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "torusFadeDistance",
   ],
   ljud: ["audioOn", "audioVol", "audioSyncSpeed", "audioSpatial", "waterSoundIdx"],
+  // Tema (UI chrome theme) isn't part of the wave/camera/water/environment/
+  // audio Persisted snapshot at all — it's its own localStorage-backed
+  // store (src/lib/uiTheme.ts), so there's nothing for the preset save/
+  // load/export/import controls to scope to here.
+  tema: [],
 };
 
 export const PRESET_ALL_FIELDS: (keyof Persisted)[] = Object.values(PRESET_TAB_FIELDS).flat();

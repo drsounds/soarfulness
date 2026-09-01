@@ -46,6 +46,7 @@ import {
 } from "@/lib/settingsShared";
 import { pickJsonFile, type PresetScope, type SavedPreset, type SavedState } from "@/lib/presets";
 import { changeLanguage, SUPPORTED_LANGUAGES, LANGUAGE_NAMES, type LanguageCode } from "@/lib/i18n";
+import { useUiTheme, UI_THEME_IDS } from "@/lib/uiTheme";
 import { ShareBathDialog } from "@/components/ShareBathDialog";
 
 // i18next keys for enum values that don't already carry a human-readable
@@ -78,17 +79,17 @@ const WAVE_PRESET_LABEL_KEYS: Record<WavePresetName, string> = {
 function LanguageSwitcher() {
   const { i18n, t } = useTranslation();
   return (
-    <label className="flex items-center gap-1.5 rounded-full border border-white/15 bg-black/40 px-2.5 py-1">
-      <span className="text-[9px] font-light tracking-[0.28em] text-white/50">
+    <label className="flex items-center gap-1.5 rounded-full border ui-line-1 ui-surface px-2.5 py-1">
+      <span className="text-[9px] font-light tracking-[0.28em] ui-ink-faint">
         {t("language.label")}
       </span>
       <select
         value={i18n.language}
         onChange={(e) => changeLanguage(e.target.value as LanguageCode)}
-        className="cursor-pointer appearance-none bg-transparent text-[10px] font-medium tracking-wider text-white outline-none"
+        className="cursor-pointer appearance-none bg-transparent text-[10px] font-medium tracking-wider ui-ink outline-none"
       >
         {SUPPORTED_LANGUAGES.map((code) => (
-          <option key={code} value={code} className="bg-black text-white">
+          <option key={code} value={code} className="bg-black ui-ink">
             {LANGUAGE_NAMES[code]}
           </option>
         ))}
@@ -144,15 +145,15 @@ function WaterColorPicker({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 rounded-full border border-white/15 bg-black/40 px-3 py-1.5 backdrop-blur-md transition active:scale-95 active:bg-white/10"
+        className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface px-3 py-1.5 backdrop-blur-md transition active:scale-95 ui-press"
       >
         <span
-          className="h-5 w-5 shrink-0 overflow-hidden rounded-full border border-white/30"
+          className="h-5 w-5 shrink-0 overflow-hidden rounded-full border ui-line-3"
           style={CHECKERBOARD_STYLE}
         >
           <span className="block h-full w-full" style={swatchStyle} />
         </span>
-        <span className="text-[9px] font-light tracking-[0.28em] text-white/70">
+        <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
           {pickColorLabel}
         </span>
       </button>
@@ -165,30 +166,30 @@ function WaterColorPicker({
   const alphaTrack = `${tintToCss(previewRgb, 0)}, ${tintToCss(previewRgb, 1)}`;
 
   return (
-    <div className="flex w-full max-w-xs flex-col gap-2 rounded-2xl border border-white/15 bg-black/40 px-3 py-2.5 backdrop-blur-md">
+    <div className="flex w-full max-w-xs flex-col gap-2 rounded-2xl border ui-line-1 ui-surface px-3 py-2.5 backdrop-blur-md">
       <div className="flex items-center gap-2.5">
         <span
-          className="h-8 w-8 shrink-0 overflow-hidden rounded-full border border-white/30"
+          className="h-8 w-8 shrink-0 overflow-hidden rounded-full border ui-line-3"
           style={CHECKERBOARD_STYLE}
         >
           <span className="block h-full w-full" style={swatchStyle} />
         </span>
-        <span className="flex-1 text-[9px] font-light tracking-[0.28em] text-white/70">
+        <span className="flex-1 text-[9px] font-light tracking-[0.28em] ui-ink-muted">
           {pickColorLabel}
         </span>
         <button
           type="button"
           onClick={() => setOpen(false)}
           aria-label={t("common.close")}
-          className="h-6 w-6 shrink-0 rounded-full border border-white/20 bg-white/5 text-[11px] text-white/80 transition active:scale-95 active:bg-white/15"
+          className="h-6 w-6 shrink-0 rounded-full border ui-line-2 ui-tint-1 text-[11px] ui-ink transition active:scale-95 ui-press"
         >
           ✕
         </button>
       </div>
       <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between">
-          <span className="text-[9px] font-light tracking-[0.28em] text-white/60">{hueLabel}</span>
-          <span className="text-[10px] font-medium tabular-nums tracking-wider text-white/80">
+          <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">{hueLabel}</span>
+          <span className="text-[10px] font-medium tabular-nums tracking-wider ui-ink">
             {Math.round(hue)}°
           </span>
         </div>
@@ -206,10 +207,8 @@ function WaterColorPicker({
       </div>
       <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between">
-          <span className="text-[9px] font-light tracking-[0.28em] text-white/60">
-            {alphaLabel}
-          </span>
-          <span className="text-[10px] font-medium tabular-nums tracking-wider text-white/80">
+          <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">{alphaLabel}</span>
+          <span className="text-[10px] font-medium tabular-nums tracking-wider ui-ink">
             {Math.round(alpha * 100)}%
           </span>
         </div>
@@ -225,6 +224,96 @@ function WaterColorPicker({
           style={{ "--aqua-track": `linear-gradient(to right, ${alphaTrack})` } as CSSProperties}
         />
       </div>
+    </div>
+  );
+}
+
+// TEMA: picks the "chrome" look for buttons/menus/panels drawn over the 3D
+// scene (this settings dialog, other dialogs, joysticks, the virtual phone
+// shell) — see src/lib/uiTheme.ts and the "UI chrome design tokens" section
+// of styles.css. Applies instantly via CSS custom properties on <html>, so
+// there's nothing else to wire up here beyond reading/writing the store.
+function ThemeSettingsSection() {
+  const { t } = useTranslation();
+  const [ui, setUi] = useUiTheme();
+
+  const accentHue = ui.theme === "spa" ? ui.spaAccentHue : ui.scifiAccentHue;
+  const setAccentHue = (v: number) =>
+    setUi(ui.theme === "spa" ? { spaAccentHue: v } : { scifiAccentHue: v });
+  const hueTrack = Array.from({ length: 13 }, (_, i) =>
+    tintToCss(hsvToRgb((i * 360) / 12, 1, 1), 1),
+  ).join(", ");
+
+  return (
+    <div className="flex w-full max-w-sm flex-col items-center gap-3">
+      <div
+        className="flex flex-wrap justify-center gap-1.5"
+        role="radiogroup"
+        aria-label={t("theme.title")}
+      >
+        {UI_THEME_IDS.map((id) => (
+          <button
+            key={id}
+            type="button"
+            role="radio"
+            aria-checked={ui.theme === id}
+            onClick={() => setUi({ theme: id })}
+            className={`rounded-full border px-3 py-1.5 text-[9px] font-light tracking-wider transition active:scale-95 ${
+              ui.theme === id
+                ? "ui-line-3 ui-tint-2 ui-ink"
+                : "ui-line-1 ui-tint-1 ui-ink-muted ui-press"
+            }`}
+          >
+            {t(`theme.${id}`)}
+          </button>
+        ))}
+      </div>
+      <p className="ui-ink-faint max-w-xs text-center text-[9px] leading-relaxed">
+        {t(`theme.${ui.theme}Description`)}
+      </p>
+
+      {(ui.theme === "scifi" || ui.theme === "spa") && (
+        <div className="ui-surface flex w-full flex-col gap-1 rounded-2xl border px-3 py-2.5 backdrop-blur-md">
+          <div className="flex items-center justify-between">
+            <span className="ui-ink-muted text-[9px] font-light tracking-[0.28em]">
+              {t("theme.accentHue")}
+            </span>
+            <span className="ui-ink text-[10px] font-medium tabular-nums tracking-wider">
+              {Math.round(accentHue)}°
+            </span>
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={360}
+            step={1}
+            value={accentHue}
+            onChange={(e) => setAccentHue(Number(e.target.value))}
+            aria-label={t("theme.accentHue")}
+            className="aqua-color-slider w-full"
+            style={{ "--aqua-track": `linear-gradient(to right, ${hueTrack})` } as CSSProperties}
+          />
+        </div>
+      )}
+
+      {ui.theme === "spa" && (
+        <PadDial
+          label={t("theme.colorScheme")}
+          value={ui.colorScheme === "dark" ? t("theme.dark") : t("theme.light")}
+          onDec={() => setUi({ colorScheme: "dark" })}
+          onInc={() => setUi({ colorScheme: "light" })}
+        />
+      )}
+
+      <PadDial
+        label={t("theme.blur")}
+        value={ui.blurEnabled ? t("common.on") : t("common.off")}
+        onDec={() => setUi({ blurEnabled: false })}
+        onInc={() => setUi({ blurEnabled: true })}
+      />
+      <p className="ui-ink-faint max-w-xs text-center text-[9px] leading-relaxed">
+        {t("theme.blurHint")}
+      </p>
     </div>
   );
 }
@@ -635,11 +724,11 @@ function PresetControls({
   const [confirmLoadOpen, setConfirmLoadOpen] = useState(false);
   const activeId = scoped.some((p) => p.id === selected) ? selected : "";
   const btnClass =
-    "rounded-full border border-white/15 bg-white/5 px-2.5 py-0.5 text-[9px] font-light tracking-wider text-white/70 transition active:scale-95 active:bg-white/15 disabled:opacity-30";
+    "rounded-full border ui-line-1 ui-tint-1 px-2.5 py-0.5 text-[9px] font-light tracking-wider ui-ink-muted transition active:scale-95 ui-press disabled:opacity-30";
 
   return (
     <div className="mb-2 flex w-full flex-wrap items-center justify-center gap-1.5">
-      <span className="text-[9px] font-light tracking-[0.28em] text-white/40">{label}</span>
+      <span className="text-[9px] font-light tracking-[0.28em] ui-ink-faint">{label}</span>
       <button
         onClick={() => {
           const name = window.prompt(t("presets.savePromptTitle"));
@@ -663,7 +752,7 @@ function PresetControls({
           <select
             value={activeId}
             onChange={(e) => setSelected(e.target.value)}
-            className="rounded-full border border-white/15 bg-black/40 px-2 py-0.5 text-[9px] text-white/70"
+            className="rounded-full border ui-line-1 ui-surface px-2 py-0.5 text-[9px] ui-ink-muted"
           >
             <option value="" disabled>
               {t("presets.choosePreset")}
@@ -737,11 +826,11 @@ function StateControls({
   const [confirmLoadOpen, setConfirmLoadOpen] = useState(false);
   const activeId = savedStates.some((s) => s.id === selected) ? selected : "";
   const btnClass =
-    "rounded-full border border-white/15 bg-white/5 px-2.5 py-0.5 text-[9px] font-light tracking-wider text-white/70 transition active:scale-95 active:bg-white/15 disabled:opacity-30";
+    "rounded-full border ui-line-1 ui-tint-1 px-2.5 py-0.5 text-[9px] font-light tracking-wider ui-ink-muted transition active:scale-95 ui-press disabled:opacity-30";
 
   return (
     <div className="mb-2 flex w-full flex-wrap items-center justify-center gap-1.5">
-      <span className="text-[9px] font-light tracking-[0.28em] text-white/40">{label}</span>
+      <span className="text-[9px] font-light tracking-[0.28em] ui-ink-faint">{label}</span>
       <button
         onClick={() => {
           const name = window.prompt(t("presets.saveStatePromptTitle"));
@@ -762,7 +851,7 @@ function StateControls({
           <select
             value={activeId}
             onChange={(e) => setSelected(e.target.value)}
-            className="rounded-full border border-white/15 bg-black/40 px-2 py-0.5 text-[9px] text-white/70"
+            className="rounded-full border ui-line-1 ui-surface px-2 py-0.5 text-[9px] ui-ink-muted"
           >
             <option value="" disabled>
               {t("presets.chooseState")}
@@ -822,7 +911,7 @@ function ShareBathLink({
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const btnClass =
-    "rounded-full border border-white/15 bg-white/5 px-2.5 py-0.5 text-[9px] font-light tracking-wider text-white/70 transition active:scale-95 active:bg-white/15 disabled:opacity-30";
+    "rounded-full border ui-line-1 ui-tint-1 px-2.5 py-0.5 text-[9px] font-light tracking-wider ui-ink-muted transition active:scale-95 ui-press disabled:opacity-30";
 
   return (
     <div className="mb-2 flex w-full flex-wrap items-center justify-center gap-1.5">
@@ -1143,21 +1232,21 @@ export function SettingsPanel(props: SettingsPanelProps) {
 
   return (
     <>
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-white/90">
-        <span className="text-[10px] font-light tracking-[0.4em] text-white/60">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2 ui-ink">
+        <span className="text-[10px] font-light tracking-[0.4em] ui-ink-muted">
           {t("settings.title")}
         </span>
         <div className="flex flex-wrap items-center gap-2">
           <LanguageSwitcher />
           <Link
             to="/about"
-            className="rounded-full border border-white/20 bg-white/5 px-3 py-1 text-[9px] font-light tracking-wider text-white/80 transition active:scale-95 active:bg-white/15"
+            className="rounded-full border ui-line-2 ui-tint-1 px-3 py-1 text-[9px] font-light tracking-wider ui-ink transition active:scale-95 ui-press"
           >
             {t("about.navLabel")}
           </Link>
           <button
             onClick={restoreCameraPosition}
-            className="rounded-full border border-white/20 bg-white/5 px-3 py-1 text-[9px] font-light tracking-wider text-white/80 transition active:scale-95 active:bg-white/15"
+            className="rounded-full border ui-line-2 ui-tint-1 px-3 py-1 text-[9px] font-light tracking-wider ui-ink transition active:scale-95 ui-press"
             aria-label={t("settings.restoreAriaLabel")}
             title={t("settings.restoreTitle")}
           >
@@ -1165,7 +1254,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
           </button>
           <button
             onClick={() => setConfirmResetOpen(true)}
-            className="rounded-full border border-white/20 bg-white/5 px-3 py-1 text-[9px] font-light tracking-wider text-white/80 transition active:scale-95 active:bg-white/15"
+            className="rounded-full border ui-line-2 ui-tint-1 px-3 py-1 text-[9px] font-light tracking-wider ui-ink transition active:scale-95 ui-press"
             aria-label={t("settings.resetAriaLabel")}
             title={t("settings.resetTitle")}
           >
@@ -1198,8 +1287,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
             onClick={() => setSettingsTab(tab.id)}
             className={`rounded-full border px-3 py-1 text-[9px] font-light tracking-wider transition active:scale-95 ${
               settingsTab === tab.id
-                ? "border-white/40 bg-white/20 text-white"
-                : "border-white/10 bg-white/5 text-white/60 active:bg-white/15"
+                ? "ui-line-3 ui-tint-2 ui-ink"
+                : "ui-line-1 ui-tint-1 ui-ink-muted ui-press"
             }`}
           >
             {t(tab.labelKey)}
@@ -1723,11 +1812,11 @@ export function SettingsPanel(props: SettingsPanelProps) {
               deleteSavedPreset={deleteSavedPreset}
             />
             {intervalSessionOn ? (
-              <div className="flex min-w-[86px] flex-col items-start justify-center gap-0.5 rounded-full border border-white/15 bg-black/40 px-3 py-2 leading-tight">
-                <span className="text-[9px] font-light tracking-[0.28em] text-white/60">
+              <div className="flex min-w-[86px] flex-col items-start justify-center gap-0.5 rounded-full border ui-line-1 ui-surface px-3 py-2 leading-tight">
+                <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
                   {t("dial.camera.mode")}
                 </span>
-                <span className="text-xs font-medium tracking-wider text-white/80">
+                <span className="text-xs font-medium tracking-wider ui-ink">
                   {t(CAMERA_MODE_LABEL_KEYS[cameraMode])} {t("camera.mode.autoSuffix")}
                 </span>
               </div>
@@ -2341,15 +2430,15 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setBottomIdx((i) => (i + 1) % BOTTOM_OPTIONS.length)}
             />
             {BOTTOM_OPTIONS[bottomIdx].id === "custom" && (
-              <label className="flex items-center gap-2 rounded-full border border-white/15 bg-black/40 py-1 pl-3 pr-1 backdrop-blur-md">
-                <span className="text-[9px] font-light tracking-[0.28em] text-white/60">
+              <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
+                <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
                   {t("dial.water.bottomColor")}
                 </span>
                 <input
                   type="color"
                   value={bottomColor}
                   onChange={(e) => setBottomColor(e.target.value)}
-                  className="h-7 w-9 cursor-pointer rounded-full border border-white/20 bg-transparent p-0"
+                  className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
                 />
               </label>
             )}
@@ -2804,6 +2893,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
             />
           </>
         )}
+        {settingsTab === "tema" && <ThemeSettingsSection />}
       </div>
     </>
   );

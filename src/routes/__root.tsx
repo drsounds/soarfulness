@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { registerAppServiceWorker } from "../lib/register-sw";
 import { loadStoredLanguage, detectBrowserLanguage, changeLanguage } from "../lib/i18n";
+import { UI_THEME_INIT_SCRIPT } from "../lib/uiTheme";
 import { CookieConsent } from "../components/CookieConsent";
 
 function NotFoundComponent() {
@@ -135,10 +136,20 @@ const GA_MEASUREMENT_ID = import.meta.env["VITE_LOVABLE_CONNECTOR_GOOGLE_ANALYTI
   string | undefined;
 
 function RootShell({ children }: { children: ReactNode }) {
+  // suppressHydrationWarning below: the inline theme script sets
+  // data-ui-theme/data-ui-blur/class/style on <html> before React hydrates
+  // (so a saved scifi/spa preference doesn't flash the aqua default) —
+  // those attributes intentionally differ from the server-rendered markup,
+  // the same tradeoff next-themes and shadcn's own docs make for dark-mode
+  // scripts.
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
+        {/* Applies the saved UI chrome theme (aqua/scifi/spa, see
+            src/lib/uiTheme.ts) before first paint, so a saved scifi/spa
+            preference doesn't flash the aqua default for a frame. */}
+        <script dangerouslySetInnerHTML={{ __html: UI_THEME_INIT_SCRIPT }} />
         {/* Google Analytics is injected client-side by CookieConsent only after
             the user accepts — no tracking script ships in the SSR HTML. */}
       </head>

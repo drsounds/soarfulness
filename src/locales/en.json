@@ -815,6 +815,7 @@
       "kamera": "CAMERA",
       "ljud": "SOUND",
       "miljo": "ENVIRONMENT",
+      "tema": "THEME",
       "vagor": "WAVES",
       "vatten": "WATER"
     },
@@ -839,6 +840,21 @@
       "square": "SQUARE",
       "triangle": "TRIANGLE"
     }
+  },
+  "theme": {
+    "title": "THEME",
+    "aqua": "AQUA",
+    "aquaDescription": "The classic dark-glass look — unchanged.",
+    "scifi": "SCI-FI",
+    "scifiDescription": "Glowing glass with diode-like lines — pick your own accent color below.",
+    "spa": "SPA",
+    "spaDescription": "Minimalist, flat white or black surfaces — buttons get a soft turquoise gradient.",
+    "accentHue": "ACCENT COLOR",
+    "colorScheme": "MODE",
+    "light": "LIGHT",
+    "dark": "DARK",
+    "blur": "GLASS BLUR",
+    "blurHint": "The blur effect behind panels. Off by default for better performance."
   },
   "timeTravel": {
     "applyButton": "Time travel",
