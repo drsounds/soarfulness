@@ -803,6 +803,7 @@
     "title": "NÄYTÖNHALLINTA"
   },
   "settings": {
+    "backAriaLabel": "Takaisin asetusosioihin",
     "reset": "NOLLAA",
     "resetAriaLabel": "Palauta säätimet oletusarvoihin",
     "resetConfirm": "Tämä palauttaa kaikki säätimet oletusarvoihinsa (vuorokaudenaika ei muutu).",
