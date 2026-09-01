@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { changeLanguage, SUPPORTED_LANGUAGES, LANGUAGE_NAMES, type LanguageCode } from "@/lib/i18n";
 
 export const Route = createFileRoute("/about")({
@@ -21,7 +20,7 @@ export const Route = createFileRoute("/about")({
 function InlineLanguageSwitcher() {
   const { i18n, t } = useTranslation();
   return (
-    <label className="flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1">
+    <label className="flex items-center gap-1.5 px-2.5 py-1">
       <span className="text-[10px] font-light tracking-[0.28em] text-muted-foreground">
         {t("language.label")}
       </span>
@@ -67,7 +66,7 @@ function AboutPage() {
           <h1 className="text-2xl font-semibold tracking-tight">{t("about.title")}</h1>
         </div>
 
-        <Card>
+        <Card className="border-0 bg-transparent shadow-none">
           <CardHeader>
             <CardTitle>{t("about.sections.intro.heading")}</CardTitle>
           </CardHeader>
@@ -76,7 +75,7 @@ function AboutPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-0 bg-transparent shadow-none">
           <CardHeader>
             <CardTitle>{t("about.sections.trader.heading")}</CardTitle>
           </CardHeader>
@@ -118,7 +117,7 @@ function AboutPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-0 bg-transparent shadow-none">
           <CardHeader>
             <CardTitle>{t("about.sections.product.heading")}</CardTitle>
           </CardHeader>
@@ -127,7 +126,7 @@ function AboutPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-0 bg-transparent shadow-none">
           <CardHeader>
             <CardTitle>{t("about.sections.documentation.heading")}</CardTitle>
           </CardHeader>
@@ -142,7 +141,7 @@ function AboutPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-0 bg-transparent shadow-none">
           <CardHeader>
             <CardTitle>{t("about.sections.openSource.heading")}</CardTitle>
           </CardHeader>
@@ -157,7 +156,7 @@ function AboutPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-0 bg-transparent shadow-none">
           <CardHeader>
             <CardTitle>{t("about.sections.aiTransparency.heading")}</CardTitle>
           </CardHeader>
@@ -171,7 +170,7 @@ function AboutPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-0 bg-transparent shadow-none">
           <CardHeader>
             <CardTitle>{t("about.sections.disclaimer.heading")}</CardTitle>
           </CardHeader>
@@ -186,14 +185,12 @@ function AboutPage() {
 
         <p className="text-xs text-muted-foreground">{t("about.lastUpdated")}</p>
 
-        <Separator className="my-2" />
-
         <div>
           <h2 className="text-2xl font-semibold tracking-tight">{t("privacy.title")}</h2>
           <p className="mt-2 text-sm text-muted-foreground">{t("privacy.intro")}</p>
         </div>
 
-        <Card>
+        <Card className="border-0 bg-transparent shadow-none">
           <CardHeader>
             <CardTitle>{t("privacy.sections.tracking.heading")}</CardTitle>
           </CardHeader>
@@ -206,7 +203,7 @@ function AboutPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-0 bg-transparent shadow-none">
           <CardHeader>
             <CardTitle>{t("privacy.sections.localStorage.heading")}</CardTitle>
           </CardHeader>
@@ -215,7 +212,7 @@ function AboutPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-0 bg-transparent shadow-none">
           <CardHeader>
             <CardTitle>{t("privacy.sections.thirdParty.heading")}</CardTitle>
           </CardHeader>
@@ -224,7 +221,7 @@ function AboutPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-0 bg-transparent shadow-none">
           <CardHeader>
             <CardTitle>{t("privacy.sections.contact.heading")}</CardTitle>
           </CardHeader>

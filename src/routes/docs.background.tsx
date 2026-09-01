@@ -35,7 +35,7 @@ function BackgroundDocPage() {
         </h1>
       </div>
 
-      <Alert>
+      <Alert className="border-0 bg-transparent">
         <AlertDescription className="text-muted-foreground">
           <strong className="text-foreground">{t("docsPhilosophy.background.disclaimer.label")}</strong>{" "}
           {t("docsPhilosophy.background.disclaimer.bodyBefore")}{" "}
@@ -44,7 +44,7 @@ function BackgroundDocPage() {
         </AlertDescription>
       </Alert>
 
-      <Card className="shadow-none">
+      <Card className="border-0 bg-transparent shadow-none">
         <CardHeader>
           <CardTitle>{t("docsPhilosophy.background.section1.title")}</CardTitle>
         </CardHeader>
@@ -110,7 +110,7 @@ function BackgroundDocPage() {
         </CardContent>
       </Card>
 
-      <Card className="shadow-none">
+      <Card className="border-0 bg-transparent shadow-none">
         <CardHeader>
           <CardTitle>{t("docsPhilosophy.background.section2.title")}</CardTitle>
         </CardHeader>
@@ -152,7 +152,7 @@ function BackgroundDocPage() {
         </CardContent>
       </Card>
 
-      <Card className="shadow-none">
+      <Card className="border-0 bg-transparent shadow-none">
         <CardHeader>
           <CardTitle>{t("docsPhilosophy.background.section3.title")}</CardTitle>
         </CardHeader>
@@ -175,13 +175,13 @@ function BackgroundDocPage() {
         </CardContent>
       </Card>
 
-      <Card className="shadow-none">
+      <Card className="border-0 bg-transparent shadow-none">
         <CardHeader>
           <CardTitle>{t("docsPhilosophy.background.section4.title")}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3 text-sm leading-relaxed text-muted-foreground">
           <p>{t("docsPhilosophy.background.section4.p1")}</p>
-          <blockquote className="border-l-2 border-border pl-4 italic">
+          <blockquote className="pl-4 italic">
             {t("docsPhilosophy.background.section4.quote")}
             <br />
             <br />
