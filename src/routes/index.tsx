@@ -3987,30 +3987,29 @@ export function Aquafulness() {
         }
 
         // Translucency — uOpacity controls how see-through the water is.
-        // Two earlier attempts at this got it wrong in opposite directions:
-        // pinning the reflective/foam share to fully opaque the moment
-        // uOpacity ticked up even slightly meant the dial had almost no
-        // visible effect across most of the screen (a camera near the
-        // surface spends most of its view at grazing angles, where reflAmt
-        // is naturally high — so keepAmt below was already ~1 there
-        // regardless of the dial); fading everything at the same flat rate
-        // (the very first version) wrongly washed the reflection out at
-        // low-but-nonzero settings instead of just revealing what's behind
-        // the water.
-        // The fix: give the reflective/foam share its own alpha curve
-        // (reflAlpha) that rises faster than the plain body fade (bodyAlpha)
-        // — so a reflection stays clearly visible through fairly transparent
-        // water, matching how a thin, clear film still shows a visible sheen
-        // — while both curves still start at exactly 0 (uOpacity = 0 is
-        // fully invisible, same as VATTENYTA/hideWater) and reach exactly 1
-        // at uOpacity = 1 (fully opaque), so the whole dial stays
-        // continuously responsive end to end.
+        // Give foam its own alpha curve (reflAlpha) that rises faster than
+        // the plain body fade (bodyAlpha) — so whitecaps stay visible
+        // through fairly transparent water — while both curves still start
+        // at exactly 0 (uOpacity = 0 is fully invisible, same as
+        // VATTENYTA/hideWater) and reach exactly 1 at uOpacity = 1 (fully
+        // opaque), so the whole dial stays continuously responsive end to
+        // end.
+        //
+        // keepAmt is driven by foam alone, not by reflAmt. reflAmt (the
+        // sky/photo Fresnel reflection baked into col above) is large
+        // across most of the visible surface, especially at the grazing
+        // angles a near-surface camera mostly sees — feeding it into
+        // keepAmt used to pin alpha to the boosted reflAlpha curve almost
+        // everywhere, so the blue sky reflection never actually faded as
+        // uOpacity was lowered, leaving a persisting blue tint instead of
+        // the water becoming see-through. With keepAmt tracking only foam,
+        // the reflection/water body fades all the way to transparent with
+        // bodyAlpha (revealing the color-picker's uOverlayColor mixed into
+        // col at whatever share uWaterColorAlpha set), while foam keeps its
+        // own boosted curve and stays visible on top.
         float bodyAlpha = clamp(uOpacity, 0.0, 1.0);
         float reflAlpha = pow(bodyAlpha, 0.35);
-        // keepAmt is the fraction of this pixel that's reflection/foam
-        // rather than transmitted water body — col above was built as
-        // exactly that weighted mix.
-        float keepAmt = clamp(reflAmt + foam * 0.6, 0.0, 1.0);
+        float keepAmt = clamp(foam, 0.0, 1.0);
         float alpha = mix(bodyAlpha, reflAlpha, keepAmt);
         // Premultiplied compositing (see mat.premultipliedAlpha below):
         // col * alpha is exactly mix(col * bodyAlpha, col * reflAlpha,
