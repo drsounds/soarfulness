@@ -78,24 +78,22 @@ export function CookieConsent({ measurementId }: { measurementId?: string }) {
       aria-label={t("consent.title")}
       className="fixed inset-x-0 bottom-0 z-[70] flex justify-center p-4"
     >
-      <div className="w-full max-w-md rounded-2xl border border-white/15 bg-black/80 p-4 shadow-2xl backdrop-blur-xl">
-        <p className="mb-1 text-[11px] font-medium tracking-wide text-white/90">
-          {t("consent.title")}
-        </p>
-        <p className="mb-4 text-[10px] font-light leading-relaxed text-white/60">
+      <div className="ui-surface-solid w-full max-w-md rounded-2xl border p-4 shadow-2xl backdrop-blur-xl">
+        <p className="ui-ink mb-1 text-[11px] font-medium tracking-wide">{t("consent.title")}</p>
+        <p className="ui-ink-muted mb-4 text-[10px] font-light leading-relaxed">
           {t("consent.body")}
         </p>
         <div className="flex justify-end gap-2">
           <button
             onClick={() => decide("declined")}
-            className="rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-[9px] font-light tracking-wider text-white/70 transition active:scale-95 active:bg-white/15"
+            className="ui-tint-1 ui-ink-muted ui-press rounded-full border px-4 py-1.5 text-[9px] font-light tracking-wider transition active:scale-95"
           >
             {t("consent.decline")}
           </button>
           <button
             autoFocus
             onClick={() => decide("accepted")}
-            className="rounded-full border border-white/25 bg-white/10 px-4 py-1.5 text-[9px] font-medium tracking-wider text-white transition active:scale-95 active:bg-white/20"
+            className="ui-btn rounded-full border px-4 py-1.5 text-[9px] font-medium tracking-wider transition active:scale-95"
           >
             {t("consent.accept")}
           </button>

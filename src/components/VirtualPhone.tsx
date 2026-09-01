@@ -565,26 +565,26 @@ export function VirtualPhone({
 
   return (
     <div
-      className="pointer-events-auto fixed z-30 flex select-none flex-col overflow-hidden rounded-2xl border border-white/15 bg-[#0b1620] font-sans shadow-2xl"
+      className="ui-line-1 pointer-events-auto fixed z-30 flex select-none flex-col overflow-hidden rounded-2xl border bg-[#0b1620] font-sans shadow-2xl"
       style={{ left: state.x, top: state.y, width: state.width, height: state.height }}
     >
       {/* Title bar: drag handle, orientation toggle, close. */}
       <div
-        className="touch-none flex flex-shrink-0 cursor-grab items-center justify-between gap-2 bg-black/50 px-3 py-1.5 active:cursor-grabbing"
+        className="ui-surface-strong touch-none flex flex-shrink-0 cursor-grab items-center justify-between gap-2 px-3 py-1.5 active:cursor-grabbing"
         onPointerDown={onTitleDown}
         onPointerMove={onTitleMove}
         onPointerUp={onTitleUp}
         onPointerCancel={onTitleUp}
       >
-        <span className="text-[9px] font-light tracking-[0.25em] text-white/50">
+        <span className="ui-ink-faint text-[9px] font-light tracking-[0.25em]">
           {t("phone.title")}
         </span>
-        <div className="flex items-center gap-1.5 text-white/80">
+        <div className="ui-ink flex items-center gap-1.5">
           <button
             onClick={toggleOrientation}
             onPointerDown={(e) => e.stopPropagation()}
             title={t("phone.rotateTitle")}
-            className="flex h-6 w-6 touch-none items-center justify-center rounded-full border border-white/20 bg-white/5 active:scale-95 active:bg-white/20"
+            className="ui-tint-1 ui-press flex h-6 w-6 touch-none items-center justify-center rounded-full border active:scale-95"
           >
             {Icon.rotate}
           </button>
@@ -592,7 +592,7 @@ export function VirtualPhone({
             onClick={onClose}
             onPointerDown={(e) => e.stopPropagation()}
             title={t("phone.closeTitle")}
-            className="flex h-6 w-6 touch-none items-center justify-center rounded-full border border-white/20 bg-white/5 text-xs active:scale-95 active:bg-white/20"
+            className="ui-tint-1 ui-press flex h-6 w-6 touch-none items-center justify-center rounded-full border text-xs active:scale-95"
           >
             ✕
           </button>
@@ -600,22 +600,22 @@ export function VirtualPhone({
       </div>
 
       {/* bathOS body */}
-      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden text-white">
+      <div className="ui-ink relative flex min-h-0 flex-1 flex-col overflow-hidden">
         {/* Status bar — reinstated from the old in-3D-panel bathOS shell,
             shown above every screen (lock/home/browser) rather than baked
             into just one of them: a persistent back-to-home control on the
             left, a signal glyph on the right, phone-chrome style. Disabled
             (still visible, not hidden) wherever "back" has nowhere to go. */}
-        <div className="flex flex-shrink-0 items-center justify-between bg-black/30 px-2 py-1">
+        <div className="ui-surface flex flex-shrink-0 items-center justify-between px-2 py-1">
           <button
             onClick={goHome}
             disabled={state.locked || state.screen === "home"}
-            className="flex h-4 w-4 items-center justify-center text-white/85 disabled:opacity-25"
+            className="ui-ink flex h-4 w-4 items-center justify-center disabled:opacity-25"
             title={t("phone.homeTitle")}
           >
             {Icon.back}
           </button>
-          <span className="flex items-center text-white/85" title={t("phone.signalTitle")}>
+          <span className="ui-ink flex items-center" title={t("phone.signalTitle")}>
             {Icon.signal}
           </span>
         </div>
@@ -965,15 +965,15 @@ export function VirtualPhone({
             // both places always stay in sync — see index.tsx's
             // remoteControllerProps.
             <div className="flex h-full flex-col gap-3 overflow-y-auto bg-[#111] p-3 text-white">
-              <div className="text-center text-[10px] font-light tracking-[0.4em] text-white/60">
+              <div className="ui-ink-muted text-center text-[10px] font-light tracking-[0.4em]">
                 {t("remote.title")}
               </div>
               {remoteControllerProps.cameraMode === "swing" ? (
-                <div className="mt-6 text-center text-[10px] leading-relaxed text-white/50">
+                <div className="ui-ink-faint mt-6 text-center text-[10px] leading-relaxed">
                   {t("remote.swingHint")}
                 </div>
               ) : remoteControllerProps.cameraMode === "whirlpool" ? (
-                <div className="mt-6 text-center text-[10px] leading-relaxed text-white/50">
+                <div className="ui-ink-faint mt-6 text-center text-[10px] leading-relaxed">
                   {t("remote.whirlpoolHint")}
                 </div>
               ) : (
@@ -1029,8 +1029,8 @@ export function VirtualPhone({
                         }}
                         className={`rounded-full border px-3 py-1.5 text-center text-[9px] font-light tracking-wider transition active:scale-95 ${
                           remoteControllerProps.noclipReverseRiseOn
-                            ? "border-white/40 bg-white/20 text-white"
-                            : "border-white/15 bg-white/5 text-white/60"
+                            ? "ui-line-3 ui-tint-2 ui-ink"
+                            : "ui-line-1 ui-tint-1 ui-ink-muted"
                         }`}
                         aria-pressed={remoteControllerProps.noclipReverseRiseOn}
                       >
@@ -1043,8 +1043,8 @@ export function VirtualPhone({
                         }}
                         className={`rounded-full border px-3 py-1.5 text-center text-[9px] font-light tracking-wider transition active:scale-95 ${
                           remoteControllerProps.noclipFreeFallOn
-                            ? "border-white/40 bg-white/20 text-white"
-                            : "border-white/15 bg-white/5 text-white/60"
+                            ? "ui-line-3 ui-tint-2 ui-ink"
+                            : "ui-line-1 ui-tint-1 ui-ink-muted"
                         }`}
                         aria-pressed={remoteControllerProps.noclipFreeFallOn}
                       >
@@ -1054,8 +1054,8 @@ export function VirtualPhone({
                         onClick={() => remoteControllerProps.setNoclipAutoAlternateOn((v) => !v)}
                         className={`rounded-full border px-3 py-1.5 text-center text-[9px] font-light tracking-wider transition active:scale-95 ${
                           remoteControllerProps.noclipAutoAlternateOn
-                            ? "border-white/40 bg-white/20 text-white"
-                            : "border-white/15 bg-white/5 text-white/60"
+                            ? "ui-line-3 ui-tint-2 ui-ink"
+                            : "ui-line-1 ui-tint-1 ui-ink-muted"
                         }`}
                         aria-pressed={remoteControllerProps.noclipAutoAlternateOn}
                       >
@@ -1068,8 +1068,8 @@ export function VirtualPhone({
                       onClick={() => remoteControllerProps.setSyncWaveWithSway((v) => !v)}
                       className={`rounded-full border px-3 py-1.5 text-center text-[9px] font-light tracking-wider transition active:scale-95 ${
                         remoteControllerProps.syncWaveWithSway
-                          ? "border-white/40 bg-white/20 text-white"
-                          : "border-white/15 bg-white/5 text-white/60"
+                          ? "ui-line-3 ui-tint-2 ui-ink"
+                          : "ui-line-1 ui-tint-1 ui-ink-muted"
                       }`}
                       aria-pressed={remoteControllerProps.syncWaveWithSway}
                       title={t("remote.syncTitle")}
@@ -1089,15 +1089,13 @@ export function VirtualPhone({
             // that used to be the main HUD's own top-bar button, plus basic
             // add/remove controls for the TVs/mobiles it lets you rearrange.
             <div className="flex h-full flex-col gap-3 overflow-y-auto bg-[#111] p-3 text-white">
-              <div className="text-center text-[10px] font-light tracking-[0.4em] text-white/60">
+              <div className="ui-ink-muted text-center text-[10px] font-light tracking-[0.4em]">
                 {t("screens.title")}
               </div>
               <button
                 onClick={() => setEditMode((v) => !v)}
                 className={`flex items-center justify-center gap-2 rounded-full border px-3 py-2 text-[10px] font-light tracking-wider transition active:scale-95 ${
-                  editMode
-                    ? "border-white/40 bg-white/20 text-white"
-                    : "border-white/15 bg-white/5 text-white/70"
+                  editMode ? "ui-line-3 ui-tint-2 ui-ink" : "ui-line-1 ui-tint-1 ui-ink-muted"
                 }`}
                 aria-pressed={editMode}
                 title={editMode ? t("screens.editModeTitleOn") : t("screens.editModeTitleOff")}
@@ -1105,7 +1103,7 @@ export function VirtualPhone({
                 {Icon.pencil}
                 {editMode ? t("screens.editModeOn") : t("screens.editModeOff")}
               </button>
-              <div className="text-[9px] leading-relaxed text-white/45">
+              <div className="ui-ink-faint text-[9px] leading-relaxed">
                 {t("screens.editModeDescription")}
               </div>
               <div className="mt-1 flex flex-col gap-1.5">
@@ -1114,7 +1112,7 @@ export function VirtualPhone({
                     onCastNew("tv", "");
                     setScreensTick((tick) => tick + 1);
                   }}
-                  className="rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[9px] font-light tracking-wider text-white/80 active:scale-95 active:bg-white/15"
+                  className="ui-tint-1 ui-ink ui-press rounded-full border px-3 py-1.5 text-[9px] font-light tracking-wider active:scale-95"
                 >
                   + {t("phone.newSmartTv")}
                 </button>
@@ -1123,7 +1121,7 @@ export function VirtualPhone({
                     onCastNew("mobile", "");
                     setScreensTick((tick) => tick + 1);
                   }}
-                  className="rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[9px] font-light tracking-wider text-white/80 active:scale-95 active:bg-white/15"
+                  className="ui-tint-1 ui-ink ui-press rounded-full border px-3 py-1.5 text-[9px] font-light tracking-wider active:scale-95"
                 >
                   + {t("phone.newMobile")}
                 </button>
@@ -1133,9 +1131,9 @@ export function VirtualPhone({
                 if (entries.length === 0) return null;
                 return (
                   <>
-                    <div className="mt-1 flex flex-col gap-1 text-[9px] text-white/50">
+                    <div className="ui-ink-faint mt-1 flex flex-col gap-1 text-[9px]">
                       {entries.map((d) => (
-                        <div key={d.id} className="truncate rounded-md bg-white/5 px-2 py-1">
+                        <div key={d.id} className="ui-tint-1 truncate rounded-md px-2 py-1">
                           {d.device === "tv" ? t("phone.tvLabel") : t("phone.mobileLabel")} —{" "}
                           {d.url || t("phone.emptyScreen")}
                         </div>
@@ -1146,7 +1144,7 @@ export function VirtualPhone({
                         onRemoveAll();
                         setScreensTick((tick) => tick + 1);
                       }}
-                      className="rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[9px] font-light tracking-wider text-red-400 active:scale-95 active:bg-white/15"
+                      className="ui-tint-1 ui-press rounded-full border px-3 py-1.5 text-[9px] font-light tracking-wider text-red-400 active:scale-95"
                     >
                       {t("phone.removeAllScreens")}
                     </button>
@@ -1160,17 +1158,17 @@ export function VirtualPhone({
 
       {/* Phone-style bottom nav bar. */}
       {!state.locked && (
-        <div className="flex flex-shrink-0 items-center justify-around border-t border-white/10 bg-black/40 py-1.5">
+        <div className="ui-line-1 ui-surface flex flex-shrink-0 items-center justify-around border-t py-1.5">
           <button
             onClick={goHome}
-            className="flex h-6 w-6 items-center justify-center text-white/85"
+            className="ui-ink flex h-6 w-6 items-center justify-center"
             title={t("phone.homeTitle")}
           >
             {Icon.home}
           </button>
           <button
             onClick={lockNow}
-            className="flex h-6 w-6 items-center justify-center text-white/85"
+            className="ui-ink flex h-6 w-6 items-center justify-center"
             title={t("phone.lockTitle")}
           >
             {Icon.lock}
@@ -1183,7 +1181,7 @@ export function VirtualPhone({
           visible grip icon rather than a bare border, so it reads as
           grabbable instead of decorative. */}
       <div
-        className="absolute bottom-0 right-0 flex h-7 w-7 touch-none cursor-nwse-resize items-end justify-end p-1 text-white/45 transition active:text-white/90"
+        className="ui-ink-faint ui-press-ink absolute bottom-0 right-0 flex h-7 w-7 touch-none cursor-nwse-resize items-end justify-end p-1 transition"
         onPointerDown={onResizeDown}
         onPointerMove={onResizeMove}
         onPointerUp={onResizeUp}

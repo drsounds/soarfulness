@@ -815,6 +815,7 @@
       "kamera": "KAMERA",
       "ljud": "LYD",
       "miljo": "MILJØ",
+      "tema": "TEMA",
       "vagor": "BØLGER",
       "vatten": "VAND"
     },
@@ -839,6 +840,21 @@
       "square": "FIRKANT",
       "triangle": "TREKANT"
     }
+  },
+  "theme": {
+    "title": "TEMA",
+    "aqua": "AQUA",
+    "aquaDescription": "Det klassiske mørke glaslook — uændret.",
+    "scifi": "SCI-FI",
+    "scifiDescription": "Glødende glas med linjer som lysdioder — vælg din egen accentfarve nedenfor.",
+    "spa": "SPA",
+    "spaDescription": "Minimalistisk, rene flader i hvidt eller sort — knapper får en blød turkis gradient.",
+    "accentHue": "ACCENTFARVE",
+    "colorScheme": "TILSTAND",
+    "light": "LYST",
+    "dark": "MØRKT",
+    "blur": "GLASEFFEKT (BLUR)",
+    "blurHint": "Sløringseffekten bag paneler. Slået fra som standard for bedre ydeevne."
   },
   "timeTravel": {
     "applyButton": "Rejs i tiden",

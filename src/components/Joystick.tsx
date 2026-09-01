@@ -69,17 +69,17 @@ export function JoystickPad({
         activeId.current = null;
         if (!sticky) onChange({ x: 0, y: 0 });
       }}
-      className="pointer-events-auto relative h-24 w-24 touch-none select-none rounded-full border border-white/20 bg-black/35 backdrop-blur-md"
+      className="ui-surface pointer-events-auto relative h-24 w-24 touch-none select-none rounded-full border backdrop-blur-md"
       style={{ boxShadow: "inset 0 0 40px rgba(255,255,255,0.05)" }}
     >
-      <div className="pointer-events-none absolute inset-3 rounded-full border border-white/10" />
+      <div className="ui-line-1 pointer-events-none absolute inset-3 rounded-full border" />
       <div
-        className="pointer-events-none absolute left-1/2 top-1/2 h-9 w-9 rounded-full border border-white/30 bg-white/80 shadow-[0_0_24px_rgba(255,255,255,0.35)]"
+        className="ui-thumb pointer-events-none absolute left-1/2 top-1/2 h-9 w-9 rounded-full border"
         style={{
           transform: `translate(calc(-50% + ${value.x * radius}px), calc(-50% + ${-value.y * radius}px))`,
         }}
       />
-      <span className="pointer-events-none absolute inset-x-0 top-1 text-center text-[8px] font-light tracking-[0.28em] text-white/60">
+      <span className="ui-ink-muted pointer-events-none absolute inset-x-0 top-1 text-center text-[8px] font-light tracking-[0.28em]">
         {label}
       </span>
       {sticky && (
@@ -89,7 +89,7 @@ export function JoystickPad({
           onClick={() => onChange({ x: 0, y: 0 })}
           aria-label={t("common.resetAria", { label })}
           tabIndex={-1}
-          className="pointer-events-auto absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full border border-white/25 bg-black/50 text-white/70 transition hover:border-white/50 hover:text-white active:scale-95"
+          className="ui-icon-btn pointer-events-auto absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full border transition active:scale-95"
         >
           <svg
             viewBox="0 0 24 24"
@@ -148,7 +148,7 @@ export function VerticalModeSlider({
 
   return (
     <div className="pointer-events-auto flex flex-col items-center gap-1 select-none">
-      <span className="text-[8px] font-light tracking-[0.28em] text-white/60">{label}</span>
+      <span className="ui-ink-muted text-[8px] font-light tracking-[0.28em]">{label}</span>
       <div
         ref={trackRef}
         onPointerDown={(e) => {
@@ -168,17 +168,17 @@ export function VerticalModeSlider({
         onPointerCancel={() => {
           activeId.current = null;
         }}
-        className="relative w-10 touch-none rounded-full border border-white/20 bg-black/35 backdrop-blur-md"
+        className="ui-surface relative w-10 touch-none rounded-full border backdrop-blur-md"
         style={{ height, boxShadow: "inset 0 0 30px rgba(255,255,255,0.05)" }}
       >
-        <div className="pointer-events-none absolute inset-x-0 top-1.5 text-center text-[9px] leading-none text-white/40">
+        <div className="ui-ink-faint pointer-events-none absolute inset-x-0 top-1.5 text-center text-[9px] leading-none">
           ▲
         </div>
-        <div className="pointer-events-none absolute inset-x-0 bottom-1.5 text-center text-[9px] leading-none text-white/40">
+        <div className="ui-ink-faint pointer-events-none absolute inset-x-0 bottom-1.5 text-center text-[9px] leading-none">
           ▼
         </div>
         <div
-          className="pointer-events-none absolute left-1/2 h-7 w-7 -translate-x-1/2 rounded-full border border-white/30 bg-white/80 shadow-[0_0_18px_rgba(255,255,255,0.35)] transition-[top] duration-200 ease-out"
+          className="ui-thumb pointer-events-none absolute left-1/2 h-7 w-7 -translate-x-1/2 rounded-full border transition-[top] duration-200 ease-out"
           style={{ top: `calc(${thumbFrac * 100}% - 14px)` }}
         />
       </div>

@@ -6431,7 +6431,7 @@ export function Aquafulness() {
       {!CLOCK_DISABLED_FOR_PERF_TEST && simNowLabel && (
         <button
           onClick={() => setTimeTravelOpen(true)}
-          className="absolute z-30 text-right text-[10px] font-light tabular-nums text-white/50 transition active:text-white/80"
+          className="absolute z-30 text-right text-[10px] font-light tabular-nums ui-ink-faint transition ui-press-ink"
           style={{ top: "40pt", right: "12pt" }}
           aria-label={t("hud.timeTravelOpenAria")}
           title={t("hud.timeTravelOpenAria")}
@@ -6467,7 +6467,7 @@ export function Aquafulness() {
           available while it's shown. */}
       {!online && (
         <div
-          className="pointer-events-none absolute left-1/2 top-[12pt] z-30 -translate-x-1/2 rounded-full border border-white/20 bg-black/40 px-3 py-1 text-[10px] font-light tracking-[0.2em] text-white/80 backdrop-blur-md"
+          className="pointer-events-none absolute left-1/2 top-[12pt] z-30 -translate-x-1/2 rounded-full border ui-line-2 ui-surface px-3 py-1 text-[10px] font-light tracking-[0.2em] ui-ink backdrop-blur-md"
           role="status"
         >
           {t("hud.offline")}
@@ -6494,7 +6494,7 @@ export function Aquafulness() {
         <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between px-6 pt-6">
           <button
             onClick={() => setAudioOn((v) => !v)}
-            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white/90 backdrop-blur-md transition active:scale-95 active:bg-white/15"
+            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border ui-line-2 ui-surface ui-ink backdrop-blur-md transition active:scale-95 ui-press"
             aria-label={audioOn ? t("hud.audioMuteAria") : t("hud.audioUnmuteAria")}
             aria-pressed={audioOn}
             title={audioOn ? t("hud.audioOnTitle") : t("hud.audioOffTitle")}
@@ -6536,9 +6536,7 @@ export function Aquafulness() {
           <button
             onClick={() => setSettingsOpen((s) => !s)}
             className={`pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur-md transition active:scale-95 ${
-              settingsOpen
-                ? "border-white/40 bg-white/25 text-white"
-                : "border-white/20 bg-black/40 text-white/90 active:bg-white/15"
+              settingsOpen ? "ui-line-3 ui-tint-2 ui-ink" : "ui-line-2 ui-surface ui-ink ui-press"
             }`}
             aria-label={settingsOpen ? t("hud.settingsCloseAria") : t("hud.settingsOpenAria")}
             aria-expanded={settingsOpen}
@@ -6564,9 +6562,7 @@ export function Aquafulness() {
             <button
               onClick={() => setPhoneOpen((v) => !v)}
               className={`pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur-md transition active:scale-95 ${
-                phoneOpen
-                  ? "border-white/40 bg-white/25 text-white"
-                  : "border-white/20 bg-black/40 text-white/90 active:bg-white/15"
+                phoneOpen ? "ui-line-3 ui-tint-2 ui-ink" : "ui-line-2 ui-surface ui-ink ui-press"
               }`}
               aria-label={phoneOpen ? t("hud.phoneCloseAria") : t("hud.phoneOpenAria")}
               aria-pressed={phoneOpen}
@@ -6590,7 +6586,7 @@ export function Aquafulness() {
 
             <button
               onClick={toggleFullscreen}
-              className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white/90 backdrop-blur-md transition active:scale-95 active:bg-white/15"
+              className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border ui-line-2 ui-surface ui-ink backdrop-blur-md transition active:scale-95 ui-press"
               aria-label={isFullscreen ? t("hud.fullscreenExitAria") : t("hud.fullscreenEnterAria")}
               aria-pressed={isFullscreen}
               title={isFullscreen ? t("hud.fullscreenExitAria") : t("hud.fullscreenEnterAria")}
@@ -6628,7 +6624,7 @@ export function Aquafulness() {
 
             <button
               onClick={() => setShareBathOpen(true)}
-              className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white/90 backdrop-blur-md transition active:scale-95 active:bg-white/15"
+              className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border ui-line-2 ui-surface ui-ink backdrop-blur-md transition active:scale-95 ui-press"
               aria-label={t("hud.shareBathAria")}
               title={t("hud.shareBathAria")}
             >
@@ -6661,7 +6657,7 @@ export function Aquafulness() {
         {/* Collapsible settings panel */}
         {settingsOpen && (
           <div className="pointer-events-auto absolute inset-x-0 top-16 z-20 mx-auto max-w-2xl px-6">
-            <div className="max-h-[70vh] overflow-y-auto rounded-3xl border border-white/15 bg-black/60 p-4 shadow-2xl backdrop-blur-xl">
+            <div className="max-h-[70vh] overflow-y-auto rounded-3xl border ui-line-1 ui-surface-strong p-4 shadow-2xl backdrop-blur-xl">
               <SettingsPanel {...settingsPanelProps} />
             </div>
           </div>
@@ -6730,8 +6726,8 @@ export function Aquafulness() {
                 aria-pressed={noclipReverseRiseOn}
                 className={`pointer-events-auto rounded-full border px-2 py-0.5 text-[8px] font-light tracking-[0.2em] backdrop-blur-md transition active:scale-95 ${
                   noclipReverseRiseOn
-                    ? "border-white/50 bg-white/25 text-white"
-                    : "border-white/20 bg-black/40 text-white/70"
+                    ? "ui-line-3 ui-tint-2 ui-ink"
+                    : "ui-line-2 ui-surface ui-ink-muted"
                 }`}
               >
                 {t("hud.joystick.reverseRise")}
@@ -6751,8 +6747,8 @@ export function Aquafulness() {
                 aria-pressed={noclipFreeFallOn}
                 className={`pointer-events-auto rounded-full border px-2 py-0.5 text-[8px] font-light tracking-[0.2em] backdrop-blur-md transition active:scale-95 ${
                   noclipFreeFallOn
-                    ? "border-white/50 bg-white/25 text-white"
-                    : "border-white/20 bg-black/40 text-white/70"
+                    ? "ui-line-3 ui-tint-2 ui-ink"
+                    : "ui-line-2 ui-surface ui-ink-muted"
                 }`}
               >
                 {t("hud.joystick.freeFall")}
@@ -6765,8 +6761,8 @@ export function Aquafulness() {
                 aria-pressed={noclipAutoAlternateOn}
                 className={`pointer-events-auto rounded-full border px-2 py-0.5 text-[8px] font-light tracking-[0.2em] backdrop-blur-md transition active:scale-95 ${
                   noclipAutoAlternateOn
-                    ? "border-white/50 bg-white/25 text-white"
-                    : "border-white/20 bg-black/40 text-white/70"
+                    ? "ui-line-3 ui-tint-2 ui-ink"
+                    : "ui-line-2 ui-surface ui-ink-muted"
                 }`}
               >
                 {t("hud.joystick.autoAlternate")}
@@ -6783,9 +6779,7 @@ export function Aquafulness() {
                 onClick={() => setNoclipHeaveOn((v) => !v)}
                 aria-pressed={noclipHeaveOn}
                 className={`pointer-events-auto rounded-full border px-2 py-0.5 text-[8px] font-light tracking-[0.2em] backdrop-blur-md transition active:scale-95 ${
-                  noclipHeaveOn
-                    ? "border-white/50 bg-white/25 text-white"
-                    : "border-white/20 bg-black/40 text-white/70"
+                  noclipHeaveOn ? "ui-line-3 ui-tint-2 ui-ink" : "ui-line-2 ui-surface ui-ink-muted"
                 }`}
               >
                 {t("hud.joystick.heave")}
@@ -6795,9 +6789,7 @@ export function Aquafulness() {
                 onClick={() => setNoclipSwayOn((v) => !v)}
                 aria-pressed={noclipSwayOn}
                 className={`pointer-events-auto rounded-full border px-2 py-0.5 text-[8px] font-light tracking-[0.2em] backdrop-blur-md transition active:scale-95 ${
-                  noclipSwayOn
-                    ? "border-white/50 bg-white/25 text-white"
-                    : "border-white/20 bg-black/40 text-white/70"
+                  noclipSwayOn ? "ui-line-3 ui-tint-2 ui-ink" : "ui-line-2 ui-surface ui-ink-muted"
                 }`}
               >
                 {t("hud.joystick.sway")}
@@ -6850,7 +6842,7 @@ export function Aquafulness() {
             cliff. */}
         <div className="pointer-events-auto absolute bottom-8 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center gap-2">
           {waveDrawerOpen && (
-            <div className="flex flex-col items-center gap-2 rounded-3xl border border-white/15 bg-black/60 p-4 shadow-2xl backdrop-blur-xl">
+            <div className="flex flex-col items-center gap-2 rounded-3xl border ui-line-1 ui-surface-strong p-4 shadow-2xl backdrop-blur-xl">
               <PadSlider
                 label={t("hud.slider.wave")}
                 value={waveAmp}
@@ -6888,7 +6880,7 @@ export function Aquafulness() {
           )}
           <button
             onClick={() => setWaveDrawerOpen((v) => !v)}
-            className="rounded-full border border-white/20 bg-black/40 px-5 py-2 text-[10px] font-light tracking-[0.35em] text-white/90 backdrop-blur-md transition active:scale-95 active:bg-white/15"
+            className="rounded-full border ui-line-2 ui-surface px-5 py-2 text-[10px] font-light tracking-[0.35em] ui-ink backdrop-blur-md transition active:scale-95 ui-press"
             aria-label={
               waveDrawerOpen ? t("hud.waveDrawer.closeAria") : t("hud.waveDrawer.openAria")
             }
@@ -6911,7 +6903,7 @@ export function Aquafulness() {
           and dials. */}
       {intervalSessionOn && (
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-col-reverse">
-          <div className="h-1 w-full bg-white/10">
+          <div className="h-1 w-full ui-tint-1">
             <div
               className="h-full bg-emerald-400"
               style={{ width: `${Math.round(intervalProgress * 100)}%` }}
@@ -6927,7 +6919,7 @@ export function Aquafulness() {
                       ? "bg-emerald-400"
                       : i === intervalIndex
                         ? "bg-emerald-400/50"
-                        : "bg-white/15"
+                        : "ui-tint-2"
                   }`}
                 />
               ))}
@@ -6935,7 +6927,7 @@ export function Aquafulness() {
           )}
           {intervalShowStats && (
             <div className="mb-2 flex justify-center px-4">
-              <span className="rounded-full border border-white/15 bg-black/40 px-3 py-1 text-center text-[10px] font-light tracking-[0.15em] text-white/80 backdrop-blur-md">
+              <span className="rounded-full border ui-line-1 ui-surface px-3 py-1 text-center text-[10px] font-light tracking-[0.15em] ui-ink backdrop-blur-md">
                 {t(CAMERA_MODE_LABEL_KEYS[cameraMode])} · {formatClock(curIntervalElapsed)}/
                 {formatClock(intervalDuration)} (
                 {t("hud.intervalRemaining", { time: formatClock(curIntervalRemaining) })})
@@ -7120,7 +7112,7 @@ function LiveBroadcast() {
           <span className="text-[10px] font-bold tracking-[0.25em]">{t("live.badge")}</span>
         </div>
         <div
-          className="flex items-center gap-1.5 rounded-md bg-black/55 px-2 py-1 text-white/95 backdrop-blur-sm"
+          className="flex items-center gap-1.5 rounded-md ui-surface-strong px-2 py-1 ui-ink backdrop-blur-sm"
           style={{ animation: "aq-viewer-blip 2.6s ease-in-out infinite" }}
         >
           <svg
@@ -7140,15 +7132,15 @@ function LiveBroadcast() {
           <span className="text-[11px] font-medium tabular-nums tracking-wide">
             {formatViewerCount(viewers, t)}
           </span>
-          <span className="text-[9px] text-white/60">{t("live.cellsUnit")}</span>
+          <span className="text-[9px] ui-ink-muted">{t("live.cellsUnit")}</span>
         </div>
-        <div className="rounded-md bg-black/45 px-2 py-1 text-[10px] text-white/80 backdrop-blur-sm">
+        <div className="rounded-md ui-surface px-2 py-1 text-[10px] ui-ink backdrop-blur-sm">
           {t("live.followerFlow")}
         </div>
       </div>
 
       {/* Bottom-left engagement counter */}
-      <div className="absolute bottom-[calc(env(safe-area-inset-bottom,0px)+8rem)] right-4 flex items-center gap-1.5 rounded-full bg-black/50 px-2.5 py-1 text-white/95 backdrop-blur-sm">
+      <div className="absolute bottom-[calc(env(safe-area-inset-bottom,0px)+8rem)] right-4 flex items-center gap-1.5 rounded-full ui-surface-strong px-2.5 py-1 ui-ink backdrop-blur-sm">
         <span className="text-sm leading-none">❤️</span>
         <span className="text-[11px] font-medium tabular-nums">
           {likes.toLocaleString(i18n.language)}
