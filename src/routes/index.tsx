@@ -2148,6 +2148,20 @@ export function Aquafulness() {
     const cloudScale = surfaceArea / CLOUD_BASE_SIZE;
     midCloudsMeshRef.current?.scale.set(cloudScale, 1, cloudScale);
     skyCloudsMeshRef.current?.scale.set(cloudScale, 1, cloudScale);
+    // VÄRLDSGRÄNS's extend cloud layers (see EXTEND_CLOUD_LAYER_* above)
+    // are the same skyClouds geometry as separate Mesh instances, each with
+    // its own independent scale — missing here, they'd stay stuck at
+    // whatever surfaceArea was in effect when they were created (or last
+    // refreshed by the render loop's own scale update, which only runs
+    // while WORLD BOUNDARY + INFINITE CLOUD LAYERS + SKY CLOUDS are all on
+    // and no skybox/backdrop is active), silently drifting out of sync with
+    // the base skyClouds mesh above the instant this dial changes under any
+    // other configuration — read as freshly-generated layers appearing at
+    // the wrong (typically much smaller, since surfaceArea's default is
+    // small) size compared to the "standard" cloud.
+    for (const layer of extendCloudLayersRef.current) {
+      layer.scale.set(cloudScale, 1, cloudScale);
+    }
   }, [surfaceArea]);
   // Live torus-ring settings → the field manager (a no-op via `?.` until the
   // WebGL mount effect below has run and constructed it; that effect builds
