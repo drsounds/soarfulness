@@ -409,6 +409,25 @@ function hexToRgbNorm(hex: string): [number, number, number] {
 // public/scenes/<id>/manifest.json describing where/how to place it. The list
 // of available scenes and their display names comes from public/scenes/scenes.json.
 type SceneEntry = { id: string; name: string };
+// One named player start point, listed under a scene manifest's "locations"
+// (or "places" — either key is accepted) array. yaw is in radians, matching
+// yawRef; omitted fields default to 0.
+type RawSpawnLocation = {
+  id?: string;
+  name?: string;
+  x?: number;
+  y?: number;
+  z?: number;
+  yaw?: number;
+};
+export type SpawnLocation = {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  z: number;
+  yaw: number;
+};
 type SceneManifest = {
   name?: string;
   // World placement of the loaded model. rotation is in degrees.
@@ -420,7 +439,41 @@ type SceneManifest = {
   //   { follow: true, amp }        → rides the wave surface at its position
   //   { follow: false, amp, speed} → simple vertical sine bob
   bob?: boolean | { follow?: boolean; amp?: number; speed?: number };
+  // Named respawn points for this scene — the "Locations"/"Places" list the
+  // respawn button's picker cycles through. Either key is accepted so scene
+  // authors can use whichever reads better.
+  locations?: RawSpawnLocation[];
+  places?: RawSpawnLocation[];
 };
+
+// Respawn falls back to this single "Spawn" point at world origin whenever a
+// scene has no manifest, or its manifest lists no locations/places.
+const DEFAULT_SPAWN_LOCATION: SpawnLocation = {
+  id: "spawn",
+  name: "Spawn",
+  x: 0,
+  y: 0,
+  z: 0,
+  yaw: 0,
+};
+
+function resolveSpawnLocations(manifest: SceneManifest | null | undefined): SpawnLocation[] {
+  const raw = manifest?.locations ?? manifest?.places ?? [];
+  const resolved = raw
+    .map((loc, i) => {
+      const name = loc.name?.trim() || `${DEFAULT_SPAWN_LOCATION.name} ${i + 1}`;
+      return {
+        id: loc.id?.trim() || name,
+        name,
+        x: loc.x ?? 0,
+        y: loc.y ?? 0,
+        z: loc.z ?? 0,
+        yaw: loc.yaw ?? 0,
+      };
+    })
+    .filter((loc) => loc.id.length > 0);
+  return resolved.length > 0 ? resolved : [DEFAULT_SPAWN_LOCATION];
+}
 
 // Resolved bob settings the animation loop consumes; null means static.
 type BobConfig = { follow: boolean; amp: number; speed: number };
@@ -709,7 +762,8 @@ const DEFAULTS: Persisted = {
   worldBoundaryHeight: 3000,
   worldBoundaryYExtend: true,
   liveMode: false,
-  sceneId: "Strandpark",
+  sceneId: "Strandpark2",
+  spawnLocationId: null,
   envId: "strandpark",
   envEra: "present",
   envTime: "day",
@@ -1085,6 +1139,11 @@ export function Aquafulness() {
   // Loadable .glb scenes discovered from public/scenes/scenes.json.
   const [scenes, setScenes] = useState<SceneEntry[]>([]);
   const [sceneId, setSceneId] = useState<string | null>(initial.sceneId);
+  // Named respawn points for the current scene, from its manifest's
+  // "locations"/"places" list (see resolveSpawnLocations) — always at least
+  // one entry (the {0,0,0} fallback when the manifest defines none).
+  const [spawnLocations, setSpawnLocations] = useState<SpawnLocation[]>([DEFAULT_SPAWN_LOCATION]);
+  const [spawnLocationId, setSpawnLocationId] = useState<string | null>(initial.spawnLocationId);
   // Real-skybox environments discovered from public/environments/environment.json.
   const [environments, setEnvironments] = useState<EnvironmentEntry[]>([]);
   const [envId, setEnvId] = useState<string | null>(initial.envId);
@@ -1411,6 +1470,7 @@ export function Aquafulness() {
     worldBoundaryYExtend,
     liveMode,
     sceneId,
+    spawnLocationId,
     envId,
     envEra,
     envTime,
@@ -1556,6 +1616,7 @@ export function Aquafulness() {
     worldBoundaryYExtend,
     liveMode,
     sceneId,
+    spawnLocationId,
     envId,
     envEra,
     envTime,
@@ -2890,6 +2951,34 @@ export function Aquafulness() {
     setSceneId(options[next]);
   };
 
+  // Currently selected spawn location (never empty — spawnLocations always
+  // carries at least the {0,0,0} fallback, see resolveSpawnLocations).
+  const curSpawnLocation =
+    spawnLocations.find((l) => l.id === spawnLocationId) ??
+    spawnLocations[0] ??
+    DEFAULT_SPAWN_LOCATION;
+
+  // Step through the current scene's named spawn locations.
+  const cycleSpawnLocation = (dir: number) => {
+    const idx = spawnLocations.findIndex((l) => l.id === curSpawnLocation.id);
+    const next = ((idx < 0 ? 0 : idx) + dir + spawnLocations.length) % spawnLocations.length;
+    setSpawnLocationId(spawnLocations[next].id);
+  };
+
+  // Teleport the player to the currently selected spawn location, persisting
+  // the new pose immediately (mirrors applyRuntimeState below) so it survives
+  // a reload even before the next autosave tick.
+  const respawn = () => {
+    const loc = curSpawnLocation;
+    posRef.current.x = loc.x;
+    posRef.current.y = loc.y;
+    posRef.current.z = loc.z;
+    yawRef.current = loc.yaw;
+    pitchRef.current = 0;
+    camYRef.current = loc.y;
+    saveCameraPose({ x: loc.x, y: loc.y, z: loc.z, yaw: loc.yaw, pitch: 0 });
+  };
+
   // Currently selected environment / era / time objects (null when unset).
   const curEnv = environments.find((e) => e.id === envId) ?? null;
   const curEra = curEnv?.eras.find((er) => er.id === envEra) ?? null;
@@ -3344,6 +3433,19 @@ export function Aquafulness() {
     scene.fog = new THREE.FogExp2(0x88aacc, 0);
     // Expose the scene graph so the scene-selector effect can add/remove models.
     sceneRef.current = scene;
+
+    // The ocean/sky are custom ShaderMaterials that compute their own
+    // lighting from uSunDir/uSunColor and never touch scene lights — but
+    // loaded .glb scenes (Strandpark etc.) and the CSS3D TV panel's occluder
+    // meshes use glTF's default MeshStandardMaterial, which renders pure
+    // black with no scene lights at all. sunLight/hemiLight exist only for
+    // those: driven every frame from the same time-of-day palette() the
+    // shaders use (see the per-frame block below), so lit models stay
+    // consistent with the sky/sun color instead of using a fixed light.
+    const sunLight = new THREE.DirectionalLight(0xffffff, 1);
+    scene.add(sunLight);
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x223344, 0.6);
+    scene.add(hemiLight);
 
     const camera = new THREE.PerspectiveCamera(
       camFovRef.current,
@@ -4674,6 +4776,17 @@ export function Aquafulness() {
         (whirlpoolOpeningRef.current - uniforms.uVortexOpening.value) * Math.min(1, dt * 4);
 
       const p = palette(todRef.current);
+      // Keep the real scene lights (see their creation above) in sync with
+      // the same sun direction/color driving the water and sky shaders, so
+      // glTF-model materials are lit consistently with the rest of the
+      // scene instead of going flat black. Sun intensity fades toward the
+      // hemisphere light's fill as it sets, rather than to zero, so
+      // nighttime models stay dimly visible instead of vanishing.
+      sunLight.position.copy(p.sunDir).multiplyScalar(100);
+      sunLight.color.setRGB(p.sun[0], p.sun[1], p.sun[2]);
+      sunLight.intensity = Math.max(0, p.sunDir.y) * 2.2 + 0.15;
+      hemiLight.color.setRGB(p.top[0], p.top[1], p.top[2]);
+      hemiLight.groundColor.setRGB(p.bot[0] * 0.4, p.bot[1] * 0.4, p.bot[2] * 0.4);
       uniforms.uSunDir.value.copy(p.sunDir);
       uniforms.uSkyColor.value.setRGB(p.top[0], p.top[1], p.top[2]);
       uniforms.uHorizonColor.value.setRGB(p.bot[0], p.bot[1], p.bot[2]);
@@ -5833,7 +5946,10 @@ export function Aquafulness() {
     }
     modelBobRef.current = null;
 
-    if (!sceneId) return;
+    if (!sceneId) {
+      setSpawnLocations([DEFAULT_SPAWN_LOCATION]);
+      return;
+    }
 
     let cancelled = false;
     const base = `/scenes/${encodeURIComponent(sceneId)}`;
@@ -5844,6 +5960,7 @@ export function Aquafulness() {
       .catch(() => ({}) as SceneManifest)
       .then((manifest: SceneManifest) => {
         if (cancelled) return;
+        setSpawnLocations(resolveSpawnLocations(manifest));
         loader.load(
           `${base}/${encodeURIComponent(sceneId)}.glb`,
           (gltf) => {
@@ -5867,6 +5984,15 @@ export function Aquafulness() {
       cancelled = true;
     };
   }, [sceneId]);
+
+  // Drop a persisted spawn-location selection that no longer exists once the
+  // current scene's location list resolves (e.g. after switching scenes, or
+  // the manifest's locations/places changed on disk).
+  useEffect(() => {
+    setSpawnLocationId((cur) =>
+      cur && spawnLocations.some((l) => l.id === cur) ? cur : (spawnLocations[0]?.id ?? null),
+    );
+  }, [spawnLocations]);
 
   // Load / swap the selected environment's equirectangular skybox as the scene
   // background so it moves correctly with the camera. Re-runs whenever the
@@ -6299,6 +6425,10 @@ export function Aquafulness() {
     sceneId,
     setSceneId,
     cycleScene,
+    spawnLocations,
+    spawnLocationId,
+    setSpawnLocationId,
+    cycleSpawnLocation,
     environments,
     curEnv,
     applyEnv,
@@ -6570,6 +6700,28 @@ export function Aquafulness() {
           </button>
 
           <div className="flex gap-2">
+            <button
+              onClick={respawn}
+              className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border ui-line-2 ui-surface ui-ink backdrop-blur-md transition active:scale-95 ui-press"
+              aria-label={t("hud.respawnAria")}
+              title={t("hud.respawnAria")}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width="20"
+                height="20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M12 21s-7-6.1-7-11a7 7 0 0114 0c0 4.9-7 11-7 11z" />
+                <circle cx="12" cy="10" r="2.5" />
+              </svg>
+            </button>
+
             <button
               onClick={() => setPhoneOpen((v) => !v)}
               className={`pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur-md transition active:scale-95 ${
