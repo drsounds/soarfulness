@@ -812,6 +812,8 @@
     "restore": "GENDAN",
     "restoreAriaLabel": "Vend tilbage til senest gemte kameraposition",
     "restoreTitle": "Vend tilbage til senest gemte kameraposition og retning",
+    "saveMenuAriaLabel": "Gem og indlæs forudindstillinger eller en fuld tilstand",
+    "saveMenuTitle": "GEM OG INDLÆS",
     "tabs": {
       "kamera": "KAMERA",
       "ljud": "LYD",
