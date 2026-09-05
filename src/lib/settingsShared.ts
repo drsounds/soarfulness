@@ -343,6 +343,12 @@ export type Persisted = {
   worldBoundaryYExtend: boolean;
   liveMode: boolean;
   sceneId: string | null;
+  // Which entry of the current scene's manifest "locations" (a.k.a.
+  // "places") list the respawn button teleports to — see resolveSpawnLocations
+  // in routes/index.tsx. null = the first location in that list (typically
+  // the manifest's own "Spawn" entry, or the {0,0,0} fallback when the
+  // manifest defines none).
+  spawnLocationId: string | null;
   envId: string | null;
   envEra: string | null;
   envTime: string | null;
@@ -538,6 +544,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "worldBoundaryYExtend",
     "surfaceArea",
     "sceneId",
+    "spawnLocationId",
     "envId",
     "envEra",
     "envTime",

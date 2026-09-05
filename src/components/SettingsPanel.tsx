@@ -668,6 +668,10 @@ export type SettingsPanelProps = {
   sceneId: string | null;
   setSceneId: Dispatch<SetStateAction<string | null>>;
   cycleScene: (dir: number) => void;
+  spawnLocations: NamedOption[];
+  spawnLocationId: string | null;
+  setSpawnLocationId: Dispatch<SetStateAction<string | null>>;
+  cycleSpawnLocation: (dir: number) => void;
   environments: EnvOption[];
   curEnv: EnvOption | null;
   applyEnv: (id: string | null) => void;
@@ -1200,6 +1204,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
     sceneId,
     setSceneId,
     cycleScene,
+    spawnLocations,
+    spawnLocationId,
+    setSpawnLocationId,
+    cycleSpawnLocation,
     environments,
     curEnv,
     applyEnv,
@@ -2711,6 +2719,23 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     onSelectIndex={(i) => setSceneId(i === 0 ? null : (scenes[i - 1]?.id ?? null))}
                     onDec={() => cycleScene(-1)}
                     onInc={() => cycleScene(1)}
+                  />
+                )}
+                {spawnLocations.length > 1 && (
+                  <SettingRow
+                    label={t("dial.env.spawnLocation")}
+                    value={
+                      spawnLocations.find((l) => l.id === spawnLocationId)?.name ??
+                      spawnLocations[0].name
+                    }
+                    options={spawnLocations.map((l) => l.name)}
+                    selectedIndex={Math.max(
+                      0,
+                      spawnLocations.findIndex((l) => l.id === spawnLocationId),
+                    )}
+                    onSelectIndex={(i) => setSpawnLocationId(spawnLocations[i]?.id ?? null)}
+                    onDec={() => cycleSpawnLocation(-1)}
+                    onInc={() => cycleSpawnLocation(1)}
                   />
                 )}
                 {environments.length > 0 && (
