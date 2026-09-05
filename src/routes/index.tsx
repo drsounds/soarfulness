@@ -1,24 +1,37 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
+import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { CSS3DTVManager, type DeviceKind } from "@/lib/tv/CSS3DTVManager";
 import { TorusRingField } from "@/lib/torusRings/TorusRingField";
 import { VirtualPhone, type RemoteControllerProps } from "@/components/VirtualPhone";
 import { SettingsPanel, type SettingsPanelProps } from "@/components/SettingsPanel";
+import { ShareBathDialog } from "@/components/ShareBathDialog";
 import { GogglesOverlay } from "@/components/GogglesOverlay";
+import { TimeTravelDialog } from "@/components/TimeTravelDialog";
+import { isFuturisticYear, northernHemisphereTimeOfDay, simulatedDate } from "@/lib/timeTravel";
 import { PadSlider } from "@/components/PadDial";
-import { Joystick } from "@/components/Joystick";
+import {
+  Joystick,
+  JoystickPad,
+  VerticalModeSlider,
+  type VerticalMode,
+} from "@/components/Joystick";
+import { hsvToRgb } from "@/lib/waterTint";
 import {
   padToWorldXZ,
   worldXZToPad,
   worldXZBearing,
   bearingToWorldXZ,
-  WATER_TINTS,
+  WATER_COLORS,
   BOTTOM_OPTIONS,
   BACKDROPS,
+  WATER_SOUNDS,
   SETTINGS_TABS,
   CAMERA_MODES,
   CAMERA_MODE_LABEL_KEYS,
@@ -38,6 +51,8 @@ import {
   type SwingYWaveform,
   type IntervalSessionType,
   type WavePresetName,
+  type WhirlpoolDirection,
+  type WhirlpoolExitMode,
   type Persisted,
 } from "@/lib/settingsShared";
 import {
@@ -60,6 +75,13 @@ import {
   removeSavedState,
 } from "@/lib/presets";
 import {
+  encodeStateToBase62,
+  buildBathUrl,
+  BATH_TITLE_MAX_LENGTH,
+  BATH_DESCRIPTION_MAX_LENGTH,
+  type BathPayload,
+} from "@/lib/shareState";
+import {
   FFT_WAVE_COUNT,
   generateOceanWaveComponents,
   DYING_WAVE_COUNT,
@@ -70,12 +92,11 @@ import {
   K_ALIAS_FADE_GLSL,
   type OceanWaveComponent,
 } from "@/lib/ocean/fftOceanSpectrum";
-import waterAsset from "@/assets/water.mp3.asset.json";
 import sandTextureAsset from "@/assets/sand_cc0_512.jpg.asset.json";
 import appIconAsset from "@/assets/AppIconBlack.png.asset.json";
 
 export const Route = createFileRoute("/")({
-  component: Aquafulness,
+  component: SplashScreen,
   head: () => ({
     meta: [
       { title: "Ocean Wave Meditation" },
@@ -133,6 +154,28 @@ function shapedWave(theta: number, p: number) {
   );
 }
 
+// HEAVE SKEW: warps a *temporal* phase (t*speed [+ a fixed per-term offset],
+// never anything that also depends on x/z) so it advances faster through the
+// rising half of its cycle and slower through the falling half — a fixed
+// point on the water then rises quickly to a peak and sinks back slowly,
+// instead of the perfectly symmetric rise/fall a plain sine gives. This is
+// intentionally applied to the temporal argument alone, *before* it's added
+// to any spatial phase term: warping the combined spatiotemporal phase
+// (like shapedWave()/shp()'s SPETS shaping does deliberately, for a
+// different reason) would reintroduce exactly the near-vertical, phase-
+// bunched mesh faces the comment on shapedWave() above warns a *previous*
+// phase warp caused — because at a fixed instant, the wave's shape across
+// space would then no longer be a clean, evenly-sampled sine. Warping only
+// the time-dependent term keeps every spatial snapshot undistorted (the
+// warp is just a constant offset from x/z's point of view) while still
+// reshaping how a stationary point's height changes *over time* — exactly
+// what camera heave feels. Clamped below 1 to avoid the phase going
+// non-monotonic (which would fold the waveform back on itself).
+function warpPhase(phase: number, skew: number): number {
+  if (skew <= 0.001) return phase;
+  return phase + Math.min(0.9, Math.max(0, skew)) * Math.sin(phase);
+}
+
 // Gerstner-like sum of sines. Keep in sync with vertex shader.
 // `realistic` swaps in the JONSWAP/FFT-ocean waveform (see
 // src/lib/ocean/fftOceanSpectrum.ts) so the camera floats correctly on it
@@ -166,6 +209,7 @@ function waveHeight(
   dyingAmp: number = 0,
   dyingT: number = 0,
   freq: number = 1,
+  skew: number = 0,
 ) {
   // Use compass-bearing convention (matches bearingToWorldXZ / the dial:
   // 0deg = world +z, 90deg = world +x) rather than the math-angle
@@ -188,14 +232,16 @@ function waveHeight(
   if (regular) {
     const kx = (0.12 * freq) / period;
     const kz = (0.09 * freq) / period;
-    const rx = shapedWave(xr * kx + t * 0.9, peak) * 2.6 * amp;
-    const rz = cross ? shapedWave(zr * kz + t * 0.7 + 1.1, peak) * 1.4 * amp : 0;
+    const rx = shapedWave(xr * kx + warpPhase(t * 0.9, skew), peak) * 2.6 * amp;
+    const rz = cross ? shapedWave(zr * kz + warpPhase(t * 0.7 + 1.1, skew), peak) * 1.4 * amp : 0;
     return rx + rz;
   }
-  const w1 = shapedWave(xr * 0.12 * freq + t * 0.9, peak) * 1.0;
-  const w2 = shapedWave(zr * 0.17 * freq + t * 0.7 + 1.3, peak) * 0.75;
-  const w3 = shapedWave((xr * 0.22 + zr * 0.19) * freq + t * 1.4 + 2.1, peak) * 0.5;
-  const w4 = shapedWave((xr * 0.31 - zr * 0.11) * freq + t * 1.8 + 0.4, peak) * 0.35;
+  const w1 = shapedWave(xr * 0.12 * freq + warpPhase(t * 0.9, skew), peak) * 1.0;
+  const w2 = shapedWave(zr * 0.17 * freq + warpPhase(t * 0.7 + 1.3, skew), peak) * 0.75;
+  const w3 =
+    shapedWave((xr * 0.22 + zr * 0.19) * freq + warpPhase(t * 1.4 + 2.1, skew), peak) * 0.5;
+  const w4 =
+    shapedWave((xr * 0.31 - zr * 0.11) * freq + warpPhase(t * 1.8 + 0.4, skew), peak) * 0.35;
   return (w1 + w2 + w3 + w4) * amp;
 }
 
@@ -204,9 +250,10 @@ function smoothstep(edge0: number, edge1: number, x: number) {
   return v * v * (3 - 2 * v);
 }
 
-// Pure radial sine surface used in vortex mode. Keep in sync with the shader's
-// vortex block so the camera rides the same even wave that is rendered.
-function vortexSurfaceHeight(
+// Pure radial sine surface used in whirlpool camera mode. Keep in sync with
+// the shader's vortex block so the camera rides the same even wave that is
+// rendered.
+function whirlpoolSurfaceHeight(
   x: number,
   z: number,
   t: number,
@@ -283,6 +330,49 @@ const OCEAN_BASE_SIZE = 1200;
 const OCEAN_FAR_INNER_RADIUS = OCEAN_BASE_SIZE / 2;
 const CLOUD_BASE_SIZE = 200000;
 
+// TEMPORARY performance-diagnostic flag: fully disables the DATE & TIME
+// TRAVEL feature (its once-a-minute tick effect and the clock button/dialog
+// in the HUD) to test whether it's contributing to reported lag, isolated
+// from the other fixes already shipped this round (WAVE_PRESET/CROSS WAVE
+// wiring, WAVE QUALITY default, cloud-layer visibility gating, frame-pacing).
+// Flip back to false once confirmed either way.
+const CLOCK_DISABLED_FOR_PERF_TEST = true;
+
+// VÄRLDSGRÄNS (world boundary): wraps `value` back into [-half, half) once it
+// crosses either edge, teleporting to the opposite side instead of just
+// clamping — e.g. crossing +half re-enters at -half plus whatever the camera
+// overshot by, so a fast pass through the boundary never loses momentum.
+// Used for x/z always, and for y whenever worldBoundaryYExtend is off (see
+// the animate() loop below) or the seamless extension is on but the camera
+// still somehow overshoots several boundary-widths in one frame.
+function wrapAxis(value: number, half: number): number {
+  if (!(half > 0)) return value;
+  const period = half * 2;
+  return ((((value + half) % period) + period) % period) - half;
+}
+
+// VÄRLDSGRÄNS's y-extension: rather than a hard wrap, more instances of the
+// same sky-cloud layer (see EXTEND_CLOUD_LAYER_COUNT below, and the skyClouds
+// setup + animate() loop) tile every EXTEND_CLOUD_LAYER_SPACING meters of
+// altitude around wherever the camera currently is, so climbing or diving
+// forever always has another cloud deck coming up — the wrap at
+// ±worldBoundaryHeight becomes invisible since every altitude already looks
+// the same as any other. cloudLayerJitter gives each altitude band's layer a
+// small, deterministic (same index -> same offset every time) horizontal
+// offset so passing through many bands doesn't read as the exact same cloud
+// pattern repeating in place — same trick as hashing in the wave/noise code
+// above, just used to pick a *position* instead of a value.
+const EXTEND_CLOUD_LAYER_SPACING = 500;
+const EXTEND_CLOUD_LAYER_COUNT = 5;
+function cloudLayerJitter(layerIndex: number): { x: number; z: number } {
+  const s1 = Math.sin(layerIndex * 12.9898) * 43758.5453;
+  const s2 = Math.sin(layerIndex * 78.233) * 12543.231;
+  return {
+    x: (s1 - Math.floor(s1) - 0.5) * 8000,
+    z: (s2 - Math.floor(s2) - 0.5) * 8000,
+  };
+}
+
 // Builds the far ocean ring at the given RUMSSTORLEK/surfaceArea outer
 // extent — see OCEAN_FAR_INNER_RADIUS above for why this is a ring (fixed
 // inner radius) rebuilt on change, not a plane scaled from origin.
@@ -301,7 +391,11 @@ function buildFarOceanGeometry(surfaceArea: number) {
 const FFT_WAVE_SEED = 20260108;
 const DYING_WAVE_SEED = 19700101;
 
-const STORAGE_KEY = "aquafulness:settings:v1";
+// Exported so routes/bathing.$payload.tsx can seed the same localStorage
+// keys with a decoded shared-link state before this route's own component
+// (which reads them once at mount via loadSettings/loadCameraPose below)
+// ever renders.
+export const STORAGE_KEY = "aquafulness:settings:v1";
 // Parse a "#rrggbb" hex string into normalized [0,1] RGB. Falls back to a
 // neutral sand tone on malformed input rather than throwing.
 function hexToRgbNorm(hex: string): [number, number, number] {
@@ -435,12 +529,26 @@ type SurfaceManifest = {
 };
 
 // VÅGPRESET bundles — everything the wave-only preset selector applies in
-// one step. "standard" is this app's current default (calm FFT-hav swell);
-// "legacy" restores the exact wave settings from before that change (tall,
-// fast REGELBUNDEN waves, no FFT-hav) for anyone who preferred the original
-// feel. DÖENDE VÅG (dying wave) is a newer, separate overlay and defaults
-// off in both presets — turn it on explicitly to layer a long, slow, dying
-// swell on top of whichever base preset is active.
+// one step. "standard" is this app's current default; "legacy" restores the
+// exact wave settings from before that change (tall, fast REGELBUNDEN
+// waves, crossed) for anyone who preferred the original feel.
+//
+// applyWavePreset() re-derives every field below straight from this object
+// on every WAVE PRESET dial click, so "standard" — the default, active on
+// every fresh load — must exactly match DEFAULTS' own real values for any
+// field that also has its own independent, dedicated toggle elsewhere
+// (REALISTIC WAVES, CROSS WAVE, ...): otherwise simply touching the dial
+// silently fights whatever the user set that toggle to, no matter which
+// preset they land on. Already bitten twice — realisticWaves (a "standard"
+// bundled with it true would re-enable the expensive FFT wave simulation:
+// a 32-term sum per vertex, up to 6x per fragment for caustics) and
+// regularCross — so "standard" keeps both off, matching DEFAULTS exactly.
+// "legacy" intentionally differs on both (see its own historical-snapshot
+// purpose above) since selecting it is itself a deliberate, explicit choice
+// — that's not the same failure mode as the default preset drifting from
+// the default settings. DÖENDE VÅG (dying wave) is a newer, separate
+// overlay and defaults off in both presets — turn it on explicitly to layer
+// a long, slow, dying swell on top of whichever base preset is active.
 const WAVE_PRESETS: Record<
   WavePresetName,
   Pick<
@@ -463,11 +571,11 @@ const WAVE_PRESETS: Record<
     waveSpeed: 2.8,
     waveFreq: 1,
     regularWaves: true,
-    realisticWaves: true,
+    realisticWaves: false,
     dyingWave: false,
     dyingWaveAmp: 1.2,
     dyingWaveSpeed: 0.6,
-    regularCross: true,
+    regularCross: false,
     regularPeriod: 1,
     wavePeak: 1,
   },
@@ -489,6 +597,12 @@ const WAVE_PRESETS: Record<
 const DEFAULTS: Persisted = {
   ...WAVE_PRESETS.standard,
   wavePreset: "standard",
+  // Overrides on top of the "standard" wave preset — the app's default
+  // initial state (see aquafulness-state export) tunes these away from that
+  // preset's own values.
+  waveAmp: 2.94,
+  waveSpeed: 5.21,
+  waveFreq: 0.51,
   // Off by default: the FFT wave modes stay the same fixed shape every load
   // (see FFT_WAVE_SEED/DYING_WAVE_SEED above) rather than reshuffling.
   randomizeWaves: false,
@@ -498,31 +612,34 @@ const DEFAULTS: Persisted = {
   heightOffset: 0,
   submergeAmp: 0,
   floatLift: 0,
+  waveAnticipation: 1,
   camOffX: 0,
-  camOffY: 0,
+  camOffY: -0.1,
   camOffZ: 0,
-  audioOn: false,
+  audioOn: true,
   audioVol: 0.8,
   audioSyncSpeed: false,
   audioSpatial: false,
-  waterTintIdx: 1,
-  waterOpacity: 1,
+  waterSoundIdx: 2,
+  waterColorIdx: 4,
+  waterOpacity: 0.5,
+  waterColorAlpha: 0,
   waterHue: 0,
-  waterSat: 1,
+  waterSat: 0.95,
   waterBright: 1,
   surfBright: 1,
   surfSat: 1,
   turbidity: 0,
-  bottomIdx: 2,
+  bottomIdx: 0,
   leanEnabled: false,
   // Off by default: an optional "swimming goggles" overlay — static water
   // droplets on the lens, plus an optional whole-screen blur (0 = none).
   gogglesOn: false,
   gogglesBlur: 0,
-  // Off by default: droplets fade out approaching the waterline and recycle
-  // above it. On disables that recycling entirely so droplets just keep
-  // falling and wrap from the top, for an unbroken continuous stream.
-  gogglesLoop: false,
+  // On by default: droplets just keep falling and wrap from the top for an
+  // unbroken continuous stream, rather than fading out approaching the
+  // waterline and recycling above it.
+  gogglesLoop: true,
   // Maps to a droplet count via GogglesOverlay's MIN_DROPLETS/MAX_DROPLETS —
   // 0.5 lands on 22, this effect's original fixed count.
   gogglesIntensity: 0.5,
@@ -532,27 +649,49 @@ const DEFAULTS: Persisted = {
   // meaningfully less GPU/thermal load during the effect. Has no effect at
   // all while SIMGLASÖGON is off.
   gogglesFpsCap: 25,
-  waveHighQuality: true,
+  // General performance controls, independent of SIMGLASÖGON: targetFps caps
+  // renderer.render() calls at all times (not just while goggles are on —
+  // see the fpsCap logic in the animate() loop below), and resolutionScale
+  // multiplies the renderer's pixel ratio to trade sharpness for GPU load.
+  // Both default to a conservative preset since this scene is expensive
+  // (FFT ocean, reflections, torus rings) and many devices can't sustain a
+  // full-resolution 60fps render.
+  targetFps: 40,
+  resolutionScale: 0.5,
+  // Off by default like every other optional shading extra below (caustics,
+  // chromatic aberration, torus rings, mid clouds) — this fbm-based
+  // micro-chop + foam layer runs two 3-octave noise samples plus another for
+  // foam, all per fragment, over the entire visible ocean surface. Real,
+  // always-on GPU cost that had been the one exception to this file's
+  // otherwise consistent "expensive extras stay opt-in" default policy.
+  waveHighQuality: false,
   backdropIdx: 0,
   wakeLock: true,
-  camFov: 65,
+  camFov: 77,
   camNear: 5,
-  camFar: 50000,
-  waveDir: 0,
+  camFar: 100000,
+  waveDir: 182.51523652581446,
   floorDepth: 28,
   floorTexture: true,
-  vortexMode: false,
-  vortexOpening: 14,
-  vortexRadius: 26,
-  vortexSpeed: 1,
+  whirlpoolOpening: 14,
+  whirlpoolRadius: 26,
+  whirlpoolSpeed: 1,
+  whirlpoolDirection: "cw",
+  whirlpoolSequenceOn: false,
+  whirlpoolDragSpeed: 6,
+  whirlpoolDragDuration: 6,
+  whirlpoolStayDuration: 4,
+  whirlpoolExitMode: "throwBack",
+  whirlpoolExitSpeed: 10,
   depthSineOn: false,
   depthSineAmp: 2,
   depthSineFreq: 0.2,
   hideWater: false,
   midCloudsOn: false,
   midCloudsHeight: 0.5,
-  skyCloudsOn: false,
+  skyCloudsOn: true,
   skyCloudsHeight: 0.4,
+  cloudFadeSpeed: 3,
   swayAmp: 0,
   swaySpeed: 0.15,
   swayBias: 0,
@@ -560,17 +699,30 @@ const DEFAULTS: Persisted = {
   // match, so the waves read as the cause of the sway instead of two
   // independently-aimed controls.
   syncWaveWithSway: true,
+  // On by default, generous enough (20km horizontally, 3km up/down) that
+  // normal float-mode swimming near origin never brushes it — mainly meant
+  // to be discovered by flying far in NOCLIP. worldBoundaryYExtend on means
+  // the y edge is masked by extra cloud layers (see EXTEND_CLOUD_LAYER_*)
+  // rather than an abrupt wrap.
+  worldBoundaryOn: true,
+  worldBoundarySize: 20000,
+  worldBoundaryHeight: 3000,
+  worldBoundaryYExtend: true,
   liveMode: false,
-  sceneId: null,
-  envId: null,
-  envEra: null,
-  envTime: null,
+  sceneId: "Strandpark",
+  envId: "strandpark",
+  envEra: "present",
+  envTime: "day",
+  timeTravelBaseMs: null,
+  timeTravelSetAtMs: null,
+  timeSeasonalSync: false,
   surfaceId: null,
   reflStrength: 1,
   bottomColor: "#8a7550",
   sphereMaterial: false,
   sphereStrength: 0.7,
   trochoid: 0,
+  heaveSkew: 0,
   // Off by default: swaps the flat sine-noise "fake" caustic for a real
   // Snell's-law refraction + ray-density caustic driven by the actual FFT
   // wave field (see uCausticsOn in the ocean/floor shaders), and lets the
@@ -578,22 +730,41 @@ const DEFAULTS: Persisted = {
   // angles instead of the fixed deep/shallow gradient. Costs extra
   // per-fragment cos() evaluations, so it stays opt-in.
   causticsOn: false,
+  // Off by default: a full-screen post-process lens effect (red/blue channels
+  // sampled offset radially from center, growing toward the edges) — see
+  // CHROMATIC_ABERRATION_SHADER above. chromaticAberrationAmount is the
+  // dial's 0..1 value (shown as a %), independent of whether the effect is on.
+  chromaticAberrationOn: false,
+  chromaticAberrationAmount: 0.3,
   cameraMode: "float",
   noclipSpeed: 1,
+  noclipFallRiseSpeed: 48,
+  noclipVertEaseTime: 0.7,
   swingPositionY: 25,
   swingIntensity: 0.3,
   swingXFactor: 0,
-  swingHeight: 50000,
+  swingHeight: 20000,
   swingPreset: "water",
   swingYWaveform: "pendulum",
+  // Optional "tornado" spin for GUNGA: off by default (plain pendulum arc).
+  swingTornadoOn: false,
+  swingTornadoRadius: 40,
+  swingTornadoSpeed: 1,
+  swingTornadoDirection: "cw",
   // Interval session off by default; a 30s FRI/GUNGA alternation running
   // forever once turned on, until switched to a fixed number of intervals.
+  // The pool of modes it cycles through defaults to exactly that FRI/GUNGA
+  // pair (VIRVEL/whirlpool opts in explicitly) so existing sessions keep
+  // behaving the same until a user turns it on.
   intervalSessionOn: false,
   intervalDuration: 30,
   intervalSessionType: "infinite",
   intervalCount: 6,
   intervalShowStats: true,
-  surfaceArea: 150000,
+  intervalIncludeFloat: true,
+  intervalIncludeWhirlpool: false,
+  intervalIncludeSwing: true,
+  surfaceArea: 1000,
   // Floating torus "bath rings" field — off by default so existing scenes
   // look unchanged until explicitly turned on. Defaults per the feature
   // spec: emissive white, 50% opacity.
@@ -625,11 +796,11 @@ function loadSettings(): Persisted {
 // autosaved continuously, separately from the dial settings above, so a
 // "restore" action can jump back to wherever the camera was left without
 // requiring that value to feed into the physics loop on every reload.
-const CAMERA_STORAGE_KEY = "aquafulness:camera:v1";
+export const CAMERA_STORAGE_KEY = "aquafulness:camera:v1";
 // y is only meaningful (and only saved) in noclip mode, where there is no
 // wave-surface spring to re-derive a height from — optional so old saves
 // without it still parse.
-type CameraPose = { x: number; z: number; yaw: number; pitch: number; y?: number };
+export type CameraPose = { x: number; z: number; yaw: number; pitch: number; y?: number };
 function loadCameraPose(): CameraPose | null {
   if (typeof window === "undefined") return null;
   try {
@@ -656,7 +827,134 @@ function saveCameraPose(pose: CameraPose) {
   }
 }
 
-function Aquafulness() {
+// Splash screen's "Start bath" button: encodes whatever settings/camera pose
+// are already autosaved in localStorage (or the app's defaults, for a
+// first-time visitor) into the same bath-link payload shape as DELA
+// BADLÄNK inside the app itself (see buildBathLink further down) — so
+// tapping it opens straight into "the bath as it was left" via the
+// /bathing/$payload route, without ever mounting the full WebGL scene on
+// the splash screen. Camera pose is only included when a full x/y/z pose
+// (noclip mode) was saved — isValidBathPayload requires `y` once `c` is
+// present at all, and most saved poses only carry x/z/yaw/pitch.
+async function buildCurrentBathPayload(): Promise<string> {
+  const payload: BathPayload = {
+    v: 1,
+    s: pickFields(loadSettings(), PRESET_ALL_FIELDS) as Record<string, unknown>,
+  };
+  const pose = loadCameraPose();
+  if (pose && typeof pose.y === "number") {
+    payload.c = { x: pose.x, y: pose.y, z: pose.z, yaw: pose.yaw, pitch: pose.pitch };
+  }
+  return encodeStateToBase62(payload);
+}
+
+// The very first screen a visitor sees: brand mark, a "Start bath" button
+// that carries them into /bathing/$payload with today's settings already
+// encoded in the URL, and a link to /about — all in front of a slow,
+// looping meshed-gradient background (see .aq-splash-blob in styles.css).
+// Deliberately has no dependency on the ocean scene below, so it stays
+// instant to paint even before Three.js has loaded.
+function SplashScreen() {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [starting, setStarting] = useState(false);
+
+  const startBath = async () => {
+    if (starting) return;
+    setStarting(true);
+    try {
+      const payload = await buildCurrentBathPayload();
+      await navigate({ to: "/bathing/$payload", params: { payload } });
+    } catch {
+      setStarting(false);
+    }
+  };
+
+  return (
+    <div className="relative flex min-h-screen flex-col items-center overflow-hidden bg-[#dff3ef]">
+      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
+        <div className="absolute inset-0 bg-gradient-to-b from-[#eafff2] via-[#d9f5ee] to-[#eaf6ff]" />
+        <div className="aq-splash-blob aq-splash-blob--1" />
+        <div className="aq-splash-blob aq-splash-blob--2" />
+        <div className="aq-splash-blob aq-splash-blob--3" />
+        <div className="aq-splash-blob aq-splash-blob--4" />
+      </div>
+
+      <div className="relative z-10 flex flex-col items-center gap-6 px-6 pt-[calc(env(safe-area-inset-top,0px)+4rem)] text-center">
+        <img
+          src={appIconAsset.url}
+          alt={t("splash.logoAlt")}
+          className="h-20 w-20 drop-shadow-[0_6px_20px_rgba(11,61,92,0.25)]"
+        />
+
+        <div className="flex flex-col items-center gap-3">
+          <button
+            type="button"
+            onClick={() => void startBath()}
+            disabled={starting}
+            className="min-w-[220px] cursor-pointer rounded-full bg-[#0b3d5c] px-8 py-3.5 text-sm font-semibold tracking-[0.08em] text-white shadow-lg shadow-[#0b3d5c]/30 transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:cursor-default disabled:opacity-70"
+          >
+            {starting ? t("splash.starting") : t("splash.startBath")}
+          </button>
+
+          <Link
+            to="/about"
+            className="min-w-[220px] rounded-full border border-[#0b3d5c]/25 bg-white/40 px-8 py-3 text-sm font-medium tracking-[0.08em] text-[#0b3d5c] backdrop-blur-sm transition-colors hover:bg-white/60"
+          >
+            {t("about.navLabel")}
+          </Link>
+        </div>
+      </div>
+
+      <div className="relative z-10 mt-auto pt-6 pb-[calc(env(safe-area-inset-bottom,0px)+1.25rem)] text-center text-xs text-[#0b3d5c]/70">
+        {t("splash.copyright", {
+          year: new Date().getFullYear(),
+          name: t("about.sections.trader.name"),
+        })}
+      </div>
+    </div>
+  );
+}
+
+// Full-screen post-process pass for KROMATISK ABERRATION: samples the red and
+// blue channels offset radially from frame center (green stays put), the
+// offset growing linearly with distance from center so it reads as a lens
+// effect concentrated at the edges rather than a uniform screen-wide smear.
+// uAmount is the red/blue offset (in UV units) at the frame's corner;
+// scaled from the 0..1 dial value in the render loop below.
+const CHROMATIC_ABERRATION_SHADER = {
+  uniforms: {
+    tDiffuse: { value: null as THREE.Texture | null },
+    uAmount: { value: 0 },
+  },
+  vertexShader: `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform sampler2D tDiffuse;
+    uniform float uAmount;
+    varying vec2 vUv;
+    void main() {
+      vec2 toCenter = vUv - 0.5;
+      vec2 dir = toCenter / (length(toCenter) + 1e-6);
+      vec2 offset = dir * length(toCenter) * uAmount;
+      float r = texture2D(tDiffuse, vUv - offset).r;
+      float g = texture2D(tDiffuse, vUv).g;
+      float b = texture2D(tDiffuse, vUv + offset).b;
+      float a = texture2D(tDiffuse, vUv).a;
+      gl_FragColor = vec4(r, g, b, a);
+    }
+  `,
+};
+
+// Exported so routes/bathing.$payload.tsx can render the exact same app
+// after seeding its localStorage-backed settings/camera pose from a decoded
+// shared "bathing" link.
+export function Aquafulness() {
   const { t } = useTranslation();
   const online = useOnlineStatus();
   const mountRef = useRef<HTMLDivElement>(null);
@@ -674,6 +972,7 @@ function Aquafulness() {
   const [heightOffset, setHeightOffset] = useState(initial.heightOffset);
   const [submergeAmp, setSubmergeAmp] = useState(initial.submergeAmp);
   const [floatLift, setFloatLift] = useState(initial.floatLift);
+  const [waveAnticipation, setWaveAnticipation] = useState(initial.waveAnticipation);
   const [camOffX, setCamOffX] = useState(initial.camOffX);
   const [camOffY, setCamOffY] = useState(initial.camOffY);
   const [camOffZ, setCamOffZ] = useState(initial.camOffZ);
@@ -683,8 +982,10 @@ function Aquafulness() {
   const [audioVol, setAudioVol] = useState(initial.audioVol);
   const [audioSyncSpeed, setAudioSyncSpeed] = useState(initial.audioSyncSpeed);
   const [audioSpatial, setAudioSpatial] = useState(initial.audioSpatial);
-  const [waterTintIdx, setWaterTintIdx] = useState(initial.waterTintIdx);
+  const [waterSoundIdx, setWaterSoundIdx] = useState(initial.waterSoundIdx);
+  const [waterColorIdx, setWaterColorIdx] = useState(initial.waterColorIdx);
   const [waterOpacity, setWaterOpacity] = useState(initial.waterOpacity);
+  const [waterColorAlpha, setWaterColorAlpha] = useState(initial.waterColorAlpha);
   const [waterHue, setWaterHue] = useState(initial.waterHue);
   const [waterSat, setWaterSat] = useState(initial.waterSat);
   const [waterBright, setWaterBright] = useState(initial.waterBright);
@@ -698,6 +999,8 @@ function Aquafulness() {
   const [gogglesLoop, setGogglesLoop] = useState(initial.gogglesLoop);
   const [gogglesIntensity, setGogglesIntensity] = useState(initial.gogglesIntensity);
   const [gogglesFpsCap, setGogglesFpsCap] = useState(initial.gogglesFpsCap);
+  const [targetFps, setTargetFps] = useState(initial.targetFps);
+  const [resolutionScale, setResolutionScale] = useState(initial.resolutionScale);
   const [regularWaves, setRegularWaves] = useState(initial.regularWaves);
   // Realistic (JONSWAP/FFT-ocean) waveform — see src/lib/ocean/fftOceanSpectrum.ts.
   const [realisticWaves, setRealisticWaves] = useState(initial.realisticWaves);
@@ -742,10 +1045,25 @@ function Aquafulness() {
   const [waveDir, setWaveDir] = useState(initial.waveDir);
   const [floorDepth, setFloorDepth] = useState(initial.floorDepth);
   const [floorTexture, setFloorTexture] = useState(initial.floorTexture);
-  const [vortexMode, setVortexMode] = useState(initial.vortexMode);
-  const [vortexOpening, setVortexOpening] = useState(initial.vortexOpening);
-  const [vortexRadius, setVortexRadius] = useState(initial.vortexRadius);
-  const [vortexSpeed, setVortexSpeed] = useState(initial.vortexSpeed);
+  // VIRVEL (whirlpool camera mode) — see the cameraMode==="whirlpool" branch
+  // of the render loop below. whirlpoolOpening/Radius/Speed/Direction drive
+  // the steady orbit (shared with the shader's funnel visual); the rest only
+  // matter when whirlpoolSequenceOn loops the camera through drag-in / stay
+  // inside / thrown-back-or-reverse-spin automatically.
+  const [whirlpoolOpening, setWhirlpoolOpening] = useState(initial.whirlpoolOpening);
+  const [whirlpoolRadius, setWhirlpoolRadius] = useState(initial.whirlpoolRadius);
+  const [whirlpoolSpeed, setWhirlpoolSpeed] = useState(initial.whirlpoolSpeed);
+  const [whirlpoolDirection, setWhirlpoolDirection] = useState<WhirlpoolDirection>(
+    initial.whirlpoolDirection,
+  );
+  const [whirlpoolSequenceOn, setWhirlpoolSequenceOn] = useState(initial.whirlpoolSequenceOn);
+  const [whirlpoolDragSpeed, setWhirlpoolDragSpeed] = useState(initial.whirlpoolDragSpeed);
+  const [whirlpoolDragDuration, setWhirlpoolDragDuration] = useState(initial.whirlpoolDragDuration);
+  const [whirlpoolStayDuration, setWhirlpoolStayDuration] = useState(initial.whirlpoolStayDuration);
+  const [whirlpoolExitMode, setWhirlpoolExitMode] = useState<WhirlpoolExitMode>(
+    initial.whirlpoolExitMode,
+  );
+  const [whirlpoolExitSpeed, setWhirlpoolExitSpeed] = useState(initial.whirlpoolExitSpeed);
   const [depthSineOn, setDepthSineOn] = useState(initial.depthSineOn);
   const [depthSineAmp, setDepthSineAmp] = useState(initial.depthSineAmp);
   const [depthSineFreq, setDepthSineFreq] = useState(initial.depthSineFreq);
@@ -754,10 +1072,15 @@ function Aquafulness() {
   const [midCloudsHeight, setMidCloudsHeight] = useState(initial.midCloudsHeight);
   const [skyCloudsOn, setSkyCloudsOn] = useState(initial.skyCloudsOn);
   const [skyCloudsHeight, setSkyCloudsHeight] = useState(initial.skyCloudsHeight);
+  const [cloudFadeSpeed, setCloudFadeSpeed] = useState(initial.cloudFadeSpeed);
   const [swayAmp, setSwayAmp] = useState(initial.swayAmp);
   const [swaySpeed, setSwaySpeed] = useState(initial.swaySpeed);
   const [swayBias, setSwayBias] = useState(initial.swayBias);
   const [syncWaveWithSway, setSyncWaveWithSway] = useState(initial.syncWaveWithSway);
+  const [worldBoundaryOn, setWorldBoundaryOn] = useState(initial.worldBoundaryOn);
+  const [worldBoundarySize, setWorldBoundarySize] = useState(initial.worldBoundarySize);
+  const [worldBoundaryHeight, setWorldBoundaryHeight] = useState(initial.worldBoundaryHeight);
+  const [worldBoundaryYExtend, setWorldBoundaryYExtend] = useState(initial.worldBoundaryYExtend);
   const [liveMode, setLiveMode] = useState(initial.liveMode);
   // Loadable .glb scenes discovered from public/scenes/scenes.json.
   const [scenes, setScenes] = useState<SceneEntry[]>([]);
@@ -767,6 +1090,30 @@ function Aquafulness() {
   const [envId, setEnvId] = useState<string | null>(initial.envId);
   const [envEra, setEnvEra] = useState<string | null>(initial.envEra);
   const [envTime, setEnvTime] = useState<string | null>(initial.envTime);
+  // DATE & TIME TRAVEL — see src/lib/timeTravel.ts and the clock readout/
+  // dialog below the persistent brand mark in the HUD.
+  const [timeTravelBaseMs, setTimeTravelBaseMs] = useState(initial.timeTravelBaseMs);
+  const [timeTravelSetAtMs, setTimeTravelSetAtMs] = useState(initial.timeTravelSetAtMs);
+  const [timeSeasonalSync, setTimeSeasonalSync] = useState(initial.timeSeasonalSync);
+  const [timeTravelOpen, setTimeTravelOpen] = useState(false);
+  // Starts null (rather than `new Date()`) so the server-rendered markup and
+  // the client's first pass agree — a live clock value would almost always
+  // differ between the two (different instant, and often a different
+  // timezone), causing a hydration mismatch. The ticking effect below sets
+  // it on mount instead, client-side only.
+  const [simNow, setSimNow] = useState<Date | null>(null);
+  // Memoized so the Intl-backed formatting only runs when simNow itself
+  // changes (once a minute) rather than on every one of this large
+  // component's re-renders (e.g. every tick of a dragged slider) — Intl
+  // calls are comparatively expensive to redo that often.
+  const simNowLabel = useMemo(
+    () => simNow?.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) ?? null,
+    [simNow],
+  );
+  // Tracks whether the current envEra="future" was applied automatically by
+  // the year-2100 gate below, so it can be reverted automatically too —
+  // without ever overriding an era the user picked by hand.
+  const autoFuturisticEraRef = useRef(false);
   // Selectable water-surface reflection presets from public/surfaces/surfaces.json.
   const [surfaces, setSurfaces] = useState<SurfaceEntry[]>([]);
   const [surfaceId, setSurfaceId] = useState<string | null>(initial.surfaceId);
@@ -775,9 +1122,16 @@ function Aquafulness() {
   const [sphereMaterial, setSphereMaterial] = useState(initial.sphereMaterial);
   const [sphereStrength, setSphereStrength] = useState(initial.sphereStrength);
   const [trochoid, setTrochoid] = useState(initial.trochoid);
+  const [heaveSkew, setHeaveSkew] = useState(initial.heaveSkew);
   const [causticsOn, setCausticsOn] = useState(initial.causticsOn);
+  const [chromaticAberrationOn, setChromaticAberrationOn] = useState(initial.chromaticAberrationOn);
+  const [chromaticAberrationAmount, setChromaticAberrationAmount] = useState(
+    initial.chromaticAberrationAmount,
+  );
   const [cameraMode, setCameraMode] = useState<CameraMode>(initial.cameraMode);
   const [noclipSpeed, setNoclipSpeed] = useState(initial.noclipSpeed);
+  const [noclipFallRiseSpeed, setNoclipFallRiseSpeed] = useState(initial.noclipFallRiseSpeed);
+  const [noclipVertEaseTime, setNoclipVertEaseTime] = useState(initial.noclipVertEaseTime);
   // Resting altitude the pendulum hangs from — GUNGA POSITION Y. Renamed from
   // the old "swingHeight" (which was confusingly close to swingYAmplitude,
   // the actual up/down excursion, now called GUNGA HÖJD below).
@@ -792,9 +1146,19 @@ function Aquafulness() {
   const [swingHeight, setSwingHeight] = useState(initial.swingHeight);
   const [swingYWaveform, setSwingYWaveform] = useState<SwingYWaveform>(initial.swingYWaveform);
   const [swingPreset, setSwingPreset] = useState<SwingPreset>(initial.swingPreset);
-  // Interval session: automatically alternates the camera between "float"
-  // (FRI) and "swing" (GUNGA) every intervalDuration seconds — see the
-  // session-driver effect below. intervalIndex/intervalProgress/
+  // Optional "tornado" spin for GUNGA: instead of a back-and-forth pendulum
+  // arc, the camera orbits its anchor in a circle at swing altitude (a
+  // whirlpool in the sky) — see the cameraMode==="swing" branch below.
+  const [swingTornadoOn, setSwingTornadoOn] = useState(initial.swingTornadoOn);
+  const [swingTornadoRadius, setSwingTornadoRadius] = useState(initial.swingTornadoRadius);
+  const [swingTornadoSpeed, setSwingTornadoSpeed] = useState(initial.swingTornadoSpeed);
+  const [swingTornadoDirection, setSwingTornadoDirection] = useState<WhirlpoolDirection>(
+    initial.swingTornadoDirection,
+  );
+  // Interval session: automatically cycles the camera through whichever of
+  // "float" (FRI/default)/"whirlpool" (VIRVEL)/"swing" (GUNGA, optionally
+  // tornado) are enabled below, every intervalDuration seconds — see the
+  // session-driver effect further down. intervalIndex/intervalProgress/
   // intervalElapsedTotal are runtime-only (not persisted) progress readouts
   // for the bottom HUD bars.
   const [intervalSessionOn, setIntervalSessionOn] = useState(initial.intervalSessionOn);
@@ -804,6 +1168,11 @@ function Aquafulness() {
   );
   const [intervalCount, setIntervalCount] = useState(initial.intervalCount);
   const [intervalShowStats, setIntervalShowStats] = useState(initial.intervalShowStats);
+  const [intervalIncludeFloat, setIntervalIncludeFloat] = useState(initial.intervalIncludeFloat);
+  const [intervalIncludeWhirlpool, setIntervalIncludeWhirlpool] = useState(
+    initial.intervalIncludeWhirlpool,
+  );
+  const [intervalIncludeSwing, setIntervalIncludeSwing] = useState(initial.intervalIncludeSwing);
   const [intervalIndex, setIntervalIndex] = useState(0);
   const [intervalProgress, setIntervalProgress] = useState(0);
   const [intervalElapsedTotal, setIntervalElapsedTotal] = useState(0);
@@ -839,10 +1208,43 @@ function Aquafulness() {
   const [waveDirStick, setWaveDirStick] = useState({ x: 0, y: 0 });
   const [swayStick, setSwayStick] = useState({ x: 0, y: 0 });
   // Noclip's dedicated vertical (ascend/descend) joystick, shown in place of
-  // STRÖM which has no meaning outside float mode.
+  // STRÖM which has no meaning outside float mode. Sticky in the main HUD/
+  // remote (see the JSX below) — it's noclip's own persistent "current",
+  // not a momentary nudge, so it keeps climbing/descending after release.
   const [vertStick, setVertStick] = useState({ x: 0, y: 0 });
+  // NOCLIP's horizontal counterpart to vertStick above — a sticky world-space
+  // drift dial (same idea as float mode's STRÖM/driftStick, just its own
+  // state since the two modes' drift directions are independent) that
+  // replaces STRÖM/SVAJ's spot in the main HUD while in noclip.
+  const [noclipDriftStick, setNoclipDriftStick] = useState({ x: 0, y: 0 });
+  // FRITT FALL / OMVÄND STIGNING: two small toggle dials flanking the y
+  // drift pad in noclip, each pinning the vertical rate to a strong constant
+  // dive/climb (overriding vertStick) while active — a quick way to commit to
+  // a long, hands-off descent/ascent through the VÄRLDSGRÄNS y extension.
+  // Mutually exclusive; toggling one off falls back to vertStick's own value.
+  const [noclipFreeFallOn, setNoclipFreeFallOn] = useState(false);
+  const [noclipReverseRiseOn, setNoclipReverseRiseOn] = useState(false);
+  // Optional hands-off cycling between the two above: while on, flips FRITT
+  // FALL/OMVÄND STIGNING back and forth every noclipAutoAlternateInterval
+  // seconds, so noclip bobs up and down through the world boundary without
+  // needing either toggle held. See the driver effect near
+  // noclipAutoAlternateIntervalRef below.
+  const [noclipAutoAlternateOn, setNoclipAutoAlternateOn] = useState(false);
+  const [noclipAutoAlternateInterval, setNoclipAutoAlternateInterval] = useState(6);
+  // Ambient wave motion for noclip: while either is on and neither FRITT
+  // FALL nor OMVÄND STIGNING is active ("still"), the camera also picks up
+  // the wave's own vertical heave / horizontal sway on top of its free
+  // position — purely cosmetic, decoupled from actual depth (it applies the
+  // same whether the camera is high above or deep under the surface), unlike
+  // FLYT/VIRVEL's buoyancy which is the real physical response to floating.
+  const [noclipHeaveOn, setNoclipHeaveOn] = useState(false);
+  const [noclipSwayOn, setNoclipSwayOn] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("vagor");
+  // VÅG/TEMPO/FREKVENS live behind their own bottom drawer (like SETTINGS)
+  // rather than as always-on sliders, so a stray touch near bottom-center
+  // can't accidentally nudge wave height/speed/wavelength mid-session.
+  const [waveDrawerOpen, setWaveDrawerOpen] = useState(false);
   // Named settings presets (save/load, in addition to file export/import
   // below) — kept in their own localStorage list, separate from the
   // always-on autosave under STORAGE_KEY. See src/lib/presets.ts.
@@ -854,6 +1256,7 @@ function Aquafulness() {
   const [phoneOpen, setPhoneOpen] = useState(false);
   const [uiVisible, setUiVisible] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [shareBathOpen, setShareBathOpen] = useState(false);
   // Edit mode: freezes wave time and all camera bob/drift/walk physics so TV
   // panels can be moved/rotated/resized precisely without the world (or the
   // camera's own automatic buoyancy) shifting underneath the gesture.
@@ -877,6 +1280,16 @@ function Aquafulness() {
   const farOceanRef = useRef<THREE.Mesh | null>(null);
   const midCloudsMeshRef = useRef<THREE.Mesh | null>(null);
   const skyCloudsMeshRef = useRef<THREE.Mesh | null>(null);
+  // VÄRLDSGRÄNS's extra sky-cloud layers (see EXTEND_CLOUD_LAYER_* above) —
+  // created once alongside skyClouds, repositioned every frame in animate().
+  const extendCloudLayersRef = useRef<THREE.Mesh[]>([]);
+  // Per-slot fade state for the extend layers above — layerIdx is which
+  // altitude band each mesh slot last represented, opacity its current
+  // MOLN TONING-eased alpha. When a slot's computed layerIdx changes (its
+  // mesh just got recycled to tile a different, newly-approached altitude
+  // band) its opacity is reset to 0 so it fades back in there instead of
+  // popping in fully visible — see the animate() loop below.
+  const extendCloudLayerStateRef = useRef<{ layerIdx: number; opacity: number }[]>([]);
   // Manages the CSS3DRenderer-backed "TV apparatus" panels layered on top of
   // the WebGL scene, sharing the same camera; see CSS3DTVManager.
   const tvManagerRef = useRef<CSS3DTVManager | null>(null);
@@ -904,7 +1317,10 @@ function Aquafulness() {
   const sphereMaterialRef = useRef(sphereMaterial);
   const sphereStrengthRef = useRef(sphereStrength);
   const trochoidRef = useRef(trochoid);
+  const heaveSkewRef = useRef(heaveSkew);
   const causticsOnRef = useRef(causticsOn);
+  const chromaticAberrationOnRef = useRef(chromaticAberrationOn);
+  const chromaticAberrationAmountRef = useRef(chromaticAberrationAmount);
 
   // A full snapshot of every settings-dialog field, in the exact Persisted
   // shape saved to localStorage below — also reused by the preset save/
@@ -920,6 +1336,7 @@ function Aquafulness() {
     heightOffset,
     submergeAmp,
     floatLift,
+    waveAnticipation,
     camOffX,
     camOffY,
     camOffZ,
@@ -927,8 +1344,10 @@ function Aquafulness() {
     audioVol,
     audioSyncSpeed,
     audioSpatial,
-    waterTintIdx,
+    waterSoundIdx,
+    waterColorIdx,
     waterOpacity,
+    waterColorAlpha,
     waterHue,
     waterSat,
     waterBright,
@@ -942,6 +1361,8 @@ function Aquafulness() {
     gogglesLoop,
     gogglesIntensity,
     gogglesFpsCap,
+    targetFps,
+    resolutionScale,
     regularWaves,
     realisticWaves,
     dyingWave,
@@ -961,10 +1382,16 @@ function Aquafulness() {
     waveDir,
     floorDepth,
     floorTexture,
-    vortexMode,
-    vortexOpening,
-    vortexRadius,
-    vortexSpeed,
+    whirlpoolOpening,
+    whirlpoolRadius,
+    whirlpoolSpeed,
+    whirlpoolDirection,
+    whirlpoolSequenceOn,
+    whirlpoolDragSpeed,
+    whirlpoolDragDuration,
+    whirlpoolStayDuration,
+    whirlpoolExitMode,
+    whirlpoolExitSpeed,
     depthSineOn,
     depthSineAmp,
     depthSineFreq,
@@ -973,35 +1400,55 @@ function Aquafulness() {
     midCloudsHeight,
     skyCloudsOn,
     skyCloudsHeight,
+    cloudFadeSpeed,
     swayAmp,
     swaySpeed,
     swayBias,
     syncWaveWithSway,
+    worldBoundaryOn,
+    worldBoundarySize,
+    worldBoundaryHeight,
+    worldBoundaryYExtend,
     liveMode,
     sceneId,
     envId,
     envEra,
     envTime,
+    timeTravelBaseMs,
+    timeTravelSetAtMs,
+    timeSeasonalSync,
     surfaceId,
     reflStrength,
     bottomColor,
     sphereMaterial,
     sphereStrength,
     trochoid,
+    heaveSkew,
     causticsOn,
+    chromaticAberrationOn,
+    chromaticAberrationAmount,
     cameraMode,
     noclipSpeed,
+    noclipFallRiseSpeed,
+    noclipVertEaseTime,
     swingPositionY,
     swingIntensity,
     swingXFactor,
     swingHeight,
     swingPreset,
     swingYWaveform,
+    swingTornadoOn,
+    swingTornadoRadius,
+    swingTornadoSpeed,
+    swingTornadoDirection,
     intervalSessionOn,
     intervalDuration,
     intervalSessionType,
     intervalCount,
     intervalShowStats,
+    intervalIncludeFloat,
+    intervalIncludeWhirlpool,
+    intervalIncludeSwing,
     surfaceArea,
     torusRingsOn,
     torusRadius,
@@ -1034,6 +1481,7 @@ function Aquafulness() {
     heightOffset,
     submergeAmp,
     floatLift,
+    waveAnticipation,
     camOffX,
     camOffY,
     camOffZ,
@@ -1041,8 +1489,10 @@ function Aquafulness() {
     audioVol,
     audioSyncSpeed,
     audioSpatial,
-    waterTintIdx,
+    waterSoundIdx,
+    waterColorIdx,
     waterOpacity,
+    waterColorAlpha,
     waterHue,
     waterSat,
     waterBright,
@@ -1056,6 +1506,8 @@ function Aquafulness() {
     gogglesLoop,
     gogglesIntensity,
     gogglesFpsCap,
+    targetFps,
+    resolutionScale,
     regularWaves,
     realisticWaves,
     dyingWave,
@@ -1075,10 +1527,16 @@ function Aquafulness() {
     waveDir,
     floorDepth,
     floorTexture,
-    vortexMode,
-    vortexOpening,
-    vortexRadius,
-    vortexSpeed,
+    whirlpoolOpening,
+    whirlpoolRadius,
+    whirlpoolSpeed,
+    whirlpoolDirection,
+    whirlpoolSequenceOn,
+    whirlpoolDragSpeed,
+    whirlpoolDragDuration,
+    whirlpoolStayDuration,
+    whirlpoolExitMode,
+    whirlpoolExitSpeed,
     depthSineOn,
     depthSineAmp,
     depthSineFreq,
@@ -1087,35 +1545,55 @@ function Aquafulness() {
     midCloudsHeight,
     skyCloudsOn,
     skyCloudsHeight,
+    cloudFadeSpeed,
     swayAmp,
     swaySpeed,
     swayBias,
     syncWaveWithSway,
+    worldBoundaryOn,
+    worldBoundarySize,
+    worldBoundaryHeight,
+    worldBoundaryYExtend,
     liveMode,
     sceneId,
     envId,
     envEra,
     envTime,
+    timeTravelBaseMs,
+    timeTravelSetAtMs,
+    timeSeasonalSync,
     surfaceId,
     reflStrength,
     bottomColor,
     sphereMaterial,
     sphereStrength,
     trochoid,
+    heaveSkew,
     causticsOn,
+    chromaticAberrationOn,
+    chromaticAberrationAmount,
     cameraMode,
     noclipSpeed,
+    noclipFallRiseSpeed,
+    noclipVertEaseTime,
     swingPositionY,
     swingIntensity,
     swingXFactor,
     swingHeight,
     swingPreset,
     swingYWaveform,
+    swingTornadoOn,
+    swingTornadoRadius,
+    swingTornadoSpeed,
+    swingTornadoDirection,
     intervalSessionOn,
     intervalDuration,
     intervalSessionType,
     intervalCount,
     intervalShowStats,
+    intervalIncludeFloat,
+    intervalIncludeWhirlpool,
+    intervalIncludeSwing,
     surfaceArea,
     torusRingsOn,
     torusRadius,
@@ -1147,6 +1625,7 @@ function Aquafulness() {
   const heightRef = useRef(heightOffset);
   const submergeRef = useRef(submergeAmp);
   const floatLiftRef = useRef(floatLift);
+  const waveAnticipationRef = useRef(waveAnticipation);
   const camOffXRef = useRef(camOffX);
   const camOffYRef = useRef(camOffY);
   const camOffZRef = useRef(camOffZ);
@@ -1163,6 +1642,14 @@ function Aquafulness() {
   const vertStickRef = useRef({ x: 0, y: 0 });
   const cameraModeRef = useRef<CameraMode>(cameraMode);
   const noclipSpeedRef = useRef(noclipSpeed);
+  const noclipFallRiseSpeedRef = useRef(noclipFallRiseSpeed);
+  const noclipVertEaseTimeRef = useRef(noclipVertEaseTime);
+  const noclipHeaveOnRef = useRef(noclipHeaveOn);
+  const noclipSwayOnRef = useRef(noclipSwayOn);
+  // Ambient noclip heave's own eased vertical offset (m), additive on top of
+  // posRef.current.y — see noclipVertVelRef above for the fall/rise rate this
+  // is analogous to.
+  const noclipHeaveOffsetRef = useRef(0);
   const swingPositionYRef = useRef(swingPositionY);
   const swingIntensityRef = useRef(swingIntensity);
   const swingXFactorRef = useRef(swingXFactor);
@@ -1186,8 +1673,9 @@ function Aquafulness() {
   const swingYawRef = useRef(0);
   const swayPosRef = useRef({ x: 0, z: 0 });
   const swayVelRef = useRef({ x: 0, z: 0 });
-  const waterTintRef = useRef(waterTintIdx);
+  const waterColorRef = useRef(waterColorIdx);
   const waterOpacityRef = useRef(waterOpacity);
+  const waterColorAlphaRef = useRef(waterColorAlpha);
   const waterHueRef = useRef(waterHue);
   const waterSatRef = useRef(waterSat);
   const waterBrightRef = useRef(waterBright);
@@ -1216,11 +1704,14 @@ function Aquafulness() {
   // around, instead of the real direction silently rotating with the camera.
   const driftWorldRef = useRef({ x: 0, z: 0 });
   const swayWorldRef = useRef({ x: 0, z: 0 });
+  // Same idea as driftWorldRef, for noclip's own DRIFT XZ dial.
+  const noclipDriftWorldRef = useRef({ x: 0, z: 0 });
   // Last pad-local coordinates pushed to the STRÖM/SVAJ knobs, so the render
   // loop only calls setState when the re-derived display value actually
   // moved (yaw changed) instead of every single frame.
   const driftDisplayRef = useRef({ x: 0, y: 0 });
   const swayDisplayRef = useRef({ x: 0, y: 0 });
+  const noclipDriftDisplayRef = useRef({ x: 0, y: 0 });
   const yawRef = useRef(initialCameraPose?.yaw ?? 0);
   const pitchRef = useRef(initialCameraPose?.pitch ?? 0);
   const prevSurfaceRef = useRef<number | null>(null);
@@ -1233,16 +1724,43 @@ function Aquafulness() {
   // closure below and GogglesOverlay's own matching cap.
   const gogglesOnRef = useRef(gogglesOn);
   const gogglesFpsCapRef = useRef(gogglesFpsCap);
+  // General performance controls — read every frame by the animate() loop
+  // below (targetFps: caps renderer.render() calls whenever SIMGLASÖGON is
+  // off, mirroring gogglesFpsCapRef's cap for when it's on; resolutionScale:
+  // multiplies the renderer's pixel ratio).
+  const targetFpsRef = useRef(targetFps);
+  const resolutionScaleRef = useRef(resolutionScale);
   const camNearRef = useRef(camNear);
   const camFarRef = useRef(camFar);
   const waveDirRef = useRef(waveDir);
   const floorDepthRef = useRef(floorDepth);
   const floorTextureRef = useRef(floorTexture);
-  const vortexModeRef = useRef(vortexMode);
-  const vortexOpeningRef = useRef(vortexOpening);
-  const vortexRadiusRef = useRef(vortexRadius);
-  const vortexSpeedRef = useRef(vortexSpeed);
-  const vortexAngleRef = useRef(0);
+  const whirlpoolOpeningRef = useRef(whirlpoolOpening);
+  const whirlpoolRadiusRef = useRef(whirlpoolRadius);
+  const whirlpoolSpeedRef = useRef(whirlpoolSpeed);
+  const whirlpoolDirectionRef = useRef(whirlpoolDirection);
+  const whirlpoolSequenceOnRef = useRef(whirlpoolSequenceOn);
+  const whirlpoolDragSpeedRef = useRef(whirlpoolDragSpeed);
+  const whirlpoolDragDurationRef = useRef(whirlpoolDragDuration);
+  const whirlpoolStayDurationRef = useRef(whirlpoolStayDuration);
+  const whirlpoolExitModeRef = useRef(whirlpoolExitMode);
+  const whirlpoolExitSpeedRef = useRef(whirlpoolExitSpeed);
+  const whirlpoolAngleRef = useRef(0);
+  // Drives the whirlpool's optional automatic drag-in/stay/exit sequence —
+  // reset whenever cameraMode switches into "whirlpool" (see that effect
+  // below) so every entry starts the loop fresh from the drag-in phase.
+  const whirlpoolPhaseRef = useRef<{
+    phase: "drag" | "stay" | "exit";
+    startMs: number;
+  }>({ phase: "drag", startMs: 0 });
+  const swingTornadoOnRef = useRef(swingTornadoOn);
+  const swingTornadoRadiusRef = useRef(swingTornadoRadius);
+  const swingTornadoSpeedRef = useRef(swingTornadoSpeed);
+  const swingTornadoDirectionRef = useRef(swingTornadoDirection);
+  const swingTornadoAngleRef = useRef(0);
+  const intervalIncludeFloatRef = useRef(intervalIncludeFloat);
+  const intervalIncludeWhirlpoolRef = useRef(intervalIncludeWhirlpool);
+  const intervalIncludeSwingRef = useRef(intervalIncludeSwing);
   const depthSineOnRef = useRef(depthSineOn);
   const depthSineAmpRef = useRef(depthSineAmp);
   const depthSineFreqRef = useRef(depthSineFreq);
@@ -1251,9 +1769,25 @@ function Aquafulness() {
   const midCloudsHeightRef = useRef(midCloudsHeight);
   const skyCloudsOnRef = useRef(skyCloudsOn);
   const skyCloudsHeightRef = useRef(skyCloudsHeight);
+  const cloudFadeSpeedRef = useRef(cloudFadeSpeed);
   const swayAmpRef = useRef(swayAmp);
+  // Per-mesh fade state (0..1) for the two main cloud decks — see
+  // uOpacity/cloudFadeSpeedRef usage in animate() below.
+  const midCloudFadeRef = useRef(0);
+  const skyCloudFadeRef = useRef(0);
   const swaySpeedRef = useRef(swaySpeed);
   const swayBiasRef = useRef(swayBias);
+  const worldBoundaryOnRef = useRef(worldBoundaryOn);
+  const worldBoundarySizeRef = useRef(worldBoundarySize);
+  const worldBoundaryHeightRef = useRef(worldBoundaryHeight);
+  const worldBoundaryYExtendRef = useRef(worldBoundaryYExtend);
+  const noclipFreeFallOnRef = useRef(noclipFreeFallOn);
+  const noclipReverseRiseOnRef = useRef(noclipReverseRiseOn);
+  const noclipAutoAlternateIntervalRef = useRef(noclipAutoAlternateInterval);
+  // Eased vertical velocity actually applied in noclip mode (m/s): ramps
+  // toward whatever FRITT FALL/OMVÄND STIGNING/HÖJD currently target instead
+  // of snapping straight to it. See the physics loop below.
+  const noclipVertVelRef = useRef(0);
   useEffect(() => {
     ampRef.current = waveAmp;
   }, [waveAmp]);
@@ -1282,6 +1816,9 @@ function Aquafulness() {
     floatLiftRef.current = floatLift;
   }, [floatLift]);
   useEffect(() => {
+    waveAnticipationRef.current = waveAnticipation;
+  }, [waveAnticipation]);
+  useEffect(() => {
     camOffXRef.current = camOffX;
   }, [camOffX]);
   useEffect(() => {
@@ -1300,11 +1837,14 @@ function Aquafulness() {
     rotStickRef.current = rotStick;
   }, [rotStick]);
   useEffect(() => {
-    waterTintRef.current = waterTintIdx;
-  }, [waterTintIdx]);
+    waterColorRef.current = waterColorIdx;
+  }, [waterColorIdx]);
   useEffect(() => {
     waterOpacityRef.current = waterOpacity;
   }, [waterOpacity]);
+  useEffect(() => {
+    waterColorAlphaRef.current = waterColorAlpha;
+  }, [waterColorAlpha]);
   useEffect(() => {
     waterHueRef.current = waterHue;
   }, [waterHue]);
@@ -1375,6 +1915,12 @@ function Aquafulness() {
     gogglesFpsCapRef.current = gogglesFpsCap;
   }, [gogglesFpsCap]);
   useEffect(() => {
+    targetFpsRef.current = targetFps;
+  }, [targetFps]);
+  useEffect(() => {
+    resolutionScaleRef.current = resolutionScale;
+  }, [resolutionScale]);
+  useEffect(() => {
     camNearRef.current = camNear;
   }, [camNear]);
   useEffect(() => {
@@ -1390,17 +1936,56 @@ function Aquafulness() {
     floorTextureRef.current = floorTexture;
   }, [floorTexture]);
   useEffect(() => {
-    vortexModeRef.current = vortexMode;
-  }, [vortexMode]);
+    whirlpoolOpeningRef.current = whirlpoolOpening;
+  }, [whirlpoolOpening]);
   useEffect(() => {
-    vortexOpeningRef.current = vortexOpening;
-  }, [vortexOpening]);
+    whirlpoolRadiusRef.current = whirlpoolRadius;
+  }, [whirlpoolRadius]);
   useEffect(() => {
-    vortexRadiusRef.current = vortexRadius;
-  }, [vortexRadius]);
+    whirlpoolSpeedRef.current = whirlpoolSpeed;
+  }, [whirlpoolSpeed]);
   useEffect(() => {
-    vortexSpeedRef.current = vortexSpeed;
-  }, [vortexSpeed]);
+    whirlpoolDirectionRef.current = whirlpoolDirection;
+  }, [whirlpoolDirection]);
+  useEffect(() => {
+    whirlpoolSequenceOnRef.current = whirlpoolSequenceOn;
+  }, [whirlpoolSequenceOn]);
+  useEffect(() => {
+    whirlpoolDragSpeedRef.current = whirlpoolDragSpeed;
+  }, [whirlpoolDragSpeed]);
+  useEffect(() => {
+    whirlpoolDragDurationRef.current = whirlpoolDragDuration;
+  }, [whirlpoolDragDuration]);
+  useEffect(() => {
+    whirlpoolStayDurationRef.current = whirlpoolStayDuration;
+  }, [whirlpoolStayDuration]);
+  useEffect(() => {
+    whirlpoolExitModeRef.current = whirlpoolExitMode;
+  }, [whirlpoolExitMode]);
+  useEffect(() => {
+    whirlpoolExitSpeedRef.current = whirlpoolExitSpeed;
+  }, [whirlpoolExitSpeed]);
+  useEffect(() => {
+    swingTornadoOnRef.current = swingTornadoOn;
+  }, [swingTornadoOn]);
+  useEffect(() => {
+    swingTornadoRadiusRef.current = swingTornadoRadius;
+  }, [swingTornadoRadius]);
+  useEffect(() => {
+    swingTornadoSpeedRef.current = swingTornadoSpeed;
+  }, [swingTornadoSpeed]);
+  useEffect(() => {
+    swingTornadoDirectionRef.current = swingTornadoDirection;
+  }, [swingTornadoDirection]);
+  useEffect(() => {
+    intervalIncludeFloatRef.current = intervalIncludeFloat;
+  }, [intervalIncludeFloat]);
+  useEffect(() => {
+    intervalIncludeWhirlpoolRef.current = intervalIncludeWhirlpool;
+  }, [intervalIncludeWhirlpool]);
+  useEffect(() => {
+    intervalIncludeSwingRef.current = intervalIncludeSwing;
+  }, [intervalIncludeSwing]);
   useEffect(() => {
     depthSineOnRef.current = depthSineOn;
   }, [depthSineOn]);
@@ -1426,6 +2011,9 @@ function Aquafulness() {
     skyCloudsHeightRef.current = skyCloudsHeight;
   }, [skyCloudsHeight]);
   useEffect(() => {
+    cloudFadeSpeedRef.current = cloudFadeSpeed;
+  }, [cloudFadeSpeed]);
+  useEffect(() => {
     swayAmpRef.current = swayAmp;
   }, [swayAmp]);
   useEffect(() => {
@@ -1434,11 +2022,61 @@ function Aquafulness() {
   useEffect(() => {
     swayBiasRef.current = swayBias;
   }, [swayBias]);
+  useEffect(() => {
+    worldBoundaryOnRef.current = worldBoundaryOn;
+  }, [worldBoundaryOn]);
+  useEffect(() => {
+    worldBoundarySizeRef.current = worldBoundarySize;
+  }, [worldBoundarySize]);
+  useEffect(() => {
+    worldBoundaryHeightRef.current = worldBoundaryHeight;
+  }, [worldBoundaryHeight]);
+  useEffect(() => {
+    worldBoundaryYExtendRef.current = worldBoundaryYExtend;
+  }, [worldBoundaryYExtend]);
+  useEffect(() => {
+    noclipFreeFallOnRef.current = noclipFreeFallOn;
+    // Mutually exclusive: turning FRITT FALL on cancels OMVÄND STIGNING.
+    if (noclipFreeFallOn) setNoclipReverseRiseOn(false);
+  }, [noclipFreeFallOn]);
+  useEffect(() => {
+    noclipReverseRiseOnRef.current = noclipReverseRiseOn;
+    if (noclipReverseRiseOn) setNoclipFreeFallOn(false);
+  }, [noclipReverseRiseOn]);
+  useEffect(() => {
+    noclipAutoAlternateIntervalRef.current = noclipAutoAlternateInterval;
+  }, [noclipAutoAlternateInterval]);
+  // Auto-alternate driver: while on, flips FRITT FALL/OMVÄND STIGNING back
+  // and forth every noclipAutoAlternateInterval seconds. Reads the interval
+  // from a ref each tick (like the interval-session driver above) so dialing
+  // it live never restarts the cycle's current phase. Turning it off (via
+  // the toggle or unmount) clears both so noclip falls back to plain
+  // HÖJD/NAV control instead of freezing mid-fall or mid-rise.
+  useEffect(() => {
+    if (!noclipAutoAlternateOn) return;
+    let phaseIsFall = true;
+    let phaseStart = performance.now();
+    setNoclipFreeFallOn(true);
+    setNoclipReverseRiseOn(false);
+    const id = window.setInterval(() => {
+      const durationMs = Math.max(1, noclipAutoAlternateIntervalRef.current) * 1000;
+      if (performance.now() - phaseStart >= durationMs) {
+        phaseIsFall = !phaseIsFall;
+        phaseStart = performance.now();
+        setNoclipFreeFallOn(phaseIsFall);
+        setNoclipReverseRiseOn(!phaseIsFall);
+      }
+    }, 100);
+    return () => {
+      window.clearInterval(id);
+      setNoclipFreeFallOn(false);
+      setNoclipReverseRiseOn(false);
+    };
+  }, [noclipAutoAlternateOn]);
   // Live reflection-strength dial → shader (multiplies the surface's base).
   useEffect(() => {
     reflStrengthRef.current = reflStrength;
     applyReflMix();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reflStrength]);
   useEffect(() => {
     bottomColorRef.current = bottomColor;
@@ -1450,14 +2088,35 @@ function Aquafulness() {
     causticsOnRef.current = causticsOn;
   }, [causticsOn]);
   useEffect(() => {
+    chromaticAberrationOnRef.current = chromaticAberrationOn;
+  }, [chromaticAberrationOn]);
+  useEffect(() => {
+    chromaticAberrationAmountRef.current = chromaticAberrationAmount;
+  }, [chromaticAberrationAmount]);
+  useEffect(() => {
     sphereStrengthRef.current = sphereStrength;
   }, [sphereStrength]);
   useEffect(() => {
     trochoidRef.current = trochoid;
   }, [trochoid]);
   useEffect(() => {
+    heaveSkewRef.current = heaveSkew;
+  }, [heaveSkew]);
+  useEffect(() => {
     noclipSpeedRef.current = noclipSpeed;
   }, [noclipSpeed]);
+  useEffect(() => {
+    noclipFallRiseSpeedRef.current = noclipFallRiseSpeed;
+  }, [noclipFallRiseSpeed]);
+  useEffect(() => {
+    noclipVertEaseTimeRef.current = noclipVertEaseTime;
+  }, [noclipVertEaseTime]);
+  useEffect(() => {
+    noclipHeaveOnRef.current = noclipHeaveOn;
+  }, [noclipHeaveOn]);
+  useEffect(() => {
+    noclipSwayOnRef.current = noclipSwayOn;
+  }, [noclipSwayOn]);
   useEffect(() => {
     swingPositionYRef.current = swingPositionY;
   }, [swingPositionY]);
@@ -1489,6 +2148,20 @@ function Aquafulness() {
     const cloudScale = surfaceArea / CLOUD_BASE_SIZE;
     midCloudsMeshRef.current?.scale.set(cloudScale, 1, cloudScale);
     skyCloudsMeshRef.current?.scale.set(cloudScale, 1, cloudScale);
+    // VÄRLDSGRÄNS's extend cloud layers (see EXTEND_CLOUD_LAYER_* above)
+    // are the same skyClouds geometry as separate Mesh instances, each with
+    // its own independent scale — missing here, they'd stay stuck at
+    // whatever surfaceArea was in effect when they were created (or last
+    // refreshed by the render loop's own scale update, which only runs
+    // while WORLD BOUNDARY + INFINITE CLOUD LAYERS + SKY CLOUDS are all on
+    // and no skybox/backdrop is active), silently drifting out of sync with
+    // the base skyClouds mesh above the instant this dial changes under any
+    // other configuration — read as freshly-generated layers appearing at
+    // the wrong (typically much smaller, since surfaceArea's default is
+    // small) size compared to the "standard" cloud.
+    for (const layer of extendCloudLayersRef.current) {
+      layer.scale.set(cloudScale, 1, cloudScale);
+    }
   }, [surfaceArea]);
   // Live torus-ring settings → the field manager (a no-op via `?.` until the
   // WebGL mount effect below has run and constructed it; that effect builds
@@ -1526,13 +2199,21 @@ function Aquafulness() {
   // swing captures the current look yaw as the pendulum's swing plane and
   // arms a short blend (swingBlendRef) so the pendulum's y and horizontal arc
   // ease in from wherever the camera actually was, instead of snapping
-  // straight to the swing formula's value for the current clock phase.
+  // straight to the swing formula's value for the current clock phase;
+  // entering whirlpool always (re)starts its automatic sequence, if any,
+  // fresh from the drag-in phase — see the cameraMode==="whirlpool" branch
+  // of the render loop below.
   useEffect(() => {
     cameraModeRef.current = cameraMode;
     if (cameraMode === "noclip") {
       posRef.current.y = camYRef.current ?? swingPositionYRef.current;
+      noclipVertVelRef.current = 0;
+      noclipHeaveOffsetRef.current = 0;
+    } else if (cameraMode === "whirlpool") {
+      whirlpoolPhaseRef.current = { phase: "drag", startMs: performance.now() };
     } else if (cameraMode === "swing") {
       swingYawRef.current = yawRef.current;
+      swingTornadoAngleRef.current = 0;
       swingBlendRef.current = {
         fromY: camYRef.current ?? swingPositionYRef.current,
         startMs: performance.now(),
@@ -1540,28 +2221,34 @@ function Aquafulness() {
     }
   }, [cameraMode]);
 
-  // Interval session driver: while on, alternates cameraMode between "float"
-  // (FRI) and "swing" (GUNGA) every intervalDuration seconds, ticking a
-  // low-frequency (10Hz) clock for the bottom HUD progress bars. Reads
-  // duration/type/count from refs each tick so live dial changes apply
-  // immediately without restarting the effect. A 10Hz poll (rather than
-  // hooking into the WebGL RAF loop) is plenty smooth for a progress bar and
-  // keeps this concern fully decoupled from the render loop.
+  // Interval session driver: while on, cycles cameraMode through whichever of
+  // "float" (FRI/default), "whirlpool" (VIRVEL) and "swing" (GUNGA,
+  // optionally TORNADO) are enabled (intervalInclude{Float,Whirlpool,Swing})
+  // every intervalDuration seconds, ticking a low-frequency (10Hz) clock for
+  // the bottom HUD progress bars. The pool is rebuilt from those refs on
+  // every tick so live toggling applies immediately without restarting the
+  // effect; falls back to ["float"] if a user switches every mode off. Reads
+  // duration/type/count from refs each tick for the same reason. A 10Hz poll
+  // (rather than hooking into the WebGL RAF loop) is plenty smooth for a
+  // progress bar and keeps this concern fully decoupled from the render loop.
   //
-  // Once an interval's final SYNC_WINDOW_MS begin, the switch is held until
-  // the pendulum (swingThetaRef, kept live by the RAF loop regardless of
-  // cameraMode — see its declaration above) next passes through the bottom
-  // of its arc (theta crossing zero, nearest the water): entering GUNGA
-  // there means it always starts by pulling up away from the water, and
-  // leaving GUNGA there means it always hands off right as it's down
-  // nearest the water, instead of snapping mid-arc either way. Detected as
-  // a sign flip between consecutive 100ms samples rather than an
+  // Whenever GUNGA is on either side of a transition (leaving it or about to
+  // enter it), that switch is held, once the interval's final SYNC_WINDOW_MS
+  // begin, until the pendulum (swingThetaRef, kept live by the RAF loop
+  // regardless of cameraMode — see its declaration above) next passes
+  // through the bottom of its arc (theta crossing zero, nearest the water):
+  // entering GUNGA there means it always starts by pulling up away from the
+  // water, and leaving GUNGA there means it always hands off right as it's
+  // down nearest the water, instead of snapping mid-arc either way. Detected
+  // as a sign flip between consecutive 100ms samples rather than an
   // exact-zero epsilon — the bob moves fastest in angle right at the
   // bottom, so a magnitude threshold would be easy to sample straight
   // through, while crossings themselves are seconds apart at any sane
   // GUNGA INTENSITET, far coarser than the poll rate. Falls back to the
   // hard deadline if no crossing turns up in time (e.g. an extremely slow
-  // swing), so a session can never hang waiting on one.
+  // swing), so a session can never hang waiting on one. Transitions that
+  // don't involve GUNGA at all (e.g. FRI <-> VIRVEL) always just use the
+  // hard deadline, since the pendulum-arc sync has nothing to do with them.
   useEffect(() => {
     if (!intervalSessionOn) {
       setIntervalIndex(0);
@@ -1575,7 +2262,14 @@ function Aquafulness() {
     const sessionStart = performance.now();
     let intervalStart = sessionStart;
     let prevTheta = swingThetaRef.current;
-    setCameraMode("float");
+    const buildPool = (): CameraMode[] => {
+      const pool: CameraMode[] = [];
+      if (intervalIncludeFloatRef.current) pool.push("float");
+      if (intervalIncludeWhirlpoolRef.current) pool.push("whirlpool");
+      if (intervalIncludeSwingRef.current) pool.push("swing");
+      return pool.length > 0 ? pool : ["float"];
+    };
+    setCameraMode(buildPool()[0]);
     setIntervalIndex(0);
     setIntervalProgress(0);
     setIntervalElapsedTotal(0);
@@ -1584,10 +2278,14 @@ function Aquafulness() {
       const now = performance.now();
       const durationMs = Math.max(1, intervalDurationRef.current) * 1000;
       const remainingMs = durationMs - (now - intervalStart);
+      const pool = buildPool();
+      const curMode = pool[idx % pool.length];
+      const nextMode = pool[(idx + 1) % pool.length];
+      const involvesSwing = curMode === "swing" || nextMode === "swing";
       const theta = swingThetaRef.current;
       const crossedBottom = Math.sign(theta) !== Math.sign(prevTheta);
       prevTheta = theta;
-      const dueBySync = remainingMs <= SYNC_WINDOW_MS && crossedBottom;
+      const dueBySync = involvesSwing && remainingMs <= SYNC_WINDOW_MS && crossedBottom;
       if (dueBySync || remainingMs <= 0) {
         idx += 1;
         if (intervalSessionTypeRef.current === "fixed" && idx >= intervalCountRef.current) {
@@ -1596,7 +2294,8 @@ function Aquafulness() {
           return;
         }
         intervalStart = now;
-        setCameraMode((m) => (m === "swing" ? "float" : "swing"));
+        const nextPool = buildPool();
+        setCameraMode(nextPool[idx % nextPool.length]);
         setIntervalIndex(idx);
       }
       setIntervalProgress(Math.min(1, (now - intervalStart) / durationMs));
@@ -1650,6 +2349,7 @@ function Aquafulness() {
     setHeightOffset(DEFAULTS.heightOffset);
     setSubmergeAmp(DEFAULTS.submergeAmp);
     setFloatLift(DEFAULTS.floatLift);
+    setWaveAnticipation(DEFAULTS.waveAnticipation);
     setCamOffX(DEFAULTS.camOffX);
     setCamOffY(DEFAULTS.camOffY);
     setCamOffZ(DEFAULTS.camOffZ);
@@ -1657,8 +2357,10 @@ function Aquafulness() {
     setAudioVol(DEFAULTS.audioVol);
     setAudioSyncSpeed(DEFAULTS.audioSyncSpeed);
     setAudioSpatial(DEFAULTS.audioSpatial);
-    setWaterTintIdx(DEFAULTS.waterTintIdx);
+    setWaterSoundIdx(DEFAULTS.waterSoundIdx);
+    setWaterColorIdx(DEFAULTS.waterColorIdx);
     setWaterOpacity(DEFAULTS.waterOpacity);
+    setWaterColorAlpha(DEFAULTS.waterColorAlpha);
     setWaterHue(DEFAULTS.waterHue);
     setWaterSat(DEFAULTS.waterSat);
     setWaterBright(DEFAULTS.waterBright);
@@ -1672,6 +2374,8 @@ function Aquafulness() {
     setGogglesLoop(DEFAULTS.gogglesLoop);
     setGogglesIntensity(DEFAULTS.gogglesIntensity);
     setGogglesFpsCap(DEFAULTS.gogglesFpsCap);
+    setTargetFps(DEFAULTS.targetFps);
+    setResolutionScale(DEFAULTS.resolutionScale);
     setRegularWaves(DEFAULTS.regularWaves);
     setRealisticWaves(DEFAULTS.realisticWaves);
     setDyingWave(DEFAULTS.dyingWave);
@@ -1691,10 +2395,16 @@ function Aquafulness() {
     setWaveDir(DEFAULTS.waveDir);
     setFloorDepth(DEFAULTS.floorDepth);
     setFloorTexture(DEFAULTS.floorTexture);
-    setVortexMode(DEFAULTS.vortexMode);
-    setVortexOpening(DEFAULTS.vortexOpening);
-    setVortexRadius(DEFAULTS.vortexRadius);
-    setVortexSpeed(DEFAULTS.vortexSpeed);
+    setWhirlpoolOpening(DEFAULTS.whirlpoolOpening);
+    setWhirlpoolRadius(DEFAULTS.whirlpoolRadius);
+    setWhirlpoolSpeed(DEFAULTS.whirlpoolSpeed);
+    setWhirlpoolDirection(DEFAULTS.whirlpoolDirection);
+    setWhirlpoolSequenceOn(DEFAULTS.whirlpoolSequenceOn);
+    setWhirlpoolDragSpeed(DEFAULTS.whirlpoolDragSpeed);
+    setWhirlpoolDragDuration(DEFAULTS.whirlpoolDragDuration);
+    setWhirlpoolStayDuration(DEFAULTS.whirlpoolStayDuration);
+    setWhirlpoolExitMode(DEFAULTS.whirlpoolExitMode);
+    setWhirlpoolExitSpeed(DEFAULTS.whirlpoolExitSpeed);
     setDepthSineOn(DEFAULTS.depthSineOn);
     setDepthSineAmp(DEFAULTS.depthSineAmp);
     setDepthSineFreq(DEFAULTS.depthSineFreq);
@@ -1703,29 +2413,46 @@ function Aquafulness() {
     setMidCloudsHeight(DEFAULTS.midCloudsHeight);
     setSkyCloudsOn(DEFAULTS.skyCloudsOn);
     setSkyCloudsHeight(DEFAULTS.skyCloudsHeight);
+    setCloudFadeSpeed(DEFAULTS.cloudFadeSpeed);
     setSwayAmp(DEFAULTS.swayAmp);
     setSwaySpeed(DEFAULTS.swaySpeed);
     setSwayBias(DEFAULTS.swayBias);
     setSyncWaveWithSway(DEFAULTS.syncWaveWithSway);
+    setWorldBoundaryOn(DEFAULTS.worldBoundaryOn);
+    setWorldBoundarySize(DEFAULTS.worldBoundarySize);
+    setWorldBoundaryHeight(DEFAULTS.worldBoundaryHeight);
+    setWorldBoundaryYExtend(DEFAULTS.worldBoundaryYExtend);
     setLiveMode(DEFAULTS.liveMode);
     setReflStrength(DEFAULTS.reflStrength);
     setBottomColor(DEFAULTS.bottomColor);
     setSphereMaterial(DEFAULTS.sphereMaterial);
     setSphereStrength(DEFAULTS.sphereStrength);
     setTrochoid(DEFAULTS.trochoid);
+    setHeaveSkew(DEFAULTS.heaveSkew);
     setCausticsOn(DEFAULTS.causticsOn);
+    setChromaticAberrationOn(DEFAULTS.chromaticAberrationOn);
+    setChromaticAberrationAmount(DEFAULTS.chromaticAberrationAmount);
     setCameraMode(DEFAULTS.cameraMode);
     setNoclipSpeed(DEFAULTS.noclipSpeed);
+    setNoclipFallRiseSpeed(DEFAULTS.noclipFallRiseSpeed);
+    setNoclipVertEaseTime(DEFAULTS.noclipVertEaseTime);
     setSwingPositionY(DEFAULTS.swingPositionY);
     setSwingIntensity(DEFAULTS.swingIntensity);
     setSwingXFactor(DEFAULTS.swingXFactor);
     setSwingHeight(DEFAULTS.swingHeight);
     setSwingYWaveform(DEFAULTS.swingYWaveform);
+    setSwingTornadoOn(DEFAULTS.swingTornadoOn);
+    setSwingTornadoRadius(DEFAULTS.swingTornadoRadius);
+    setSwingTornadoSpeed(DEFAULTS.swingTornadoSpeed);
+    setSwingTornadoDirection(DEFAULTS.swingTornadoDirection);
     setIntervalSessionOn(DEFAULTS.intervalSessionOn);
     setIntervalDuration(DEFAULTS.intervalDuration);
     setIntervalSessionType(DEFAULTS.intervalSessionType);
     setIntervalCount(DEFAULTS.intervalCount);
     setIntervalShowStats(DEFAULTS.intervalShowStats);
+    setIntervalIncludeFloat(DEFAULTS.intervalIncludeFloat);
+    setIntervalIncludeWhirlpool(DEFAULTS.intervalIncludeWhirlpool);
+    setIntervalIncludeSwing(DEFAULTS.intervalIncludeSwing);
     setSurfaceArea(DEFAULTS.surfaceArea);
     setSwingPreset(DEFAULTS.swingPreset);
     setTorusRingsOn(DEFAULTS.torusRingsOn);
@@ -1758,6 +2485,7 @@ function Aquafulness() {
     if (patch.heightOffset !== undefined) setHeightOffset(patch.heightOffset);
     if (patch.submergeAmp !== undefined) setSubmergeAmp(patch.submergeAmp);
     if (patch.floatLift !== undefined) setFloatLift(patch.floatLift);
+    if (patch.waveAnticipation !== undefined) setWaveAnticipation(patch.waveAnticipation);
     if (patch.camOffX !== undefined) setCamOffX(patch.camOffX);
     if (patch.camOffY !== undefined) setCamOffY(patch.camOffY);
     if (patch.camOffZ !== undefined) setCamOffZ(patch.camOffZ);
@@ -1765,8 +2493,10 @@ function Aquafulness() {
     if (patch.audioVol !== undefined) setAudioVol(patch.audioVol);
     if (patch.audioSyncSpeed !== undefined) setAudioSyncSpeed(patch.audioSyncSpeed);
     if (patch.audioSpatial !== undefined) setAudioSpatial(patch.audioSpatial);
-    if (patch.waterTintIdx !== undefined) setWaterTintIdx(patch.waterTintIdx);
+    if (patch.waterSoundIdx !== undefined) setWaterSoundIdx(patch.waterSoundIdx);
+    if (patch.waterColorIdx !== undefined) setWaterColorIdx(patch.waterColorIdx);
     if (patch.waterOpacity !== undefined) setWaterOpacity(patch.waterOpacity);
+    if (patch.waterColorAlpha !== undefined) setWaterColorAlpha(patch.waterColorAlpha);
     if (patch.waterHue !== undefined) setWaterHue(patch.waterHue);
     if (patch.waterSat !== undefined) setWaterSat(patch.waterSat);
     if (patch.waterBright !== undefined) setWaterBright(patch.waterBright);
@@ -1780,6 +2510,8 @@ function Aquafulness() {
     if (patch.gogglesLoop !== undefined) setGogglesLoop(patch.gogglesLoop);
     if (patch.gogglesIntensity !== undefined) setGogglesIntensity(patch.gogglesIntensity);
     if (patch.gogglesFpsCap !== undefined) setGogglesFpsCap(patch.gogglesFpsCap);
+    if (patch.targetFps !== undefined) setTargetFps(patch.targetFps);
+    if (patch.resolutionScale !== undefined) setResolutionScale(patch.resolutionScale);
     if (patch.regularWaves !== undefined) setRegularWaves(patch.regularWaves);
     if (patch.realisticWaves !== undefined) setRealisticWaves(patch.realisticWaves);
     if (patch.dyingWave !== undefined) setDyingWave(patch.dyingWave);
@@ -1799,10 +2531,18 @@ function Aquafulness() {
     if (patch.waveDir !== undefined) setWaveDir(patch.waveDir);
     if (patch.floorDepth !== undefined) setFloorDepth(patch.floorDepth);
     if (patch.floorTexture !== undefined) setFloorTexture(patch.floorTexture);
-    if (patch.vortexMode !== undefined) setVortexMode(patch.vortexMode);
-    if (patch.vortexOpening !== undefined) setVortexOpening(patch.vortexOpening);
-    if (patch.vortexRadius !== undefined) setVortexRadius(patch.vortexRadius);
-    if (patch.vortexSpeed !== undefined) setVortexSpeed(patch.vortexSpeed);
+    if (patch.whirlpoolOpening !== undefined) setWhirlpoolOpening(patch.whirlpoolOpening);
+    if (patch.whirlpoolRadius !== undefined) setWhirlpoolRadius(patch.whirlpoolRadius);
+    if (patch.whirlpoolSpeed !== undefined) setWhirlpoolSpeed(patch.whirlpoolSpeed);
+    if (patch.whirlpoolDirection !== undefined) setWhirlpoolDirection(patch.whirlpoolDirection);
+    if (patch.whirlpoolSequenceOn !== undefined) setWhirlpoolSequenceOn(patch.whirlpoolSequenceOn);
+    if (patch.whirlpoolDragSpeed !== undefined) setWhirlpoolDragSpeed(patch.whirlpoolDragSpeed);
+    if (patch.whirlpoolDragDuration !== undefined)
+      setWhirlpoolDragDuration(patch.whirlpoolDragDuration);
+    if (patch.whirlpoolStayDuration !== undefined)
+      setWhirlpoolStayDuration(patch.whirlpoolStayDuration);
+    if (patch.whirlpoolExitMode !== undefined) setWhirlpoolExitMode(patch.whirlpoolExitMode);
+    if (patch.whirlpoolExitSpeed !== undefined) setWhirlpoolExitSpeed(patch.whirlpoolExitSpeed);
     if (patch.depthSineOn !== undefined) setDepthSineOn(patch.depthSineOn);
     if (patch.depthSineAmp !== undefined) setDepthSineAmp(patch.depthSineAmp);
     if (patch.depthSineFreq !== undefined) setDepthSineFreq(patch.depthSineFreq);
@@ -1811,35 +2551,62 @@ function Aquafulness() {
     if (patch.midCloudsHeight !== undefined) setMidCloudsHeight(patch.midCloudsHeight);
     if (patch.skyCloudsOn !== undefined) setSkyCloudsOn(patch.skyCloudsOn);
     if (patch.skyCloudsHeight !== undefined) setSkyCloudsHeight(patch.skyCloudsHeight);
+    if (patch.cloudFadeSpeed !== undefined) setCloudFadeSpeed(patch.cloudFadeSpeed);
     if (patch.swayAmp !== undefined) setSwayAmp(patch.swayAmp);
     if (patch.swaySpeed !== undefined) setSwaySpeed(patch.swaySpeed);
     if (patch.swayBias !== undefined) setSwayBias(patch.swayBias);
     if (patch.syncWaveWithSway !== undefined) setSyncWaveWithSway(patch.syncWaveWithSway);
+    if (patch.worldBoundaryOn !== undefined) setWorldBoundaryOn(patch.worldBoundaryOn);
+    if (patch.worldBoundarySize !== undefined) setWorldBoundarySize(patch.worldBoundarySize);
+    if (patch.worldBoundaryHeight !== undefined) setWorldBoundaryHeight(patch.worldBoundaryHeight);
+    if (patch.worldBoundaryYExtend !== undefined)
+      setWorldBoundaryYExtend(patch.worldBoundaryYExtend);
     if (patch.liveMode !== undefined) setLiveMode(patch.liveMode);
     if (patch.sceneId !== undefined) setSceneId(patch.sceneId);
     if (patch.envId !== undefined) setEnvId(patch.envId);
     if (patch.envEra !== undefined) setEnvEra(patch.envEra);
     if (patch.envTime !== undefined) setEnvTime(patch.envTime);
+    if (patch.timeTravelBaseMs !== undefined) setTimeTravelBaseMs(patch.timeTravelBaseMs);
+    if (patch.timeTravelSetAtMs !== undefined) setTimeTravelSetAtMs(patch.timeTravelSetAtMs);
+    if (patch.timeSeasonalSync !== undefined) setTimeSeasonalSync(patch.timeSeasonalSync);
     if (patch.surfaceId !== undefined) setSurfaceId(patch.surfaceId);
     if (patch.reflStrength !== undefined) setReflStrength(patch.reflStrength);
     if (patch.bottomColor !== undefined) setBottomColor(patch.bottomColor);
     if (patch.sphereMaterial !== undefined) setSphereMaterial(patch.sphereMaterial);
     if (patch.sphereStrength !== undefined) setSphereStrength(patch.sphereStrength);
     if (patch.trochoid !== undefined) setTrochoid(patch.trochoid);
+    if (patch.heaveSkew !== undefined) setHeaveSkew(patch.heaveSkew);
     if (patch.causticsOn !== undefined) setCausticsOn(patch.causticsOn);
+    if (patch.chromaticAberrationOn !== undefined)
+      setChromaticAberrationOn(patch.chromaticAberrationOn);
+    if (patch.chromaticAberrationAmount !== undefined)
+      setChromaticAberrationAmount(patch.chromaticAberrationAmount);
     if (patch.cameraMode !== undefined) setCameraMode(patch.cameraMode);
     if (patch.noclipSpeed !== undefined) setNoclipSpeed(patch.noclipSpeed);
+    if (patch.noclipFallRiseSpeed !== undefined) setNoclipFallRiseSpeed(patch.noclipFallRiseSpeed);
+    if (patch.noclipVertEaseTime !== undefined) setNoclipVertEaseTime(patch.noclipVertEaseTime);
     if (patch.swingPositionY !== undefined) setSwingPositionY(patch.swingPositionY);
     if (patch.swingIntensity !== undefined) setSwingIntensity(patch.swingIntensity);
     if (patch.swingXFactor !== undefined) setSwingXFactor(patch.swingXFactor);
     if (patch.swingHeight !== undefined) setSwingHeight(patch.swingHeight);
     if (patch.swingPreset !== undefined) setSwingPreset(patch.swingPreset);
     if (patch.swingYWaveform !== undefined) setSwingYWaveform(patch.swingYWaveform);
+    if (patch.swingTornadoOn !== undefined) setSwingTornadoOn(patch.swingTornadoOn);
+    if (patch.swingTornadoRadius !== undefined) setSwingTornadoRadius(patch.swingTornadoRadius);
+    if (patch.swingTornadoSpeed !== undefined) setSwingTornadoSpeed(patch.swingTornadoSpeed);
+    if (patch.swingTornadoDirection !== undefined)
+      setSwingTornadoDirection(patch.swingTornadoDirection);
     if (patch.intervalSessionOn !== undefined) setIntervalSessionOn(patch.intervalSessionOn);
     if (patch.intervalDuration !== undefined) setIntervalDuration(patch.intervalDuration);
     if (patch.intervalSessionType !== undefined) setIntervalSessionType(patch.intervalSessionType);
     if (patch.intervalCount !== undefined) setIntervalCount(patch.intervalCount);
     if (patch.intervalShowStats !== undefined) setIntervalShowStats(patch.intervalShowStats);
+    if (patch.intervalIncludeFloat !== undefined)
+      setIntervalIncludeFloat(patch.intervalIncludeFloat);
+    if (patch.intervalIncludeWhirlpool !== undefined)
+      setIntervalIncludeWhirlpool(patch.intervalIncludeWhirlpool);
+    if (patch.intervalIncludeSwing !== undefined)
+      setIntervalIncludeSwing(patch.intervalIncludeSwing);
     if (patch.surfaceArea !== undefined) setSurfaceArea(patch.surfaceArea);
     if (patch.torusRingsOn !== undefined) setTorusRingsOn(patch.torusRingsOn);
     if (patch.torusRadius !== undefined) setTorusRadius(patch.torusRadius);
@@ -1930,6 +2697,8 @@ function Aquafulness() {
     },
     driftDir: { x: driftWorldRef.current.x, z: driftWorldRef.current.z },
     swayDir: { x: swayWorldRef.current.x, z: swayWorldRef.current.z },
+    noclipDriftDir: { x: noclipDriftWorldRef.current.x, z: noclipDriftWorldRef.current.z },
+    noclipVertDrift: { x: vertStickRef.current.x, y: vertStickRef.current.y },
   });
 
   const applyRuntimeState = (runtime: RuntimeState) => {
@@ -1955,6 +2724,21 @@ function Aquafulness() {
     const swayDisp = worldXZToPad(runtime.swayDir.x, runtime.swayDir.z, yawRef.current);
     swayDisplayRef.current = swayDisp;
     setSwayStick(swayDisp);
+
+    if (runtime.noclipDriftDir) {
+      noclipDriftWorldRef.current = runtime.noclipDriftDir;
+      const noclipDriftDisp = worldXZToPad(
+        runtime.noclipDriftDir.x,
+        runtime.noclipDriftDir.z,
+        yawRef.current,
+      );
+      noclipDriftDisplayRef.current = noclipDriftDisp;
+      setNoclipDriftStick(noclipDriftDisp);
+    }
+    if (runtime.noclipVertDrift) {
+      vertStickRef.current = runtime.noclipVertDrift;
+      setVertStick(runtime.noclipVertDrift);
+    }
   };
 
   // A full state snapshot is every settings field (like an "all"-scope
@@ -2011,6 +2795,33 @@ function Aquafulness() {
   // TILLSTÅND RADERA: removes a previously saved named state.
   const deleteSavedState = (id: string) => {
     setSavedStates((list) => removeSavedState(list, id));
+  };
+
+  // DELA BADLÄNK: encodes every setting (same field set as an "all"-scope
+  // preset) plus the camera's live position/look, and an optional title/
+  // description meant for the link's Open Graph preview, into a single
+  // base62 string — no server round trip, the URL alone fully recreates
+  // this bath (see src/lib/shareState.ts and routes/bathing.$payload.tsx,
+  // which decodes it back and seeds STORAGE_KEY/CAMERA_STORAGE_KEY before
+  // this same component mounts again).
+  const buildBathLink = async (title: string, description: string): Promise<string> => {
+    const payload: BathPayload = {
+      v: 1,
+      s: pickFields(buildPersistedSnapshot(), PRESET_ALL_FIELDS) as Record<string, unknown>,
+      c: {
+        x: posRef.current.x,
+        y: posRef.current.y,
+        z: posRef.current.z,
+        yaw: yawRef.current,
+        pitch: pitchRef.current,
+      },
+    };
+    const trimmedTitle = title.trim().slice(0, BATH_TITLE_MAX_LENGTH);
+    const trimmedDescription = description.trim().slice(0, BATH_DESCRIPTION_MAX_LENGTH);
+    if (trimmedTitle) payload.t = trimmedTitle;
+    if (trimmedDescription) payload.d = trimmedDescription;
+    const encoded = await encodeStateToBase62(payload);
+    return buildBathUrl(window.location.origin, encoded);
   };
 
   // VÅGPRESET: applies a bundle of wave-only settings in one step (see
@@ -2133,6 +2944,60 @@ function Aquafulness() {
     setEnvTime(times[(i + dir + times.length) % times.length].id);
   };
 
+  // DATE & TIME TRAVEL: once a minute, advance the simulated clock (real
+  // time, or a time-traveled date ticking forward from wherever it was
+  // pinned — see simulatedDate()), optionally sync TIMEOFDAY to that date's
+  // real northern-hemisphere sunrise/sunset, and gate the current
+  // environment's era to its futuristic look once the simulated year passes
+  // FUTURISTIC_YEAR (only for environments that actually have a "future"
+  // era, and never overriding an era the user picked by hand). A minute
+  // (rather than a second) is plenty for a HH:MM readout and for how slowly
+  // sunrise/sunset actually drifts, and keeps this from re-rendering the
+  // whole component — a real cost given its size — more than once a minute.
+  //
+  // TEMPORARILY DISABLED (early return below) as a diagnostic: to test
+  // whether this feature is contributing to reported lag, independent of
+  // its own update rate — see CLOCK_DISABLED_FOR_PERF_TEST below, which also
+  // hides the clock button/dialog in the HUD. Revert both once confirmed
+  // either way.
+  useEffect(() => {
+    if (CLOCK_DISABLED_FOR_PERF_TEST) return;
+    const tick = () => {
+      const date = simulatedDate(timeTravelBaseMs, timeTravelSetAtMs);
+      setSimNow(date);
+
+      if (timeSeasonalSync) {
+        setTimeOfDay(northernHemisphereTimeOfDay(date));
+      }
+
+      const env = environments.find((e) => e.id === envId);
+      const wantFuturistic = isFuturisticYear(date);
+      const hasFutureEra = env?.eras.some((e) => e.id === "future") ?? false;
+      const hasPresentEra = env?.eras.some((e) => e.id === "present") ?? false;
+      if (wantFuturistic && hasFutureEra && envEra !== "future") {
+        autoFuturisticEraRef.current = true;
+        setEnvEra("future");
+        setEnvTime((prev) => {
+          const era = env?.eras.find((e) => e.id === "future");
+          return era?.times.some((tm) => tm.id === prev) ? prev : (era?.times[0]?.id ?? prev);
+        });
+      } else if (!wantFuturistic && autoFuturisticEraRef.current && envEra === "future") {
+        autoFuturisticEraRef.current = false;
+        const fallback = hasPresentEra ? "present" : (env?.eras[0]?.id ?? null);
+        if (fallback) {
+          setEnvEra(fallback);
+          setEnvTime((prev) => {
+            const era = env?.eras.find((e) => e.id === fallback);
+            return era?.times.some((tm) => tm.id === prev) ? prev : (era?.times[0]?.id ?? prev);
+          });
+        }
+      }
+    };
+    tick();
+    const id = window.setInterval(tick, 60_000);
+    return () => window.clearInterval(id);
+  }, [timeTravelBaseMs, timeTravelSetAtMs, timeSeasonalSync, environments, envId, envEra]);
+
   // Step through the reflection surfaces, including an "AV" (gradient-only) slot.
   const cycleSurface = (dir: number) => {
     const options: (string | null)[] = [null, ...surfaces.map((s) => s.id)];
@@ -2149,8 +3014,9 @@ function Aquafulness() {
     u.uReflMix.value = Math.max(0, Math.min(1, reflBaseRef.current * reflStrengthRef.current));
   };
 
-  // Ocean sound: loop the recorded water track through a lowpass + depth gain
-  // so we can still muffle & boost it based on how deep the camera is.
+  // Ocean sound: loop the selected recorded water track (see WATER_SOUNDS)
+  // through a lowpass + depth gain so we can still muffle & boost it based
+  // on how deep the camera is.
   useEffect(() => {
     if (!audioOn) {
       if (audioRef.current) {
@@ -2174,12 +3040,29 @@ function Aquafulness() {
       }
       return;
     }
+    // This effect also re-runs when the selected water sound changes while
+    // audio is already on, so tear down any existing graph immediately
+    // (no fade — it's a deliberate track swap, not a mute) before rebuilding.
+    if (audioRef.current) {
+      const prev = audioRef.current;
+      try {
+        prev.el.pause();
+      } catch {
+        /* noop */
+      }
+      try {
+        prev.ctx.close();
+      } catch {
+        /* noop */
+      }
+      audioRef.current = null;
+    }
     const Ctx =
       window.AudioContext ||
       (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     const ctx = new Ctx();
 
-    const el = new Audio(waterAsset.url);
+    const el = new Audio(WATER_SOUNDS[waterSoundIdx]?.url ?? WATER_SOUNDS[0].url);
     el.loop = true;
     el.crossOrigin = "anonymous";
     el.preload = "auto";
@@ -2209,7 +3092,7 @@ function Aquafulness() {
     master.gain.setTargetAtTime(audioVol, ctx.currentTime, 0.6);
 
     audioRef.current = { ctx, el, master, depthGain, lp };
-  }, [audioOn]);
+  }, [audioOn, waterSoundIdx]);
 
   // React to volume changes
   useEffect(() => {
@@ -2228,7 +3111,11 @@ function Aquafulness() {
 
   // Screen Wake Lock: keep the display awake while the app is active.
   // The lock is automatically released when the page is hidden, so we
-  // re-request it when the tab becomes visible again.
+  // re-request it when the tab becomes visible again. The OS/browser can
+  // also drop the lock on its own while the page stays visible (observed
+  // on Android Chrome under thermal throttling); the sentinel's "release"
+  // event fires either way, so we re-acquire there too unless it was us
+  // releasing it on purpose (tab hide, toggle off, unmount).
   useEffect(() => {
     if (typeof window === "undefined") return;
     const nav = navigator as Navigator & {
@@ -2238,6 +3125,7 @@ function Aquafulness() {
 
     let sentinel: WakeLockSentinel | null = null;
     let active = true;
+    let releasingManually = false;
 
     const request = async () => {
       if (!wakeLock || document.hidden) return;
@@ -2252,6 +3140,13 @@ function Aquafulness() {
         sentinel = s;
         s.addEventListener("release", () => {
           sentinel = null;
+          if (releasingManually) {
+            releasingManually = false;
+            return;
+          }
+          if (active && wakeLock && !document.hidden) {
+            request();
+          }
         });
       } catch {
         // User gesture or permission may be missing — silently fail.
@@ -2260,8 +3155,9 @@ function Aquafulness() {
 
     const release = () => {
       if (sentinel) {
+        releasingManually = true;
         sentinel.release().catch(() => {
-          /* noop */
+          releasingManually = false;
         });
         sentinel = null;
       }
@@ -2426,7 +3322,7 @@ function Aquafulness() {
     if (!mount) return;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2) * resolutionScaleRef.current);
     renderer.setSize(mount.clientWidth, mount.clientHeight);
     renderer.setClearColor(0x032033, 1);
     // Positioned (not static) to match the CSS3D layer's own `position:
@@ -2465,6 +3361,17 @@ function Aquafulness() {
     );
     tvManager.setEditMode(editModeRef.current);
     tvManagerRef.current = tvManager;
+
+    // KROMATISK ABERRATION post-process — only ever engaged (via
+    // composer.render() instead of renderer.render()) on frames where the
+    // effect is actually on, so it costs nothing when off. Built once here
+    // regardless, at whatever pixel ratio the renderer already has (see
+    // resolutionScale sync below for what keeps it matching afterwards).
+    const composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene, camera));
+    const chromaticAberrationPass = new ShaderPass(CHROMATIC_ABERRATION_SHADER);
+    chromaticAberrationPass.renderToScreen = true;
+    composer.addPass(chromaticAberrationPass);
 
     const torusRingField = new TorusRingField(scene, {
       enabled: initial.torusRingsOn,
@@ -2528,8 +3435,10 @@ function Aquafulness() {
       uWaterShallow: { value: new THREE.Color(0x2a89b8) },
       uSunColor: { value: new THREE.Color(0xffe6b0) },
       uFogColor: { value: new THREE.Color(0x88aacc) },
-      uWaterTint: { value: new THREE.Vector3(1, 1, 1) },
+      uWaterColor: { value: new THREE.Vector3(1, 1, 1) },
+      uOverlayColor: { value: new THREE.Vector3(1, 0, 0) },
       uOpacity: { value: 1 },
+      uWaterColorAlpha: { value: 0 },
       uTintHue: { value: 0 },
       uTintSat: { value: 1 },
       uTintBright: { value: 1 },
@@ -2561,6 +3470,11 @@ function Aquafulness() {
       // of the existing sine/shaped height — purely a vertex-shader visual,
       // never fed into the JS-side waveHeight() the camera physics reads.
       uTrochoid: { value: 0 },
+      // HEAVE SKEW: a temporal phase warp shared with the JS-side
+      // waveHeight() the camera physics reads (see warpPhase() there) — so
+      // the rendered surface's own rise/sink timing actually matches what's
+      // lifting the camera, unlike uTrochoid above.
+      uSkew: { value: 0 },
       // Grumlighet (turbidity), shared with the seafloor/mid-cloud/sky
       // shaders — see uTurbidity handling in the fragment shader below.
       uTurbidity: { value: 0 },
@@ -2584,6 +3498,7 @@ function Aquafulness() {
       uniform float uFreq;
       uniform float uPeak;
       uniform float uTrochoid;
+      uniform float uSkew;
       uniform float uDir;
       uniform float uVortex;
       uniform float uVortexOpening;
@@ -2641,6 +3556,15 @@ function Aquafulness() {
         return h;
       }
 
+      // HEAVE SKEW — see warpPhase() in the JS above, kept in sync: warps
+      // only a temporal phase (never a term that also carries x/z), applied
+      // at each wave()/waveHeight() call site *before* combining with that
+      // term's spatial phase, so any fixed-time snapshot of the mesh stays
+      // an undistorted sine — no new phase-bunched faces.
+      float warpPhase(float phase, float skew) {
+        return phase + clamp(skew, 0.0, 0.9) * sin(phase);
+      }
+
       // Rounded Gaussian crest boost — sharpens the wave top without creating
       // near-vertical phase-bunched faces that alias when viewed from the side.
       float shp(float theta) {
@@ -2682,15 +3606,15 @@ function Aquafulness() {
         // spatial wavelength (higher = longer, calmer swells); uFreq (FREKVENS)
         // scales it the other way, and unlike uPeriod also reaches the swell
         // and FFT terms below.
-        float regX = shp(p.x * (0.12 * uFreq / uPeriod) + t * 0.9) * 2.6 * amp;
-        float regZ = shp(p.z * (0.09 * uFreq / uPeriod) + t * 0.7 + 1.1) * 1.4 * amp * uCross;
+        float regX = shp(p.x * (0.12 * uFreq / uPeriod) + warpPhase(t * 0.9, uSkew)) * 2.6 * amp;
+        float regZ = shp(p.z * (0.09 * uFreq / uPeriod) + warpPhase(t * 0.7 + 1.1, uSkew)) * 1.4 * amp * uCross;
         float reg = regX + regZ;
 
         // Large primary swell (chaotic sum of sines)
-        float w1 = shp(p.x * 0.12 * uFreq + t * 0.9) * 1.0;
-        float w2 = shp(p.z * 0.17 * uFreq + t * 0.7 + 1.3) * 0.75;
-        float w3 = shp((p.x * 0.22 + p.z * 0.19) * uFreq + t * 1.4 + 2.1) * 0.5;
-        float w4 = shp((p.x * 0.31 - p.z * 0.11) * uFreq + t * 1.8 + 0.4) * 0.35;
+        float w1 = shp(p.x * 0.12 * uFreq + warpPhase(t * 0.9, uSkew)) * 1.0;
+        float w2 = shp(p.z * 0.17 * uFreq + warpPhase(t * 0.7 + 1.3, uSkew)) * 0.75;
+        float w3 = shp((p.x * 0.22 + p.z * 0.19) * uFreq + warpPhase(t * 1.4 + 2.1, uSkew)) * 0.5;
+        float w4 = shp((p.x * 0.31 - p.z * 0.11) * uFreq + warpPhase(t * 1.8 + 0.4, uSkew)) * 0.35;
         float big = (w1 + w2 + w3 + w4) * amp;
 
         // Small ripples on top of the swell — high frequency, so they must
@@ -2811,8 +3735,16 @@ function Aquafulness() {
       uniform vec3 uWaterDeep;
       uniform vec3 uWaterShallow;
       uniform vec3 uSunColor;
-      uniform vec3 uWaterTint;
+      uniform vec3 uWaterColor;
+      // The water color picker's own flat overlay color (see the "Water
+      // color overlay" block below) — independent of uWaterColor, which is
+      // the always-on WATER preset tint multiplier.
+      uniform vec3 uOverlayColor;
       uniform float uOpacity;
+      // Independent alpha for the flat overlay color blended in below (see
+      // the "Water color overlay" block) — separate from uOpacity
+      // (translucency to whatever's behind the water).
+      uniform float uWaterColorAlpha;
       uniform float uTintHue;
       uniform float uTintSat;
       uniform float uTintBright;
@@ -2886,8 +3818,8 @@ function Aquafulness() {
         vec3 V = normalize(cameraPosition - vWorldPos);
         vec3 L = normalize(uSunDir);
 
-        // Apply user color adjustments on top of the water-tint preset.
-        vec3 tint = uWaterTint * uTintBright;
+        // Apply user color adjustments on top of the water-color preset.
+        vec3 tint = uWaterColor * uTintBright;
         tint = hueRotate(uTintHue) * tint;
         vec3 gray = vec3(dot(tint, vec3(0.299, 0.587, 0.114)));
         tint = mix(gray, tint, uTintSat);
@@ -3019,7 +3951,6 @@ function Aquafulness() {
         // apart from the transmitted water body.
         float reflAmt = fres * (1.0 - uUnderwater * 0.85);
         vec3 col = mix(water, skyRef, reflAmt) + sun;
-        col = mix(col, vec3(0.95, 0.98, 1.0), foam * 0.85 * (1.0 - uUnderwater));
 
         // Selectable sphere-map ("matcap") material — a distinct, glossier
         // look the user opts into per VÅGMATERIAL, blended on top of the
@@ -3027,6 +3958,12 @@ function Aquafulness() {
         if (uSphereMix > 0.001) {
           col = mix(col, sphereMapShade(Nshim, water), uSphereMix);
         }
+
+        // The color picker's flat uOverlayColor and the whitecap foam are
+        // *not* folded into col here — they're composited as their own
+        // layers, on top of the shaded water body, further down (see the
+        // Translucency block below) so they stay visible independently of
+        // how transparent uOpacity makes the body underneath.
 
         // Final surface color adjustment (independent of internal tint).
         col *= uSurfBright;
@@ -3053,36 +3990,44 @@ function Aquafulness() {
         }
 
         // Translucency — uOpacity controls how see-through the water is.
-        // Two earlier attempts at this got it wrong in opposite directions:
-        // pinning the reflective/foam share to fully opaque the moment
-        // uOpacity ticked up even slightly meant the dial had almost no
-        // visible effect across most of the screen (a camera near the
-        // surface spends most of its view at grazing angles, where reflAmt
-        // is naturally high — so keepAmt below was already ~1 there
-        // regardless of the dial); fading everything at the same flat rate
-        // (the very first version) wrongly washed the reflection out at
-        // low-but-nonzero settings instead of just revealing what's behind
-        // the water.
-        // The fix: give the reflective/foam share its own alpha curve
-        // (reflAlpha) that rises faster than the plain body fade (bodyAlpha)
-        // — so a reflection stays clearly visible through fairly transparent
-        // water, matching how a thin, clear film still shows a visible sheen
-        // — while both curves still start at exactly 0 (uOpacity = 0 is
-        // fully invisible, same as VATTENYTA/hideWater) and reach exactly 1
-        // at uOpacity = 1 (fully opaque), so the whole dial stays
-        // continuously responsive end to end.
+        // The water is built from three independent layers, each composited
+        // "over" the last with its own alpha (standard Porter-Duff, kept in
+        // premultiplied form — see mat.premultipliedAlpha below), instead of
+        // one flat mix of everything into a single alpha. That's what makes
+        // uOpacity actually empty the shaded body out to nothing rather than
+        // leaving a residual tinted haze:
+        //   1. body  — col as shaded above (tint, reflection, sun, sphere
+        //      material, underwater tone-down, turbidity). Alpha is
+        //      bodyAlpha, plain uOpacity with no boost: 0 is fully gone, 1
+        //      is fully opaque, and every value between fades linearly.
+        //   2. paint — the color picker's flat uOverlayColor (WaterColorPicker
+        //      in SettingsPanel.tsx). Alpha is uWaterColorAlpha ("COLOR
+        //      STRENGTH") times visGate — deliberately *not* multiplied by
+        //      bodyAlpha, so a chosen color reads as paint sitting on top of
+        //      however transparent the water is, not something that fades
+        //      away at the same rate the body does.
+        //   3. foam — whitecap highlights, alpha is the foam strength
+        //      computed above times visGate, unaffected by uSurfBright/
+        //      uSurfSat/underwater toning (those apply to the body only).
+        // visGate is a curve that's exactly 0 at uOpacity = 0 (so paint and
+        // foam still respect "0 = fully invisible", same as VATTENYTA/
+        // hideWater) but rises to ~1 almost immediately after, so neither
+        // layer fades proportionally with the body — they stay visible
+        // through fairly transparent water instead of thinning out with it.
         float bodyAlpha = clamp(uOpacity, 0.0, 1.0);
-        float reflAlpha = pow(bodyAlpha, 0.35);
-        // keepAmt is the fraction of this pixel that's reflection/foam
-        // rather than transmitted water body — col above was built as
-        // exactly that weighted mix.
-        float keepAmt = clamp(reflAmt + foam * 0.6, 0.0, 1.0);
-        float alpha = mix(bodyAlpha, reflAlpha, keepAmt);
-        // Premultiplied compositing (see mat.premultipliedAlpha below):
-        // col * alpha is exactly mix(col * bodyAlpha, col * reflAlpha,
-        // keepAmt), i.e. each share pre-scaled by its own alpha before the
-        // GPU adds in (1 - alpha) of whatever's behind the water.
-        vec3 premult = col * alpha;
+        float visGate = pow(bodyAlpha, 0.35);
+
+        vec3 premult = col * bodyAlpha;
+        float alpha = bodyAlpha;
+
+        float paintAlpha = clamp(uWaterColorAlpha, 0.0, 1.0) * visGate;
+        premult = uOverlayColor * paintAlpha + premult * (1.0 - paintAlpha);
+        alpha = paintAlpha + alpha * (1.0 - paintAlpha);
+
+        float foamAlpha = clamp(foam * 0.85 * (1.0 - uUnderwater), 0.0, 1.0) * visGate;
+        premult = vec3(0.95, 0.98, 1.0) * foamAlpha + premult * (1.0 - foamAlpha);
+        alpha = foamAlpha + alpha * (1.0 - foamAlpha);
+
         gl_FragColor = vec4(premult, alpha);
       }
     `;
@@ -3163,6 +4108,7 @@ function Aquafulness() {
       uCausticAmp: { value: waveAmp },
       uCausticFreq: { value: waveFreq },
       uCausticDepth: { value: 14 },
+      uOpacity: { value: 1 },
     };
     const floorMat = new THREE.ShaderMaterial({
       uniforms: floorUniforms,
@@ -3209,6 +4155,12 @@ function Aquafulness() {
         uniform float uCausticAmp;
         uniform float uCausticFreq;
         uniform float uCausticDepth;
+        // Per-mesh fade-in/out multiplier (see uOpacity in floorUniforms/
+        // midCloudUniforms/skyCloudUniforms) — lets each cloud layer (the
+        // main mid/sky decks and VÄRLDSGRÄNS's extra y-extension layers,
+        // each with its own material instance) ease in/out independently
+        // instead of popping visible/invisible, at MOLN TONING's rate.
+        uniform float uOpacity;
 
         float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453123); }
         float vnoise(vec2 p){
@@ -3332,7 +4284,7 @@ function Aquafulness() {
             float shade = 0.85 + 0.25 * fbm(p * 2.3 + 5.0);
             vec3 col = uColor * shade;
             col = applyTurbidity(col);
-            gl_FragColor = vec4(col, cloud);
+            gl_FragColor = vec4(col, cloud * uOpacity);
             return;
           }
           vec3 base = uColor;
@@ -3392,6 +4344,7 @@ function Aquafulness() {
       uFogColor: { value: new THREE.Color(0x0a2a3a) },
       uCamNear: { value: camNearRef.current },
       uCamFar: { value: camFarRef.current },
+      uOpacity: { value: 0 },
     };
     const midCloudMat = new THREE.ShaderMaterial({
       uniforms: midCloudUniforms,
@@ -3429,6 +4382,7 @@ function Aquafulness() {
       uFogColor: { value: new THREE.Color(0x0a2a3a) },
       uCamNear: { value: camNearRef.current },
       uCamFar: { value: camFarRef.current },
+      uOpacity: { value: 0 },
     };
     const skyCloudMat = new THREE.ShaderMaterial({
       uniforms: skyCloudUniforms,
@@ -3445,6 +4399,31 @@ function Aquafulness() {
     skyClouds.scale.set(cloudScale0, 1, cloudScale0);
     skyCloudsMeshRef.current = skyClouds;
     scene.add(skyClouds);
+
+    // VÄRLDSGRÄNS's extra sky-cloud layers (see EXTEND_CLOUD_LAYER_* and
+    // wrapAxis above) — same geometry as skyClouds (cheap: not duplicated,
+    // just referenced by more Mesh objects), each repositioned every frame
+    // in animate() to tile around the camera's current altitude. Each gets
+    // its own cloned material (cheap — same shader source, so it still
+    // shares one compiled GL program) rather than reusing skyCloudMat
+    // directly, so each layer's uOpacity can fade in/out independently as
+    // it's recycled to a newly-approached altitude band.
+    const extendCloudLayers: THREE.Mesh[] = [];
+    for (let i = 0; i < EXTEND_CLOUD_LAYER_COUNT; i++) {
+      const layerMat = skyCloudMat.clone();
+      layerMat.uniforms.uOpacity.value = 0;
+      const layer = new THREE.Mesh(skyCloudGeo, layerMat);
+      layer.visible = false;
+      layer.renderOrder = -1;
+      layer.scale.set(cloudScale0, 1, cloudScale0);
+      extendCloudLayers.push(layer);
+      scene.add(layer);
+    }
+    extendCloudLayersRef.current = extendCloudLayers;
+    extendCloudLayerStateRef.current = extendCloudLayers.map(() => ({
+      layerIdx: Number.NaN,
+      opacity: 0,
+    }));
 
     // Sky dome
     const skyGeo = new THREE.SphereGeometry(800, 32, 32);
@@ -3464,6 +4443,16 @@ function Aquafulness() {
     const skyMat = new THREE.ShaderMaterial({
       uniforms: skyUniforms,
       side: THREE.BackSide,
+      // The dome recenters on the camera every frame (see sky.position.copy
+      // below) but its geometry is only 800 units in radius — far short of
+      // the extend-cloud-layer altitudes VÄRLDSGRÄNS tiles at (hundreds to
+      // low thousands of units away once the camera's altitude diverges from
+      // a layer's). Without this, the dome's default depthWrite left an
+      // opaque depth value at 800 units in every direction, which silently
+      // failed the depth test for any transparent cloud fragment drawn
+      // farther than that — invisible clouds, not missing ones. A pure
+      // background dome should never occlude anything.
+      depthWrite: false,
       vertexShader: `
         varying vec3 vDir;
         void main() {
@@ -3503,6 +4492,7 @@ function Aquafulness() {
       const w = mount.clientWidth;
       const h = mount.clientHeight;
       renderer.setSize(w, h);
+      composer.setSize(w, h);
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
       tvManager.setSize(w, h);
@@ -3563,9 +4553,29 @@ function Aquafulness() {
     let raf = 0;
     let lastMs = performance.now();
     let lastCamSaveMs = 0;
-    // Throttles renderer.render() (see below) while SIMGLASÖGON is on —
-    // 0 means "render this frame" is still due.
-    let lastRenderMs = 0;
+    // Throttles renderer.render() (see below) to targetFps (or gogglesFpsCap
+    // while SIMGLASÖGON is on) by rendering every Nth rAF tick rather than
+    // "has enough wall-clock time passed" — see rafIntervalEstimate below
+    // for why.
+    let renderTickCount = 0;
+    // A rolling estimate of the display's actual vsync interval (ms), so the
+    // render cap can skip a *fixed number of ticks* between renders instead
+    // of comparing elapsed wall-clock time against 1000/fpsCap. The wall-
+    // clock version reads as juddery even though the underlying motion (camera
+    // physics/uniforms update every rAF tick regardless, see below) is
+    // perfectly smooth: 1000/fpsCap rarely divides the display's real frame
+    // interval evenly (e.g. 25ms at a 40fps cap vs. 16.7ms on a 60Hz panel),
+    // so the pattern of frames actually reaching the screen alternates
+    // between waiting 1 and 2 vsyncs — an uneven cadence that's exactly what
+    // "janky"/stuttery motion looks like, independent of raw performance.
+    // Rendering every Nth tick instead — N derived from this estimate —
+    // reproduces the cap as an exact, uniform fraction of the display's own
+    // refresh, which reads as smooth motion at a reduced rate instead.
+    let rafIntervalMsEstimate = 16.67;
+    // Re-applied only when resolutionScale actually changes (see animate()
+    // below), rather than every frame, since setPixelRatio touches the GL
+    // context's drawing-buffer size.
+    let lastResolutionScale = resolutionScaleRef.current;
     let waveT = 0;
     // DÖENDE VÅG runs on its own clock (own TEMPO dial), independent of the
     // shared waveT above, so it can be a long, slow swell regardless of how
@@ -3583,6 +4593,15 @@ function Aquafulness() {
     };
     window.addEventListener("pagehide", saveCameraPoseNow);
     const animate = () => {
+      // resolutionScale multiplies the renderer's pixel ratio to trade
+      // sharpness for GPU load — only touch the renderer when the setting
+      // actually changed.
+      if (resolutionScaleRef.current !== lastResolutionScale) {
+        lastResolutionScale = resolutionScaleRef.current;
+        const pixelRatio = Math.min(window.devicePixelRatio, 2) * lastResolutionScale;
+        renderer.setPixelRatio(pixelRatio);
+        composer.setPixelRatio(pixelRatio);
+      }
       // Sync camera lens (FOV / near / far clip) with live settings.
       if (
         camera.fov !== camFovRef.current ||
@@ -3602,8 +4621,17 @@ function Aquafulness() {
       midCloudUniforms.uCamNear.value = camera.near;
       midCloudUniforms.uCamFar.value = camera.far;
       const now = performance.now();
-      const dt = Math.min((now - lastMs) / 1000, 0.1);
+      const rawTickMs = now - lastMs;
+      const dt = Math.min(rawTickMs / 1000, 0.1);
       lastMs = now;
+      // Feed the render-cap's vsync-interval estimate (see
+      // rafIntervalMsEstimate above) — only from ticks that look like a
+      // real, undropped vsync (a wide plausible refresh-rate range), so a
+      // one-off stall or a backgrounded tab's throttled rAF doesn't drag the
+      // estimate away from the display's actual cadence.
+      if (rawTickMs > 4 && rawTickMs < 40) {
+        rafIntervalMsEstimate += (rawTickMs - rafIntervalMsEstimate) * 0.1;
+      }
       // Edit mode freezes wave time and camera bob/drift/walk (physDt below)
       // but leaves the LOOK stick's yaw/pitch (which still uses dt directly)
       // free, so the view can still be reoriented while editing.
@@ -3629,6 +4657,7 @@ function Aquafulness() {
         (regularPeriodRef.current - uniforms.uPeriod.value) * Math.min(1, dt * 4);
       uniforms.uFreq.value += (freqRef.current - uniforms.uFreq.value) * Math.min(1, dt * 4);
       uniforms.uPeak.value += (wavePeakRef.current - uniforms.uPeak.value) * Math.min(1, dt * 4);
+      uniforms.uSkew.value += (heaveSkewRef.current - uniforms.uSkew.value) * Math.min(1, dt * 4);
       // Wave direction stored in degrees; smoothly interpolate the shortest
       // angular path so wrapping around 360° doesn't spin the ocean.
       {
@@ -3639,10 +4668,10 @@ function Aquafulness() {
       }
 
       // Smoothly blend the vortex funnel in/out (also drives camera behaviour).
-      const vortexTarget = vortexModeRef.current ? 1 : 0;
+      const vortexTarget = cameraModeRef.current === "whirlpool" ? 1 : 0;
       uniforms.uVortex.value += (vortexTarget - uniforms.uVortex.value) * Math.min(1, dt * 3);
       uniforms.uVortexOpening.value +=
-        (vortexOpeningRef.current - uniforms.uVortexOpening.value) * Math.min(1, dt * 4);
+        (whirlpoolOpeningRef.current - uniforms.uVortexOpening.value) * Math.min(1, dt * 4);
 
       const p = palette(todRef.current);
       uniforms.uSunDir.value.copy(p.sunDir);
@@ -3657,13 +4686,25 @@ function Aquafulness() {
       skyUniforms.uSunColor.value.copy(uniforms.uSunColor.value);
       (scene.fog as THREE.FogExp2).color.copy(uniforms.uFogColor.value);
 
-      // Water tint + optional seafloor
-      const tint = WATER_TINTS[waterTintRef.current] ?? WATER_TINTS[0];
-      uniforms.uWaterTint.value.set(tint.rgb[0], tint.rgb[1], tint.rgb[2]);
+      // Water color + optional seafloor. uWaterColor stays the always-on
+      // WATER preset tint (unaffected by the color picker). uOverlayColor is
+      // fed from the color picker's own hue instead (see WaterColorPicker in
+      // SettingsPanel.tsx and hsvToRgb in lib/waterTint.ts) — a real, vivid
+      // RGB color, independent of the preset — used only by the optional
+      // flat overlay below (uWaterColorAlpha / "COLOR STRENGTH").
+      const waterColor = WATER_COLORS[waterColorRef.current] ?? WATER_COLORS[0];
+      uniforms.uWaterColor.value.set(waterColor.rgb[0], waterColor.rgb[1], waterColor.rgb[2]);
+      const pickedOverlayColor = hsvToRgb(waterHueRef.current, 1, 1);
+      uniforms.uOverlayColor.value.x +=
+        (pickedOverlayColor[0] - uniforms.uOverlayColor.value.x) * Math.min(1, dt * 6);
+      uniforms.uOverlayColor.value.y +=
+        (pickedOverlayColor[1] - uniforms.uOverlayColor.value.y) * Math.min(1, dt * 6);
+      uniforms.uOverlayColor.value.z +=
+        (pickedOverlayColor[2] - uniforms.uOverlayColor.value.z) * Math.min(1, dt * 6);
       uniforms.uOpacity.value +=
         (waterOpacityRef.current - uniforms.uOpacity.value) * Math.min(1, dt * 6);
-      uniforms.uTintHue.value +=
-        (waterHueRef.current * 0.01745329252 - uniforms.uTintHue.value) * Math.min(1, dt * 6);
+      uniforms.uWaterColorAlpha.value +=
+        (waterColorAlphaRef.current - uniforms.uWaterColorAlpha.value) * Math.min(1, dt * 6);
       uniforms.uTintSat.value +=
         (waterSatRef.current - uniforms.uTintSat.value) * Math.min(1, dt * 6);
       uniforms.uTintBright.value +=
@@ -3723,16 +4764,20 @@ function Aquafulness() {
 
       // Mellan-moln (drivande lager mellan botten och yta).
       if (midCloudsOnRef.current) {
-        midClouds.visible = true;
         const frac = Math.max(0.05, Math.min(0.95, midCloudsHeightRef.current));
         // frac=0 → precis över botten, frac=1 → nära ytan.
         midClouds.position.y = -effectiveDepth + effectiveDepth * frac + levelY;
         midCloudUniforms.uTime.value = t;
         midCloudUniforms.uCloudScroll.value.x = t * 0.04;
         midCloudUniforms.uCloudScroll.value.y = t * 0.025;
-      } else {
-        midClouds.visible = false;
       }
+      // MOLN TONING: ease opacity toward on/off (cloudFadeSpeedRef, user-
+      // adjustable) instead of popping visible/invisible on toggle.
+      midCloudFadeRef.current +=
+        ((midCloudsOnRef.current ? 1 : 0) - midCloudFadeRef.current) *
+        Math.min(1, dt * cloudFadeSpeedRef.current);
+      midCloudUniforms.uOpacity.value = midCloudFadeRef.current;
+      midClouds.visible = midCloudFadeRef.current > 0.003;
 
       // Himmel-moln (drivande molnlager högt ovanför ytan). Höjden hålls
       // fast i världsrymden (som botten/mellan-moln) istället för relativt
@@ -3766,9 +4811,9 @@ function Aquafulness() {
       // I VIRVEL-läge tolkas NAV om: stick.y = närmare/längre bort från
       // virvelns centrum, stick.x = vridriktning kring virveln.
       const camMode = cameraModeRef.current;
-      const inVortex = camMode === "float" && vortexModeRef.current;
-      const walkSpeed = 8; // m/s at full deflection
-      const driftSpeed = 2.2; // m/s at full deflection — mjukare än aktiv rörelse
+      const inWhirlpool = camMode === "whirlpool";
+      const walkSpeed = 16; // m/s at full deflection
+      const driftSpeed = 4.4; // m/s at full deflection — mjukare än aktiv rörelse
       let camX: number, camZ: number;
       if (camMode === "noclip") {
         // Free 3D flight, no wave physics: NAV's y-axis moves along the full
@@ -3786,12 +4831,42 @@ function Aquafulness() {
         const rightX = Math.cos(yaw),
           rightZ = -Math.sin(yaw);
         const speed = walkSpeed * Math.max(0.1, noclipSpeedRef.current);
+        // DRIFT XZ (noclipDriftWorldRef, a sticky world-space dial — same
+        // idea as float mode's STRÖM) keeps carrying the camera even with
+        // NAV at rest, just like STRÖM does in FRI.
+        const driftSpeedNoclip = driftSpeed * Math.max(0.1, noclipSpeedRef.current);
         const moveX = stickRef.current.x * rightX + stickRef.current.y * fwdX;
         const moveZ = stickRef.current.x * rightZ + stickRef.current.y * fwdZ;
-        const moveY = stickRef.current.y * fwdY + vertStickRef.current.y;
-        posRef.current.x += moveX * speed * physDt;
-        posRef.current.y += moveY * speed * physDt;
-        posRef.current.z += moveZ * speed * physDt;
+        // FRITT FALL / OMVÄND STIGNING pin the vertical rate to a strong,
+        // constant dive/climb, overriding HÖJD (vertStickRef) while active —
+        // a quick way to commit to a long, hands-off descent/ascent through
+        // VÄRLDSGRÄNS's y extension below instead of holding HÖJD deflected.
+        // NOCLIP FALL/RISE SPEED (noclipFallRiseSpeedRef, "throttle") and
+        // NOCLIP EASE (noclipVertEaseTimeRef, "grace") are both user-tunable
+        // in SETTINGS → KAMERA.
+        const fallRiseSpeed =
+          noclipFallRiseSpeedRef.current * Math.max(0.1, noclipSpeedRef.current);
+        const targetVertRate = noclipFreeFallOnRef.current
+          ? -fallRiseSpeed
+          : noclipReverseRiseOnRef.current
+            ? fallRiseSpeed
+            : (stickRef.current.y * fwdY + vertStickRef.current.y) * speed;
+        // Ease the applied vertical rate toward its target with a frame-rate-
+        // independent exponential (v += (target - v) * (1 - e^(-dt/tau))),
+        // instead of snapping straight to it. That's what makes FRITT
+        // FALL/OMVÄND STIGNING read as a real accelerating fall/climb rather
+        // than an instant terminal velocity, and — the same mechanic doing
+        // double duty — makes every transition between them (or back to
+        // HÖJD/NAV control, including the auto-alternate cycle above) a
+        // graceful glide instead of a jarring snap.
+        const vertTau = Math.max(0.02, noclipVertEaseTimeRef.current);
+        const vertBlend = 1 - Math.exp(-physDt / vertTau);
+        noclipVertVelRef.current += (targetVertRate - noclipVertVelRef.current) * vertBlend;
+        posRef.current.x +=
+          (moveX * speed + noclipDriftWorldRef.current.x * driftSpeedNoclip) * physDt;
+        posRef.current.y += noclipVertVelRef.current * physDt;
+        posRef.current.z +=
+          (moveZ * speed + noclipDriftWorldRef.current.z * driftSpeedNoclip) * physDt;
         camX = posRef.current.x;
         camZ = posRef.current.z;
         camYRef.current = posRef.current.y;
@@ -3812,15 +4887,34 @@ function Aquafulness() {
         // truly settles toward a motionless hover instead of bottoming out
         // at a fixed minimum swing; intensity 1 still matches the
         // original tuning (40° arc, omega 0.55).
-        const rightX = Math.cos(swingYawRef.current),
-          rightZ = -Math.sin(swingYawRef.current);
         const omega = swingOmegaNow;
         const theta = swingThetaNow;
-        const horizArmLen = Math.max(8, Math.min(60, swingPositionYRef.current * 0.6));
-        const rawSwingOff = Math.sin(theta) * horizArmLen * swingXFactorRef.current;
         const rawSwingY =
           swingPositionYRef.current +
           swingHeightRef.current * swingYWaveformValue(swingYWaveformRef.current, theta, t * omega);
+
+        // TORNADO: spin the horizontal position in a circle around the
+        // anchor at swing altitude instead of a back-and-forth arc — a
+        // whirlpool in the sky. GUNGA X's pendulum shape no longer applies;
+        // TORNADO SPEED/RIKTNING/RADIUS drive the horizontal motion instead,
+        // while GUNGA HÖJD/GUNGA Y-VÅGFORM still drive the vertical bob on
+        // top either way.
+        let rawOffX: number, rawOffZ: number;
+        if (swingTornadoOnRef.current) {
+          const tornadoDirSign = swingTornadoDirectionRef.current === "ccw" ? -1 : 1;
+          const tornadoOmega = 0.35 * swingTornadoSpeedRef.current * tornadoDirSign;
+          swingTornadoAngleRef.current += tornadoOmega * physDt;
+          const ang = swingTornadoAngleRef.current;
+          rawOffX = Math.cos(ang) * swingTornadoRadiusRef.current;
+          rawOffZ = Math.sin(ang) * swingTornadoRadiusRef.current;
+        } else {
+          const rightX = Math.cos(swingYawRef.current),
+            rightZ = -Math.sin(swingYawRef.current);
+          const horizArmLen = Math.max(8, Math.min(60, swingPositionYRef.current * 0.6));
+          const rawSwingOff = Math.sin(theta) * horizArmLen * swingXFactorRef.current;
+          rawOffX = rightX * rawSwingOff;
+          rawOffZ = rightZ * rawSwingOff;
+        }
 
         // Ease in from wherever the camera actually was the instant swing
         // mode was entered (swingBlendRef, armed in the cameraMode-change
@@ -3838,37 +4932,94 @@ function Aquafulness() {
             blend = lin * lin * (3 - 2 * lin); // smoothstep
           }
         }
-        const swingOff = activeBlend ? rawSwingOff * blend : rawSwingOff;
-        camX = posRef.current.x + rightX * swingOff;
-        camZ = posRef.current.z + rightZ * swingOff;
+        camX = posRef.current.x + (activeBlend ? rawOffX * blend : rawOffX);
+        camZ = posRef.current.z + (activeBlend ? rawOffZ * blend : rawOffZ);
         camYRef.current = activeBlend
           ? activeBlend.fromY + (rawSwingY - activeBlend.fromY) * blend
           : rawSwingY;
         camVYRef.current = 0;
-      } else if (inVortex) {
-        // Orbit around origin. NAV.y in/ut, NAV.x tangent.
-        const op = vortexOpeningRef.current;
-        // Base angular speed scales with the dedicated vortex speed dial
-        // (plus a gentle touch of wave tempo) so the swirl is independently
-        // adjustable. Negative values reverse the orbit direction.
-        // Purely driven by the vortex-tempo dial so wave speed stays independent.
-        const baseOmega = 0.35 * vortexSpeedRef.current;
-        const stickOmega = stickRef.current.x * 1.4; // extra swirl from NAV.x
-        vortexAngleRef.current += (baseOmega + stickOmega) * physDt;
-        // Move in/out along the radius (STRÖM.y also nudges drift in/out).
-        // driftWorldRef is the fixed real direction (see padToWorldXZ above),
-        // so this stays a stable in/out nudge even as the camera looks around.
-        const radialVel = -stickRef.current.y * walkSpeed + driftWorldRef.current.z * driftSpeed;
+      } else if (inWhirlpool) {
+        // Orbit around the world origin. Without the optional sequence,
+        // NAV.y moves in/out along the radius and NAV.x adds extra swirl,
+        // exactly like the old manual vortex control; with it, the radius
+        // instead automatically loops through drag-in -> stay inside -> exit
+        // (whirlpoolPhaseRef, reset to "drag" on entering this mode — see the
+        // cameraMode-change effect above).
+        const op = whirlpoolOpeningRef.current;
+        const outerR = whirlpoolRadiusRef.current;
+        const dirSign = whirlpoolDirectionRef.current === "ccw" ? -1 : 1;
         const minR = Math.max(op * 0.55, 3); // don't dive into the throat
-        const maxR = 220;
-        vortexRadiusRef.current = Math.max(
-          minR,
-          Math.min(maxR, vortexRadiusRef.current + radialVel * physDt),
-        );
-        setVortexRadius(vortexRadiusRef.current);
-        const ang = vortexAngleRef.current;
-        camX = Math.cos(ang) * vortexRadiusRef.current;
-        camZ = Math.sin(ang) * vortexRadiusRef.current;
+        let radius: number;
+        let omegaSign = dirSign;
+
+        if (whirlpoolSequenceOnRef.current) {
+          const ph = whirlpoolPhaseRef.current;
+          const elapsedS = (now - ph.startMs) / 1000;
+          const dragDist = Math.max(
+            2,
+            whirlpoolDragSpeedRef.current * Math.max(0.5, whirlpoolDragDurationRef.current),
+          );
+          const innerR = Math.max(minR, outerR - dragDist);
+          if (ph.phase === "drag") {
+            const dur = Math.max(0.5, whirlpoolDragDurationRef.current);
+            const lin = Math.min(1, elapsedS / dur);
+            const eased = lin * lin * (3 - 2 * lin); // smoothstep: eases into the pull
+            radius = outerR + (innerR - outerR) * eased;
+            if (lin >= 1) {
+              ph.phase = "stay";
+              ph.startMs = now;
+            }
+          } else if (ph.phase === "stay") {
+            radius = innerR;
+            if (elapsedS >= Math.max(0, whirlpoolStayDurationRef.current)) {
+              ph.phase = "exit";
+              ph.startMs = now;
+            }
+          } else {
+            // "exit": either thrown back out to the outer radius (fast
+            // launch, easing to a stop) or whirled back out in reverse (a
+            // smooth unwind, spinning the opposite way it dragged in).
+            const exitDist = Math.max(2, outerR - innerR);
+            const dur = Math.max(0.3, exitDist / Math.max(0.5, whirlpoolExitSpeedRef.current));
+            const lin = Math.min(1, elapsedS / dur);
+            if (whirlpoolExitModeRef.current === "reverseSpin") {
+              const eased = lin * lin * (3 - 2 * lin); // smoothstep
+              radius = innerR + (outerR - innerR) * eased;
+              omegaSign = -dirSign;
+            } else {
+              const eased = 1 - (1 - lin) * (1 - lin) * (1 - lin); // ease-out cubic: fast launch
+              radius = innerR + (outerR - innerR) * eased;
+            }
+            if (lin >= 1) {
+              ph.phase = "drag";
+              ph.startMs = now;
+            }
+          }
+          whirlpoolRadiusRef.current = radius;
+        } else {
+          // Steady manual orbit: NAV.y moves in/out along the radius
+          // (STRÖM.y also nudges drift in/out); driftWorldRef is the fixed
+          // real direction (see padToWorldXZ above), so this stays a stable
+          // in/out nudge even as the camera looks around.
+          const radialVel = -stickRef.current.y * walkSpeed + driftWorldRef.current.z * driftSpeed;
+          const maxR = 220;
+          whirlpoolRadiusRef.current = Math.max(
+            minR,
+            Math.min(maxR, whirlpoolRadiusRef.current + radialVel * physDt),
+          );
+          setWhirlpoolRadius(whirlpoolRadiusRef.current);
+          radius = whirlpoolRadiusRef.current;
+        }
+
+        // Base angular speed scales with the whirlpool speed dial and its
+        // direction toggle; NAV.x always adds a bit of extra swirl on top,
+        // sequence or not.
+        const baseOmega = 0.35 * whirlpoolSpeedRef.current * omegaSign;
+        const stickOmega = stickRef.current.x * 1.4;
+        whirlpoolAngleRef.current += (baseOmega + stickOmega) * physDt;
+        const ang = whirlpoolAngleRef.current;
+        camX = Math.cos(ang) * radius;
+        camZ = Math.sin(ang) * radius;
       } else {
         // NAV-spaken är kamera-relativ: stick.y "framåt" ska alltid röra sig
         // dit kameran för tillfället tittar (yaw), inte fast världs -z, annars
@@ -3886,6 +5037,26 @@ function Aquafulness() {
         posRef.current.z += (walkZ * walkSpeed + driftWorldRef.current.z * driftSpeed) * physDt;
         camX = posRef.current.x;
         camZ = posRef.current.z;
+      }
+
+      // VÄRLDSGRÄNS (world boundary): wrap x/z to the opposite edge once the
+      // camera crosses ±worldBoundarySize — invisible below since the ocean/
+      // floor/cloud planes recenter on the camera every frame regardless of
+      // its absolute position (see wrapAxis above). VIRVEL (whirlpool) is
+      // exempt: it's already bounded near the origin by whirlpoolRadiusRef's
+      // own max.
+      if (worldBoundaryOnRef.current && !inWhirlpool) {
+        const halfXZ = Math.max(50, worldBoundarySizeRef.current);
+        const wrappedX = wrapAxis(posRef.current.x, halfXZ);
+        const wrappedZ = wrapAxis(posRef.current.z, halfXZ);
+        if (wrappedX !== posRef.current.x) {
+          camX += wrappedX - posRef.current.x;
+          posRef.current.x = wrappedX;
+        }
+        if (wrappedZ !== posRef.current.z) {
+          camZ += wrappedZ - posRef.current.z;
+          posRef.current.z = wrappedZ;
+        }
       }
 
       // Rekentrera ytan, botten och molnlagret runt kameran varje frame så
@@ -3907,14 +5078,14 @@ function Aquafulness() {
       skyClouds.position.z = camZ;
 
       const dirRad = (waveDirRef.current * Math.PI) / 180;
-      const surfaceY = inVortex
-        ? vortexSurfaceHeight(
+      const surfaceY = inWhirlpool
+        ? whirlpoolSurfaceHeight(
             camX,
             camZ,
             t,
             ampRef.current,
             regularPeriodRef.current,
-            vortexOpeningRef.current,
+            whirlpoolOpeningRef.current,
             freqRef.current,
           )
         : waveHeight(
@@ -3934,14 +5105,17 @@ function Aquafulness() {
             dyingAmpRef.current,
             dyingWaveT,
             freqRef.current,
+            heaveSkewRef.current,
           );
 
-      // The wave-following buoyancy spring and current/sway drift only apply
-      // in float mode — noclip flies free of the wave surface and swing
-      // already set camYRef.current to its pendulum height above.
+      // The wave-following buoyancy spring and current/sway drift apply in
+      // float mode and whirlpool mode alike (whirlpool rides the funnel
+      // surface's own height field the same way float rides the open
+      // ocean's) — noclip flies free of the wave surface and swing already
+      // set camYRef.current to its pendulum height above.
       let swayX = 0,
         swayZ = 0;
-      if (camMode === "float") {
+      if (camMode === "float" || camMode === "whirlpool") {
         // Compute wave vertical velocity first so buoyancy can react to it.
         // Clamp it too, not just the anticipatory peek below: on a dropped
         // frame (large dt) a sharp crest can still alias into a real spike
@@ -3966,17 +5140,31 @@ function Aquafulness() {
         // secant slope to a sane bound, and lean harder on the already-exact
         // small-dt surfVel instead of the error-prone long peek.
         const peakK = Math.min(1, Math.max(0, (wavePeakRef.current - 1) / 5));
-        // Larger base lead → buoyancy reacts as soon as the wave begins to
-        // rise, not after it has already lifted the surface past the camera.
-        const lead = 0.7 / (1 + peakK * 6.0);
-        const futureSurf = inVortex
-          ? vortexSurfaceHeight(
+        // ANTICIPATION (waveAnticipationRef, VÅGOR settings tab) scales both
+        // how far ahead this peeks and how much of that peek leans on the
+        // target below — 0 makes buoyancy purely reactive (tracks only the
+        // current surface height, prone to visibly lagging a crest), 1 is
+        // the tuned default. Larger base lead → buoyancy reacts as soon as
+        // the wave begins to rise, not after it has already lifted the
+        // surface past the camera. At the default TEMPO/GUNGA-hastighet the
+        // spring itself (see k/zeta below) lags its target by roughly a
+        // fifth of the wave period, so a lead of 0.7 (paired with a 0.55
+        // futureBias) under-corrected for it — the camera was still visibly
+        // rising after the surface had already crested, i.e. reacting to
+        // the wave hitting it instead of anticipating it. The default of 1
+        // was raised until a numeric replay of this spring against the
+        // default wave settings put the camera's own height peak within
+        // noise of the surface's peak instead of trailing it.
+        const anticipation = waveAnticipationRef.current;
+        const lead = anticipation / (1 + peakK * 6.0);
+        const futureSurf = inWhirlpool
+          ? whirlpoolSurfaceHeight(
               camX,
               camZ,
               t + lead,
               ampRef.current,
               regularPeriodRef.current,
-              vortexOpeningRef.current,
+              whirlpoolOpeningRef.current,
               freqRef.current,
             )
           : waveHeight(
@@ -3996,9 +5184,13 @@ function Aquafulness() {
               dyingAmpRef.current,
               dyingWaveT + lead,
               freqRef.current,
+              heaveSkewRef.current,
             );
         const maxSlope = ampRef.current * 6.0;
-        const rawAnticip = Math.max(-maxSlope, Math.min(maxSlope, (futureSurf - surfaceY) / lead));
+        const rawAnticip = Math.max(
+          -maxSlope,
+          Math.min(maxSlope, (futureSurf - surfaceY) / Math.max(lead, 1e-4)),
+        );
         const blend = 1 - peakK * 0.85;
         const anticipVel = rawAnticip * blend + surfVel * (1 - blend);
         // Low-pass the velocity estimate before it drives the spring — but
@@ -4029,7 +5221,13 @@ function Aquafulness() {
         const lift = floatLiftRef.current;
         // Feed-forward the future surface height into the target so the camera
         // starts moving in sync with the incoming wave instead of chasing it.
-        const futureBias = 0.55;
+        // Weighted toward the future sample (see `lead`/ANTICIPATION above)
+        // so most of the spring's own tracking lag gets cancelled by the
+        // time the real wave arrives, rather than leaving the camera to
+        // visibly catch up after the crest has already passed under it.
+        // Scales with the same ANTICIPATION dial as `lead`, clamped below 1
+        // so the target never extrapolates past the future sample itself.
+        const futureBias = Math.min(0.95, 0.75 * anticipation);
         const anticipSurf = surfaceY * (1 - futureBias) + futureSurf * futureBias;
         const cap = amp * 1.4;
         // Smooth ramp instead of Math.max(0, anticipVel): the hard clamp has
@@ -4112,7 +5310,7 @@ function Aquafulness() {
         if (Math.abs(dirX) + Math.abs(dirZ) > 0.001) {
           // Base amplitude scale in meters — reuse SVAJ dial if set, otherwise
           // give the pad its own reasonable range so it works standalone.
-          const padAmp = swAmp > 0.001 ? swAmp : 6;
+          const padAmp = swAmp > 0.001 ? swAmp : 12;
           swayTargetX += padAmp * dirX * heaveNorm;
           swayTargetZ += padAmp * dirZ * heaveNorm;
         }
@@ -4136,6 +5334,76 @@ function Aquafulness() {
         swayPosRef.current.z += swayVelRef.current.z * physDt;
         swayX = swayPosRef.current.x;
         swayZ = swayPosRef.current.z;
+      } else if (camMode === "noclip") {
+        // Ambient HEAVE/SWAY: purely cosmetic wave motion layered on top of
+        // noclip's free-flight position, only while "still" (FRITT
+        // FALL/OMVÄND STIGNING already pin the vertical rate, so heave would
+        // just be swamped by it) — unlike FLYT/VIRVEL's buoyancy above, this
+        // isn't a physical response to floating, so it applies the same
+        // whether the camera is high above or deep under the surface.
+        // Targets fall back to 0 whenever a toggle is off or the camera is
+        // rising/falling, so the same easing that eases fall/rise (using the
+        // same NOCLIP EASE "grace" dial) also eases HEAVE/SWAY in and out
+        // instead of snapping.
+        const stillNow = !noclipFreeFallOnRef.current && !noclipReverseRiseOnRef.current;
+        const easeTau = Math.max(0.02, noclipVertEaseTimeRef.current);
+        const heaveBlend = 1 - Math.exp(-physDt / easeTau);
+        const heaveTarget = stillNow && noclipHeaveOnRef.current ? surfaceY : 0;
+        noclipHeaveOffsetRef.current += (heaveTarget - noclipHeaveOffsetRef.current) * heaveBlend;
+        camYRef.current = posRef.current.y + noclipHeaveOffsetRef.current;
+
+        let swayTargetX = 0,
+          swayTargetZ = 0;
+        if (stillNow && noclipSwayOnRef.current) {
+          const amp = ampRef.current;
+          const heaveNorm = amp > 0.0001 ? Math.tanh(surfaceY / (amp * 2.2)) : 0;
+          const swAmp = swayAmpRef.current;
+          if (swAmp > 0.001) {
+            const ws = swaySpeedRef.current;
+            const dirRadS = (waveDirRef.current * Math.PI) / 180;
+            const dx = Math.cos(dirRadS);
+            const dz = -Math.sin(dirRadS);
+            const bias = swayBiasRef.current;
+            const st = t * Math.max(0.02, ws);
+            const biasEnv = Math.sin(st * 0.09) * 0.5 + 0.5;
+            swayTargetX = swAmp * (heaveNorm * dx + bias * dx * biasEnv * 1.2);
+            swayTargetZ = swAmp * (heaveNorm * dz + bias * dz * biasEnv * 1.2);
+          }
+          const dirX = swayWorldRef.current.x;
+          const dirZ = swayWorldRef.current.z;
+          if (Math.abs(dirX) + Math.abs(dirZ) > 0.001) {
+            const padAmp = swAmp > 0.001 ? swAmp : 12;
+            swayTargetX += padAmp * dirX * heaveNorm;
+            swayTargetZ += padAmp * dirZ * heaveNorm;
+          }
+        }
+        const swK = 5 + 20 * Math.max(0.05, swaySpeedRef.current);
+        const swZeta = 0.6;
+        const swC = 2 * swZeta * Math.sqrt(swK);
+        const swayAX = swK * (swayTargetX - swayPosRef.current.x) - swC * swayVelRef.current.x;
+        const swayAZ = swK * (swayTargetZ - swayPosRef.current.z) - swC * swayVelRef.current.z;
+        swayVelRef.current.x += swayAX * physDt;
+        swayVelRef.current.z += swayAZ * physDt;
+        swayPosRef.current.x += swayVelRef.current.x * physDt;
+        swayPosRef.current.z += swayVelRef.current.z * physDt;
+        swayX = swayPosRef.current.x;
+        swayZ = swayPosRef.current.z;
+      }
+
+      // VÄRLDSGRÄNS (world boundary): y wraps the same way as x/z above, once
+      // it crosses ±worldBoundaryHeight — skipped for GUNGA (swing), whose
+      // height is a bounded pendulum formula recomputed fresh every frame
+      // (see rawSwingY above), not a free-roaming position that needs a loop
+      // back around. When worldBoundaryYExtend is on (the default) the extra
+      // cloud layers above already make this wrap invisible; when it's off,
+      // y still wraps, just without that cover.
+      if (worldBoundaryOnRef.current && camMode !== "swing" && camYRef.current !== null) {
+        const halfY = Math.max(50, worldBoundaryHeightRef.current);
+        const wrappedY = wrapAxis(camYRef.current, halfY);
+        if (wrappedY !== camYRef.current) {
+          camYRef.current = wrappedY;
+          posRef.current.y = wrappedY;
+        }
       }
 
       // Manual XYZ camera offset (POS X/Y/Z dials) — applied after physics so
@@ -4152,7 +5420,7 @@ function Aquafulness() {
       // följer med runt virveln och naturligt tittar ner mot öppningen).
       const lookY = camera.position.y;
       let lookX: number, lookZ: number;
-      if (inVortex) {
+      if (inWhirlpool) {
         // Aim at the vortex center, slightly below the camera so the throat
         // is visible without the horizon tilting.
         lookX = 0;
@@ -4204,6 +5472,18 @@ function Aquafulness() {
       ) {
         swayDisplayRef.current = swayDisp;
         setSwayStick(swayDisp);
+      }
+      const noclipDriftDisp = worldXZToPad(
+        noclipDriftWorldRef.current.x,
+        noclipDriftWorldRef.current.z,
+        yawRef.current,
+      );
+      if (
+        Math.abs(noclipDriftDisp.x - noclipDriftDisplayRef.current.x) > 0.0015 ||
+        Math.abs(noclipDriftDisp.y - noclipDriftDisplayRef.current.y) > 0.0015
+      ) {
+        noclipDriftDisplayRef.current = noclipDriftDisp;
+        setNoclipDriftStick(noclipDriftDisp);
       }
 
       // Autosave the free-roam position/look direction (throttled) so it
@@ -4266,6 +5546,81 @@ function Aquafulness() {
       skyCloudUniforms.uTurbidity.value = floorUniforms.uTurbidity.value;
       skyCloudUniforms.uUnderwater.value = uniforms.uUnderwater.value;
       skyCloudUniforms.uFogColor.value.copy(uniforms.uWaterDeep.value);
+
+      // VÄRLDSGRÄNS's y extension: tile more of the same sky-cloud layer at
+      // fixed altitude steps around wherever the camera currently is (see
+      // EXTEND_CLOUD_LAYER_*/cloudLayerJitter above), so climbing or diving
+      // through the y boundary always shows more cloud deck ahead instead of
+      // a hard edge. Positioned here — after the y-wrap above, not earlier
+      // in the frame — so it always uses this frame's fully resolved (and,
+      // if a wrap just happened, already-wrapped) camY: doing it earlier
+      // left the layers positioned around the *pre-wrap* altitude for one
+      // frame while the camera had already jumped to the post-wrap side —
+      // the wrong world-space size/position, or entirely out of the
+      // frustum, for exactly the frame the boundary was crossed. Each layer
+      // has its own cloned material (see the setup effect above) so it can
+      // fade its own opacity in/out independently — MOLN TONING, user-
+      // adjustable — instead of popping visible/invisible when recycled to
+      // a new altitude band or when the whole feature gates off; the
+      // frame-varying uniforms skyCloudUniforms just got above (turbidity/
+      // underwater/fog) are copied into each clone here too, alongside
+      // time/scroll, since a clone's own uniforms object is independent.
+      const extendLayers = extendCloudLayersRef.current;
+      const extendLayerState = extendCloudLayerStateRef.current;
+      // Same visibility gate as skyClouds itself (sky.visible/skyClouds.visible
+      // further below): a real skybox environment or a flat backdrop image
+      // replaces the procedural sky entirely, so these extra layers have
+      // nothing to extend and would just be dead weight.
+      const extendGateOn =
+        worldBoundaryOnRef.current &&
+        worldBoundaryYExtendRef.current &&
+        skyCloudsOnRef.current &&
+        !envActiveRef.current &&
+        backdropRef.current <= 0;
+      const extendFadeStep = Math.min(1, dt * cloudFadeSpeedRef.current);
+      if (extendGateOn) {
+        const spacing = EXTEND_CLOUD_LAYER_SPACING;
+        const camYNow = camYRef.current ?? 0;
+        const baseIdx = Math.floor(camYNow / spacing);
+        const half = Math.floor(extendLayers.length / 2);
+        const cloudScaleNow = surfaceAreaRef.current / CLOUD_BASE_SIZE;
+        for (let i = 0; i < extendLayers.length; i++) {
+          const layerIdx = baseIdx + (i - half);
+          const jitter = cloudLayerJitter(layerIdx);
+          const layer = extendLayers[i];
+          const state = extendLayerState[i];
+          if (state.layerIdx !== layerIdx) {
+            state.layerIdx = layerIdx;
+            state.opacity = 0;
+          }
+          state.opacity += (1 - state.opacity) * extendFadeStep;
+          layer.visible = true;
+          layer.position.set(camX + jitter.x, layerIdx * spacing + levelY, camZ + jitter.z);
+          layer.scale.set(cloudScaleNow, 1, cloudScaleNow);
+          const lu = (layer.material as THREE.ShaderMaterial).uniforms;
+          lu.uOpacity.value = state.opacity;
+          lu.uTime.value = t;
+          lu.uCloudScroll.value.x = t * 0.02;
+          lu.uCloudScroll.value.y = t * 0.013;
+          lu.uTurbidity.value = skyCloudUniforms.uTurbidity.value;
+          lu.uUnderwater.value = skyCloudUniforms.uUnderwater.value;
+          lu.uFogColor.value.copy(skyCloudUniforms.uFogColor.value);
+        }
+      } else {
+        for (let i = 0; i < extendLayers.length; i++) {
+          const layer = extendLayers[i];
+          const state = extendLayerState[i];
+          state.opacity += (0 - state.opacity) * extendFadeStep;
+          if (state.opacity > 0.003) {
+            layer.visible = true;
+            (layer.material as THREE.ShaderMaterial).uniforms.uOpacity.value = state.opacity;
+          } else {
+            layer.visible = false;
+            state.layerIdx = Number.NaN;
+          }
+        }
+      }
+
       uniforms.uTurbidity.value = floorUniforms.uTurbidity.value;
       skyUniforms.uTurbidity.value = floorUniforms.uTurbidity.value;
       skyUniforms.uFogColor.value.copy(uniforms.uWaterDeep.value);
@@ -4311,7 +5666,13 @@ function Aquafulness() {
       const envActive = envActiveRef.current;
       const useBackdrop = backdropRef.current > 0 && !envActive;
       sky.visible = !useBackdrop && !envActive;
-      skyClouds.visible = skyCloudsOnRef.current && !useBackdrop && !envActive;
+      // MOLN TONING: ease opacity toward on/off instead of popping visible.
+      const skyCloudsTargetOn = skyCloudsOnRef.current && !useBackdrop && !envActive;
+      skyCloudFadeRef.current +=
+        ((skyCloudsTargetOn ? 1 : 0) - skyCloudFadeRef.current) *
+        Math.min(1, dt * cloudFadeSpeedRef.current);
+      skyCloudUniforms.uOpacity.value = skyCloudFadeRef.current;
+      skyClouds.visible = skyCloudFadeRef.current > 0.003;
       renderer.setClearColor(0x032033, envActive ? 1 : 0);
 
       // Optional model bobbing — static scenes leave modelBobRef null and the
@@ -4321,14 +5682,14 @@ function Aquafulness() {
       if (mb && model) {
         let h: number;
         if (mb.bob.follow) {
-          const s = inVortex
-            ? vortexSurfaceHeight(
+          const s = inWhirlpool
+            ? whirlpoolSurfaceHeight(
                 mb.base.x,
                 mb.base.z,
                 t,
                 ampRef.current,
                 regularPeriodRef.current,
-                vortexOpeningRef.current,
+                whirlpoolOpeningRef.current,
                 freqRef.current,
               )
             : waveHeight(
@@ -4348,6 +5709,7 @@ function Aquafulness() {
                 dyingAmpRef.current,
                 dyingWaveT,
                 freqRef.current,
+                heaveSkewRef.current,
               );
           h = s * mb.bob.amp;
         } else {
@@ -4361,22 +5723,36 @@ function Aquafulness() {
       // position is final for the frame.
       torusRingField.update(camera.position, dt);
 
-      // While SIMGLASÖGON is on, cap actual GPU renders to gogglesFpsCap —
+      // Cap actual GPU renders to targetFps (gogglesFpsCap instead while
+      // SIMGLASÖGON is on, for its own lower thermal-friendly ceiling) —
       // camera/physics/uniforms above still update every rAF tick (cheap,
       // keeps input response and motion timing correct), only the expensive
       // renderer.render() draw call itself is skipped on the frames in
-      // between. Off (the default), this never skips a render.
-      const fpsCap = gogglesOnRef.current ? gogglesFpsCapRef.current : 0;
-      const renderDue = fpsCap <= 0 || now - lastRenderMs >= 1000 / fpsCap;
+      // between. A cap of 0 or less renders every frame, uncapped. Render
+      // every Nth tick (N from rafIntervalMsEstimate above) rather than
+      // whenever enough wall-clock time has passed — see that estimate's
+      // comment for why the wall-clock version reads as juddery.
+      const fpsCap = gogglesOnRef.current ? gogglesFpsCapRef.current : targetFpsRef.current;
+      renderTickCount++;
+      const ticksPerRender =
+        fpsCap <= 0 ? 1 : Math.max(1, Math.round(1000 / fpsCap / rafIntervalMsEstimate));
+      const renderDue = fpsCap <= 0 || renderTickCount % ticksPerRender === 0;
       if (renderDue) {
-        lastRenderMs = now;
         // Must run before renderer.render() below — it syncs each TV
         // panel's invisible occluder mesh (added to `scene`) to the
         // panel's current transform, so the depth test that lets other 3D
         // objects properly occlude the panel uses this frame's position,
         // not last frame's.
         tvManager.render();
-        renderer.render(scene, camera);
+        if (chromaticAberrationOnRef.current) {
+          // 0..1 dial value -> a max red/blue UV offset of 0..~3.5% of the
+          // frame at its corners (see CHROMATIC_ABERRATION_SHADER above).
+          chromaticAberrationPass.uniforms.uAmount.value =
+            chromaticAberrationAmountRef.current * 0.05;
+          composer.render();
+        } else {
+          renderer.render(scene, camera);
+        }
       }
       raf = requestAnimationFrame(animate);
       clock.getDelta();
@@ -4389,6 +5765,8 @@ function Aquafulness() {
       window.removeEventListener("pagehide", saveCameraPoseNow);
       saveCameraPoseNow();
       renderer.dispose();
+      chromaticAberrationPass.dispose();
+      composer.dispose();
       geo.dispose();
       farOcean.geometry.dispose();
       mat.dispose();
@@ -4398,6 +5776,11 @@ function Aquafulness() {
       midCloudMat.dispose();
       skyCloudGeo.dispose();
       skyCloudMat.dispose();
+      for (const layer of extendCloudLayersRef.current) {
+        (layer.material as THREE.Material).dispose();
+      }
+      extendCloudLayersRef.current = [];
+      extendCloudLayerStateRef.current = [];
       sandTex.dispose();
       skyGeo.dispose();
       skyMat.dispose();
@@ -4657,6 +6040,7 @@ function Aquafulness() {
     saveStateAs,
     loadSavedStateById,
     deleteSavedState,
+    buildBathLink,
     waveAmp,
     setWaveAmp,
     waveSpeed,
@@ -4669,6 +6053,8 @@ function Aquafulness() {
     setSubmergeAmp,
     floatLift,
     setFloatLift,
+    waveAnticipation,
+    setWaveAnticipation,
     driftWorldRef,
     driftDisplayRef,
     setDriftStick,
@@ -4708,23 +6094,45 @@ function Aquafulness() {
     setWavePeak,
     trochoid,
     setTrochoid,
+    heaveSkew,
+    setHeaveSkew,
     waveHighQuality,
     setWaveHighQuality,
     waveDir,
     setWaveDir,
-    vortexMode,
-    setVortexMode,
-    vortexOpening,
-    setVortexOpening,
-    vortexRadius,
-    setVortexRadius,
-    vortexSpeed,
-    setVortexSpeed,
+    whirlpoolOpening,
+    setWhirlpoolOpening,
+    whirlpoolRadius,
+    setWhirlpoolRadius,
+    whirlpoolSpeed,
+    setWhirlpoolSpeed,
+    whirlpoolDirection,
+    setWhirlpoolDirection,
+    whirlpoolSequenceOn,
+    setWhirlpoolSequenceOn,
+    whirlpoolDragSpeed,
+    setWhirlpoolDragSpeed,
+    whirlpoolDragDuration,
+    setWhirlpoolDragDuration,
+    whirlpoolStayDuration,
+    setWhirlpoolStayDuration,
+    whirlpoolExitMode,
+    setWhirlpoolExitMode,
+    whirlpoolExitSpeed,
+    setWhirlpoolExitSpeed,
     cameraMode,
     setCameraMode,
     cycleCameraMode,
     noclipSpeed,
     setNoclipSpeed,
+    noclipFallRiseSpeed,
+    setNoclipFallRiseSpeed,
+    noclipVertEaseTime,
+    setNoclipVertEaseTime,
+    noclipAutoAlternateOn,
+    setNoclipAutoAlternateOn,
+    noclipAutoAlternateInterval,
+    setNoclipAutoAlternateInterval,
     swingPositionY,
     setSwingPositionY,
     swingIntensity,
@@ -4739,6 +6147,14 @@ function Aquafulness() {
     swingYWaveform,
     setSwingYWaveform,
     cycleSwingYWaveform,
+    swingTornadoOn,
+    setSwingTornadoOn,
+    swingTornadoRadius,
+    setSwingTornadoRadius,
+    swingTornadoSpeed,
+    setSwingTornadoSpeed,
+    swingTornadoDirection,
+    setSwingTornadoDirection,
     intervalSessionOn,
     setIntervalSessionOn,
     intervalDuration,
@@ -4749,6 +6165,12 @@ function Aquafulness() {
     setIntervalCount,
     intervalShowStats,
     setIntervalShowStats,
+    intervalIncludeFloat,
+    setIntervalIncludeFloat,
+    intervalIncludeWhirlpool,
+    setIntervalIncludeWhirlpool,
+    intervalIncludeSwing,
+    setIntervalIncludeSwing,
     camOffX,
     setCamOffX,
     camOffY,
@@ -4773,10 +6195,20 @@ function Aquafulness() {
     setGogglesIntensity,
     gogglesFpsCap,
     setGogglesFpsCap,
+    targetFps,
+    setTargetFps,
+    resolutionScale,
+    setResolutionScale,
+    chromaticAberrationOn,
+    setChromaticAberrationOn,
+    chromaticAberrationAmount,
+    setChromaticAberrationAmount,
     wakeLock,
     setWakeLock,
-    waterTintIdx,
-    setWaterTintIdx,
+    waterColorIdx,
+    setWaterColorIdx,
+    waterColorAlpha,
+    setWaterColorAlpha,
     surfaces,
     surfaceId,
     setSurfaceId,
@@ -4829,6 +6261,16 @@ function Aquafulness() {
     setSkyCloudsOn,
     skyCloudsHeight,
     setSkyCloudsHeight,
+    cloudFadeSpeed,
+    setCloudFadeSpeed,
+    worldBoundaryOn,
+    setWorldBoundaryOn,
+    worldBoundarySize,
+    setWorldBoundarySize,
+    worldBoundaryHeight,
+    setWorldBoundaryHeight,
+    worldBoundaryYExtend,
+    setWorldBoundaryYExtend,
     surfaceArea,
     setSurfaceArea,
     torusRingsOn,
@@ -4879,6 +6321,23 @@ function Aquafulness() {
     setAudioSyncSpeed,
     audioSpatial,
     setAudioSpatial,
+    waterSoundIdx,
+    setWaterSoundIdx,
+  };
+
+  // JUMP: noclip's vertical mode slider condenses FRITT FALL/OMVÄND STIGNING/
+  // "neither" into a single tri-state control (see VerticalModeSlider) — this
+  // is just a two-way mirror between that tri-state and the pair of booleans
+  // the physics loop and the older pill buttons both still read/write.
+  const noclipVerticalMode: VerticalMode = noclipFreeFallOn
+    ? "fall"
+    : noclipReverseRiseOn
+      ? "rise"
+      : "still";
+  const setNoclipVerticalMode = (m: VerticalMode) => {
+    setNoclipAutoAlternateOn(false);
+    setNoclipFreeFallOn(m === "fall");
+    setNoclipReverseRiseOn(m === "rise");
   };
 
   // STRÖM/HÖJD/SVAJ/VÅGRIKT — every on-screen joystick except NAV and LOOK —
@@ -4897,6 +6356,18 @@ function Aquafulness() {
     },
     vertStick,
     onVertChange: setVertStick,
+    noclipDriftStick,
+    onNoclipDriftChange: (v) => {
+      setNoclipDriftStick(v);
+      noclipDriftDisplayRef.current = v;
+      noclipDriftWorldRef.current = padToWorldXZ(v.x, v.y, yawRef.current);
+    },
+    noclipFreeFallOn,
+    setNoclipFreeFallOn,
+    noclipReverseRiseOn,
+    setNoclipReverseRiseOn,
+    noclipAutoAlternateOn,
+    setNoclipAutoAlternateOn,
     swayStick,
     onSwayChange: (v) => {
       setSwayStick(v);
@@ -4947,15 +6418,15 @@ function Aquafulness() {
         />
       )}
 
-      {/* Persistent brand mark — inverted (white), semi-transparent, 24pt, 5pt margin */}
+      {/* Persistent brand mark — inverted (white), semi-transparent, 24pt, 12pt margin */}
       <img
         src={appIconAsset.url}
         alt="Aquafulness"
         aria-hidden="true"
         className="pointer-events-none absolute z-30"
         style={{
-          top: "5pt",
-          right: "5pt",
+          top: "12pt",
+          right: "12pt",
           width: "24pt",
           height: "24pt",
           filter: "invert(1)",
@@ -4963,12 +6434,51 @@ function Aquafulness() {
         }}
       />
 
+      {/* Simulated clock — plain text (no button chrome), directly below the
+          brand mark above, always up regardless of HUD fade. Tap to open the
+          time-travel dialog. Only rendered once simNowLabel is set client-
+          side (see simNow's useState above) so the server-rendered markup
+          never includes a live time value. */}
+      {!CLOCK_DISABLED_FOR_PERF_TEST && simNowLabel && (
+        <button
+          onClick={() => setTimeTravelOpen(true)}
+          className="absolute z-30 text-right text-[10px] font-light tabular-nums ui-ink-faint transition ui-press-ink"
+          style={{ top: "40pt", right: "12pt" }}
+          aria-label={t("hud.timeTravelOpenAria")}
+          title={t("hud.timeTravelOpenAria")}
+        >
+          {simNowLabel}
+        </button>
+      )}
+
+      {/* Only mounted while open, so its hooks don't run on every one of
+          this large component's re-renders while the dialog is closed
+          (i.e. almost always). */}
+      {!CLOCK_DISABLED_FOR_PERF_TEST && timeTravelOpen && (
+        <TimeTravelDialog
+          open={timeTravelOpen}
+          onClose={() => setTimeTravelOpen(false)}
+          timeTravelBaseMs={timeTravelBaseMs}
+          timeTravelSetAtMs={timeTravelSetAtMs}
+          onTravel={(targetMs) => {
+            setTimeTravelBaseMs(targetMs);
+            setTimeTravelSetAtMs(Date.now());
+          }}
+          onReturnToNow={() => {
+            setTimeTravelBaseMs(null);
+            setTimeTravelSetAtMs(null);
+          }}
+          timeSeasonalSync={timeSeasonalSync}
+          onSeasonalSyncChange={setTimeSeasonalSync}
+        />
+      )}
+
       {/* Offline indicator — stays up regardless of HUD fade so it's never
           mistaken for a stall; only cached scenes/environments/surfaces are
           available while it's shown. */}
       {!online && (
         <div
-          className="pointer-events-none absolute left-1/2 top-[5pt] z-30 -translate-x-1/2 rounded-full border border-white/20 bg-black/40 px-3 py-1 text-[10px] font-light tracking-[0.2em] text-white/80 backdrop-blur-md"
+          className="pointer-events-none absolute left-1/2 top-[12pt] z-30 -translate-x-1/2 rounded-full border ui-line-2 ui-surface px-3 py-1 text-[10px] font-light tracking-[0.2em] ui-ink backdrop-blur-md"
           role="status"
         >
           {t("hud.offline")}
@@ -4989,13 +6499,13 @@ function Aquafulness() {
       <div
         className={`pointer-events-none absolute inset-0 z-10 transition-opacity duration-700 ${uiVisible ? "opacity-100" : "opacity-0"}`}
       >
-        {/* Top bar: settings + speaker toggle + phone + fullscreen.
+        {/* Top bar: settings + speaker toggle + phone + fullscreen + share.
             Edit-mode (the "pencil") no longer lives here — it moved into the
             bathOS phone's dedicated Skärmar app. */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between px-4 pt-4">
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between px-6 pt-6">
           <button
             onClick={() => setAudioOn((v) => !v)}
-            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white/90 backdrop-blur-md transition active:scale-95 active:bg-white/15"
+            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border ui-line-2 ui-surface ui-ink backdrop-blur-md transition active:scale-95 ui-press"
             aria-label={audioOn ? t("hud.audioMuteAria") : t("hud.audioUnmuteAria")}
             aria-pressed={audioOn}
             title={audioOn ? t("hud.audioOnTitle") : t("hud.audioOffTitle")}
@@ -5036,20 +6546,34 @@ function Aquafulness() {
 
           <button
             onClick={() => setSettingsOpen((s) => !s)}
-            className="pointer-events-auto rounded-full border border-white/20 bg-black/40 px-5 py-2 text-[10px] font-light tracking-[0.35em] text-white/90 backdrop-blur-md transition active:scale-95 active:bg-white/15"
+            className={`pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur-md transition active:scale-95 ${
+              settingsOpen ? "ui-line-3 ui-tint-2 ui-ink" : "ui-line-2 ui-surface ui-ink ui-press"
+            }`}
             aria-label={settingsOpen ? t("hud.settingsCloseAria") : t("hud.settingsOpenAria")}
             aria-expanded={settingsOpen}
+            title={settingsOpen ? t("hud.settingsCloseAria") : t("hud.settingsOpenAria")}
           >
-            {settingsOpen ? t("hud.settingsCloseLabel") : t("hud.settingsOpenLabel")}
+            <svg
+              viewBox="0 0 24 24"
+              width="20"
+              height="20"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 13a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V19a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H4a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H10a1.65 1.65 0 001-1.51V4a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V10a1.65 1.65 0 001.51 1H20a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z" />
+            </svg>
           </button>
 
           <div className="flex gap-2">
             <button
               onClick={() => setPhoneOpen((v) => !v)}
               className={`pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur-md transition active:scale-95 ${
-                phoneOpen
-                  ? "border-white/40 bg-white/25 text-white"
-                  : "border-white/20 bg-black/40 text-white/90 active:bg-white/15"
+                phoneOpen ? "ui-line-3 ui-tint-2 ui-ink" : "ui-line-2 ui-surface ui-ink ui-press"
               }`}
               aria-label={phoneOpen ? t("hud.phoneCloseAria") : t("hud.phoneOpenAria")}
               aria-pressed={phoneOpen}
@@ -5073,7 +6597,7 @@ function Aquafulness() {
 
             <button
               onClick={toggleFullscreen}
-              className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white/90 backdrop-blur-md transition active:scale-95 active:bg-white/15"
+              className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border ui-line-2 ui-surface ui-ink backdrop-blur-md transition active:scale-95 ui-press"
               aria-label={isFullscreen ? t("hud.fullscreenExitAria") : t("hud.fullscreenEnterAria")}
               aria-pressed={isFullscreen}
               title={isFullscreen ? t("hud.fullscreenExitAria") : t("hud.fullscreenEnterAria")}
@@ -5108,35 +6632,65 @@ function Aquafulness() {
                 </svg>
               )}
             </button>
+
+            <button
+              onClick={() => setShareBathOpen(true)}
+              className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border ui-line-2 ui-surface ui-ink backdrop-blur-md transition active:scale-95 ui-press"
+              aria-label={t("hud.shareBathAria")}
+              title={t("hud.shareBathAria")}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width="20"
+                height="20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="18" cy="5" r="3" />
+                <circle cx="6" cy="12" r="3" />
+                <circle cx="18" cy="19" r="3" />
+                <path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4" />
+              </svg>
+            </button>
           </div>
         </div>
 
+        <ShareBathDialog
+          open={shareBathOpen}
+          onClose={() => setShareBathOpen(false)}
+          buildBathLink={buildBathLink}
+        />
+
         {/* Collapsible settings panel */}
         {settingsOpen && (
-          <div className="pointer-events-auto absolute inset-x-0 top-14 z-20 mx-auto max-w-2xl px-4">
-            <div className="max-h-[70vh] overflow-y-auto rounded-3xl border border-white/15 bg-black/60 p-4 shadow-2xl backdrop-blur-xl">
+          <div className="pointer-events-auto absolute inset-x-0 top-16 z-20 mx-auto max-w-2xl px-6">
+            <div className="max-h-[70vh] overflow-y-auto rounded-3xl border ui-line-1 ui-surface-strong p-4 shadow-2xl backdrop-blur-xl">
               <SettingsPanel {...settingsPanelProps} />
             </div>
           </div>
         )}
 
         {/* PS-liknande layout:
-            Vänster sida: NAV (rörelse, momentan) längst ned, STRÖM (drift,
-            sticky) ovanför.
+            Vänster sida: NAV (rörelse, momentan) längst ned, STRÖM/NOCLIP
+            DRIFT XZ (drift, sticky) ovanför.
             Höger sida: LOOK (rotation, momentan) längst ned, VÅGRIKT
             (sticky) ovanför.
-            SVAJ delar STRÖM:s kolumn, ovanför STRÖM.
-            STRÖM/SVAJ/VÅGRIKT finns även i "Fjärrkontroll"-appen i
+            SVAJ (FRI) eller HÖJD + FRITT FALL/OMVÄND STIGNING (NOCLIP) delar
+            STRÖM/DRIFT XZ:s kolumn, ovanför den.
+            STRÖM/HÖJD/SVAJ/VÅGRIKT finns även i "Fjärrkontroll"-appen i
             bathOS-telefonen (se VirtualPhone.tsx) — samma state/handlers,
-            bara ett andra sätt att nå dem. HÖJD (noclip) finns bara där, för
-            att inte tränga undan de andra spakarna. I GUNGA-läget styrs
-            positionen helt av gungans fysik, så bara LOOK visas. */}
+            bara ett andra sätt att nå dem. I GUNGA-läget styrs positionen
+            helt av gungans fysik, så bara LOOK visas. */}
         {cameraMode !== "swing" && (
           <Joystick
             onChange={setStick}
             value={stick}
             label={t("hud.joystick.nav")}
-            positionClass="bottom-6 left-6"
+            positionClass="bottom-8 left-8"
           />
         )}
         {cameraMode === "float" && (
@@ -5144,7 +6698,7 @@ function Aquafulness() {
             onChange={remoteControllerProps.onDriftChange}
             value={remoteControllerProps.driftStick}
             label={t("hud.joystick.current")}
-            positionClass="bottom-36 left-6"
+            positionClass="bottom-36 left-8"
             sticky
           />
         )}
@@ -5153,69 +6707,198 @@ function Aquafulness() {
             onChange={remoteControllerProps.onSwayChange}
             value={remoteControllerProps.swayStick}
             label={t("hud.joystick.sway")}
-            positionClass="bottom-64 left-6"
+            positionClass="bottom-64 left-8"
             sticky
           />
+        )}
+        {/* NOCLIP replaces STRÖM/SVAJ's two slots with its own sticky drift
+            dials: DRIFT XZ (STRÖM's spot) and, above it (SVAJ's spot), a Y
+            drift pad (HÖJD/vertStick, made sticky here) flanked by two small
+            toggle buttons — OMVÄND STIGNING above, FRITT FALL below — that
+            each pin the vertical rate to a strong constant climb/dive. */}
+        {cameraMode === "noclip" && (
+          <Joystick
+            onChange={remoteControllerProps.onNoclipDriftChange}
+            value={remoteControllerProps.noclipDriftStick}
+            label={t("hud.joystick.noclipDriftXZ")}
+            positionClass="bottom-36 left-8"
+            sticky
+          />
+        )}
+        {cameraMode === "noclip" && (
+          <div className="pointer-events-none absolute bottom-64 left-8 z-10 select-none">
+            <div className="flex flex-col items-center gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setNoclipAutoAlternateOn(false);
+                  setNoclipReverseRiseOn((v) => !v);
+                }}
+                aria-pressed={noclipReverseRiseOn}
+                className={`pointer-events-auto rounded-full border px-2 py-0.5 text-[8px] font-light tracking-[0.2em] backdrop-blur-md transition active:scale-95 ${
+                  noclipReverseRiseOn
+                    ? "ui-line-3 ui-tint-2 ui-ink"
+                    : "ui-line-2 ui-surface ui-ink-muted"
+                }`}
+              >
+                {t("hud.joystick.reverseRise")}
+              </button>
+              <JoystickPad
+                label={t("hud.joystick.noclipDriftY")}
+                value={vertStick}
+                onChange={setVertStick}
+                sticky
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setNoclipAutoAlternateOn(false);
+                  setNoclipFreeFallOn((v) => !v);
+                }}
+                aria-pressed={noclipFreeFallOn}
+                className={`pointer-events-auto rounded-full border px-2 py-0.5 text-[8px] font-light tracking-[0.2em] backdrop-blur-md transition active:scale-95 ${
+                  noclipFreeFallOn
+                    ? "ui-line-3 ui-tint-2 ui-ink"
+                    : "ui-line-2 ui-surface ui-ink-muted"
+                }`}
+              >
+                {t("hud.joystick.freeFall")}
+              </button>
+              {/* Optional hands-off cycling between the two above, interval
+                  set in SETTINGS → KAMERA. */}
+              <button
+                type="button"
+                onClick={() => setNoclipAutoAlternateOn((v) => !v)}
+                aria-pressed={noclipAutoAlternateOn}
+                className={`pointer-events-auto rounded-full border px-2 py-0.5 text-[8px] font-light tracking-[0.2em] backdrop-blur-md transition active:scale-95 ${
+                  noclipAutoAlternateOn
+                    ? "ui-line-3 ui-tint-2 ui-ink"
+                    : "ui-line-2 ui-surface ui-ink-muted"
+                }`}
+              >
+                {t("hud.joystick.autoAlternate")}
+              </button>
+              {/* HEAVE/SWAY: opt in to riding the wave's own vertical bob/
+                  horizontal sway on top of the free-flight position — purely
+                  cosmetic (unlike FLYT/VIRVEL's real buoyancy), so it applies
+                  the same above or under the surface. Only takes effect while
+                  JUMP is in STILL (see the physics loop's noclip sway/heave
+                  branch), easing in/out with the same NOCLIP EASE dial as
+                  FRITT FALL/OMVÄND STIGNING. */}
+              <button
+                type="button"
+                onClick={() => setNoclipHeaveOn((v) => !v)}
+                aria-pressed={noclipHeaveOn}
+                className={`pointer-events-auto rounded-full border px-2 py-0.5 text-[8px] font-light tracking-[0.2em] backdrop-blur-md transition active:scale-95 ${
+                  noclipHeaveOn ? "ui-line-3 ui-tint-2 ui-ink" : "ui-line-2 ui-surface ui-ink-muted"
+                }`}
+              >
+                {t("hud.joystick.heave")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setNoclipSwayOn((v) => !v)}
+                aria-pressed={noclipSwayOn}
+                className={`pointer-events-auto rounded-full border px-2 py-0.5 text-[8px] font-light tracking-[0.2em] backdrop-blur-md transition active:scale-95 ${
+                  noclipSwayOn ? "ui-line-3 ui-tint-2 ui-ink" : "ui-line-2 ui-surface ui-ink-muted"
+                }`}
+              >
+                {t("hud.joystick.sway")}
+              </button>
+            </div>
+          </div>
         )}
         <Joystick
           onChange={setRotStick}
           value={rotStick}
           label={t("hud.joystick.look")}
-          positionClass="bottom-6 right-6"
+          positionClass="bottom-8 right-8"
         />
         {cameraMode === "float" && (
           <Joystick
             onChange={remoteControllerProps.onWaveDirChange}
             value={remoteControllerProps.waveDirStick}
             label={t("hud.joystick.waveDirection")}
-            positionClass="bottom-36 right-6"
+            positionClass="bottom-36 right-8"
             sticky
           />
         )}
+        {/* JUMP: a single tri-state slider (RISE/STILL/FALL) replacing the
+            left column's separate FRITT FALL/OMVÄND STIGNING pill buttons for
+            anyone who'd rather drag one control than tap two — both drive the
+            exact same state, so either stays in sync with the other. Sits in
+            VÅGRIKT's unused spot on the right since noclip has no wave
+            direction to steer. */}
+        {cameraMode === "noclip" && (
+          <div className="pointer-events-none absolute bottom-36 right-8 z-10 select-none">
+            <VerticalModeSlider
+              value={noclipVerticalMode}
+              onChange={setNoclipVerticalMode}
+              label={t("hud.joystick.jump")}
+            />
+          </div>
+        )}
 
-        {/* VÅG/TEMPO/FREKVENS sliders — live on the main HUD next to the
-            joysticks (not tucked into the SETTINGS dialog) so wave height,
-            speed and wavelength can be nudged without opening settings.
-            Bottom-center, clear of the joystick columns hugging each side;
-            always shown regardless of camera mode since all three affect the
-            wave mesh itself, not just float-mode physics.
-            Each is curved rather than linear (see PadSliderCurve): the useful
-            settings all live near the bottom of these ranges — VÅG's default
-            is 0.5 of 100 — so a linear track put every calm sea inside its
-            first pixel and made the first touch of the slider a cliff. */}
-        <div className="pointer-events-auto absolute bottom-6 left-1/2 flex -translate-x-1/2 flex-col items-center gap-2">
-          <PadSlider
-            label={t("hud.slider.wave")}
-            value={waveAmp}
-            min={0}
-            max={100}
-            step={0.5}
-            curve={4}
-            format={(v) => `${v.toFixed(2)}m`}
-            onChange={setWaveAmp}
-          />
-          <PadSlider
-            label={t("hud.slider.tempo")}
-            value={waveSpeed}
-            min={0}
-            max={10}
-            step={0.1}
-            curve={2}
-            format={(v) => `${v.toFixed(2)}×`}
-            onChange={setWaveSpeed}
-          />
-          {/* Geometric, not power-curved: FREKVENS is a multiplier, so half
-              speed (0.5×) and double (2×) should sit equally far from 1×. */}
-          <PadSlider
-            label={t("hud.slider.frequency")}
-            value={waveFreq}
-            min={WAVE_FREQ_MIN}
-            max={WAVE_FREQ_MAX}
-            step={0.05}
-            curve="log"
-            format={(v) => `${v.toFixed(2)}×`}
-            onChange={setWaveFreq}
-          />
+        {/* VÅG/TEMPO/FREKVENS — tucked behind their own bottom drawer (like
+            SETTINGS) instead of always-on sliders sitting right next to the
+            joysticks, so a stray touch near bottom-center can't accidentally
+            nudge wave height/speed/wavelength mid-session. Bottom-center,
+            clear of the joystick columns hugging each side; the drawer is
+            offered regardless of camera mode since all three affect the wave
+            mesh itself, not just float-mode physics.
+            Each slider is curved rather than linear (see PadSliderCurve): the
+            useful settings all live near the bottom of these ranges — VÅG's
+            default is 0.5 of 100 — so a linear track put every calm sea
+            inside its first pixel and made the first touch of the slider a
+            cliff. */}
+        <div className="pointer-events-auto absolute bottom-8 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center gap-2">
+          {waveDrawerOpen && (
+            <div className="flex flex-col items-center gap-2 rounded-3xl border ui-line-1 ui-surface-strong p-4 shadow-2xl backdrop-blur-xl">
+              <PadSlider
+                label={t("hud.slider.wave")}
+                value={waveAmp}
+                min={0}
+                max={100}
+                step={0.5}
+                curve={4}
+                format={(v) => `${v.toFixed(2)}m`}
+                onChange={setWaveAmp}
+              />
+              <PadSlider
+                label={t("hud.slider.tempo")}
+                value={waveSpeed}
+                min={0}
+                max={10}
+                step={0.1}
+                curve={2}
+                format={(v) => `${v.toFixed(2)}×`}
+                onChange={setWaveSpeed}
+              />
+              {/* Geometric, not power-curved: FREKVENS is a multiplier, so
+                  half speed (0.5×) and double (2×) should sit equally far
+                  from 1×. */}
+              <PadSlider
+                label={t("hud.slider.frequency")}
+                value={waveFreq}
+                min={WAVE_FREQ_MIN}
+                max={WAVE_FREQ_MAX}
+                step={0.05}
+                curve="log"
+                format={(v) => `${v.toFixed(2)}×`}
+                onChange={setWaveFreq}
+              />
+            </div>
+          )}
+          <button
+            onClick={() => setWaveDrawerOpen((v) => !v)}
+            className="rounded-full border ui-line-2 ui-surface px-5 py-2 text-[10px] font-light tracking-[0.35em] ui-ink backdrop-blur-md transition active:scale-95 ui-press"
+            aria-label={
+              waveDrawerOpen ? t("hud.waveDrawer.closeAria") : t("hud.waveDrawer.openAria")
+            }
+            aria-expanded={waveDrawerOpen}
+          >
+            {waveDrawerOpen ? t("hud.waveDrawer.closeLabel") : t("hud.waveDrawer.openLabel")}
+          </button>
         </div>
       </div>
 
@@ -5231,7 +6914,7 @@ function Aquafulness() {
           and dials. */}
       {intervalSessionOn && (
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-col-reverse">
-          <div className="h-1 w-full bg-white/10">
+          <div className="h-1 w-full ui-tint-1">
             <div
               className="h-full bg-emerald-400"
               style={{ width: `${Math.round(intervalProgress * 100)}%` }}
@@ -5247,7 +6930,7 @@ function Aquafulness() {
                       ? "bg-emerald-400"
                       : i === intervalIndex
                         ? "bg-emerald-400/50"
-                        : "bg-white/15"
+                        : "ui-tint-2"
                   }`}
                 />
               ))}
@@ -5255,7 +6938,7 @@ function Aquafulness() {
           )}
           {intervalShowStats && (
             <div className="mb-2 flex justify-center px-4">
-              <span className="rounded-full border border-white/15 bg-black/40 px-3 py-1 text-center text-[10px] font-light tracking-[0.15em] text-white/80 backdrop-blur-md">
+              <span className="rounded-full border ui-line-1 ui-surface px-3 py-1 text-center text-[10px] font-light tracking-[0.15em] ui-ink backdrop-blur-md">
                 {t(CAMERA_MODE_LABEL_KEYS[cameraMode])} · {formatClock(curIntervalElapsed)}/
                 {formatClock(intervalDuration)} (
                 {t("hud.intervalRemaining", { time: formatClock(curIntervalRemaining) })})
@@ -5440,7 +7123,7 @@ function LiveBroadcast() {
           <span className="text-[10px] font-bold tracking-[0.25em]">{t("live.badge")}</span>
         </div>
         <div
-          className="flex items-center gap-1.5 rounded-md bg-black/55 px-2 py-1 text-white/95 backdrop-blur-sm"
+          className="flex items-center gap-1.5 rounded-md ui-surface-strong px-2 py-1 ui-ink backdrop-blur-sm"
           style={{ animation: "aq-viewer-blip 2.6s ease-in-out infinite" }}
         >
           <svg
@@ -5460,15 +7143,15 @@ function LiveBroadcast() {
           <span className="text-[11px] font-medium tabular-nums tracking-wide">
             {formatViewerCount(viewers, t)}
           </span>
-          <span className="text-[9px] text-white/60">{t("live.cellsUnit")}</span>
+          <span className="text-[9px] ui-ink-muted">{t("live.cellsUnit")}</span>
         </div>
-        <div className="rounded-md bg-black/45 px-2 py-1 text-[10px] text-white/80 backdrop-blur-sm">
+        <div className="rounded-md ui-surface px-2 py-1 text-[10px] ui-ink backdrop-blur-sm">
           {t("live.followerFlow")}
         </div>
       </div>
 
       {/* Bottom-left engagement counter */}
-      <div className="absolute bottom-[calc(env(safe-area-inset-bottom,0px)+8rem)] right-4 flex items-center gap-1.5 rounded-full bg-black/50 px-2.5 py-1 text-white/95 backdrop-blur-sm">
+      <div className="absolute bottom-[calc(env(safe-area-inset-bottom,0px)+8rem)] right-4 flex items-center gap-1.5 rounded-full ui-surface-strong px-2.5 py-1 ui-ink backdrop-blur-sm">
         <span className="text-sm leading-none">❤️</span>
         <span className="text-[11px] font-medium tabular-nums">
           {likes.toLocaleString(i18n.language)}

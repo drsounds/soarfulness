@@ -1,0 +1,130 @@
+name: Docker image
+
+# Builds the production container image (see Dockerfile) and publishes it
+# to GitHub Container Registry along with an SBOM and build provenance as
+# workflow artifacts/attestations, when run on main or a version tag.
+#
+# No automatic push/pull_request trigger: this repeatedly hit "Artifact
+# storage quota has been hit" on every PR run (see git history for the
+# repeated workarounds), burning the account's free Actions quota on
+# builds nobody was waiting on. Run manually via workflow_dispatch instead.
+on:
+  workflow_dispatch: {}
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  TEST_IMAGE: aquafulness-ci:test
+
+jobs:
+  build:
+    name: Build and publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Single-platform build loaded into the local Docker daemon so it can
+      # be smoke-tested and scanned before anything is published.
+      - name: Build image for smoke test
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          load: true
+          tags: ${{ env.TEST_IMAGE }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test container
+        run: |
+          set -eu
+          docker run -d --name aquafulness -p 3000:3000 "$TEST_IMAGE"
+          ok=""
+          for i in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:3000/ -o /dev/null; then
+              ok=1
+              break
+            fi
+            sleep 1
+          done
+          docker logs aquafulness
+          [ -n "$ok" ] || { echo "Server did not respond in time" >&2; exit 1; }
+          echo "Server responded OK"
+
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ env.TEST_IMAGE }}
+          format: spdx-json
+          output-file: sbom.spdx.json
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-${{ github.sha }}
+          path: sbom.spdx.json
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract image metadata
+        if: github.event_name != 'pull_request'
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,format=long
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push multi-arch image
+        if: github.event_name != 'pull_request'
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Attest build provenance
+        if: github.event_name != 'pull_request'
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+      - name: Image summary
+        if: github.event_name != 'pull_request'
+        run: |
+          {
+            echo "### Docker image published"
+            echo ""
+            echo "\`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}\`"
+            echo ""
+            echo "Tags:"
+            echo '${{ steps.meta.outputs.tags }}' | sed 's/^/- /'
+          } >> "$GITHUB_STEP_SUMMARY"

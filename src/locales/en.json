@@ -1,19 +1,96 @@
 {
+  "about": {
+    "backToApp": "Back to app",
+    "lastUpdated": "Last updated: August 28, 2026",
+    "navLabel": "ABOUT",
+    "sections": {
+      "aiTransparency": {
+        "body": "We believe in being upfront about how AI is used to build and create this experience.",
+        "heading": "AI transparency",
+        "points": [
+          "Coding: this app is built with AI coding tools, including Lovable and Claude Code.",
+          "Water sounds: generated with ElevenLabs.io and combined with mixed Creative Commons sounds from freesound.org.",
+          "Images: generated and processed using Gemini, Nano Banana, and Adobe Firefly.",
+          "Our stance: AI is a tool for expression and implementation. The underlying ideas are ours, and we never let AI make the creative decisions."
+        ]
+      },
+      "disclaimer": {
+        "heading": "Disclaimer",
+        "points": [
+          "This app is provided for entertainment purposes only.",
+          "It does not offer, and must not be relied on for, any financial, medical, health, or wellbeing benefit or advice.",
+          "Nothing in the app constitutes professional advice; consult a qualified professional for financial, medical, or health matters.",
+          "The app is provided \"as is\", without warranties of any kind, and to the maximum extent permitted by law, Alexander Forselius accepts no liability for any loss, injury, or damage arising from its use."
+        ]
+      },
+      "documentation": {
+        "body": "Curious about the theory behind Aquafulness — digital bathing, the sine-oscillation theory, and why watching waves is designed to feel calming? Read the full case study.",
+        "heading": "Documentation",
+        "linkLabel": "Read the documentation"
+      },
+      "intro": {
+        "body": "Aquafulness is a calming, browser-based ocean wave visualization created for personal relaxation and ambient viewing. It is an independent hobby project, not a commercial product, and not a medical device.",
+        "heading": "About this app"
+      },
+      "openSource": {
+        "body": "Several pieces of amazing free and open source software made Aquafulness possible. As some of them require a link or license to be included, we want to honor all the amazing software that made this app possible.",
+        "heading": "Open source software",
+        "linkLabel": "View third-party licenses"
+      },
+      "product": {
+        "body": "Aquafulness is free, ad-free entertainment software: an interactive 3D ocean scene that runs in your browser using WebGL. It requires no installation, no account, and no payment, and it does not connect to any external service beyond the hosting platform described in the Privacy Policy below.",
+        "heading": "Nature of the digital content"
+      },
+      "trader": {
+        "address": "Floragatan 21D, 531 37 Lidköping, Sweden",
+        "addressLabel": "Address",
+        "capacity": "This app is provided by Alexander Forselius as a private individual, not through a registered company.",
+        "email": "drsounds@gmail.com",
+        "emailLabel": "Email",
+        "heading": "Operator and contact details",
+        "name": "Alexander Forselius",
+        "note": "In line with EU consumer protection and product safety requirements for digital products — including Directive (EU) 2019/770 on digital content and services, the Consumer Rights Directive 2011/83/EU, and the e-Commerce Directive 2000/31/EC — here is who is responsible for this app and how to reach them.",
+        "phone": "+46 (0) 728-87 28 90",
+        "phoneLabel": "Phone"
+      }
+    },
+    "title": "About Aquafulness"
+  },
+  "bathing": {
+    "bathe": "BATHE",
+    "defaultDescription": "Step into this ocean exactly as it was left.",
+    "defaultTitle": "A shared bath",
+    "goHome": "Go home",
+    "invalidMessage": "It may be truncated or corrupted. You can still start fresh instead.",
+    "invalidTitle": "This bath link couldn't be read",
+    "shareAria": "Share this bath"
+  },
   "camera": {
     "mode": {
       "autoSuffix": "(AUTO)",
       "float": "FREE",
       "noclip": "NOCLIP",
-      "swing": "SWING"
+      "swing": "SWING",
+      "whirlpool": "WHIRLPOOL"
     },
     "rotationValue": {
       "fixed": "FIXED",
       "leanForward": "LEAN FORWARD"
+    },
+    "whirlpoolDirection": {
+      "ccw": "COUNTER-CLOCKWISE",
+      "cw": "CLOCKWISE"
+    },
+    "whirlpoolExitMode": {
+      "reverseSpin": "REVERSE SPIN",
+      "throwBack": "THROWN BACK"
     }
   },
   "common": {
     "against": "AGAINST",
     "auto": "AUTO",
+    "cancel": "CANCEL",
+    "close": "CLOSE",
     "decreaseAria": "{{label}} decrease",
     "high": "HÖG",
     "increaseAria": "{{label}} increase",
@@ -23,17 +100,27 @@
     "off": "OFF",
     "on": "ON",
     "opacity": "OPACITY",
+    "resetAria": "{{label}} reset",
     "texture": "TEXTURE",
     "with": "WITH"
+  },
+  "consent": {
+    "accept": "ACCEPT",
+    "body": "We'd like to use Google Analytics to understand how the app is used. No personal data is sold or shared. You can decline without anything changing.",
+    "decline": "DECLINE",
+    "title": "Cookies & analytics"
   },
   "dial": {
     "audio": {
       "off": "SOUND OFF",
       "on": "SOUND ON",
+      "sound": "WATER SOUND",
       "spatial": "SPATIAL",
       "syncSpeed": "SOUND SYNC"
     },
     "camera": {
+      "chromaticAberration": "CHROMATIC ABERRATION",
+      "chromaticAberrationAmount": "ABERRATION AMOUNT",
       "far": "FAR",
       "fov": "FOV",
       "goggles": "SWIMMING GOGGLES",
@@ -43,13 +130,21 @@
       "gogglesLoop": "DROPLET LOOP",
       "intervalCount": "NUMBER OF INTERVALS",
       "intervalDuration": "INTERVAL",
+      "intervalIncludeFloat": "INTERVAL: DEFAULT",
+      "intervalIncludeSwing": "INTERVAL: SWING",
+      "intervalIncludeWhirlpool": "INTERVAL: WHIRLPOOL",
       "intervalSession": "INTERVAL SESSION",
       "mode": "CAMERA MODE",
       "near": "NEAR",
+      "noclipAutoAlternate": "AUTO ALTERNATE",
+      "noclipAutoAlternateInterval": "ALTERNATE INTERVAL",
+      "noclipFallRiseSpeed": "FALL/RISE SPEED",
       "noclipSpeed": "NOCLIP SPEED",
+      "noclipVertEaseTime": "FALL/RISE EASE",
       "posX": "POS X",
       "posY": "POS Y",
       "posZ": "POS Z",
+      "resolutionScale": "RESOLUTION",
       "rotation": "ROTATION",
       "sessionType": "SESSION TYPE",
       "showStats": "SHOW TIME",
@@ -57,12 +152,18 @@
       "swingIntensity": "SWING INTENSITY",
       "swingPositionY": "SWING POSITION Y",
       "swingStart": "SWING START",
+      "swingTornado": "TORNADO",
+      "swingTornadoDirection": "TORNADO DIRECTION",
+      "swingTornadoRadius": "TORNADO RADIUS",
+      "swingTornadoSpeed": "TORNADO SPEED",
       "swingXFactor": "SWING X",
       "swingYWaveform": "SWING Y WAVEFORM",
+      "targetFps": "FRAME RATE CAP",
       "wakeLock": "AWAKE"
     },
     "env": {
       "backdrop": "BACKDROP",
+      "cloudFadeSpeed": "CLOUD FADE SPEED",
       "dayTime": "TIME OF DAY",
       "environment": "ENVIRONMENT",
       "era": "ERA",
@@ -84,31 +185,37 @@
       "torusTube": "THICKNESS",
       "torusVerticalCount": "RINGS/COLUMN",
       "torusVerticalSpacing": "GRID HEIGHT",
-      "torusViewDistance": "VIEW DISTANCE"
+      "torusViewDistance": "VIEW DISTANCE",
+      "worldBoundary": "WORLD BOUNDARY",
+      "worldBoundaryHeight": "BOUNDARY HEIGHT (Y)",
+      "worldBoundarySize": "BOUNDARY SIZE (XZ)",
+      "worldBoundaryYExtend": "INFINITE CLOUD LAYERS"
     },
     "water": {
       "bottom": "BOTTOM",
       "bottomColor": "BOTTOM COLOR",
       "brightness": "BRIGHTNESS",
       "caustics": "TRUE CAUSTICS",
+      "color": "WATER",
+      "colorAlpha": "COLOR STRENGTH",
       "depth": "DEPTH",
       "depthSine": "DEPTH SINE",
       "floorTexture": "TEXTURE",
       "hue": "HUE",
-      "reflStrength": "STRENGTH",
+      "pickColor": "PICK COLOR",
       "reflection": "REFLECTION",
+      "reflStrength": "STRENGTH",
       "saturation": "SATURATION",
       "sineAmp": "SINE AMP",
       "sineFreq": "SINE FREQ",
       "sphereStrength": "SPHERE STRENGTH",
-      "surfBright": "SURFACE LIGHT",
-      "surfSat": "SURFACE SATURATION",
       "surface": "WATER SURFACE",
       "surfaceValue": {
         "hide": "HIDE",
         "visible": "VISIBLE"
       },
-      "tint": "WATER",
+      "surfBright": "SURFACE LIGHT",
+      "surfSat": "SURFACE SATURATION",
       "turbidity": "TURBIDITY",
       "waveMaterial": "WAVE MATERIAL",
       "waveMaterialValue": {
@@ -118,24 +225,19 @@
     },
     "wave": {
       "amp": "WAVE",
+      "anticipation": "ANTICIPATION",
       "bob": "BOB",
       "bobSpeed": "BOB TEMPO",
       "crossWave": "CROSS WAVE",
       "currentDirection": "CURRENT DIRECTION",
-      "distance": "DISTANCE",
       "dive": "DIVE",
       "dyingWave": "DYING WAVE",
       "dyingWaveHeight": "DYING WAVE HEIGHT",
       "dyingWaveSpeed": "DYING WAVE TEMPO",
       "floatLift": "FLOAT",
       "freq": "FREQUENCY",
+      "heaveSkew": "HEAVE SKEW",
       "height": "HEIGHT",
-      "mode": "MODE",
-      "modeValue": {
-        "ocean": "OCEAN",
-        "vortex": "VORTEX"
-      },
-      "opening": "OPENING",
       "peak": "PEAK",
       "preset": "WAVE PRESET",
       "quality": "QUALITY",
@@ -151,14 +253,321 @@
       "swaySpeed": "SWAY TEMPO",
       "trochoid": "TROCHOID",
       "trochoidOff": "OFF",
-      "vortexSpeed": "VORTEX TEMPO",
       "waveDirection": "WAVE DIRECTION",
-      "wavePeriod": "WAVE PERIOD",
       "waveform": "WAVEFORM",
       "waveformValue": {
         "regular": "REGULAR",
         "spread": "SPREAD"
-      }
+      },
+      "wavePeriod": "WAVE PERIOD",
+      "whirlpoolDirection": "WHIRLPOOL DIRECTION",
+      "whirlpoolDistance": "DISTANCE TO CENTER",
+      "whirlpoolDragDuration": "DRAG-IN LENGTH",
+      "whirlpoolDragSpeed": "DRAG-IN SPEED",
+      "whirlpoolExitMode": "EXIT MODE",
+      "whirlpoolExitSpeed": "EXIT SPEED",
+      "whirlpoolOpening": "OPENING",
+      "whirlpoolSequence": "AUTO SEQUENCE",
+      "whirlpoolSpeed": "WHIRLPOOL SPEED",
+      "whirlpoolStayDuration": "STAY INSIDE"
+    }
+  },
+  "docsPhilosophy": {
+    "background": {
+      "disclaimer": {
+        "bodyAfter": "and the personal experience and design theory of the project's creator. It contains no medical claims. Where effects on mood or relaxation are described, they describe subjective experience and design intent, not clinically established outcomes.",
+        "bodyBefore": "this page summarizes the",
+        "emphasis": "Aquafulness Case Study",
+        "label": "Disclaimer:"
+      },
+      "section1": {
+        "availability": {
+          "body": "Unlike running or cycling, swimming requires infrastructure: a pool, or natural water with the right conditions. Pools are expensive to build and operate, are typically municipal, and keep limited hours. Natural water in a temperate climate like Sweden's averages 13–17 °C even at the July peak — cold enough that most of the year it is simply not an option — and open water brings currents, algae blooms and cold shock on top of absent supervision.",
+          "title": "Availability"
+        },
+        "conclusionBody": "bathing is double-edged. The pleasure, the calm and the exercise are real; so are the financial, hygienic, safety and availability barriers. The goal of Aquafulness is to recreate some of the most anticipated positive effects of bathing without the immersion — available at any hour, in any weather, to anyone with a screen.",
+        "conclusionLabel": "The conclusion:",
+        "cost": {
+          "body": "Entry fees to Swedish public baths have risen markedly with inflation and energy prices — typically 70–200 SEK per adult visit, with season passes at 1,500–3,000 SEK. Even with discounts for students, retirees and prescription-based physical activity (FaR), prices are prohibitive for many.",
+          "title": "Cost"
+        },
+        "dressCodes": {
+          "body": "Hygiene and safety rules restrict pool clothing to swimwear textiles (lycra/spandex), since ordinary cotton clothing sheds particles, carries germs and — heavy with water — increases drowning risk. At the same time, a growing share of guests prefer, for religious, cultural or neurodiversity reasons, swimwear that covers the body more fully. The resulting tension has been genuinely contentious; facilities increasingly respond with full-cover swimwear (such as the burkini) available for hire, and with dedicated quiet or group-specific hours.",
+          "title": "Dress codes and inclusivity"
+        },
+        "hygiene": {
+          "body": "Shared water and shared facilities (locker rooms, floors, furniture) carry infection risks ranging from skin conditions to serious waterborne illness. The chlorine used to control germs brings its own concerns for regular bathers and for staff.",
+          "title": "Hygiene"
+        },
+        "overcrowding": {
+          "body": "Because bathing is so popular, facilities and beaches crowd heavily outside office hours and on holidays — raising germ loads, collision and drowning risk, and noise that itself excludes people who find crowds difficult.",
+          "title": "Overcrowding"
+        },
+        "p1": "Bathing is a rare kind of activity. Immersion in warm water engages many senses at once and, unlike most physical activity, produces sensations of calm, relaxation, weightlessness and gentle massage. For many people, time in the water is a cornerstone of well-being, and swimming has long been among the most popular of all leisure activities.",
+        "p2": "But the case study behind Aquafulness catalogues an equally long list of barriers and downsides to real-world bathing:",
+        "safety": {
+          "body": "Drowning is the most serious danger of water, in pools and open water alike. Rescue that comes too late — or almost too late — can mean death or lifelong disability. This is why pools are staffed with lifeguards, enforce dress codes, and cap the number of bathers.",
+          "title": "Safety"
+        },
+        "title": "Why bathe digitally?",
+        "travel": {
+          "body": "Chasing warm water abroad — Gran Canaria, Thailand, Mallorca — costs a Swedish household roughly 28,000–150,000 SEK for a week, increasingly financed on credit. Add visas, insurance against catastrophic hospital bills, unfamiliar legal systems, intense sun, and ocean hazards from rip currents to stinging aquatic life. The case study also notes that the geopolitical shocks of the 2020s — the pandemic, the war in Ukraine, escalation in the Middle East — have made travel abroad riskier and less certain than it has been in decades.",
+          "title": "Travel"
+        }
+      },
+      "section2": {
+        "audiovisual": {
+          "body": "what works best. Sound and image reinforce each other, so neither channel has to carry the experience alone.",
+          "term": "Audiovisual combination"
+        },
+        "auditory": {
+          "body": "the most common method historically, from 1980s field-recording cassettes of ocean waves to modern generative soundscape apps. Effective, but it still leans on imagination to fill in the picture, which carries cognitive cost.",
+          "term": "Auditory stimulation"
+        },
+        "conclusion": "Aquafulness is built on the audiovisual combination.",
+        "imagination": {
+          "body": "the most primitive method. It works, but demands freedom from distraction and is cognitively expensive; it succeeds best when the person is already relaxed.",
+          "term": "Imagination"
+        },
+        "p1After": ", and it surveys the main seeding channels:",
+        "p1Before": "To evoke the mental effect of bathing without water, the experience must activate the same associations the mind holds for real bathing. The case study's term for artificially inducing the bathing feeling is",
+        "p1Emphasis": "seeding",
+        "title": "Methodology: seeding the feeling of water",
+        "visual": {
+          "body": "the sight of water is itself calming; the case study points to the popularly termed \"blue mind\" effect of gazing at the ocean.",
+          "term": "Visual stimulation"
+        }
+      },
+      "section3": {
+        "p1": "The case study then asks the deeper question: what actually is the soothing thing about water?",
+        "p2After": ". The felt qualities of calm warm water — weightlessness, smoothness, the sense of being held, carried, and cared for, perhaps rooted as far back as prenatal experience — all share one physical signature: the flow and force of calm water is a sinusoidal oscillation. Whether you watch water move, hear it lap, or feel it carry you, the stimulus arriving at the senses is smooth, periodic, and predictable. The theory is that this oscillation entrains the observer toward the same calm.",
+        "p2Before": "Its answer — offered as a personal theory, not established science — is the",
+        "p2Emphasis": "sine wave",
+        "p3After": "for the soothed state this stimulation induces.",
+        "p3Before": "The case study coins the term",
+        "p3Emphasis": "\"aquaful\"",
+        "title": "The sine-oscillation theory and the \"aquaful\" state"
+      },
+      "section4": {
+        "footerAfter": ".",
+        "footerBefore": "This app (\"Aquafulness Core\") implements the same algorithm in the browser with three.js and WebGL — a from-the-ground-up rebuild of the original",
+        "footerLinkText": "Godot-based Aquafulness",
+        "footerMiddle": "for the web. Why these techniques are expected to feel like floating is the subject of",
+        "footerPageLink": "the perception page",
+        "p1": "From theory to design, the solution is stated plainly in the case study:",
+        "p2": "Concretely, this becomes:",
+        "quote": "Create an audiovisual digital experience that resembles the point of view of a bather immersed in a warm lake. Emphasize the colors — the light-brown-to-blue nature of real water — and let that image be an overlay to a visual where the projection smoothly moves like a wave, to induce a kinesthetic perception of being immersed in water which flows with you back and forward — the sense of being cared for, the bobbing movement.",
+        "quoteEmphasis": "This is the fundamental algorithm.",
+        "steps": [
+          "A first-person camera placed at bather height in an ocean or lake scene.",
+          "The camera's position driven by smooth periodic motion, rocking the entire rendered image the way a floating body rocks.",
+          "Water surfaces whose vertices and textures move in slow sinusoidal waves, in natural water colors.",
+          "Ocean and wind audio loops underneath."
+        ],
+        "title": "The fundamental algorithm"
+      },
+      "title": "Background and Purpose: Digital Bathing"
+    },
+    "index": {
+      "card1": {
+        "bodyAfter": "methodology, the sine-oscillation theory, and the \"aquaful\" state the app tries to induce.",
+        "bodyBefore": "The concept of digital bathing, the case study behind the project, the",
+        "bodyEmphasis": "seeding",
+        "title": "1. Background and purpose"
+      },
+      "card2": {
+        "body": "How the visualization is designed around visual self-motion: slow coherent optic flow, rocking of the whole visual field, and the goal of recreating the felt experience of floating in warm water.",
+        "title": "2. Optic flow and kinesthetic movement"
+      },
+      "card3": {
+        "body": "Real, peer-reviewed studies on optic flow, vection, rocking/vestibular stimulation and watching water, with Harvard citations and links to PubMed/DOI.",
+        "title": "3. Scientific references"
+      },
+      "disclaimerBody": "everything below describes design intent grounded in the personal experience of the project's creator, together with generally known perceptual concepts used as design inspiration. No medical claims are made. Aquafulness is not a medical device or therapy, and no statement here about calm, relaxation or well-being should be read as a clinically validated outcome.",
+      "disclaimerLabel": "Disclaimer:",
+      "footerAfter": ", where this documentation originates.",
+      "footerBefore": "This app (\"Aquafulness Core\") shares its underlying theory with the original Godot-based",
+      "footerLinkText": "Aquafulness",
+      "intro": "This is the theory behind Aquafulness: where the idea comes from, and the perceptual principles — optic flow and kinesthetic movement — that the design leans on.",
+      "title": "Documentation"
+    },
+    "nav": {
+      "backToAbout": "About",
+      "backToApp": "Back to app",
+      "backToDocs": "Documentation"
+    },
+    "opticFlow": {
+      "disclaimerBody": "this page describes design reasoning, grounded in the personal experience of the project's creator and in generally known perceptual concepts used here as inspiration. It makes no medical claims. Aquafulness has not been clinically evaluated; nothing below asserts a therapeutic effect, and individual experience will vary.",
+      "disclaimerLabel": "Disclaimer:",
+      "furtherReading": {
+        "after": "for real, peer-reviewed studies with Harvard citations and PubMed/DOI links.",
+        "before": "The terms used above — optic flow, vection, and slow vestibular (\"heave\") stimulation — are established in the perception and sleep-science literature, though not tested on Aquafulness itself. See",
+        "link": "Scientific references"
+      },
+      "section1": {
+        "p1After": "— is that sight and sound, done right, can cue the memory of the rest. The brain that has floated in a warm lake knows what that full sensory bundle feels like; a sufficiently evocative audiovisual fragment invites it to fill in the remainder.",
+        "p1Before": "Real bathing is multisensory: skin temperature, buoyancy relieving the joints, hydrostatic pressure, the vestibular signal of being rocked, the sound of water, the sight of it. A screen and a speaker can address only two of those channels. The bet Aquafulness makes — the case study calls it",
+        "p1Emphasis": "seeding",
+        "p2": "The question is what \"done right\" means. Aquafulness's answer has three parts: coherent optic flow, whole-field oscillation, and the sine wave as the common signature of calm water.",
+        "title": "The design problem"
+      },
+      "section2": {
+        "layer1": {
+          "body": "The camera's height rides a smooth periodic oscillation, so every pixel of the rendered image translates up and down together, with the smooth acceleration profile of a real swell. Whole-field coherent motion is exactly the stimulus class the visual system treats as evidence of self-motion rather than object motion.",
+          "term": "Whole-field rocking."
+        },
+        "layer2": {
+          "body": "The water's texture and displacement drift slowly and continuously across the surface. This is the classic laminar flow pattern of water moving past a floating observer — unhurried, uniform, endless. There is no destination and no event; the flow signals only that the water is alive and carrying you.",
+          "term": "Surface flow."
+        },
+        "layer3": {
+          "body": "The water surface itself rises and falls in an interference pattern of overlapping waves — in this app, a sum of sinusoids sampled from a directional wave spectrum — so nearby crests and far troughs move in the counter-phased way real swell does, giving the flow field believable depth structure rather than a flat scroll.",
+          "term": "Undulation."
+        },
+        "p1Body": "is the pattern of motion across the entire visual field that an observer experiences as they — or their surroundings — move. It is one of the strongest visual cues the brain uses to work out its own motion: a flow field expanding from a point ahead reads as moving forward; the whole scene translating gently upward reads as you sinking, and downward as rising.",
+        "p1Term": "Optic flow",
+        "p2": "Aquafulness constructs its optic flow from three layers:",
+        "p3After": ".",
+        "p3Before": "Together these produce the specific optic-flow diet of a bather: global, slow, periodic, coherent. Nothing in the scene moves abruptly; nothing demands a saccade; nothing violates the prediction the last few seconds established. In the vocabulary of the case study, the visual channel is being fed a",
+        "p3Emphasis": "pure sine oscillation",
+        "title": "Optic flow: the visual signature of moving through water"
+      },
+      "section3": {
+        "bullet1After": ", not to objects in the scene, so the induced interpretation is \"my body is bobbing,\" not \"that buoy is bobbing.\"",
+        "bullet1Before": "The rocking is applied to the",
+        "bullet1Emphasis": "camera",
+        "bullet2": "The bob sits at the tempo of a slow, comfortable swell — the rhythm of a hammock or a slowly rocked cradle rather than of chop or turbulence. Slow rocking of this kind is widely associated, in everyday experience, with soothing; the case study grounds it more personally, in the feeling of being held and cared for, speculating that it may root as deep as prenatal experience.",
+        "bullet3": "Wave height, speed and style are user-adjustable in the app's settings, because comfort thresholds differ — the same motion that reads as delicious swaying to one person is too much for another.",
+        "p1After": "— the compelling illusion of self-motion in the absence of any physical movement (the railway-carriage effect: the train beside yours pulls away and you feel you are moving). Vection is the bridge from watching water to feeling carried by it.",
+        "p1Before": "When a large portion of the visual field moves coherently, observers commonly experience",
+        "p1Emphasis": "vection",
+        "p2": "Aquafulness is deliberately built to invite a gentle, oscillatory vection:",
+        "p3After": "here means the felt sense of one's own body's position and motion: the goal is not that the user judges the water looks nice, but that their body, at some level, feels rocked.",
+        "p3Before": "The case study names the intended result directly: the projection moving smoothly like a wave should \"induce a kinesthetic perception of being immersed in water which flows with you back and forward\" — the bobbing movement, the sense of being cared for.",
+        "p3Term": "Kinesthetic",
+        "p4": "Two design choices support comfort in this induced motion:",
+        "predictability": {
+          "body": "Sinusoidal motion is maximally predictable — the brain locks onto the rhythm within a cycle or two, so the visual-vestibular mismatch (the eyes report rocking, the inner ear reports stillness) stays gentle and expected. Erratic or accelerating motion with the same mismatch is what tends toward discomfort; a pure slow sine is about the mildest possible form of it.",
+          "term": "Predictability."
+        },
+        "stableFrame": {
+          "body": "On a phone or laptop screen, the device's bezel and the room beyond remain visible and stationary, which naturally limits vection to a pleasant, partial sensation rather than a destabilizing one. A fully enclosing display is correspondingly the setting where the floating illusion can become strongest.",
+          "term": "A stable frame."
+        },
+        "title": "Vection and kinesthetic movement: seeing motion, feeling motion"
+      },
+      "section4": {
+        "p1": "Why should any of this be calming? The case study's reasoning, offered as personal theory:",
+        "p2After": "— the unhurried rocking, the living surface, the water light — for the many situations where real bathing is out of reach: the wrong hour, the wrong season, the wrong budget, a crowded pool, a body or mind that finds the facility difficult, or simply a five-minute pause at a desk.",
+        "p2Before": "The purpose, then, is modest and specific:",
+        "p2Emphasis": "to recreate, through visualization, the calming of bathing",
+        "reason1": {
+          "body": "The sight of open water — the popularly termed \"blue mind\" observation — is soothing to most people, independent of any illusion of motion. Aquafulness leans into this with its natural palette: the light-brown-to-blue colors of a real lake or ocean, warm tones under translucent blue-green water, a saturation-lifted sky.",
+          "term": "Watching water is calming in itself."
+        },
+        "reason2": {
+          "body": "Everything a calm bath presents to the senses — the swell you feel, the lapping you hear, the flow you see — is smooth periodic oscillation. The theory is that presenting this same signature through the available channels (eyes and ears) entrains the observer toward the state the full-immersion version produces: the state the case study coins \"aquaful.\"",
+          "term": "The common denominator of calm water is the sine wave."
+        },
+        "reason3": {
+          "body": "The experience is composed to match the memory of a specific, good place — floating in warm, open water. Sound reinforces sight: ocean and wind audio supply the auditory sine bed so the visuals don't have to carry the association alone. This is the audiovisual combination the case study identifies as the most effective seeding method — stronger than sound alone, which still taxes the imagination, and far cheaper cognitively than imagination alone.",
+          "term": "Association completes the picture."
+        },
+        "title": "The calming purpose: recreating the bath"
+      },
+      "section5": {
+        "p1": "It bears repeating outside the disclaimer: Aquafulness does not claim to lower blood pressure, treat anxiety, replace exercise, or produce any measured clinical effect. It is a visualization built on one person's careful attention to why bathing feels the way it does, and on well-worn perceptual ideas — optic flow, vection, the soothing quality of slow rhythm — used as craft, the way a filmmaker uses them, not as medicine. If it gives you three minutes of the ocean in the middle of winter, it has done its job.",
+        "title": "What this is not"
+      },
+      "seeAlsoBefore": "See also:",
+      "seeAlsoLink": "Background and purpose",
+      "title": "Optic Flow and Kinesthetic Movement"
+    },
+    "references": {
+      "groups": [
+        {
+          "citations": [
+            {
+              "text": "Wright, W.G., DiZio, P. and Lackner, J.R. (2005) 'Vertical linear self-motion perception during visual and inertial motion: more than weighted summation of sensory inputs', Journal of Vestibular Research, 15(4), pp. 185–195.",
+              "url": "https://pubmed.ncbi.nlm.nih.gov/16286700/"
+            },
+            {
+              "text": "Nakamura, S., Palmisano, S. and Kim, J. (2016) 'Relative visual oscillation can facilitate visually induced self-motion perception', i-Perception, 7(4), pp. 1–18. doi: 10.1177/2041669516661903.",
+              "url": "https://pubmed.ncbi.nlm.nih.gov/27698982/"
+            },
+            {
+              "text": "Wang, W., Yang, K. and Zhu, Y. (2021) 'Optimal frequency and amplitude of vertical viewpoint oscillation for improving vection strength and reducing neural constraints on gait', Entropy, 23(5), 541. doi: 10.3390/e23050541.",
+              "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8145014/"
+            },
+            {
+              "text": "Nooij, S.A.E., Pretto, P. and Bülthoff, H.H. (2018) 'More vection means more velocity storage activity: a factor in visually induced motion sickness?', Experimental Brain Research, 236(11), pp. 3031–3041. doi: 10.1007/s00221-018-5340-1.",
+              "url": "https://pubmed.ncbi.nlm.nih.gov/30120498/"
+            }
+          ],
+          "note": "Together these show that oscillatory visual motion alone — without any physical movement — induces the perception of self-motion, that vertical viewpoint oscillation (the app's \"whole-field rocking\") measurably strengthens that illusion, and, as a caveat, that stronger vection is also linked to a higher risk of visually induced motion sickness — why the app keeps motion slow and user-adjustable rather than maximizing vection strength.",
+          "title": "Optic flow, vection and self-motion perception"
+        },
+        {
+          "citations": [
+            {
+              "text": "Yang, A.H.X., Khwaounjoo, P. and Cakmak, Y.O. (2021) 'Directional effects of whole-body spinning and visual flow in virtual reality on vagal neuromodulation', Journal of Vestibular Research, 31(6), pp. 479–494. doi: 10.3233/VES-201574.",
+              "url": "https://pubmed.ncbi.nlm.nih.gov/34024797/"
+            },
+            {
+              "text": "Kuldavletova, O., Denise, P., Normand, H., Quarck, G. and Etard, O.M. (2023) 'Both whole-body rotation and visual flow induce cardiovascular autonomic response in human, but visual response is overridden by vestibular stimulation', Scientific Reports, 13, 4191. doi: 10.1038/s41598-023-31431-z.",
+              "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10015060/"
+            }
+          ],
+          "note": "Both studies find that optic flow alone — with no physical motion — measurably shifts vagal/parasympathetic activity, the physiological substrate of the \"calming\" claim made about coherent visual flow.",
+          "title": "Visual flow and autonomic (vagal/parasympathetic) response"
+        },
+        {
+          "citations": [
+            {
+              "text": "Bayer, L., Constantinescu, I., Perrig, S., Vienne, J., Vidal, P.-P., Mühlethaler, M. and Schwartz, S. (2011) 'Rocking synchronizes brain waves during a short nap', Current Biology, 21(12), pp. R461–R462. doi: 10.1016/j.cub.2011.05.012.",
+              "url": "https://pubmed.ncbi.nlm.nih.gov/21683897/"
+            },
+            {
+              "text": "Omlin, X., Crivelli, F., Näf, M., Heinicke, L., Skorucak, J., Malafeev, A., Fernandez Guerrero, A., Riener, R. and Achermann, P. (2018) 'The effect of a slowly rocking bed on sleep', Scientific Reports, 8, 2156. doi: 10.1038/s41598-018-19880-3.",
+              "url": "https://pubmed.ncbi.nlm.nih.gov/29391413/"
+            },
+            {
+              "text": "Perrault, A.A., Khani, A., Quairiaux, C., Kompotis, K., Franken, P., Mühlethaler, M., Schwartz, S. and Bayer, L. (2019) 'Whole-night continuous rocking entrains spontaneous neural oscillations with benefits for sleep and memory', Current Biology, 29(3), pp. 402–411.e3. doi: 10.1016/j.cub.2018.12.028.",
+              "url": "https://doi.org/10.1016/j.cub.2018.12.028"
+            },
+            {
+              "text": "van Sluijs, R.M., Rondei, Q.J., Schluep, D., Jäger, L., Riener, R., Achermann, P. and Wilhelm, E. (2020) 'Effect of rocking movements on afternoon sleep', Frontiers in Neuroscience, 13, 1446. doi: 10.3389/fnins.2019.01446.",
+              "url": "https://pubmed.ncbi.nlm.nih.gov/32038144/"
+            },
+            {
+              "text": "Subramaniam, A., Eberhard-Moscicka, A.K., Ertl, M. and Mast, F.W. (2023) 'Rocking devices and the role of vestibular stimulation on sleep — a systematic review', Clinical and Translational Neuroscience, 7(4), 40. doi: 10.3390/ctn7040040.",
+              "url": "https://doi.org/10.3390/ctn7040040"
+            }
+          ],
+          "note": "These studies are the direct evidence base for the app's central analogy: slow (roughly 0.25 Hz), passive rocking — the same low-frequency vertical \"heave\" motion the camera applies to the whole visual field — measurably promotes relaxation, faster sleep onset and deeper sleep in humans, and is understood to work through rhythmic vestibular stimulation.",
+          "title": "Rocking, vestibular (\"heave\") stimulation, sleep and relaxation"
+        },
+        {
+          "citations": [
+            {
+              "text": "Ulrich, R.S., Simons, R.F., Losito, B.D., Fiorito, E., Miles, M.A. and Zelson, M. (1991) 'Stress recovery during exposure to natural and urban environments', Journal of Environmental Psychology, 11(3), pp. 201–230. doi: 10.1016/S0272-4944(05)80184-7.",
+              "url": "https://doi.org/10.1016/S0272-4944(05)80184-7"
+            },
+            {
+              "text": "White, M.P., Smith, A., Humphryes, K., Pahl, S., Snelling, D. and Depledge, M. (2010) 'Blue space: the importance of water for preference, affect, and restorativeness ratings of natural and built scenes', Journal of Environmental Psychology, 30(4), pp. 482–493. doi: 10.1016/j.jenvp.2010.04.004.",
+              "url": "https://doi.org/10.1016/j.jenvp.2010.04.004"
+            }
+          ],
+          "note": "The foundational Ulrich study shows that video of natural scenes produces faster physiological stress recovery than video of urban scenes; White et al. found that scenes containing water are rated higher for preference, positive affect and perceived restorativeness than equivalent scenes without water — direct empirical grounding for the \"blue mind\"/watching-water effect, independent of any motion illusion.",
+          "title": "Watching water and stress recovery (\"blue mind\")"
+        }
+      ],
+      "intro": "Real, peer-reviewed studies related to the perceptual concepts referenced on the previous pages — optic flow, vection, and low-frequency (rocking/\"heave\") vestibular stimulation — and to the \"blue mind\" observation about watching water. Citations use Harvard style, with a PubMed/PMC or publisher DOI link for each.",
+      "scopeNoteBody": "No study listed here was conducted on Aquafulness, and none tests a floating ocean visualization specifically. They establish the component perceptual and physiological effects — that coherent optic flow and vection can be generated visually, that slow rocking/vestibular stimulation is associated with relaxation and sleep onset, and that looking at water and nature scenes is associated with stress recovery — that the design combines by analogy. As the disclaimers elsewhere in this app state, this is design reasoning grounded in existing literature and personal experience, not a clinical claim about Aquafulness itself.",
+      "scopeNoteLabel": "Note on scope:",
+      "seeAlsoBefore": "See also:",
+      "seeAlsoLink": "Optic flow and kinesthetic movement",
+      "title": "Scientific References"
     }
   },
   "hud": {
@@ -172,9 +581,16 @@
     "intervalInfiniteLabel": "Interval {{n}}",
     "intervalRemaining": "{{time}} left",
     "joystick": {
+      "autoAlternate": "AUTO ALT",
       "current": "CURRENT",
+      "freeFall": "FREE FALL",
+      "heave": "HEAVE",
+      "jump": "JUMP",
       "look": "LOOK",
       "nav": "NAV",
+      "noclipDriftXZ": "DRIFT XZ",
+      "noclipDriftY": "DRIFT Y",
+      "reverseRise": "REVERSE RISE",
       "sway": "SWAY",
       "waveDirection": "WAVE DIR"
     },
@@ -187,12 +603,20 @@
     "settingsCloseLabel": "CLOSE",
     "settingsOpenAria": "Open settings",
     "settingsOpenLabel": "SETTINGS",
+    "shareBathAria": "Share bath link",
     "slider": {
       "frequency": "FREQUENCY",
       "tempo": "TEMPO",
       "wave": "WAVE"
     },
-    "totalLabel": " · Total "
+    "timeTravelOpenAria": "Open time travel",
+    "totalLabel": " · Total ",
+    "waveDrawer": {
+      "closeAria": "Close wave settings",
+      "closeLabel": "CLOSE",
+      "openAria": "Open wave settings",
+      "openLabel": "WAVES"
+    }
   },
   "interval": {
     "type": {
@@ -207,6 +631,19 @@
     "label": "LANGUAGE",
     "no": "Norwegian",
     "sv": "Swedish"
+  },
+  "licenses": {
+    "backToAbout": "About",
+    "backToApp": "Back to app",
+    "columns": {
+      "license": "License",
+      "package": "Package",
+      "version": "Version"
+    },
+    "count": "{{count}} open source packages",
+    "intro": "Several pieces of amazing free and open source software made Aquafulness possible. As some of them require a link or license to be included, we want to honor all the amazing software that made this app possible — here is the full list.",
+    "tableHeading": "Packages",
+    "title": "Third-party licenses"
   },
   "live": {
     "badge": "LIVE",
@@ -235,13 +672,18 @@
       "off": "OFF",
       "sand": "Sand"
     },
-    "waterTint": {
+    "waterColor": {
       "archipelago": "Archipelago",
       "caribbean": "Caribbean",
       "deepSea": "Deep Sea",
       "mediterranean": "Mediterranean",
       "nordic": "Nordic Sea",
       "tropical": "Tropical"
+    },
+    "waterSound": {
+      "advanced": "Advanced",
+      "ocean": "Ocean",
+      "simple": "Simple"
     }
   },
   "phone": {
@@ -280,14 +722,22 @@
     "all": "ALL SETTINGS",
     "choosePreset": "CHOOSE SAVED…",
     "chooseState": "CHOOSE SAVED…",
+    "copied": "COPIED!",
+    "copyLink": "COPY LINK",
     "delete": "DELETE",
     "deleteConfirm": "Delete this saved preset?",
     "deleteStateConfirm": "Delete this saved state?",
     "export": "EXPORT",
+    "generateLink": "GENERATE LINK",
+    "generating": "GENERATING…",
     "import": "IMPORT",
     "invalidPresetFile": "Could not read the preset file — make sure it's a valid JSON file.",
     "invalidStateFile": "Could not read the state file — make sure it's a valid JSON file.",
     "load": "LOAD",
+    "loadConfirm": "This replaces your current settings for this scope. Unsaved changes will be lost.",
+    "loadConfirmTitle": "Load this preset?",
+    "loadStateConfirm": "This replaces your current settings, position, look and current. Unsaved changes will be lost.",
+    "loadStateConfirmTitle": "Load this state?",
     "save": "SAVE",
     "savePromptTitle": "Save as:",
     "saveStatePromptTitle": "Save state as:",
@@ -298,7 +748,40 @@
       "vagor": "WAVES PRESET",
       "vatten": "WATER PRESET"
     },
+    "shareBathDescriptionPlaceholder": "Description (optional)",
+    "shareBathError": "Could not generate a link — please try again.",
+    "shareBathLink": "SHARE BATH LINK",
+    "shareBathTitlePlaceholder": "Title (optional)",
+    "shareNative": "SHARE…",
     "state": "STATE (everything + position, look, current, sway)"
+  },
+  "privacy": {
+    "backToApp": "Back to app",
+    "intro": "This page explains, in plain terms, what happens to your data when you use Aquafulness.",
+    "lastUpdated": "Last updated: August 28, 2026",
+    "sections": {
+      "contact": {
+        "body": "For any question about this privacy policy, contact Alexander Forselius at drsounds@gmail.com.",
+        "heading": "Questions"
+      },
+      "localStorage": {
+        "body": "Aquafulness uses your browser's local storage to remember your settings and personalize your experience — for example your chosen language, wave and camera preferences, and saved presets. This data stays on your device, is never transmitted to Alexander Forselius or any third party, and can be erased at any time by clearing your browser's site data for this app.",
+        "heading": "Local storage"
+      },
+      "thirdParty": {
+        "body": "Aquafulness does not embed third-party advertising, tracking pixels, or social media widgets of its own.",
+        "heading": "Third parties"
+      },
+      "tracking": {
+        "heading": "Data collection and tracking",
+        "points": [
+          "Aquafulness itself does not track, collect, or sell any personal data.",
+          "The app is hosted on Lovable, whose platform applies its own standard hosting and infrastructure logging, and may enable anonymized usage analytics (such as Google Analytics) as part of its standard service — this is configured by the hosting platform, not by the app's operator, and is not used to identify you personally.",
+          "No account is required and the app itself never asks you for personal information."
+        ]
+      }
+    },
+    "title": "Privacy Policy"
   },
   "remote": {
     "hojd": "HEIGHT",
@@ -308,7 +791,8 @@
     "syncButton": "SYNC WAVE WITH SWAY: {{state}}",
     "syncTitle": "Let WAVE DIRECTION automatically follow SWAY DIRECTION (default: on)",
     "title": "REMOTE",
-    "vagrikt": "WAVE DIR"
+    "vagrikt": "WAVE DIR",
+    "whirlpoolHint": "In WHIRLPOOL mode the camera orbits automatically — no sticks to control here."
   },
   "screens": {
     "editModeDescription": "Pauses waves and camera movement so the TV/mobile screens in the 3D view can be moved, rotated and resized precisely.",
@@ -319,8 +803,11 @@
     "title": "SCREEN MANAGEMENT"
   },
   "settings": {
+    "backAriaLabel": "Back to settings sections",
     "reset": "RESET",
     "resetAriaLabel": "Reset controls to default values",
+    "resetConfirm": "This resets all controls to their default values (time of day is not affected).",
+    "resetConfirmTitle": "Reset to defaults?",
     "resetTitle": "Reset controls (time of day is not affected)",
     "restore": "RESTORE",
     "restoreAriaLabel": "Return to the last saved camera position",
@@ -329,11 +816,18 @@
       "kamera": "CAMERA",
       "ljud": "SOUND",
       "miljo": "ENVIRONMENT",
+      "tema": "THEME",
       "vagor": "WAVES",
       "vatten": "WATER"
     },
     "tabsAriaLabel": "Settings tabs",
     "title": "SETTINGS"
+  },
+  "splash": {
+    "copyright": "© {{year}} {{name}}. All rights reserved.",
+    "logoAlt": "Aquafulness",
+    "startBath": "Start bath",
+    "starting": "Starting…"
   },
   "swing": {
     "preset": {
@@ -347,6 +841,33 @@
       "square": "SQUARE",
       "triangle": "TRIANGLE"
     }
+  },
+  "theme": {
+    "title": "THEME",
+    "aqua": "AQUA",
+    "aquaDescription": "The classic dark-glass look — unchanged.",
+    "scifi": "SCI-FI",
+    "scifiDescription": "Glowing glass with diode-like lines — pick your own accent color below.",
+    "spa": "SPA",
+    "spaDescription": "Minimalist, flat white or black surfaces — buttons get a soft turquoise gradient.",
+    "accentHue": "ACCENT COLOR",
+    "colorScheme": "MODE",
+    "light": "LIGHT",
+    "dark": "DARK",
+    "blur": "GLASS BLUR",
+    "blurHint": "The blur effect behind panels. Off by default for better performance."
+  },
+  "timeTravel": {
+    "applyButton": "Time travel",
+    "closeButton": "Close",
+    "dateLabel": "Date & time",
+    "description": "Pin the simulated date and time — it keeps ticking forward in real time from wherever you set it.",
+    "futuristicNote": "Past year 2100, environments show their futuristic look.",
+    "liveButton": "Return to now",
+    "liveStatus": "Live",
+    "seasonalLabel": "Sync to real sunrise/sunset (seasonal)",
+    "title": "Time travel",
+    "travelingStatus": "Time travelling"
   },
   "tod": {
     "afternoon": "Afternoon",

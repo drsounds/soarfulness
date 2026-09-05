@@ -1,5 +1,6 @@
 import vanernBackdrop from "@/assets/vanern-backdrop.png.asset.json";
 import sandTextureAsset from "@/assets/sand_cc0_512.jpg.asset.json";
+import waterAsset from "@/assets/water.mp3.asset.json";
 
 // Shared between the main HUD's settings dialog (routes/index.tsx) and its
 // clone rendered as the "Inställningar" app inside the virtual phone's bathOS
@@ -44,7 +45,7 @@ export function bearingToWorldXZ(deg: number, mag: number) {
 // key into the matching *_LABEL_KEYS map below, whose values are i18next
 // keys (see src/locales/*.json) resolved via t() wherever the option's
 // display name is actually shown (SettingsPanel.tsx).
-export const WATER_TINTS: { id: string; rgb: [number, number, number] }[] = [
+export const WATER_COLORS: { id: string; rgb: [number, number, number] }[] = [
   { id: "nordic", rgb: [1, 1, 1] },
   { id: "tropical", rgb: [0.55, 1.15, 1.25] },
   { id: "caribbean", rgb: [0.6, 1.35, 1.1] },
@@ -52,13 +53,13 @@ export const WATER_TINTS: { id: string; rgb: [number, number, number] }[] = [
   { id: "archipelago", rgb: [0.85, 1.0, 0.75] },
   { id: "deepSea", rgb: [0.55, 0.7, 1.15] },
 ];
-export const WATER_TINT_LABEL_KEYS: Record<string, string> = {
-  nordic: "options.waterTint.nordic",
-  tropical: "options.waterTint.tropical",
-  caribbean: "options.waterTint.caribbean",
-  mediterranean: "options.waterTint.mediterranean",
-  archipelago: "options.waterTint.archipelago",
-  deepSea: "options.waterTint.deepSea",
+export const WATER_COLOR_LABEL_KEYS: Record<string, string> = {
+  nordic: "options.waterColor.nordic",
+  tropical: "options.waterColor.tropical",
+  caribbean: "options.waterColor.caribbean",
+  mediterranean: "options.waterColor.mediterranean",
+  archipelago: "options.waterColor.archipelago",
+  deepSea: "options.waterColor.deepSea",
 };
 
 export const BOTTOM_OPTIONS: { id: string; rgb: [number, number, number] | null }[] = [
@@ -103,7 +104,23 @@ export const TORUS_TEXTURE_LABEL_KEYS: Record<string, string> = {
   sand: "options.torusTexture.sand",
 };
 
-export type SettingsTab = "vagor" | "kamera" | "vatten" | "miljo" | "ljud";
+// Three available water-sound loops: "simple" is a plain single-take field
+// recording (no processing beyond what the audio graph already applies to
+// any source — lowpass/depth gain), "advanced" is the original, more
+// layered recorded track this app shipped with, and "ocean" is a recorded
+// ocean/wave ambience — the default track.
+export const WATER_SOUNDS: { id: string; url: string }[] = [
+  { id: "simple", url: "/audio/water-simple.m4a" },
+  { id: "advanced", url: waterAsset.url },
+  { id: "ocean", url: "/audio/ocean.m4a" },
+];
+export const WATER_SOUND_LABEL_KEYS: Record<string, string> = {
+  simple: "options.waterSound.simple",
+  advanced: "options.waterSound.advanced",
+  ocean: "options.waterSound.ocean",
+};
+
+export type SettingsTab = "vagor" | "kamera" | "vatten" | "miljo" | "ljud" | "tema";
 // labelKey is an i18next key (see src/locales/*.json), resolved via t() in
 // SettingsPanel.tsx — kept here rather than a literal label so this stays
 // the single source of truth for tab order/ids.
@@ -113,14 +130,31 @@ export const SETTINGS_TABS: { id: SettingsTab; labelKey: string }[] = [
   { id: "vatten", labelKey: "settings.tabs.vatten" },
   { id: "miljo", labelKey: "settings.tabs.miljo" },
   { id: "ljud", labelKey: "settings.tabs.ljud" },
+  { id: "tema", labelKey: "settings.tabs.tema" },
 ];
 
-// Three mutually-exclusive camera movement schemes:
-//  - "float"  the default: buoyant, wave-riding camera (all existing behavior).
-//  - "noclip" free 3D flight in any direction, ignoring the water/wave physics.
-//  - "swing"  a pendulum that swings back and forth high above the water.
-export type CameraMode = "float" | "noclip" | "swing";
-export const CAMERA_MODES: CameraMode[] = ["float", "noclip", "swing"];
+// Four mutually-exclusive camera movement schemes:
+//  - "float"     the default: buoyant, wave-riding camera (all existing behavior).
+//  - "noclip"    free 3D flight in any direction, ignoring the water/wave physics.
+//  - "whirlpool" orbits a whirlpool at the world origin — steady spin, or an
+//                automatic drag-in/stay/exit sequence (see whirlpool* fields).
+//  - "swing"     a pendulum that swings back and forth high above the water
+//                (optionally spun into a circular "tornado" orbit instead —
+//                see swingTornado* fields).
+export type CameraMode = "float" | "noclip" | "whirlpool" | "swing";
+export const CAMERA_MODES: CameraMode[] = ["float", "noclip", "whirlpool", "swing"];
+
+// Angular direction shared by the whirlpool orbit and the swing's optional
+// tornado spin: "cw"/"ccw" as seen from above (+y looking down).
+export type WhirlpoolDirection = "cw" | "ccw";
+export const WHIRLPOOL_DIRECTIONS: WhirlpoolDirection[] = ["cw", "ccw"];
+
+// How the whirlpool's optional automatic sequence releases the camera after
+// its "stay inside" phase: "throwBack" flings it back out to the outer
+// radius (fast launch, easing to a stop); "reverseSpin" instead unwinds it
+// back out while spinning the opposite way it dragged in.
+export type WhirlpoolExitMode = "throwBack" | "reverseSpin";
+export const WHIRLPOOL_EXIT_MODES: WhirlpoolExitMode[] = ["throwBack", "reverseSpin"];
 // Quick-jump starting heights for sky-swing mode: a fixed preset, or "custom"
 // meaning the GUNGA POSITION Y dial is left exactly as the user set it.
 export type SwingPreset = "water" | "clouds" | "custom";
@@ -140,7 +174,18 @@ export const SWING_Y_WAVEFORMS: SwingYWaveform[] = ["pendulum", "sine", "triangl
 export const CAMERA_MODE_LABEL_KEYS: Record<CameraMode, string> = {
   float: "camera.mode.float",
   noclip: "camera.mode.noclip",
+  whirlpool: "camera.mode.whirlpool",
   swing: "camera.mode.swing",
+};
+
+export const WHIRLPOOL_DIRECTION_LABEL_KEYS: Record<WhirlpoolDirection, string> = {
+  cw: "camera.whirlpoolDirection.cw",
+  ccw: "camera.whirlpoolDirection.ccw",
+};
+
+export const WHIRLPOOL_EXIT_MODE_LABEL_KEYS: Record<WhirlpoolExitMode, string> = {
+  throwBack: "camera.whirlpoolExitMode.throwBack",
+  reverseSpin: "camera.whirlpoolExitMode.reverseSpin",
 };
 
 // An interval session automatically alternates the camera between "float"
@@ -193,6 +238,12 @@ export type Persisted = {
   heightOffset: number;
   submergeAmp: number;
   floatLift: number;
+  // Multiplier on the float-mode buoyancy spring's forward lookahead (how far
+  // ahead it peeks, and how much that peek biases its target) — see the
+  // ANTICIPATION dial's use in routes/index.tsx's animate(). 0 makes the
+  // camera purely reactive to the wave's current height (prone to visibly
+  // lagging a crest); 1 is the tuned default.
+  waveAnticipation: number;
   camOffX: number;
   camOffY: number;
   camOffZ: number;
@@ -200,8 +251,17 @@ export type Persisted = {
   audioVol: number;
   audioSyncSpeed: boolean;
   audioSpatial: boolean;
-  waterTintIdx: number;
+  waterSoundIdx: number;
+  waterColorIdx: number;
   waterOpacity: number;
+  // Blends the flat WATER_COLORS tint directly over the fully lit/reflected/
+  // textured result (see uWaterColorAlpha in the ocean fragment shader) —
+  // independent of waterOpacity (translucency to whatever's behind the
+  // water) and of waterHue/waterSat/waterBright (which only affect the tint
+  // that feeds the lit shading, not this overlay). 1 gives the flat,
+  // saturated look of Super Mario Sunshine's water; 0 keeps the previous,
+  // fully lit/textured appearance.
+  waterColorAlpha: number;
   waterHue: number;
   waterSat: number;
   waterBright: number;
@@ -215,6 +275,8 @@ export type Persisted = {
   gogglesLoop: boolean;
   gogglesIntensity: number;
   gogglesFpsCap: number;
+  targetFps: number;
+  resolutionScale: number;
   regularWaves: boolean;
   realisticWaves: boolean;
   dyingWave: boolean;
@@ -234,10 +296,23 @@ export type Persisted = {
   waveDir: number;
   floorDepth: number;
   floorTexture: boolean;
-  vortexMode: boolean;
-  vortexOpening: number;
-  vortexRadius: number;
-  vortexSpeed: number;
+  whirlpoolOpening: number;
+  whirlpoolRadius: number;
+  whirlpoolSpeed: number;
+  whirlpoolDirection: WhirlpoolDirection;
+  whirlpoolSequenceOn: boolean;
+  whirlpoolDragSpeed: number;
+  whirlpoolDragDuration: number;
+  whirlpoolStayDuration: number;
+  whirlpoolExitMode: WhirlpoolExitMode;
+  whirlpoolExitSpeed: number;
+  swingTornadoOn: boolean;
+  swingTornadoRadius: number;
+  swingTornadoSpeed: number;
+  swingTornadoDirection: WhirlpoolDirection;
+  intervalIncludeFloat: boolean;
+  intervalIncludeWhirlpool: boolean;
+  intervalIncludeSwing: boolean;
   depthSineOn: boolean;
   depthSineAmp: number;
   depthSineFreq: number;
@@ -246,24 +321,74 @@ export type Persisted = {
   midCloudsHeight: number;
   skyCloudsOn: boolean;
   skyCloudsHeight: number;
+  // MOLN TONING: how fast cloud layers (mid/sky decks and VÄRLDSGRÄNS's
+  // y-extension layers) ease their opacity in/out as they're toggled or
+  // recycled to a new altitude band, instead of popping visible/invisible —
+  // see uOpacity/cloudFadeSpeedRef in routes/index.tsx. Higher = faster.
+  cloudFadeSpeed: number;
   swayAmp: number;
   swaySpeed: number;
   swayBias: number;
   syncWaveWithSway: boolean;
+  // VÄRLDSGRÄNS (world boundary): once on, the camera's x/z and y wrap to the
+  // opposite edge on crossing ±worldBoundarySize/Height — see wrapAxis in
+  // routes/index.tsx. worldBoundaryYExtend is the *default* y behavior:
+  // instead of a bare wrap, extra sky-cloud layers tile around the camera's
+  // altitude (EXTEND_CLOUD_LAYER_* in routes/index.tsx) so climbing/diving
+  // through the boundary always looks like more of the same infinite cloud
+  // deck, hiding the wrap entirely.
+  worldBoundaryOn: boolean;
+  worldBoundarySize: number;
+  worldBoundaryHeight: number;
+  worldBoundaryYExtend: boolean;
   liveMode: boolean;
   sceneId: string | null;
   envId: string | null;
   envEra: string | null;
   envTime: string | null;
+  // TIME TRAVEL: when set, the simulated clock (routes/index.tsx) starts from
+  // this date/time (ms since epoch) instead of the real current time, then
+  // keeps ticking forward in real time from there — see
+  // src/lib/timeTravel.ts's simulatedDate(). null = live (simulated clock ===
+  // real current time).
+  timeTravelBaseMs: number | null;
+  // Real Date.now() captured the moment timeTravelBaseMs was set, so the
+  // elapsed real time since then can be added back on.
+  timeTravelSetAtMs: number | null;
+  // When true, timeOfDay is continuously derived from the real sunrise/
+  // sunset for the simulated date (a fixed northern-hemisphere latitude)
+  // instead of staying at whatever value it was last set to — see
+  // northernHemisphereTimeOfDay() in src/lib/timeTravel.ts.
+  timeSeasonalSync: boolean;
   surfaceId: string | null;
   reflStrength: number;
   bottomColor: string;
   sphereMaterial: boolean;
   sphereStrength: number;
   trochoid: number;
+  // HEAVE SKEW: a phase-warp (0 = untouched sine, up to ~0.9 before phase
+  // folding) applied to every sine term behind REGELBUNDEN/SPRIDD — see
+  // shapedWave() in routes/index.tsx for the exact math. Unlike TROCHOID
+  // (a purely visual horizontal mesh displacement that never reaches the
+  // camera, see uTrochoid there), this warps the *time* profile itself in
+  // both the rendered surface and the JS-side waveHeight() the camera
+  // buoyancy reads — so a fixed point on the water rises quickly to a sharp
+  // peak and sinks back slowly, and the camera's heave actually feels that
+  // asymmetry instead of pure sine. Off by default so it's an opt-in look
+  // to compare against the existing motion.
+  heaveSkew: number;
   causticsOn: boolean;
+  chromaticAberrationOn: boolean;
+  chromaticAberrationAmount: number;
   cameraMode: CameraMode;
   noclipSpeed: number;
+  // FRITT FALL/OMVÄND STIGNING's terminal vertical speed in m/s (at
+  // noclipSpeed 1x — still scaled by NOCLIP SPEED on top of this) and the
+  // exponential ease-in/out time constant ("grace") that ramps the actual
+  // applied rate toward it — see the noclip branch of the physics loop in
+  // routes/index.tsx for the exact math.
+  noclipFallRiseSpeed: number;
+  noclipVertEaseTime: number;
   swingPositionY: number;
   swingIntensity: number;
   swingXFactor: number;
@@ -303,6 +428,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "heightOffset",
     "submergeAmp",
     "floatLift",
+    "waveAnticipation",
     "swayAmp",
     "swaySpeed",
     "swayBias",
@@ -320,27 +446,43 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "regularPeriod",
     "wavePeak",
     "trochoid",
+    "heaveSkew",
     "waveHighQuality",
     "waveDir",
-    "vortexMode",
-    "vortexOpening",
-    "vortexRadius",
-    "vortexSpeed",
+    "whirlpoolOpening",
+    "whirlpoolRadius",
+    "whirlpoolSpeed",
+    "whirlpoolDirection",
+    "whirlpoolSequenceOn",
+    "whirlpoolDragSpeed",
+    "whirlpoolDragDuration",
+    "whirlpoolStayDuration",
+    "whirlpoolExitMode",
+    "whirlpoolExitSpeed",
   ],
   kamera: [
     "cameraMode",
     "noclipSpeed",
+    "noclipFallRiseSpeed",
+    "noclipVertEaseTime",
     "swingPreset",
     "swingPositionY",
     "swingIntensity",
     "swingXFactor",
     "swingHeight",
     "swingYWaveform",
+    "swingTornadoOn",
+    "swingTornadoRadius",
+    "swingTornadoSpeed",
+    "swingTornadoDirection",
     "intervalSessionOn",
     "intervalDuration",
     "intervalSessionType",
     "intervalCount",
     "intervalShowStats",
+    "intervalIncludeFloat",
+    "intervalIncludeWhirlpool",
+    "intervalIncludeSwing",
     "camOffX",
     "camOffY",
     "camOffZ",
@@ -354,14 +496,19 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "gogglesLoop",
     "gogglesIntensity",
     "gogglesFpsCap",
+    "targetFps",
+    "resolutionScale",
+    "chromaticAberrationOn",
+    "chromaticAberrationAmount",
   ],
   vatten: [
-    "waterTintIdx",
+    "waterColorIdx",
     "surfaceId",
     "reflStrength",
     "sphereMaterial",
     "sphereStrength",
     "waterOpacity",
+    "waterColorAlpha",
     "waterHue",
     "waterSat",
     "waterBright",
@@ -384,11 +531,19 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "midCloudsHeight",
     "skyCloudsOn",
     "skyCloudsHeight",
+    "cloudFadeSpeed",
+    "worldBoundaryOn",
+    "worldBoundarySize",
+    "worldBoundaryHeight",
+    "worldBoundaryYExtend",
     "surfaceArea",
     "sceneId",
     "envId",
     "envEra",
     "envTime",
+    "timeTravelBaseMs",
+    "timeTravelSetAtMs",
+    "timeSeasonalSync",
     "backdropIdx",
     "liveMode",
     "torusRingsOn",
@@ -403,7 +558,12 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "torusViewDistance",
     "torusFadeDistance",
   ],
-  ljud: ["audioOn", "audioVol", "audioSyncSpeed", "audioSpatial"],
+  ljud: ["audioOn", "audioVol", "audioSyncSpeed", "audioSpatial", "waterSoundIdx"],
+  // Tema (UI chrome theme) isn't part of the wave/camera/water/environment/
+  // audio Persisted snapshot at all — it's its own localStorage-backed
+  // store (src/lib/uiTheme.ts), so there's nothing for the preset save/
+  // load/export/import controls to scope to here.
+  tema: [],
 };
 
 export const PRESET_ALL_FIELDS: (keyof Persisted)[] = Object.values(PRESET_TAB_FIELDS).flat();

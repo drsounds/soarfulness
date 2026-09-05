@@ -1,15 +1,13 @@
 name: Native Android build
 
 on:
-  # No push trigger on main: every merge was kicking off its own build
-  # alongside any build already running from a manual dispatch on the same
-  # commit, and the two raced each other for the same limited Actions
-  # artifact storage quota (see native/NATIVE_APP.md). Trigger manually via
-  # workflow_dispatch once a merge lands instead.
-  pull_request:
-    paths:
-      - "native/**"
-      - ".github/workflows/native-android-build.yml"
+  # No push trigger on main, and no pull_request trigger either: every
+  # automatic run (PR or push) competed for the same limited Actions
+  # artifact storage quota and kept failing with "Artifact storage quota
+  # has been hit" (see native/NATIVE_APP.md and git history for the
+  # repeated workarounds), burning the account's free Actions quota on
+  # builds nobody was waiting on. Trigger manually via workflow_dispatch
+  # instead, once a merge lands or a native change needs verifying.
   workflow_dispatch:
     inputs:
       track:

@@ -162,6 +162,252 @@ html, body {
   }
 }
 
+/* ============================================================
+   UI chrome design tokens — selectable themes for the app's own
+   glass HUD (SettingsPanel, dialogs, joysticks, the virtual phone
+   shell): the buttons/menus/panels drawn over the 3D scene, as
+   opposed to the shadcn/marketing-page tokens above. Selected via
+   data-ui-theme on <html> (see src/lib/uiTheme.ts):
+     - "aqua"  (default, unset) — the original dark glass look.
+     - "scifi" — glowing glass "diode" look, accent hue is
+       user-adjustable via --ui-scifi-hue.
+     - "spa"   — flat minimalist white/black (follows .dark),
+       with a turquoise diagonal-gradient accent on primary
+       buttons; adjustable via --ui-spa-hue.
+   Only the .ui-* classes below are meant to be used in className —
+   raw --ui-* custom properties are theme plumbing.
+   ============================================================ */
+:root {
+  --ui-scifi-hue: 195;
+  --ui-spa-hue: 175;
+
+  /* Aqua (default) values — chosen to reproduce the original literal
+     Tailwind utilities (bg-black/40, border-white/15, etc.) exactly. */
+  --ui-surface: rgb(0 0 0 / 0.4);
+  --ui-surface-strong: rgb(0 0 0 / 0.55);
+  --ui-surface-solid: rgb(0 0 0 / 0.82);
+  --ui-tint-1: rgb(255 255 255 / 0.07);
+  --ui-tint-2: rgb(255 255 255 / 0.18);
+  --ui-tint-solid: rgb(255 255 255 / 0.85);
+  --ui-line-1: rgb(255 255 255 / 0.15);
+  --ui-line-2: rgb(255 255 255 / 0.22);
+  --ui-line-3: rgb(255 255 255 / 0.4);
+  --ui-ink: rgb(255 255 255 / 0.92);
+  --ui-ink-muted: rgb(255 255 255 / 0.65);
+  --ui-ink-faint: rgb(255 255 255 / 0.42);
+  --ui-press: rgb(255 255 255 / 0.16);
+  --ui-glow: rgb(255 255 255 / 0.35);
+  --ui-accent: #ffffff;
+
+  /* Primary/CTA button ("DELA", "Bekräfta", accept…) — plain ghost fill
+     by default so the aqua theme's primary buttons look as they always
+     have; scifi/spa give this real accent treatment. */
+  --ui-btn-bg: var(--ui-tint-2);
+  --ui-btn-border: var(--ui-line-2);
+  --ui-btn-ink: var(--ui-ink);
+  --ui-btn-shadow: none;
+}
+
+.ui-surface {
+  background: var(--ui-surface);
+  border-color: var(--ui-line-1);
+}
+.ui-surface-strong {
+  background: var(--ui-surface-strong);
+  border-color: var(--ui-line-1);
+}
+.ui-surface-solid {
+  background: var(--ui-surface-solid);
+  border-color: var(--ui-line-1);
+}
+.ui-tint-1 {
+  background: var(--ui-tint-1);
+  border-color: var(--ui-line-2);
+}
+.ui-tint-2 {
+  background: var(--ui-tint-2);
+  border-color: var(--ui-line-2);
+}
+.ui-tint-solid {
+  background: var(--ui-tint-solid);
+}
+.ui-line-1 {
+  border-color: var(--ui-line-1);
+}
+.ui-line-2 {
+  border-color: var(--ui-line-2);
+}
+.ui-line-3 {
+  border-color: var(--ui-line-3);
+}
+.ui-ink {
+  color: var(--ui-ink);
+}
+.ui-ink-muted {
+  color: var(--ui-ink-muted);
+}
+.ui-ink-faint {
+  color: var(--ui-ink-faint);
+}
+.ui-press:active {
+  background: var(--ui-press);
+}
+.ui-press-ink:active {
+  color: var(--ui-ink);
+}
+.ui-focus-line:focus {
+  border-color: var(--ui-line-3);
+}
+.ui-focus-surface:focus {
+  background: var(--ui-surface-strong);
+}
+.ui-hover-line:hover {
+  border-color: var(--ui-line-3);
+}
+.ui-hover-ink:hover {
+  color: var(--ui-ink);
+}
+.ui-placeholder::placeholder {
+  color: var(--ui-ink-faint);
+}
+.ui-icon-btn {
+  background: var(--ui-surface-strong);
+  border-color: var(--ui-line-2);
+  color: var(--ui-ink-muted);
+}
+.ui-icon-btn:hover {
+  border-color: var(--ui-line-3);
+  color: var(--ui-ink);
+}
+.ui-thumb {
+  background: var(--ui-tint-solid);
+  border-color: var(--ui-line-3);
+  box-shadow: 0 0 20px var(--ui-glow);
+}
+.ui-btn {
+  background: var(--ui-btn-bg);
+  border-color: var(--ui-btn-border);
+  color: var(--ui-btn-ink);
+  box-shadow: var(--ui-btn-shadow);
+}
+.ui-btn:active {
+  filter: brightness(0.92);
+}
+
+/* Every button (and anything explicitly marked pressable) shrinks
+   slightly on press, Spotify-style — a fallback for any control that
+   doesn't already carry its own literal active:scale-* utility. */
+button:not(:disabled),
+[role="button"],
+.ui-pressable {
+  transition:
+    transform 0.15s ease,
+    background-color 0.15s ease,
+    box-shadow 0.2s ease;
+}
+button:not(:disabled):active,
+[role="button"]:active,
+.ui-pressable:active {
+  transform: scale(0.96);
+}
+
+/* Performance: fully disables backdrop-filter (glass blur) app-wide.
+   Off by default (see DEFAULT_UI_THEME_SETTINGS in src/lib/uiTheme.ts) —
+   the toggle in Tema settings turns it back on. */
+[data-ui-blur="off"] * {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* ---------- Sci-fi: glowing glass "diode" look ---------- */
+[data-ui-theme="scifi"] {
+  --ui-accent: hsl(var(--ui-scifi-hue) 90% 60%);
+  --ui-surface: color-mix(in oklab, hsl(var(--ui-scifi-hue) 55% 9%) 82%, transparent);
+  --ui-surface-strong: color-mix(in oklab, hsl(var(--ui-scifi-hue) 50% 7%) 90%, transparent);
+  --ui-surface-solid: hsl(var(--ui-scifi-hue) 40% 6%);
+  --ui-tint-1: color-mix(in oklab, var(--ui-accent) 10%, transparent);
+  --ui-tint-2: color-mix(in oklab, var(--ui-accent) 24%, transparent);
+  --ui-tint-solid: hsl(var(--ui-scifi-hue) 55% 78%);
+  --ui-line-1: color-mix(in oklab, var(--ui-accent) 40%, transparent);
+  --ui-line-2: color-mix(in oklab, var(--ui-accent) 62%, transparent);
+  --ui-line-3: var(--ui-accent);
+  --ui-ink: color-mix(in oklab, white 85%, var(--ui-accent) 15%);
+  --ui-ink-muted: color-mix(in oklab, white 55%, var(--ui-accent) 25%);
+  --ui-ink-faint: color-mix(in oklab, white 32%, var(--ui-accent) 22%);
+  --ui-press: color-mix(in oklab, var(--ui-accent) 38%, transparent);
+  --ui-glow: color-mix(in oklab, var(--ui-accent) 65%, transparent);
+  --ui-btn-bg: color-mix(in oklab, var(--ui-accent) 20%, black 80%);
+  --ui-btn-border: var(--ui-accent);
+  --ui-btn-ink: color-mix(in oklab, white 90%, var(--ui-accent) 10%);
+  --ui-btn-shadow: 0 0 14px -2px var(--ui-accent);
+}
+/* Every glass surface reads as a lit diode panel: a hairline accent
+   edge plus a soft outward glow, and emphasized text picks up a
+   matching glow instead of just a color. */
+[data-ui-theme="scifi"] .ui-surface,
+[data-ui-theme="scifi"] .ui-surface-strong,
+[data-ui-theme="scifi"] .ui-surface-solid,
+[data-ui-theme="scifi"] .ui-icon-btn {
+  box-shadow:
+    inset 0 0 0 1px var(--ui-line-1),
+    0 0 16px -6px var(--ui-accent);
+}
+[data-ui-theme="scifi"] .ui-ink {
+  text-shadow: 0 0 6px color-mix(in oklab, var(--ui-accent) 50%, transparent);
+}
+
+/* ---------- Spa: flat minimalist, gradient accent buttons ---------- */
+[data-ui-theme="spa"] {
+  --ui-accent: hsl(var(--ui-spa-hue) 65% 42%);
+  --ui-accent-2: hsl(calc(var(--ui-spa-hue) + 35) 75% 48%);
+  --ui-btn-bg: linear-gradient(135deg, var(--ui-accent), var(--ui-accent-2));
+  --ui-btn-border: transparent;
+  --ui-btn-ink: #ffffff;
+  --ui-btn-shadow: 0 8px 20px -8px hsl(var(--ui-spa-hue) 60% 40% / 0.65);
+}
+/* Dark mode (default for spa, matching the rest of the app): near-black
+   solid surfaces instead of aqua's translucent glass. */
+:root[data-ui-theme="spa"] {
+  --ui-surface: #101113;
+  --ui-surface-strong: #050506;
+  --ui-surface-solid: #000000;
+  --ui-tint-1: rgb(255 255 255 / 0.06);
+  --ui-tint-2: rgb(255 255 255 / 0.12);
+  --ui-tint-solid: #ffffff;
+  --ui-line-1: rgb(255 255 255 / 0.08);
+  --ui-line-2: rgb(255 255 255 / 0.14);
+  --ui-line-3: rgb(255 255 255 / 0.22);
+  --ui-ink: rgb(255 255 255 / 0.92);
+  --ui-ink-muted: rgb(255 255 255 / 0.6);
+  --ui-ink-faint: rgb(255 255 255 / 0.4);
+  --ui-press: rgb(255 255 255 / 0.1);
+  --ui-glow: hsl(var(--ui-spa-hue) 60% 55% / 0.4);
+}
+/* Light mode: solid white surfaces. */
+:root[data-ui-theme="spa"]:not(.dark) {
+  --ui-surface: #ffffff;
+  --ui-surface-strong: #f3f4f5;
+  --ui-surface-solid: #ffffff;
+  --ui-tint-1: rgb(0 0 0 / 0.04);
+  --ui-tint-2: rgb(0 0 0 / 0.07);
+  --ui-tint-solid: #111111;
+  --ui-line-1: rgb(0 0 0 / 0.09);
+  --ui-line-2: rgb(0 0 0 / 0.13);
+  --ui-line-3: rgb(0 0 0 / 0.2);
+  --ui-ink: rgb(0 0 0 / 0.88);
+  --ui-ink-muted: rgb(0 0 0 / 0.55);
+  --ui-ink-faint: rgb(0 0 0 / 0.35);
+  --ui-press: rgb(0 0 0 / 0.06);
+  --ui-glow: hsl(var(--ui-spa-hue) 60% 45% / 0.3);
+}
+/* Flat minimalist panels read as solid cards, not glass — softer
+   corners read calmer than the sharp glow of scifi's diode edges. */
+[data-ui-theme="spa"] .ui-surface,
+[data-ui-theme="spa"] .ui-surface-strong,
+[data-ui-theme="spa"] .ui-surface-solid {
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+}
+
 .aqua-slider {
   -webkit-appearance: none;
   appearance: none;
@@ -189,4 +435,158 @@ html, body {
   box-shadow: 0 0 12px rgba(255, 255, 255, 0.6);
   cursor: pointer;
   border: none;
+}
+
+/* Water tint color picker (SettingsPanel.tsx): plain <input type="range">
+   whose track is painted from the --aqua-track custom property instead of
+   the browser's flat default, so the hue slider reads as a real rainbow
+   swatch strip and the alpha slider reads as a real transparency ramp. The
+   --alpha variant layers a checkerboard under --aqua-track so a fading-out
+   gradient is still legible against the panel's own dark background. */
+.aqua-color-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 14px;
+  border-radius: 999px;
+  outline: none;
+  background: transparent;
+  cursor: pointer;
+}
+.aqua-color-slider::-webkit-slider-runnable-track {
+  height: 14px;
+  border-radius: 999px;
+  background: var(--aqua-track);
+}
+.aqua-color-slider::-moz-range-track {
+  height: 14px;
+  border-radius: 999px;
+  background: var(--aqua-track);
+}
+.aqua-color-slider--alpha::-webkit-slider-runnable-track {
+  background-image:
+    var(--aqua-track),
+    conic-gradient(
+      rgba(255, 255, 255, 0.35) 25%,
+      transparent 0 50%,
+      rgba(255, 255, 255, 0.35) 0 75%,
+      transparent 0
+    );
+  background-size: 100% 100%, 10px 10px;
+}
+.aqua-color-slider--alpha::-moz-range-track {
+  background-image:
+    var(--aqua-track),
+    conic-gradient(
+      rgba(255, 255, 255, 0.35) 25%,
+      transparent 0 50%,
+      rgba(255, 255, 255, 0.35) 0 75%,
+      transparent 0
+    );
+  background-size: 100% 100%, 10px 10px;
+}
+.aqua-color-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -1px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid rgba(0, 0, 0, 0.45);
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+}
+.aqua-color-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid rgba(0, 0, 0, 0.45);
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+}
+
+/* Splash screen's animated meshed-gradient background (see SplashScreen in
+   routes/index.tsx): a handful of large, heavily blurred radial-gradient
+   blobs, each drifting on its own slow loop so the blend between them keeps
+   shifting like a live mesh gradient rather than a static wash of color. */
+.aq-splash-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.75;
+  will-change: transform;
+}
+.aq-splash-blob--1 {
+  top: -10%;
+  left: -15%;
+  width: 70vmax;
+  height: 70vmax;
+  background: radial-gradient(circle at 30% 30%, #bdf5da, transparent 65%);
+  animation: aq-splash-drift-1 26s ease-in-out infinite;
+}
+.aq-splash-blob--2 {
+  top: 8%;
+  right: -20%;
+  width: 60vmax;
+  height: 60vmax;
+  background: radial-gradient(circle at 60% 40%, #eafcef, transparent 60%);
+  animation: aq-splash-drift-2 32s ease-in-out infinite;
+}
+.aq-splash-blob--3 {
+  bottom: -25%;
+  left: 5%;
+  width: 80vmax;
+  height: 80vmax;
+  background: radial-gradient(circle at 50% 50%, #4fa8ea, transparent 65%);
+  animation: aq-splash-drift-3 30s ease-in-out infinite;
+}
+.aq-splash-blob--4 {
+  bottom: -18%;
+  right: -12%;
+  width: 65vmax;
+  height: 65vmax;
+  background: radial-gradient(circle at 40% 60%, #7cc4f0, transparent 65%);
+  animation: aq-splash-drift-4 22s ease-in-out infinite;
+}
+@keyframes aq-splash-drift-1 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(6%, 8%) scale(1.08);
+  }
+}
+@keyframes aq-splash-drift-2 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-8%, 6%) scale(1.05);
+  }
+}
+@keyframes aq-splash-drift-3 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-6%, -8%) scale(1.1);
+  }
+}
+@keyframes aq-splash-drift-4 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(8%, -6%) scale(1.06);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .aq-splash-blob {
+    animation: none !important;
+  }
 }

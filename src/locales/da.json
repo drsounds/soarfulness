@@ -1,19 +1,96 @@
 {
+  "about": {
+    "backToApp": "Tilbage til appen",
+    "lastUpdated": "Senest opdateret: 28. august 2026",
+    "navLabel": "OM",
+    "sections": {
+      "aiTransparency": {
+        "body": "Vi tror på åbenhed om, hvordan AI bruges til at bygge og skabe denne oplevelse.",
+        "heading": "AI-transparens",
+        "points": [
+          "Kodning: appen er bygget med AI-kodningsværktøjer, herunder Lovable og Claude Code.",
+          "Vandlyde: genereret med ElevenLabs.io og kombineret med blandede Creative Commons-lyde fra freesound.org.",
+          "Billeder: genereret og bearbejdet med Gemini, Nano Banana og Adobe Firefly.",
+          "Vores holdning: AI er et redskab til udtryk og udførelse. De underliggende idéer er vores egne, og vi lader aldrig AI træffe de kreative beslutninger."
+        ]
+      },
+      "disclaimer": {
+        "heading": "Ansvarsfraskrivelse",
+        "points": [
+          "Denne app leveres udelukkende til underholdningsformål.",
+          "Den tilbyder ikke, og må ikke bruges som grundlag for, nogen økonomisk, medicinsk eller sundhedsmæssig fordel eller rådgivning.",
+          "Intet i appen udgør professionel rådgivning; søg en kvalificeret fagperson ved økonomiske, medicinske eller sundhedsmæssige spørgsmål.",
+          "Appen leveres \"som den er\", uden garantier af nogen art, og Alexander Forselius påtager sig, i det omfang loven tillader det, intet ansvar for tab, skade eller men som følge af brugen."
+        ]
+      },
+      "documentation": {
+        "body": "Nysgerrig efter teorien bag Aquafulness — digital badning, sinusbølgeteorien, og hvorfor det er designet til at føles beroligende at se på bølger? Læs hele casestudiet.",
+        "heading": "Dokumentation",
+        "linkLabel": "Læs dokumentationen"
+      },
+      "intro": {
+        "body": "Aquafulness er en beroligende, browserbaseret visualisering af havbølger, skabt til personlig afslapning og atmosfærisk ro. Det er et selvstændigt hobbyprojekt, ikke et kommercielt produkt, og ikke medicinsk udstyr.",
+        "heading": "Om denne app"
+      },
+      "openSource": {
+        "body": "Flere fantastiske gratis og open source-programmer har gjort Aquafulness mulig. Da nogle af dem kræver, at et link eller en licens medtages, vil vi gerne hædre al den fantastiske software, der har gjort denne app mulig.",
+        "heading": "Open source-software",
+        "linkLabel": "Se tredjepartslicenser"
+      },
+      "product": {
+        "body": "Aquafulness er gratis, reklamefri underholdningssoftware: en interaktiv 3D-havscene, der kører i din browser ved hjælp af WebGL. Appen kræver ingen installation, ingen konto og ingen betaling, og den forbinder ikke til nogen ekstern tjeneste ud over den hostingplatform, der er beskrevet i privatlivspolitikken nedenfor.",
+        "heading": "Det digitale indholds art"
+      },
+      "trader": {
+        "address": "Floragatan 21D, 531 37 Lidköping, Sverige",
+        "addressLabel": "Adresse",
+        "capacity": "Appen udbydes af Alexander Forselius som privatperson, ikke gennem et registreret selskab.",
+        "email": "drsounds@gmail.com",
+        "emailLabel": "E-mail",
+        "heading": "Ansvarlig og kontaktoplysninger",
+        "name": "Alexander Forselius",
+        "note": "I overensstemmelse med EU's krav til forbrugerbeskyttelse og produktsikkerhed for digitale produkter — herunder direktiv (EU) 2019/770 om digitalt indhold og digitale tjenester, forbrugerrettighedsdirektivet 2011/83/EU og e-handelsdirektivet 2000/31/EF — oplyses her, hvem der er ansvarlig for appen, og hvordan vedkommende kan kontaktes.",
+        "phone": "+46 (0) 728-87 28 90",
+        "phoneLabel": "Telefon"
+      }
+    },
+    "title": "Om Aquafulness"
+  },
+  "bathing": {
+    "bathe": "BAD",
+    "defaultDescription": "Træd lige ind i dette hav, præcis som det blev efterladt.",
+    "defaultTitle": "Et delt bad",
+    "goHome": "Gå til forsiden",
+    "invalidMessage": "Linket kan være afkortet eller beskadiget. Du kan stadig starte forfra.",
+    "invalidTitle": "Kunne ikke læse badelinket",
+    "shareAria": "Del dette bad"
+  },
   "camera": {
     "mode": {
       "autoSuffix": "(AUTO)",
       "float": "FRI",
       "noclip": "NOCLIP",
-      "swing": "GYNGE"
+      "swing": "GYNGE",
+      "whirlpool": "HVIRVEL"
     },
     "rotationValue": {
       "fixed": "FAST",
       "leanForward": "FREMOVERLÆNET"
+    },
+    "whirlpoolDirection": {
+      "ccw": "MOD URET",
+      "cw": "MED URET"
+    },
+    "whirlpoolExitMode": {
+      "reverseSpin": "OMVENDT SNURR",
+      "throwBack": "KASTES TILBAGE"
     }
   },
   "common": {
     "against": "MOD",
     "auto": "AUTO",
+    "cancel": "ANNULLÉR",
+    "close": "LUK",
     "decreaseAria": "{{label}} formindsk",
     "high": "HØJ",
     "increaseAria": "{{label}} forøg",
@@ -23,17 +100,27 @@
     "off": "SLUKKET",
     "on": "TÆND",
     "opacity": "OPACITET",
+    "resetAria": "{{label}} nulstil",
     "texture": "TEKSTUR",
     "with": "MED"
+  },
+  "consent": {
+    "accept": "ACCEPTER",
+    "body": "Vi vil gerne bruge Google Analytics for at forstå, hvordan appen bruges. Ingen personoplysninger sælges eller deles. Du kan sige nej tak, uden at noget ændres.",
+    "decline": "AFVIS",
+    "title": "Cookies & statistik"
   },
   "dial": {
     "audio": {
       "off": "LYD FRA",
       "on": "LYD TIL",
+      "sound": "VANDLYD",
       "spatial": "RUMLIG",
       "syncSpeed": "LYDSYNK"
     },
     "camera": {
+      "chromaticAberration": "KROMATISK ABERRATION",
+      "chromaticAberrationAmount": "ABERRATIONSSTYRKE",
       "far": "FJERNSYN",
       "fov": "FOV",
       "goggles": "SVØMMEBRILLER",
@@ -43,13 +130,21 @@
       "gogglesLoop": "DRÅBELØKKE",
       "intervalCount": "ANTAL INTERVALLER",
       "intervalDuration": "INTERVAL",
+      "intervalIncludeFloat": "INTERVAL: STANDARD",
+      "intervalIncludeSwing": "INTERVAL: GYNGE",
+      "intervalIncludeWhirlpool": "INTERVAL: HVIRVEL",
       "intervalSession": "INTERVALSESSION",
       "mode": "KAMERATILSTAND",
       "near": "NÆR",
+      "noclipAutoAlternate": "AUTO SKIFT",
+      "noclipAutoAlternateInterval": "SKIFTEINTERVAL",
+      "noclipFallRiseSpeed": "FALD/STIGNING HASTIGHED",
       "noclipSpeed": "NOCLIP HASTIGHED",
+      "noclipVertEaseTime": "FALD/STIGNING BLØDHED",
       "posX": "POS X",
       "posY": "POS Y",
       "posZ": "POS Z",
+      "resolutionScale": "OPLØSNING",
       "rotation": "ROTATION",
       "sessionType": "SESSIONSTYPE",
       "showStats": "VIS TID",
@@ -57,12 +152,18 @@
       "swingIntensity": "GYNGE INTENSITET",
       "swingPositionY": "GYNGE POSITION Y",
       "swingStart": "GYNGE START",
+      "swingTornado": "TORNADO",
+      "swingTornadoDirection": "TORNADO RETNING",
+      "swingTornadoRadius": "TORNADO RADIUS",
+      "swingTornadoSpeed": "TORNADO TEMPO",
       "swingXFactor": "GYNGE X",
       "swingYWaveform": "GYNGE Y BØLGEFORM",
+      "targetFps": "BILLEDFREKVENSLOFT",
       "wakeLock": "VÅGEN"
     },
     "env": {
       "backdrop": "BAGGRUND",
+      "cloudFadeSpeed": "SKY-TONINGSHASTIGHED",
       "dayTime": "DØGN",
       "environment": "MILJØ",
       "era": "ÆRA",
@@ -84,31 +185,37 @@
       "torusTube": "TYKKELSE",
       "torusVerticalCount": "RINGE/KOLONNE",
       "torusVerticalSpacing": "GITTER HØJDE",
-      "torusViewDistance": "REKKEVIDDE"
+      "torusViewDistance": "REKKEVIDDE",
+      "worldBoundary": "VERDENSGRÆNSE",
+      "worldBoundaryHeight": "GRÆNSEHØJDE (Y)",
+      "worldBoundarySize": "GRÆNSESTØRRELSE (XZ)",
+      "worldBoundaryYExtend": "UENDELIGE SKYLAG"
     },
     "water": {
       "bottom": "BUND",
       "bottomColor": "BUNDFARVE",
       "brightness": "LYSSTYRKE",
       "caustics": "EKTE KAUSTIK",
+      "color": "VAND",
+      "colorAlpha": "FARVESTYRKE",
       "depth": "DYBDE",
       "depthSine": "DYBDE-SINUS",
       "floorTexture": "TEKSTUR",
       "hue": "NUANCE",
-      "reflStrength": "STYRKE",
+      "pickColor": "VÆLG FARVE",
       "reflection": "REFLEKSION",
+      "reflStrength": "STYRKE",
       "saturation": "MÆTNING",
       "sineAmp": "SINUS AMP",
       "sineFreq": "SINUS FREK",
       "sphereStrength": "SFÆRE-STYRKE",
-      "surfBright": "OVERFLADE-LYS",
-      "surfSat": "OVERFLADE-MÆTNING",
       "surface": "VANDOVERFLADE",
       "surfaceValue": {
         "hide": "SKJUL",
         "visible": "SYNLIG"
       },
-      "tint": "VAND",
+      "surfBright": "OVERFLADE-LYS",
+      "surfSat": "OVERFLADE-MÆTNING",
       "turbidity": "GRUMSETHED",
       "waveMaterial": "BØLGEMATERIALE",
       "waveMaterialValue": {
@@ -118,24 +225,19 @@
     },
     "wave": {
       "amp": "BØLGE",
+      "anticipation": "FORVENTNING",
       "bob": "VUGGE",
       "bobSpeed": "VUGGE TEMPO",
       "crossWave": "KRYDSBØLGE",
       "currentDirection": "STRØM RETNING",
-      "distance": "AFSTAND",
       "dive": "DYK",
       "dyingWave": "DØENDE BØLGE",
       "dyingWaveHeight": "DØENDE BØLGE HØJDE",
       "dyingWaveSpeed": "DØENDE BØLGE TEMPO",
       "floatLift": "FLYD",
       "freq": "FREKVENS",
+      "heaveSkew": "BØLGESKÆVHED",
       "height": "HØJDE",
-      "mode": "TILSTAND",
-      "modeValue": {
-        "ocean": "HAV",
-        "vortex": "HVIRVEL"
-      },
-      "opening": "ÅBNING",
       "peak": "TOP",
       "preset": "BØLGE-PRESET",
       "quality": "KVALITET",
@@ -151,14 +253,321 @@
       "swaySpeed": "SVAJ TEMPO",
       "trochoid": "TROKOIDE",
       "trochoidOff": "SLUKKET",
-      "vortexSpeed": "HVIRVEL TEMPO",
       "waveDirection": "BØLGERETNING",
-      "wavePeriod": "BØLGEPERIODE",
       "waveform": "BØLGEFORM",
       "waveformValue": {
         "regular": "REGELMÆSSIG",
         "spread": "SPREDT"
-      }
+      },
+      "wavePeriod": "BØLGEPERIODE",
+      "whirlpoolDirection": "HVIRVEL RETNING",
+      "whirlpoolDistance": "AFSTAND TIL CENTRUM",
+      "whirlpoolDragDuration": "INDTRÆKNINGSLÆNGDE",
+      "whirlpoolDragSpeed": "INDTRÆKNINGSHASTIGHED",
+      "whirlpoolExitMode": "AFGANGSTILSTAND",
+      "whirlpoolExitSpeed": "AFGANGSHASTIGHED",
+      "whirlpoolOpening": "ÅBNING",
+      "whirlpoolSequence": "AUTO-SEKVENS",
+      "whirlpoolSpeed": "HVIRVEL TEMPO",
+      "whirlpoolStayDuration": "BLIV INDENFOR"
+    }
+  },
+  "docsPhilosophy": {
+    "background": {
+      "disclaimer": {
+        "bodyAfter": "samt skaberens personlige erfaring og designteori. Den indeholder ingen medicinske påstande. Hvor effekter på humør eller afslapning beskrives, beskriver de subjektiv oplevelse og designintention, ikke klinisk fastslåede resultater.",
+        "bodyBefore": "denne side opsummerer",
+        "emphasis": "Aquafulness-casestudiet",
+        "label": "Ansvarsfraskrivelse:"
+      },
+      "section1": {
+        "availability": {
+          "body": "I modsætning til løb eller cykling kræver svømning infrastruktur: et bassin, eller naturligt vand med de rette forhold. Bassiner er dyre at bygge og drive, er typisk kommunale, og har begrænsede åbningstider. Naturligt vand i et tempereret klima som Sveriges ligger i gennemsnit på 13–17 °C selv ved juli-toppen — koldt nok til at det store dele af året simpelthen ikke er en mulighed — og åbent vand medfører strømme, algeopblomstring og koldechok oveni manglende opsyn.",
+          "title": "Tilgængelighed"
+        },
+        "conclusionBody": "badning er tveægget. Nydelsen, roen og motionen er reelle; det er de finansielle, hygiejniske, sikkerhedsmæssige og tilgængelighedsrelaterede forhindringer også. Målet med Aquafulness er at genskabe nogle af de mest efterspurgte positive effekter af badning uden nedsænkningen — tilgængeligt når som helst på døgnet, i alt slags vejr, for alle med en skærm.",
+        "conclusionLabel": "Konklusionen:",
+        "cost": {
+          "body": "Entrépriserne til svenske offentlige bade er steget markant med inflation og energipriser — typisk 70–200 SEK per voksenbesøg, med sæsonkort på 1.500–3.000 SEK. Selv med rabatter til studerende, pensionister og receptbaseret fysisk aktivitet (FaR) er priserne uoverkommelige for mange.",
+          "title": "Pris"
+        },
+        "dressCodes": {
+          "body": "Hygiejne- og sikkerhedsregler begrænser badetøj til badetekstiler (lycra/spandex), da almindeligt bomuldstøj afgiver partikler, bærer bakterier og — tungt af vand — øger drukningsrisikoen. Samtidig foretrækker en voksende andel af gæster, af religiøse, kulturelle eller neurodivergente årsager, badetøj der dækker kroppen mere. Spændingen har været reelt betændt; faciliteter reagerer i stigende grad med heldækkende badedragter (som burkini) til udlejning, samt dedikerede rolige timer eller gruppetider.",
+          "title": "Klædekoder og inklusion"
+        },
+        "hygiene": {
+          "body": "Delt vand og delte faciliteter (omklædningsrum, gulve, møbler) medfører infektionsrisici lige fra hudlidelser til alvorlig vandbåren sygdom. Klor, der bruges til at bekæmpe bakterier, medfører egne bekymringer for både faste badegæster og personale.",
+          "title": "Hygiejne"
+        },
+        "overcrowding": {
+          "body": "Fordi badning er så populært, bliver faciliteter og strande stærkt overfyldte uden for kontortid og i ferier — hvilket øger smitterisiko, kollisions- og drukningsrisiko, samt støj der i sig selv udelukker folk, der har svært ved store menneskemængder.",
+          "title": "Overfyldning"
+        },
+        "p1": "Badning er en sjælden slags aktivitet. Nedsænkning i varmt vand engagerer mange sanser på én gang og giver, i modsætning til de fleste former for fysisk aktivitet, følelser af ro, afslapning, vægtløshed og skånsom massage. For mange mennesker er tid i vandet en hjørnesten i trivslen, og svømning har længe været blandt de mest populære fritidsaktiviteter.",
+        "p2": "Men casestudiet bag Aquafulness opremser en lige så lang række forhindringer og ulemper ved badning i den virkelige verden:",
+        "safety": {
+          "body": "Drukning er vandets alvorligste fare, i både bassiner og åbent vand. Redning, der kommer for sent — eller næsten for sent — kan betyde død eller livslangt men. Det er derfor bassiner er bemandet med livreddere, håndhæver klædekoder og begrænser antallet af badegæster.",
+          "title": "Sikkerhed"
+        },
+        "title": "Hvorfor bade digitalt?",
+        "travel": {
+          "body": "At jagte varmt vand i udlandet — Gran Canaria, Thailand, Mallorca — koster en svensk husstand groft sagt 28.000–150.000 SEK for en uge, i stigende grad finansieret på kredit. Læg dertil visa, forsikring mod katastrofale hospitalsregninger, ukendte retssystemer, stærk sol, og havets farer fra revlestrøm til stikkende havdyr. Casestudiet bemærker også, at 2020'ernes geopolitiske chok — pandemien, krigen i Ukraine, optrapningen i Mellemøsten — har gjort udlandsrejser mere risikable og mindre sikre, end de har været i årtier.",
+          "title": "Rejse"
+        }
+      },
+      "section2": {
+        "audiovisual": {
+          "body": "det, der virker bedst. Lyd og billede forstærker hinanden, så ingen af kanalerne skal bære oplevelsen alene.",
+          "term": "Audiovisuel kombination"
+        },
+        "auditory": {
+          "body": "historisk set den mest almindelige metode, fra 1980'ernes feltoptagede kassettebånd med havbølger til moderne generative lydlandskabsapps. Effektivt, men det læner sig stadig op ad fantasien for at udfylde billedet, hvilket medfører en kognitiv omkostning.",
+          "term": "Auditiv stimulering"
+        },
+        "conclusion": "Aquafulness er bygget på den audiovisuelle kombination.",
+        "imagination": {
+          "body": "den mest primitive metode. Den virker, men kræver frihed fra distraktion og er kognitivt dyr; den lykkes bedst, når personen allerede er afslappet.",
+          "term": "Fantasi"
+        },
+        "p1After": ", og det kortlægger de vigtigste seeding-kanaler:",
+        "p1Before": "For at fremkalde den mentale effekt af badning uden vand skal oplevelsen aktivere de samme associationer, sindet knytter til virkelig badning. Casestudiets betegnelse for kunstigt at fremkalde badefølelsen er",
+        "p1Emphasis": "seeding",
+        "title": "Metode: at så følelsen af vand (seeding)",
+        "visual": {
+          "body": "synet af vand er i sig selv beroligende; casestudiet peger på den populært kaldte \"blue mind\"-effekt af at stirre ud over havet.",
+          "term": "Visuel stimulering"
+        }
+      },
+      "section3": {
+        "p1": "Casestudiet stiller derefter det dybere spørgsmål: hvad er egentlig det beroligende ved vand?",
+        "p2After": ". De oplevede kvaliteter ved roligt, varmt vand — vægtløshed, blødhed, følelsen af at blive holdt, båret og passet på, måske forankret helt tilbage til tiden i livmoderen — deler alle én fysisk signatur: strømmen og kraften i roligt vand er en sinusformet svingning. Uanset om du ser vandet bevæge sig, hører det skvulpe, eller føler det bære dig, er stimulussen, der når sanserne, blød, periodisk og forudsigelig. Teorien er, at denne svingning synkroniserer den, der observerer, mod den samme ro.",
+        "p2Before": "Svaret — fremsat som en personlig teori, ikke fastslået videnskab — er",
+        "p2Emphasis": "sinusbølgen",
+        "p3After": "for den beroligede tilstand, denne stimulering fremkalder.",
+        "p3Before": "Casestudiet opfinder betegnelsen",
+        "p3Emphasis": "\"aquaful\"",
+        "title": "Sinusbølgeteorien og \"aquaful\"-tilstanden"
+      },
+      "section4": {
+        "footerAfter": ".",
+        "footerBefore": "Denne app (\"Aquafulness Core\") implementerer den samme algoritme i browseren med three.js og WebGL — en fra-bunden-genopbygning af den oprindelige",
+        "footerLinkText": "Godot-baserede Aquafulness",
+        "footerMiddle": "til nettet. Hvorfor disse teknikker forventes at føles som at flyde, er emnet for",
+        "footerPageLink": "perceptionssiden",
+        "p1": "Fra teori til design formuleres løsningen ligeud i casestudiet:",
+        "p2": "Konkret bliver det til:",
+        "quote": "Skab en audiovisuel digital oplevelse, der ligner perspektivet fra en badegæst nedsænket i en varm sø. Fremhæv farverne — vandets naturlige lysbrune-til-blå toner — og lad det billede være et overlæg på en visualisering, hvor projektionen bevæger sig blødt som en bølge, for at fremkalde en kinæstetisk fornemmelse af at være nedsænket i vand, der flyder med dig frem og tilbage — følelsen af at blive passet på, den gyngende bevægelse.",
+        "quoteEmphasis": "Dette er grundalgoritmen.",
+        "steps": [
+          "Et førstepersonskamera placeret i badehøjde i en hav- eller søscene.",
+          "Kameraets position drevet af blød periodisk bevægelse, der gynger hele det gengivne billede på samme måde som en flydende krop gynger.",
+          "Vandoverflader hvis hjørnepunkter og teksturer bevæger sig i langsomme sinusformede bølger, i naturlige vandfarver.",
+          "Hav- og vindlyd, der looper under."
+        ],
+        "title": "Grundalgoritmen"
+      },
+      "title": "Baggrund og formål: digital badning"
+    },
+    "index": {
+      "card1": {
+        "bodyAfter": ", sinusbølgeteorien og \"aquaful\"-tilstanden, som appen forsøger at fremkalde.",
+        "bodyBefore": "Konceptet digital badning, casestudiet bag projektet, metoden der kaldes",
+        "bodyEmphasis": "seeding",
+        "title": "1. Baggrund og formål"
+      },
+      "card2": {
+        "body": "Hvordan visualiseringen er designet omkring visuel selvbevægelse: langsomt, sammenhængende optisk flow, gyngen af hele billedfeltet, og målet om at genskabe følelsen af at flyde i varmt vand.",
+        "title": "2. Optisk flow og kinæstetisk bevægelse"
+      },
+      "card3": {
+        "body": "Rigtige, fagfællebedømte studier om optisk flow, vektion, gyngning/vestibulær stimulation og det at se på vand, med Harvard-referencer og links til PubMed/DOI.",
+        "title": "3. Videnskabelige referencer"
+      },
+      "disclaimerBody": "alt nedenfor beskriver designintentioner forankret i skaberens personlige erfaring, sammen med almindeligt kendte perceptuelle begreber brugt som designinspiration. Der gøres ingen medicinske påstande. Aquafulness er ikke medicinsk udstyr eller terapi, og ingen udtalelse her om ro, afslapning eller velvære skal læses som et klinisk valideret resultat.",
+      "disclaimerLabel": "Ansvarsfraskrivelse:",
+      "footerAfter": ", hvor denne dokumentation har sin oprindelse.",
+      "footerBefore": "Denne app (\"Aquafulness Core\") deler sin underliggende teori med den oprindelige Godot-baserede",
+      "footerLinkText": "Aquafulness",
+      "intro": "Dette er teorien bag Aquafulness: hvor idéen kommer fra, og de perceptuelle principper — optisk flow og kinæstetisk bevægelse — som designet bygger på.",
+      "title": "Dokumentation"
+    },
+    "nav": {
+      "backToAbout": "Om",
+      "backToApp": "Tilbage til appen",
+      "backToDocs": "Dokumentation"
+    },
+    "opticFlow": {
+      "disclaimerBody": "denne side beskriver designovervejelser, forankret i skaberens personlige erfaring og i almindeligt kendte perceptuelle begreber brugt her som inspiration. Den fremsætter ingen medicinske påstande. Aquafulness er ikke blevet klinisk evalueret; intet nedenfor hævder en terapeutisk effekt, og den individuelle oplevelse vil variere.",
+      "disclaimerLabel": "Ansvarsfraskrivelse:",
+      "furtherReading": {
+        "after": "for rigtige, fagfællebedømte studier med Harvard-referencer og links til PubMed/DOI.",
+        "before": "Begreberne ovenfor — optisk flow, vektion og langsom vestibulær (\"heave\") stimulation — er etableret i perceptions- og søvnforskningen, selvom de ikke er testet på Aquafulness selv. Se",
+        "link": "Videnskabelige referencer"
+      },
+      "section1": {
+        "p1After": "— er, at syn og lyd, gjort rigtigt, kan genkalde resten. Hjernen, der har flydt i en varm sø, ved, hvordan den fulde sanseoplevelse føles; et tilstrækkeligt evokativt audiovisuelt fragment inviterer den til at udfylde resten.",
+        "p1Before": "Rigtig badning er multisensorisk: hudtemperatur, opdrift der aflaster leddene, hydrostatisk tryk, det vestibulære signal om at blive gynget, lyden af vand, synet af det. En skærm og en højttaler kan kun adressere to af disse kanaler. Det, Aquafulness satser på — casestudiet kalder det",
+        "p1Emphasis": "seeding",
+        "p2": "Spørgsmålet er, hvad \"gjort rigtigt\" betyder. Aquafulness' svar har tre dele: sammenhængende optisk flow, helfeltssvingning, og sinusbølgen som den fælles signatur for roligt vand.",
+        "title": "Designproblemet"
+      },
+      "section2": {
+        "layer1": {
+          "body": "Kameraets højde følger en blød periodisk svingning, så hver pixel i det gengivne billede forskyder sig op og ned sammen, med den samme bløde accelerationsprofil som en rigtig dønning. Sammenhængende helfeltsbevægelse er præcis den stimulusklasse, det visuelle system tolker som bevis på egen bevægelse frem for objektbevægelse.",
+          "term": "Helfeltsgyngen."
+        },
+        "layer2": {
+          "body": "Vandets tekstur og forskydning driver langsomt og kontinuerligt hen over overfladen. Dette er det klassiske laminære strømningsmønster for vand, der bevæger sig forbi en flydende iagttager — umagelig, ensartet, uendeligt. Der er ingen destination og ingen begivenhed; strømmen signalerer kun, at vandet lever og bærer dig.",
+          "term": "Overfladestrøm."
+        },
+        "layer3": {
+          "body": "Vandoverfladen selv hæver og sænker sig i et interferensmønster af overlappende bølger — i denne app en sum af sinusbølger hentet fra et retningsbestemt bølgespektrum — så nærliggende toppe og fjerne dale bevæger sig i den modfasede rytme, ægte dønning gør, hvilket giver strømningsfeltet en troværdig dybdestruktur i stedet for en flad rulning.",
+          "term": "Bølgebevægelse."
+        },
+        "p1Body": "er mønsteret af bevægelse over hele synsfeltet, som en iagttager oplever, når de — eller deres omgivelser — bevæger sig. Det er et af de stærkeste visuelle signaler, hjernen bruger til at udregne sin egen bevægelse: et strømningsfelt, der udvider sig fra et punkt forude, læses som bevægelse fremad; hele scenen, der blødt forskyder sig opad, læses som at man selv synker, og nedad som at man stiger.",
+        "p1Term": "Optisk flow",
+        "p2": "Aquafulness opbygger sit optiske flow af tre lag:",
+        "p3After": ".",
+        "p3Before": "Sammen giver disse den specifikke optisk-flow-diæt, en badegæst får: global, langsom, periodisk, sammenhængende. Intet i scenen bevæger sig pludseligt; intet kræver en sakkade; intet bryder med den forventning, de sidste par sekunder har etableret. I casestudiets vokabular fodres synskanalen med en",
+        "p3Emphasis": "ren sinussvingning",
+        "title": "Optisk flow: den visuelle signatur af bevægelse gennem vand"
+      },
+      "section3": {
+        "bullet1After": ", ikke objekter i scenen, så den fremkaldte fortolkning bliver \"min krop gynger\", ikke \"den bøje gynger\".",
+        "bullet1Before": "Gyngen påføres",
+        "bullet1Emphasis": "kameraet",
+        "bullet2": "Gyngen ligger i tempoet af en langsom, behagelig dønning — rytmen af en hængekøje eller en langsomt vugget vugge frem for krap sø eller turbulens. Langsom gyngen af denne type forbindes bredt, i hverdagserfaring, med beroligelse; casestudiet forankrer det mere personligt i følelsen af at blive holdt og passet på, og spekulerer i, at den kan rodfæste sig så dybt som i tiden i livmoderen.",
+        "bullet3": "Bølgehøjde, hastighed og stil kan justeres af brugeren i appens indstillinger, fordi komforttærskler er forskellige — den samme bevægelse, der opleves som dejlig svajen for én person, er for meget for en anden.",
+        "p1After": "— den overbevisende illusion af egen bevægelse i fravær af enhver fysisk bevægelse (jernbanevogn-effekten: toget ved siden af dit eget glider væk, og du føler, at det er dig, der bevæger dig). Vection er broen fra at se vand til at føle sig båret af det.",
+        "p1Before": "Når en stor del af synsfeltet bevæger sig sammenhængende, oplever iagttagere ofte",
+        "p1Emphasis": "vection",
+        "p2": "Aquafulness er bevidst bygget til at invitere til en mild, svingende vection:",
+        "p3After": "betyder her den kropslige fornemmelse af ens egen krops position og bevægelse: målet er ikke, at brugeren vurderer, at vandet ser flot ud, men at kroppen, på et eller andet plan, føler sig gynget.",
+        "p3Before": "Casestudiet navngiver det tilsigtede resultat direkte: projektionen, der bevæger sig blødt som en bølge, skal \"fremkalde en kinæstetisk fornemmelse af at være nedsænket i vand, der flyder med dig frem og tilbage\" — den gyngende bevægelse, følelsen af at blive passet på.",
+        "p3Term": "Kinæstetisk",
+        "p4": "To designvalg understøtter komforten i denne fremkaldte bevægelse:",
+        "predictability": {
+          "body": "Sinusformet bevægelse er maksimalt forudsigelig — hjernen låser sig fast på rytmen inden for én til to cyklusser, så det visuel-vestibulære misforhold (øjnene rapporterer gyngen, det indre øre rapporterer stilstand) forbliver mildt og forventet. Uregelmæssig eller accelererende bevægelse med samme misforhold er det, der har tendens til ubehag; en ren, langsom sinus er nogenlunde den mildeste mulige form for det.",
+          "term": "Forudsigelighed."
+        },
+        "stableFrame": {
+          "body": "På en telefon- eller bærbar skærm forbliver enhedens kant og rummet udenfor synlige og stationære, hvilket naturligt begrænser vection til en behagelig, delvis fornemmelse frem for en destabiliserende. En helt omsluttende skærm er tilsvarende det miljø, hvor flydeillusionen kan blive stærkest.",
+          "term": "En stabil ramme."
+        },
+        "title": "Vection og kinæstetisk bevægelse: at se bevægelse, at føle bevægelse"
+      },
+      "section4": {
+        "p1": "Hvorfor skulle noget af dette være beroligende? Casestudiets ræsonnement, fremsat som personlig teori:",
+        "p2After": "— den umagelige gyngen, den levende overflade, vandlyset — for de mange situationer, hvor rigtig badning er uden for rækkevidde: det forkerte tidspunkt på dagen, den forkerte årstid, det forkerte budget, et overfyldt bassin, en krop eller et sind, der synes faciliteten er svær, eller ganske enkelt en femminutters pause ved skrivebordet.",
+        "p2Before": "Formålet er dermed beskedent og specifikt:",
+        "p2Emphasis": "at genskabe badningens ro gennem visualisering",
+        "reason1": {
+          "body": "Synet af åbent vand — den populært kaldte \"blue mind\"-iagttagelse — er beroligende for de fleste, uafhængigt af enhver bevægelsesillusion. Aquafulness bygger videre på dette med sin naturlige palet: de lysbrune-til-blå farver af en rigtig sø eller et hav, varme toner under gennemsigtigt blågrønt vand, en himmel med løftet mætning.",
+          "term": "At se på vand er beroligende i sig selv."
+        },
+        "reason2": {
+          "body": "Alt, hvad et roligt bad præsenterer for sanserne — dønningen du føler, skvulpet du hører, strømmen du ser — er blød periodisk svingning. Teorien er, at det at præsentere den samme signatur gennem de tilgængelige kanaler (øjne og ører) synkroniserer den, der observerer, mod den tilstand, den fulde nedsænkning giver: tilstanden casestudiet opfinder \"aquaful\".",
+          "term": "Den fælles fællesnævner for roligt vand er sinusbølgen."
+        },
+        "reason3": {
+          "body": "Oplevelsen er komponeret til at matche mindet om et bestemt, godt sted — at flyde i varmt, åbent vand. Lyd forstærker synet: hav- og vindlyd leverer den auditive sinusbund, så billederne ikke skal bære associationen alene. Dette er den audiovisuelle kombination, casestudiet udpeger som den mest effektive seeding-metode — stærkere end lyd alene, som stadig belaster fantasien, og langt billigere kognitivt end fantasi alene.",
+          "term": "Association fuldender billedet."
+        },
+        "title": "Det beroligende formål: at genskabe badet"
+      },
+      "section5": {
+        "p1": "Det tåler at blive gentaget uden for ansvarsfraskrivelsen: Aquafulness påstår ikke at sænke blodtrykket, behandle angst, erstatte motion, eller give nogen målt klinisk effekt. Det er en visualisering bygget på én persons omhyggelige opmærksomhed på, hvorfor badning føles, som det gør, og på velkendte perceptuelle idéer — optisk flow, vection, den beroligende kvalitet af langsom rytme — brugt som håndværk, på den måde en filmskaber bruger dem, ikke som medicin. Hvis den giver dig tre minutter af havet midt om vinteren, har den gjort sit arbejde.",
+        "title": "Hvad det her ikke er"
+      },
+      "seeAlsoBefore": "Se også:",
+      "seeAlsoLink": "Baggrund og formål",
+      "title": "Optisk flow og kinæstetisk bevægelse"
+    },
+    "references": {
+      "groups": [
+        {
+          "citations": [
+            {
+              "text": "Wright, W.G., DiZio, P. and Lackner, J.R. (2005) 'Vertical linear self-motion perception during visual and inertial motion: more than weighted summation of sensory inputs', Journal of Vestibular Research, 15(4), pp. 185–195.",
+              "url": "https://pubmed.ncbi.nlm.nih.gov/16286700/"
+            },
+            {
+              "text": "Nakamura, S., Palmisano, S. and Kim, J. (2016) 'Relative visual oscillation can facilitate visually induced self-motion perception', i-Perception, 7(4), pp. 1–18. doi: 10.1177/2041669516661903.",
+              "url": "https://pubmed.ncbi.nlm.nih.gov/27698982/"
+            },
+            {
+              "text": "Wang, W., Yang, K. and Zhu, Y. (2021) 'Optimal frequency and amplitude of vertical viewpoint oscillation for improving vection strength and reducing neural constraints on gait', Entropy, 23(5), 541. doi: 10.3390/e23050541.",
+              "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8145014/"
+            },
+            {
+              "text": "Nooij, S.A.E., Pretto, P. and Bülthoff, H.H. (2018) 'More vection means more velocity storage activity: a factor in visually induced motion sickness?', Experimental Brain Research, 236(11), pp. 3031–3041. doi: 10.1007/s00221-018-5340-1.",
+              "url": "https://pubmed.ncbi.nlm.nih.gov/30120498/"
+            }
+          ],
+          "note": "Tilsammen viser disse studier, at oscillerende visuel bevægelse alene — uden nogen fysisk bevægelse — fremkalder oplevelsen af egenbevægelse, at vertikal oscillation af synsvinklen (appens \"helfeltsgyngning\") målbart forstærker denne illusion, og, som et forbehold, at stærkere vektion også er knyttet til højere risiko for visuelt induceret bevægelsessyge — derfor holder appen bevægelsen langsom og brugerjusterbar i stedet for at maksimere vektionsstyrken.",
+          "title": "Optisk flow, vektion og perception af egenbevægelse"
+        },
+        {
+          "citations": [
+            {
+              "text": "Yang, A.H.X., Khwaounjoo, P. and Cakmak, Y.O. (2021) 'Directional effects of whole-body spinning and visual flow in virtual reality on vagal neuromodulation', Journal of Vestibular Research, 31(6), pp. 479–494. doi: 10.3233/VES-201574.",
+              "url": "https://pubmed.ncbi.nlm.nih.gov/34024797/"
+            },
+            {
+              "text": "Kuldavletova, O., Denise, P., Normand, H., Quarck, G. and Etard, O.M. (2023) 'Both whole-body rotation and visual flow induce cardiovascular autonomic response in human, but visual response is overridden by vestibular stimulation', Scientific Reports, 13, 4191. doi: 10.1038/s41598-023-31431-z.",
+              "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10015060/"
+            }
+          ],
+          "note": "Begge studier finder, at optisk flow alene — uden fysisk bevægelse — målbart flytter den vagale/parasympatiske aktivitet, det fysiologiske grundlag for påstanden om, at kohærent visuelt flow er \"beroligende\".",
+          "title": "Visuelt flow og autonom (vagal/parasympatisk) respons"
+        },
+        {
+          "citations": [
+            {
+              "text": "Bayer, L., Constantinescu, I., Perrig, S., Vienne, J., Vidal, P.-P., Mühlethaler, M. and Schwartz, S. (2011) 'Rocking synchronizes brain waves during a short nap', Current Biology, 21(12), pp. R461–R462. doi: 10.1016/j.cub.2011.05.012.",
+              "url": "https://pubmed.ncbi.nlm.nih.gov/21683897/"
+            },
+            {
+              "text": "Omlin, X., Crivelli, F., Näf, M., Heinicke, L., Skorucak, J., Malafeev, A., Fernandez Guerrero, A., Riener, R. and Achermann, P. (2018) 'The effect of a slowly rocking bed on sleep', Scientific Reports, 8, 2156. doi: 10.1038/s41598-018-19880-3.",
+              "url": "https://pubmed.ncbi.nlm.nih.gov/29391413/"
+            },
+            {
+              "text": "Perrault, A.A., Khani, A., Quairiaux, C., Kompotis, K., Franken, P., Mühlethaler, M., Schwartz, S. and Bayer, L. (2019) 'Whole-night continuous rocking entrains spontaneous neural oscillations with benefits for sleep and memory', Current Biology, 29(3), pp. 402–411.e3. doi: 10.1016/j.cub.2018.12.028.",
+              "url": "https://doi.org/10.1016/j.cub.2018.12.028"
+            },
+            {
+              "text": "van Sluijs, R.M., Rondei, Q.J., Schluep, D., Jäger, L., Riener, R., Achermann, P. and Wilhelm, E. (2020) 'Effect of rocking movements on afternoon sleep', Frontiers in Neuroscience, 13, 1446. doi: 10.3389/fnins.2019.01446.",
+              "url": "https://pubmed.ncbi.nlm.nih.gov/32038144/"
+            },
+            {
+              "text": "Subramaniam, A., Eberhard-Moscicka, A.K., Ertl, M. and Mast, F.W. (2023) 'Rocking devices and the role of vestibular stimulation on sleep — a systematic review', Clinical and Translational Neuroscience, 7(4), 40. doi: 10.3390/ctn7040040.",
+              "url": "https://doi.org/10.3390/ctn7040040"
+            }
+          ],
+          "note": "Disse studier udgør det direkte evidensgrundlag for appens centrale analogi: langsom (ca. 0,25 Hz), passiv gyngning — den samme lavfrekvente vertikale \"heave\"-bevægelse, som kameraet anvender på hele synsfeltet — fremmer målbart afslapning, hurtigere indsovning og dybere søvn hos mennesker, og menes at virke gennem rytmisk vestibulær stimulation.",
+          "title": "Gyngning, vestibulær (\"heave\") stimulation, søvn og afslapning"
+        },
+        {
+          "citations": [
+            {
+              "text": "Ulrich, R.S., Simons, R.F., Losito, B.D., Fiorito, E., Miles, M.A. and Zelson, M. (1991) 'Stress recovery during exposure to natural and urban environments', Journal of Environmental Psychology, 11(3), pp. 201–230. doi: 10.1016/S0272-4944(05)80184-7.",
+              "url": "https://doi.org/10.1016/S0272-4944(05)80184-7"
+            },
+            {
+              "text": "White, M.P., Smith, A., Humphryes, K., Pahl, S., Snelling, D. and Depledge, M. (2010) 'Blue space: the importance of water for preference, affect, and restorativeness ratings of natural and built scenes', Journal of Environmental Psychology, 30(4), pp. 482–493. doi: 10.1016/j.jenvp.2010.04.004.",
+              "url": "https://doi.org/10.1016/j.jenvp.2010.04.004"
+            }
+          ],
+          "note": "Ulrichs grundlæggende studie viser, at video af naturscener giver hurtigere fysiologisk stressgenopretning end video af byscener; White et al. fandt, at scener med vand får højere score for præference, positiv affekt og oplevet restorativitet end tilsvarende scener uden vand — direkte empirisk belæg for \"blue mind\"/vand-effekten, uafhængigt af enhver bevægelsesillusion.",
+          "title": "At se på vand og stressgenopretning (\"blue mind\")"
+        }
+      ],
+      "intro": "Rigtige, fagfællebedømte studier relateret til de perceptionsbegreber, der nævnes på de foregående sider — optisk flow, vektion og lavfrekvent (gynge-/\"heave\"-) vestibulær stimulation — samt til \"blue mind\"-observationen om at se på vand. Referencerne bruger Harvard-stil med et link til PubMed/PMC eller udgiverens DOI for hver.",
+      "scopeNoteBody": "Ingen af studierne nedenfor er udført på Aquafulness, og ingen tester specifikt en flydende havvisualisering. De fastslår de underliggende perceptuelle og fysiologiske effekter — at kohærent optisk flow og vektion kan skabes visuelt, at langsom gyngning/vestibulær stimulation er forbundet med afslapning og indsovning, og at det at se på vand og naturscener er forbundet med stressgenopretning — som designet kombinerer analogt. Som friskrivningerne andre steder i appen angiver, er dette designovervejelser forankret i eksisterende litteratur og personlig erfaring, ikke et klinisk udsagn om Aquafulness selv.",
+      "scopeNoteLabel": "Om omfanget:",
+      "seeAlsoBefore": "Se også:",
+      "seeAlsoLink": "Optisk flow og kinæstetisk bevægelse",
+      "title": "Videnskabelige referencer"
     }
   },
   "hud": {
@@ -172,9 +581,16 @@
     "intervalInfiniteLabel": "Interval {{n}}",
     "intervalRemaining": "{{time}} tilbage",
     "joystick": {
+      "autoAlternate": "AUTO SKIFT",
       "current": "STRØM",
+      "freeFall": "FRIT FALD",
+      "heave": "HÆVNING",
+      "jump": "HOP",
       "look": "LOOK",
       "nav": "NAV",
+      "noclipDriftXZ": "DRIV XZ",
+      "noclipDriftY": "DRIV Y",
+      "reverseRise": "OMVENDT STIGNING",
       "sway": "SVAJ",
       "waveDirection": "BØLGERETN"
     },
@@ -187,12 +603,20 @@
     "settingsCloseLabel": "LUK",
     "settingsOpenAria": "Åbn indstillinger",
     "settingsOpenLabel": "INDSTILLINGER",
+    "shareBathAria": "Del badelink",
     "slider": {
       "frequency": "FREKVENS",
       "tempo": "TEMPO",
       "wave": "BØLGE"
     },
-    "totalLabel": " · I alt "
+    "timeTravelOpenAria": "Åbn tidsrejse",
+    "totalLabel": " · I alt ",
+    "waveDrawer": {
+      "closeAria": "Luk bølgeindstillinger",
+      "closeLabel": "LUK",
+      "openAria": "Åbn bølgeindstillinger",
+      "openLabel": "BØLGER"
+    }
   },
   "interval": {
     "type": {
@@ -207,6 +631,19 @@
     "label": "SPROG",
     "no": "Norsk",
     "sv": "Svensk"
+  },
+  "licenses": {
+    "backToAbout": "Om",
+    "backToApp": "Tilbage til appen",
+    "columns": {
+      "license": "Licens",
+      "package": "Pakke",
+      "version": "Version"
+    },
+    "count": "{{count}} open source-programmer",
+    "intro": "Flere fantastiske gratis og open source-programmer har gjort Aquafulness mulig. Da nogle af dem kræver, at et link eller en licens medtages, vil vi gerne hædre al den fantastiske software, der har gjort denne app mulig — her er hele listen.",
+    "tableHeading": "Pakker",
+    "title": "Tredjepartslicenser"
   },
   "live": {
     "badge": "LIVE",
@@ -235,13 +672,18 @@
       "off": "SLUKKET",
       "sand": "Sand"
     },
-    "waterTint": {
+    "waterColor": {
       "archipelago": "Skærgård",
       "caribbean": "Caribisk",
       "deepSea": "Dybhav",
       "mediterranean": "Middelhavet",
       "nordic": "Nordhav",
       "tropical": "Tropisk"
+    },
+    "waterSound": {
+      "advanced": "Avanceret",
+      "ocean": "Ocean",
+      "simple": "Enkel"
     }
   },
   "phone": {
@@ -280,14 +722,22 @@
     "all": "ALLE INDSTILLINGER",
     "choosePreset": "VÆLG GEMT…",
     "chooseState": "VÆLG GEMT…",
+    "copied": "KOPIERET!",
+    "copyLink": "KOPIÉR LINK",
     "delete": "SLET",
     "deleteConfirm": "Slet gemt preset?",
     "deleteStateConfirm": "Slet gemt tilstand?",
     "export": "EKSPORTÉR",
+    "generateLink": "OPRET LINK",
+    "generating": "OPRETTER…",
     "import": "IMPORTÉR",
     "invalidPresetFile": "Kunne ikke læse presetfilen — kontrollér at den er en gyldig JSON-fil.",
     "invalidStateFile": "Kunne ikke læse tilstandsfilen — kontrollér at den er en gyldig JSON-fil.",
     "load": "INDLÆS",
+    "loadConfirm": "Dette erstatter dine nuværende indstillinger for dette område. Ikke-gemte ændringer går tabt.",
+    "loadConfirmTitle": "Indlæs denne forudindstilling?",
+    "loadStateConfirm": "Dette erstatter dine nuværende indstillinger, position, retning og strøm. Ikke-gemte ændringer går tabt.",
+    "loadStateConfirmTitle": "Indlæs denne tilstand?",
     "save": "GEM",
     "savePromptTitle": "Gem som:",
     "saveStatePromptTitle": "Gem tilstand som:",
@@ -298,7 +748,40 @@
       "vagor": "BØLGER-PRESET",
       "vatten": "VAND-PRESET"
     },
+    "shareBathDescriptionPlaceholder": "Beskrivelse (valgfrit)",
+    "shareBathError": "Kunne ikke oprette et link — prøv igen.",
+    "shareBathLink": "DEL BADELINK",
+    "shareBathTitlePlaceholder": "Titel (valgfrit)",
+    "shareNative": "DEL…",
     "state": "TILSTAND (alt + position, blik, strøm, sving)"
+  },
+  "privacy": {
+    "backToApp": "Tilbage til appen",
+    "intro": "Denne side forklarer i klart sprog, hvad der sker med dine data, når du bruger Aquafulness.",
+    "lastUpdated": "Senest opdateret: 28. august 2026",
+    "sections": {
+      "contact": {
+        "body": "Ved spørgsmål til denne privatlivspolitik, kontakt Alexander Forselius på drsounds@gmail.com.",
+        "heading": "Spørgsmål"
+      },
+      "localStorage": {
+        "body": "Aquafulness bruger din browsers lokale lagring (localStorage) til at huske dine indstillinger og personliggøre din oplevelse — f.eks. dit valgte sprog, bølge- og kameraindstillinger samt gemte forudindstillinger. Disse data forbliver på din enhed, sendes aldrig til Alexander Forselius eller nogen tredjepart, og kan til enhver tid slettes ved at rydde browserens webstedsdata for appen.",
+        "heading": "Lokal lagring"
+      },
+      "thirdParty": {
+        "body": "Aquafulness indeholder ikke sin egen tredjepartsreklame, sporingspixels eller widgets til sociale medier.",
+        "heading": "Tredjeparter"
+      },
+      "tracking": {
+        "heading": "Dataindsamling og sporing",
+        "points": [
+          "Aquafulness sporer, indsamler ikke og sælger ikke personoplysninger.",
+          "Appen hostes hos Lovable, hvis platform anvender sin egen standard drifts- og infrastrukturlogning og kan aktivere anonymiseret brugsstatistik (såsom Google Analytics) som en del af sin standardtjeneste — dette konfigureres af hostingplatformen, ikke af appens ansvarlige, og bruges ikke til at identificere dig personligt.",
+          "Der kræves ingen konto, og appen beder dig aldrig om personlige oplysninger."
+        ]
+      }
+    },
+    "title": "Privatlivspolitik"
   },
   "remote": {
     "hojd": "HØJDE",
@@ -308,7 +791,8 @@
     "syncButton": "SYNK BØLGE MED SVAJ: {{state}}",
     "syncTitle": "Lad BØLGERETNING automatisk følge SVAJ RETNING (standard: til)",
     "title": "FJERNBETJENING",
-    "vagrikt": "BØLGERETN"
+    "vagrikt": "BØLGERETN",
+    "whirlpoolHint": "I HVIRVEL-tilstand kredser kameraet automatisk om hvirvlen — ingen styrepinde her."
   },
   "screens": {
     "editModeDescription": "Pauser bølger og kamerabevægelse, så tv/mobil-skærmene i 3D-visningen kan flyttes, roteres og ændre størrelse præcist.",
@@ -319,8 +803,11 @@
     "title": "SKÆRMHÅNDTERING"
   },
   "settings": {
+    "backAriaLabel": "Tilbage til indstillingsafsnit",
     "reset": "NULSTIL",
     "resetAriaLabel": "Nulstil kontroller til standardværdier",
+    "resetConfirm": "Dette nulstiller alle kontroller til deres standardværdier (tidspunkt på dagen påvirkes ikke).",
+    "resetConfirmTitle": "Nulstil til standard?",
     "resetTitle": "Nulstil kontroller (tidspunkt på dagen påvirkes ikke)",
     "restore": "GENDAN",
     "restoreAriaLabel": "Vend tilbage til senest gemte kameraposition",
@@ -329,11 +816,18 @@
       "kamera": "KAMERA",
       "ljud": "LYD",
       "miljo": "MILJØ",
+      "tema": "TEMA",
       "vagor": "BØLGER",
       "vatten": "VAND"
     },
     "tabsAriaLabel": "Indstillingsfaner",
     "title": "INDSTILLINGER"
+  },
+  "splash": {
+    "copyright": "© {{year}} {{name}}. Alle rettigheder forbeholdes.",
+    "logoAlt": "Aquafulness",
+    "startBath": "Start bad",
+    "starting": "Starter…"
   },
   "swing": {
     "preset": {
@@ -347,6 +841,33 @@
       "square": "FIRKANT",
       "triangle": "TREKANT"
     }
+  },
+  "theme": {
+    "title": "TEMA",
+    "aqua": "AQUA",
+    "aquaDescription": "Det klassiske mørke glaslook — uændret.",
+    "scifi": "SCI-FI",
+    "scifiDescription": "Glødende glas med linjer som lysdioder — vælg din egen accentfarve nedenfor.",
+    "spa": "SPA",
+    "spaDescription": "Minimalistisk, rene flader i hvidt eller sort — knapper får en blød turkis gradient.",
+    "accentHue": "ACCENTFARVE",
+    "colorScheme": "TILSTAND",
+    "light": "LYST",
+    "dark": "MØRKT",
+    "blur": "GLASEFFEKT (BLUR)",
+    "blurHint": "Sløringseffekten bag paneler. Slået fra som standard for bedre ydeevne."
+  },
+  "timeTravel": {
+    "applyButton": "Rejs i tiden",
+    "closeButton": "Luk",
+    "dateLabel": "Dato & tid",
+    "description": "Sæt en simuleret dato og et klokkeslæt — tiden fortsætter derefter med at tikke i realtid derfra.",
+    "futuristicNote": "Efter år 2100 viser miljøerne deres futuristiske udseende.",
+    "liveButton": "Vend tilbage til nu",
+    "liveStatus": "Live",
+    "seasonalLabel": "Synkroniser med rigtig solopgang/solnedgang (sæson)",
+    "title": "Tidsrejse",
+    "travelingStatus": "Tidsrejse i gang"
   },
   "tod": {
     "afternoon": "Eftermiddag",

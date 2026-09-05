@@ -81,10 +81,10 @@ export function PadDial({
     <div
       tabIndex={0}
       onKeyDown={handleKeyDown}
-      className="flex items-center gap-1 rounded-full border border-white/15 bg-black/40 p-1 pl-3 backdrop-blur-md outline-none focus:border-white/40 focus:bg-black/50"
+      className="ui-surface ui-focus-line ui-focus-surface flex items-center gap-1 rounded-full border p-1 pl-3 backdrop-blur-md outline-none"
     >
-      <div className="flex min-w-[86px] flex-col items-start leading-tight text-white">
-        <span className="text-[9px] font-light tracking-[0.28em] text-white/60">{label}</span>
+      <div className="ui-ink flex min-w-[86px] flex-col items-start leading-tight">
+        <span className="ui-ink-muted text-[9px] font-light tracking-[0.28em]">{label}</span>
         {mode === "number" && editing ? (
           <input
             ref={inputRef}
@@ -97,7 +97,7 @@ export function PadDial({
               if (e.key === "Escape") setEditing(false);
             }}
             autoFocus
-            className="w-20 bg-transparent text-xs font-medium tracking-wider text-white outline-none"
+            className="ui-ink w-20 bg-transparent text-xs font-medium tracking-wider outline-none"
           />
         ) : isSelect ? (
           <select
@@ -105,10 +105,10 @@ export function PadDial({
             onChange={(e) => onSelectIndex!(Number(e.target.value))}
             aria-label={label}
             tabIndex={-1}
-            className="w-full max-w-[110px] cursor-pointer appearance-none bg-transparent text-xs font-medium tracking-wider text-white outline-none"
+            className="ui-ink w-full max-w-[110px] cursor-pointer appearance-none bg-transparent text-xs font-medium tracking-wider outline-none"
           >
             {options!.map((opt, i) => (
-              <option key={i} value={i} className="bg-black text-white">
+              <option key={i} value={i} className="ui-ink bg-[var(--ui-surface-solid)]">
                 {opt}
               </option>
             ))}
@@ -117,7 +117,7 @@ export function PadDial({
           <button
             type="button"
             onClick={() => mode === "number" && setEditing(true)}
-            className={`text-xs font-medium tracking-wider ${mode === "number" ? "cursor-text underline decoration-white/30 underline-offset-2" : "cursor-default"}`}
+            className={`text-xs font-medium tracking-wider ${mode === "number" ? "cursor-text underline decoration-[var(--ui-line-3)] underline-offset-2" : "cursor-default"}`}
             tabIndex={-1}
           >
             {value}
@@ -126,7 +126,7 @@ export function PadDial({
       </div>
       <button
         onClick={onDec}
-        className="h-7 w-7 rounded-full border border-white/20 bg-white/5 text-white/90 transition active:scale-95 active:bg-white/15"
+        className="ui-tint-1 ui-ink ui-press h-7 w-7 rounded-full border transition active:scale-95"
         aria-label={t("common.decreaseAria", { label })}
         tabIndex={-1}
       >
@@ -134,7 +134,7 @@ export function PadDial({
       </button>
       <button
         onClick={onInc}
-        className="h-7 w-7 rounded-full border border-white/20 bg-white/5 text-white/90 transition active:scale-95 active:bg-white/15"
+        className="ui-tint-1 ui-ink ui-press h-7 w-7 rounded-full border transition active:scale-95"
         aria-label={t("common.increaseAria", { label })}
         tabIndex={-1}
       >
@@ -203,8 +203,8 @@ export function PadSlider({
 }) {
   const curved = curve !== 1;
   return (
-    <div className="flex items-center gap-2 rounded-full border border-white/15 bg-black/40 px-3 py-1.5 backdrop-blur-md">
-      <span className="whitespace-nowrap text-[9px] font-light tracking-[0.28em] text-white/60">
+    <div className="ui-surface flex items-center gap-2 rounded-full border px-3 py-1.5 backdrop-blur-md">
+      <span className="ui-ink-muted whitespace-nowrap text-[9px] font-light tracking-[0.28em]">
         {label}
       </span>
       <input
@@ -223,10 +223,10 @@ export function PadSlider({
         }}
         aria-label={label}
         aria-valuetext={format ? format(value) : undefined}
-        className="h-4 w-32 cursor-pointer accent-white"
+        className="h-4 w-32 cursor-pointer accent-[var(--ui-accent)]"
       />
       {format && (
-        <span className="w-12 shrink-0 text-right text-[10px] font-medium tabular-nums tracking-wider text-white/80">
+        <span className="ui-ink w-12 shrink-0 text-right text-[10px] font-medium tabular-nums tracking-wider">
           {format(value)}
         </span>
       )}

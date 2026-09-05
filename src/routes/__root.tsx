@@ -13,6 +13,8 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { registerAppServiceWorker } from "../lib/register-sw";
 import { loadStoredLanguage, detectBrowserLanguage, changeLanguage } from "../lib/i18n";
+import { UI_THEME_INIT_SCRIPT } from "../lib/uiTheme";
+import { CookieConsent } from "../components/CookieConsent";
 
 function NotFoundComponent() {
   return (
@@ -134,28 +136,22 @@ const GA_MEASUREMENT_ID = import.meta.env["VITE_LOVABLE_CONNECTOR_GOOGLE_ANALYTI
   string | undefined;
 
 function RootShell({ children }: { children: ReactNode }) {
+  // suppressHydrationWarning below: the inline theme script sets
+  // data-ui-theme/data-ui-blur/class/style on <html> before React hydrates
+  // (so a saved scifi/spa preference doesn't flash the aqua default) —
+  // those attributes intentionally differ from the server-rendered markup,
+  // the same tradeoff next-themes and shadcn's own docs make for dark-mode
+  // scripts.
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
-        {GA_MEASUREMENT_ID ? (
-          <>
-            <script
-              async
-              src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
-            />
-            <script
-              dangerouslySetInnerHTML={{
-                __html: `
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', '${GA_MEASUREMENT_ID}');
-            `,
-              }}
-            />
-          </>
-        ) : null}
+        {/* Applies the saved UI chrome theme (aqua/scifi/spa, see
+            src/lib/uiTheme.ts) before first paint, so a saved scifi/spa
+            preference doesn't flash the aqua default for a frame. */}
+        <script dangerouslySetInnerHTML={{ __html: UI_THEME_INIT_SCRIPT }} />
+        {/* Google Analytics is injected client-side by CookieConsent only after
+            the user accepts — no tracking script ships in the SSR HTML. */}
       </head>
       <body>
         {children}
@@ -173,10 +169,32 @@ function RootComponent() {
   }, []);
 
   // Server and the first client render always use Swedish (see lib/i18n.ts)
-  // so hydration never mismatches; apply the user's stored or browser-
-  // detected language immediately after mount, before any interaction.
+  // so hydration never mismatches — but TanStack Router code-splits each
+  // route component behind React.lazy, so a route's own hydration can still
+  // be pending (its chunk still in flight) right after this (non-lazy,
+  // root-level) effect's mount. Switching the language immediately here
+  // used to race that pending hydration: this effect's setState could land
+  // before the lazy route's own hydration pass had finished comparing
+  // itself against its Swedish SSR markup, so React found English where the
+  // server had rendered Swedish, declared a hydration mismatch, and
+  // discarded + rebuilt the entire route subtree — visible as a glitch/flash
+  // right as the page should have become interactive. requestIdleCallback
+  // waits for a genuine gap in the browser's work (not just "next tick"),
+  // which in practice gives any in-flight chunk fetch/hydration time to
+  // finish first; the timeout is a bound for browsers that are never idle
+  // (or don't support it, e.g. Safari) so the language switch still always
+  // happens promptly.
   useEffect(() => {
-    changeLanguage(loadStoredLanguage() ?? detectBrowserLanguage());
+    const ric: typeof requestIdleCallback =
+      typeof requestIdleCallback === "function"
+        ? requestIdleCallback
+        : (cb) => window.setTimeout(() => cb(null as unknown as IdleDeadline), 300);
+    const cic: typeof cancelIdleCallback =
+      typeof cancelIdleCallback === "function" ? cancelIdleCallback : window.clearTimeout;
+    const id = ric(() => changeLanguage(loadStoredLanguage() ?? detectBrowserLanguage()), {
+      timeout: 2000,
+    });
+    return () => cic(id);
   }, []);
 
   // iOS Safari fires these non-standard gesture events for a pinch and
@@ -201,6 +219,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
+      <CookieConsent measurementId={GA_MEASUREMENT_ID} />
     </QueryClientProvider>
   );
 }

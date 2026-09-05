@@ -1,19 +1,96 @@
 {
+  "about": {
+    "backToApp": "Takaisin sovellukseen",
+    "lastUpdated": "Päivitetty viimeksi: 28. elokuuta 2026",
+    "navLabel": "TIETOA",
+    "sections": {
+      "aiTransparency": {
+        "body": "Uskomme avoimuuteen sen suhteen, miten tekoälyä käytetään tämän kokemuksen rakentamisessa ja luomisessa.",
+        "heading": "Tekoälyn läpinäkyvyys",
+        "points": [
+          "Koodaus: sovellus on rakennettu tekoälypohjaisilla koodaustyökaluilla, kuten Lovablella ja Claude Codella.",
+          "Vedenäänet: luotu ElevenLabs.io-palvelulla ja yhdistetty freesound.org-sivuston sekoitettuihin Creative Commons -ääniin.",
+          "Kuvat: luotu ja käsitelty Geminillä, Nano Bananalla ja Adobe Fireflyllä.",
+          "Kantamme: tekoäly on ilmaisun ja toteutuksen työkalu. Taustalla olevat ideat ovat omiamme, emmekä koskaan anna tekoälyn tehdä luovia päätöksiä."
+        ]
+      },
+      "disclaimer": {
+        "heading": "Vastuuvapauslauseke",
+        "points": [
+          "Tämä sovellus on tarkoitettu ainoastaan viihdekäyttöön.",
+          "Se ei tarjoa, eikä sitä tule käyttää perusteena, minkäänlaiselle taloudelliselle, lääketieteelliselle tai terveydelliselle hyödylle tai neuvonnalle.",
+          "Mikään sovelluksessa ei ole ammatillista neuvontaa; käänny pätevän asiantuntijan puoleen taloudellisissa, lääketieteellisissä tai terveyteen liittyvissä kysymyksissä.",
+          "Sovellus tarjotaan \"sellaisenaan\" ilman minkäänlaisia takuita, eikä Alexander Forselius lain sallimissa rajoissa vastaa mistään käytöstä aiheutuvasta menetyksestä, vahingosta tai haitasta."
+        ]
+      },
+      "documentation": {
+        "body": "Kiinnostaako Aquafulnessin taustalla oleva teoria — digitaalinen kylpeminen, sinioskillaatioteoria ja miksi aaltojen katselu on suunniteltu tuntumaan rauhoittavalta? Lue koko tapaustutkimus.",
+        "heading": "Dokumentaatio",
+        "linkLabel": "Lue dokumentaatio"
+      },
+      "intro": {
+        "body": "Aquafulness on rauhoittava, selaimessa toimiva merenaaltojen visualisointi, joka on luotu henkilökohtaiseen rentoutumiseen ja tunnelmalliseen katseluun. Se on itsenäinen harrastusprojekti, ei kaupallinen tuote eikä lääkinnällinen laite.",
+        "heading": "Tietoa sovelluksesta"
+      },
+      "openSource": {
+        "body": "Useat mahtavat ilmaiset ja avoimen lähdekoodin ohjelmistot ovat tehneet Aquafulnessista mahdollisen. Koska osa niistä edellyttää linkin tai lisenssin sisällyttämistä, haluamme kunnioittaa kaikkea mahtavaa ohjelmistoa, joka on tehnyt tämän sovelluksen mahdolliseksi.",
+        "heading": "Avoin lähdekoodi",
+        "linkLabel": "Näytä kolmannen osapuolen lisenssit"
+      },
+      "product": {
+        "body": "Aquafulness on ilmainen, mainokseton viihdesovellus: interaktiivinen 3D-merinäkymä, joka toimii selaimessa WebGL-tekniikalla. Sovellus ei vaadi asennusta, tiliä eikä maksua, eikä se muodosta yhteyttä mihinkään ulkoiseen palveluun lukuun ottamatta alla olevassa tietosuojaselosteessa kuvattua isännöintialustaa.",
+        "heading": "Digitaalisen sisällön luonne"
+      },
+      "trader": {
+        "address": "Floragatan 21D, 531 37 Lidköping, Ruotsi",
+        "addressLabel": "Osoite",
+        "capacity": "Sovelluksen tarjoaa Alexander Forselius yksityishenkilönä, ei rekisteröidyn yrityksen kautta.",
+        "email": "drsounds@gmail.com",
+        "emailLabel": "Sähköposti",
+        "heading": "Vastuuhenkilö ja yhteystiedot",
+        "name": "Alexander Forselius",
+        "note": "EU:n kuluttajansuoja- ja tuoteturvallisuusvaatimusten mukaisesti digitaalisille tuotteille — mukaan lukien digitaalisen sisällön ja digitaalisten palvelujen direktiivi (EU) 2019/770, kuluttajaoikeusdirektiivi 2011/83/EU sekä sähköistä kaupankäyntiä koskeva direktiivi 2000/31/EY — tässä kerrotaan, kuka vastaa sovelluksesta ja miten hänet tavoittaa.",
+        "phone": "+46 (0) 728-87 28 90",
+        "phoneLabel": "Puhelin"
+      }
+    },
+    "title": "Tietoja Aquafulnessista"
+  },
+  "bathing": {
+    "bathe": "KYLVE",
+    "defaultDescription": "Astu suoraan tähän mereen juuri sellaisena kuin se jätettiin.",
+    "defaultTitle": "Jaettu kylpy",
+    "goHome": "Siirry etusivulle",
+    "invalidMessage": "Linkki saattaa olla katkennut tai vioittunut. Voit silti aloittaa alusta.",
+    "invalidTitle": "Kylpylinkkiä ei voitu lukea",
+    "shareAria": "Jaa tämä kylpy"
+  },
   "camera": {
     "mode": {
       "autoSuffix": "(AUTO)",
       "float": "VAPAA",
       "noclip": "NOCLIP",
-      "swing": "KEINU"
+      "swing": "KEINU",
+      "whirlpool": "PYÖRRE"
     },
     "rotationValue": {
       "fixed": "KIINTEÄ",
       "leanForward": "KALLISTUS ETEEN"
+    },
+    "whirlpoolDirection": {
+      "ccw": "VASTAPÄIVÄÄN",
+      "cw": "MYÖTÄPÄIVÄÄN"
+    },
+    "whirlpoolExitMode": {
+      "reverseSpin": "KÄÄNTEINEN PYÖRITYS",
+      "throwBack": "HEITETÄÄN TAKAISIN"
     }
   },
   "common": {
     "against": "VASTAAN",
     "auto": "AUTO",
+    "cancel": "PERUUTA",
+    "close": "SULJE",
     "decreaseAria": "{{label}} pienennä",
     "high": "KORKEA",
     "increaseAria": "{{label}} suurenna",
@@ -23,17 +100,27 @@
     "off": "POIS",
     "on": "PÄÄLLÄ",
     "opacity": "PEITTÄVYYS",
+    "resetAria": "{{label}} nollaa",
     "texture": "TEKSTUURI",
     "with": "MYÖTÄ"
+  },
+  "consent": {
+    "accept": "HYVÄKSY",
+    "body": "Haluaisimme käyttää Google Analyticsiä ymmärtääksemme, miten sovellusta käytetään. Henkilötietoja ei myydä eikä jaeta. Voit kieltäytyä ilman, että mikään muuttuu.",
+    "decline": "KIELLÄ",
+    "title": "Evästeet & tilastointi"
   },
   "dial": {
     "audio": {
       "off": "ÄÄNI POIS",
       "on": "ÄÄNI PÄÄLLÄ",
+      "sound": "VEDEN ÄÄNI",
       "spatial": "TILALLINEN",
       "syncSpeed": "ÄÄNISYNKRONOINTI"
     },
     "camera": {
+      "chromaticAberration": "KROMAATTINEN ABERRAATIO",
+      "chromaticAberrationAmount": "ABERRAATION VOIMAKKUUS",
       "far": "KAUKOTASO",
       "fov": "FOV",
       "goggles": "UIMALASIT",
@@ -43,13 +130,21 @@
       "gogglesLoop": "PISARASILMUKKA",
       "intervalCount": "INTERVALLIEN MÄÄRÄ",
       "intervalDuration": "INTERVALLI",
+      "intervalIncludeFloat": "INTERVALLI: VAKIO",
+      "intervalIncludeSwing": "INTERVALLI: KEINU",
+      "intervalIncludeWhirlpool": "INTERVALLI: PYÖRRE",
       "intervalSession": "INTERVALLIHARJOITUS",
       "mode": "KAMERATILA",
       "near": "LÄHI",
+      "noclipAutoAlternate": "AUTOMAATTINEN VAIHTO",
+      "noclipAutoAlternateInterval": "VAIHTOVÄLI",
+      "noclipFallRiseSpeed": "PUTOAMIS/NOUSUNOPEUS",
       "noclipSpeed": "NOCLIP-NOPEUS",
+      "noclipVertEaseTime": "PUTOAMIS/NOUSUPEHMEYS",
       "posX": "SIJAINTI X",
       "posY": "SIJAINTI Y",
       "posZ": "SIJAINTI Z",
+      "resolutionScale": "RESOLUUTIO",
       "rotation": "KIERTO",
       "sessionType": "HARJOITUSTYYPPI",
       "showStats": "NÄYTÄ AIKA",
@@ -57,12 +152,18 @@
       "swingIntensity": "KEINUN INTENSITEETTI",
       "swingPositionY": "KEINUN Y-SIJAINTI",
       "swingStart": "KEINU ALOITUS",
+      "swingTornado": "TORNADO",
+      "swingTornadoDirection": "TORNADON SUUNTA",
+      "swingTornadoRadius": "TORNADON SÄDE",
+      "swingTornadoSpeed": "TORNADON TEMPO",
       "swingXFactor": "KEINU X",
       "swingYWaveform": "KEINUN Y-AALTOMUOTO",
+      "targetFps": "KUVATAAJUUSKATTO",
       "wakeLock": "VALVEILLA"
     },
     "env": {
       "backdrop": "TAUSTA",
+      "cloudFadeSpeed": "PILVIEN HÄIVYTYSNOPEUS",
       "dayTime": "VUOROKAUDENAIKA",
       "environment": "YMPÄRISTÖ",
       "era": "AIKAKAUSI",
@@ -84,31 +185,37 @@
       "torusTube": "PAKSUUS",
       "torusVerticalCount": "RENKAITA/SARAKE",
       "torusVerticalSpacing": "RUUDUKON KORKEUS",
-      "torusViewDistance": "NÄKYVYYS"
+      "torusViewDistance": "NÄKYVYYS",
+      "worldBoundary": "MAAILMAN RAJA",
+      "worldBoundaryHeight": "RAJAN KORKEUS (Y)",
+      "worldBoundarySize": "RAJAN KOKO (XZ)",
+      "worldBoundaryYExtend": "ÄÄRETTÖMÄT PILVIKERROKSET"
     },
     "water": {
       "bottom": "POHJA",
       "bottomColor": "POHJAN VÄRI",
       "brightness": "KIRKKAUS",
       "caustics": "AITO KAUSTIIKKA",
+      "color": "VESI",
+      "colorAlpha": "VÄRIN VOIMAKKUUS",
       "depth": "SYVYYS",
       "depthSine": "SYVYYS-SINI",
       "floorTexture": "TEKSTUURI",
       "hue": "SÄVY",
-      "reflStrength": "VOIMAKKUUS",
+      "pickColor": "VALITSE VÄRI",
       "reflection": "HEIJASTUS",
+      "reflStrength": "VOIMAKKUUS",
       "saturation": "KYLLÄISYYS",
       "sineAmp": "SININ AMPLITUDI",
       "sineFreq": "SININ TAAJUUS",
       "sphereStrength": "PALLON VOIMAKKUUS",
-      "surfBright": "PINNAN VALO",
-      "surfSat": "PINNAN KYLLÄISYYS",
       "surface": "VEDENPINTA",
       "surfaceValue": {
         "hide": "PIILOTA",
         "visible": "NÄKYVÄ"
       },
-      "tint": "VESI",
+      "surfBright": "PINNAN VALO",
+      "surfSat": "PINNAN KYLLÄISYYS",
       "turbidity": "SAMEUS",
       "waveMaterial": "AALLON MATERIAALI",
       "waveMaterialValue": {
@@ -118,24 +225,19 @@
     },
     "wave": {
       "amp": "AALTO",
+      "anticipation": "ENNAKOINTI",
       "bob": "KEINUNTA",
       "bobSpeed": "KEINUNNAN TEMPO",
       "crossWave": "RISTIAALTO",
       "currentDirection": "VIRTAUKSEN SUUNTA",
-      "distance": "ETÄISYYS",
       "dive": "SUKELLUS",
       "dyingWave": "VAIMENEVA AALTO",
       "dyingWaveHeight": "VAIMENEVAN AALLON KORKEUS",
       "dyingWaveSpeed": "VAIMENEVAN AALLON TEMPO",
       "floatLift": "KELLUNTA",
       "freq": "TAAJUUS",
+      "heaveSkew": "AALLON VINOUS",
       "height": "KORKEUS",
-      "mode": "TILA",
-      "modeValue": {
-        "ocean": "MERI",
-        "vortex": "PYÖRRE"
-      },
-      "opening": "AUKKO",
       "peak": "HUIPPU",
       "preset": "AALTO-ESIASETUS",
       "quality": "LAATU",
@@ -151,14 +253,321 @@
       "swaySpeed": "HEILUNNAN TEMPO",
       "trochoid": "TROKOIDI",
       "trochoidOff": "POIS",
-      "vortexSpeed": "PYÖRTEEN TEMPO",
       "waveDirection": "AALLON SUUNTA",
-      "wavePeriod": "AALLON JAKSO",
       "waveform": "AALTOMUOTO",
       "waveformValue": {
         "regular": "SÄÄNNÖLLINEN",
         "spread": "HAJONTA"
-      }
+      },
+      "wavePeriod": "AALLON JAKSO",
+      "whirlpoolDirection": "PYÖRTEEN SUUNTA",
+      "whirlpoolDistance": "ETÄISYYS KESKUSTAAN",
+      "whirlpoolDragDuration": "VEDON KESTO",
+      "whirlpoolDragSpeed": "VETONOPEUS",
+      "whirlpoolExitMode": "POISTUMISTILA",
+      "whirlpoolExitSpeed": "POISTUMISNOPEUS",
+      "whirlpoolOpening": "AUKKO",
+      "whirlpoolSequence": "AUTOSEKVENSSI",
+      "whirlpoolSpeed": "PYÖRTEEN TEMPO",
+      "whirlpoolStayDuration": "PYSY SISÄLLÄ"
+    }
+  },
+  "docsPhilosophy": {
+    "background": {
+      "disclaimer": {
+        "bodyAfter": "sekä tekijän henkilökohtaisen kokemuksen ja suunnitteluteorian. Se ei sisällä lääketieteellisiä väitteitä. Kun mielialaan tai rentoutumiseen liittyviä vaikutuksia kuvataan, ne kuvaavat subjektiivista kokemusta ja suunnittelutarkoitusta, ei kliinisesti todettuja tuloksia.",
+        "bodyBefore": "tämä sivu tiivistää",
+        "emphasis": "Aquafulness-tapaustutkimuksen",
+        "label": "Vastuuvapauslauseke:"
+      },
+      "section1": {
+        "availability": {
+          "body": "Toisin kuin juoksu tai pyöräily, uinti vaatii infrastruktuurin: uima-altaan tai luonnonveden oikeissa olosuhteissa. Altaat ovat kalliita rakentaa ja ylläpitää, tyypillisesti kunnallisia, ja niillä on rajoitetut aukioloajat. Luonnonvesi leudossa ilmastossa, kuten Ruotsissa, on keskimäärin 13–17 °C jopa heinäkuun huipulla — niin kylmää, että se ei suurimman osan vuotta yksinkertaisesti ole vaihtoehto — ja avovesi tuo mukanaan virtauksia, leväkukintoja ja kylmäsokin lisäksi valvonnan puuttumisen.",
+          "title": "Saatavuus"
+        },
+        "conclusionBody": "kylpeminen on kaksiteräinen miekka. Nautinto, rauha ja liikunta ovat todellisia; samoin ovat taloudelliset, hygieeniset, turvallisuus- ja saatavuusesteet. Aquafulnessin tavoitteena on herättää uudelleen joitakin kylpemisen kaivatuimpia myönteisiä vaikutuksia ilman upottautumista — saatavilla mihin vuorokaudenaikaan tahansa, missä säässä tahansa, kenelle tahansa, jolla on näyttö.",
+        "conclusionLabel": "Johtopäätös:",
+        "cost": {
+          "body": "Ruotsin julkisten kylpylöiden pääsymaksut ovat nousseet merkittävästi inflaation ja energian hintojen myötä — tyypillisesti 70–200 kruunua aikuisen käynniltä, kausikorttien maksaessa 1 500–3 000 kruunua. Vaikka opiskelijat, eläkeläiset ja reseptillä määrätty liikunta (FaR) saavat alennuksia, hinnat ovat monille kohtuuttomia.",
+          "title": "Kustannus"
+        },
+        "dressCodes": {
+          "body": "Hygienia- ja turvallisuussäännöt rajoittavat allasvaatetuksen uimatekstiileihin (lycra/spandex), koska tavallinen puuvillavaate irrottaa hiukkasia, kantaa bakteereja ja — vedestä raskaana — lisää hukkumisriskiä. Samaan aikaan yhä useampi vieras suosii uskonnollisista, kulttuurisista tai neurokirjon syistä uimavaatetusta, joka peittää vartalon enemmän. Tämä jännite on ollut aidosti kiistanalainen; laitokset vastaavat yhä useammin tarjoamalla vuokrattavia täysin peittäviä uimapukuja (kuten burkinin) sekä omia rauhallisia tunteja tai ryhmäajanvarauksia.",
+          "title": "Pukeutumissäännöt ja osallisuus"
+        },
+        "hygiene": {
+          "body": "Jaettu vesi ja jaetut tilat (pukuhuoneet, lattiat, kalusteet) aiheuttavat tartuntariskejä ihosairauksista vakaviin vesivälitteisiin tauteihin. Bakteerien torjuntaan käytetty kloori aiheuttaa omat huolensa sekä vakituisille kylpijöille että henkilökunnalle.",
+          "title": "Hygienia"
+        },
+        "overcrowding": {
+          "body": "Koska kylpeminen on niin suosittua, laitokset ja rannat ruuhkautuvat pahasti toimistoaikojen ulkopuolella ja lomilla — mikä lisää tartuntariskiä, törmäys- ja hukkumisriskiä sekä melua, joka itsessään sulkee ulkopuolelle ihmiset, joille väkijoukot ovat vaikeita.",
+          "title": "Ruuhkautuminen"
+        },
+        "p1": "Kylpeminen on harvinaislaatuinen toiminnan muoto. Upottautuminen lämpimään veteen aktivoi monia aisteja samanaikaisesti ja tuottaa, toisin kuin useimmat fyysisen aktiivisuuden muodot, tunteita rauhasta, rentoutumisesta, painottomuudesta ja lempeästä hieronnasta. Monille ihmisille vedessä vietetty aika on hyvinvoinnin kulmakivi, ja uinti on pitkään ollut yksi suosituimmista vapaa-ajan aktiviteeteista.",
+        "p2": "Mutta Aquafulnessin taustalla oleva tapaustutkimus listaa yhtä pitkän joukon esteitä ja haittapuolia todellisessa kylpemisessä:",
+        "safety": {
+          "body": "Hukkuminen on veden vakavin vaara sekä uima-altaissa että avovedessä. Liian myöhään — tai lähes liian myöhään — tuleva pelastus voi tarkoittaa kuolemaa tai pysyvää vammaa. Siksi altaissa on uimavalvojia, pukeutumissäännöt ja rajoitettu kylpijämäärä.",
+          "title": "Turvallisuus"
+        },
+        "title": "Miksi kylpeä digitaalisesti?",
+        "travel": {
+          "body": "Lämpimän veden jahtaaminen ulkomailta — Gran Canarialta, Thaimaasta, Mallorcalta — maksaa ruotsalaiselle kotitaloudelle arviolta 28 000–150 000 kruunua viikossa, yhä useammin luotolla rahoitettuna. Lisää siihen viisumit, vakuutus katastrofaalisia sairaalalaskuja vastaan, vieraat oikeusjärjestelmät, voimakas auringonpaiste ja meren vaarat karkaavista virtauksista pistäviin vesieläimiin. Tapaustutkimus huomauttaa myös, että 2020-luvun geopoliittiset kriisit — pandemia, sota Ukrainassa, kärjistyminen Lähi-idässä — ovat tehneet ulkomaanmatkoista riskialttiimpia ja epävarmempia kuin vuosikymmeniin.",
+          "title": "Matkustaminen"
+        }
+      },
+      "section2": {
+        "audiovisual": {
+          "body": "parhaiten toimiva menetelmä. Ääni ja kuva vahvistavat toisiaan, joten kummankaan kanavan ei tarvitse kantaa kokemusta yksin.",
+          "term": "Audiovisuaalinen yhdistelmä"
+        },
+        "auditory": {
+          "body": "historiallisesti yleisin menetelmä, 1980-luvun kenttänauhoitetuista meren aaltojen kasettinauhoista nykyaikaisiin generatiivisiin äänimaisemasovelluksiin. Tehokas, mutta nojaa silti mielikuvitukseen kuvan täydentämisessä, mikä tuo kognitiivisen kustannuksen.",
+          "term": "Kuulostimulaatio"
+        },
+        "conclusion": "Aquafulness rakentuu audiovisuaalisen yhdistelmän varaan.",
+        "imagination": {
+          "body": "alkeellisin menetelmä. Se toimii, mutta vaatii vapautta häiriötekijöistä ja on kognitiivisesti raskas; se onnistuu parhaiten, kun henkilö on jo rentoutunut.",
+          "term": "Mielikuvitus"
+        },
+        "p1After": ", ja se kartoittaa tärkeimmät seeding-kanavat:",
+        "p1Before": "Jotta kylpemisen mielentila voitaisiin herättää ilman vettä, kokemuksen täytyy aktivoida samat mielleyhtymät, jotka mieli yhdistää todelliseen kylpemiseen. Tapaustutkimuksen termi kylpemisen tunteen keinotekoiselle herättämiselle on",
+        "p1Emphasis": "seeding",
+        "title": "Menetelmä: veden tunteen kylväminen (seeding)",
+        "visual": {
+          "body": "veden näkeminen on itsessään rauhoittavaa; tapaustutkimus viittaa kansanomaisesti kutsuttuun \"blue mind\" -ilmiöön, joka syntyy merta tuijottaessa.",
+          "term": "Visuaalinen stimulaatio"
+        }
+      },
+      "section3": {
+        "p1": "Tapaustutkimus esittää sitten syvemmän kysymyksen: mikä oikeastaan on rauhoittavaa vedessä?",
+        "p2After": ". Tyynen, lämpimän veden koetut ominaisuudet — painottomuus, pehmeys, tunne kannateltuna, kannettuna ja hoivattuna olemisesta, ehkä juurtuen aina sikiöaikaan asti — jakavat kaikki yhden fyysisen tunnusmerkin: tyynen veden virtaus ja voima on sinimuotoista värähtelyä. Näetpä sitten veden liikkuvan, kuulet sen loiskuvan tai tunnet sen kannattelevan sinua, aisteihin saapuva ärsyke on tasainen, jaksollinen ja ennustettava. Teorian mukaan tämä värähtely synkronoi katsojan samaan rauhaan.",
+        "p2Before": "Vastaus — esitettynä henkilökohtaisena teoriana, ei vahvistettuna tieteenä — on",
+        "p2Emphasis": "siniaalto",
+        "p3After": "tälle stimulaation herättämälle rauhoittuneelle tilalle.",
+        "p3Before": "Tapaustutkimus lanseeraa termin",
+        "p3Emphasis": "\"aquaful\"",
+        "title": "Sinioskillaatioteoria ja \"aquaful\"-tila"
+      },
+      "section4": {
+        "footerAfter": "aihe.",
+        "footerBefore": "Tämä sovellus (\"Aquafulness Core\") toteuttaa saman algoritmin selaimessa three.js:llä ja WebGL:llä — täysin alusta rakennetun uudelleentoteutuksen alkuperäisestä",
+        "footerLinkText": "Godot-pohjaisesta Aquafulnessista",
+        "footerMiddle": "webille. Miksi näiden tekniikoiden odotetaan tuntuvan kellumiselta, on",
+        "footerPageLink": "havaintosivun",
+        "p1": "Teoriasta suunnitteluun ratkaisu ilmaistaan tapaustutkimuksessa suoraan:",
+        "p2": "Konkreettisesti tämä tarkoittaa:",
+        "quote": "Luo audiovisuaalinen digitaalinen kokemus, joka muistuttaa lämpimään järveen upottautuneen kylpijän näkökulmaa. Korosta värejä — veden luonnollista vaaleanruskeasta siniseen vaihtuvaa sävyä — ja anna sen kuvan olla peittokerros visualisoinnissa, jossa projektio liikkuu pehmeästi kuin aalto, herättääkseen kinesteettisen tunteen siitä, että on upottautunut veteen, joka virtaa mukanasi edestakaisin — tunteen hoivatuksi tulemisesta, keinuvasta liikkeestä.",
+        "quoteEmphasis": "Tämä on perusalgoritmi.",
+        "steps": [
+          "Ensimmäisen persoonan kamera sijoitettuna kylpijän korkeudelle meri- tai järvimaisemaan.",
+          "Kameran sijainti tasaisen jaksollisen liikkeen ohjaamana, joka keinuttaa koko renderöityä kuvaa samaan tapaan kuin kelluva vartalo keinuu.",
+          "Vesipinnat, joiden kärkipisteet ja tekstuurit liikkuvat hitaissa sinimuotoisissa aalloissa, luonnollisin vesivärein.",
+          "Meren ja tuulen äänisilmukat taustalla."
+        ],
+        "title": "Perusalgoritmi"
+      },
+      "title": "Tausta ja tarkoitus: digitaalinen kylpeminen"
+    },
+    "index": {
+      "card1": {
+        "bodyAfter": "-menetelmä, sinioskillaatioteoria ja \"aquaful\"-tila, jota sovellus pyrkii herättämään.",
+        "bodyBefore": "Digitaalisen kylpemisen käsite, projektin taustalla oleva tapaustutkimus,",
+        "bodyEmphasis": "seeding",
+        "title": "1. Tausta ja tarkoitus"
+      },
+      "card2": {
+        "body": "Miten visualisointi on suunniteltu visuaalisen itseliikkeen ympärille: hidas, yhtenäinen optinen virtaus, koko kuvakentän keinunta, ja tavoite herättää tunne lämpimässä vedessä kellumisesta.",
+        "title": "2. Optinen virtaus ja kinesteettinen liike"
+      },
+      "card3": {
+        "body": "Aitoja, vertaisarvioituja tutkimuksia optisesta virtauksesta, vektiosta, keinunnasta/tasapainoelinärsytyksestä ja veden katselusta, Harvard-lähdeviittein ja linkein PubMediin/DOI:hin.",
+        "title": "3. Tieteelliset lähteet"
+      },
+      "disclaimerBody": "kaikki alla oleva kuvaa suunnitteluperiaatteita, jotka pohjautuvat tekijän henkilökohtaiseen kokemukseen sekä yleisesti tunnettuihin havaintopsykologisiin käsitteisiin, joita on käytetty suunnittelun inspiraationa. Mitään lääketieteellisiä väitteitä ei esitetä. Aquafulness ei ole lääkinnällinen laite eikä terapiamuoto, eikä mitään täällä esitettyä väitettä rauhoittumisesta, rentoutumisesta tai hyvinvoinnista tule lukea kliinisesti vahvistettuna tuloksena.",
+      "disclaimerLabel": "Vastuuvapauslauseke:",
+      "footerAfter": "kanssa, josta tämä dokumentaatio on peräisin.",
+      "footerBefore": "Tämä sovellus (\"Aquafulness Core\") jakaa taustateoriansa alkuperäisen Godot-pohjaisen",
+      "footerLinkText": "Aquafulnessin",
+      "intro": "Tämä on Aquafulnessin taustalla oleva teoria: mistä idea on peräisin, ja ne havaintopsykologiset periaatteet — optinen virtaus ja kinesteettinen liike — joihin suunnittelu nojaa.",
+      "title": "Dokumentaatio"
+    },
+    "nav": {
+      "backToAbout": "Tietoa",
+      "backToApp": "Takaisin sovellukseen",
+      "backToDocs": "Dokumentaatio"
+    },
+    "opticFlow": {
+      "disclaimerBody": "tämä sivu kuvaa suunnitteluperusteluja, jotka pohjautuvat tekijän henkilökohtaiseen kokemukseen ja yleisesti tunnettuihin havaintopsykologisiin käsitteisiin, joita käytetään tässä inspiraationa. Se ei esitä lääketieteellisiä väitteitä. Aquafulnessia ei ole kliinisesti arvioitu; mikään alla oleva ei väitä terapeuttista vaikutusta, ja yksilöllinen kokemus vaihtelee.",
+      "disclaimerLabel": "Vastuuvapauslauseke:",
+      "furtherReading": {
+        "after": "aidoista, vertaisarvioiduista tutkimuksista Harvard-lähdeviittein ja linkein PubMediin/DOI:hin.",
+        "before": "Yllä käytetyt käsitteet — optinen virtaus, vektio ja hidas tasapainoelin- (\"heave\") ärsytys — ovat vakiintuneita havaintopsykologian ja unitutkimuksen kirjallisuudessa, vaikkei niitä ole testattu itse Aquafulnessissa. Katso",
+        "link": "Tieteelliset lähteet"
+      },
+      "section1": {
+        "p1After": "— on, että näkö ja kuulo, oikein toteutettuina, voivat herättää muiston lopusta. Aivot, jotka ovat kelluneet lämpimässä järvessä, tietävät miltä koko aistikokonaisuus tuntuu; riittävän puhutteleva audiovisuaalinen katkelma kutsuu ne täydentämään loput.",
+        "p1Before": "Todellinen kylpeminen on monisensorista: ihon lämpötila, niveliä keventävä kelluvuus, hydrostaattinen paine, keinumisen tasapainoaistin signaali, veden ääni, sen näky. Näyttö ja kaiutin voivat tavoittaa vain kaksi näistä kanavista. Aquafulnessin veto — tapaustutkimus kutsuu sitä",
+        "p1Emphasis": "seedingiksi",
+        "p2": "Kysymys on, mitä \"oikein toteutettu\" tarkoittaa. Aquafulnessin vastauksessa on kolme osaa: yhtenäinen optinen virtaus, koko kentän värähtely, ja siniaalto tyynen veden yhteisenä tunnusmerkkinä.",
+        "title": "Suunnitteluongelma"
+      },
+      "section2": {
+        "layer1": {
+          "body": "Kameran korkeus seuraa tasaista jaksollista värähtelyä, jolloin renderöidyn kuvan jokainen pikseli siirtyy ylös ja alas yhdessä, todellisen maininginkaltaisella pehmeällä kiihtyvyysprofiililla. Yhtenäinen koko kentän liike on juuri se ärsykeluokka, jonka näköjärjestelmä tulkitsee todisteeksi omasta liikkeestä eikä kohteen liikkeestä.",
+          "term": "Koko kentän keinunta."
+        },
+        "layer2": {
+          "body": "Veden tekstuuri ja siirtymä ajelehtivat hitaasti ja jatkuvasti pinnan yli. Tämä on klassinen laminaarinen virtauskuvio vedestä, joka liikkuu kelluvan havainnoijan ohi — kiireetön, tasainen, loputon. Sillä ei ole määränpäätä eikä tapahtumaa; virtaus vain viestii, että vesi elää ja kantaa sinua.",
+          "term": "Pintavirtaus."
+        },
+        "layer3": {
+          "body": "Vedenpinta itse nousee ja laskee päällekkäisten aaltojen interferenssikuviossa — tässä sovelluksessa suunnatusta aaltospektristä otetuista siniaalloista koostuvana summana — niin että lähellä olevat harjat ja kaukaiset pohjat liikkuvat samassa vastavaiheisessa rytmissä kuin todellinen mainingit, mikä antaa virtauskentälle uskottavan syvyysrakenteen litteän vieritysken sijaan.",
+          "term": "Aaltoilu."
+        },
+        "p1Body": "on liikkeen kuvio koko näkökentässä, jonka havainnoija kokee, kun hän — tai hänen ympäristönsä — liikkuu. Se on yksi vahvimmista visuaalisista vihjeistä, joita aivot käyttävät oman liikkeensä selvittämiseen: edessä olevasta pisteestä laajeneva virtauskenttä tulkitaan eteenpäin liikkumiseksi; koko näkymän pehmeä siirtyminen ylöspäin tulkitaan itsensä vajoamiseksi, ja alaspäin nousemiseksi.",
+        "p1Term": "Optinen virtaus",
+        "p2": "Aquafulness rakentaa optisen virtauksensa kolmesta kerroksesta:",
+        "p3After": ".",
+        "p3Before": "Yhdessä nämä tuottavat kylpijän tyypillisen optisen virtauksen ruokavalion: globaalin, hitaan, jaksollisen, yhtenäisen. Mikään näkymässä ei liiku äkkinäisesti; mikään ei vaadi sakkadia; mikään ei riko viimeisten sekuntien luomaa ennustetta. Tapaustutkimuksen sanastossa näkökanavaa ruokitaan",
+        "p3Emphasis": "puhtaalla siniväärähtelyllä",
+        "title": "Optinen virtaus: veden läpi liikkumisen visuaalinen tunnusmerkki"
+      },
+      "section3": {
+        "bullet1After": ", ei näkymän kohteisiin, jotta syntyvä tulkinta on \"kehoni keinuu\", ei \"tuo poiju keinuu\".",
+        "bullet1Before": "Keinunta kohdistuu",
+        "bullet1Emphasis": "kameraan",
+        "bullet2": "Keinunta pysyy hitaan, mukavan maininginkaltaisen tempossa — riippumaton tai hitaasti keinutetun kehdon rytmissä pikemminkin kuin aallokon tai turbulenssin. Tämänkaltainen hidas keinunta yhdistetään yleisesti arkikokemuksessa rauhoittumiseen; tapaustutkimus perustaa sen henkilökohtaisemmin tunteeseen kannateltuna ja hoivattuna olemisesta, ja arvelee sen voivan juontaa juurensa aina sikiöaikaan asti.",
+        "bullet3": "Aallon korkeus, nopeus ja tyyli ovat käyttäjän säädettävissä sovelluksen asetuksista, koska mukavuuskynnykset vaihtelevat — sama liike, joka tuntuu yhdestä ihmisestä ihanan keinuvalta, on toiselle liikaa.",
+        "p1After": "— vaikuttavan illuusion omasta liikkeestä ilman minkäänlaista fyysistä liikettä (junavaunuilmiö: viereinen juna lähtee liikkeelle, ja sinusta tuntuu, että sinä liikut). Vektio on silta veden katselemisesta sen kannattelemaksi tulemisen tunteeseen.",
+        "p1Before": "Kun suuri osa näkökentästä liikkuu yhtenäisesti, havainnoijat kokevat usein",
+        "p1Emphasis": "vektiota",
+        "p2": "Aquafulness on tarkoituksella rakennettu kutsumaan esiin lempeän, värähtelevän vektion:",
+        "p3After": "tarkoittaa tässä oman kehon asennon ja liikkeen tuntoaistimusta: tavoitteena ei ole, että käyttäjä arvioi veden näyttävän kauniilta, vaan että hänen kehonsa jollain tasolla tuntee itsensä keinutetuksi.",
+        "p3Before": "Tapaustutkimus nimeää tavoitellun tuloksen suoraan: pehmeästi aallon tavoin liikkuvan projektion tulisi \"herättää kinesteettinen tunne siitä, että on upottautunut veteen, joka virtaa mukanasi edestakaisin\" — keinuva liike, tunne hoivatuksi tulemisesta.",
+        "p3Term": "Kinesteettinen",
+        "p4": "Kaksi suunnitteluvalintaa tukevat mukavuutta tässä herätetyssä liikkeessä:",
+        "predictability": {
+          "body": "Sinimuotoinen liike on äärimmäisen ennustettavaa — aivot lukittuvat rytmiin yhden tai kahden jakson sisällä, jolloin visuaalis-vestibulaarinen ristiriita (silmät raportoivat keinuntaa, sisäkorva raportoi liikkumattomuutta) pysyy lievänä ja odotettuna. Epäsäännöllinen tai kiihtyvä liike samalla ristiriidalla on se, joka pyrkii aiheuttamaan epämukavuutta; puhdas, hidas siniaalto on suunnilleen lievin mahdollinen muoto siitä.",
+          "term": "Ennustettavuus."
+        },
+        "stableFrame": {
+          "body": "Puhelimen tai kannettavan näytöllä laitteen reunat ja niiden takana oleva huone pysyvät näkyvissä ja paikoillaan, mikä rajaa vektion luonnostaan miellyttäväksi, osittaiseksi tunteeksi epävakauttavan sijaan. Täysin ympäröivä näyttö on vastaavasti se ympäristö, jossa kelluntailluusio voi olla voimakkaimmillaan.",
+          "term": "Vakaa kehys."
+        },
+        "title": "Vektio ja kinesteettinen liike: liikkeen näkeminen, liikkeen tunteminen"
+      },
+      "section4": {
+        "p1": "Miksi mikään tästä olisi rauhoittavaa? Tapaustutkimuksen perustelu, esitettynä henkilökohtaisena teoriana:",
+        "p2After": "— kiireetön keinunta, elävä pinta, vedenvalo — niitä monia tilanteita varten, joissa todellinen kylpeminen on ulottumattomissa: väärä vuorokaudenaika, väärä vuodenaika, väärä budjetti, ruuhkautunut allas, keho tai mieli, jolle laitos on hankala, tai yksinkertaisesti viiden minuutin tauko työpöydän ääressä.",
+        "p2Before": "Tarkoitus on siis vaatimaton ja tarkka:",
+        "p2Emphasis": "herättää visualisoinnin kautta uudelleen kylpemisen rauhoittava tunne",
+        "reason1": {
+          "body": "Avoimen veden näky — kansanomaisesti kutsuttu \"blue mind\" -havainto — on rauhoittava useimmille ihmisille, riippumatta mistään liikeilluusiosta. Aquafulness hyödyntää tätä luonnollisella väripaletillaan: todellisen järven tai meren vaaleanruskeasta siniseen vaihtuvat värit, lämpimät sävyt läpikuultavan sinivihreän veden alla, kylläisyyttä korostettu taivas.",
+          "term": "Veden katseleminen on itsessään rauhoittavaa."
+        },
+        "reason2": {
+          "body": "Kaikki, mitä tyyni kylpy tarjoaa aisteille — tuntemasi mainingit, kuulemasi loiske, näkemäsi virtaus — on tasaista jaksollista värähtelyä. Teorian mukaan saman tunnusmerkin esittäminen käytettävissä olevien kanavien (silmien ja korvien) kautta synkronoi katsojan tilaan, jonka täysi upottautuminen tuottaa: tilaan, jonka tapaustutkimus nimeää \"aquaful\".",
+          "term": "Tyynen veden yhteinen nimittäjä on siniaalto."
+        },
+        "reason3": {
+          "body": "Kokemus on koottu vastaamaan muistoa tietystä, hyvästä paikasta — kellumisesta lämpimässä, avoimessa vedessä. Ääni vahvistaa näköä: meren ja tuulen äänet tarjoavat kuulonvaraisen siniaaltopohjan, jotta kuvien ei tarvitse kantaa mielleyhtymää yksin. Tämä on audiovisuaalinen yhdistelmä, jonka tapaustutkimus tunnistaa tehokkaimmaksi seeding-menetelmäksi — vahvempi kuin pelkkä ääni, joka yhä kuormittaa mielikuvitusta, ja huomattavasti kevyempi kognitiivisesti kuin pelkkä mielikuvitus.",
+          "term": "Mielleyhtymä täydentää kuvan."
+        },
+        "title": "Rauhoittava tarkoitus: kylvyn uudelleenluominen"
+      },
+      "section5": {
+        "p1": "On syytä toistaa vastuuvapauslausekkeen lisäksi: Aquafulness ei väitä alentavansa verenpainetta, hoitavansa ahdistusta, korvaavansa liikuntaa tai tuottavansa mitään mitattua kliinistä vaikutusta. Se on visualisointi, joka rakentuu yhden ihmisen huolelliseen tarkkailuun siitä, miksi kylpeminen tuntuu siltä miltä se tuntuu, sekä vakiintuneisiin havaintopsykologisiin ideoihin — optiseen virtaukseen, vektioon, hitaan rytmin rauhoittavaan laatuun — käytettyinä käsityötaitona, samaan tapaan kuin elokuvantekijä käyttää niitä, ei lääkkeenä. Jos se antaa sinulle kolme minuuttia merta keskellä talvea, se on tehnyt tehtävänsä.",
+        "title": "Mitä tämä ei ole"
+      },
+      "seeAlsoBefore": "Katso myös:",
+      "seeAlsoLink": "Tausta ja tarkoitus",
+      "title": "Optinen virtaus ja kinesteettinen liike"
+    },
+    "references": {
+      "groups": [
+        {
+          "citations": [
+            {
+              "text": "Wright, W.G., DiZio, P. and Lackner, J.R. (2005) 'Vertical linear self-motion perception during visual and inertial motion: more than weighted summation of sensory inputs', Journal of Vestibular Research, 15(4), pp. 185–195.",
+              "url": "https://pubmed.ncbi.nlm.nih.gov/16286700/"
+            },
+            {
+              "text": "Nakamura, S., Palmisano, S. and Kim, J. (2016) 'Relative visual oscillation can facilitate visually induced self-motion perception', i-Perception, 7(4), pp. 1–18. doi: 10.1177/2041669516661903.",
+              "url": "https://pubmed.ncbi.nlm.nih.gov/27698982/"
+            },
+            {
+              "text": "Wang, W., Yang, K. and Zhu, Y. (2021) 'Optimal frequency and amplitude of vertical viewpoint oscillation for improving vection strength and reducing neural constraints on gait', Entropy, 23(5), 541. doi: 10.3390/e23050541.",
+              "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8145014/"
+            },
+            {
+              "text": "Nooij, S.A.E., Pretto, P. and Bülthoff, H.H. (2018) 'More vection means more velocity storage activity: a factor in visually induced motion sickness?', Experimental Brain Research, 236(11), pp. 3031–3041. doi: 10.1007/s00221-018-5340-1.",
+              "url": "https://pubmed.ncbi.nlm.nih.gov/30120498/"
+            }
+          ],
+          "note": "Yhdessä nämä tutkimukset osoittavat, että oskilloiva visuaalinen liike yksinään — ilman mitään fyysistä liikettä — synnyttää itseliikkeen tunteen, että katselupisteen pystysuuntainen oskillaatio (sovelluksen \"koko kentän keinunta\") vahvistaa mitattavasti tätä illuusiota, ja varauksena, että voimakkaampi vektio liittyy myös suurempaan visuaalisesti aiheutetun liikepahoinvoinnin riskiin — minkä vuoksi sovellus pitää liikkeen hitaana ja käyttäjän säädettävissä sen sijaan, että se maksimoisi vektion voimakkuuden.",
+          "title": "Optinen virtaus, vektio ja itseliikkeen havaitseminen"
+        },
+        {
+          "citations": [
+            {
+              "text": "Yang, A.H.X., Khwaounjoo, P. and Cakmak, Y.O. (2021) 'Directional effects of whole-body spinning and visual flow in virtual reality on vagal neuromodulation', Journal of Vestibular Research, 31(6), pp. 479–494. doi: 10.3233/VES-201574.",
+              "url": "https://pubmed.ncbi.nlm.nih.gov/34024797/"
+            },
+            {
+              "text": "Kuldavletova, O., Denise, P., Normand, H., Quarck, G. and Etard, O.M. (2023) 'Both whole-body rotation and visual flow induce cardiovascular autonomic response in human, but visual response is overridden by vestibular stimulation', Scientific Reports, 13, 4191. doi: 10.1038/s41598-023-31431-z.",
+              "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10015060/"
+            }
+          ],
+          "note": "Molemmat tutkimukset havaitsevat, että pelkkä optinen virtaus — ilman fyysistä liikettä — muuttaa mitattavasti vagaalista/parasympaattista aktiviteettia, mikä on fysiologinen perusta väitteelle, että koherentti visuaalinen virtaus on \"rauhoittavaa\".",
+          "title": "Visuaalinen virtaus ja autonominen (vagaalinen/parasympaattinen) vaste"
+        },
+        {
+          "citations": [
+            {
+              "text": "Bayer, L., Constantinescu, I., Perrig, S., Vienne, J., Vidal, P.-P., Mühlethaler, M. and Schwartz, S. (2011) 'Rocking synchronizes brain waves during a short nap', Current Biology, 21(12), pp. R461–R462. doi: 10.1016/j.cub.2011.05.012.",
+              "url": "https://pubmed.ncbi.nlm.nih.gov/21683897/"
+            },
+            {
+              "text": "Omlin, X., Crivelli, F., Näf, M., Heinicke, L., Skorucak, J., Malafeev, A., Fernandez Guerrero, A., Riener, R. and Achermann, P. (2018) 'The effect of a slowly rocking bed on sleep', Scientific Reports, 8, 2156. doi: 10.1038/s41598-018-19880-3.",
+              "url": "https://pubmed.ncbi.nlm.nih.gov/29391413/"
+            },
+            {
+              "text": "Perrault, A.A., Khani, A., Quairiaux, C., Kompotis, K., Franken, P., Mühlethaler, M., Schwartz, S. and Bayer, L. (2019) 'Whole-night continuous rocking entrains spontaneous neural oscillations with benefits for sleep and memory', Current Biology, 29(3), pp. 402–411.e3. doi: 10.1016/j.cub.2018.12.028.",
+              "url": "https://doi.org/10.1016/j.cub.2018.12.028"
+            },
+            {
+              "text": "van Sluijs, R.M., Rondei, Q.J., Schluep, D., Jäger, L., Riener, R., Achermann, P. and Wilhelm, E. (2020) 'Effect of rocking movements on afternoon sleep', Frontiers in Neuroscience, 13, 1446. doi: 10.3389/fnins.2019.01446.",
+              "url": "https://pubmed.ncbi.nlm.nih.gov/32038144/"
+            },
+            {
+              "text": "Subramaniam, A., Eberhard-Moscicka, A.K., Ertl, M. and Mast, F.W. (2023) 'Rocking devices and the role of vestibular stimulation on sleep — a systematic review', Clinical and Translational Neuroscience, 7(4), 40. doi: 10.3390/ctn7040040.",
+              "url": "https://doi.org/10.3390/ctn7040040"
+            }
+          ],
+          "note": "Nämä tutkimukset muodostavat suoran näytön sovelluksen keskeiselle analogialle: hidas (noin 0,25 Hz), passiivinen keinunta — sama matalataajuinen pystysuuntainen \"heave\"-liike, jota kamera soveltaa koko näkokenttään — edistää mitattavasti rentoutumista, nopeampaa nukahtamista ja syvempää unta ihmisillä, ja sen ymmärretään toimivan rytmisen tasapainoelinärsytyksen kautta.",
+          "title": "Keinuminen, tasapainoelinärsytys (\"heave\"), uni ja rentoutuminen"
+        },
+        {
+          "citations": [
+            {
+              "text": "Ulrich, R.S., Simons, R.F., Losito, B.D., Fiorito, E., Miles, M.A. and Zelson, M. (1991) 'Stress recovery during exposure to natural and urban environments', Journal of Environmental Psychology, 11(3), pp. 201–230. doi: 10.1016/S0272-4944(05)80184-7.",
+              "url": "https://doi.org/10.1016/S0272-4944(05)80184-7"
+            },
+            {
+              "text": "White, M.P., Smith, A., Humphryes, K., Pahl, S., Snelling, D. and Depledge, M. (2010) 'Blue space: the importance of water for preference, affect, and restorativeness ratings of natural and built scenes', Journal of Environmental Psychology, 30(4), pp. 482–493. doi: 10.1016/j.jenvp.2010.04.004.",
+              "url": "https://doi.org/10.1016/j.jenvp.2010.04.004"
+            }
+          ],
+          "note": "Ulrichin perustavanlaatuinen tutkimus osoittaa, että luontomaisemia esittävä video tuottaa nopeamman fysiologisen stressistä palautumisen kuin kaupunkimaisemia esittävä video; White ym. havaitsivat, että vettä sisältävät maisemat saavat korkeammat arviot mieltymyksestä, positiivisesta affektista ja koetusta elvyttävyydestä kuin vastaavat maisemat ilman vettä — suoraa empiiristä tukea \"blue mind\"- eli vedenkatseluvaikutukselle, riippumatta mistään liikeilluusiosta.",
+          "title": "Veden katselu ja stressistä palautuminen (\"blue mind\")"
+        }
+      ],
+      "intro": "Aitoja, vertaisarvioituja tutkimuksia, jotka liittyvät edellisillä sivuilla mainittuihin havaintopsykologisiin käsitteisiin — optiseen virtaukseen, vektioon ja matalataajuiseen (keinuvaan/\"heave\") tasapainoelinärsytykseen — sekä veden katselua koskevaan \"blue mind\" -havaintoon. Lähdeviitteet on merkitty Harvard-tyylillä, ja jokaiseen on liitetty linkki PubMediin/PMC:hen tai julkaisijan DOI-tunnukseen.",
+      "scopeNoteBody": "Yhtäkään alla listatuista tutkimuksista ei ole tehty Aquafulnessista, eikä yksikään niistä testaa nimenomaan kelluvaa merivisualisointia. Ne osoittavat osatekijöiden havaintopsykologiset ja fysiologiset vaikutukset — että koherentti optinen virtaus ja vektio voidaan tuottaa visuaalisesti, että hidas keinuminen/tasapainoelinärsytys liittyy rentoutumiseen ja nukahtamiseen, ja että veden ja luontomaisemien katselu liittyy stressistä palautumiseen — joita suunnittelu yhdistää analogian kautta. Kuten sovelluksen muualla olevat vastuuvapauslausekkeet toteavat, tämä on olemassa olevaan kirjallisuuteen ja henkilökohtaiseen kokemukseen perustuvaa suunnitteluperustelua, ei kliininen väite Aquafulnessista itsestään.",
+      "scopeNoteLabel": "Huomio soveltamisalasta:",
+      "seeAlsoBefore": "Katso myös:",
+      "seeAlsoLink": "Optinen virtaus ja kinesteettinen liike",
+      "title": "Tieteelliset lähteet"
     }
   },
   "hud": {
@@ -172,9 +581,16 @@
     "intervalInfiniteLabel": "Intervalli {{n}}",
     "intervalRemaining": "{{time}} jäljellä",
     "joystick": {
+      "autoAlternate": "AUTO VAIHTO",
       "current": "VIRTAUS",
+      "freeFall": "VAPAA PUDOTUS",
+      "heave": "KOHOILU",
+      "jump": "HYPPY",
       "look": "LOOK",
       "nav": "NAV",
+      "noclipDriftXZ": "AJAUTUS XZ",
+      "noclipDriftY": "AJAUTUS Y",
+      "reverseRise": "KÄÄNTEINEN NOUSU",
       "sway": "HEILUNTA",
       "waveDirection": "AALLON SUUNTA"
     },
@@ -187,12 +603,20 @@
     "settingsCloseLabel": "SULJE",
     "settingsOpenAria": "Avaa asetukset",
     "settingsOpenLabel": "ASETUKSET",
+    "shareBathAria": "Jaa kylpylinkki",
     "slider": {
       "frequency": "TAAJUUS",
       "tempo": "TEMPO",
       "wave": "AALTO"
     },
-    "totalLabel": " · Yhteensä "
+    "timeTravelOpenAria": "Avaa aikamatka",
+    "totalLabel": " · Yhteensä ",
+    "waveDrawer": {
+      "closeAria": "Sulje aaltoasetukset",
+      "closeLabel": "SULJE",
+      "openAria": "Avaa aaltoasetukset",
+      "openLabel": "AALLOT"
+    }
   },
   "interval": {
     "type": {
@@ -207,6 +631,19 @@
     "label": "KIELI",
     "no": "Norja",
     "sv": "Ruotsi"
+  },
+  "licenses": {
+    "backToAbout": "Tietoa",
+    "backToApp": "Takaisin sovellukseen",
+    "columns": {
+      "license": "Lisenssi",
+      "package": "Paketti",
+      "version": "Versio"
+    },
+    "count": "{{count}} avoimen lähdekoodin pakettia",
+    "intro": "Useat mahtavat ilmaiset ja avoimen lähdekoodin ohjelmistot ovat tehneet Aquafulnessista mahdollisen. Koska osa niistä edellyttää linkin tai lisenssin sisällyttämistä, haluamme kunnioittaa kaikkea mahtavaa ohjelmistoa, joka on tehnyt tämän sovelluksen mahdolliseksi — tässä koko luettelo.",
+    "tableHeading": "Paketit",
+    "title": "Kolmannen osapuolen lisenssit"
   },
   "live": {
     "badge": "LIVE",
@@ -235,13 +672,18 @@
       "off": "POIS",
       "sand": "Hiekka"
     },
-    "waterTint": {
+    "waterColor": {
       "archipelago": "Saaristo",
       "caribbean": "Karibia",
       "deepSea": "Syvänmeri",
       "mediterranean": "Välimeri",
       "nordic": "Pohjanmeri",
       "tropical": "Trooppinen"
+    },
+    "waterSound": {
+      "advanced": "Edistynyt",
+      "ocean": "Meri",
+      "simple": "Yksinkertainen"
     }
   },
   "phone": {
@@ -280,14 +722,22 @@
     "all": "KAIKKI ASETUKSET",
     "choosePreset": "VALITSE TALLENNETTU…",
     "chooseState": "VALITSE TALLENNETTU…",
+    "copied": "KOPIOITU!",
+    "copyLink": "KOPIOI LINKKI",
     "delete": "POISTA",
     "deleteConfirm": "Poistetaanko tallennettu esiasetus?",
     "deleteStateConfirm": "Poistetaanko tallennettu tila?",
     "export": "VIE",
+    "generateLink": "LUO LINKKI",
+    "generating": "LUODAAN…",
     "import": "TUO",
     "invalidPresetFile": "Esiasetustiedostoa ei voitu lukea — varmista, että se on kelvollinen JSON-tiedosto.",
     "invalidStateFile": "Tilatiedostoa ei voitu lukea — varmista, että se on kelvollinen JSON-tiedosto.",
     "load": "LATAA",
+    "loadConfirm": "Tämä korvaa nykyiset asetuksesi tälle alueelle. Tallentamattomat muutokset menetetään.",
+    "loadConfirmTitle": "Ladataanko tämä esiasetus?",
+    "loadStateConfirm": "Tämä korvaa nykyiset asetuksesi, sijaintisi, katseesi ja virtauksen. Tallentamattomat muutokset menetetään.",
+    "loadStateConfirmTitle": "Ladataanko tämä tila?",
     "save": "TALLENNA",
     "savePromptTitle": "Tallenna nimellä:",
     "saveStatePromptTitle": "Tallenna tila nimellä:",
@@ -298,7 +748,40 @@
       "vagor": "AALLOT-ESIASETUS",
       "vatten": "VESI-ESIASETUS"
     },
+    "shareBathDescriptionPlaceholder": "Kuvaus (valinnainen)",
+    "shareBathError": "Linkin luominen epäonnistui — yritä uudelleen.",
+    "shareBathLink": "JAA KYLPYLINKKI",
+    "shareBathTitlePlaceholder": "Otsikko (valinnainen)",
+    "shareNative": "JAA…",
     "state": "TILA (kaikki + sijainti, katse, virtaus, heilunta)"
+  },
+  "privacy": {
+    "backToApp": "Takaisin sovellukseen",
+    "intro": "Tämä sivu selittää selkeästi, mitä tapahtuu tiedoillesi, kun käytät Aquafulnessia.",
+    "lastUpdated": "Päivitetty viimeksi: 28. elokuuta 2026",
+    "sections": {
+      "contact": {
+        "body": "Jos sinulla on kysyttävää tästä tietosuojaselosteesta, ota yhteyttä Alexander Forseliukseen osoitteessa drsounds@gmail.com.",
+        "heading": "Kysymykset"
+      },
+      "localStorage": {
+        "body": "Aquafulness käyttää selaimesi paikallista tallennustilaa (localStorage) muistaakseen asetuksesi ja mukauttaakseen kokemustasi — esimerkiksi valitun kielen, aalto- ja kamera-asetukset sekä tallennetut esiasetukset. Nämä tiedot pysyvät laitteellasi, niitä ei koskaan lähetetä Alexander Forseliukselle tai kolmansille osapuolille, ja ne voidaan poistaa milloin tahansa tyhjentämällä selaimen sivustotiedot tälle sovellukselle.",
+        "heading": "Paikallinen tallennustila"
+      },
+      "thirdParty": {
+        "body": "Aquafulness ei sisällä omaa kolmannen osapuolen mainontaa, seurantapikseleitä tai sosiaalisen median widgettejä.",
+        "heading": "Kolmannet osapuolet"
+      },
+      "tracking": {
+        "heading": "Tiedonkeruu ja seuranta",
+        "points": [
+          "Aquafulness ei itse seuraa, kerää eikä myy henkilötietoja.",
+          "Sovellus isännöidään Lovable-alustalla, joka soveltaa omaa vakiomuotoista käyttö- ja infrastruktuurilokitustaan ja voi ottaa käyttöön anonymisoitua käyttöanalytiikkaa (kuten Google Analyticsin) osana vakiopalveluaan — tämän määrittää isännöintialusta, ei sovelluksen vastuuhenkilö, eikä sitä käytetä sinun henkilökohtaiseen tunnistamiseesi.",
+          "Tiliä ei tarvita, eikä sovellus koskaan pyydä sinulta henkilötietoja."
+        ]
+      }
+    },
+    "title": "Tietosuojaseloste"
   },
   "remote": {
     "hojd": "KORKEUS",
@@ -308,7 +791,8 @@
     "syncButton": "SYNKRONOI AALTO HEILUNNAN KANSSA: {{state}}",
     "syncTitle": "Anna AALLON SUUNNAN seurata HEILUNNAN SUUNTAA automaattisesti (oletus: päällä)",
     "title": "KAUKOSÄÄDIN",
-    "vagrikt": "AALLON SUUNTA"
+    "vagrikt": "AALLON SUUNTA",
+    "whirlpoolHint": "PYÖRRE-tilassa kamera kiertää automaattisesti — ei ohjaimia täällä."
   },
   "screens": {
     "editModeDescription": "Pysäyttää aallot ja kameran liikkeen, jotta 3D-näkymän TV/mobiilinäytöt voidaan siirtää, kääntää ja mitoittaa tarkasti.",
@@ -319,8 +803,11 @@
     "title": "NÄYTÖNHALLINTA"
   },
   "settings": {
+    "backAriaLabel": "Takaisin asetusosioihin",
     "reset": "NOLLAA",
     "resetAriaLabel": "Palauta säätimet oletusarvoihin",
+    "resetConfirm": "Tämä palauttaa kaikki säätimet oletusarvoihinsa (vuorokaudenaika ei muutu).",
+    "resetConfirmTitle": "Palautetaanko oletusarvot?",
     "resetTitle": "Palauta säätimet (vuorokaudenaika ei muutu)",
     "restore": "PALAUTA",
     "restoreAriaLabel": "Palaa viimeksi tallennettuun kameran sijaintiin",
@@ -329,11 +816,18 @@
       "kamera": "KAMERA",
       "ljud": "ÄÄNI",
       "miljo": "YMPÄRISTÖ",
+      "tema": "TEEMA",
       "vagor": "AALLOT",
       "vatten": "VESI"
     },
     "tabsAriaLabel": "Asetusvälilehdet",
     "title": "ASETUKSET"
+  },
+  "splash": {
+    "copyright": "© {{year}} {{name}}. Kaikki oikeudet pidätetään.",
+    "logoAlt": "Aquafulness",
+    "startBath": "Aloita kylpy",
+    "starting": "Aloitetaan…"
   },
   "swing": {
     "preset": {
@@ -347,6 +841,33 @@
       "square": "NELIÖ",
       "triangle": "KOLMIO"
     }
+  },
+  "theme": {
+    "title": "TEEMA",
+    "aqua": "AQUA",
+    "aquaDescription": "Klassinen tumma lasimainen ulkoasu — ei muutoksia.",
+    "scifi": "SCI-FI",
+    "scifiDescription": "Hehkuva lasi ja diodimaiset viivat — valitse oma korostusvärisi alta.",
+    "spa": "SPA",
+    "spaDescription": "Minimalistinen, tasainen valkoinen tai musta pinta — painikkeissa pehmeä turkoosi liukuväri.",
+    "accentHue": "KOROSTUSVÄRI",
+    "colorScheme": "TILA",
+    "light": "VAALEA",
+    "dark": "TUMMA",
+    "blur": "LASIEFEKTI (SUMENNUS)",
+    "blurHint": "Paneelien takana näkyvä sumennusefekti. Oletuksena pois päältä paremman suorituskyvyn vuoksi."
+  },
+  "timeTravel": {
+    "applyButton": "Matkusta ajassa",
+    "closeButton": "Sulje",
+    "dateLabel": "Päivämäärä ja aika",
+    "description": "Aseta simuloitu päivämäärä ja kellonaika — aika jatkaa siitä eteenpäin reaaliajassa.",
+    "futuristicNote": "Vuoden 2100 jälkeen ympäristöt näyttävät futuristisen ulkoasunsa.",
+    "liveButton": "Palaa nykyhetkeen",
+    "liveStatus": "Live",
+    "seasonalLabel": "Synkronoi todelliseen auringonnousuun/-laskuun (kausivaihtelu)",
+    "title": "Aikamatka",
+    "travelingStatus": "Aikamatka käynnissä"
   },
   "tod": {
     "afternoon": "Iltapäivä",
