@@ -330,13 +330,17 @@ const OCEAN_BASE_SIZE = 1200;
 const OCEAN_FAR_INNER_RADIUS = OCEAN_BASE_SIZE / 2;
 const CLOUD_BASE_SIZE = 200000;
 
-// TEMPORARY performance-diagnostic flag: fully disables the DATE & TIME
-// TRAVEL feature (its once-a-minute tick effect and the clock button/dialog
-// in the HUD) to test whether it's contributing to reported lag, isolated
-// from the other fixes already shipped this round (WAVE_PRESET/CROSS WAVE
-// wiring, WAVE QUALITY default, cloud-layer visibility gating, frame-pacing).
-// Flip back to false once confirmed either way.
-const CLOCK_DISABLED_FOR_PERF_TEST = true;
+// Perf-diagnostic kill switch for the DATE & TIME TRAVEL feature (its
+// once-a-minute tick effect and the clock button/dialog in the HUD).
+// It was previously suspected of contributing to reported lag, but the
+// component has since had its own known perf issues fixed (60s tick,
+// memoized label, dialog unmounted while closed) and the unrelated
+// "live viewer count/likes" ticker re-renders were the more likely cause.
+// RE-ENABLED (false) for a fresh trial now that other perf fixes have
+// landed. If it turns out to still cause lag on a real device, flip this
+// back to true — that alone fully disables it again, no other changes
+// needed.
+const CLOCK_DISABLED_FOR_PERF_TEST = false;
 
 // VÄRLDSGRÄNS (world boundary): wraps `value` back into [-half, half) once it
 // crosses either edge, teleporting to the opposite side instead of just
@@ -3044,11 +3048,9 @@ export function Aquafulness() {
   // sunrise/sunset actually drifts, and keeps this from re-rendering the
   // whole component — a real cost given its size — more than once a minute.
   //
-  // TEMPORARILY DISABLED (early return below) as a diagnostic: to test
-  // whether this feature is contributing to reported lag, independent of
-  // its own update rate — see CLOCK_DISABLED_FOR_PERF_TEST below, which also
-  // hides the clock button/dialog in the HUD. Revert both once confirmed
-  // either way.
+  // Gated by CLOCK_DISABLED_FOR_PERF_TEST above (currently re-enabled for
+  // a trial) — flip that one flag back to true to fully disable this again,
+  // including the clock button/dialog in the HUD.
   useEffect(() => {
     if (CLOCK_DISABLED_FOR_PERF_TEST) return;
     const tick = () => {
