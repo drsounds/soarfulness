@@ -7,6 +7,7 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "@tanstack/react-router";
+import { Save } from "lucide-react";
 import { SettingRow } from "@/components/SettingRow";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { hsvToRgb, tintToCss } from "@/lib/waterTint";
@@ -903,6 +904,98 @@ function StateControls({
   );
 }
 
+// Top-of-panel tool button: collapses the "all settings" PresetControls and
+// the full-state StateControls (both above) behind a single save-icon
+// button + modal, instead of always showing them inline. Per-tab scoped
+// PresetControls inside each section screen are unaffected.
+function SaveLoadMenu({
+  savedPresets,
+  exportSettingsFile,
+  importSettingsFile,
+  savePresetAs,
+  loadSavedPreset,
+  deleteSavedPreset,
+  savedStates,
+  exportStateFile,
+  importStateFile,
+  saveStateAs,
+  loadSavedStateById,
+  deleteSavedState,
+}: {
+  savedPresets: SavedPreset[];
+  exportSettingsFile: (scope: PresetScope) => void;
+  importSettingsFile: (scope: PresetScope, file: File) => void;
+  savePresetAs: (scope: PresetScope, name: string) => void;
+  loadSavedPreset: (id: string) => void;
+  deleteSavedPreset: (id: string) => void;
+  savedStates: SavedState[];
+  exportStateFile: () => void;
+  importStateFile: (file: File) => void;
+  saveStateAs: (name: string) => void;
+  loadSavedStateById: (id: string) => void;
+  deleteSavedState: (id: string) => void;
+}) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="flex h-7 w-7 items-center justify-center rounded-full border ui-line-2 ui-tint-1 ui-ink transition active:scale-95 ui-press"
+        aria-label={t("settings.saveMenuAriaLabel")}
+        title={t("settings.saveMenuTitle")}
+      >
+        <Save className="h-3.5 w-3.5" strokeWidth={2} />
+      </button>
+      {open && (
+        <div
+          className="pointer-events-auto fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={t("settings.saveMenuTitle")}
+            onClick={(e) => e.stopPropagation()}
+            className="ui-surface-solid w-full max-w-xs rounded-2xl border p-4 text-center shadow-2xl backdrop-blur-xl"
+          >
+            <p className="ui-ink mb-3 text-[11px] font-medium tracking-wide">
+              {t("settings.saveMenuTitle")}
+            </p>
+            <PresetControls
+              scope="all"
+              label={t("presets.all")}
+              savedPresets={savedPresets}
+              exportSettingsFile={exportSettingsFile}
+              importSettingsFile={importSettingsFile}
+              savePresetAs={savePresetAs}
+              loadSavedPreset={loadSavedPreset}
+              deleteSavedPreset={deleteSavedPreset}
+            />
+            <StateControls
+              label={t("presets.state")}
+              savedStates={savedStates}
+              exportStateFile={exportStateFile}
+              importStateFile={importStateFile}
+              saveStateAs={saveStateAs}
+              loadSavedStateById={loadSavedStateById}
+              deleteSavedState={deleteSavedState}
+            />
+            <button
+              onClick={() => setOpen(false)}
+              className="ui-tint-1 ui-ink-muted ui-press mt-1 rounded-full border px-2.5 py-0.5 text-[9px] font-light tracking-wider transition active:scale-95"
+            >
+              {t("common.close")}
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 // DELA BADLÄNK: trigger button for ShareBathDialog (src/components/
 // ShareBathDialog.tsx), which turns the live state into a shareable
 // /bathing/<base62> URL. The HUD's share shortcut icon (routes/index.tsx)
@@ -1256,6 +1349,20 @@ export function SettingsPanel(props: SettingsPanelProps) {
           {t("settings.title")}
         </span>
         <div className="flex flex-wrap items-center gap-2">
+          <SaveLoadMenu
+            savedPresets={savedPresets}
+            exportSettingsFile={exportSettingsFile}
+            importSettingsFile={importSettingsFile}
+            savePresetAs={savePresetAs}
+            loadSavedPreset={loadSavedPreset}
+            deleteSavedPreset={deleteSavedPreset}
+            savedStates={savedStates}
+            exportStateFile={exportStateFile}
+            importStateFile={importStateFile}
+            saveStateAs={saveStateAs}
+            loadSavedStateById={loadSavedStateById}
+            deleteSavedState={deleteSavedState}
+          />
           <LanguageSwitcher />
           <Link
             to="/about"
@@ -1314,25 +1421,6 @@ export function SettingsPanel(props: SettingsPanelProps) {
           ))}
         </nav>
       )}
-      <PresetControls
-        scope="all"
-        label={t("presets.all")}
-        savedPresets={savedPresets}
-        exportSettingsFile={exportSettingsFile}
-        importSettingsFile={importSettingsFile}
-        savePresetAs={savePresetAs}
-        loadSavedPreset={loadSavedPreset}
-        deleteSavedPreset={deleteSavedPreset}
-      />
-      <StateControls
-        label={t("presets.state")}
-        savedStates={savedStates}
-        exportStateFile={exportStateFile}
-        importStateFile={importStateFile}
-        saveStateAs={saveStateAs}
-        loadSavedStateById={loadSavedStateById}
-        deleteSavedState={deleteSavedState}
-      />
       <ShareBathLink buildBathLink={buildBathLink} />
       {sectionView && (
         <div className="flex flex-col">

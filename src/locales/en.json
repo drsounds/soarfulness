@@ -814,6 +814,8 @@
     "restore": "RESTORE",
     "restoreAriaLabel": "Return to the last saved camera position",
     "restoreTitle": "Return to the last saved camera position and heading",
+    "saveMenuAriaLabel": "Save and load presets or a full state",
+    "saveMenuTitle": "SAVE & LOAD",
     "tabs": {
       "kamera": "CAMERA",
       "ljud": "SOUND",

@@ -814,6 +814,8 @@
     "restore": "TILBAKE",
     "restoreAriaLabel": "Gå tilbake til sist lagrede kameraposisjon",
     "restoreTitle": "Gå tilbake til sist lagrede kameraposisjon og retning",
+    "saveMenuAriaLabel": "Lagre og last inn forhåndsinnstillinger eller full tilstand",
+    "saveMenuTitle": "LAGRE OG LAST INN",
     "tabs": {
       "kamera": "KAMERA",
       "ljud": "LYD",

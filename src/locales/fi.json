@@ -814,6 +814,8 @@
     "restore": "PALAUTA",
     "restoreAriaLabel": "Palaa viimeksi tallennettuun kameran sijaintiin",
     "restoreTitle": "Palaa viimeksi tallennettuun kameran sijaintiin ja suuntaan",
+    "saveMenuAriaLabel": "Tallenna ja lataa esiasetuksia tai koko tila",
+    "saveMenuTitle": "TALLENNA JA LATAA",
     "tabs": {
       "kamera": "KAMERA",
       "ljud": "ÄÄNI",
