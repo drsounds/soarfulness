@@ -3434,6 +3434,19 @@ export function Aquafulness() {
     // Expose the scene graph so the scene-selector effect can add/remove models.
     sceneRef.current = scene;
 
+    // The ocean/sky are custom ShaderMaterials that compute their own
+    // lighting from uSunDir/uSunColor and never touch scene lights — but
+    // loaded .glb scenes (Strandpark etc.) and the CSS3D TV panel's occluder
+    // meshes use glTF's default MeshStandardMaterial, which renders pure
+    // black with no scene lights at all. sunLight/hemiLight exist only for
+    // those: driven every frame from the same time-of-day palette() the
+    // shaders use (see the per-frame block below), so lit models stay
+    // consistent with the sky/sun color instead of using a fixed light.
+    const sunLight = new THREE.DirectionalLight(0xffffff, 1);
+    scene.add(sunLight);
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x223344, 0.6);
+    scene.add(hemiLight);
+
     const camera = new THREE.PerspectiveCamera(
       camFovRef.current,
       mount.clientWidth / mount.clientHeight,
@@ -4763,6 +4776,17 @@ export function Aquafulness() {
         (whirlpoolOpeningRef.current - uniforms.uVortexOpening.value) * Math.min(1, dt * 4);
 
       const p = palette(todRef.current);
+      // Keep the real scene lights (see their creation above) in sync with
+      // the same sun direction/color driving the water and sky shaders, so
+      // glTF-model materials are lit consistently with the rest of the
+      // scene instead of going flat black. Sun intensity fades toward the
+      // hemisphere light's fill as it sets, rather than to zero, so
+      // nighttime models stay dimly visible instead of vanishing.
+      sunLight.position.copy(p.sunDir).multiplyScalar(100);
+      sunLight.color.setRGB(p.sun[0], p.sun[1], p.sun[2]);
+      sunLight.intensity = Math.max(0, p.sunDir.y) * 2.2 + 0.15;
+      hemiLight.color.setRGB(p.top[0], p.top[1], p.top[2]);
+      hemiLight.groundColor.setRGB(p.bot[0] * 0.4, p.bot[1] * 0.4, p.bot[2] * 0.4);
       uniforms.uSunDir.value.copy(p.sunDir);
       uniforms.uSkyColor.value.setRGB(p.top[0], p.top[1], p.top[2]);
       uniforms.uHorizonColor.value.setRGB(p.bot[0], p.bot[1], p.bot[2]);
