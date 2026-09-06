@@ -44,9 +44,11 @@ registerRoute(
 // Both cache names above are also written to directly (not just through
 // these routes) by useOfflinePrecache (src/hooks/use-offline-precache.ts),
 // which eagerly downloads every entry in the scenes/environments/surfaces
-// catalogs — plus those audio tracks — into these same caches on first
-// launch, rather than waiting for the player to visit each one before it
-// becomes available offline.
+// catalogs — plus those audio tracks — into these same caches the first
+// time the app runs as an installed/standalone PWA, rather than waiting for
+// the player to visit each one before it becomes available offline. A
+// plain browser tab still gets these routes' lazy per-visit caching, just
+// not that eager bulk download.
 registerRoute(
   ({ sameOrigin, url }) =>
     sameOrigin &&
