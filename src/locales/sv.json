@@ -595,6 +595,7 @@
       "sway": "SVAJ",
       "waveDirection": "VÅGRIKT"
     },
+    "loading": "LADDAR…",
     "offline": "OFFLINE",
     "phoneCloseAria": "Stäng telefon",
     "phoneCloseTitle": "Stäng telefon",
@@ -654,6 +655,11 @@
     "viewerBillion": "mdr",
     "viewerMillion": "mn",
     "viewerThousand": "t"
+  },
+  "offline": {
+    "downloadDismiss": "Stäng",
+    "downloadPercent": "{{percent}} % klart",
+    "downloadTitle": "Laddar ner för offlineläge"
   },
   "options": {
     "backdrop": {

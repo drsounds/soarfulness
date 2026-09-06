@@ -595,6 +595,7 @@
       "sway": "SWAY",
       "waveDirection": "WAVE DIR"
     },
+    "loading": "LOADING…",
     "offline": "OFFLINE",
     "phoneCloseAria": "Close phone",
     "phoneCloseTitle": "Close phone",
@@ -654,6 +655,11 @@
     "viewerBillion": "B",
     "viewerMillion": "M",
     "viewerThousand": "K"
+  },
+  "offline": {
+    "downloadDismiss": "Dismiss",
+    "downloadPercent": "{{percent}}% complete",
+    "downloadTitle": "Downloading for offline use"
   },
   "options": {
     "backdrop": {

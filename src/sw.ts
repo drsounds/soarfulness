@@ -21,9 +21,15 @@ registerRoute(
   new NetworkFirst({ cacheName: "aquafulness-html", networkTimeoutSeconds: 4 }),
 );
 
+// "audio" covers the recorded water-sound tracks (played via `new
+// Audio(url)` in routes/index.tsx) — without it, ocean.m4a/water-simple.m4a
+// and the CDN-hosted "advanced" track fall through uncached like the
+// scenes/environments/surfaces catalogs below did before they got their own
+// route, and never work offline.
 registerRoute(
   ({ request, sameOrigin }) =>
-    sameOrigin && ["style", "script", "worker", "image", "font"].includes(request.destination),
+    sameOrigin &&
+    ["style", "script", "worker", "image", "font", "audio"].includes(request.destination),
   new CacheFirst({
     cacheName: "aquafulness-assets",
     plugins: [new ExpirationPlugin({ maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 })],
@@ -34,6 +40,13 @@ registerRoute(
 // with plain fetch()/GLTFLoader rather than <img>/<script> tags, so the
 // browser reports no `request.destination` for them and they'd otherwise
 // fall through the rule above uncached. Cache them by path instead.
+//
+// Both cache names above are also written to directly (not just through
+// these routes) by useOfflinePrecache (src/hooks/use-offline-precache.ts),
+// which eagerly downloads every entry in the scenes/environments/surfaces
+// catalogs — plus those audio tracks — into these same caches on first
+// launch, rather than waiting for the player to visit each one before it
+// becomes available offline.
 registerRoute(
   ({ sameOrigin, url }) =>
     sameOrigin &&

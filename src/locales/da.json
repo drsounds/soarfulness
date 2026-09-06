@@ -595,6 +595,7 @@
       "sway": "SVAJ",
       "waveDirection": "BØLGERETN"
     },
+    "loading": "INDLÆSER…",
     "offline": "OFFLINE",
     "phoneCloseAria": "Luk telefon",
     "phoneCloseTitle": "Luk telefon",
@@ -654,6 +655,11 @@
     "viewerBillion": "mia",
     "viewerMillion": "mio",
     "viewerThousand": "t"
+  },
+  "offline": {
+    "downloadDismiss": "Luk",
+    "downloadPercent": "{{percent}} % fuldført",
+    "downloadTitle": "Downloader til offlinebrug"
   },
   "options": {
     "backdrop": {

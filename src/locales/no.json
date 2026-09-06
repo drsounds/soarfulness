@@ -595,6 +595,7 @@
       "sway": "SVAI",
       "waveDirection": "BØLGERETN"
     },
+    "loading": "LASTER…",
     "offline": "OFFLINE",
     "phoneCloseAria": "Lukk telefon",
     "phoneCloseTitle": "Lukk telefon",
@@ -654,6 +655,11 @@
     "viewerBillion": "mrd",
     "viewerMillion": "mill",
     "viewerThousand": "t"
+  },
+  "offline": {
+    "downloadDismiss": "Lukk",
+    "downloadPercent": "{{percent}} % fullført",
+    "downloadTitle": "Laster ned for offline bruk"
   },
   "options": {
     "backdrop": {
