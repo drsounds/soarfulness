@@ -595,6 +595,7 @@
       "sway": "HEILUNTA",
       "waveDirection": "AALLON SUUNTA"
     },
+    "loading": "LADATAAN…",
     "offline": "OFFLINE",
     "phoneCloseAria": "Sulje puhelin",
     "phoneCloseTitle": "Sulje puhelin",
@@ -654,6 +655,11 @@
     "viewerBillion": "mrd",
     "viewerMillion": "milj",
     "viewerThousand": "t"
+  },
+  "offline": {
+    "downloadDismiss": "Sulje",
+    "downloadPercent": "{{percent}} % valmis",
+    "downloadTitle": "Ladataan offline-käyttöä varten"
   },
   "options": {
     "backdrop": {

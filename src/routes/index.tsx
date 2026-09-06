@@ -5933,6 +5933,34 @@ export function Aquafulness() {
     };
   }, []);
 
+  // Tracks whether the initial scene/skybox/surface picked up at mount have
+  // each settled once (loaded, or determined there was nothing to load) —
+  // used only to know when to hide the first-paint boot overlay below.
+  // Deliberately never reset back to false: once the boot screen has hidden
+  // once it stays hidden, even while the player later swaps to a different
+  // scene/environment/surface and these same effects re-run.
+  const [sceneBootSettled, setSceneBootSettled] = useState(false);
+  const [envBootSettled, setEnvBootSettled] = useState(false);
+  const [surfaceBootSettled, setSurfaceBootSettled] = useState(false);
+  // Safety net: if something stalls without ever resolving or rejecting
+  // (e.g. a request that neither completes nor fires an error event), don't
+  // leave the player staring at the boot overlay forever.
+  const [bootTimedOut, setBootTimedOut] = useState(false);
+  useEffect(() => {
+    const id = window.setTimeout(() => setBootTimedOut(true), 12000);
+    return () => window.clearTimeout(id);
+  }, []);
+  const bootReady = (sceneBootSettled && envBootSettled && surfaceBootSettled) || bootTimedOut;
+  // Keeps the boot overlay mounted for the duration of its own fade-out
+  // transition after bootReady flips true, rather than unmounting it
+  // instantly and cutting the CSS transition short.
+  const [bootOverlayMounted, setBootOverlayMounted] = useState(true);
+  useEffect(() => {
+    if (!bootReady) return;
+    const id = window.setTimeout(() => setBootOverlayMounted(false), 400);
+    return () => window.clearTimeout(id);
+  }, [bootReady]);
+
   // Load / swap the selected .glb scene into the live three.js scene graph.
   // Runs after the WebGL setup effect above has populated sceneRef, and re-runs
   // whenever the user picks a different scene.
@@ -5950,6 +5978,7 @@ export function Aquafulness() {
 
     if (!sceneId) {
       setSpawnLocations([DEFAULT_SPAWN_LOCATION]);
+      setSceneBootSettled(true);
       return;
     }
 
@@ -5976,9 +6005,13 @@ export function Aquafulness() {
             modelRef.current = model;
             const bob = resolveBob(manifest.bob);
             modelBobRef.current = bob ? { base: model.position.clone(), bob } : null;
+            setSceneBootSettled(true);
           },
           undefined,
-          (err) => console.error(`Failed to load scene "${sceneId}"`, err),
+          (err) => {
+            console.error(`Failed to load scene "${sceneId}"`, err);
+            if (!cancelled) setSceneBootSettled(true);
+          },
         );
       });
 
@@ -6015,6 +6048,7 @@ export function Aquafulness() {
     // No environment (or an incomplete selection) → procedural sky dome.
     if (!envId || !envEra || !envTime) {
       clearSkybox();
+      setEnvBootSettled(true);
       return;
     }
 
@@ -6047,11 +6081,15 @@ export function Aquafulness() {
             if (typeof manifest.timeOfDay === "number") {
               setTimeOfDay(((manifest.timeOfDay % 1) + 1) % 1);
             }
+            setEnvBootSettled(true);
           },
           undefined,
           (err) => {
             console.error(`Failed to load skybox "${base}"`, err);
-            if (!cancelled) clearSkybox();
+            if (!cancelled) {
+              clearSkybox();
+              setEnvBootSettled(true);
+            }
           },
         );
       });
@@ -6079,6 +6117,7 @@ export function Aquafulness() {
 
     if (!surfaceId) {
       revert();
+      setSurfaceBootSettled(true);
       return;
     }
 
@@ -6112,11 +6151,15 @@ export function Aquafulness() {
                 ? Math.max(0, Math.min(1, manifest.strength))
                 : 0.6;
             applyReflMix();
+            setSurfaceBootSettled(true);
           },
           undefined,
           (err) => {
             console.error(`Failed to load surface "${surfaceId}"`, err);
-            if (!cancelled) revert();
+            if (!cancelled) {
+              revert();
+              setSurfaceBootSettled(true);
+            }
           },
         );
       });
@@ -6533,6 +6576,29 @@ export function Aquafulness() {
         />
       )}
       <div ref={mountRef} className="absolute inset-0 touch-none" />
+
+      {/* Boot overlay — covers the gap between mounting the WebGL canvas and
+          the initial scene/skybox/surface (picked up from saved settings)
+          actually having loaded, so the player sees a deliberate loading
+          state instead of the model/skybox/reflection popping in piecemeal
+          against a bare black canvas. Fades out once, permanently — see
+          bootReady/bootOverlayMounted above. */}
+      {bootOverlayMounted && (
+        <div
+          role="status"
+          aria-live="polite"
+          className={`absolute inset-0 z-40 flex items-center justify-center bg-black transition-opacity duration-[400ms] ${
+            bootReady ? "pointer-events-none opacity-0" : "opacity-100"
+          }`}
+        >
+          <div className="flex flex-col items-center gap-3">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-white/70" />
+            <p className="ui-ink-muted text-[10px] font-light tracking-[0.2em]">
+              {t("hud.loading")}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Optional "swimming goggles" effect — water droplets on the lens,
           plus optional blur (see KAMERA settings tab). Sits directly above

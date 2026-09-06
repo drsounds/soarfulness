@@ -15,6 +15,7 @@ import { registerAppServiceWorker } from "../lib/register-sw";
 import { loadStoredLanguage, detectBrowserLanguage, changeLanguage } from "../lib/i18n";
 import { UI_THEME_INIT_SCRIPT } from "../lib/uiTheme";
 import { CookieConsent } from "../components/CookieConsent";
+import { OfflineDownloadOverlay } from "../components/OfflineDownloadOverlay";
 
 function NotFoundComponent() {
   return (
@@ -220,6 +221,7 @@ function RootComponent() {
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
       <CookieConsent measurementId={GA_MEASUREMENT_ID} />
+      <OfflineDownloadOverlay />
     </QueryClientProvider>
   );
 }

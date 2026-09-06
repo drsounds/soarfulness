@@ -30,6 +30,16 @@ export default defineConfig({
         strategies: "injectManifest",
         srcDir: "src",
         filename: "sw.ts",
+        // Nitro's multi-environment build (client/ssr/nitro) doesn't expose
+        // a single `build.outDir` VitePWA can resolve on its own — left
+        // unset it writes sw.js to a stray top-level dist/ that nothing
+        // ever serves or deploys, so the service worker (and everything
+        // that depends on it, including all offline caching) silently
+        // 404s in production. `.output/public` is where Nitro actually
+        // places static/public assets for every deploy target this repo
+        // uses (confirmed for both the Cloudflare Workers default and the
+        // node-server preset the Dockerfile builds with).
+        outDir: ".output/public",
         manifest: {
           name: "Aquafulness",
           short_name: "Aquafulness",
