@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { isOfflineCachingEligible } from "@/lib/register-sw";
+import { isOfflineCachingEligible, isRunningAsInstalledPwa } from "@/lib/register-sw";
 import {
   collectOfflineAssetBuckets,
   OFFLINE_ASSETS_CACHE,
@@ -45,6 +45,12 @@ function writeReadyFlag() {
 // storage is shared between window and SW contexts — using the exact cache
 // names the SW's CacheFirst routes read from, so a precached entry is
 // actually served offline instead of the route re-fetching it.
+//
+// Only runs for an installed/standalone PWA (see isRunningAsInstalledPwa) —
+// an ordinary browser tab still gets the service worker and its lazy
+// CacheFirst routes, just not this tens-of-MB eager download, so casual
+// browsing (demos included) never gets slowed down by a bulk download
+// nobody asked for.
 export function useOfflinePrecache(): OfflinePrecacheState {
   const [state, setState] = useState<OfflinePrecacheState>({ phase: "idle" });
   const startedRef = useRef(false);
@@ -53,6 +59,7 @@ export function useOfflinePrecache(): OfflinePrecacheState {
     if (startedRef.current) return;
     if (typeof window === "undefined" || !("caches" in window)) return;
     if (!isOfflineCachingEligible()) return;
+    if (!isRunningAsInstalledPwa()) return;
     if (readReadyFlag()) return;
     startedRef.current = true;
 

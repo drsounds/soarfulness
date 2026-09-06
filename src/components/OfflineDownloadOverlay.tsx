@@ -4,10 +4,12 @@ import { Progress } from "@/components/ui/progress";
 import { useOfflinePrecache } from "@/hooks/use-offline-precache";
 
 // Shows a "downloading for offline use" progress bar the first time the app
-// runs somewhere the service worker is active (see useOfflinePrecache) — so
-// the player can see why there's brief background network activity, and
-// knows once it's finished that the game will now work with no connection.
-// Non-blocking: dismissing it doesn't cancel the download, it just stops
+// runs as an installed/standalone PWA (see useOfflinePrecache — a regular
+// browser tab never triggers this, on purpose, so casual/demo browsing
+// doesn't get slowed down by an unasked-for bulk download) — so the player
+// can see why there's brief background network activity, and knows once
+// it's finished that the game will now work with no connection. Non-
+// blocking: dismissing it doesn't cancel the download, it just stops
 // showing it, and it never reappears once the precache has completed once.
 export function OfflineDownloadOverlay() {
   const { t } = useTranslation();

@@ -32,13 +32,32 @@ function computeEligibility(): { supported: boolean; disabled: boolean } {
   return { supported: true, disabled };
 }
 
-// Whether this browser/host is eligible to run the app service worker — and
-// therefore whether it's worth doing any offline-precaching work at all (see
-// src/hooks/use-offline-precache.ts). Kept separate from
-// registerAppServiceWorker so both can share the exact same rules.
+// Whether this browser/host is eligible to run the app service worker at
+// all. Kept separate from registerAppServiceWorker so both this and
+// isRunningAsInstalledPwa can share the exact same rules.
 export function isOfflineCachingEligible(): boolean {
   const { supported, disabled } = computeEligibility();
   return supported && !disabled;
+}
+
+// True only when the app is actually running as an installed/standalone
+// PWA (launched from a home-screen icon, an installed shortcut, etc.) —
+// false for an ordinary browser tab, even on the same origin. Used to gate
+// the eager bulk precache in use-offline-precache.ts: downloading the
+// entire scenes/environments/surfaces/audio catalog (tens of MB) the
+// instant anyone opens a link in a normal tab would make casual browsing —
+// demos in particular — feel slow for no benefit, since a browser tab is
+// closed and forgotten rather than relied on to work offline later. An
+// installed PWA is the opposite: that's specifically the "I want this app
+// on my device" signal, so front-loading the download there is the point.
+export function isRunningAsInstalledPwa(): boolean {
+  if (typeof window === "undefined") return false;
+  if (window.matchMedia?.("(display-mode: standalone)").matches) return true;
+  if (window.matchMedia?.("(display-mode: fullscreen)").matches) return true;
+  if (window.matchMedia?.("(display-mode: minimal-ui)").matches) return true;
+  // iOS Safari predates the display-mode media query and never added it.
+  if ((window.navigator as { standalone?: boolean }).standalone === true) return true;
+  return false;
 }
 
 export function registerAppServiceWorker() {
