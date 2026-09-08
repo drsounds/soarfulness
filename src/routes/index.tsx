@@ -5902,21 +5902,27 @@ export function Aquafulness() {
       );
       // Look direction: HAV = level forward; VIRVEL = mot centrum (så kameran
       // följer med runt virveln och naturligt tittar ner mot öppningen).
+      // Blended by whirlpoolBlendRef — the same continuous 0..1 "how
+      // whirlpool-y are we" value the position/spin transition already eases
+      // with — instead of switching the instant cameraMode flips. Without
+      // this the camera used to snap-rotate to stare at the world origin (or
+      // back to looking forward) the moment the mode changed, which read as
+      // the whole transition being abrupt even though camX/camZ themselves
+      // were already blending in gracefully underneath it.
       const lookY = camera.position.y;
-      let lookX: number, lookZ: number;
-      if (inWhirlpool) {
-        // Aim at the vortex center, slightly below the camera so the throat
-        // is visible without the horizon tilting.
-        lookX = 0;
-        lookZ = 0;
-      } else {
-        // Include the same horizontal offsets as camera.position (SVAJ sway
-        // + manual POS X/Z dial) so the look target pans with the camera
-        // instead of staying fixed — otherwise lookAt swivels the camera to
-        // compensate, which reads as unwanted yaw rotation.
-        lookX = camX + camOffXRef.current + swayX;
-        lookZ = camZ + camOffZRef.current + swayZ - 20;
-      }
+      // Include the same horizontal offsets as camera.position (SVAJ sway +
+      // manual POS X/Z dial) so the look target pans with the camera instead
+      // of staying fixed — otherwise lookAt swivels the camera to compensate,
+      // which reads as unwanted yaw rotation.
+      const normalLookX = camX + camOffXRef.current + swayX;
+      const normalLookZ = camZ + camOffZRef.current + swayZ - 20;
+      // Aim at the vortex center (0, 0), slightly below the camera so the
+      // throat is visible without the horizon tilting — eased toward as
+      // whirlpoolBlendRef rises, eased back off the normal look target as it
+      // falls.
+      const vortexBlend = whirlpoolBlendRef.current;
+      const lookX = normalLookX * (1 - vortexBlend);
+      const lookZ = normalLookZ * (1 - vortexBlend);
       camera.lookAt(lookX, lookY, lookZ);
 
       // Rotation stick: yaw (x) + pitch (y). Integrate stick as angular velocity.
