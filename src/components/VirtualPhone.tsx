@@ -1028,8 +1028,8 @@ export function VirtualPhone({
                       label={t("remote.levelDrift")}
                       value={remoteControllerProps.depthDriftSpeed}
                       onChange={remoteControllerProps.setDepthDriftSpeed}
-                      min={-10}
-                      max={10}
+                      min={-20}
+                      max={20}
                     />
                   </div>
                   {remoteControllerProps.cameraMode === "noclip" && (
