@@ -591,10 +591,6 @@
       "closeLabel": "CLOSE",
       "openAria": "Open camera settings"
     },
-    "cameraToggle": {
-      "nextAria": "Next camera mode",
-      "prevAria": "Previous camera mode"
-    },
     "fullscreenEnterAria": "Fullscreen",
     "fullscreenExitAria": "Exit fullscreen",
     "intervalFixedLabel": "Interval {{n}}/{{total}}",

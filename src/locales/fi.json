@@ -591,10 +591,6 @@
       "closeLabel": "SULJE",
       "openAria": "Avaa kamera-asetukset"
     },
-    "cameraToggle": {
-      "nextAria": "Seuraava kameratila",
-      "prevAria": "Edellinen kameratila"
-    },
     "fullscreenEnterAria": "Koko näyttö",
     "fullscreenExitAria": "Poistu koko näytöstä",
     "intervalFixedLabel": "Intervalli {{n}}/{{total}}",

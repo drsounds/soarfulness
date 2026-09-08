@@ -591,10 +591,6 @@
       "closeLabel": "LUK",
       "openAria": "Åbn kamerainstillinger"
     },
-    "cameraToggle": {
-      "nextAria": "Næste kameratilstand",
-      "prevAria": "Forrige kameratilstand"
-    },
     "fullscreenEnterAria": "Fuldskærm",
     "fullscreenExitAria": "Afslut fuldskærm",
     "intervalFixedLabel": "Interval {{n}}/{{total}}",
