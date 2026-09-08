@@ -68,8 +68,8 @@
   "camera": {
     "mode": {
       "autoSuffix": "(AUTO)",
-      "float": "FRI",
-      "noclip": "NOCLIP",
+      "float": "SIMMARE",
+      "noclip": "FLYG",
       "swing": "GUNGA",
       "whirlpool": "VIRVEL",
       "watercraft": "FARKOST"
@@ -175,6 +175,11 @@
       "scene": "SCEN",
       "skyClouds": "HIMMEL-MOLN",
       "skyCloudsHeight": "HIMMEL-MOLNHÖJD",
+      "skyPuffs": "ENSKILDA MOLN",
+      "skyPuffsCount": "ANTAL",
+      "skyPuffsFreq": "Y-FREKVENS",
+      "skyPuffsOpacity": "OPACITET",
+      "skyPuffsSize": "STORLEK",
       "spawnLocation": "SPAWN-PLATS",
       "time": "TID",
       "torusCellSize": "RUTNÄT XZ",
@@ -202,6 +207,8 @@
       "colorAlpha": "FÄRGSTYRKA",
       "depth": "DJUP",
       "depthSine": "DJUP-SINUS",
+      "driftSpeed": "NIVÅ DRIFT",
+      "floorCloudsAnimate": "ANIMERA MOLN",
       "floorTexture": "TEXTUR",
       "hue": "TON",
       "pickColor": "VÄLJ FÄRG",
@@ -210,6 +217,9 @@
       "saturation": "MÄTTNAD",
       "sineAmp": "SINUS AMP",
       "sineFreq": "SINUS FREK",
+      "sineInterval": "SINUS INTERVALL",
+      "sinePeak": "SINUS SPETS",
+      "sineSpeed": "SINUS TEMPO",
       "sphereStrength": "SFÄR-STYRKA",
       "surface": "VATTENYTA",
       "surfaceValue": {
@@ -577,6 +587,11 @@
     "audioOffTitle": "Ljud av",
     "audioOnTitle": "Ljud på",
     "audioUnmuteAria": "Slå på ljud",
+    "cameraDrawer": {
+      "closeAria": "Stäng kamerainställningar",
+      "closeLabel": "STÄNG",
+      "openAria": "Öppna kamerainställningar"
+    },
     "fullscreenEnterAria": "Helskärm",
     "fullscreenExitAria": "Avsluta helskärm",
     "intervalFixedLabel": "Intervall {{n}}/{{total}}",
@@ -588,6 +603,7 @@
       "freeFall": "FRITT FALL",
       "heave": "HÄVNING",
       "jump": "HOPP",
+      "levelDrift": "NIVÅ DRIFT",
       "look": "LOOK",
       "nav": "NAV",
       "noclipDriftXZ": "DRIVA XZ",
@@ -614,13 +630,7 @@
       "wave": "VÅG"
     },
     "timeTravelOpenAria": "Öppna tidsresa",
-    "totalLabel": " · Totalt ",
-    "waveDrawer": {
-      "closeAria": "Stäng våginställningar",
-      "closeLabel": "STÄNG",
-      "openAria": "Öppna våginställningar",
-      "openLabel": "VÅGOR"
-    }
+    "totalLabel": " · Totalt "
   },
   "interval": {
     "type": {
@@ -794,6 +804,7 @@
   },
   "remote": {
     "hojd": "HÖJD",
+    "levelDrift": "NIVÅ DRIFT",
     "strom": "STRÖM",
     "svaj": "SVAJ",
     "swingHint": "I GUNGA-läge styrs kamerans position helt av gungans fysik — inga spakar att styra här.",

@@ -68,8 +68,8 @@
   "camera": {
     "mode": {
       "autoSuffix": "(AUTO)",
-      "float": "FREE",
-      "noclip": "NOCLIP",
+      "float": "SWIMMER",
+      "noclip": "FLY",
       "swing": "SWING",
       "whirlpool": "WHIRLPOOL",
       "watercraft": "WATERCRAFT"
@@ -175,6 +175,11 @@
       "scene": "SCENE",
       "skyClouds": "SKY CLOUDS",
       "skyCloudsHeight": "SKY CLOUD HEIGHT",
+      "skyPuffs": "SKY PUFFS",
+      "skyPuffsCount": "PUFF COUNT",
+      "skyPuffsFreq": "Y FREQUENCY",
+      "skyPuffsOpacity": "PUFF OPACITY",
+      "skyPuffsSize": "PUFF SIZE",
       "spawnLocation": "SPAWN LOCATION",
       "time": "TIME",
       "torusCellSize": "GRID XZ",
@@ -202,6 +207,8 @@
       "colorAlpha": "COLOR STRENGTH",
       "depth": "DEPTH",
       "depthSine": "DEPTH SINE",
+      "driftSpeed": "LEVEL DRIFT",
+      "floorCloudsAnimate": "ANIMATE CLOUDS",
       "floorTexture": "TEXTURE",
       "hue": "HUE",
       "pickColor": "PICK COLOR",
@@ -210,6 +217,9 @@
       "saturation": "SATURATION",
       "sineAmp": "SINE AMP",
       "sineFreq": "SINE FREQ",
+      "sineInterval": "SINE INTERVAL",
+      "sinePeak": "SINE PEAK",
+      "sineSpeed": "SINE TEMPO",
       "sphereStrength": "SPHERE STRENGTH",
       "surface": "WATER SURFACE",
       "surfaceValue": {
@@ -577,6 +587,11 @@
     "audioOffTitle": "Sound off",
     "audioOnTitle": "Sound on",
     "audioUnmuteAria": "Unmute sound",
+    "cameraDrawer": {
+      "closeAria": "Close camera settings",
+      "closeLabel": "CLOSE",
+      "openAria": "Open camera settings"
+    },
     "fullscreenEnterAria": "Fullscreen",
     "fullscreenExitAria": "Exit fullscreen",
     "intervalFixedLabel": "Interval {{n}}/{{total}}",
@@ -588,6 +603,7 @@
       "freeFall": "FREE FALL",
       "heave": "HEAVE",
       "jump": "JUMP",
+      "levelDrift": "LEVEL DRIFT",
       "look": "LOOK",
       "nav": "NAV",
       "noclipDriftXZ": "DRIFT XZ",
@@ -614,13 +630,7 @@
       "wave": "WAVE"
     },
     "timeTravelOpenAria": "Open time travel",
-    "totalLabel": " · Total ",
-    "waveDrawer": {
-      "closeAria": "Close wave settings",
-      "closeLabel": "CLOSE",
-      "openAria": "Open wave settings",
-      "openLabel": "WAVES"
-    }
+    "totalLabel": " · Total "
   },
   "interval": {
     "type": {
@@ -794,6 +804,7 @@
   },
   "remote": {
     "hojd": "HEIGHT",
+    "levelDrift": "LEVEL DRIFT",
     "strom": "CURRENT",
     "svaj": "SWAY",
     "swingHint": "In SWING mode the camera's position is fully driven by the swing's physics — no sticks to control here.",

@@ -68,8 +68,8 @@
   "camera": {
     "mode": {
       "autoSuffix": "(AUTO)",
-      "float": "FRI",
-      "noclip": "NOCLIP",
+      "float": "SVØMMER",
+      "noclip": "FLYV",
       "swing": "GYNGE",
       "whirlpool": "HVIRVEL",
       "watercraft": "FARTØJ"
@@ -175,6 +175,11 @@
       "scene": "SCENE",
       "skyClouds": "HIMMEL-SKYER",
       "skyCloudsHeight": "HIMMEL-SKYHØJDE",
+      "skyPuffs": "ENKELTSKYER",
+      "skyPuffsCount": "ANTAL",
+      "skyPuffsFreq": "Y-FREKVENS",
+      "skyPuffsOpacity": "OPACITET",
+      "skyPuffsSize": "STØRRELSE",
       "spawnLocation": "SPAWN-STED",
       "time": "TID",
       "torusCellSize": "GITTER XZ",
@@ -202,6 +207,8 @@
       "colorAlpha": "FARVESTYRKE",
       "depth": "DYBDE",
       "depthSine": "DYBDE-SINUS",
+      "driftSpeed": "NIVEAU DRIFT",
+      "floorCloudsAnimate": "ANIMER SKYER",
       "floorTexture": "TEKSTUR",
       "hue": "NUANCE",
       "pickColor": "VÆLG FARVE",
@@ -210,6 +217,9 @@
       "saturation": "MÆTNING",
       "sineAmp": "SINUS AMP",
       "sineFreq": "SINUS FREK",
+      "sineInterval": "SINUS INTERVAL",
+      "sinePeak": "SINUS TOP",
+      "sineSpeed": "SINUS TEMPO",
       "sphereStrength": "SFÆRE-STYRKE",
       "surface": "VANDOVERFLADE",
       "surfaceValue": {
@@ -577,6 +587,11 @@
     "audioOffTitle": "Lyd fra",
     "audioOnTitle": "Lyd til",
     "audioUnmuteAria": "Slå lyd til",
+    "cameraDrawer": {
+      "closeAria": "Luk kamerainstillinger",
+      "closeLabel": "LUK",
+      "openAria": "Åbn kamerainstillinger"
+    },
     "fullscreenEnterAria": "Fuldskærm",
     "fullscreenExitAria": "Afslut fuldskærm",
     "intervalFixedLabel": "Interval {{n}}/{{total}}",
@@ -588,6 +603,7 @@
       "freeFall": "FRIT FALD",
       "heave": "HÆVNING",
       "jump": "HOP",
+      "levelDrift": "NIVEAU DRIFT",
       "look": "LOOK",
       "nav": "NAV",
       "noclipDriftXZ": "DRIV XZ",
@@ -614,13 +630,7 @@
       "wave": "BØLGE"
     },
     "timeTravelOpenAria": "Åbn tidsrejse",
-    "totalLabel": " · I alt ",
-    "waveDrawer": {
-      "closeAria": "Luk bølgeindstillinger",
-      "closeLabel": "LUK",
-      "openAria": "Åbn bølgeindstillinger",
-      "openLabel": "BØLGER"
-    }
+    "totalLabel": " · I alt "
   },
   "interval": {
     "type": {
@@ -794,6 +804,7 @@
   },
   "remote": {
     "hojd": "HØJDE",
+    "levelDrift": "NIVEAU DRIFT",
     "strom": "STRØM",
     "svaj": "SVAJ",
     "swingHint": "I GYNGE-tilstand styres kameraets position helt af gyngens fysik — ingen styrepinde her.",

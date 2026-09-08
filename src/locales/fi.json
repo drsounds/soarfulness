@@ -68,8 +68,8 @@
   "camera": {
     "mode": {
       "autoSuffix": "(AUTO)",
-      "float": "VAPAA",
-      "noclip": "NOCLIP",
+      "float": "UIJA",
+      "noclip": "LENTO",
       "swing": "KEINU",
       "whirlpool": "PYÖRRE",
       "watercraft": "ALUS"
@@ -175,6 +175,11 @@
       "scene": "NÄYTTÄMÖ",
       "skyClouds": "TAIVAAN PILVET",
       "skyCloudsHeight": "TAIVAAN PILVEN KORKEUS",
+      "skyPuffs": "YKSITTÄISET PILVET",
+      "skyPuffsCount": "MÄÄRÄ",
+      "skyPuffsFreq": "Y-TAAJUUS",
+      "skyPuffsOpacity": "PEITTÄVYYS",
+      "skyPuffsSize": "KOKO",
       "spawnLocation": "SPAWN-PAIKKA",
       "time": "AIKA",
       "torusCellSize": "RUUDUKKO XZ",
@@ -202,6 +207,8 @@
       "colorAlpha": "VÄRIN VOIMAKKUUS",
       "depth": "SYVYYS",
       "depthSine": "SYVYYS-SINI",
+      "driftSpeed": "TASON AJAUTUMA",
+      "floorCloudsAnimate": "ANIMOI PILVET",
       "floorTexture": "TEKSTUURI",
       "hue": "SÄVY",
       "pickColor": "VALITSE VÄRI",
@@ -210,6 +217,9 @@
       "saturation": "KYLLÄISYYS",
       "sineAmp": "SININ AMPLITUDI",
       "sineFreq": "SININ TAAJUUS",
+      "sineInterval": "SININ INTERVALLI",
+      "sinePeak": "SININ HUIPPU",
+      "sineSpeed": "SININ TEMPO",
       "sphereStrength": "PALLON VOIMAKKUUS",
       "surface": "VEDENPINTA",
       "surfaceValue": {
@@ -577,6 +587,11 @@
     "audioOffTitle": "Ääni pois",
     "audioOnTitle": "Ääni päällä",
     "audioUnmuteAria": "Poista mykistys",
+    "cameraDrawer": {
+      "closeAria": "Sulje kamera-asetukset",
+      "closeLabel": "SULJE",
+      "openAria": "Avaa kamera-asetukset"
+    },
     "fullscreenEnterAria": "Koko näyttö",
     "fullscreenExitAria": "Poistu koko näytöstä",
     "intervalFixedLabel": "Intervalli {{n}}/{{total}}",
@@ -588,6 +603,7 @@
       "freeFall": "VAPAA PUDOTUS",
       "heave": "KOHOILU",
       "jump": "HYPPY",
+      "levelDrift": "TASON AJAUTUMA",
       "look": "LOOK",
       "nav": "NAV",
       "noclipDriftXZ": "AJAUTUS XZ",
@@ -614,13 +630,7 @@
       "wave": "AALTO"
     },
     "timeTravelOpenAria": "Avaa aikamatka",
-    "totalLabel": " · Yhteensä ",
-    "waveDrawer": {
-      "closeAria": "Sulje aaltoasetukset",
-      "closeLabel": "SULJE",
-      "openAria": "Avaa aaltoasetukset",
-      "openLabel": "AALLOT"
-    }
+    "totalLabel": " · Yhteensä "
   },
   "interval": {
     "type": {
@@ -794,6 +804,7 @@
   },
   "remote": {
     "hojd": "KORKEUS",
+    "levelDrift": "TASON AJAUTUMA",
     "strom": "VIRTAUS",
     "svaj": "HEILUNTA",
     "swingHint": "KEINU-tilassa kameran sijainti määräytyy kokonaan keinun fysiikasta — ei ohjaimia täällä.",

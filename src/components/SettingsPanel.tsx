@@ -609,12 +609,22 @@ export type SettingsPanelProps = {
   setFloorDepth: Dispatch<SetStateAction<number>>;
   floorTexture: boolean;
   setFloorTexture: Dispatch<SetStateAction<boolean>>;
+  floorCloudsAnimated: boolean;
+  setFloorCloudsAnimated: Dispatch<SetStateAction<boolean>>;
   depthSineOn: boolean;
   setDepthSineOn: Dispatch<SetStateAction<boolean>>;
   depthSineAmp: number;
   setDepthSineAmp: Dispatch<SetStateAction<number>>;
   depthSineFreq: number;
   setDepthSineFreq: Dispatch<SetStateAction<number>>;
+  depthSineSpeed: number;
+  setDepthSineSpeed: Dispatch<SetStateAction<number>>;
+  depthSineInterval: number;
+  setDepthSineInterval: Dispatch<SetStateAction<number>>;
+  depthSinePeak: number;
+  setDepthSinePeak: Dispatch<SetStateAction<number>>;
+  depthDriftSpeed: number;
+  setDepthDriftSpeed: Dispatch<SetStateAction<number>>;
   hideWater: boolean;
   setHideWater: Dispatch<SetStateAction<boolean>>;
   causticsOn: boolean;
@@ -633,6 +643,16 @@ export type SettingsPanelProps = {
   setSkyCloudsHeight: Dispatch<SetStateAction<number>>;
   cloudFadeSpeed: number;
   setCloudFadeSpeed: Dispatch<SetStateAction<number>>;
+  skyPuffsOn: boolean;
+  setSkyPuffsOn: Dispatch<SetStateAction<boolean>>;
+  skyPuffsCount: number;
+  setSkyPuffsCount: Dispatch<SetStateAction<number>>;
+  skyPuffsSize: number;
+  setSkyPuffsSize: Dispatch<SetStateAction<number>>;
+  skyPuffsFreq: number;
+  setSkyPuffsFreq: Dispatch<SetStateAction<number>>;
+  skyPuffsOpacity: number;
+  setSkyPuffsOpacity: Dispatch<SetStateAction<number>>;
   worldBoundaryOn: boolean;
   setWorldBoundaryOn: Dispatch<SetStateAction<boolean>>;
   worldBoundarySize: number;
@@ -1239,12 +1259,22 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setFloorDepth,
     floorTexture,
     setFloorTexture,
+    floorCloudsAnimated,
+    setFloorCloudsAnimated,
     depthSineOn,
     setDepthSineOn,
     depthSineAmp,
     setDepthSineAmp,
     depthSineFreq,
     setDepthSineFreq,
+    depthSineSpeed,
+    setDepthSineSpeed,
+    depthSineInterval,
+    setDepthSineInterval,
+    depthSinePeak,
+    setDepthSinePeak,
+    depthDriftSpeed,
+    setDepthDriftSpeed,
     hideWater,
     setHideWater,
     causticsOn,
@@ -1261,6 +1291,16 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setSkyCloudsHeight,
     cloudFadeSpeed,
     setCloudFadeSpeed,
+    skyPuffsOn,
+    setSkyPuffsOn,
+    skyPuffsCount,
+    setSkyPuffsCount,
+    skyPuffsSize,
+    setSkyPuffsSize,
+    skyPuffsFreq,
+    setSkyPuffsFreq,
+    skyPuffsOpacity,
+    setSkyPuffsOpacity,
     worldBoundaryOn,
     setWorldBoundaryOn,
     worldBoundarySize,
@@ -2602,6 +2642,14 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     />
                   </label>
                 )}
+                {BOTTOM_OPTIONS[bottomIdx].id === "clouds" && (
+                  <SettingRow
+                    label={t("dial.water.floorCloudsAnimate")}
+                    value={onOff(floorCloudsAnimated)}
+                    onDec={() => setFloorCloudsAnimated(false)}
+                    onInc={() => setFloorCloudsAnimated(true)}
+                  />
+                )}
                 <SettingRow
                   label={t("dial.water.depth")}
                   mode="number"
@@ -2649,6 +2697,54 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   step={0.01}
                   onDec={() => setDepthSineFreq((v) => Math.max(0.001, +(v - 0.01).toFixed(3)))}
                   onInc={() => setDepthSineFreq((v) => Math.min(2, +(v + 0.01).toFixed(3)))}
+                />
+                <SettingRow
+                  label={t("dial.water.sineSpeed")}
+                  mode="number"
+                  value={`${depthSineSpeed.toFixed(2)}x`}
+                  rawValue={depthSineSpeed}
+                  onSet={(v) => setDepthSineSpeed(Math.max(0.1, Math.min(5, v)))}
+                  min={0.1}
+                  max={5}
+                  step={0.05}
+                  onDec={() => setDepthSineSpeed((v) => Math.max(0.1, +(v - 0.05).toFixed(2)))}
+                  onInc={() => setDepthSineSpeed((v) => Math.min(5, +(v + 0.05).toFixed(2)))}
+                />
+                <SettingRow
+                  label={t("dial.water.sineInterval")}
+                  mode="number"
+                  value={`${depthSineInterval.toFixed(1)}s`}
+                  rawValue={depthSineInterval}
+                  onSet={(v) => setDepthSineInterval(Math.max(0.2, Math.min(20, v)))}
+                  min={0.2}
+                  max={20}
+                  step={0.1}
+                  onDec={() => setDepthSineInterval((v) => Math.max(0.2, +(v - 0.1).toFixed(2)))}
+                  onInc={() => setDepthSineInterval((v) => Math.min(20, +(v + 0.1).toFixed(2)))}
+                />
+                <SettingRow
+                  label={t("dial.water.sinePeak")}
+                  mode="number"
+                  value={depthSinePeak.toFixed(2)}
+                  rawValue={depthSinePeak}
+                  onSet={(v) => setDepthSinePeak(Math.max(1, Math.min(6, v)))}
+                  min={1}
+                  max={6}
+                  step={0.1}
+                  onDec={() => setDepthSinePeak((v) => Math.max(1, +(v - 0.1).toFixed(2)))}
+                  onInc={() => setDepthSinePeak((v) => Math.min(6, +(v + 0.1).toFixed(2)))}
+                />
+                <SettingRow
+                  label={t("dial.water.driftSpeed")}
+                  mode="number"
+                  value={`${depthDriftSpeed.toFixed(2)}m/s`}
+                  rawValue={depthDriftSpeed}
+                  onSet={(v) => setDepthDriftSpeed(Math.max(-20, Math.min(20, v)))}
+                  min={-20}
+                  max={20}
+                  step={0.1}
+                  onDec={() => setDepthDriftSpeed((v) => Math.max(-20, +(v - 0.1).toFixed(2)))}
+                  onInc={() => setDepthDriftSpeed((v) => Math.min(20, +(v + 0.1).toFixed(2)))}
                 />
                 <SettingRow
                   label={t("dial.water.surface")}
@@ -2734,6 +2830,66 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   onDec={() => setCloudFadeSpeed((v) => Math.max(0.2, +(v - 0.2).toFixed(1)))}
                   onInc={() => setCloudFadeSpeed((v) => Math.min(12, +(v + 0.2).toFixed(1)))}
                 />
+                <SettingRow
+                  label={t("dial.env.skyPuffs")}
+                  value={onOff(skyPuffsOn)}
+                  onDec={() => setSkyPuffsOn(false)}
+                  onInc={() => setSkyPuffsOn(true)}
+                />
+                {skyPuffsOn && (
+                  <>
+                    <SettingRow
+                      label={t("dial.env.skyPuffsCount")}
+                      mode="number"
+                      value={`${skyPuffsCount}`}
+                      rawValue={skyPuffsCount}
+                      onSet={(v) => setSkyPuffsCount(Math.max(1, Math.min(20, Math.round(v))))}
+                      min={1}
+                      max={20}
+                      step={1}
+                      onDec={() => setSkyPuffsCount((v) => Math.max(1, v - 1))}
+                      onInc={() => setSkyPuffsCount((v) => Math.min(20, v + 1))}
+                    />
+                    <SettingRow
+                      label={t("dial.env.skyPuffsSize")}
+                      mode="number"
+                      value={`${skyPuffsSize.toFixed(0)}m`}
+                      rawValue={skyPuffsSize}
+                      onSet={(v) => setSkyPuffsSize(Math.max(100, Math.min(3000, v)))}
+                      min={100}
+                      max={3000}
+                      step={50}
+                      onDec={() => setSkyPuffsSize((v) => Math.max(100, v - 50))}
+                      onInc={() => setSkyPuffsSize((v) => Math.min(3000, v + 50))}
+                    />
+                    <SettingRow
+                      label={t("dial.env.skyPuffsFreq")}
+                      mode="number"
+                      value={`${skyPuffsFreq.toFixed(2)}x`}
+                      rawValue={skyPuffsFreq}
+                      onSet={(v) => setSkyPuffsFreq(Math.max(0.2, Math.min(5, v)))}
+                      min={0.2}
+                      max={5}
+                      step={0.1}
+                      onDec={() => setSkyPuffsFreq((v) => Math.max(0.2, +(v - 0.1).toFixed(2)))}
+                      onInc={() => setSkyPuffsFreq((v) => Math.min(5, +(v + 0.1).toFixed(2)))}
+                    />
+                    <SettingRow
+                      label={t("dial.env.skyPuffsOpacity")}
+                      mode="number"
+                      value={`${Math.round(skyPuffsOpacity * 100)}%`}
+                      rawValue={skyPuffsOpacity}
+                      onSet={(v) => setSkyPuffsOpacity(Math.max(0.05, Math.min(1, v)))}
+                      min={0.05}
+                      max={1}
+                      step={0.05}
+                      onDec={() =>
+                        setSkyPuffsOpacity((v) => Math.max(0.05, +(v - 0.05).toFixed(2)))
+                      }
+                      onInc={() => setSkyPuffsOpacity((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+                    />
+                  </>
+                )}
                 <SettingRow
                   label={t("dial.env.worldBoundary")}
                   value={onOff(worldBoundaryOn)}

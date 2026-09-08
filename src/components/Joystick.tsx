@@ -186,6 +186,116 @@ export function VerticalModeSlider({
   );
 }
 
+// A vertical drag fader for a continuous signed value (unlike
+// VerticalModeSlider's three discrete zones) — used by LEVEL DRIFT, whose
+// dial needs the full range between its min/max rather than a rise/still/
+// fall choice. Top of the track is `max`, bottom is `min`; a tick marks
+// wherever 0 falls so the "off" position is easy to find by feel, and a
+// small reset button underneath snaps straight back to exactly 0 — dragging
+// there by touch alone is imprecise, unlike JoystickPad's sticky pads whose
+// resting center *is* their zero.
+export function VerticalDial({
+  value,
+  onChange,
+  onReset,
+  label = "LEVEL",
+  min = -1,
+  max = 1,
+  height = 132,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  // Reset-button handler — defaults to onChange(0). Override this when 0 on
+  // the dial isn't the whole story: LEVEL DRIFT, for instance, also has to
+  // stop its own eased velocity and snap the water level it already drifted
+  // back to baseline, neither of which onChange(0) alone can reach (both
+  // live in refs outside this component's props).
+  onReset?: () => void;
+  label?: string;
+  min?: number;
+  max?: number;
+  height?: number;
+}) {
+  const { t } = useTranslation();
+  const trackRef = useRef<HTMLDivElement>(null);
+  const activeId = useRef<number | null>(null);
+
+  const valueFromPointer = (clientY: number): number => {
+    const track = trackRef.current;
+    if (!track) return value;
+    const rect = track.getBoundingClientRect();
+    const rel = Math.min(1, Math.max(0, (clientY - rect.top) / rect.height));
+    return max - rel * (max - min);
+  };
+
+  const fracFor = (v: number) => (max - v) / (max - min || 1);
+  const thumbFrac = fracFor(Math.min(max, Math.max(min, value)));
+  const zeroFrac = fracFor(Math.min(max, Math.max(min, 0)));
+
+  return (
+    <div className="pointer-events-auto flex flex-col items-center gap-1 select-none">
+      <span className="ui-ink-muted text-[8px] font-light tracking-[0.28em]">{label}</span>
+      <div
+        ref={trackRef}
+        onPointerDown={(e) => {
+          if (activeId.current !== null) return;
+          activeId.current = e.pointerId;
+          (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
+          onChange(valueFromPointer(e.clientY));
+        }}
+        onPointerMove={(e) => {
+          if (activeId.current !== e.pointerId) return;
+          onChange(valueFromPointer(e.clientY));
+        }}
+        onPointerUp={(e) => {
+          if (activeId.current !== e.pointerId) return;
+          activeId.current = null;
+        }}
+        onPointerCancel={() => {
+          activeId.current = null;
+        }}
+        className="ui-surface relative w-10 touch-none rounded-full border backdrop-blur-md"
+        style={{ height, boxShadow: "inset 0 0 30px rgba(255,255,255,0.05)" }}
+      >
+        <div className="ui-ink-faint pointer-events-none absolute inset-x-0 top-1.5 text-center text-[9px] leading-none">
+          ▲
+        </div>
+        <div className="ui-ink-faint pointer-events-none absolute inset-x-0 bottom-1.5 text-center text-[9px] leading-none">
+          ▼
+        </div>
+        <div
+          className="ui-line-1 pointer-events-none absolute inset-x-2"
+          style={{ top: `${zeroFrac * 100}%`, height: 1 }}
+        />
+        <div
+          className="ui-thumb pointer-events-none absolute left-1/2 h-7 w-7 -translate-x-1/2 rounded-full border"
+          style={{ top: `calc(${thumbFrac * 100}% - 14px)` }}
+        />
+      </div>
+      <button
+        type="button"
+        onClick={() => (onReset ? onReset() : onChange(0))}
+        aria-label={t("common.resetAria", { label })}
+        tabIndex={-1}
+        className="ui-icon-btn pointer-events-auto flex h-5 w-5 items-center justify-center rounded-full border transition active:scale-95"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="h-3 w-3"
+        >
+          <path d="M3 12a9 9 0 1 0 3-6.7" />
+          <path d="M3 4v5h5" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
 // Floating, fixed-position variant used directly over the 3D view (NAV/LOOK
 // on the main HUD) — a thin positioning wrapper around JoystickPad.
 export function Joystick({

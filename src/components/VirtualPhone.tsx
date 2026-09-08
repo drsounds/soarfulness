@@ -4,7 +4,7 @@ import type { DeviceKind } from "@/lib/tv/CSS3DTVManager";
 import { resolveAddress } from "@/lib/tv/CSS3DTVManager";
 import { toEmbedUrl } from "@/lib/tv/youtubeEmbed";
 import { SettingsPanel, type SettingsPanelProps } from "@/components/SettingsPanel";
-import { JoystickPad, type StickValue } from "@/components/Joystick";
+import { JoystickPad, VerticalDial, type StickValue } from "@/components/Joystick";
 import type { CameraMode } from "@/lib/settingsShared";
 
 type BathApp = { id: string; name: string; url: string; icon: "browser" | "youtube" | "link" };
@@ -40,6 +40,15 @@ export type RemoteControllerProps = {
   onSwayChange: (v: StickValue) => void;
   waveDirStick: StickValue;
   onWaveDirChange: (v: StickValue) => void;
+  // LEVEL DRIFT: unbounded, continuous water-level rise/sink rate — works in
+  // every camera mode (unlike the pads above), so it isn't gated behind a
+  // cameraMode check the way STRÖM/SVAJ/VÅGRIKT/HÖJD are.
+  depthDriftSpeed: number;
+  setDepthDriftSpeed: Dispatch<SetStateAction<number>>;
+  // Resets depthDriftSpeed to 0 *and* zeroes the accumulated drift/velocity
+  // refs index.tsx tracks internally — setDepthDriftSpeed(0) alone would
+  // only stop further drift, not undo what already accumulated.
+  resetDepthDrift: () => void;
   syncWaveWithSway: boolean;
   setSyncWaveWithSway: Dispatch<SetStateAction<boolean>>;
 };
@@ -1019,6 +1028,14 @@ export function VirtualPhone({
                         sticky
                       />
                     )}
+                    <VerticalDial
+                      label={t("remote.levelDrift")}
+                      value={remoteControllerProps.depthDriftSpeed}
+                      onChange={remoteControllerProps.setDepthDriftSpeed}
+                      onReset={remoteControllerProps.resetDepthDrift}
+                      min={-20}
+                      max={20}
+                    />
                   </div>
                   {remoteControllerProps.cameraMode === "noclip" && (
                     <div className="flex justify-center gap-3">

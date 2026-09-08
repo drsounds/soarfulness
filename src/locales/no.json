@@ -68,8 +68,8 @@
   "camera": {
     "mode": {
       "autoSuffix": "(AUTO)",
-      "float": "FRI",
-      "noclip": "NOCLIP",
+      "float": "SVØMMER",
+      "noclip": "FLY",
       "swing": "HUSKE",
       "whirlpool": "VIRVEL",
       "watercraft": "FARKOST"
@@ -175,6 +175,11 @@
       "scene": "SCENE",
       "skyClouds": "HIMMEL-SKYER",
       "skyCloudsHeight": "HIMMEL-SKYHØYDE",
+      "skyPuffs": "ENKELTSKYER",
+      "skyPuffsCount": "ANTALL",
+      "skyPuffsFreq": "Y-FREKVENS",
+      "skyPuffsOpacity": "OPASITET",
+      "skyPuffsSize": "STØRRELSE",
       "spawnLocation": "SPAWN-STED",
       "time": "TID",
       "torusCellSize": "RUTENETT XZ",
@@ -202,6 +207,8 @@
       "colorAlpha": "FARGESTYRKE",
       "depth": "DYBDE",
       "depthSine": "DYBDE-SINUS",
+      "driftSpeed": "NIVÅ DRIFT",
+      "floorCloudsAnimate": "ANIMER SKYER",
       "floorTexture": "TEKSTUR",
       "hue": "NYANSE",
       "pickColor": "VELG FARGE",
@@ -210,6 +217,9 @@
       "saturation": "METNING",
       "sineAmp": "SINUS AMP",
       "sineFreq": "SINUS FREK",
+      "sineInterval": "SINUS INTERVALL",
+      "sinePeak": "SINUS TOPP",
+      "sineSpeed": "SINUS TEMPO",
       "sphereStrength": "SFÆRE-STYRKE",
       "surface": "VANNOVERFLATE",
       "surfaceValue": {
@@ -577,6 +587,11 @@
     "audioOffTitle": "Lyd av",
     "audioOnTitle": "Lyd på",
     "audioUnmuteAria": "Slå på lyd",
+    "cameraDrawer": {
+      "closeAria": "Lukk kamerainnstillinger",
+      "closeLabel": "LUKK",
+      "openAria": "Åpne kamerainnstillinger"
+    },
     "fullscreenEnterAria": "Fullskjerm",
     "fullscreenExitAria": "Avslutt fullskjerm",
     "intervalFixedLabel": "Intervall {{n}}/{{total}}",
@@ -588,6 +603,7 @@
       "freeFall": "FRITT FALL",
       "heave": "HEVING",
       "jump": "HOPP",
+      "levelDrift": "NIVÅ DRIFT",
       "look": "LOOK",
       "nav": "NAV",
       "noclipDriftXZ": "DRIV XZ",
@@ -614,13 +630,7 @@
       "wave": "BØLGE"
     },
     "timeTravelOpenAria": "Åpne tidsreise",
-    "totalLabel": " · Totalt ",
-    "waveDrawer": {
-      "closeAria": "Lukk bølgeinnstillinger",
-      "closeLabel": "LUKK",
-      "openAria": "Åpne bølgeinnstillinger",
-      "openLabel": "BØLGER"
-    }
+    "totalLabel": " · Totalt "
   },
   "interval": {
     "type": {
@@ -794,6 +804,7 @@
   },
   "remote": {
     "hojd": "HØYDE",
+    "levelDrift": "NIVÅ DRIFT",
     "strom": "STRØM",
     "svaj": "SVAI",
     "swingHint": "I HUSKE-modus styres kameraets posisjon helt av huskens fysikk — ingen spaker å styre her.",
