@@ -186,6 +186,87 @@ export function VerticalModeSlider({
   );
 }
 
+// A vertical drag fader for a continuous signed value (unlike
+// VerticalModeSlider's three discrete zones) — used by LEVEL DRIFT, whose
+// dial needs the full range between its min/max rather than a rise/still/
+// fall choice. Top of the track is `max`, bottom is `min`; a tick marks
+// wherever 0 falls so the "off" position is easy to find and return to by
+// feel. No sticky/reset handling needed: the thumb already sits at 0's tick
+// whenever the value is 0, so dragging back to center *is* the reset.
+export function VerticalDial({
+  value,
+  onChange,
+  label,
+  min = -1,
+  max = 1,
+  height = 132,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  label?: string;
+  min?: number;
+  max?: number;
+  height?: number;
+}) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const activeId = useRef<number | null>(null);
+
+  const valueFromPointer = (clientY: number): number => {
+    const track = trackRef.current;
+    if (!track) return value;
+    const rect = track.getBoundingClientRect();
+    const rel = Math.min(1, Math.max(0, (clientY - rect.top) / rect.height));
+    return max - rel * (max - min);
+  };
+
+  const fracFor = (v: number) => (max - v) / (max - min || 1);
+  const thumbFrac = fracFor(Math.min(max, Math.max(min, value)));
+  const zeroFrac = fracFor(Math.min(max, Math.max(min, 0)));
+
+  return (
+    <div className="pointer-events-auto flex flex-col items-center gap-1 select-none">
+      <span className="ui-ink-muted text-[8px] font-light tracking-[0.28em]">{label}</span>
+      <div
+        ref={trackRef}
+        onPointerDown={(e) => {
+          if (activeId.current !== null) return;
+          activeId.current = e.pointerId;
+          (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
+          onChange(valueFromPointer(e.clientY));
+        }}
+        onPointerMove={(e) => {
+          if (activeId.current !== e.pointerId) return;
+          onChange(valueFromPointer(e.clientY));
+        }}
+        onPointerUp={(e) => {
+          if (activeId.current !== e.pointerId) return;
+          activeId.current = null;
+        }}
+        onPointerCancel={() => {
+          activeId.current = null;
+        }}
+        className="ui-surface relative w-10 touch-none rounded-full border backdrop-blur-md"
+        style={{ height, boxShadow: "inset 0 0 30px rgba(255,255,255,0.05)" }}
+      >
+        <div className="ui-ink-faint pointer-events-none absolute inset-x-0 top-1.5 text-center text-[9px] leading-none">
+          ▲
+        </div>
+        <div className="ui-ink-faint pointer-events-none absolute inset-x-0 bottom-1.5 text-center text-[9px] leading-none">
+          ▼
+        </div>
+        <div
+          className="ui-line-1 pointer-events-none absolute inset-x-2"
+          style={{ top: `${zeroFrac * 100}%`, height: 1 }}
+        />
+        <div
+          className="ui-thumb pointer-events-none absolute left-1/2 h-7 w-7 -translate-x-1/2 rounded-full border"
+          style={{ top: `calc(${thumbFrac * 100}% - 14px)` }}
+        />
+      </div>
+    </div>
+  );
+}
+
 // Floating, fixed-position variant used directly over the 3D view (NAV/LOOK
 // on the main HUD) — a thin positioning wrapper around JoystickPad.
 export function Joystick({

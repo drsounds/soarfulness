@@ -592,6 +592,7 @@
       "freeFall": "FRITT FALL",
       "heave": "HEVING",
       "jump": "HOPP",
+      "levelDrift": "NIVÅ DRIFT",
       "look": "LOOK",
       "nav": "NAV",
       "noclipDriftXZ": "DRIV XZ",
@@ -798,6 +799,7 @@
   },
   "remote": {
     "hojd": "HØYDE",
+    "levelDrift": "NIVÅ DRIFT",
     "strom": "STRØM",
     "svaj": "SVAI",
     "swingHint": "I HUSKE-modus styres kameraets posisjon helt av huskens fysikk — ingen spaker å styre her.",

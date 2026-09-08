@@ -592,6 +592,7 @@
       "freeFall": "FREE FALL",
       "heave": "HEAVE",
       "jump": "JUMP",
+      "levelDrift": "LEVEL DRIFT",
       "look": "LOOK",
       "nav": "NAV",
       "noclipDriftXZ": "DRIFT XZ",
@@ -798,6 +799,7 @@
   },
   "remote": {
     "hojd": "HEIGHT",
+    "levelDrift": "LEVEL DRIFT",
     "strom": "CURRENT",
     "svaj": "SWAY",
     "swingHint": "In SWING mode the camera's position is fully driven by the swing's physics — no sticks to control here.",

@@ -19,6 +19,7 @@ import { PadSlider } from "@/components/PadDial";
 import {
   Joystick,
   JoystickPad,
+  VerticalDial,
   VerticalModeSlider,
   type VerticalMode,
 } from "@/components/Joystick";
@@ -6658,6 +6659,8 @@ export function Aquafulness() {
         setWaveDir(((deg % 360) + 360) % 360);
       }
     },
+    depthDriftSpeed,
+    setDepthDriftSpeed,
     syncWaveWithSway,
     setSyncWaveWithSway,
   };
@@ -7140,6 +7143,18 @@ export function Aquafulness() {
             sticky
           />
         )}
+        {/* LEVEL DRIFT: unlike STRÖM/SVAJ/VÅGRIKT/HÖJD above, this isn't
+            gated behind a cameraMode check — the water level drifts the same
+            way regardless of how the camera is currently moving. */}
+        <div className="pointer-events-none absolute bottom-64 right-8 z-10 select-none">
+          <VerticalDial
+            value={depthDriftSpeed}
+            onChange={setDepthDriftSpeed}
+            label={t("hud.joystick.levelDrift")}
+            min={-10}
+            max={10}
+          />
+        </div>
         {/* JUMP: a single tri-state slider (RISE/STILL/FALL) replacing the
             left column's separate FRITT FALL/OMVÄND STIGNING pill buttons for
             anyone who'd rather drag one control than tap two — both drive the
