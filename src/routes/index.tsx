@@ -1844,6 +1844,21 @@ export function Aquafulness() {
     phase: "drag" | "stay" | "exit";
     startMs: number;
   }>({ phase: "drag", startMs: 0 });
+  // Continuous 0..1 "how whirlpool-y are we right now" blend, eased toward
+  // cameraMode==="whirlpool" over ~1.4s regardless of how abruptly the mode
+  // itself switches (button, KAMERA dial, or the interval session) — see its
+  // update in the render loop below. 1 = fully orbiting the vortex, 0 =
+  // fully back to whatever the current mode's own motion is. Used both to
+  // fade the funnel's shape in/out (uVortex) and to scale the orbit's
+  // angular speed, so entering ramps the spin up from a standstill and
+  // leaving lets it wind back down instead of cutting out mid-spin.
+  const whirlpoolBlendRef = useRef(0);
+  // The camera's last actual orbit position while whirlpoolBlendRef was
+  // above zero — seeded into posRef.current the moment cameraMode leaves
+  // "whirlpool" (see that effect below) so float/noclip/swing resume
+  // exactly where the (still winding down) orbit left off, instead of
+  // snapping back to wherever the camera was before it ever entered.
+  const whirlpoolLastPosRef = useRef({ x: 0, z: 0 });
   const swingTornadoOnRef = useRef(swingTornadoOn);
   const swingTornadoRadiusRef = useRef(swingTornadoRadius);
   const swingTornadoSpeedRef = useRef(swingTornadoSpeed);
@@ -2310,17 +2325,30 @@ export function Aquafulness() {
     torusFadeDistance,
   ]);
   // Mode switch: hand off position/orientation continuity between schemes so
-  // switching never teleports the camera. Entering noclip seeds its vertical
-  // position from wherever the wave spring last had the camera; entering
-  // swing captures the current look yaw as the pendulum's swing plane and
-  // arms a short blend (swingBlendRef) so the pendulum's y and horizontal arc
-  // ease in from wherever the camera actually was, instead of snapping
-  // straight to the swing formula's value for the current clock phase;
-  // entering whirlpool always (re)starts its automatic sequence, if any,
-  // fresh from the drag-in phase — see the cameraMode==="whirlpool" branch
-  // of the render loop below.
+  // switching never teleports the camera. Leaving whirlpool (for any other
+  // mode) first seeds posRef.current from wherever the orbit actually was
+  // (whirlpoolLastPosRef, updated every frame the render loop spends in or
+  // winding down from whirlpool) so the new mode's own motion picks up
+  // exactly where the orbit left off — the orbit itself keeps spinning
+  // (decelerating) and blending under that motion for a bit afterward, per
+  // whirlpoolBlendRef in the render loop, instead of cutting out instantly.
+  // Entering noclip seeds its vertical position from wherever the wave
+  // spring last had the camera; entering swing captures the current look
+  // yaw as the pendulum's swing plane and arms a short blend (swingBlendRef)
+  // so the pendulum's y and horizontal arc ease in from wherever the camera
+  // actually was, instead of snapping straight to the swing formula's value
+  // for the current clock phase; entering whirlpool always (re)starts its
+  // automatic sequence, if any, fresh from the drag-in phase — see the
+  // cameraMode==="whirlpool" branch of the render loop below (whose own
+  // entry is likewise eased, via whirlpoolBlendRef, rather than an instant
+  // teleport onto the orbit).
   useEffect(() => {
+    const wasWhirlpool = cameraModeRef.current === "whirlpool";
     cameraModeRef.current = cameraMode;
+    if (wasWhirlpool && cameraMode !== "whirlpool") {
+      posRef.current.x = whirlpoolLastPosRef.current.x;
+      posRef.current.z = whirlpoolLastPosRef.current.z;
+    }
     if (cameraMode === "noclip") {
       posRef.current.y = camYRef.current ?? swingPositionYRef.current;
       noclipVertVelRef.current = 0;
@@ -4842,9 +4870,22 @@ export function Aquafulness() {
         uniforms.uDir.value += delta * Math.min(1, dt * 4);
       }
 
-      // Smoothly blend the vortex funnel in/out (also drives camera behaviour).
-      const vortexTarget = cameraModeRef.current === "whirlpool" ? 1 : 0;
-      uniforms.uVortex.value += (vortexTarget - uniforms.uVortex.value) * Math.min(1, dt * 3);
+      // Graceful whirlpool spin-up/spin-down: a single continuous blend (0 =
+      // fully out, 1 = fully in) that eases toward whichever state cameraMode
+      // is actually in, at a slow enough rate (~1.4s time constant) to read
+      // as the water gradually working itself into a vortex rather than
+      // popping in — and, symmetrically, unwinding back to plain waves
+      // rather than cutting out the moment the mode switches away. Drives
+      // both the funnel's shape (uVortex below) and the orbit's angular
+      // speed (see whirlpoolBlendRef.current used as a spin multiplier in
+      // the camMode branch below), so the visual deepening and the camera's
+      // spin-up/down always stay in lockstep.
+      const whirlpoolTarget = cameraModeRef.current === "whirlpool" ? 1 : 0;
+      whirlpoolBlendRef.current +=
+        (whirlpoolTarget - whirlpoolBlendRef.current) * Math.min(1, dt * 0.7);
+      if (whirlpoolBlendRef.current < 0.0008) whirlpoolBlendRef.current = 0;
+      else if (whirlpoolBlendRef.current > 0.9992) whirlpoolBlendRef.current = 1;
+      uniforms.uVortex.value = whirlpoolBlendRef.current;
       uniforms.uVortexOpening.value +=
         (whirlpoolOpeningRef.current - uniforms.uVortexOpening.value) * Math.min(1, dt * 4);
 
@@ -5159,6 +5200,15 @@ export function Aquafulness() {
         // instead automatically loops through drag-in -> stay inside -> exit
         // (whirlpoolPhaseRef, reset to "drag" on entering this mode — see the
         // cameraMode-change effect above).
+        //
+        // Entry is graceful rather than an instant teleport onto the orbit
+        // circle: posRef.current is left untouched by this branch (nothing
+        // below writes to it), so it still holds wherever the camera was the
+        // instant cameraMode switched to "whirlpool" — camX/camZ blend from
+        // that frozen point toward the live orbit position as
+        // whirlpoolBlendRef eases 0 -> 1 (see its update above), reading as
+        // the current gradually pulling the camera in and spinning it up
+        // rather than snapping straight to full speed.
         const op = whirlpoolOpeningRef.current;
         const outerR = whirlpoolRadiusRef.current;
         const dirSign = whirlpoolDirectionRef.current === "ccw" ? -1 : 1;
@@ -5226,14 +5276,22 @@ export function Aquafulness() {
         }
 
         // Base angular speed scales with the whirlpool speed dial and its
-        // direction toggle; NAV.x always adds a bit of extra swirl on top,
-        // sequence or not.
-        const baseOmega = 0.35 * whirlpoolSpeedRef.current * omegaSign;
+        // direction toggle, scaled by whirlpoolBlendRef so the spin itself
+        // ramps up from a standstill on entry instead of starting at full
+        // speed; NAV.x always adds a bit of extra swirl on top at full
+        // strength (direct manual input shouldn't feel eased), sequence or
+        // not.
+        const baseOmega = 0.35 * whirlpoolSpeedRef.current * omegaSign * whirlpoolBlendRef.current;
         const stickOmega = stickRef.current.x * 1.4;
         whirlpoolAngleRef.current += (baseOmega + stickOmega) * physDt;
         const ang = whirlpoolAngleRef.current;
-        camX = Math.cos(ang) * radius;
-        camZ = Math.sin(ang) * radius;
+        const orbitX = Math.cos(ang) * radius;
+        const orbitZ = Math.sin(ang) * radius;
+        const entryBlend = whirlpoolBlendRef.current;
+        camX = posRef.current.x + (orbitX - posRef.current.x) * entryBlend;
+        camZ = posRef.current.z + (orbitZ - posRef.current.z) * entryBlend;
+        whirlpoolLastPosRef.current.x = camX;
+        whirlpoolLastPosRef.current.z = camZ;
       } else {
         // NAV-spaken är kamera-relativ: stick.y "framåt" ska alltid röra sig
         // dit kameran för tillfället tittar (yaw), inte fast världs -z, annars
@@ -5251,6 +5309,30 @@ export function Aquafulness() {
         posRef.current.z += (walkZ * walkSpeed + driftWorldRef.current.z * driftSpeed) * physDt;
         camX = posRef.current.x;
         camZ = posRef.current.z;
+      }
+
+      // Whirlpool exit tail: cameraMode has already switched to whatever
+      // mode's motion was just computed above (seeded, via the
+      // cameraMode-change effect, to resume exactly where the orbit left
+      // off), but whirlpoolBlendRef is still winding down from its last
+      // value — so keep the orbit spinning (decelerating with the blend,
+      // radius frozen at wherever it last was rather than resuming the
+      // drag-in/stay/exit sequence or manual radius control) and blend it
+      // under the new mode's own position. As the blend reaches 0 this
+      // contributes nothing and the new mode's motion alone remains,
+      // reading as the vortex gracefully unwinding into plain waves/swing/
+      // flight instead of cutting out the instant the mode switches.
+      if (!inWhirlpool && whirlpoolBlendRef.current > 0.0008) {
+        const exitDirSign = whirlpoolDirectionRef.current === "ccw" ? -1 : 1;
+        const exitOmega =
+          0.35 * whirlpoolSpeedRef.current * exitDirSign * whirlpoolBlendRef.current;
+        whirlpoolAngleRef.current += exitOmega * physDt;
+        const ang = whirlpoolAngleRef.current;
+        const orbitX = Math.cos(ang) * whirlpoolRadiusRef.current;
+        const orbitZ = Math.sin(ang) * whirlpoolRadiusRef.current;
+        const w = whirlpoolBlendRef.current;
+        camX = orbitX * w + camX * (1 - w);
+        camZ = orbitZ * w + camZ * (1 - w);
       }
 
       // VÄRLDSGRÄNS (world boundary): wrap x/z to the opposite edge once the
