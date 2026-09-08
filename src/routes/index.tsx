@@ -1349,10 +1349,14 @@ export function Aquafulness() {
   const [noclipSwayOn, setNoclipSwayOn] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("vagor");
-  // VÅG/TEMPO/FREKVENS live behind their own bottom drawer (like SETTINGS)
-  // rather than as always-on sliders, so a stray touch near bottom-center
-  // can't accidentally nudge wave height/speed/wavelength mid-session.
-  const [waveDrawerOpen, setWaveDrawerOpen] = useState(false);
+  // Quick per-camera-mode settings live behind their own bottom drawer (like
+  // SETTINGS) rather than as always-on sliders, so a stray touch near
+  // bottom-center can't accidentally nudge a value mid-session.
+  const [cameraDrawerOpen, setCameraDrawerOpen] = useState(false);
+  // Which camera mode's tab the drawer above is showing — kept independent
+  // of cameraMode itself (so it can be browsed without switching modes) but
+  // re-synced to it below whenever cameraMode actually changes.
+  const [cameraDrawerTab, setCameraDrawerTab] = useState<CameraMode>(cameraMode);
   // Named settings presets (save/load, in addition to file export/import
   // below) — kept in their own localStorage list, separate from the
   // always-on autosave under STORAGE_KEY. See src/lib/presets.ts.
@@ -1884,6 +1888,21 @@ export function Aquafulness() {
     phase: "drag" | "stay" | "exit";
     startMs: number;
   }>({ phase: "drag", startMs: 0 });
+  // Continuous 0..1 "how whirlpool-y are we right now" blend, eased toward
+  // cameraMode==="whirlpool" over ~1.4s regardless of how abruptly the mode
+  // itself switches (button, KAMERA dial, or the interval session) — see its
+  // update in the render loop below. 1 = fully orbiting the vortex, 0 =
+  // fully back to whatever the current mode's own motion is. Used both to
+  // fade the funnel's shape in/out (uVortex) and to scale the orbit's
+  // angular speed, so entering ramps the spin up from a standstill and
+  // leaving lets it wind back down instead of cutting out mid-spin.
+  const whirlpoolBlendRef = useRef(0);
+  // The camera's last actual orbit position while whirlpoolBlendRef was
+  // above zero — seeded into posRef.current the moment cameraMode leaves
+  // "whirlpool" (see that effect below) so float/noclip/swing resume
+  // exactly where the (still winding down) orbit left off, instead of
+  // snapping back to wherever the camera was before it ever entered.
+  const whirlpoolLastPosRef = useRef({ x: 0, z: 0 });
   const swingTornadoOnRef = useRef(swingTornadoOn);
   const swingTornadoRadiusRef = useRef(swingTornadoRadius);
   const swingTornadoSpeedRef = useRef(swingTornadoSpeed);
@@ -2378,17 +2397,30 @@ export function Aquafulness() {
     torusFadeDistance,
   ]);
   // Mode switch: hand off position/orientation continuity between schemes so
-  // switching never teleports the camera. Entering noclip seeds its vertical
-  // position from wherever the wave spring last had the camera; entering
-  // swing captures the current look yaw as the pendulum's swing plane and
-  // arms a short blend (swingBlendRef) so the pendulum's y and horizontal arc
-  // ease in from wherever the camera actually was, instead of snapping
-  // straight to the swing formula's value for the current clock phase;
-  // entering whirlpool always (re)starts its automatic sequence, if any,
-  // fresh from the drag-in phase — see the cameraMode==="whirlpool" branch
-  // of the render loop below.
+  // switching never teleports the camera. Leaving whirlpool (for any other
+  // mode) first seeds posRef.current from wherever the orbit actually was
+  // (whirlpoolLastPosRef, updated every frame the render loop spends in or
+  // winding down from whirlpool) so the new mode's own motion picks up
+  // exactly where the orbit left off — the orbit itself keeps spinning
+  // (decelerating) and blending under that motion for a bit afterward, per
+  // whirlpoolBlendRef in the render loop, instead of cutting out instantly.
+  // Entering noclip seeds its vertical position from wherever the wave
+  // spring last had the camera; entering swing captures the current look
+  // yaw as the pendulum's swing plane and arms a short blend (swingBlendRef)
+  // so the pendulum's y and horizontal arc ease in from wherever the camera
+  // actually was, instead of snapping straight to the swing formula's value
+  // for the current clock phase; entering whirlpool always (re)starts its
+  // automatic sequence, if any, fresh from the drag-in phase — see the
+  // cameraMode==="whirlpool" branch of the render loop below (whose own
+  // entry is likewise eased, via whirlpoolBlendRef, rather than an instant
+  // teleport onto the orbit).
   useEffect(() => {
+    const wasWhirlpool = cameraModeRef.current === "whirlpool";
     cameraModeRef.current = cameraMode;
+    if (wasWhirlpool && cameraMode !== "whirlpool") {
+      posRef.current.x = whirlpoolLastPosRef.current.x;
+      posRef.current.z = whirlpoolLastPosRef.current.z;
+    }
     if (cameraMode === "noclip") {
       posRef.current.y = camYRef.current ?? swingPositionYRef.current;
       noclipVertVelRef.current = 0;
@@ -2403,6 +2435,14 @@ export function Aquafulness() {
         startMs: performance.now(),
       };
     }
+  }, [cameraMode]);
+
+  // Keep the bottom camera-settings drawer's active tab in sync with whatever
+  // mode the camera actually switches to (top toggle, settings dial, or the
+  // interval session driver below) — so it's always showing the dials for
+  // the mode currently in effect the moment it's opened.
+  useEffect(() => {
+    setCameraDrawerTab(cameraMode);
   }, [cameraMode]);
 
   // Interval session driver: while on, cycles cameraMode through whichever of
@@ -2727,8 +2767,7 @@ export function Aquafulness() {
     if (patch.waveDir !== undefined) setWaveDir(patch.waveDir);
     if (patch.floorDepth !== undefined) setFloorDepth(patch.floorDepth);
     if (patch.floorTexture !== undefined) setFloorTexture(patch.floorTexture);
-    if (patch.floorCloudsAnimated !== undefined)
-      setFloorCloudsAnimated(patch.floorCloudsAnimated);
+    if (patch.floorCloudsAnimated !== undefined) setFloorCloudsAnimated(patch.floorCloudsAnimated);
     if (patch.whirlpoolOpening !== undefined) setWhirlpoolOpening(patch.whirlpoolOpening);
     if (patch.whirlpoolRadius !== undefined) setWhirlpoolRadius(patch.whirlpoolRadius);
     if (patch.whirlpoolSpeed !== undefined) setWhirlpoolSpeed(patch.whirlpoolSpeed);
@@ -5001,9 +5040,22 @@ export function Aquafulness() {
         uniforms.uDir.value += delta * Math.min(1, dt * 4);
       }
 
-      // Smoothly blend the vortex funnel in/out (also drives camera behaviour).
-      const vortexTarget = cameraModeRef.current === "whirlpool" ? 1 : 0;
-      uniforms.uVortex.value += (vortexTarget - uniforms.uVortex.value) * Math.min(1, dt * 3);
+      // Graceful whirlpool spin-up/spin-down: a single continuous blend (0 =
+      // fully out, 1 = fully in) that eases toward whichever state cameraMode
+      // is actually in, at a slow enough rate (~1.4s time constant) to read
+      // as the water gradually working itself into a vortex rather than
+      // popping in — and, symmetrically, unwinding back to plain waves
+      // rather than cutting out the moment the mode switches away. Drives
+      // both the funnel's shape (uVortex below) and the orbit's angular
+      // speed (see whirlpoolBlendRef.current used as a spin multiplier in
+      // the camMode branch below), so the visual deepening and the camera's
+      // spin-up/down always stay in lockstep.
+      const whirlpoolTarget = cameraModeRef.current === "whirlpool" ? 1 : 0;
+      whirlpoolBlendRef.current +=
+        (whirlpoolTarget - whirlpoolBlendRef.current) * Math.min(1, dt * 0.7);
+      if (whirlpoolBlendRef.current < 0.0008) whirlpoolBlendRef.current = 0;
+      else if (whirlpoolBlendRef.current > 0.9992) whirlpoolBlendRef.current = 1;
+      uniforms.uVortex.value = whirlpoolBlendRef.current;
       uniforms.uVortexOpening.value +=
         (whirlpoolOpeningRef.current - uniforms.uVortexOpening.value) * Math.min(1, dt * 4);
 
@@ -5318,6 +5370,15 @@ export function Aquafulness() {
         // instead automatically loops through drag-in -> stay inside -> exit
         // (whirlpoolPhaseRef, reset to "drag" on entering this mode — see the
         // cameraMode-change effect above).
+        //
+        // Entry is graceful rather than an instant teleport onto the orbit
+        // circle: posRef.current is left untouched by this branch (nothing
+        // below writes to it), so it still holds wherever the camera was the
+        // instant cameraMode switched to "whirlpool" — camX/camZ blend from
+        // that frozen point toward the live orbit position as
+        // whirlpoolBlendRef eases 0 -> 1 (see its update above), reading as
+        // the current gradually pulling the camera in and spinning it up
+        // rather than snapping straight to full speed.
         const op = whirlpoolOpeningRef.current;
         const outerR = whirlpoolRadiusRef.current;
         const dirSign = whirlpoolDirectionRef.current === "ccw" ? -1 : 1;
@@ -5385,14 +5446,22 @@ export function Aquafulness() {
         }
 
         // Base angular speed scales with the whirlpool speed dial and its
-        // direction toggle; NAV.x always adds a bit of extra swirl on top,
-        // sequence or not.
-        const baseOmega = 0.35 * whirlpoolSpeedRef.current * omegaSign;
+        // direction toggle, scaled by whirlpoolBlendRef so the spin itself
+        // ramps up from a standstill on entry instead of starting at full
+        // speed; NAV.x always adds a bit of extra swirl on top at full
+        // strength (direct manual input shouldn't feel eased), sequence or
+        // not.
+        const baseOmega = 0.35 * whirlpoolSpeedRef.current * omegaSign * whirlpoolBlendRef.current;
         const stickOmega = stickRef.current.x * 1.4;
         whirlpoolAngleRef.current += (baseOmega + stickOmega) * physDt;
         const ang = whirlpoolAngleRef.current;
-        camX = Math.cos(ang) * radius;
-        camZ = Math.sin(ang) * radius;
+        const orbitX = Math.cos(ang) * radius;
+        const orbitZ = Math.sin(ang) * radius;
+        const entryBlend = whirlpoolBlendRef.current;
+        camX = posRef.current.x + (orbitX - posRef.current.x) * entryBlend;
+        camZ = posRef.current.z + (orbitZ - posRef.current.z) * entryBlend;
+        whirlpoolLastPosRef.current.x = camX;
+        whirlpoolLastPosRef.current.z = camZ;
       } else {
         // NAV-spaken är kamera-relativ: stick.y "framåt" ska alltid röra sig
         // dit kameran för tillfället tittar (yaw), inte fast världs -z, annars
@@ -5410,6 +5479,30 @@ export function Aquafulness() {
         posRef.current.z += (walkZ * walkSpeed + driftWorldRef.current.z * driftSpeed) * physDt;
         camX = posRef.current.x;
         camZ = posRef.current.z;
+      }
+
+      // Whirlpool exit tail: cameraMode has already switched to whatever
+      // mode's motion was just computed above (seeded, via the
+      // cameraMode-change effect, to resume exactly where the orbit left
+      // off), but whirlpoolBlendRef is still winding down from its last
+      // value — so keep the orbit spinning (decelerating with the blend,
+      // radius frozen at wherever it last was rather than resuming the
+      // drag-in/stay/exit sequence or manual radius control) and blend it
+      // under the new mode's own position. As the blend reaches 0 this
+      // contributes nothing and the new mode's motion alone remains,
+      // reading as the vortex gracefully unwinding into plain waves/swing/
+      // flight instead of cutting out the instant the mode switches.
+      if (!inWhirlpool && whirlpoolBlendRef.current > 0.0008) {
+        const exitDirSign = whirlpoolDirectionRef.current === "ccw" ? -1 : 1;
+        const exitOmega =
+          0.35 * whirlpoolSpeedRef.current * exitDirSign * whirlpoolBlendRef.current;
+        whirlpoolAngleRef.current += exitOmega * physDt;
+        const ang = whirlpoolAngleRef.current;
+        const orbitX = Math.cos(ang) * whirlpoolRadiusRef.current;
+        const orbitZ = Math.sin(ang) * whirlpoolRadiusRef.current;
+        const w = whirlpoolBlendRef.current;
+        camX = orbitX * w + camX * (1 - w);
+        camZ = orbitZ * w + camZ * (1 - w);
       }
 
       // VÄRLDSGRÄNS (world boundary): wrap x/z to the opposite edge once the
@@ -7208,6 +7301,44 @@ export function Aquafulness() {
           </div>
         </div>
 
+        {/* Camera mode toggle: cycles the four movement schemes (SIMMARE/
+            FLYG/VIRVEL/GUNGA — see CameraMode) without opening the full
+            settings panel. Disabled to a plain readout while an interval
+            session is driving cameraMode automatically (mirrors the same
+            read-only treatment the KAMERA settings tab gives it), so manual
+            taps here never fight the session's own alternation. Changing
+            cameraMode by any means re-syncs the bottom camera drawer's tab
+            (see the cameraDrawerTab effect above) to match. */}
+        <div className="pointer-events-none absolute inset-x-0 top-20 z-20 flex justify-center">
+          {intervalSessionOn ? (
+            <div className="pointer-events-auto rounded-full border ui-line-1 ui-surface px-4 py-1.5 text-[10px] font-light tracking-[0.3em] ui-ink-muted backdrop-blur-md">
+              {t(CAMERA_MODE_LABEL_KEYS[cameraMode])} {t("camera.mode.autoSuffix")}
+            </div>
+          ) : (
+            <div className="pointer-events-auto flex items-center gap-1 rounded-full border ui-line-2 ui-surface px-1.5 py-1.5 backdrop-blur-md">
+              <button
+                type="button"
+                onClick={() => cycleCameraMode(-1)}
+                className="flex h-7 w-7 items-center justify-center rounded-full text-base leading-none ui-ink transition active:scale-95 ui-press"
+                aria-label={t("hud.cameraToggle.prevAria")}
+              >
+                ‹
+              </button>
+              <span className="min-w-[80px] text-center text-[10px] font-light tracking-[0.3em] ui-ink">
+                {t(CAMERA_MODE_LABEL_KEYS[cameraMode])}
+              </span>
+              <button
+                type="button"
+                onClick={() => cycleCameraMode(1)}
+                className="flex h-7 w-7 items-center justify-center rounded-full text-base leading-none ui-ink transition active:scale-95 ui-press"
+                aria-label={t("hud.cameraToggle.nextAria")}
+              >
+                ›
+              </button>
+            </div>
+          )}
+        </div>
+
         <ShareBathDialog
           open={shareBathOpen}
           onClose={() => setShareBathOpen(false)}
@@ -7400,65 +7531,161 @@ export function Aquafulness() {
           </div>
         )}
 
-        {/* VÅG/TEMPO/FREKVENS — tucked behind their own bottom drawer (like
-            SETTINGS) instead of always-on sliders sitting right next to the
-            joysticks, so a stray touch near bottom-center can't accidentally
-            nudge wave height/speed/wavelength mid-session. Bottom-center,
-            clear of the joystick columns hugging each side; the drawer is
-            offered regardless of camera mode since all three affect the wave
-            mesh itself, not just float-mode physics.
+        {/* Quick per-camera-mode settings — tucked behind their own bottom
+            drawer (like SETTINGS) instead of always-on sliders sitting right
+            next to the joysticks, so a stray touch near bottom-center can't
+            accidentally nudge a value mid-session. Bottom-center, clear of
+            the joystick columns hugging each side. A tab row picks which
+            mode's dials are showing — cameraDrawerTab defaults to (and
+            re-syncs on) whatever cameraMode actually switches to (see the
+            effect above), so opening the drawer right after switching modes
+            (top toggle or KAMERA settings dial) always lands on that mode's
+            tab, while still letting it be browsed independently once open.
             Each slider is curved rather than linear (see PadSliderCurve): the
             useful settings all live near the bottom of these ranges — VÅG's
             default is 0.5 of 100 — so a linear track put every calm sea
             inside its first pixel and made the first touch of the slider a
             cliff. */}
         <div className="pointer-events-auto absolute bottom-8 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center gap-2">
-          {waveDrawerOpen && (
+          {cameraDrawerOpen && (
             <div className="flex flex-col items-center gap-2 rounded-3xl border ui-line-1 ui-surface-strong p-4 shadow-2xl backdrop-blur-xl">
-              <PadSlider
-                label={t("hud.slider.wave")}
-                value={waveAmp}
-                min={0}
-                max={100}
-                step={0.5}
-                curve={4}
-                format={(v) => `${v.toFixed(2)}m`}
-                onChange={setWaveAmp}
-              />
-              <PadSlider
-                label={t("hud.slider.tempo")}
-                value={waveSpeed}
-                min={0}
-                max={10}
-                step={0.1}
-                curve={2}
-                format={(v) => `${v.toFixed(2)}×`}
-                onChange={setWaveSpeed}
-              />
-              {/* Geometric, not power-curved: FREKVENS is a multiplier, so
-                  half speed (0.5×) and double (2×) should sit equally far
-                  from 1×. */}
-              <PadSlider
-                label={t("hud.slider.frequency")}
-                value={waveFreq}
-                min={WAVE_FREQ_MIN}
-                max={WAVE_FREQ_MAX}
-                step={0.05}
-                curve="log"
-                format={(v) => `${v.toFixed(2)}×`}
-                onChange={setWaveFreq}
-              />
+              <div className="flex gap-1 rounded-full border ui-line-1 ui-surface p-1">
+                {CAMERA_MODES.map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setCameraDrawerTab(m)}
+                    aria-pressed={cameraDrawerTab === m}
+                    className={`rounded-full px-3 py-1 text-[9px] font-light tracking-[0.2em] transition active:scale-95 ${
+                      cameraDrawerTab === m ? "ui-tint-2 ui-ink" : "ui-ink-muted"
+                    }`}
+                  >
+                    {t(CAMERA_MODE_LABEL_KEYS[m])}
+                  </button>
+                ))}
+              </div>
+              {cameraDrawerTab === "float" && (
+                <>
+                  <PadSlider
+                    label={t("hud.slider.wave")}
+                    value={waveAmp}
+                    min={0}
+                    max={100}
+                    step={0.5}
+                    curve={4}
+                    format={(v) => `${v.toFixed(2)}m`}
+                    onChange={setWaveAmp}
+                  />
+                  <PadSlider
+                    label={t("hud.slider.tempo")}
+                    value={waveSpeed}
+                    min={0}
+                    max={10}
+                    step={0.1}
+                    curve={2}
+                    format={(v) => `${v.toFixed(2)}×`}
+                    onChange={setWaveSpeed}
+                  />
+                  {/* Geometric, not power-curved: FREKVENS is a multiplier,
+                      so half speed (0.5×) and double (2×) should sit equally
+                      far from 1×. */}
+                  <PadSlider
+                    label={t("hud.slider.frequency")}
+                    value={waveFreq}
+                    min={WAVE_FREQ_MIN}
+                    max={WAVE_FREQ_MAX}
+                    step={0.05}
+                    curve="log"
+                    format={(v) => `${v.toFixed(2)}×`}
+                    onChange={setWaveFreq}
+                  />
+                </>
+              )}
+              {cameraDrawerTab === "noclip" && (
+                <>
+                  <PadSlider
+                    label={t("dial.camera.noclipSpeed")}
+                    value={noclipSpeed}
+                    min={0.2}
+                    max={6}
+                    step={0.1}
+                    curve={2}
+                    format={(v) => `${v.toFixed(1)}×`}
+                    onChange={setNoclipSpeed}
+                  />
+                  <PadSlider
+                    label={t("dial.camera.noclipFallRiseSpeed")}
+                    value={noclipFallRiseSpeed}
+                    min={2}
+                    max={300}
+                    step={2}
+                    curve={2}
+                    format={(v) => `${v.toFixed(0)}m/s`}
+                    onChange={setNoclipFallRiseSpeed}
+                  />
+                </>
+              )}
+              {cameraDrawerTab === "whirlpool" && (
+                <>
+                  <PadSlider
+                    label={t("dial.wave.whirlpoolSpeed")}
+                    value={whirlpoolSpeed}
+                    min={0}
+                    max={10}
+                    step={0.1}
+                    curve={2}
+                    format={(v) => `${v.toFixed(2)}×`}
+                    onChange={setWhirlpoolSpeed}
+                  />
+                  <PadSlider
+                    label={t("dial.wave.whirlpoolDistance")}
+                    value={whirlpoolRadius}
+                    min={3}
+                    max={220}
+                    step={1}
+                    curve={2}
+                    format={(v) => `${v.toFixed(0)}m`}
+                    onChange={setWhirlpoolRadius}
+                  />
+                </>
+              )}
+              {cameraDrawerTab === "swing" && (
+                <>
+                  <PadSlider
+                    label={t("dial.camera.swingIntensity")}
+                    value={swingIntensity}
+                    min={0.0001}
+                    max={2.5}
+                    step={0.05}
+                    curve={2}
+                    format={(v) => `${v.toFixed(2)}×`}
+                    onChange={setSwingIntensity}
+                  />
+                  <PadSlider
+                    label={t("dial.camera.swingPositionY")}
+                    value={swingPositionY}
+                    min={0}
+                    max={100000}
+                    step={100}
+                    curve={2}
+                    format={(v) => `${v.toFixed(0)}m`}
+                    onChange={setSwingPositionY}
+                  />
+                </>
+              )}
             </div>
           )}
           <button
-            onClick={() => setWaveDrawerOpen((v) => !v)}
+            onClick={() => setCameraDrawerOpen((v) => !v)}
             className="rounded-full border ui-line-2 ui-surface px-5 py-2 text-[10px] font-light tracking-[0.35em] ui-ink backdrop-blur-md transition active:scale-95 ui-press"
             aria-label={
-              waveDrawerOpen ? t("hud.waveDrawer.closeAria") : t("hud.waveDrawer.openAria")
+              cameraDrawerOpen ? t("hud.cameraDrawer.closeAria") : t("hud.cameraDrawer.openAria")
             }
-            aria-expanded={waveDrawerOpen}
+            aria-expanded={cameraDrawerOpen}
           >
-            {waveDrawerOpen ? t("hud.waveDrawer.closeLabel") : t("hud.waveDrawer.openLabel")}
+            {cameraDrawerOpen
+              ? t("hud.cameraDrawer.closeLabel")
+              : t(CAMERA_MODE_LABEL_KEYS[cameraDrawerTab])}
           </button>
         </div>
       </div>

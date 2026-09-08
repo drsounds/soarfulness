@@ -68,8 +68,8 @@
   "camera": {
     "mode": {
       "autoSuffix": "(AUTO)",
-      "float": "FRI",
-      "noclip": "NOCLIP",
+      "float": "SVØMMER",
+      "noclip": "FLYV",
       "swing": "GYNGE",
       "whirlpool": "HVIRVEL"
     },
@@ -586,6 +586,15 @@
     "audioOffTitle": "Lyd fra",
     "audioOnTitle": "Lyd til",
     "audioUnmuteAria": "Slå lyd til",
+    "cameraDrawer": {
+      "closeAria": "Luk kamerainstillinger",
+      "closeLabel": "LUK",
+      "openAria": "Åbn kamerainstillinger"
+    },
+    "cameraToggle": {
+      "nextAria": "Næste kameratilstand",
+      "prevAria": "Forrige kameratilstand"
+    },
     "fullscreenEnterAria": "Fuldskærm",
     "fullscreenExitAria": "Afslut fuldskærm",
     "intervalFixedLabel": "Interval {{n}}/{{total}}",
@@ -624,13 +633,7 @@
       "wave": "BØLGE"
     },
     "timeTravelOpenAria": "Åbn tidsrejse",
-    "totalLabel": " · I alt ",
-    "waveDrawer": {
-      "closeAria": "Luk bølgeindstillinger",
-      "closeLabel": "LUK",
-      "openAria": "Åbn bølgeindstillinger",
-      "openLabel": "BØLGER"
-    }
+    "totalLabel": " · I alt "
   },
   "interval": {
     "type": {
