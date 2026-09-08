@@ -3115,6 +3115,18 @@ export function Aquafulness() {
     setCameraMode(CAMERA_MODES[(idx + dir + CAMERA_MODES.length) % CAMERA_MODES.length]);
   };
 
+  // LEVEL DRIFT's dedicated reset button: setting depthDriftSpeed to 0 alone
+  // only stops *further* drift — depthDriftVelRef would still ease its
+  // existing velocity down over about half a second, and whatever offset
+  // depthDriftRef already accumulated would stay right where it was instead
+  // of the water level actually coming back to normal. A real reset needs
+  // all three snapped to 0 at once.
+  const resetDepthDrift = () => {
+    setDepthDriftSpeed(0);
+    depthDriftVelRef.current = 0;
+    depthDriftRef.current = 0;
+  };
+
   // Sky-swing's starting height: a fixed preset snaps GUNGA POSITION Y to a
   // sane value immediately; "custom" just marks the dial as freely user-set.
   const applySwingPreset = (preset: SwingPreset) => {
@@ -6989,6 +7001,7 @@ export function Aquafulness() {
     },
     depthDriftSpeed,
     setDepthDriftSpeed,
+    resetDepthDrift,
     syncWaveWithSway,
     setSyncWaveWithSway,
   };
@@ -7512,6 +7525,7 @@ export function Aquafulness() {
           <VerticalDial
             value={depthDriftSpeed}
             onChange={setDepthDriftSpeed}
+            onReset={resetDepthDrift}
             label={t("hud.joystick.levelDrift")}
             min={-20}
             max={20}
