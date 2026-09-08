@@ -1304,10 +1304,14 @@ export function Aquafulness() {
   const [noclipSwayOn, setNoclipSwayOn] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("vagor");
-  // VÅG/TEMPO/FREKVENS live behind their own bottom drawer (like SETTINGS)
-  // rather than as always-on sliders, so a stray touch near bottom-center
-  // can't accidentally nudge wave height/speed/wavelength mid-session.
-  const [waveDrawerOpen, setWaveDrawerOpen] = useState(false);
+  // Quick per-camera-mode settings live behind their own bottom drawer (like
+  // SETTINGS) rather than as always-on sliders, so a stray touch near
+  // bottom-center can't accidentally nudge a value mid-session.
+  const [cameraDrawerOpen, setCameraDrawerOpen] = useState(false);
+  // Which camera mode's tab the drawer above is showing — kept independent
+  // of cameraMode itself (so it can be browsed without switching modes) but
+  // re-synced to it below whenever cameraMode actually changes.
+  const [cameraDrawerTab, setCameraDrawerTab] = useState<CameraMode>(cameraMode);
   // Named settings presets (save/load, in addition to file export/import
   // below) — kept in their own localStorage list, separate from the
   // always-on autosave under STORAGE_KEY. See src/lib/presets.ts.
@@ -2284,6 +2288,14 @@ export function Aquafulness() {
         startMs: performance.now(),
       };
     }
+  }, [cameraMode]);
+
+  // Keep the bottom camera-settings drawer's active tab in sync with whatever
+  // mode the camera actually switches to (top toggle, settings dial, or the
+  // interval session driver below) — so it's always showing the dials for
+  // the mode currently in effect the moment it's opened.
+  useEffect(() => {
+    setCameraDrawerTab(cameraMode);
   }, [cameraMode]);
 
   // Interval session driver: while on, cycles cameraMode through whichever of
@@ -6879,6 +6891,44 @@ export function Aquafulness() {
           </div>
         </div>
 
+        {/* Camera mode toggle: cycles the four movement schemes (SIMMARE/
+            FLYG/VIRVEL/GUNGA — see CameraMode) without opening the full
+            settings panel. Disabled to a plain readout while an interval
+            session is driving cameraMode automatically (mirrors the same
+            read-only treatment the KAMERA settings tab gives it), so manual
+            taps here never fight the session's own alternation. Changing
+            cameraMode by any means re-syncs the bottom camera drawer's tab
+            (see the cameraDrawerTab effect above) to match. */}
+        <div className="pointer-events-none absolute inset-x-0 top-20 z-20 flex justify-center">
+          {intervalSessionOn ? (
+            <div className="pointer-events-auto rounded-full border ui-line-1 ui-surface px-4 py-1.5 text-[10px] font-light tracking-[0.3em] ui-ink-muted backdrop-blur-md">
+              {t(CAMERA_MODE_LABEL_KEYS[cameraMode])} {t("camera.mode.autoSuffix")}
+            </div>
+          ) : (
+            <div className="pointer-events-auto flex items-center gap-1 rounded-full border ui-line-2 ui-surface px-1.5 py-1.5 backdrop-blur-md">
+              <button
+                type="button"
+                onClick={() => cycleCameraMode(-1)}
+                className="flex h-7 w-7 items-center justify-center rounded-full text-base leading-none ui-ink transition active:scale-95 ui-press"
+                aria-label={t("hud.cameraToggle.prevAria")}
+              >
+                ‹
+              </button>
+              <span className="min-w-[80px] text-center text-[10px] font-light tracking-[0.3em] ui-ink">
+                {t(CAMERA_MODE_LABEL_KEYS[cameraMode])}
+              </span>
+              <button
+                type="button"
+                onClick={() => cycleCameraMode(1)}
+                className="flex h-7 w-7 items-center justify-center rounded-full text-base leading-none ui-ink transition active:scale-95 ui-press"
+                aria-label={t("hud.cameraToggle.nextAria")}
+              >
+                ›
+              </button>
+            </div>
+          )}
+        </div>
+
         <ShareBathDialog
           open={shareBathOpen}
           onClose={() => setShareBathOpen(false)}
@@ -7059,65 +7109,161 @@ export function Aquafulness() {
           </div>
         )}
 
-        {/* VÅG/TEMPO/FREKVENS — tucked behind their own bottom drawer (like
-            SETTINGS) instead of always-on sliders sitting right next to the
-            joysticks, so a stray touch near bottom-center can't accidentally
-            nudge wave height/speed/wavelength mid-session. Bottom-center,
-            clear of the joystick columns hugging each side; the drawer is
-            offered regardless of camera mode since all three affect the wave
-            mesh itself, not just float-mode physics.
+        {/* Quick per-camera-mode settings — tucked behind their own bottom
+            drawer (like SETTINGS) instead of always-on sliders sitting right
+            next to the joysticks, so a stray touch near bottom-center can't
+            accidentally nudge a value mid-session. Bottom-center, clear of
+            the joystick columns hugging each side. A tab row picks which
+            mode's dials are showing — cameraDrawerTab defaults to (and
+            re-syncs on) whatever cameraMode actually switches to (see the
+            effect above), so opening the drawer right after switching modes
+            (top toggle or KAMERA settings dial) always lands on that mode's
+            tab, while still letting it be browsed independently once open.
             Each slider is curved rather than linear (see PadSliderCurve): the
             useful settings all live near the bottom of these ranges — VÅG's
             default is 0.5 of 100 — so a linear track put every calm sea
             inside its first pixel and made the first touch of the slider a
             cliff. */}
         <div className="pointer-events-auto absolute bottom-8 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center gap-2">
-          {waveDrawerOpen && (
+          {cameraDrawerOpen && (
             <div className="flex flex-col items-center gap-2 rounded-3xl border ui-line-1 ui-surface-strong p-4 shadow-2xl backdrop-blur-xl">
-              <PadSlider
-                label={t("hud.slider.wave")}
-                value={waveAmp}
-                min={0}
-                max={100}
-                step={0.5}
-                curve={4}
-                format={(v) => `${v.toFixed(2)}m`}
-                onChange={setWaveAmp}
-              />
-              <PadSlider
-                label={t("hud.slider.tempo")}
-                value={waveSpeed}
-                min={0}
-                max={10}
-                step={0.1}
-                curve={2}
-                format={(v) => `${v.toFixed(2)}×`}
-                onChange={setWaveSpeed}
-              />
-              {/* Geometric, not power-curved: FREKVENS is a multiplier, so
-                  half speed (0.5×) and double (2×) should sit equally far
-                  from 1×. */}
-              <PadSlider
-                label={t("hud.slider.frequency")}
-                value={waveFreq}
-                min={WAVE_FREQ_MIN}
-                max={WAVE_FREQ_MAX}
-                step={0.05}
-                curve="log"
-                format={(v) => `${v.toFixed(2)}×`}
-                onChange={setWaveFreq}
-              />
+              <div className="flex gap-1 rounded-full border ui-line-1 ui-surface p-1">
+                {CAMERA_MODES.map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setCameraDrawerTab(m)}
+                    aria-pressed={cameraDrawerTab === m}
+                    className={`rounded-full px-3 py-1 text-[9px] font-light tracking-[0.2em] transition active:scale-95 ${
+                      cameraDrawerTab === m ? "ui-tint-2 ui-ink" : "ui-ink-muted"
+                    }`}
+                  >
+                    {t(CAMERA_MODE_LABEL_KEYS[m])}
+                  </button>
+                ))}
+              </div>
+              {cameraDrawerTab === "float" && (
+                <>
+                  <PadSlider
+                    label={t("hud.slider.wave")}
+                    value={waveAmp}
+                    min={0}
+                    max={100}
+                    step={0.5}
+                    curve={4}
+                    format={(v) => `${v.toFixed(2)}m`}
+                    onChange={setWaveAmp}
+                  />
+                  <PadSlider
+                    label={t("hud.slider.tempo")}
+                    value={waveSpeed}
+                    min={0}
+                    max={10}
+                    step={0.1}
+                    curve={2}
+                    format={(v) => `${v.toFixed(2)}×`}
+                    onChange={setWaveSpeed}
+                  />
+                  {/* Geometric, not power-curved: FREKVENS is a multiplier,
+                      so half speed (0.5×) and double (2×) should sit equally
+                      far from 1×. */}
+                  <PadSlider
+                    label={t("hud.slider.frequency")}
+                    value={waveFreq}
+                    min={WAVE_FREQ_MIN}
+                    max={WAVE_FREQ_MAX}
+                    step={0.05}
+                    curve="log"
+                    format={(v) => `${v.toFixed(2)}×`}
+                    onChange={setWaveFreq}
+                  />
+                </>
+              )}
+              {cameraDrawerTab === "noclip" && (
+                <>
+                  <PadSlider
+                    label={t("dial.camera.noclipSpeed")}
+                    value={noclipSpeed}
+                    min={0.2}
+                    max={6}
+                    step={0.1}
+                    curve={2}
+                    format={(v) => `${v.toFixed(1)}×`}
+                    onChange={setNoclipSpeed}
+                  />
+                  <PadSlider
+                    label={t("dial.camera.noclipFallRiseSpeed")}
+                    value={noclipFallRiseSpeed}
+                    min={2}
+                    max={300}
+                    step={2}
+                    curve={2}
+                    format={(v) => `${v.toFixed(0)}m/s`}
+                    onChange={setNoclipFallRiseSpeed}
+                  />
+                </>
+              )}
+              {cameraDrawerTab === "whirlpool" && (
+                <>
+                  <PadSlider
+                    label={t("dial.wave.whirlpoolSpeed")}
+                    value={whirlpoolSpeed}
+                    min={0}
+                    max={10}
+                    step={0.1}
+                    curve={2}
+                    format={(v) => `${v.toFixed(2)}×`}
+                    onChange={setWhirlpoolSpeed}
+                  />
+                  <PadSlider
+                    label={t("dial.wave.whirlpoolDistance")}
+                    value={whirlpoolRadius}
+                    min={3}
+                    max={220}
+                    step={1}
+                    curve={2}
+                    format={(v) => `${v.toFixed(0)}m`}
+                    onChange={setWhirlpoolRadius}
+                  />
+                </>
+              )}
+              {cameraDrawerTab === "swing" && (
+                <>
+                  <PadSlider
+                    label={t("dial.camera.swingIntensity")}
+                    value={swingIntensity}
+                    min={0.0001}
+                    max={2.5}
+                    step={0.05}
+                    curve={2}
+                    format={(v) => `${v.toFixed(2)}×`}
+                    onChange={setSwingIntensity}
+                  />
+                  <PadSlider
+                    label={t("dial.camera.swingPositionY")}
+                    value={swingPositionY}
+                    min={0}
+                    max={100000}
+                    step={100}
+                    curve={2}
+                    format={(v) => `${v.toFixed(0)}m`}
+                    onChange={setSwingPositionY}
+                  />
+                </>
+              )}
             </div>
           )}
           <button
-            onClick={() => setWaveDrawerOpen((v) => !v)}
+            onClick={() => setCameraDrawerOpen((v) => !v)}
             className="rounded-full border ui-line-2 ui-surface px-5 py-2 text-[10px] font-light tracking-[0.35em] ui-ink backdrop-blur-md transition active:scale-95 ui-press"
             aria-label={
-              waveDrawerOpen ? t("hud.waveDrawer.closeAria") : t("hud.waveDrawer.openAria")
+              cameraDrawerOpen ? t("hud.cameraDrawer.closeAria") : t("hud.cameraDrawer.openAria")
             }
-            aria-expanded={waveDrawerOpen}
+            aria-expanded={cameraDrawerOpen}
           >
-            {waveDrawerOpen ? t("hud.waveDrawer.closeLabel") : t("hud.waveDrawer.openLabel")}
+            {cameraDrawerOpen
+              ? t("hud.cameraDrawer.closeLabel")
+              : t(CAMERA_MODE_LABEL_KEYS[cameraDrawerTab])}
           </button>
         </div>
       </div>

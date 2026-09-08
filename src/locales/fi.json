@@ -68,8 +68,8 @@
   "camera": {
     "mode": {
       "autoSuffix": "(AUTO)",
-      "float": "VAPAA",
-      "noclip": "NOCLIP",
+      "float": "UIJA",
+      "noclip": "LENTO",
       "swing": "KEINU",
       "whirlpool": "PYÖRRE"
     },
@@ -576,6 +576,15 @@
     "audioOffTitle": "Ääni pois",
     "audioOnTitle": "Ääni päällä",
     "audioUnmuteAria": "Poista mykistys",
+    "cameraDrawer": {
+      "closeAria": "Sulje kamera-asetukset",
+      "closeLabel": "SULJE",
+      "openAria": "Avaa kamera-asetukset"
+    },
+    "cameraToggle": {
+      "nextAria": "Seuraava kameratila",
+      "prevAria": "Edellinen kameratila"
+    },
     "fullscreenEnterAria": "Koko näyttö",
     "fullscreenExitAria": "Poistu koko näytöstä",
     "intervalFixedLabel": "Intervalli {{n}}/{{total}}",
@@ -613,13 +622,7 @@
       "wave": "AALTO"
     },
     "timeTravelOpenAria": "Avaa aikamatka",
-    "totalLabel": " · Yhteensä ",
-    "waveDrawer": {
-      "closeAria": "Sulje aaltoasetukset",
-      "closeLabel": "SULJE",
-      "openAria": "Avaa aaltoasetukset",
-      "openLabel": "AALLOT"
-    }
+    "totalLabel": " · Yhteensä "
   },
   "interval": {
     "type": {

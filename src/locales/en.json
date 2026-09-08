@@ -68,8 +68,8 @@
   "camera": {
     "mode": {
       "autoSuffix": "(AUTO)",
-      "float": "FREE",
-      "noclip": "NOCLIP",
+      "float": "SWIMMER",
+      "noclip": "FLY",
       "swing": "SWING",
       "whirlpool": "WHIRLPOOL"
     },
@@ -576,6 +576,15 @@
     "audioOffTitle": "Sound off",
     "audioOnTitle": "Sound on",
     "audioUnmuteAria": "Unmute sound",
+    "cameraDrawer": {
+      "closeAria": "Close camera settings",
+      "closeLabel": "CLOSE",
+      "openAria": "Open camera settings"
+    },
+    "cameraToggle": {
+      "nextAria": "Next camera mode",
+      "prevAria": "Previous camera mode"
+    },
     "fullscreenEnterAria": "Fullscreen",
     "fullscreenExitAria": "Exit fullscreen",
     "intervalFixedLabel": "Interval {{n}}/{{total}}",
@@ -613,13 +622,7 @@
       "wave": "WAVE"
     },
     "timeTravelOpenAria": "Open time travel",
-    "totalLabel": " · Total ",
-    "waveDrawer": {
-      "closeAria": "Close wave settings",
-      "closeLabel": "CLOSE",
-      "openAria": "Open wave settings",
-      "openLabel": "WAVES"
-    }
+    "totalLabel": " · Total "
   },
   "interval": {
     "type": {
