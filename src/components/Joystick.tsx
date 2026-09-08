@@ -190,13 +190,14 @@ export function VerticalModeSlider({
 // VerticalModeSlider's three discrete zones) — used by LEVEL DRIFT, whose
 // dial needs the full range between its min/max rather than a rise/still/
 // fall choice. Top of the track is `max`, bottom is `min`; a tick marks
-// wherever 0 falls so the "off" position is easy to find and return to by
-// feel. No sticky/reset handling needed: the thumb already sits at 0's tick
-// whenever the value is 0, so dragging back to center *is* the reset.
+// wherever 0 falls so the "off" position is easy to find by feel, and a
+// small reset button underneath snaps straight back to exactly 0 — dragging
+// there by touch alone is imprecise, unlike JoystickPad's sticky pads whose
+// resting center *is* their zero.
 export function VerticalDial({
   value,
   onChange,
-  label,
+  label = "LEVEL",
   min = -1,
   max = 1,
   height = 132,
@@ -208,6 +209,7 @@ export function VerticalDial({
   max?: number;
   height?: number;
 }) {
+  const { t } = useTranslation();
   const trackRef = useRef<HTMLDivElement>(null);
   const activeId = useRef<number | null>(null);
 
@@ -263,6 +265,26 @@ export function VerticalDial({
           style={{ top: `calc(${thumbFrac * 100}% - 14px)` }}
         />
       </div>
+      <button
+        type="button"
+        onClick={() => onChange(0)}
+        aria-label={t("common.resetAria", { label })}
+        tabIndex={-1}
+        className="ui-icon-btn pointer-events-auto flex h-5 w-5 items-center justify-center rounded-full border transition active:scale-95"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="h-3 w-3"
+        >
+          <path d="M3 12a9 9 0 1 0 3-6.7" />
+          <path d="M3 4v5h5" />
+        </svg>
+      </button>
     </div>
   );
 }
