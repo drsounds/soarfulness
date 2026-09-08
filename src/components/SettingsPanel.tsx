@@ -615,6 +615,12 @@ export type SettingsPanelProps = {
   setDepthSineAmp: Dispatch<SetStateAction<number>>;
   depthSineFreq: number;
   setDepthSineFreq: Dispatch<SetStateAction<number>>;
+  depthSineSpeed: number;
+  setDepthSineSpeed: Dispatch<SetStateAction<number>>;
+  depthSineInterval: number;
+  setDepthSineInterval: Dispatch<SetStateAction<number>>;
+  depthSinePeak: number;
+  setDepthSinePeak: Dispatch<SetStateAction<number>>;
   hideWater: boolean;
   setHideWater: Dispatch<SetStateAction<boolean>>;
   causticsOn: boolean;
@@ -1245,6 +1251,12 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setDepthSineAmp,
     depthSineFreq,
     setDepthSineFreq,
+    depthSineSpeed,
+    setDepthSineSpeed,
+    depthSineInterval,
+    setDepthSineInterval,
+    depthSinePeak,
+    setDepthSinePeak,
     hideWater,
     setHideWater,
     causticsOn,
@@ -2649,6 +2661,42 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   step={0.01}
                   onDec={() => setDepthSineFreq((v) => Math.max(0.001, +(v - 0.01).toFixed(3)))}
                   onInc={() => setDepthSineFreq((v) => Math.min(2, +(v + 0.01).toFixed(3)))}
+                />
+                <SettingRow
+                  label={t("dial.water.sineSpeed")}
+                  mode="number"
+                  value={`${depthSineSpeed.toFixed(2)}x`}
+                  rawValue={depthSineSpeed}
+                  onSet={(v) => setDepthSineSpeed(Math.max(0.1, Math.min(5, v)))}
+                  min={0.1}
+                  max={5}
+                  step={0.05}
+                  onDec={() => setDepthSineSpeed((v) => Math.max(0.1, +(v - 0.05).toFixed(2)))}
+                  onInc={() => setDepthSineSpeed((v) => Math.min(5, +(v + 0.05).toFixed(2)))}
+                />
+                <SettingRow
+                  label={t("dial.water.sineInterval")}
+                  mode="number"
+                  value={`${depthSineInterval.toFixed(1)}s`}
+                  rawValue={depthSineInterval}
+                  onSet={(v) => setDepthSineInterval(Math.max(0.2, Math.min(20, v)))}
+                  min={0.2}
+                  max={20}
+                  step={0.1}
+                  onDec={() => setDepthSineInterval((v) => Math.max(0.2, +(v - 0.1).toFixed(2)))}
+                  onInc={() => setDepthSineInterval((v) => Math.min(20, +(v + 0.1).toFixed(2)))}
+                />
+                <SettingRow
+                  label={t("dial.water.sinePeak")}
+                  mode="number"
+                  value={depthSinePeak.toFixed(2)}
+                  rawValue={depthSinePeak}
+                  onSet={(v) => setDepthSinePeak(Math.max(1, Math.min(6, v)))}
+                  min={1}
+                  max={6}
+                  step={0.1}
+                  onDec={() => setDepthSinePeak((v) => Math.max(1, +(v - 0.1).toFixed(2)))}
+                  onInc={() => setDepthSinePeak((v) => Math.min(6, +(v + 0.1).toFixed(2)))}
                 />
                 <SettingRow
                   label={t("dial.water.surface")}

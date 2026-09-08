@@ -743,6 +743,9 @@ const DEFAULTS: Persisted = {
   depthSineOn: false,
   depthSineAmp: 2,
   depthSineFreq: 0.2,
+  depthSineSpeed: 1,
+  depthSineInterval: 1,
+  depthSinePeak: 1,
   hideWater: false,
   midCloudsOn: false,
   midCloudsHeight: 0.5,
@@ -1125,6 +1128,9 @@ export function Aquafulness() {
   const [depthSineOn, setDepthSineOn] = useState(initial.depthSineOn);
   const [depthSineAmp, setDepthSineAmp] = useState(initial.depthSineAmp);
   const [depthSineFreq, setDepthSineFreq] = useState(initial.depthSineFreq);
+  const [depthSineSpeed, setDepthSineSpeed] = useState(initial.depthSineSpeed);
+  const [depthSineInterval, setDepthSineInterval] = useState(initial.depthSineInterval);
+  const [depthSinePeak, setDepthSinePeak] = useState(initial.depthSinePeak);
   const [hideWater, setHideWater] = useState(initial.hideWater);
   const [midCloudsOn, setMidCloudsOn] = useState(initial.midCloudsOn);
   const [midCloudsHeight, setMidCloudsHeight] = useState(initial.midCloudsHeight);
@@ -1458,6 +1464,9 @@ export function Aquafulness() {
     depthSineOn,
     depthSineAmp,
     depthSineFreq,
+    depthSineSpeed,
+    depthSineInterval,
+    depthSinePeak,
     hideWater,
     midCloudsOn,
     midCloudsHeight,
@@ -1604,6 +1613,9 @@ export function Aquafulness() {
     depthSineOn,
     depthSineAmp,
     depthSineFreq,
+    depthSineSpeed,
+    depthSineInterval,
+    depthSinePeak,
     hideWater,
     midCloudsOn,
     midCloudsHeight,
@@ -1829,6 +1841,9 @@ export function Aquafulness() {
   const depthSineOnRef = useRef(depthSineOn);
   const depthSineAmpRef = useRef(depthSineAmp);
   const depthSineFreqRef = useRef(depthSineFreq);
+  const depthSineSpeedRef = useRef(depthSineSpeed);
+  const depthSineIntervalRef = useRef(depthSineInterval);
+  const depthSinePeakRef = useRef(depthSinePeak);
   const hideWaterRef = useRef(hideWater);
   const midCloudsOnRef = useRef(midCloudsOn);
   const midCloudsHeightRef = useRef(midCloudsHeight);
@@ -2060,6 +2075,15 @@ export function Aquafulness() {
   useEffect(() => {
     depthSineFreqRef.current = depthSineFreq;
   }, [depthSineFreq]);
+  useEffect(() => {
+    depthSineSpeedRef.current = depthSineSpeed;
+  }, [depthSineSpeed]);
+  useEffect(() => {
+    depthSineIntervalRef.current = depthSineInterval;
+  }, [depthSineInterval]);
+  useEffect(() => {
+    depthSinePeakRef.current = depthSinePeak;
+  }, [depthSinePeak]);
   useEffect(() => {
     hideWaterRef.current = hideWater;
   }, [hideWater]);
@@ -2473,6 +2497,9 @@ export function Aquafulness() {
     setDepthSineOn(DEFAULTS.depthSineOn);
     setDepthSineAmp(DEFAULTS.depthSineAmp);
     setDepthSineFreq(DEFAULTS.depthSineFreq);
+    setDepthSineSpeed(DEFAULTS.depthSineSpeed);
+    setDepthSineInterval(DEFAULTS.depthSineInterval);
+    setDepthSinePeak(DEFAULTS.depthSinePeak);
     setHideWater(DEFAULTS.hideWater);
     setMidCloudsOn(DEFAULTS.midCloudsOn);
     setMidCloudsHeight(DEFAULTS.midCloudsHeight);
@@ -2611,6 +2638,9 @@ export function Aquafulness() {
     if (patch.depthSineOn !== undefined) setDepthSineOn(patch.depthSineOn);
     if (patch.depthSineAmp !== undefined) setDepthSineAmp(patch.depthSineAmp);
     if (patch.depthSineFreq !== undefined) setDepthSineFreq(patch.depthSineFreq);
+    if (patch.depthSineSpeed !== undefined) setDepthSineSpeed(patch.depthSineSpeed);
+    if (patch.depthSineInterval !== undefined) setDepthSineInterval(patch.depthSineInterval);
+    if (patch.depthSinePeak !== undefined) setDepthSinePeak(patch.depthSinePeak);
     if (patch.hideWater !== undefined) setHideWater(patch.hideWater);
     if (patch.midCloudsOn !== undefined) setMidCloudsOn(patch.midCloudsOn);
     if (patch.midCloudsHeight !== undefined) setMidCloudsHeight(patch.midCloudsHeight);
@@ -4834,8 +4864,16 @@ export function Aquafulness() {
       // Sinus-modulerat "havsnivå"-offset. Vi flyttar hela scenen (yta, botten,
       // mellan-moln, kamera) rigidt i Y istället för att modulera bottendjupet
       // eller vågshaderns tid — det håller vågens rytm och form helt orörd.
+      // depthSineSpeed (rise/sink TEMPO) and depthSineInterval (cycle length,
+      // seconds) both scale the phase's time rate alongside depthSineFreq —
+      // same stacked-multiplier pattern VÅGOR uses for TEMPO/FREKVENS/
+      // VÅGPERIOD — and depthSinePeak reuses shapedWave() (VÅGOR's SPETS
+      // curve) so the rise/sink shape can be sharpened just like a wave crest.
+      const depthPhase =
+        (t * depthSineSpeedRef.current * depthSineFreqRef.current * Math.PI * 2) /
+        Math.max(0.001, depthSineIntervalRef.current);
       const depthMod = depthSineOnRef.current
-        ? Math.sin(t * depthSineFreqRef.current * Math.PI * 2) * depthSineAmpRef.current
+        ? shapedWave(depthPhase, depthSinePeakRef.current) * depthSineAmpRef.current
         : 0;
       const effectiveDepth = Math.max(0.5, floorDepthRef.current);
       const levelY = depthMod;
@@ -6418,6 +6456,12 @@ export function Aquafulness() {
     setDepthSineAmp,
     depthSineFreq,
     setDepthSineFreq,
+    depthSineSpeed,
+    setDepthSineSpeed,
+    depthSineInterval,
+    setDepthSineInterval,
+    depthSinePeak,
+    setDepthSinePeak,
     hideWater,
     setHideWater,
     causticsOn,
