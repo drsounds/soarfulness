@@ -201,6 +201,7 @@
       "colorAlpha": "FARVESTYRKE",
       "depth": "DYBDE",
       "depthSine": "DYBDE-SINUS",
+      "driftSpeed": "NIVEAU DRIFT",
       "floorTexture": "TEKSTUR",
       "hue": "NUANCE",
       "pickColor": "VÆLG FARVE",

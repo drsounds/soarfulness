@@ -201,6 +201,7 @@
       "colorAlpha": "FARGESTYRKE",
       "depth": "DYBDE",
       "depthSine": "DYBDE-SINUS",
+      "driftSpeed": "NIVÅ DRIFT",
       "floorTexture": "TEKSTUR",
       "hue": "NYANSE",
       "pickColor": "VELG FARGE",

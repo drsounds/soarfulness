@@ -201,6 +201,7 @@
       "colorAlpha": "COLOR STRENGTH",
       "depth": "DEPTH",
       "depthSine": "DEPTH SINE",
+      "driftSpeed": "LEVEL DRIFT",
       "floorTexture": "TEXTURE",
       "hue": "HUE",
       "pickColor": "PICK COLOR",

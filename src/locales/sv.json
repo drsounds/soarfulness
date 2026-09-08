@@ -201,6 +201,7 @@
       "colorAlpha": "FÄRGSTYRKA",
       "depth": "DJUP",
       "depthSine": "DJUP-SINUS",
+      "driftSpeed": "NIVÅ DRIFT",
       "floorTexture": "TEXTUR",
       "hue": "TON",
       "pickColor": "VÄLJ FÄRG",

@@ -201,6 +201,7 @@
       "colorAlpha": "VÄRIN VOIMAKKUUS",
       "depth": "SYVYYS",
       "depthSine": "SYVYYS-SINI",
+      "driftSpeed": "TASON AJAUTUMA",
       "floorTexture": "TEKSTUURI",
       "hue": "SÄVY",
       "pickColor": "VALITSE VÄRI",

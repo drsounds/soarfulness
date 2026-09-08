@@ -326,6 +326,11 @@ export type Persisted = {
   // Sharpness of the rise/sink peak, fed straight into the same
   // shapedWave() curve VÅGOR's SPETS dial uses — 1 is a plain sine.
   depthSinePeak: number;
+  // Unbounded water-level drift (m/s, signed) layered on top of the bounded
+  // DEPTH SINE oscillation above — much like noclip's FRITT FALL/OMVÄND
+  // STIGNING, but for the water level instead of the camera: positive keeps
+  // the surface rising forever, negative keeps it sinking forever, 0 is off.
+  depthDriftSpeed: number;
   hideWater: boolean;
   midCloudsOn: boolean;
   midCloudsHeight: number;
@@ -541,6 +546,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "depthSineSpeed",
     "depthSineInterval",
     "depthSinePeak",
+    "depthDriftSpeed",
     "hideWater",
     "causticsOn",
   ],

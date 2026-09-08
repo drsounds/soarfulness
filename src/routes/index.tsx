@@ -746,6 +746,7 @@ const DEFAULTS: Persisted = {
   depthSineSpeed: 1,
   depthSineInterval: 1,
   depthSinePeak: 1,
+  depthDriftSpeed: 0,
   hideWater: false,
   midCloudsOn: false,
   midCloudsHeight: 0.5,
@@ -1131,6 +1132,7 @@ export function Aquafulness() {
   const [depthSineSpeed, setDepthSineSpeed] = useState(initial.depthSineSpeed);
   const [depthSineInterval, setDepthSineInterval] = useState(initial.depthSineInterval);
   const [depthSinePeak, setDepthSinePeak] = useState(initial.depthSinePeak);
+  const [depthDriftSpeed, setDepthDriftSpeed] = useState(initial.depthDriftSpeed);
   const [hideWater, setHideWater] = useState(initial.hideWater);
   const [midCloudsOn, setMidCloudsOn] = useState(initial.midCloudsOn);
   const [midCloudsHeight, setMidCloudsHeight] = useState(initial.midCloudsHeight);
@@ -1467,6 +1469,7 @@ export function Aquafulness() {
     depthSineSpeed,
     depthSineInterval,
     depthSinePeak,
+    depthDriftSpeed,
     hideWater,
     midCloudsOn,
     midCloudsHeight,
@@ -1616,6 +1619,7 @@ export function Aquafulness() {
     depthSineSpeed,
     depthSineInterval,
     depthSinePeak,
+    depthDriftSpeed,
     hideWater,
     midCloudsOn,
     midCloudsHeight,
@@ -1844,6 +1848,13 @@ export function Aquafulness() {
   const depthSineSpeedRef = useRef(depthSineSpeed);
   const depthSineIntervalRef = useRef(depthSineInterval);
   const depthSinePeakRef = useRef(depthSinePeak);
+  const depthDriftSpeedRef = useRef(depthDriftSpeed);
+  // Infinite water-level drift, much like noclip's FRITT FALL/OMVÄND
+  // STIGNING: depthDriftVelRef eases toward depthDriftSpeedRef's target rate
+  // and depthDriftRef accumulates that velocity into an unbounded offset —
+  // added on top of the bounded DEPTH SINE oscillation in levelY below.
+  const depthDriftVelRef = useRef(0);
+  const depthDriftRef = useRef(0);
   const hideWaterRef = useRef(hideWater);
   const midCloudsOnRef = useRef(midCloudsOn);
   const midCloudsHeightRef = useRef(midCloudsHeight);
@@ -2084,6 +2095,9 @@ export function Aquafulness() {
   useEffect(() => {
     depthSinePeakRef.current = depthSinePeak;
   }, [depthSinePeak]);
+  useEffect(() => {
+    depthDriftSpeedRef.current = depthDriftSpeed;
+  }, [depthDriftSpeed]);
   useEffect(() => {
     hideWaterRef.current = hideWater;
   }, [hideWater]);
@@ -2500,6 +2514,9 @@ export function Aquafulness() {
     setDepthSineSpeed(DEFAULTS.depthSineSpeed);
     setDepthSineInterval(DEFAULTS.depthSineInterval);
     setDepthSinePeak(DEFAULTS.depthSinePeak);
+    setDepthDriftSpeed(DEFAULTS.depthDriftSpeed);
+    depthDriftRef.current = 0;
+    depthDriftVelRef.current = 0;
     setHideWater(DEFAULTS.hideWater);
     setMidCloudsOn(DEFAULTS.midCloudsOn);
     setMidCloudsHeight(DEFAULTS.midCloudsHeight);
@@ -2641,6 +2658,7 @@ export function Aquafulness() {
     if (patch.depthSineSpeed !== undefined) setDepthSineSpeed(patch.depthSineSpeed);
     if (patch.depthSineInterval !== undefined) setDepthSineInterval(patch.depthSineInterval);
     if (patch.depthSinePeak !== undefined) setDepthSinePeak(patch.depthSinePeak);
+    if (patch.depthDriftSpeed !== undefined) setDepthDriftSpeed(patch.depthDriftSpeed);
     if (patch.hideWater !== undefined) setHideWater(patch.hideWater);
     if (patch.midCloudsOn !== undefined) setMidCloudsOn(patch.midCloudsOn);
     if (patch.midCloudsHeight !== undefined) setMidCloudsHeight(patch.midCloudsHeight);
@@ -4875,8 +4893,18 @@ export function Aquafulness() {
       const depthMod = depthSineOnRef.current
         ? shapedWave(depthPhase, depthSinePeakRef.current) * depthSineAmpRef.current
         : 0;
+      // LEVEL DRIFT: an unbounded rise/sink layered on top of the bounded
+      // DEPTH SINE oscillation above — same idea as noclip's FRITT FALL/
+      // OMVÄND STIGNING, but continuously moving the water level itself
+      // rather than the camera. depthDriftVelRef eases toward the dial's
+      // target rate instead of snapping to it, then depthDriftRef integrates
+      // that velocity into a running offset that never resets on its own —
+      // 0 just holds the level wherever it last drifted to.
+      depthDriftVelRef.current +=
+        (depthDriftSpeedRef.current - depthDriftVelRef.current) * Math.min(1, dt * 2);
+      depthDriftRef.current += depthDriftVelRef.current * dt;
       const effectiveDepth = Math.max(0.5, floorDepthRef.current);
-      const levelY = depthMod;
+      const levelY = depthMod + depthDriftRef.current;
       ocean.position.y = levelY;
       farOcean.position.y = levelY;
       if (bot.rgb) {
@@ -4884,10 +4912,17 @@ export function Aquafulness() {
         const botRgb = bot.id === "custom" ? hexToRgbNorm(bottomColorRef.current) : bot.rgb;
         floorUniforms.uColor.value.setRGB(botRgb[0], botRgb[1], botRgb[2]);
         uniforms.uFloorColor.value.setRGB(botRgb[0], botRgb[1], botRgb[2]);
-        uniforms.uFloorDepth.value = effectiveDepth;
-        floor.position.y = -effectiveDepth + levelY;
+        // The floor stays put in world space (DJUP alone sets its position)
+        // instead of riding levelY with the surface — the sea bed shouldn't
+        // rise and fall along with the DEPTH SINE tide. The refraction/
+        // caustics depth uniforms still need the *real* current gap between
+        // the (possibly risen/sunk) surface and the fixed floor, though, so
+        // those use floorSurfaceGap rather than the raw DJUP value.
+        const floorSurfaceGap = Math.max(0.5, effectiveDepth + levelY);
+        uniforms.uFloorDepth.value = floorSurfaceGap;
+        floor.position.y = -effectiveDepth;
         floorUniforms.uTime.value = t;
-        floorUniforms.uCausticDepth.value = effectiveDepth;
+        floorUniforms.uCausticDepth.value = floorSurfaceGap;
         floorUniforms.uCausticAmp.value = ampRef.current;
         floorUniforms.uCausticFreq.value = uniforms.uFreq.value;
         floorUniforms.uCausticsOn.value +=
@@ -6462,6 +6497,8 @@ export function Aquafulness() {
     setDepthSineInterval,
     depthSinePeak,
     setDepthSinePeak,
+    depthDriftSpeed,
+    setDepthDriftSpeed,
     hideWater,
     setHideWater,
     causticsOn,
