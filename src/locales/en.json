@@ -163,6 +163,7 @@
     },
     "env": {
       "backdrop": "BACKDROP",
+      "clock": "CLOCK",
       "cloudFadeSpeed": "CLOUD FADE SPEED",
       "dayTime": "TIME OF DAY",
       "environment": "ENVIRONMENT",

@@ -163,6 +163,7 @@
     },
     "env": {
       "backdrop": "TAUSTA",
+      "clock": "KELLO",
       "cloudFadeSpeed": "PILVIEN HÄIVYTYSNOPEUS",
       "dayTime": "VUOROKAUDENAIKA",
       "environment": "YMPÄRISTÖ",
