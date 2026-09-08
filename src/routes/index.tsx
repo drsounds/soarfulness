@@ -369,6 +369,30 @@ function wrapAxis(value: number, half: number): number {
 // above, just used to pick a *position* instead of a value.
 const EXTEND_CLOUD_LAYER_SPACING = 500;
 const EXTEND_CLOUD_LAYER_COUNT = 5;
+// SKY PUFFS: a pool of this many puff meshes is always created (cheap —
+// shared geometry, one small cloned material each); SKY PUFFS COUNT just
+// controls how many of them animate() keeps active, so raising/lowering the
+// dial never adds/removes actual scene objects.
+const MAX_SKY_PUFFS = 20;
+// Seconds for one puff's fade-in/hold/fade-out/respawn cycle at SKY PUFFS Y
+// FREQUENCY = 1; the dial divides this down, so higher = more frequent.
+const SKY_PUFF_BASE_CYCLE = 45;
+
+// Picks a fresh spot for a sky puff to fade in at: a random bearing/distance
+// from wherever the camera currently is (so puffs keep appearing somewhere
+// visible even as the camera roams) and a random altitude within a fixed
+// band, plus a random noise seed so no two puffs look identical.
+function randomSkyPuffSpot(camX: number, camZ: number) {
+  const angle = Math.random() * Math.PI * 2;
+  const radius = 700 + Math.random() * 1800;
+  return {
+    x: camX + Math.cos(angle) * radius,
+    z: camZ + Math.sin(angle) * radius,
+    y: 220 + Math.random() * 700,
+    seed: Math.random() * 1000,
+  };
+}
+
 function cloudLayerJitter(layerIndex: number): { x: number; z: number } {
   const s1 = Math.sin(layerIndex * 12.9898) * 43758.5453;
   const s2 = Math.sin(layerIndex * 78.233) * 12543.231;
@@ -755,6 +779,11 @@ const DEFAULTS: Persisted = {
   skyCloudsOn: true,
   skyCloudsHeight: 0.4,
   cloudFadeSpeed: 3,
+  skyPuffsOn: false,
+  skyPuffsCount: 6,
+  skyPuffsSize: 600,
+  skyPuffsFreq: 1,
+  skyPuffsOpacity: 0.85,
   swayAmp: 0,
   swaySpeed: 0.15,
   swayBias: 0,
@@ -1142,6 +1171,11 @@ export function Aquafulness() {
   const [skyCloudsOn, setSkyCloudsOn] = useState(initial.skyCloudsOn);
   const [skyCloudsHeight, setSkyCloudsHeight] = useState(initial.skyCloudsHeight);
   const [cloudFadeSpeed, setCloudFadeSpeed] = useState(initial.cloudFadeSpeed);
+  const [skyPuffsOn, setSkyPuffsOn] = useState(initial.skyPuffsOn);
+  const [skyPuffsCount, setSkyPuffsCount] = useState(initial.skyPuffsCount);
+  const [skyPuffsSize, setSkyPuffsSize] = useState(initial.skyPuffsSize);
+  const [skyPuffsFreq, setSkyPuffsFreq] = useState(initial.skyPuffsFreq);
+  const [skyPuffsOpacity, setSkyPuffsOpacity] = useState(initial.skyPuffsOpacity);
   const [swayAmp, setSwayAmp] = useState(initial.swayAmp);
   const [swaySpeed, setSwaySpeed] = useState(initial.swaySpeed);
   const [swayBias, setSwayBias] = useState(initial.swayBias);
@@ -1480,6 +1514,11 @@ export function Aquafulness() {
     skyCloudsOn,
     skyCloudsHeight,
     cloudFadeSpeed,
+    skyPuffsOn,
+    skyPuffsCount,
+    skyPuffsSize,
+    skyPuffsFreq,
+    skyPuffsOpacity,
     swayAmp,
     swaySpeed,
     swayBias,
@@ -1631,6 +1670,11 @@ export function Aquafulness() {
     skyCloudsOn,
     skyCloudsHeight,
     cloudFadeSpeed,
+    skyPuffsOn,
+    skyPuffsCount,
+    skyPuffsSize,
+    skyPuffsFreq,
+    skyPuffsOpacity,
     swayAmp,
     swaySpeed,
     swayBias,
@@ -1867,6 +1911,19 @@ export function Aquafulness() {
   const skyCloudsOnRef = useRef(skyCloudsOn);
   const skyCloudsHeightRef = useRef(skyCloudsHeight);
   const cloudFadeSpeedRef = useRef(cloudFadeSpeed);
+  const skyPuffsOnRef = useRef(skyPuffsOn);
+  const skyPuffsCountRef = useRef(skyPuffsCount);
+  const skyPuffsSizeRef = useRef(skyPuffsSize);
+  const skyPuffsFreqRef = useRef(skyPuffsFreq);
+  const skyPuffsOpacityRef = useRef(skyPuffsOpacity);
+  // SKY PUFFS pool — created once in the scene-setup effect below, resized
+  // to skyPuffsCount and repositioned/faded per-puff in animate(). Kept as
+  // refs (not state) since every puff's mesh/material and lifecycle timers
+  // are mutable render-loop state, not anything the UI reads back.
+  const skyPuffMeshesRef = useRef<THREE.Mesh[]>([]);
+  const skyPuffStatesRef = useRef<
+    { x: number; y: number; z: number; seed: number; cycleT: number; cycleLen: number }[]
+  >([]);
   const swayAmpRef = useRef(swayAmp);
   // Per-mesh fade state (0..1) for the two main cloud decks — see
   // uOpacity/cloudFadeSpeedRef usage in animate() below.
@@ -2125,6 +2182,21 @@ export function Aquafulness() {
   useEffect(() => {
     cloudFadeSpeedRef.current = cloudFadeSpeed;
   }, [cloudFadeSpeed]);
+  useEffect(() => {
+    skyPuffsOnRef.current = skyPuffsOn;
+  }, [skyPuffsOn]);
+  useEffect(() => {
+    skyPuffsCountRef.current = skyPuffsCount;
+  }, [skyPuffsCount]);
+  useEffect(() => {
+    skyPuffsSizeRef.current = skyPuffsSize;
+  }, [skyPuffsSize]);
+  useEffect(() => {
+    skyPuffsFreqRef.current = skyPuffsFreq;
+  }, [skyPuffsFreq]);
+  useEffect(() => {
+    skyPuffsOpacityRef.current = skyPuffsOpacity;
+  }, [skyPuffsOpacity]);
   useEffect(() => {
     swayAmpRef.current = swayAmp;
   }, [swayAmp]);
@@ -2533,6 +2605,11 @@ export function Aquafulness() {
     setSkyCloudsOn(DEFAULTS.skyCloudsOn);
     setSkyCloudsHeight(DEFAULTS.skyCloudsHeight);
     setCloudFadeSpeed(DEFAULTS.cloudFadeSpeed);
+    setSkyPuffsOn(DEFAULTS.skyPuffsOn);
+    setSkyPuffsCount(DEFAULTS.skyPuffsCount);
+    setSkyPuffsSize(DEFAULTS.skyPuffsSize);
+    setSkyPuffsFreq(DEFAULTS.skyPuffsFreq);
+    setSkyPuffsOpacity(DEFAULTS.skyPuffsOpacity);
     setSwayAmp(DEFAULTS.swayAmp);
     setSwaySpeed(DEFAULTS.swaySpeed);
     setSwayBias(DEFAULTS.swayBias);
@@ -2677,6 +2754,11 @@ export function Aquafulness() {
     if (patch.skyCloudsOn !== undefined) setSkyCloudsOn(patch.skyCloudsOn);
     if (patch.skyCloudsHeight !== undefined) setSkyCloudsHeight(patch.skyCloudsHeight);
     if (patch.cloudFadeSpeed !== undefined) setCloudFadeSpeed(patch.cloudFadeSpeed);
+    if (patch.skyPuffsOn !== undefined) setSkyPuffsOn(patch.skyPuffsOn);
+    if (patch.skyPuffsCount !== undefined) setSkyPuffsCount(patch.skyPuffsCount);
+    if (patch.skyPuffsSize !== undefined) setSkyPuffsSize(patch.skyPuffsSize);
+    if (patch.skyPuffsFreq !== undefined) setSkyPuffsFreq(patch.skyPuffsFreq);
+    if (patch.skyPuffsOpacity !== undefined) setSkyPuffsOpacity(patch.skyPuffsOpacity);
     if (patch.swayAmp !== undefined) setSwayAmp(patch.swayAmp);
     if (patch.swaySpeed !== undefined) setSwaySpeed(patch.swaySpeed);
     if (patch.swayBias !== undefined) setSwayBias(patch.swayBias);
@@ -4589,6 +4671,94 @@ export function Aquafulness() {
       opacity: 0,
     }));
 
+    // SKY PUFFS: optional individual, randomly-placed puffy clouds — see
+    // MAX_SKY_PUFFS/randomSkyPuffSpot above. A dedicated shader (rather than
+    // reusing the mid/sky cloud deck's shader) confines its fbm cloud shape
+    // inside a circular vignette (see uOpacity/uSeed below) so each puff
+    // reads as one soft blob on its own small plane instead of the deck's
+    // giant, hard-edged-if-cropped tiled plane.
+    const puffGeo = new THREE.PlaneGeometry(1, 1, 1, 1);
+    puffGeo.rotateX(-Math.PI / 2);
+    const puffMeshes: THREE.Mesh[] = [];
+    const puffStates: {
+      x: number;
+      y: number;
+      z: number;
+      seed: number;
+      cycleT: number;
+      cycleLen: number;
+    }[] = [];
+    for (let i = 0; i < MAX_SKY_PUFFS; i++) {
+      const puffMat = new THREE.ShaderMaterial({
+        uniforms: {
+          uOpacity: { value: 0 },
+          uSeed: { value: 0 },
+          uColor: { value: new THREE.Color(0xffffff) },
+        },
+        side: THREE.DoubleSide,
+        transparent: true,
+        depthWrite: false,
+        vertexShader: `
+          varying vec2 vUv;
+          void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: `
+          precision highp float;
+          varying vec2 vUv;
+          uniform float uOpacity;
+          uniform float uSeed;
+          uniform vec3 uColor;
+          float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453123); }
+          float vnoise(vec2 p){
+            vec2 i = floor(p); vec2 f = fract(p);
+            float a = hash(i);
+            float b = hash(i + vec2(1.0,0.0));
+            float c = hash(i + vec2(0.0,1.0));
+            float d = hash(i + vec2(1.0,1.0));
+            vec2 u = f*f*(3.0-2.0*f);
+            return mix(a,b,u.x) + (c-a)*u.y*(1.0-u.x) + (d-b)*u.x*u.y;
+          }
+          float fbm(vec2 p){
+            float v = 0.0; float a = 0.5;
+            for (int i = 0; i < 5; i++) {
+              v += a * vnoise(p);
+              p *= 2.02; a *= 0.5;
+            }
+            return v;
+          }
+          void main(){
+            vec2 c = vUv - 0.5;
+            float dist = length(c) * 2.0;
+            float edge = 1.0 - smoothstep(0.55, 1.0, dist);
+            if (edge < 0.01) discard;
+            vec2 p = vUv * 3.0 + uSeed;
+            float n = fbm(p);
+            float cloud = smoothstep(0.35, 0.75, n) * edge;
+            if (cloud < 0.01) discard;
+            float shade = 0.85 + 0.25 * fbm(p * 2.3 + 5.0);
+            vec3 col = uColor * shade;
+            gl_FragColor = vec4(col, cloud * uOpacity);
+          }
+        `,
+      });
+      const puffMesh = new THREE.Mesh(puffGeo, puffMat);
+      puffMesh.visible = false;
+      puffMesh.renderOrder = -1;
+      scene.add(puffMesh);
+      puffMeshes.push(puffMesh);
+      const spot = randomSkyPuffSpot(posRef.current.x, posRef.current.z);
+      puffStates.push({
+        ...spot,
+        cycleT: Math.random() * SKY_PUFF_BASE_CYCLE,
+        cycleLen: SKY_PUFF_BASE_CYCLE,
+      });
+    }
+    skyPuffMeshesRef.current = puffMeshes;
+    skyPuffStatesRef.current = puffStates;
+
     // Sky dome
     const skyGeo = new THREE.SphereGeometry(800, 32, 32);
     const skyUniforms = {
@@ -5878,6 +6048,49 @@ export function Aquafulness() {
       skyClouds.visible = skyCloudFadeRef.current > 0.003;
       renderer.setClearColor(0x032033, envActive ? 1 : 0);
 
+      // SKY PUFFS: each active puff runs its own fade-in/hold/fade-out timer
+      // (a smooth sin() bump rather than three hard-cut phases) and, once a
+      // full cycle elapses, is instantly moved to a fresh random spot near
+      // the camera while invisible at the cycle seam — so raising Y
+      // FREQUENCY makes puffs come and go more often without ever popping.
+      {
+        const puffMeshes = skyPuffMeshesRef.current;
+        const puffStates = skyPuffStatesRef.current;
+        const activeCount = skyPuffsOnRef.current
+          ? Math.min(puffMeshes.length, Math.max(0, Math.round(skyPuffsCountRef.current)))
+          : 0;
+        const puffSize = Math.max(1, skyPuffsSizeRef.current);
+        const puffFreq = Math.max(0.01, skyPuffsFreqRef.current);
+        for (let i = 0; i < puffMeshes.length; i++) {
+          const mesh = puffMeshes[i];
+          if (i >= activeCount) {
+            mesh.visible = false;
+            continue;
+          }
+          const state = puffStates[i];
+          state.cycleLen = SKY_PUFF_BASE_CYCLE / puffFreq;
+          state.cycleT += dt;
+          if (state.cycleT >= state.cycleLen) {
+            state.cycleT -= state.cycleLen;
+            const spot = randomSkyPuffSpot(camX, camZ);
+            state.x = spot.x;
+            state.y = spot.y;
+            state.z = spot.z;
+            state.seed = spot.seed;
+          }
+          const cycleFrac = state.cycleT / state.cycleLen;
+          // 0 at both ends of the cycle, 1 at the midpoint — a plain sin()
+          // bump gives a soft ease in/out for free without separate phases.
+          const fade = Math.sin(Math.PI * Math.min(1, Math.max(0, cycleFrac)));
+          const mat = mesh.material as THREE.ShaderMaterial;
+          mat.uniforms.uOpacity.value = fade * skyPuffsOpacityRef.current;
+          mat.uniforms.uSeed.value = state.seed;
+          mesh.position.set(state.x, state.y, state.z);
+          mesh.scale.set(puffSize, 1, puffSize);
+          mesh.visible = fade > 0.003;
+        }
+      }
+
       // Optional model bobbing — static scenes leave modelBobRef null and the
       // loaded model keeps its manifest position untouched.
       const mb = modelBobRef.current;
@@ -5984,6 +6197,12 @@ export function Aquafulness() {
       }
       extendCloudLayersRef.current = [];
       extendCloudLayerStateRef.current = [];
+      for (const puffMesh of skyPuffMeshesRef.current) {
+        (puffMesh.material as THREE.Material).dispose();
+      }
+      skyPuffMeshesRef.current = [];
+      skyPuffStatesRef.current = [];
+      puffGeo.dispose();
       sandTex.dispose();
       skyGeo.dispose();
       skyMat.dispose();
@@ -6532,6 +6751,16 @@ export function Aquafulness() {
     setSkyCloudsHeight,
     cloudFadeSpeed,
     setCloudFadeSpeed,
+    skyPuffsOn,
+    setSkyPuffsOn,
+    skyPuffsCount,
+    setSkyPuffsCount,
+    skyPuffsSize,
+    setSkyPuffsSize,
+    skyPuffsFreq,
+    setSkyPuffsFreq,
+    skyPuffsOpacity,
+    setSkyPuffsOpacity,
     worldBoundaryOn,
     setWorldBoundaryOn,
     worldBoundarySize,
@@ -7151,8 +7380,8 @@ export function Aquafulness() {
             value={depthDriftSpeed}
             onChange={setDepthDriftSpeed}
             label={t("hud.joystick.levelDrift")}
-            min={-10}
-            max={10}
+            min={-20}
+            max={20}
           />
         </div>
         {/* JUMP: a single tri-state slider (RISE/STILL/FALL) replacing the

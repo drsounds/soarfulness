@@ -345,6 +345,21 @@ export type Persisted = {
   // recycled to a new altitude band, instead of popping visible/invisible —
   // see uOpacity/cloudFadeSpeedRef in routes/index.tsx. Higher = faster.
   cloudFadeSpeed: number;
+  // SKY PUFFS: optional individual, randomly-placed puffy clouds (distinct
+  // from the always-tiled MID-CLOUDS/SKY-CLOUDS deck above) that each drift
+  // through their own fade-in/hold/fade-out cycle and then reappear at a new
+  // random spot — see the skyPuffs* refs and the SKY PUFFS block in
+  // routes/index.tsx's scene setup/animate() for the actual mesh pool.
+  skyPuffsOn: boolean;
+  // How many puffs exist at once.
+  skyPuffsCount: number;
+  // Each puff's diameter in world units.
+  skyPuffsSize: number;
+  // Rate multiplier on each puff's fade-in/hold/fade-out/respawn cycle —
+  // higher means puffs cycle to a new altitude/position more often.
+  skyPuffsFreq: number;
+  // Opacity each puff reaches at the peak of its fade-in.
+  skyPuffsOpacity: number;
   swayAmp: number;
   swaySpeed: number;
   swayBias: number;
@@ -562,6 +577,11 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "skyCloudsOn",
     "skyCloudsHeight",
     "cloudFadeSpeed",
+    "skyPuffsOn",
+    "skyPuffsCount",
+    "skyPuffsSize",
+    "skyPuffsFreq",
+    "skyPuffsOpacity",
     "worldBoundaryOn",
     "worldBoundarySize",
     "worldBoundaryHeight",
