@@ -2662,8 +2662,7 @@ export function Aquafulness() {
     if (patch.waveDir !== undefined) setWaveDir(patch.waveDir);
     if (patch.floorDepth !== undefined) setFloorDepth(patch.floorDepth);
     if (patch.floorTexture !== undefined) setFloorTexture(patch.floorTexture);
-    if (patch.floorCloudsAnimated !== undefined)
-      setFloorCloudsAnimated(patch.floorCloudsAnimated);
+    if (patch.floorCloudsAnimated !== undefined) setFloorCloudsAnimated(patch.floorCloudsAnimated);
     if (patch.whirlpoolOpening !== undefined) setWhirlpoolOpening(patch.whirlpoolOpening);
     if (patch.whirlpoolRadius !== undefined) setWhirlpoolRadius(patch.whirlpoolRadius);
     if (patch.whirlpoolSpeed !== undefined) setWhirlpoolSpeed(patch.whirlpoolSpeed);
