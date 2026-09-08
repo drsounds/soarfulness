@@ -591,10 +591,6 @@
       "closeLabel": "STÄNG",
       "openAria": "Öppna kamerainställningar"
     },
-    "cameraToggle": {
-      "nextAria": "Nästa kameraläge",
-      "prevAria": "Föregående kameraläge"
-    },
     "fullscreenEnterAria": "Helskärm",
     "fullscreenExitAria": "Avsluta helskärm",
     "intervalFixedLabel": "Intervall {{n}}/{{total}}",

@@ -369,6 +369,12 @@ function wrapAxis(value: number, half: number): number {
 // above, just used to pick a *position* instead of a value.
 const EXTEND_CLOUD_LAYER_SPACING = 500;
 const EXTEND_CLOUD_LAYER_COUNT = 5;
+// Display order for the top camera mode toggle's tab buttons — independent
+// of CAMERA_MODES' own order (which cycleCameraMode/the KAMERA settings
+// dial still cycle through), so the four tabs can read left-to-right as
+// VIRVEL/SIMMARE/GUNGA/FLYG regardless of how CAMERA_MODES itself is
+// ordered.
+const CAMERA_MODE_TAB_ORDER: CameraMode[] = ["whirlpool", "float", "swing", "noclip"];
 // SKY PUFFS: a pool of this many puff meshes is always created (cheap —
 // shared geometry, one small cloned material each); SKY PUFFS COUNT just
 // controls how many of them animate() keeps active, so raising/lowering the
@@ -7301,40 +7307,36 @@ export function Aquafulness() {
           </div>
         </div>
 
-        {/* Camera mode toggle: cycles the four movement schemes (SIMMARE/
-            FLYG/VIRVEL/GUNGA — see CameraMode) without opening the full
-            settings panel. Disabled to a plain readout while an interval
-            session is driving cameraMode automatically (mirrors the same
-            read-only treatment the KAMERA settings tab gives it), so manual
-            taps here never fight the session's own alternation. Changing
-            cameraMode by any means re-syncs the bottom camera drawer's tab
-            (see the cameraDrawerTab effect above) to match. */}
+        {/* Camera mode toggle: picks between the four movement schemes
+            (SIMMARE/FLYG/VIRVEL/GUNGA — see CameraMode) without opening the
+            full settings panel — one tab button per mode (see
+            CAMERA_MODE_TAB_ORDER) rather than a single cycling dial, so any
+            mode is reachable in one tap. Disabled to a plain readout while
+            an interval session is driving cameraMode automatically (mirrors
+            the same read-only treatment the KAMERA settings tab gives it),
+            so manual taps here never fight the session's own alternation.
+            Changing cameraMode by any means re-syncs the bottom camera
+            drawer's tab (see the cameraDrawerTab effect above) to match. */}
         <div className="pointer-events-none absolute inset-x-0 top-20 z-20 flex justify-center">
           {intervalSessionOn ? (
             <div className="pointer-events-auto rounded-full border ui-line-1 ui-surface px-4 py-1.5 text-[10px] font-light tracking-[0.3em] ui-ink-muted backdrop-blur-md">
               {t(CAMERA_MODE_LABEL_KEYS[cameraMode])} {t("camera.mode.autoSuffix")}
             </div>
           ) : (
-            <div className="pointer-events-auto flex items-center gap-1 rounded-full border ui-line-2 ui-surface px-1.5 py-1.5 backdrop-blur-md">
-              <button
-                type="button"
-                onClick={() => cycleCameraMode(-1)}
-                className="flex h-7 w-7 items-center justify-center rounded-full text-base leading-none ui-ink transition active:scale-95 ui-press"
-                aria-label={t("hud.cameraToggle.prevAria")}
-              >
-                ‹
-              </button>
-              <span className="min-w-[80px] text-center text-[10px] font-light tracking-[0.3em] ui-ink">
-                {t(CAMERA_MODE_LABEL_KEYS[cameraMode])}
-              </span>
-              <button
-                type="button"
-                onClick={() => cycleCameraMode(1)}
-                className="flex h-7 w-7 items-center justify-center rounded-full text-base leading-none ui-ink transition active:scale-95 ui-press"
-                aria-label={t("hud.cameraToggle.nextAria")}
-              >
-                ›
-              </button>
+            <div className="pointer-events-auto flex items-center gap-1 rounded-full border ui-line-2 ui-surface p-1.5 backdrop-blur-md">
+              {CAMERA_MODE_TAB_ORDER.map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setCameraMode(m)}
+                  aria-pressed={cameraMode === m}
+                  className={`rounded-full px-3 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                    cameraMode === m ? "ui-tint-2 ui-ink" : "ui-ink-muted"
+                  }`}
+                >
+                  {t(CAMERA_MODE_LABEL_KEYS[m])}
+                </button>
+              ))}
             </div>
           )}
         </div>
