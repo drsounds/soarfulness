@@ -201,6 +201,8 @@
       "colorAlpha": "COLOR STRENGTH",
       "depth": "DEPTH",
       "depthSine": "DEPTH SINE",
+      "driftSpeed": "LEVEL DRIFT",
+      "floorCloudsAnimate": "ANIMATE CLOUDS",
       "floorTexture": "TEXTURE",
       "hue": "HUE",
       "pickColor": "PICK COLOR",
