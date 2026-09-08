@@ -592,6 +592,7 @@
       "freeFall": "FRIT FALD",
       "heave": "HÆVNING",
       "jump": "HOP",
+      "levelDrift": "NIVEAU DRIFT",
       "look": "LOOK",
       "nav": "NAV",
       "noclipDriftXZ": "DRIV XZ",
@@ -798,6 +799,7 @@
   },
   "remote": {
     "hojd": "HØJDE",
+    "levelDrift": "NIVEAU DRIFT",
     "strom": "STRØM",
     "svaj": "SVAJ",
     "swingHint": "I GYNGE-tilstand styres kameraets position helt af gyngens fysik — ingen styrepinde her.",

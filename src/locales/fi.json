@@ -592,6 +592,7 @@
       "freeFall": "VAPAA PUDOTUS",
       "heave": "KOHOILU",
       "jump": "HYPPY",
+      "levelDrift": "TASON AJAUTUMA",
       "look": "LOOK",
       "nav": "NAV",
       "noclipDriftXZ": "AJAUTUS XZ",
@@ -798,6 +799,7 @@
   },
   "remote": {
     "hojd": "KORKEUS",
+    "levelDrift": "TASON AJAUTUMA",
     "strom": "VIRTAUS",
     "svaj": "HEILUNTA",
     "swingHint": "KEINU-tilassa kameran sijainti määräytyy kokonaan keinun fysiikasta — ei ohjaimia täällä.",

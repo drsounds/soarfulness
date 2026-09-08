@@ -592,6 +592,7 @@
       "freeFall": "FRITT FALL",
       "heave": "HÄVNING",
       "jump": "HOPP",
+      "levelDrift": "NIVÅ DRIFT",
       "look": "LOOK",
       "nav": "NAV",
       "noclipDriftXZ": "DRIVA XZ",
@@ -798,6 +799,7 @@
   },
   "remote": {
     "hojd": "HÖJD",
+    "levelDrift": "NIVÅ DRIFT",
     "strom": "STRÖM",
     "svaj": "SVAJ",
     "swingHint": "I GUNGA-läge styrs kamerans position helt av gungans fysik — inga spakar att styra här.",
