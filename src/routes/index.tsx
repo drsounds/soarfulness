@@ -815,6 +815,7 @@ const DEFAULTS: Persisted = {
   timeTravelBaseMs: null,
   timeTravelSetAtMs: null,
   timeSeasonalSync: false,
+  clockOn: true,
   surfaceId: null,
   reflStrength: 1,
   bottomColor: "#8a7550",
@@ -1209,6 +1210,8 @@ export function Aquafulness() {
   const [timeTravelBaseMs, setTimeTravelBaseMs] = useState(initial.timeTravelBaseMs);
   const [timeTravelSetAtMs, setTimeTravelSetAtMs] = useState(initial.timeTravelSetAtMs);
   const [timeSeasonalSync, setTimeSeasonalSync] = useState(initial.timeSeasonalSync);
+  // Master on/off for the whole feature — see its Settings-type comment.
+  const [clockOn, setClockOn] = useState(initial.clockOn);
   const [timeTravelOpen, setTimeTravelOpen] = useState(false);
   // Starts null (rather than `new Date()`) so the server-rendered markup and
   // the client's first pass agree — a live clock value would almost always
@@ -1546,6 +1549,7 @@ export function Aquafulness() {
     timeTravelBaseMs,
     timeTravelSetAtMs,
     timeSeasonalSync,
+    clockOn,
     surfaceId,
     reflStrength,
     bottomColor,
@@ -1702,6 +1706,7 @@ export function Aquafulness() {
     timeTravelBaseMs,
     timeTravelSetAtMs,
     timeSeasonalSync,
+    clockOn,
     surfaceId,
     reflStrength,
     bottomColor,
@@ -2821,6 +2826,7 @@ export function Aquafulness() {
     if (patch.timeTravelBaseMs !== undefined) setTimeTravelBaseMs(patch.timeTravelBaseMs);
     if (patch.timeTravelSetAtMs !== undefined) setTimeTravelSetAtMs(patch.timeTravelSetAtMs);
     if (patch.timeSeasonalSync !== undefined) setTimeSeasonalSync(patch.timeSeasonalSync);
+    if (patch.clockOn !== undefined) setClockOn(patch.clockOn);
     if (patch.surfaceId !== undefined) setSurfaceId(patch.surfaceId);
     if (patch.reflStrength !== undefined) setReflStrength(patch.reflStrength);
     if (patch.bottomColor !== undefined) setBottomColor(patch.bottomColor);
@@ -3247,11 +3253,12 @@ export function Aquafulness() {
   // sunrise/sunset actually drifts, and keeps this from re-rendering the
   // whole component — a real cost given its size — more than once a minute.
   //
-  // Gated by CLOCK_DISABLED_FOR_PERF_TEST above (currently re-enabled for
-  // a trial) — flip that one flag back to true to fully disable this again,
-  // including the clock button/dialog in the HUD.
+  // Gated by CLOCK_DISABLED_FOR_PERF_TEST above (a dev-only perf kill
+  // switch) and by clockOn (the user-facing setting that turns the whole
+  // feature off — see its Settings-type comment) — either disables this,
+  // along with the clock button/dialog in the HUD.
   useEffect(() => {
-    if (CLOCK_DISABLED_FOR_PERF_TEST) return;
+    if (CLOCK_DISABLED_FOR_PERF_TEST || !clockOn) return;
     const tick = () => {
       const date = simulatedDate(timeTravelBaseMs, timeTravelSetAtMs);
       setSimNow(date);
@@ -3286,7 +3293,7 @@ export function Aquafulness() {
     tick();
     const id = window.setInterval(tick, 60_000);
     return () => window.clearInterval(id);
-  }, [timeTravelBaseMs, timeTravelSetAtMs, timeSeasonalSync, environments, envId, envEra]);
+  }, [timeTravelBaseMs, timeTravelSetAtMs, timeSeasonalSync, clockOn, environments, envId, envEra]);
 
   // Step through the reflection surfaces, including an "AV" (gradient-only) slot.
   const cycleSurface = (dir: number) => {
@@ -6858,6 +6865,8 @@ export function Aquafulness() {
     setCausticsOn,
     todLabel,
     setTimeOfDay,
+    clockOn,
+    setClockOn,
     midCloudsOn,
     setMidCloudsOn,
     midCloudsHeight,
@@ -7084,7 +7093,7 @@ export function Aquafulness() {
           time-travel dialog. Only rendered once simNowLabel is set client-
           side (see simNow's useState above) so the server-rendered markup
           never includes a live time value. */}
-      {!CLOCK_DISABLED_FOR_PERF_TEST && simNowLabel && (
+      {!CLOCK_DISABLED_FOR_PERF_TEST && clockOn && simNowLabel && (
         <button
           onClick={() => setTimeTravelOpen(true)}
           className="absolute z-30 text-right text-[10px] font-light tabular-nums ui-ink-faint transition ui-press-ink"
@@ -7099,7 +7108,7 @@ export function Aquafulness() {
       {/* Only mounted while open, so its hooks don't run on every one of
           this large component's re-renders while the dialog is closed
           (i.e. almost always). */}
-      {!CLOCK_DISABLED_FOR_PERF_TEST && timeTravelOpen && (
+      {!CLOCK_DISABLED_FOR_PERF_TEST && clockOn && timeTravelOpen && (
         <TimeTravelDialog
           open={timeTravelOpen}
           onClose={() => setTimeTravelOpen(false)}

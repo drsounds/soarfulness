@@ -163,6 +163,7 @@
     },
     "env": {
       "backdrop": "BAKGRUNN",
+      "clock": "KLOKKE",
       "cloudFadeSpeed": "SKY-TONINGSHASTIGHET",
       "dayTime": "DØGN",
       "environment": "MILJØ",

@@ -633,6 +633,8 @@ export type SettingsPanelProps = {
   // Miljö
   todLabel: string;
   setTimeOfDay: Dispatch<SetStateAction<number>>;
+  clockOn: boolean;
+  setClockOn: Dispatch<SetStateAction<boolean>>;
   midCloudsOn: boolean;
   setMidCloudsOn: Dispatch<SetStateAction<boolean>>;
   midCloudsHeight: number;
@@ -1281,6 +1283,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setCausticsOn,
     todLabel,
     setTimeOfDay,
+    clockOn,
+    setClockOn,
     midCloudsOn,
     setMidCloudsOn,
     midCloudsHeight,
@@ -2781,6 +2785,12 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   value={todLabel}
                   onDec={() => setTimeOfDay((v) => (v - 0.02 + 1) % 1)}
                   onInc={() => setTimeOfDay((v) => (v + 0.02) % 1)}
+                />
+                <SettingRow
+                  label={t("dial.env.clock")}
+                  value={onOff(clockOn)}
+                  onDec={() => setClockOn(false)}
+                  onInc={() => setClockOn(true)}
                 />
                 <SettingRow
                   label={t("dial.env.midClouds")}
