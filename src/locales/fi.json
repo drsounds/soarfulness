@@ -71,7 +71,8 @@
       "float": "VAPAA",
       "noclip": "NOCLIP",
       "swing": "KEINU",
-      "whirlpool": "PYÖRRE"
+      "whirlpool": "PYÖRRE",
+      "watercraft": "ALUS"
     },
     "rotationValue": {
       "fixed": "KIINTEÄ",

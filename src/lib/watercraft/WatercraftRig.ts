@@ -1,14 +1,13 @@
 import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { VoxelWorld, type VoxelBounds } from "./VoxelWorld";
 import { SculptCanvas } from "./SculptCanvas";
 import { exportWatercraftGlb, importWatercraftGlb, type ImportResult } from "./glbIO";
 import type { BuildAction, SculptAction, ToolMode } from "./types";
 
 // Layout constants for the watercraft: a raft with a Minecraft-like block
-// grid on one side and a brush-sculptable clay pad on the other, all
-// bobbing together on a small animated ocean. Everything below is in the
-// raft group's local space (raftGroup itself is what bobs/sways).
+// grid on one side and a brush-sculptable clay pad on the other. Everything
+// below is in the raft group's local space (`root`, which the host scene
+// positions/bobs — see setBob()).
 const BUILD_BOUNDS: VoxelBounds = { originX: -12, originZ: -7, sizeX: 14, sizeZ: 14, maxY: 10 };
 const RAFT_WIDTH = 24;
 const RAFT_DEPTH = 16;
@@ -21,12 +20,22 @@ const CLAY = { width: 7, depth: 13, segX: 44, segZ: 82, baseY: PEDESTAL_SIZE.thi
 
 type BuildPick = { cell: [number, number, number]; kind: "place" | "remove" };
 
-export interface WatercraftAppOptions {
+export interface WatercraftRigOptions {
   onBlockCountChange?: (count: number) => void;
   onImportedStatic?: () => void;
 }
 
-export class WatercraftApp {
+// Unlike the original standalone-page version (WatercraftApp), this rig owns
+// no renderer/camera/render-loop of its own — it's a set of Object3Ds added
+// into the *main bath's* existing THREE.Scene, driven every frame by that
+// scene's own animate loop (see the cameraMode === "watercraft" wiring in
+// routes/index.tsx): the host calls setBob() with the real ocean's wave
+// height at the raft's world position, and tick()/pointer*() using the
+// host's own camera and pointer events. This is what lets the raft float on
+// the actual rendered ocean (JONSWAP/FFT swell and all) instead of a
+// separate decorative one, and lets building/sculpting share the bath's
+// existing NAV/LOOK joystick camera controls instead of needing its own.
+export class WatercraftRig {
   mode: ToolMode = "build";
   buildAction: BuildAction = "place";
   sculptAction: SculptAction = "raise";
@@ -34,18 +43,9 @@ export class WatercraftApp {
   brushRadius = 1.1;
   brushStrength = 0.14;
 
-  private container: HTMLDivElement;
-  private options: WatercraftAppOptions;
-  private scene = new THREE.Scene();
-  private camera: THREE.PerspectiveCamera;
-  private renderer: THREE.WebGLRenderer;
-  private controls: OrbitControls;
-
-  private raftGroup = new THREE.Group();
+  readonly root = new THREE.Group();
   private raftMesh: THREE.Mesh;
   private pedestalMesh: THREE.Mesh;
-  private oceanMesh: THREE.Mesh;
-  private oceanMaterial: THREE.ShaderMaterial;
 
   private voxelWorld: VoxelWorld;
   private sculptCanvas: SculptCanvas;
@@ -54,86 +54,36 @@ export class WatercraftApp {
   private brushRing: THREE.Mesh;
   private staticImportGroup: THREE.Group | null = null;
 
-  private clock = new THREE.Clock();
   private raycaster = new THREE.Raycaster();
   private pointerNdc = new THREE.Vector2(2, 2);
-  private activePointers = new Set<number>();
   private painting = false;
-  private raf = 0;
-  private disposed = false;
-  private scratchTarget = new THREE.Vector3();
+  private options: WatercraftRigOptions;
 
-  private onPointerDown = (e: PointerEvent) => this.handlePointerDown(e);
-  private onPointerMove = (e: PointerEvent) => this.handlePointerMove(e);
-  private onPointerUp = (e: PointerEvent) => this.handlePointerUp(e);
-  private onResize = () => this.resize();
-
-  constructor(container: HTMLDivElement, options: WatercraftAppOptions = {}) {
-    this.container = container;
+  constructor(
+    scene: THREE.Scene,
+    worldX: number,
+    worldZ: number,
+    options: WatercraftRigOptions = {},
+  ) {
     this.options = options;
-
-    const width = container.clientWidth || window.innerWidth;
-    const height = container.clientHeight || window.innerHeight;
-
-    this.renderer = new THREE.WebGLRenderer({ antialias: true });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.setSize(width, height);
-    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.05;
-    this.renderer.domElement.style.touchAction = "none";
-    container.appendChild(this.renderer.domElement);
-
-    this.scene.background = new THREE.Color(0xbfe8ef);
-    this.scene.fog = new THREE.Fog(0xbfe8ef, 40, 160);
-
-    this.camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 400);
-    this.camera.position.set(15, 13, 21);
-
-    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-    this.controls.enableDamping = true;
-    this.controls.dampingFactor = 0.08;
-    this.controls.enablePan = false;
-    this.controls.minDistance = 6;
-    this.controls.maxDistance = 55;
-    this.controls.minPolarAngle = 0.15;
-    this.controls.maxPolarAngle = 1.48;
-    this.controls.mouseButtons = {
-      LEFT: null,
-      MIDDLE: THREE.MOUSE.DOLLY,
-      RIGHT: THREE.MOUSE.ROTATE,
-    };
-    this.controls.touches = { ONE: null, TWO: THREE.TOUCH.DOLLY_ROTATE };
-    this.controls.target.set(-2, 1, 0);
-    this.controls.update();
-
-    const hemi = new THREE.HemisphereLight(0xeaffff, 0x2b4b52, 1.1);
-    const sun = new THREE.DirectionalLight(0xfff6e0, 1.4);
-    sun.position.set(12, 22, 10);
-    this.scene.add(hemi, sun, new THREE.AmbientLight(0xffffff, 0.15));
-
-    this.oceanMaterial = createOceanMaterial();
-    const oceanGeo = new THREE.PlaneGeometry(320, 320, 140, 140);
-    oceanGeo.rotateX(-Math.PI / 2);
-    this.oceanMesh = new THREE.Mesh(oceanGeo, this.oceanMaterial);
-    this.oceanMesh.position.y = -0.55;
-    this.scene.add(this.oceanMesh);
+    this.root.position.set(worldX, 0, worldZ);
+    this.root.visible = false;
 
     this.raftMesh = new THREE.Mesh(
       new THREE.BoxGeometry(RAFT_WIDTH, RAFT_THICK, RAFT_DEPTH),
       new THREE.MeshStandardMaterial({ color: 0x6b4a2f, roughness: 0.9 }),
     );
     this.raftMesh.position.y = -RAFT_THICK / 2;
-    this.raftGroup.add(this.raftMesh);
+    this.root.add(this.raftMesh);
 
     this.pedestalMesh = new THREE.Mesh(
       new THREE.BoxGeometry(PEDESTAL_SIZE.width, PEDESTAL_SIZE.thick, PEDESTAL_SIZE.depth),
       new THREE.MeshStandardMaterial({ color: 0x5b6b78, roughness: 0.85 }),
     );
     this.pedestalMesh.position.set(PEDESTAL_CENTER.x, PEDESTAL_SIZE.thick / 2, PEDESTAL_CENTER.z);
-    this.raftGroup.add(this.pedestalMesh);
+    this.root.add(this.pedestalMesh);
 
-    this.voxelWorld = new VoxelWorld(this.raftGroup, BUILD_BOUNDS);
+    this.voxelWorld = new VoxelWorld(this.root, BUILD_BOUNDS);
 
     this.buildBasePlane = new THREE.Mesh(
       new THREE.PlaneGeometry(BUILD_BOUNDS.sizeX, BUILD_BOUNDS.sizeZ),
@@ -159,7 +109,7 @@ export class WatercraftApp {
 
     this.sculptCanvas = new SculptCanvas(CLAY);
     this.sculptCanvas.mesh.position.set(PEDESTAL_CENTER.x, 0, PEDESTAL_CENTER.z);
-    this.raftGroup.add(this.sculptCanvas.mesh);
+    this.root.add(this.sculptCanvas.mesh);
 
     this.brushRing = new THREE.Mesh(
       new THREE.RingGeometry(0.82, 1, 40),
@@ -174,80 +124,58 @@ export class WatercraftApp {
     this.brushRing.visible = false;
     this.sculptCanvas.mesh.add(this.brushRing);
 
-    this.scene.add(this.raftGroup);
-
-    this.renderer.domElement.addEventListener("pointerdown", this.onPointerDown);
-    this.renderer.domElement.addEventListener("pointermove", this.onPointerMove);
-    this.renderer.domElement.addEventListener("pointerup", this.onPointerUp);
-    this.renderer.domElement.addEventListener("pointercancel", this.onPointerUp);
-    this.renderer.domElement.addEventListener("pointerleave", this.onPointerUp);
-    this.renderer.domElement.addEventListener("contextmenu", (e) => e.preventDefault());
-    window.addEventListener("resize", this.onResize);
-
-    this.raf = requestAnimationFrame(this.tick);
+    scene.add(this.root);
   }
 
-  private tick = () => {
-    if (this.disposed) return;
-    const t = this.clock.getElapsedTime();
+  setVisible(visible: boolean): void {
+    this.root.visible = visible;
+    if (!visible) this.painting = false;
+  }
 
-    this.raftGroup.position.y = Math.sin(t * 0.6) * 0.22 + Math.sin(t * 0.37 + 1.3) * 0.08;
-    this.raftGroup.rotation.z = Math.sin(t * 0.5 + 0.4) * 0.035;
-    this.raftGroup.rotation.x = Math.cos(t * 0.33) * 0.02;
-    this.oceanMaterial.uniforms.uTime.value = t;
+  get visible(): boolean {
+    return this.root.visible;
+  }
 
+  // Called every frame by the host with the real ocean's wave height (and a
+  // touch of roll) sampled at this raft's world position, so it bobs on the
+  // actual rendered surface rather than a made-up motion of its own.
+  setBob(y: number, rotX: number, rotZ: number): void {
+    this.root.position.y = y;
+    this.root.rotation.x = rotX;
+    this.root.rotation.z = rotZ;
+  }
+
+  // Per-frame upkeep while visible: syncs the voxel mesh, advances any
+  // in-progress sculpt paint stroke, and refreshes the hover indicator —
+  // called by the host's own render loop with its live camera.
+  tick(camera: THREE.Camera): void {
+    if (!this.root.visible) return;
     this.voxelWorld.syncIfDirty();
-    this.updateHoverIndicators();
-
-    if (this.painting && this.mode === "sculpt") this.performSculptStep();
-
-    this.scratchTarget.set(-2, 1, 0);
-    this.raftGroup.localToWorld(this.scratchTarget);
-    this.controls.target.lerp(this.scratchTarget, 0.15);
-    this.controls.update();
-
-    this.renderer.render(this.scene, this.camera);
-    this.raf = requestAnimationFrame(this.tick);
-  };
-
-  private updatePointerNdc(e: PointerEvent): void {
-    const rect = this.renderer.domElement.getBoundingClientRect();
-    this.pointerNdc.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-    this.pointerNdc.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    if (this.painting && this.mode === "sculpt") this.performSculptStep(camera);
+    this.updateHoverIndicators(camera);
   }
 
-  private handlePointerDown(e: PointerEvent): void {
-    if (e.button !== 0 && e.pointerType === "mouse") return;
-    this.updatePointerNdc(e);
-    this.activePointers.add(e.pointerId);
-    if (this.activePointers.size !== 1) {
-      this.painting = false;
-      return;
-    }
-    try {
-      this.renderer.domElement.setPointerCapture(e.pointerId);
-    } catch {
-      // ignore — capture is a nicety, not required for correctness
-    }
+  setPointerFromEvent(canvas: HTMLElement, clientX: number, clientY: number): void {
+    const rect = canvas.getBoundingClientRect();
+    this.pointerNdc.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+    this.pointerNdc.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+  }
+
+  pointerDown(camera: THREE.Camera): void {
     if (this.mode === "build") {
-      this.performBuildAction();
+      this.performBuildAction(camera);
     } else {
       this.painting = true;
-      this.performSculptStep();
+      this.performSculptStep(camera);
     }
   }
 
-  private handlePointerMove(e: PointerEvent): void {
-    this.updatePointerNdc(e);
+  pointerUp(): void {
+    this.painting = false;
   }
 
-  private handlePointerUp(e: PointerEvent): void {
-    this.activePointers.delete(e.pointerId);
-    if (this.activePointers.size === 0) this.painting = false;
-  }
-
-  private pickBuildCell(): BuildPick | null {
-    this.raycaster.setFromCamera(this.pointerNdc, this.camera);
+  private pickBuildCell(camera: THREE.Camera): BuildPick | null {
+    this.raycaster.setFromCamera(this.pointerNdc, camera);
     const targets: THREE.Object3D[] = [...this.voxelWorld.raycastTargets(), this.buildBasePlane];
     const hits = this.raycaster.intersectObjects(targets, false);
     if (hits.length === 0) return null;
@@ -273,8 +201,8 @@ export class WatercraftApp {
     return this.voxelWorld.inBounds(...cell) ? { cell, kind: "place" } : null;
   }
 
-  private performBuildAction(): void {
-    const pick = this.pickBuildCell();
+  private performBuildAction(camera: THREE.Camera): void {
+    const pick = this.pickBuildCell(camera);
     if (!pick) return;
     const [x, y, z] = pick.cell;
     const changed =
@@ -284,8 +212,8 @@ export class WatercraftApp {
     if (changed) this.options.onBlockCountChange?.(this.voxelWorld.count);
   }
 
-  private performSculptStep(): void {
-    this.raycaster.setFromCamera(this.pointerNdc, this.camera);
+  private performSculptStep(camera: THREE.Camera): void {
+    this.raycaster.setFromCamera(this.pointerNdc, camera);
     const hits = this.raycaster.intersectObject(this.sculptCanvas.mesh, false);
     if (hits.length === 0) return;
     const local = this.sculptCanvas.mesh.worldToLocal(hits[0].point.clone());
@@ -293,10 +221,10 @@ export class WatercraftApp {
     this.sculptCanvas.applyBrush(local.x, local.z, this.brushRadius, this.brushStrength, direction);
   }
 
-  private updateHoverIndicators(): void {
+  private updateHoverIndicators(camera: THREE.Camera): void {
     if (this.mode === "build") {
       this.brushRing.visible = false;
-      const pick = this.pickBuildCell();
+      const pick = this.pickBuildCell(camera);
       if (pick) {
         this.hoverBox.visible = true;
         const [x, y, z] = pick.cell;
@@ -309,7 +237,7 @@ export class WatercraftApp {
       }
     } else {
       this.hoverBox.visible = false;
-      this.raycaster.setFromCamera(this.pointerNdc, this.camera);
+      this.raycaster.setFromCamera(this.pointerNdc, camera);
       const hits = this.raycaster.intersectObject(this.sculptCanvas.mesh, false);
       if (hits.length > 0) {
         const local = this.sculptCanvas.mesh.worldToLocal(hits[0].point.clone());
@@ -320,14 +248,6 @@ export class WatercraftApp {
         this.brushRing.visible = false;
       }
     }
-  }
-
-  resize(): void {
-    const width = this.container.clientWidth || window.innerWidth;
-    const height = this.container.clientHeight || window.innerHeight;
-    this.camera.aspect = width / height;
-    this.camera.updateProjectionMatrix();
-    this.renderer.setSize(width, height);
   }
 
   get blockCount(): number {
@@ -360,7 +280,7 @@ export class WatercraftApp {
 
   private placeStaticImport(scene: THREE.Group): void {
     if (this.staticImportGroup) {
-      this.raftGroup.remove(this.staticImportGroup);
+      this.root.remove(this.staticImportGroup);
       disposeObject(this.staticImportGroup);
     }
     const box = new THREE.Box3().setFromObject(scene);
@@ -376,14 +296,14 @@ export class WatercraftApp {
     scene.position.y += PEDESTAL_SIZE.thick - scaledBox.min.y;
 
     this.staticImportGroup = scene;
-    this.raftGroup.add(scene);
+    this.root.add(scene);
   }
 
   reset(): void {
     this.voxelWorld.clear();
     this.sculptCanvas.reset();
     if (this.staticImportGroup) {
-      this.raftGroup.remove(this.staticImportGroup);
+      this.root.remove(this.staticImportGroup);
       disposeObject(this.staticImportGroup);
       this.staticImportGroup = null;
     }
@@ -391,22 +311,10 @@ export class WatercraftApp {
   }
 
   dispose(): void {
-    this.disposed = true;
-    cancelAnimationFrame(this.raf);
-    window.removeEventListener("resize", this.onResize);
-    this.renderer.domElement.removeEventListener("pointerdown", this.onPointerDown);
-    this.renderer.domElement.removeEventListener("pointermove", this.onPointerMove);
-    this.renderer.domElement.removeEventListener("pointerup", this.onPointerUp);
-    this.renderer.domElement.removeEventListener("pointercancel", this.onPointerUp);
-    this.renderer.domElement.removeEventListener("pointerleave", this.onPointerUp);
-    this.controls.dispose();
     this.voxelWorld.dispose();
     this.sculptCanvas.dispose();
-    disposeObject(this.scene);
-    this.renderer.dispose();
-    if (this.renderer.domElement.parentElement === this.container) {
-      this.container.removeChild(this.renderer.domElement);
-    }
+    disposeObject(this.root);
+    this.root.removeFromParent();
   }
 }
 
@@ -424,41 +332,6 @@ function buildGridLines(sizeX: number, sizeZ: number): THREE.LineSegments {
     geo,
     new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.25 }),
   );
-}
-
-function createOceanMaterial(): THREE.ShaderMaterial {
-  return new THREE.ShaderMaterial({
-    uniforms: {
-      uTime: { value: 0 },
-      uDeep: { value: new THREE.Color(0x0d5a72) },
-      uShallow: { value: new THREE.Color(0x59c9d6) },
-    },
-    vertexShader: `
-      uniform float uTime;
-      varying float vHeight;
-      void main() {
-        vec3 pos = position;
-        float t = uTime;
-        float wave = sin(pos.x * 0.18 + t * 0.9) * 0.35
-                   + sin(pos.z * 0.23 - t * 0.7) * 0.25
-                   + sin((pos.x + pos.z) * 0.11 + t * 1.3) * 0.18;
-        pos.y += wave;
-        vHeight = wave;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
-      }
-    `,
-    fragmentShader: `
-      uniform vec3 uDeep;
-      uniform vec3 uShallow;
-      varying float vHeight;
-      void main() {
-        float h = clamp(vHeight * 0.7 + 0.5, 0.0, 1.0);
-        vec3 color = mix(uDeep, uShallow, h);
-        gl_FragColor = vec4(color, 0.94);
-      }
-    `,
-    transparent: true,
-  });
 }
 
 function disposeObject(obj: THREE.Object3D): void {

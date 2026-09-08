@@ -133,16 +133,23 @@ export const SETTINGS_TABS: { id: SettingsTab; labelKey: string }[] = [
   { id: "tema", labelKey: "settings.tabs.tema" },
 ];
 
-// Four mutually-exclusive camera movement schemes:
-//  - "float"     the default: buoyant, wave-riding camera (all existing behavior).
-//  - "noclip"    free 3D flight in any direction, ignoring the water/wave physics.
-//  - "whirlpool" orbits a whirlpool at the world origin — steady spin, or an
-//                automatic drag-in/stay/exit sequence (see whirlpool* fields).
-//  - "swing"     a pendulum that swings back and forth high above the water
-//                (optionally spun into a circular "tornado" orbit instead —
-//                see swingTornado* fields).
-export type CameraMode = "float" | "noclip" | "whirlpool" | "swing";
-export const CAMERA_MODES: CameraMode[] = ["float", "noclip", "whirlpool", "swing"];
+// Five mutually-exclusive camera movement schemes:
+//  - "float"      the default: buoyant, wave-riding camera (all existing behavior).
+//  - "noclip"     free 3D flight in any direction, ignoring the water/wave physics.
+//  - "whirlpool"  orbits a whirlpool at the world origin — steady spin, or an
+//                 automatic drag-in/stay/exit sequence (see whirlpool* fields).
+//  - "swing"      a pendulum that swings back and forth high above the water
+//                 (optionally spun into a circular "tornado" orbit instead —
+//                 see swingTornado* fields).
+//  - "watercraft" free 3D flight exactly like "noclip" (see every noclip
+//                 branch in routes/index.tsx's render loop, each extended to
+//                 also match this mode), plus a raft bobbing on the real
+//                 ocean with a Minecraft-like block grid and a brush-
+//                 sculptable clay pad — see WatercraftRig in
+//                 src/lib/watercraft/. The one optional "build a world"
+//                 mode among these five.
+export type CameraMode = "float" | "noclip" | "whirlpool" | "swing" | "watercraft";
+export const CAMERA_MODES: CameraMode[] = ["float", "noclip", "whirlpool", "swing", "watercraft"];
 
 // Angular direction shared by the whirlpool orbit and the swing's optional
 // tornado spin: "cw"/"ccw" as seen from above (+y looking down).
@@ -176,6 +183,7 @@ export const CAMERA_MODE_LABEL_KEYS: Record<CameraMode, string> = {
   noclip: "camera.mode.noclip",
   whirlpool: "camera.mode.whirlpool",
   swing: "camera.mode.swing",
+  watercraft: "camera.mode.watercraft",
 };
 
 export const WHIRLPOOL_DIRECTION_LABEL_KEYS: Record<WhirlpoolDirection, string> = {

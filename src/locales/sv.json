@@ -71,7 +71,8 @@
       "float": "FRI",
       "noclip": "NOCLIP",
       "swing": "GUNGA",
-      "whirlpool": "VIRVEL"
+      "whirlpool": "VIRVEL",
+      "watercraft": "FARKOST"
     },
     "rotationValue": {
       "fixed": "FIXERAD",

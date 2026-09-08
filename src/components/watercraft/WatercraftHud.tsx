@@ -1,6 +1,4 @@
-import { Link } from "@tanstack/react-router";
 import {
-  ArrowLeft,
   Box,
   Download,
   Eraser,
@@ -9,12 +7,13 @@ import {
   Paintbrush,
   RotateCcw,
   Upload,
+  X,
 } from "lucide-react";
 import type { ChangeEvent } from "react";
 import { BLOCK_PALETTE } from "@/lib/watercraft/palette";
 import type { BuildAction, SculptAction, ToolMode } from "@/lib/watercraft/types";
 
-interface WatercraftToolbarProps {
+interface WatercraftHudProps {
   mode: ToolMode;
   onModeChange: (mode: ToolMode) => void;
   buildAction: BuildAction;
@@ -32,6 +31,7 @@ interface WatercraftToolbarProps {
   onExport: () => void;
   onImportFile: (file: File) => void;
   onReset: () => void;
+  onDone: () => void;
 }
 
 const pillBase =
@@ -39,7 +39,14 @@ const pillBase =
 const pillOff = "bg-white/10 text-white/70 hover:bg-white/20";
 const pillOn = "bg-white text-[#0b3d5c] shadow";
 
-export function WatercraftToolbar(props: WatercraftToolbarProps) {
+// The "watercraft" camera mode's build/sculpt controls — an overlay on top
+// of the main bath's own canvas and NAV/LOOK joysticks, shown only while
+// cameraMode === "watercraft" (see routes/index.tsx). Movement/looking stay
+// entirely joystick-driven; this HUD only owns tapping/clicking the canvas
+// itself (place/remove a block, paint the sculpt brush) plus its own
+// buttons/sliders — see the pointer-events-none wrappers below, which let
+// clicks pass through to the canvas everywhere except this panel.
+export function WatercraftHud(props: WatercraftHudProps) {
   const {
     mode,
     onModeChange,
@@ -58,6 +65,7 @@ export function WatercraftToolbar(props: WatercraftToolbarProps) {
     onExport,
     onImportFile,
     onReset,
+    onDone,
   } = props;
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -68,20 +76,20 @@ export function WatercraftToolbar(props: WatercraftToolbarProps) {
 
   return (
     <>
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between p-3 pt-[calc(env(safe-area-inset-top,0px)+0.75rem)]">
-        <Link
-          to="/"
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-start justify-between p-3 pt-[calc(env(safe-area-inset-top,0px)+0.75rem)]">
+        <button
+          type="button"
+          onClick={onDone}
           className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full bg-black/45 px-3 py-1.5 text-[11px] font-medium text-white backdrop-blur-sm transition hover:bg-black/60"
         >
-          <ArrowLeft className="h-3.5 w-3.5" /> Exit
-        </Link>
+          <X className="h-3.5 w-3.5" /> Done building
+        </button>
         <div className="pointer-events-none max-w-[13rem] rounded-full bg-black/35 px-3 py-1.5 text-right text-[10px] font-light leading-snug text-white/80 backdrop-blur-sm sm:max-w-xs">
-          {status ??
-            "Click/tap to build or sculpt · drag right-click or two fingers to look around"}
+          {status ?? "Tap the raft to build or sculpt"}
         </div>
       </div>
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-center p-3 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)]">
+      <div className="pointer-events-none absolute inset-x-0 bottom-24 z-30 flex justify-center p-3">
         <div className="pointer-events-auto flex w-full max-w-xl flex-col gap-2.5 rounded-2xl bg-black/45 p-3 text-white shadow-2xl backdrop-blur-xl">
           <div className="flex items-center justify-between gap-2">
             <div className="flex gap-1.5">
