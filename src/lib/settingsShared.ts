@@ -296,6 +296,10 @@ export type Persisted = {
   waveDir: number;
   floorDepth: number;
   floorTexture: boolean;
+  // BOTTOM "clouds" mode's cloud layer used to always drift slowly over
+  // time; that drift is now opt-in (default off, so the clouds sit still)
+  // via this toggle instead of always animating.
+  floorCloudsAnimated: boolean;
   whirlpoolOpening: number;
   whirlpoolRadius: number;
   whirlpoolSpeed: number;
@@ -316,6 +320,21 @@ export type Persisted = {
   depthSineOn: boolean;
   depthSineAmp: number;
   depthSineFreq: number;
+  // Water-level rise/sink dials layered on top of depthSineAmp (height) and
+  // depthSineFreq (frequency), all multiplying/dividing the same phase
+  // together — mirrors how VÅGOR already stacks TEMPO/FREKVENS/VÅGPERIOD.
+  // Each defaults to a neutral value (1) so existing depthSine* settings
+  // behave exactly as before until a dial is actually moved.
+  depthSineSpeed: number;
+  depthSineInterval: number;
+  // Sharpness of the rise/sink peak, fed straight into the same
+  // shapedWave() curve VÅGOR's SPETS dial uses — 1 is a plain sine.
+  depthSinePeak: number;
+  // Unbounded water-level drift (m/s, signed) layered on top of the bounded
+  // DEPTH SINE oscillation above — much like noclip's FRITT FALL/OMVÄND
+  // STIGNING, but for the water level instead of the camera: positive keeps
+  // the surface rising forever, negative keeps it sinking forever, 0 is off.
+  depthDriftSpeed: number;
   hideWater: boolean;
   midCloudsOn: boolean;
   midCloudsHeight: number;
@@ -525,9 +544,14 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "bottomColor",
     "floorDepth",
     "floorTexture",
+    "floorCloudsAnimated",
     "depthSineOn",
     "depthSineAmp",
     "depthSineFreq",
+    "depthSineSpeed",
+    "depthSineInterval",
+    "depthSinePeak",
+    "depthDriftSpeed",
     "hideWater",
     "causticsOn",
   ],
