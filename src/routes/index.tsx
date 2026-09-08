@@ -9,6 +9,10 @@ import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { CSS3DTVManager, type DeviceKind } from "@/lib/tv/CSS3DTVManager";
 import { TorusRingField } from "@/lib/torusRings/TorusRingField";
+import { WatercraftRig } from "@/lib/watercraft/WatercraftRig";
+import type { BuildAction, SculptAction, ToolMode } from "@/lib/watercraft/types";
+import { WatercraftHud } from "@/components/watercraft/WatercraftHud";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { VirtualPhone, type RemoteControllerProps } from "@/components/VirtualPhone";
 import { SettingsPanel, type SettingsPanelProps } from "@/components/SettingsPanel";
 import { ShareBathDialog } from "@/components/ShareBathDialog";
@@ -481,6 +485,14 @@ type SceneManifest = {
   places?: RawSpawnLocation[];
 };
 
+// Fixed world position of the "watercraft" camera mode's raft — see the
+// cameraMode==="watercraft" wiring in the render loop and mode-switch effect
+// below, and WatercraftRig in src/lib/watercraft/. A little off from world
+// origin (DEFAULT_SPAWN_LOCATION below) so it's visible in the distance from
+// the default spawn in "float" mode, without sitting exactly on top of it.
+const WATERCRAFT_RAFT_X = 0;
+const WATERCRAFT_RAFT_Z = -30;
+
 // Respawn falls back to this single "Spawn" point at world origin whenever a
 // scene has no manifest, or its manifest lists no locations/places.
 const DEFAULT_SPAWN_LOCATION: SpawnLocation = {
@@ -936,10 +948,20 @@ function saveCameraPose(pose: CameraPose) {
 // the splash screen. Camera pose is only included when a full x/y/z pose
 // (noclip mode) was saved — isValidBathPayload requires `y` once `c` is
 // present at all, and most saved poses only carry x/z/yaw/pitch.
-async function buildCurrentBathPayload(): Promise<string> {
+// `settingsOverride` lets a caller start the bath in a particular state
+// (e.g. the splash screen's "Watercraft" shortcut forcing cameraMode to
+// "watercraft") without writing that override back to the visitor's saved
+// settings — it's applied to the encoded payload only, after the real
+// autosaved settings are read.
+async function buildCurrentBathPayload(
+  settingsOverride?: Partial<Record<string, unknown>>,
+): Promise<string> {
   const payload: BathPayload = {
     v: 1,
-    s: pickFields(loadSettings(), PRESET_ALL_FIELDS) as Record<string, unknown>,
+    s: {
+      ...(pickFields(loadSettings(), PRESET_ALL_FIELDS) as Record<string, unknown>),
+      ...settingsOverride,
+    },
   };
   const pose = loadCameraPose();
   if (pose && typeof pose.y === "number") {
@@ -959,11 +981,11 @@ function SplashScreen() {
   const navigate = useNavigate();
   const [starting, setStarting] = useState(false);
 
-  const startBath = async () => {
+  const startBath = async (settingsOverride?: Partial<Record<string, unknown>>) => {
     if (starting) return;
     setStarting(true);
     try {
-      const payload = await buildCurrentBathPayload();
+      const payload = await buildCurrentBathPayload(settingsOverride);
       await navigate({ to: "/bathing/$payload", params: { payload } });
     } catch {
       setStarting(false);
@@ -995,6 +1017,18 @@ function SplashScreen() {
             className="min-w-[220px] cursor-pointer rounded-full bg-[#0b3d5c] px-8 py-3.5 text-sm font-semibold tracking-[0.08em] text-white shadow-lg shadow-[#0b3d5c]/30 transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:cursor-default disabled:opacity-70"
           >
             {starting ? t("splash.starting") : t("splash.startBath")}
+          </button>
+
+          {/* Quick-start straight into the raft: same bath, cameraMode
+              forced to "watercraft" for this one launch (not written back to
+              the visitor's saved settings — see settingsOverride above). */}
+          <button
+            type="button"
+            onClick={() => void startBath({ cameraMode: "watercraft" })}
+            disabled={starting}
+            className="min-w-[220px] cursor-pointer rounded-full border border-[#0b3d5c]/25 bg-white/40 px-8 py-3 text-sm font-medium tracking-[0.08em] text-[#0b3d5c] backdrop-blur-sm transition-colors hover:bg-white/60 disabled:cursor-default disabled:opacity-70"
+          >
+            Watercraft (build mode)
           </button>
 
           <Link
@@ -1420,6 +1454,114 @@ export function Aquafulness() {
   // Non-null only when the current scene opts into bobbing; drives the model's
   // vertical motion from inside the animation loop.
   const modelBobRef = useRef<{ base: THREE.Vector3; bob: BobConfig } | null>(null);
+  // "Watercraft" camera mode's raft — block-building + brush-sculpting on a
+  // raft that bobs on the real ocean; see WatercraftRig and the
+  // cameraMode==="watercraft" wiring throughout this component. Built once
+  // in the main scene-setup effect below and left in the scene for the
+  // whole session (hidden via setVisible when not in watercraft mode)
+  // rather than mounted/unmounted per mode switch, matching how
+  // torusRingField/tvManager above are handled.
+  const watercraftRigRef = useRef<WatercraftRig | null>(null);
+  const [watercraftMode, setWatercraftMode] = useState<ToolMode>("build");
+  const [watercraftBuildAction, setWatercraftBuildAction] = useState<BuildAction>("place");
+  const [watercraftBlockType, setWatercraftBlockType] = useState(0);
+  const [watercraftSculptAction, setWatercraftSculptAction] = useState<SculptAction>("raise");
+  const [watercraftBrushRadius, setWatercraftBrushRadius] = useState(1.1);
+  const [watercraftBrushStrength, setWatercraftBrushStrength] = useState(0.14);
+  const [watercraftBlockCount, setWatercraftBlockCount] = useState(0);
+  const [watercraftStatus, setWatercraftStatus] = useState<string | null>(null);
+  // Push each watercraft HUD control straight into the live rig instance —
+  // same pattern as the many <x>Ref.current = x effects further down for the
+  // main scene's own settings, just scoped to a rig that's only ever built
+  // once (see the setup effect) rather than every setting living on a ref
+  // from the start.
+  useEffect(() => {
+    if (watercraftRigRef.current) watercraftRigRef.current.mode = watercraftMode;
+  }, [watercraftMode]);
+  useEffect(() => {
+    if (watercraftRigRef.current) watercraftRigRef.current.buildAction = watercraftBuildAction;
+  }, [watercraftBuildAction]);
+  useEffect(() => {
+    if (watercraftRigRef.current) watercraftRigRef.current.blockType = watercraftBlockType;
+  }, [watercraftBlockType]);
+  useEffect(() => {
+    if (watercraftRigRef.current) watercraftRigRef.current.sculptAction = watercraftSculptAction;
+  }, [watercraftSculptAction]);
+  useEffect(() => {
+    if (watercraftRigRef.current) watercraftRigRef.current.brushRadius = watercraftBrushRadius;
+  }, [watercraftBrushRadius]);
+  useEffect(() => {
+    if (watercraftRigRef.current) watercraftRigRef.current.brushStrength = watercraftBrushStrength;
+  }, [watercraftBrushStrength]);
+  useEffect(() => {
+    if (!watercraftStatus) return;
+    const id = window.setTimeout(() => setWatercraftStatus(null), 4000);
+    return () => window.clearTimeout(id);
+  }, [watercraftStatus]);
+
+  // Export/import/reset for the watercraft build — see WatercraftHud below.
+  // Entirely client-side: export triggers a normal browser download, import
+  // reads a local file from <input type="file">, exactly like the rest of
+  // this app's DELA BADLÄNK/save-state features never touch a server.
+  const [watercraftConfirm, setWatercraftConfirm] = useState<{
+    kind: "import" | "reset";
+    file: File | null;
+  } | null>(null);
+
+  const watercraftExport = async () => {
+    const rig = watercraftRigRef.current;
+    if (!rig) return;
+    setWatercraftStatus("Exporting…");
+    try {
+      const blob = await rig.exportGlb();
+      const stamp = new Date().toISOString().slice(0, 10);
+      const filename = `watercraft-${stamp}.glb`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setWatercraftStatus(`Saved ${filename}`);
+    } catch (err) {
+      console.error("Watercraft export failed", err);
+      setWatercraftStatus("Export failed — see console");
+    }
+  };
+
+  const watercraftRunImport = async (file: File) => {
+    const rig = watercraftRigRef.current;
+    if (!rig) return;
+    setWatercraftStatus("Importing…");
+    try {
+      const result = await rig.importGlb(file);
+      if (result.kind === "restored") setWatercraftStatus("World imported.");
+    } catch (err) {
+      console.error("Watercraft import failed", err);
+      setWatercraftStatus("Import failed — is this a valid .glb?");
+    }
+  };
+
+  const watercraftImportFile = (file: File) => {
+    const rig = watercraftRigRef.current;
+    if (rig && rig.blockCount > 0) {
+      setWatercraftConfirm({ kind: "import", file });
+    } else {
+      void watercraftRunImport(file);
+    }
+  };
+
+  const watercraftHandleReset = () => {
+    const rig = watercraftRigRef.current;
+    if (rig && rig.blockCount > 0) {
+      setWatercraftConfirm({ kind: "reset", file: null });
+    } else {
+      rig?.reset();
+      setWatercraftStatus("Cleared.");
+    }
+  };
   // The loaded environment skybox texture and whether it is currently shown, so
   // the animation loop can hide the procedural sky dome for a real equirect one.
   const envTextureRef = useRef<THREE.Texture | null>(null);
@@ -2432,10 +2574,22 @@ export function Aquafulness() {
       posRef.current.x = whirlpoolLastPosRef.current.x;
       posRef.current.z = whirlpoolLastPosRef.current.z;
     }
-    if (cameraMode === "noclip") {
+    if (cameraMode === "noclip" || cameraMode === "watercraft") {
       posRef.current.y = camYRef.current ?? swingPositionYRef.current;
       noclipVertVelRef.current = 0;
       noclipHeaveOffsetRef.current = 0;
+      // Unlike noclip (which deliberately never teleports), entering
+      // watercraft mode snaps the camera to just outside the raft — the
+      // player could otherwise be flying anywhere in open water with no way
+      // to know which direction the raft is in.
+      if (cameraMode === "watercraft") {
+        posRef.current.x = WATERCRAFT_RAFT_X;
+        posRef.current.z = WATERCRAFT_RAFT_Z + 15;
+        posRef.current.y = 6;
+        camYRef.current = 6;
+        yawRef.current = 0;
+        pitchRef.current = -0.28;
+      }
     } else if (cameraMode === "whirlpool") {
       whirlpoolPhaseRef.current = { phase: "drag", startMs: performance.now() };
     } else if (cameraMode === "swing") {
@@ -3698,6 +3852,40 @@ export function Aquafulness() {
       fadeDistance: initial.torusFadeDistance,
     });
     torusRingFieldRef.current = torusRingField;
+
+    // "Watercraft" camera mode's raft — see WatercraftRig. Built once here
+    // (hidden by default; setVisible(true) only while cameraMode ===
+    // "watercraft", driven each frame from the animate loop below) rather
+    // than mounted per mode switch, matching torusRingField above.
+    const watercraftRig = new WatercraftRig(scene, WATERCRAFT_RAFT_X, WATERCRAFT_RAFT_Z, {
+      onBlockCountChange: setWatercraftBlockCount,
+      onImportedStatic: () =>
+        setWatercraftStatus("Imported as a static model (not a saved watercraft world)."),
+    });
+    watercraftRigRef.current = watercraftRig;
+
+    // Build/sculpt input for watercraft mode: a plain tap/click anywhere on
+    // the canvas (not a drag) places/removes a block or paints the sculpt
+    // brush. Safe to listen unconditionally — every handler bails out via
+    // the cameraModeRef check unless "watercraft" is actually the active
+    // mode, and NAV/LOOK camera control here is joystick-driven rather than
+    // canvas-drag-driven, so there's nothing for this to conflict with.
+    const onWatercraftPointerDown = (e: PointerEvent) => {
+      if (cameraModeRef.current !== "watercraft" || e.button !== 0) return;
+      watercraftRig.setPointerFromEvent(renderer.domElement, e.clientX, e.clientY);
+      watercraftRig.pointerDown(camera);
+    };
+    const onWatercraftPointerMove = (e: PointerEvent) => {
+      if (cameraModeRef.current !== "watercraft") return;
+      watercraftRig.setPointerFromEvent(renderer.domElement, e.clientX, e.clientY);
+    };
+    const onWatercraftPointerUp = () => {
+      watercraftRig.pointerUp();
+    };
+    renderer.domElement.addEventListener("pointerdown", onWatercraftPointerDown);
+    renderer.domElement.addEventListener("pointermove", onWatercraftPointerMove);
+    renderer.domElement.addEventListener("pointerup", onWatercraftPointerUp);
+    renderer.domElement.addEventListener("pointercancel", onWatercraftPointerUp);
 
     // Ocean plane (near, finely-tessellated tier — see OCEAN_BASE_SIZE above)
     const geo = new THREE.PlaneGeometry(OCEAN_BASE_SIZE, OCEAN_BASE_SIZE, 320, 320);
@@ -5265,7 +5453,7 @@ export function Aquafulness() {
       const walkSpeed = 16; // m/s at full deflection
       const driftSpeed = 4.4; // m/s at full deflection — mjukare än aktiv rörelse
       let camX: number, camZ: number;
-      if (camMode === "noclip") {
+      if (camMode === "noclip" || camMode === "watercraft") {
         // Free 3D flight, no wave physics: NAV's y-axis moves along the full
         // view direction (pitch included), so looking up/down while pushing
         // forward climbs or dives — the standard "spectator/noclip" feel.
@@ -5599,6 +5787,46 @@ export function Aquafulness() {
             heaveSkewRef.current,
           );
 
+      // "Watercraft" camera mode: the raft (see WatercraftRig) floats on the
+      // real rendered ocean by sampling the exact same waveHeight() the
+      // camera itself floats on above — just at the raft's own fixed world
+      // position instead of the camera's. Roll/pitch are a light cosmetic
+      // sway rather than a true wave-slope estimate (cheap, and plenty
+      // convincing at the raft's size). Building/sculpting input (see the
+      // pointer handlers near the renderer setup below) only takes effect
+      // while this mode is active; the rig itself no-ops while hidden.
+      const watercraftRig = watercraftRigRef.current;
+      if (watercraftRig) {
+        if (camMode === "watercraft") {
+          const raftSurfaceY = waveHeight(
+            WATERCRAFT_RAFT_X,
+            WATERCRAFT_RAFT_Z,
+            t,
+            ampRef.current,
+            regularRef.current,
+            regularCrossRef.current,
+            regularPeriodRef.current,
+            wavePeakRef.current,
+            dirRad,
+            realisticRef.current,
+            fftWaveComponents,
+            dyingRef.current,
+            dyingWaveComponents,
+            dyingAmpRef.current,
+            dyingWaveT,
+            freqRef.current,
+            heaveSkewRef.current,
+          );
+          watercraftRig.setBob(
+            raftSurfaceY - 0.3,
+            Math.cos(t * 0.33) * 0.02,
+            Math.sin(t * 0.5 + 0.4) * 0.035,
+          );
+          watercraftRig.tick(camera);
+        }
+        watercraftRig.setVisible(camMode === "watercraft");
+      }
+
       // The wave-following buoyancy spring and current/sway drift apply in
       // float mode and whirlpool mode alike (whirlpool rides the funnel
       // surface's own height field the same way float rides the open
@@ -5825,7 +6053,7 @@ export function Aquafulness() {
         swayPosRef.current.z += swayVelRef.current.z * physDt;
         swayX = swayPosRef.current.x;
         swayZ = swayPosRef.current.z;
-      } else if (camMode === "noclip") {
+      } else if (camMode === "noclip" || camMode === "watercraft") {
         // Ambient HEAVE/SWAY: purely cosmetic wave motion layered on top of
         // noclip's free-flight position, only while "still" (FRITT
         // FALL/OMVÄND STIGNING already pin the vertical rate, so heave would
@@ -5939,7 +6167,7 @@ export function Aquafulness() {
       // Noclip allows a steeper look-up/down range since it drives full 3D
       // flight direction (see the forward vector above); other modes keep
       // the original, more conservative range.
-      const maxPitch = camMode === "noclip" ? 1.5 : 1.2;
+      const maxPitch = camMode === "noclip" || camMode === "watercraft" ? 1.5 : 1.2;
       if (pitchRef.current > maxPitch) pitchRef.current = maxPitch;
       if (pitchRef.current < -maxPitch) pitchRef.current = -maxPitch;
       camera.rotateY(yawRef.current);
@@ -6358,6 +6586,12 @@ export function Aquafulness() {
       tvManagerRef.current = null;
       torusRingField.dispose();
       torusRingFieldRef.current = null;
+      renderer.domElement.removeEventListener("pointerdown", onWatercraftPointerDown);
+      renderer.domElement.removeEventListener("pointermove", onWatercraftPointerMove);
+      renderer.domElement.removeEventListener("pointerup", onWatercraftPointerUp);
+      renderer.domElement.removeEventListener("pointercancel", onWatercraftPointerUp);
+      watercraftRig.dispose();
+      watercraftRigRef.current = null;
       if (renderer.domElement.parentNode === mount) {
         mount.removeChild(renderer.domElement);
       }
@@ -7426,7 +7660,7 @@ export function Aquafulness() {
             drift pad (HÖJD/vertStick, made sticky here) flanked by two small
             toggle buttons — OMVÄND STIGNING above, FRITT FALL below — that
             each pin the vertical rate to a strong constant climb/dive. */}
-        {cameraMode === "noclip" && (
+        {(cameraMode === "noclip" || cameraMode === "watercraft") && (
           <Joystick
             onChange={remoteControllerProps.onNoclipDriftChange}
             value={remoteControllerProps.noclipDriftStick}
@@ -7435,7 +7669,7 @@ export function Aquafulness() {
             sticky
           />
         )}
-        {cameraMode === "noclip" && (
+        {(cameraMode === "noclip" || cameraMode === "watercraft") && (
           <div className="pointer-events-none absolute bottom-64 left-8 z-10 select-none">
             <div className="flex flex-col items-center gap-1">
               <button
@@ -7552,7 +7786,7 @@ export function Aquafulness() {
             exact same state, so either stays in sync with the other. Sits in
             VÅGRIKT's unused spot on the right since noclip has no wave
             direction to steer. */}
-        {cameraMode === "noclip" && (
+        {(cameraMode === "noclip" || cameraMode === "watercraft") && (
           <div className="pointer-events-none absolute bottom-36 right-8 z-10 select-none">
             <VerticalModeSlider
               value={noclipVerticalMode}
@@ -7576,149 +7810,154 @@ export function Aquafulness() {
             useful settings all live near the bottom of these ranges — VÅG's
             default is 0.5 of 100 — so a linear track put every calm sea
             inside its first pixel and made the first touch of the slider a
-            cliff. */}
-        <div className="pointer-events-auto absolute bottom-8 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center gap-2">
-          {cameraDrawerOpen && (
-            <div className="flex flex-col items-center gap-2 rounded-3xl border ui-line-1 ui-surface-strong p-4 shadow-2xl backdrop-blur-xl">
-              <div className="flex gap-1 rounded-full border ui-line-1 ui-surface p-1">
-                {CAMERA_MODES.map((m) => (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => setCameraDrawerTab(m)}
-                    aria-pressed={cameraDrawerTab === m}
-                    className={`rounded-full px-3 py-1 text-[9px] font-light tracking-[0.2em] transition active:scale-95 ${
-                      cameraDrawerTab === m ? "ui-tint-2 ui-ink" : "ui-ink-muted"
-                    }`}
-                  >
-                    {t(CAMERA_MODE_LABEL_KEYS[m])}
-                  </button>
-                ))}
-              </div>
-              {cameraDrawerTab === "float" && (
-                <>
-                  <PadSlider
-                    label={t("hud.slider.wave")}
-                    value={waveAmp}
-                    min={0}
-                    max={100}
-                    step={0.5}
-                    curve={4}
-                    format={(v) => `${v.toFixed(2)}m`}
-                    onChange={setWaveAmp}
-                  />
-                  <PadSlider
-                    label={t("hud.slider.tempo")}
-                    value={waveSpeed}
-                    min={0}
-                    max={10}
-                    step={0.1}
-                    curve={2}
-                    format={(v) => `${v.toFixed(2)}×`}
-                    onChange={setWaveSpeed}
-                  />
-                  {/* Geometric, not power-curved: FREKVENS is a multiplier,
+            cliff. Hidden entirely in watercraft mode — none of its sliders
+            apply there (building/sculpting have no wave-speed-style dials),
+            and it would otherwise collide with WatercraftHud occupying the
+            same bottom-center spot. */}
+        {cameraMode !== "watercraft" && (
+          <div className="pointer-events-auto absolute bottom-8 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center gap-2">
+            {cameraDrawerOpen && (
+              <div className="flex flex-col items-center gap-2 rounded-3xl border ui-line-1 ui-surface-strong p-4 shadow-2xl backdrop-blur-xl">
+                <div className="flex gap-1 rounded-full border ui-line-1 ui-surface p-1">
+                  {CAMERA_MODES.map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setCameraDrawerTab(m)}
+                      aria-pressed={cameraDrawerTab === m}
+                      className={`rounded-full px-3 py-1 text-[9px] font-light tracking-[0.2em] transition active:scale-95 ${
+                        cameraDrawerTab === m ? "ui-tint-2 ui-ink" : "ui-ink-muted"
+                      }`}
+                    >
+                      {t(CAMERA_MODE_LABEL_KEYS[m])}
+                    </button>
+                  ))}
+                </div>
+                {cameraDrawerTab === "float" && (
+                  <>
+                    <PadSlider
+                      label={t("hud.slider.wave")}
+                      value={waveAmp}
+                      min={0}
+                      max={100}
+                      step={0.5}
+                      curve={4}
+                      format={(v) => `${v.toFixed(2)}m`}
+                      onChange={setWaveAmp}
+                    />
+                    <PadSlider
+                      label={t("hud.slider.tempo")}
+                      value={waveSpeed}
+                      min={0}
+                      max={10}
+                      step={0.1}
+                      curve={2}
+                      format={(v) => `${v.toFixed(2)}×`}
+                      onChange={setWaveSpeed}
+                    />
+                    {/* Geometric, not power-curved: FREKVENS is a multiplier,
                       so half speed (0.5×) and double (2×) should sit equally
                       far from 1×. */}
-                  <PadSlider
-                    label={t("hud.slider.frequency")}
-                    value={waveFreq}
-                    min={WAVE_FREQ_MIN}
-                    max={WAVE_FREQ_MAX}
-                    step={0.05}
-                    curve="log"
-                    format={(v) => `${v.toFixed(2)}×`}
-                    onChange={setWaveFreq}
-                  />
-                </>
-              )}
-              {cameraDrawerTab === "noclip" && (
-                <>
-                  <PadSlider
-                    label={t("dial.camera.noclipSpeed")}
-                    value={noclipSpeed}
-                    min={0.2}
-                    max={6}
-                    step={0.1}
-                    curve={2}
-                    format={(v) => `${v.toFixed(1)}×`}
-                    onChange={setNoclipSpeed}
-                  />
-                  <PadSlider
-                    label={t("dial.camera.noclipFallRiseSpeed")}
-                    value={noclipFallRiseSpeed}
-                    min={2}
-                    max={300}
-                    step={2}
-                    curve={2}
-                    format={(v) => `${v.toFixed(0)}m/s`}
-                    onChange={setNoclipFallRiseSpeed}
-                  />
-                </>
-              )}
-              {cameraDrawerTab === "whirlpool" && (
-                <>
-                  <PadSlider
-                    label={t("dial.wave.whirlpoolSpeed")}
-                    value={whirlpoolSpeed}
-                    min={0}
-                    max={10}
-                    step={0.1}
-                    curve={2}
-                    format={(v) => `${v.toFixed(2)}×`}
-                    onChange={setWhirlpoolSpeed}
-                  />
-                  <PadSlider
-                    label={t("dial.wave.whirlpoolDistance")}
-                    value={whirlpoolRadius}
-                    min={3}
-                    max={220}
-                    step={1}
-                    curve={2}
-                    format={(v) => `${v.toFixed(0)}m`}
-                    onChange={setWhirlpoolRadius}
-                  />
-                </>
-              )}
-              {cameraDrawerTab === "swing" && (
-                <>
-                  <PadSlider
-                    label={t("dial.camera.swingIntensity")}
-                    value={swingIntensity}
-                    min={0.0001}
-                    max={2.5}
-                    step={0.05}
-                    curve={2}
-                    format={(v) => `${v.toFixed(2)}×`}
-                    onChange={setSwingIntensity}
-                  />
-                  <PadSlider
-                    label={t("dial.camera.swingPositionY")}
-                    value={swingPositionY}
-                    min={0}
-                    max={100000}
-                    step={100}
-                    curve={2}
-                    format={(v) => `${v.toFixed(0)}m`}
-                    onChange={setSwingPositionY}
-                  />
-                </>
-              )}
-            </div>
-          )}
-          <button
-            onClick={() => setCameraDrawerOpen((v) => !v)}
-            className="rounded-full border ui-line-2 ui-surface px-5 py-2 text-[10px] font-light tracking-[0.35em] ui-ink backdrop-blur-md transition active:scale-95 ui-press"
-            aria-label={
-              cameraDrawerOpen ? t("hud.cameraDrawer.closeAria") : t("hud.cameraDrawer.openAria")
-            }
-            aria-expanded={cameraDrawerOpen}
-          >
-            {cameraDrawerOpen
-              ? t("hud.cameraDrawer.closeLabel")
-              : t(CAMERA_MODE_LABEL_KEYS[cameraDrawerTab])}
-          </button>
-        </div>
+                    <PadSlider
+                      label={t("hud.slider.frequency")}
+                      value={waveFreq}
+                      min={WAVE_FREQ_MIN}
+                      max={WAVE_FREQ_MAX}
+                      step={0.05}
+                      curve="log"
+                      format={(v) => `${v.toFixed(2)}×`}
+                      onChange={setWaveFreq}
+                    />
+                  </>
+                )}
+                {cameraDrawerTab === "noclip" && (
+                  <>
+                    <PadSlider
+                      label={t("dial.camera.noclipSpeed")}
+                      value={noclipSpeed}
+                      min={0.2}
+                      max={6}
+                      step={0.1}
+                      curve={2}
+                      format={(v) => `${v.toFixed(1)}×`}
+                      onChange={setNoclipSpeed}
+                    />
+                    <PadSlider
+                      label={t("dial.camera.noclipFallRiseSpeed")}
+                      value={noclipFallRiseSpeed}
+                      min={2}
+                      max={300}
+                      step={2}
+                      curve={2}
+                      format={(v) => `${v.toFixed(0)}m/s`}
+                      onChange={setNoclipFallRiseSpeed}
+                    />
+                  </>
+                )}
+                {cameraDrawerTab === "whirlpool" && (
+                  <>
+                    <PadSlider
+                      label={t("dial.wave.whirlpoolSpeed")}
+                      value={whirlpoolSpeed}
+                      min={0}
+                      max={10}
+                      step={0.1}
+                      curve={2}
+                      format={(v) => `${v.toFixed(2)}×`}
+                      onChange={setWhirlpoolSpeed}
+                    />
+                    <PadSlider
+                      label={t("dial.wave.whirlpoolDistance")}
+                      value={whirlpoolRadius}
+                      min={3}
+                      max={220}
+                      step={1}
+                      curve={2}
+                      format={(v) => `${v.toFixed(0)}m`}
+                      onChange={setWhirlpoolRadius}
+                    />
+                  </>
+                )}
+                {cameraDrawerTab === "swing" && (
+                  <>
+                    <PadSlider
+                      label={t("dial.camera.swingIntensity")}
+                      value={swingIntensity}
+                      min={0.0001}
+                      max={2.5}
+                      step={0.05}
+                      curve={2}
+                      format={(v) => `${v.toFixed(2)}×`}
+                      onChange={setSwingIntensity}
+                    />
+                    <PadSlider
+                      label={t("dial.camera.swingPositionY")}
+                      value={swingPositionY}
+                      min={0}
+                      max={100000}
+                      step={100}
+                      curve={2}
+                      format={(v) => `${v.toFixed(0)}m`}
+                      onChange={setSwingPositionY}
+                    />
+                  </>
+                )}
+              </div>
+            )}
+            <button
+              onClick={() => setCameraDrawerOpen((v) => !v)}
+              className="rounded-full border ui-line-2 ui-surface px-5 py-2 text-[10px] font-light tracking-[0.35em] ui-ink backdrop-blur-md transition active:scale-95 ui-press"
+              aria-label={
+                cameraDrawerOpen ? t("hud.cameraDrawer.closeAria") : t("hud.cameraDrawer.openAria")
+              }
+              aria-expanded={cameraDrawerOpen}
+            >
+              {cameraDrawerOpen
+                ? t("hud.cameraDrawer.closeLabel")
+                : t(CAMERA_MODE_LABEL_KEYS[cameraDrawerTab])}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Interval session HUD: a thin green bar along the very bottom edge
@@ -7799,6 +8038,58 @@ export function Aquafulness() {
           setEditMode={setEditMode}
         />
       )}
+
+      {/* "Watercraft" camera mode's build/sculpt HUD — see WatercraftRig and
+          the cameraMode==="watercraft" wiring throughout this component.
+          Rendered last (and so painted on top) so its palette/sliders sit
+          above every other HUD element while active. */}
+      {cameraMode === "watercraft" && (
+        <WatercraftHud
+          mode={watercraftMode}
+          onModeChange={setWatercraftMode}
+          buildAction={watercraftBuildAction}
+          onBuildActionChange={setWatercraftBuildAction}
+          blockType={watercraftBlockType}
+          onBlockTypeChange={setWatercraftBlockType}
+          sculptAction={watercraftSculptAction}
+          onSculptActionChange={setWatercraftSculptAction}
+          brushRadius={watercraftBrushRadius}
+          onBrushRadiusChange={setWatercraftBrushRadius}
+          brushStrength={watercraftBrushStrength}
+          onBrushStrengthChange={setWatercraftBrushStrength}
+          blockCount={watercraftBlockCount}
+          status={watercraftStatus}
+          onExport={() => void watercraftExport()}
+          onImportFile={watercraftImportFile}
+          onReset={watercraftHandleReset}
+          onDone={() => setCameraMode("float")}
+        />
+      )}
+      <ConfirmDialog
+        open={watercraftConfirm !== null}
+        title={
+          watercraftConfirm?.kind === "reset"
+            ? "Clear your build?"
+            : "Import over your current build?"
+        }
+        message={
+          watercraftConfirm?.kind === "reset"
+            ? "This removes every block and sculpted shape. This can't be undone."
+            : "If this file is a saved watercraft world, it will replace your current blocks and sculpt. Export first if you want to keep this build."
+        }
+        confirmLabel={watercraftConfirm?.kind === "reset" ? "Clear" : "Import"}
+        cancelLabel="Cancel"
+        onCancel={() => setWatercraftConfirm(null)}
+        onConfirm={() => {
+          if (watercraftConfirm?.kind === "reset") {
+            watercraftRigRef.current?.reset();
+            setWatercraftStatus("Cleared.");
+          } else if (watercraftConfirm?.file) {
+            void watercraftRunImport(watercraftConfirm.file);
+          }
+          setWatercraftConfirm(null);
+        }}
+      />
     </main>
   );
 }

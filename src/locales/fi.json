@@ -71,7 +71,8 @@
       "float": "UIJA",
       "noclip": "LENTO",
       "swing": "KEINU",
-      "whirlpool": "PYÖRRE"
+      "whirlpool": "PYÖRRE",
+      "watercraft": "ALUS"
     },
     "rotationValue": {
       "fixed": "KIINTEÄ",

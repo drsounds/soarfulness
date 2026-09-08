@@ -71,7 +71,8 @@
       "float": "SWIMMER",
       "noclip": "FLY",
       "swing": "SWING",
-      "whirlpool": "WHIRLPOOL"
+      "whirlpool": "WHIRLPOOL",
+      "watercraft": "WATERCRAFT"
     },
     "rotationValue": {
       "fixed": "FIXED",

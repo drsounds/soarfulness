@@ -71,7 +71,8 @@
       "float": "SVØMMER",
       "noclip": "FLY",
       "swing": "HUSKE",
-      "whirlpool": "VIRVEL"
+      "whirlpool": "VIRVEL",
+      "watercraft": "FARKOST"
     },
     "rotationValue": {
       "fixed": "FAST",

@@ -2893,7 +2893,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       min={0.05}
                       max={1}
                       step={0.05}
-                      onDec={() => setSkyPuffsOpacity((v) => Math.max(0.05, +(v - 0.05).toFixed(2)))}
+                      onDec={() =>
+                        setSkyPuffsOpacity((v) => Math.max(0.05, +(v - 0.05).toFixed(2)))
+                      }
                       onInc={() => setSkyPuffsOpacity((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
                     />
                   </>
