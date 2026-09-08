@@ -197,6 +197,7 @@ export function VerticalModeSlider({
 export function VerticalDial({
   value,
   onChange,
+  onReset,
   label = "LEVEL",
   min = -1,
   max = 1,
@@ -204,6 +205,12 @@ export function VerticalDial({
 }: {
   value: number;
   onChange: (v: number) => void;
+  // Reset-button handler — defaults to onChange(0). Override this when 0 on
+  // the dial isn't the whole story: LEVEL DRIFT, for instance, also has to
+  // stop its own eased velocity and snap the water level it already drifted
+  // back to baseline, neither of which onChange(0) alone can reach (both
+  // live in refs outside this component's props).
+  onReset?: () => void;
   label?: string;
   min?: number;
   max?: number;
@@ -267,7 +274,7 @@ export function VerticalDial({
       </div>
       <button
         type="button"
-        onClick={() => onChange(0)}
+        onClick={() => (onReset ? onReset() : onChange(0))}
         aria-label={t("common.resetAria", { label })}
         tabIndex={-1}
         className="ui-icon-btn pointer-events-auto flex h-5 w-5 items-center justify-center rounded-full border transition active:scale-95"

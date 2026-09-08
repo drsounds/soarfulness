@@ -45,6 +45,10 @@ export type RemoteControllerProps = {
   // cameraMode check the way STRÖM/SVAJ/VÅGRIKT/HÖJD are.
   depthDriftSpeed: number;
   setDepthDriftSpeed: Dispatch<SetStateAction<number>>;
+  // Resets depthDriftSpeed to 0 *and* zeroes the accumulated drift/velocity
+  // refs index.tsx tracks internally — setDepthDriftSpeed(0) alone would
+  // only stop further drift, not undo what already accumulated.
+  resetDepthDrift: () => void;
   syncWaveWithSway: boolean;
   setSyncWaveWithSway: Dispatch<SetStateAction<boolean>>;
 };
@@ -1028,6 +1032,7 @@ export function VirtualPhone({
                       label={t("remote.levelDrift")}
                       value={remoteControllerProps.depthDriftSpeed}
                       onChange={remoteControllerProps.setDepthDriftSpeed}
+                      onReset={remoteControllerProps.resetDepthDrift}
                       min={-20}
                       max={20}
                     />
