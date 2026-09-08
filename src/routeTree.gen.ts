@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as DocsRouteImport } from './routes/docs'
 import { Route as LicensesRouteImport } from './routes/licenses'
+import { Route as WatercraftRouteImport } from './routes/watercraft'
 import { Route as BathingPayloadRouteImport } from './routes/bathing.$payload'
 import { Route as DocsIndexRouteImport } from './routes/docs.index'
 import { Route as DocsBackgroundRouteImport } from './routes/docs.background'
@@ -39,6 +40,11 @@ const DocsRoute = DocsRouteImport.update({
 const LicensesRoute = LicensesRouteImport.update({
   id: '/licenses',
   path: '/licenses',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WatercraftRoute = WatercraftRouteImport.update({
+  id: '/watercraft',
+  path: '/watercraft',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BathingPayloadRoute = BathingPayloadRouteImport.update({
@@ -82,6 +88,7 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/docs': typeof DocsRouteWithChildren
   '/licenses': typeof LicensesRoute
+  '/watercraft': typeof WatercraftRoute
   '/bathing/$payload': typeof BathingPayloadRouteWithChildren
   '/docs/background': typeof DocsBackgroundRoute
   '/docs/optic-flow': typeof DocsOpticFlowRoute
@@ -94,6 +101,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/licenses': typeof LicensesRoute
+  '/watercraft': typeof WatercraftRoute
   '/docs/background': typeof DocsBackgroundRoute
   '/docs/optic-flow': typeof DocsOpticFlowRoute
   '/docs/references': typeof DocsReferencesRoute
@@ -107,6 +115,7 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/docs': typeof DocsRouteWithChildren
   '/licenses': typeof LicensesRoute
+  '/watercraft': typeof WatercraftRoute
   '/bathing/$payload': typeof BathingPayloadRouteWithChildren
   '/docs/background': typeof DocsBackgroundRoute
   '/docs/optic-flow': typeof DocsOpticFlowRoute
@@ -122,6 +131,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/docs'
     | '/licenses'
+    | '/watercraft'
     | '/bathing/$payload'
     | '/docs/background'
     | '/docs/optic-flow'
@@ -134,6 +144,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/licenses'
+    | '/watercraft'
     | '/docs/background'
     | '/docs/optic-flow'
     | '/docs/references'
@@ -146,6 +157,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/docs'
     | '/licenses'
+    | '/watercraft'
     | '/bathing/$payload'
     | '/docs/background'
     | '/docs/optic-flow'
@@ -160,6 +172,7 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   DocsRoute: typeof DocsRouteWithChildren
   LicensesRoute: typeof LicensesRoute
+  WatercraftRoute: typeof WatercraftRoute
   BathingPayloadRoute: typeof BathingPayloadRouteWithChildren
 }
 
@@ -191,6 +204,13 @@ declare module '@tanstack/react-router' {
       path: '/licenses'
       fullPath: '/licenses'
       preLoaderRoute: typeof LicensesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/watercraft': {
+      id: '/watercraft'
+      path: '/watercraft'
+      fullPath: '/watercraft'
+      preLoaderRoute: typeof WatercraftRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/bathing/$payload': {
@@ -280,6 +300,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   DocsRoute: DocsRouteWithChildren,
   LicensesRoute: LicensesRoute,
+  WatercraftRoute: WatercraftRoute,
   BathingPayloadRoute: BathingPayloadRouteWithChildren,
 }
 export const routeTree = rootRouteImport

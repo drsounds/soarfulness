@@ -956,6 +956,13 @@ function SplashScreen() {
           </button>
 
           <Link
+            to="/watercraft"
+            className="min-w-[220px] rounded-full border border-[#0b3d5c]/25 bg-white/40 px-8 py-3 text-sm font-medium tracking-[0.08em] text-[#0b3d5c] backdrop-blur-sm transition-colors hover:bg-white/60"
+          >
+            Watercraft (build mode)
+          </Link>
+
+          <Link
             to="/about"
             className="min-w-[220px] rounded-full border border-[#0b3d5c]/25 bg-white/40 px-8 py-3 text-sm font-medium tracking-[0.08em] text-[#0b3d5c] backdrop-blur-sm transition-colors hover:bg-white/60"
           >
