@@ -296,6 +296,10 @@ export type Persisted = {
   waveDir: number;
   floorDepth: number;
   floorTexture: boolean;
+  // BOTTOM "clouds" mode's cloud layer used to always drift slowly over
+  // time; that drift is now opt-in (default off, so the clouds sit still)
+  // via this toggle instead of always animating.
+  floorCloudsAnimated: boolean;
   whirlpoolOpening: number;
   whirlpoolRadius: number;
   whirlpoolSpeed: number;
@@ -540,6 +544,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "bottomColor",
     "floorDepth",
     "floorTexture",
+    "floorCloudsAnimated",
     "depthSineOn",
     "depthSineAmp",
     "depthSineFreq",

@@ -609,6 +609,8 @@ export type SettingsPanelProps = {
   setFloorDepth: Dispatch<SetStateAction<number>>;
   floorTexture: boolean;
   setFloorTexture: Dispatch<SetStateAction<boolean>>;
+  floorCloudsAnimated: boolean;
+  setFloorCloudsAnimated: Dispatch<SetStateAction<boolean>>;
   depthSineOn: boolean;
   setDepthSineOn: Dispatch<SetStateAction<boolean>>;
   depthSineAmp: number;
@@ -1247,6 +1249,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setFloorDepth,
     floorTexture,
     setFloorTexture,
+    floorCloudsAnimated,
+    setFloorCloudsAnimated,
     depthSineOn,
     setDepthSineOn,
     depthSineAmp,
@@ -2617,6 +2621,14 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
                     />
                   </label>
+                )}
+                {BOTTOM_OPTIONS[bottomIdx].id === "clouds" && (
+                  <SettingRow
+                    label={t("dial.water.floorCloudsAnimate")}
+                    value={onOff(floorCloudsAnimated)}
+                    onDec={() => setFloorCloudsAnimated(false)}
+                    onInc={() => setFloorCloudsAnimated(true)}
+                  />
                 )}
                 <SettingRow
                   label={t("dial.water.depth")}

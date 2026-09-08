@@ -730,6 +730,7 @@ const DEFAULTS: Persisted = {
   waveDir: 182.51523652581446,
   floorDepth: 28,
   floorTexture: true,
+  floorCloudsAnimated: false,
   whirlpoolOpening: 14,
   whirlpoolRadius: 26,
   whirlpoolSpeed: 1,
@@ -1107,6 +1108,7 @@ export function Aquafulness() {
   const [waveDir, setWaveDir] = useState(initial.waveDir);
   const [floorDepth, setFloorDepth] = useState(initial.floorDepth);
   const [floorTexture, setFloorTexture] = useState(initial.floorTexture);
+  const [floorCloudsAnimated, setFloorCloudsAnimated] = useState(initial.floorCloudsAnimated);
   // VIRVEL (whirlpool camera mode) — see the cameraMode==="whirlpool" branch
   // of the render loop below. whirlpoolOpening/Radius/Speed/Direction drive
   // the steady orbit (shared with the shader's funnel visual); the rest only
@@ -1453,6 +1455,7 @@ export function Aquafulness() {
     waveDir,
     floorDepth,
     floorTexture,
+    floorCloudsAnimated,
     whirlpoolOpening,
     whirlpoolRadius,
     whirlpoolSpeed,
@@ -1603,6 +1606,7 @@ export function Aquafulness() {
     waveDir,
     floorDepth,
     floorTexture,
+    floorCloudsAnimated,
     whirlpoolOpening,
     whirlpoolRadius,
     whirlpoolSpeed,
@@ -1816,6 +1820,7 @@ export function Aquafulness() {
   const waveDirRef = useRef(waveDir);
   const floorDepthRef = useRef(floorDepth);
   const floorTextureRef = useRef(floorTexture);
+  const floorCloudsAnimatedRef = useRef(floorCloudsAnimated);
   const whirlpoolOpeningRef = useRef(whirlpoolOpening);
   const whirlpoolRadiusRef = useRef(whirlpoolRadius);
   const whirlpoolSpeedRef = useRef(whirlpoolSpeed);
@@ -2026,6 +2031,9 @@ export function Aquafulness() {
   useEffect(() => {
     floorTextureRef.current = floorTexture;
   }, [floorTexture]);
+  useEffect(() => {
+    floorCloudsAnimatedRef.current = floorCloudsAnimated;
+  }, [floorCloudsAnimated]);
   useEffect(() => {
     whirlpoolOpeningRef.current = whirlpoolOpening;
   }, [whirlpoolOpening]);
@@ -2498,6 +2506,7 @@ export function Aquafulness() {
     setWaveDir(DEFAULTS.waveDir);
     setFloorDepth(DEFAULTS.floorDepth);
     setFloorTexture(DEFAULTS.floorTexture);
+    setFloorCloudsAnimated(DEFAULTS.floorCloudsAnimated);
     setWhirlpoolOpening(DEFAULTS.whirlpoolOpening);
     setWhirlpoolRadius(DEFAULTS.whirlpoolRadius);
     setWhirlpoolSpeed(DEFAULTS.whirlpoolSpeed);
@@ -2640,6 +2649,8 @@ export function Aquafulness() {
     if (patch.waveDir !== undefined) setWaveDir(patch.waveDir);
     if (patch.floorDepth !== undefined) setFloorDepth(patch.floorDepth);
     if (patch.floorTexture !== undefined) setFloorTexture(patch.floorTexture);
+    if (patch.floorCloudsAnimated !== undefined)
+      setFloorCloudsAnimated(patch.floorCloudsAnimated);
     if (patch.whirlpoolOpening !== undefined) setWhirlpoolOpening(patch.whirlpoolOpening);
     if (patch.whirlpoolRadius !== undefined) setWhirlpoolRadius(patch.whirlpoolRadius);
     if (patch.whirlpoolSpeed !== undefined) setWhirlpoolSpeed(patch.whirlpoolSpeed);
@@ -4935,9 +4946,12 @@ export function Aquafulness() {
         const target = isClouds ? 0 : floorTextureRef.current ? 1 : 0;
         floorUniforms.uTextured.value +=
           (target - floorUniforms.uTextured.value) * Math.min(1, dt * 4);
-        // Drift moln-lagret långsamt över tid.
-        floorUniforms.uCloudScroll.value.x = t * 0.015;
-        floorUniforms.uCloudScroll.value.y = t * 0.01;
+        // Drift moln-lagret långsamt över tid — nu opt-in via ANIMERA
+        // (floorCloudsAnimatedRef); av som standard håller molnlagret still.
+        if (floorCloudsAnimatedRef.current) {
+          floorUniforms.uCloudScroll.value.x = t * 0.015;
+          floorUniforms.uCloudScroll.value.y = t * 0.01;
+        }
         // Bara moln-läget behöver alfa-blandning; annars kör floor opakt så att
         // vattenytans egen transparens fungerar som tidigare.
         const wantTransparent = floorUniforms.uClouds.value > 0.5;
@@ -6485,6 +6499,8 @@ export function Aquafulness() {
     setFloorDepth,
     floorTexture,
     setFloorTexture,
+    floorCloudsAnimated,
+    setFloorCloudsAnimated,
     depthSineOn,
     setDepthSineOn,
     depthSineAmp,
