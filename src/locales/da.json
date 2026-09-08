@@ -209,6 +209,9 @@
       "saturation": "MÆTNING",
       "sineAmp": "SINUS AMP",
       "sineFreq": "SINUS FREK",
+      "sineInterval": "SINUS INTERVAL",
+      "sinePeak": "SINUS TOP",
+      "sineSpeed": "SINUS TEMPO",
       "sphereStrength": "SFÆRE-STYRKE",
       "surface": "VANDOVERFLADE",
       "surfaceValue": {

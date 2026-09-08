@@ -316,6 +316,16 @@ export type Persisted = {
   depthSineOn: boolean;
   depthSineAmp: number;
   depthSineFreq: number;
+  // Water-level rise/sink dials layered on top of depthSineAmp (height) and
+  // depthSineFreq (frequency), all multiplying/dividing the same phase
+  // together — mirrors how VÅGOR already stacks TEMPO/FREKVENS/VÅGPERIOD.
+  // Each defaults to a neutral value (1) so existing depthSine* settings
+  // behave exactly as before until a dial is actually moved.
+  depthSineSpeed: number;
+  depthSineInterval: number;
+  // Sharpness of the rise/sink peak, fed straight into the same
+  // shapedWave() curve VÅGOR's SPETS dial uses — 1 is a plain sine.
+  depthSinePeak: number;
   hideWater: boolean;
   midCloudsOn: boolean;
   midCloudsHeight: number;
@@ -528,6 +538,9 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "depthSineOn",
     "depthSineAmp",
     "depthSineFreq",
+    "depthSineSpeed",
+    "depthSineInterval",
+    "depthSinePeak",
     "hideWater",
     "causticsOn",
   ],

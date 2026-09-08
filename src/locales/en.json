@@ -209,6 +209,9 @@
       "saturation": "SATURATION",
       "sineAmp": "SINE AMP",
       "sineFreq": "SINE FREQ",
+      "sineInterval": "SINE INTERVAL",
+      "sinePeak": "SINE PEAK",
+      "sineSpeed": "SINE TEMPO",
       "sphereStrength": "SPHERE STRENGTH",
       "surface": "WATER SURFACE",
       "surfaceValue": {

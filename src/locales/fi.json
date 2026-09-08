@@ -209,6 +209,9 @@
       "saturation": "KYLLÄISYYS",
       "sineAmp": "SININ AMPLITUDI",
       "sineFreq": "SININ TAAJUUS",
+      "sineInterval": "SININ INTERVALLI",
+      "sinePeak": "SININ HUIPPU",
+      "sineSpeed": "SININ TEMPO",
       "sphereStrength": "PALLON VOIMAKKUUS",
       "surface": "VEDENPINTA",
       "surfaceValue": {

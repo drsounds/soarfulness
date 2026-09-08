@@ -209,6 +209,9 @@
       "saturation": "MÄTTNAD",
       "sineAmp": "SINUS AMP",
       "sineFreq": "SINUS FREK",
+      "sineInterval": "SINUS INTERVALL",
+      "sinePeak": "SINUS SPETS",
+      "sineSpeed": "SINUS TEMPO",
       "sphereStrength": "SFÄR-STYRKA",
       "surface": "VATTENYTA",
       "surfaceValue": {
