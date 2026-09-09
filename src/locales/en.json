@@ -111,6 +111,12 @@
     "decline": "DECLINE",
     "title": "Cookies & analytics"
   },
+  "depthSine": {
+    "waveform": {
+      "sawtooth": "SAWTOOTH",
+      "sine": "SINE"
+    }
+  },
   "dial": {
     "audio": {
       "off": "SOUND OFF",
@@ -221,6 +227,7 @@
       "sineInterval": "SINE INTERVAL",
       "sinePeak": "SINE PEAK",
       "sineSpeed": "SINE TEMPO",
+      "sineWaveform": "SINE WAVEFORM",
       "sphereStrength": "SPHERE STRENGTH",
       "surface": "WATER SURFACE",
       "surfaceValue": {

@@ -111,6 +111,12 @@
     "decline": "AVBÖJ",
     "title": "Cookies & statistik"
   },
+  "depthSine": {
+    "waveform": {
+      "sawtooth": "SÅGTAND",
+      "sine": "SINUS"
+    }
+  },
   "dial": {
     "audio": {
       "off": "LJUD AV",
@@ -221,6 +227,7 @@
       "sineInterval": "SINUS INTERVALL",
       "sinePeak": "SINUS SPETS",
       "sineSpeed": "SINUS TEMPO",
+      "sineWaveform": "SINUS VÅGFORM",
       "sphereStrength": "SFÄR-STYRKA",
       "surface": "VATTENYTA",
       "surfaceValue": {
