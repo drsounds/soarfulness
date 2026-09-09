@@ -1,11 +1,11 @@
 {
-  "version": 1,
   "asset_id": "e09be810-4ecf-4cdc-884e-0d2853472b5c",
-  "project_id": "0927e9c6-298f-4471-b57c-6aab531441b1",
-  "url": "/__l5e/assets-v1/e09be810-4ecf-4cdc-884e-0d2853472b5c/water.mp3",
-  "r2_key": "a/v1/0927e9c6-298f-4471-b57c-6aab531441b1/e09be810-4ecf-4cdc-884e-0d2853472b5c/water.mp3",
-  "original_filename": "water.mp3",
-  "size": 12442802,
   "content_type": "audio/mpeg",
-  "created_at": "2026-07-19T20:27:20Z"
+  "created_at": "2026-07-19T20:27:20Z",
+  "original_filename": "water.mp3",
+  "project_id": "55d9aea3-5c52-4c3d-8204-5585817d83aa",
+  "r2_key": "a/v1/55d9aea3-5c52-4c3d-8204-5585817d83aa/e09be810-4ecf-4cdc-884e-0d2853472b5c/water.mp3",
+  "size": 12442802,
+  "url": "/__l5e/assets-v1/e09be810-4ecf-4cdc-884e-0d2853472b5c/water.mp3",
+  "version": 1
 }

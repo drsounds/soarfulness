@@ -1,11 +1,11 @@
 {
-  "version": 1,
   "asset_id": "411fc601-ee7f-4443-bd1a-56fce269928f",
-  "project_id": "0927e9c6-298f-4471-b57c-6aab531441b1",
-  "url": "/__l5e/assets-v1/411fc601-ee7f-4443-bd1a-56fce269928f/vanern-backdrop.png",
-  "r2_key": "a/v1/0927e9c6-298f-4471-b57c-6aab531441b1/411fc601-ee7f-4443-bd1a-56fce269928f/vanern-backdrop.png",
-  "original_filename": "vanern-backdrop.png",
-  "size": 355832,
   "content_type": "image/png",
-  "created_at": "2026-07-19T22:01:34Z"
+  "created_at": "2026-07-19T22:01:34Z",
+  "original_filename": "vanern-backdrop.png",
+  "project_id": "55d9aea3-5c52-4c3d-8204-5585817d83aa",
+  "r2_key": "a/v1/55d9aea3-5c52-4c3d-8204-5585817d83aa/411fc601-ee7f-4443-bd1a-56fce269928f/vanern-backdrop.png",
+  "size": 355832,
+  "url": "/__l5e/assets-v1/411fc601-ee7f-4443-bd1a-56fce269928f/vanern-backdrop.png",
+  "version": 1
 }
