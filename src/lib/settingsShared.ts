@@ -175,6 +175,14 @@ export const SWING_PRESETS: SwingPreset[] = ["water", "clouds", "custom"];
 export type SwingYWaveform = "pendulum" | "sine" | "triangle" | "square";
 export const SWING_Y_WAVEFORMS: SwingYWaveform[] = ["pendulum", "sine", "triangle", "square"];
 
+// Shape of the DEPTH SINE water-level oscillation (routes/index.tsx's
+// depthMod). "sine" (default) is the existing symmetric shapedWave() curve.
+// "sawtooth" instead climbs for most of the cycle and then drops steeply
+// right after the peak — depthSinePeak still controls how sharp that drop
+// is, same as it sharpens the "sine" crest.
+export type DepthSineWaveform = "sine" | "sawtooth";
+export const DEPTH_SINE_WAVEFORMS: DepthSineWaveform[] = ["sine", "sawtooth"];
+
 // i18next key for each camera mode's display label — shared by the settings
 // dial (SettingsPanel.tsx) and the interval-session HUD readout
 // (routes/index.tsx), each of which resolves it via t().
@@ -338,6 +346,8 @@ export type Persisted = {
   // Sharpness of the rise/sink peak, fed straight into the same
   // shapedWave() curve VÅGOR's SPETS dial uses — 1 is a plain sine.
   depthSinePeak: number;
+  // Which curve depthMod uses — see DepthSineWaveform above.
+  depthSineWaveform: DepthSineWaveform;
   // Unbounded water-level drift (m/s, signed) layered on top of the bounded
   // DEPTH SINE oscillation above — much like noclip's FRITT FALL/OMVÄND
   // STIGNING, but for the water level instead of the camera: positive keeps
@@ -579,6 +589,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "depthSineSpeed",
     "depthSineInterval",
     "depthSinePeak",
+    "depthSineWaveform",
     "depthDriftSpeed",
     "hideWater",
     "causticsOn",

@@ -111,6 +111,12 @@
     "decline": "AFVIS",
     "title": "Cookies & statistik"
   },
+  "depthSine": {
+    "waveform": {
+      "sawtooth": "SAVTAND",
+      "sine": "SINUS"
+    }
+  },
   "dial": {
     "audio": {
       "off": "LYD FRA",
@@ -221,6 +227,7 @@
       "sineInterval": "SINUS INTERVAL",
       "sinePeak": "SINUS TOP",
       "sineSpeed": "SINUS TEMPO",
+      "sineWaveform": "SINUS BØLGEFORM",
       "sphereStrength": "SFÆRE-STYRKE",
       "surface": "VANDOVERFLADE",
       "surfaceValue": {

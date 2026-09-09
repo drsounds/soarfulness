@@ -111,6 +111,12 @@
     "decline": "KIELLÄ",
     "title": "Evästeet & tilastointi"
   },
+  "depthSine": {
+    "waveform": {
+      "sawtooth": "SAHALAITA",
+      "sine": "SINI"
+    }
+  },
   "dial": {
     "audio": {
       "off": "ÄÄNI POIS",
@@ -221,6 +227,7 @@
       "sineInterval": "SININ INTERVALLI",
       "sinePeak": "SININ HUIPPU",
       "sineSpeed": "SININ TEMPO",
+      "sineWaveform": "SININ AALTOMUOTO",
       "sphereStrength": "PALLON VOIMAKKUUS",
       "surface": "VEDENPINTA",
       "surfaceValue": {

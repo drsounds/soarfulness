@@ -31,6 +31,7 @@ import {
   WHIRLPOOL_EXIT_MODE_LABEL_KEYS,
   SWING_PRESETS,
   SWING_Y_WAVEFORMS,
+  DEPTH_SINE_WAVEFORMS,
   INTERVAL_SESSION_TYPES,
   WAVE_FREQ_MIN,
   WAVE_FREQ_MAX,
@@ -40,6 +41,7 @@ import {
   type CameraMode,
   type SwingPreset,
   type SwingYWaveform,
+  type DepthSineWaveform,
   type IntervalSessionType,
   type WavePresetName,
   type WhirlpoolDirection,
@@ -67,6 +69,10 @@ const SWING_Y_WAVEFORM_LABEL_KEYS: Record<SwingYWaveform, string> = {
   sine: "swing.waveform.sine",
   triangle: "swing.waveform.triangle",
   square: "swing.waveform.square",
+};
+const DEPTH_SINE_WAVEFORM_LABEL_KEYS: Record<DepthSineWaveform, string> = {
+  sine: "depthSine.waveform.sine",
+  sawtooth: "depthSine.waveform.sawtooth",
 };
 const WAVE_PRESET_LABEL_KEYS: Record<WavePresetName, string> = {
   standard: "wave.preset.standard",
@@ -623,6 +629,9 @@ export type SettingsPanelProps = {
   setDepthSineInterval: Dispatch<SetStateAction<number>>;
   depthSinePeak: number;
   setDepthSinePeak: Dispatch<SetStateAction<number>>;
+  depthSineWaveform: DepthSineWaveform;
+  setDepthSineWaveform: Dispatch<SetStateAction<DepthSineWaveform>>;
+  cycleDepthSineWaveform: (dir: number) => void;
   depthDriftSpeed: number;
   setDepthDriftSpeed: Dispatch<SetStateAction<number>>;
   hideWater: boolean;
@@ -1275,6 +1284,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setDepthSineInterval,
     depthSinePeak,
     setDepthSinePeak,
+    depthSineWaveform,
+    setDepthSineWaveform,
+    cycleDepthSineWaveform,
     depthDriftSpeed,
     setDepthDriftSpeed,
     hideWater,
@@ -2679,16 +2691,25 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   onInc={() => setDepthSineOn(true)}
                 />
                 <SettingRow
+                  label={t("dial.water.sineWaveform")}
+                  value={t(DEPTH_SINE_WAVEFORM_LABEL_KEYS[depthSineWaveform])}
+                  options={DEPTH_SINE_WAVEFORMS.map((w) => t(DEPTH_SINE_WAVEFORM_LABEL_KEYS[w]))}
+                  selectedIndex={DEPTH_SINE_WAVEFORMS.indexOf(depthSineWaveform)}
+                  onSelectIndex={(i) => setDepthSineWaveform(DEPTH_SINE_WAVEFORMS[i])}
+                  onDec={() => cycleDepthSineWaveform(-1)}
+                  onInc={() => cycleDepthSineWaveform(1)}
+                />
+                <SettingRow
                   label={t("dial.water.sineAmp")}
                   mode="number"
                   value={`${depthSineAmp.toFixed(2)}m`}
                   rawValue={depthSineAmp}
-                  onSet={(v) => setDepthSineAmp(Math.max(0, Math.min(30, v)))}
+                  onSet={(v) => setDepthSineAmp(Math.max(0, Math.min(90, v)))}
                   min={0}
-                  max={30}
+                  max={90}
                   step={0.25}
                   onDec={() => setDepthSineAmp((v) => Math.max(0, +(v - 0.25).toFixed(2)))}
-                  onInc={() => setDepthSineAmp((v) => Math.min(30, +(v + 0.25).toFixed(2)))}
+                  onInc={() => setDepthSineAmp((v) => Math.min(90, +(v + 0.25).toFixed(2)))}
                 />
                 <SettingRow
                   label={t("dial.water.sineFreq")}

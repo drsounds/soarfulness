@@ -43,6 +43,7 @@ import {
   SWING_PRESETS,
   TORUS_RING_TEXTURES,
   SWING_Y_WAVEFORMS,
+  DEPTH_SINE_WAVEFORMS,
   INTERVAL_SESSION_TYPES,
   WAVE_FREQ_MIN,
   WAVE_FREQ_MAX,
@@ -54,6 +55,7 @@ import {
   type CameraMode,
   type SwingPreset,
   type SwingYWaveform,
+  type DepthSineWaveform,
   type IntervalSessionType,
   type WavePresetName,
   type WhirlpoolDirection,
@@ -157,6 +159,26 @@ function shapedWave(theta: number, p: number) {
     (base + stokes + amount * (crest - mean) + k * 0.55 * peakBoost) /
     (1 + amount * 0.28 + k * 0.35 + k * 0.01)
   );
+}
+
+// DEPTH SINE's "sawtooth" waveform option: unlike shapedWave()'s symmetric
+// rise/fall, this climbs smoothly for most of the cycle and then drops
+// steeply right after the peak. Reuses the same "peak" sharpness dial as
+// shapedWave() (SPETS) to control how much of the cycle the fall eats up —
+// 1 gives a gentle ~35% fall, 6 crams it into a near-vertical ~6%.
+function sawtoothWave(theta: number, p: number) {
+  const twoPi = Math.PI * 2;
+  let frac = (theta % twoPi) / twoPi;
+  if (frac < 0) frac += 1;
+  const k = Math.min(1, Math.max(0, (p - 1) / 5));
+  const fallFrac = 0.35 * (1 - k) + 0.06 * k;
+  const riseFrac = 1 - fallFrac;
+  if (frac < riseFrac) {
+    const u = frac / riseFrac;
+    return -Math.cos(u * Math.PI);
+  }
+  const u = (frac - riseFrac) / fallFrac;
+  return 1 - 2 * u;
 }
 
 // HEAVE SKEW: warps a *temporal* phase (t*speed [+ a fixed per-term offset],
@@ -790,6 +812,7 @@ const DEFAULTS: Persisted = {
   depthSineSpeed: 1,
   depthSineInterval: 1,
   depthSinePeak: 1,
+  depthSineWaveform: "sine",
   depthDriftSpeed: 0,
   hideWater: false,
   midCloudsOn: false,
@@ -1205,6 +1228,9 @@ export function Aquafulness() {
   const [depthSineSpeed, setDepthSineSpeed] = useState(initial.depthSineSpeed);
   const [depthSineInterval, setDepthSineInterval] = useState(initial.depthSineInterval);
   const [depthSinePeak, setDepthSinePeak] = useState(initial.depthSinePeak);
+  const [depthSineWaveform, setDepthSineWaveform] = useState<DepthSineWaveform>(
+    initial.depthSineWaveform,
+  );
   const [depthDriftSpeed, setDepthDriftSpeed] = useState(initial.depthDriftSpeed);
   const [hideWater, setHideWater] = useState(initial.hideWater);
   const [midCloudsOn, setMidCloudsOn] = useState(initial.midCloudsOn);
@@ -1662,6 +1688,7 @@ export function Aquafulness() {
     depthSineSpeed,
     depthSineInterval,
     depthSinePeak,
+    depthSineWaveform,
     depthDriftSpeed,
     hideWater,
     midCloudsOn,
@@ -1819,6 +1846,7 @@ export function Aquafulness() {
     depthSineSpeed,
     depthSineInterval,
     depthSinePeak,
+    depthSineWaveform,
     depthDriftSpeed,
     hideWater,
     midCloudsOn,
@@ -2070,6 +2098,7 @@ export function Aquafulness() {
   const depthSineSpeedRef = useRef(depthSineSpeed);
   const depthSineIntervalRef = useRef(depthSineInterval);
   const depthSinePeakRef = useRef(depthSinePeak);
+  const depthSineWaveformRef = useRef(depthSineWaveform);
   const depthDriftSpeedRef = useRef(depthDriftSpeed);
   // Infinite water-level drift, much like noclip's FRITT FALL/OMVÄND
   // STIGNING: depthDriftVelRef eases toward depthDriftSpeedRef's target rate
@@ -2333,6 +2362,9 @@ export function Aquafulness() {
   useEffect(() => {
     depthSinePeakRef.current = depthSinePeak;
   }, [depthSinePeak]);
+  useEffect(() => {
+    depthSineWaveformRef.current = depthSineWaveform;
+  }, [depthSineWaveform]);
   useEffect(() => {
     depthDriftSpeedRef.current = depthDriftSpeed;
   }, [depthDriftSpeed]);
@@ -2801,6 +2833,7 @@ export function Aquafulness() {
     setDepthSineSpeed(DEFAULTS.depthSineSpeed);
     setDepthSineInterval(DEFAULTS.depthSineInterval);
     setDepthSinePeak(DEFAULTS.depthSinePeak);
+    setDepthSineWaveform(DEFAULTS.depthSineWaveform);
     setDepthDriftSpeed(DEFAULTS.depthDriftSpeed);
     depthDriftRef.current = 0;
     depthDriftVelRef.current = 0;
@@ -2951,6 +2984,7 @@ export function Aquafulness() {
     if (patch.depthSineSpeed !== undefined) setDepthSineSpeed(patch.depthSineSpeed);
     if (patch.depthSineInterval !== undefined) setDepthSineInterval(patch.depthSineInterval);
     if (patch.depthSinePeak !== undefined) setDepthSinePeak(patch.depthSinePeak);
+    if (patch.depthSineWaveform !== undefined) setDepthSineWaveform(patch.depthSineWaveform);
     if (patch.depthDriftSpeed !== undefined) setDepthDriftSpeed(patch.depthDriftSpeed);
     if (patch.hideWater !== undefined) setHideWater(patch.hideWater);
     if (patch.midCloudsOn !== undefined) setMidCloudsOn(patch.midCloudsOn);
@@ -3302,6 +3336,12 @@ export function Aquafulness() {
     const idx = SWING_Y_WAVEFORMS.indexOf(swingYWaveform);
     setSwingYWaveform(
       SWING_Y_WAVEFORMS[(idx + dir + SWING_Y_WAVEFORMS.length) % SWING_Y_WAVEFORMS.length],
+    );
+  };
+  const cycleDepthSineWaveform = (dir: number) => {
+    const idx = DEPTH_SINE_WAVEFORMS.indexOf(depthSineWaveform);
+    setDepthSineWaveform(
+      DEPTH_SINE_WAVEFORMS[(idx + dir + DEPTH_SINE_WAVEFORMS.length) % DEPTH_SINE_WAVEFORMS.length],
     );
   };
 
@@ -5337,8 +5377,9 @@ export function Aquafulness() {
       const depthPhase =
         (t * depthSineSpeedRef.current * depthSineFreqRef.current * Math.PI * 2) /
         Math.max(0.001, depthSineIntervalRef.current);
+      const depthWaveFn = depthSineWaveformRef.current === "sawtooth" ? sawtoothWave : shapedWave;
       const depthMod = depthSineOnRef.current
-        ? shapedWave(depthPhase, depthSinePeakRef.current) * depthSineAmpRef.current
+        ? depthWaveFn(depthPhase, depthSinePeakRef.current) * depthSineAmpRef.current
         : 0;
       // LEVEL DRIFT: an unbounded rise/sink layered on top of the bounded
       // DEPTH SINE oscillation above — same idea as noclip's FRITT FALL/
@@ -7091,6 +7132,9 @@ export function Aquafulness() {
     setDepthSineInterval,
     depthSinePeak,
     setDepthSinePeak,
+    depthSineWaveform,
+    setDepthSineWaveform,
+    cycleDepthSineWaveform,
     depthDriftSpeed,
     setDepthDriftSpeed,
     hideWater,
