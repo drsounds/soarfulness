@@ -29,6 +29,8 @@ import {
   WHIRLPOOL_DIRECTION_LABEL_KEYS,
   WHIRLPOOL_EXIT_MODES,
   WHIRLPOOL_EXIT_MODE_LABEL_KEYS,
+  SURGE_ROTATION_MODES,
+  SURGE_ROTATION_MODE_LABEL_KEYS,
   SWING_PRESETS,
   SWING_Y_WAVEFORMS,
   DEPTH_SINE_WAVEFORMS,
@@ -46,6 +48,7 @@ import {
   type WavePresetName,
   type WhirlpoolDirection,
   type WhirlpoolExitMode,
+  type SurgeRotationMode,
 } from "@/lib/settingsShared";
 import { pickJsonFile, type PresetScope, type SavedPreset, type SavedState } from "@/lib/presets";
 import { changeLanguage, SUPPORTED_LANGUAGES, LANGUAGE_NAMES, type LanguageCode } from "@/lib/i18n";
@@ -407,6 +410,22 @@ export type SettingsPanelProps = {
   setSwaySpeed: Dispatch<SetStateAction<number>>;
   swayBias: number;
   setSwayBias: Dispatch<SetStateAction<number>>;
+  // SURGE: an independent, slow back-and-forth current, decoupled from the
+  // HEAVE-locked SVAJ above — see routes/index.tsx's surge physics.
+  // surgeWorldRef is the fixed-in-world direction (recomputed live from
+  // surgeRotationMode when that's cw/ccw/random); setSurgeBearing is its
+  // dedicated setter (distinct from setStickBearing since surgeWorldRef also
+  // gets rewritten every frame by the rotation, not just by user input).
+  surgeWorldRef: MutableRefObject<{ x: number; z: number }>;
+  setSurgeBearing: (deg: number) => void;
+  surgeAmp: number;
+  setSurgeAmp: Dispatch<SetStateAction<number>>;
+  surgeSpeed: number;
+  setSurgeSpeed: Dispatch<SetStateAction<number>>;
+  surgeRotationMode: SurgeRotationMode;
+  setSurgeRotationMode: Dispatch<SetStateAction<SurgeRotationMode>>;
+  surgeRotationSpeed: number;
+  setSurgeRotationSpeed: Dispatch<SetStateAction<number>>;
   buoyAmp: number;
   setBuoyAmp: Dispatch<SetStateAction<number>>;
   bobSpeed: number;
@@ -1097,6 +1116,16 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setSwaySpeed,
     swayBias,
     setSwayBias,
+    surgeWorldRef,
+    setSurgeBearing,
+    surgeAmp,
+    setSurgeAmp,
+    surgeSpeed,
+    setSurgeSpeed,
+    surgeRotationMode,
+    setSurgeRotationMode,
+    surgeRotationSpeed,
+    setSurgeRotationSpeed,
     buoyAmp,
     setBuoyAmp,
     bobSpeed,
@@ -1826,6 +1855,87 @@ export function SettingsPanel(props: SettingsPanelProps) {
                           worldXZBearing(swayWorldRef.current.x, swayWorldRef.current.z) + 15,
                         )
                       }
+                    />
+                    <SettingRow
+                      label={t("dial.wave.surge")}
+                      mode="number"
+                      value={`${surgeAmp.toFixed(1)}m`}
+                      rawValue={surgeAmp}
+                      onSet={setSurgeAmp}
+                      min={0}
+                      max={60}
+                      step={0.5}
+                      onDec={() => setSurgeAmp((v) => Math.max(0, +(v - 0.5).toFixed(2)))}
+                      onInc={() => setSurgeAmp((v) => Math.min(60, +(v + 0.5).toFixed(2)))}
+                    />
+                    <SettingRow
+                      label={t("dial.wave.surgeSpeed")}
+                      mode="number"
+                      value={`${surgeSpeed.toFixed(2)}×`}
+                      rawValue={surgeSpeed}
+                      onSet={setSurgeSpeed}
+                      min={0.01}
+                      max={10}
+                      step={0.01}
+                      onDec={() => setSurgeSpeed((v) => Math.max(0.01, +(v - 0.01).toFixed(2)))}
+                      onInc={() => setSurgeSpeed((v) => Math.min(1, +(v + 0.01).toFixed(2)))}
+                    />
+                    <SettingRow
+                      label={t("dial.wave.surgeDirection")}
+                      mode="number"
+                      value={`${Math.round(worldXZBearing(surgeWorldRef.current.x, surgeWorldRef.current.z))}°`}
+                      rawValue={worldXZBearing(surgeWorldRef.current.x, surgeWorldRef.current.z)}
+                      onSet={setSurgeBearing}
+                      min={0}
+                      max={360}
+                      step={5}
+                      onDec={() =>
+                        setSurgeBearing(
+                          worldXZBearing(surgeWorldRef.current.x, surgeWorldRef.current.z) - 15,
+                        )
+                      }
+                      onInc={() =>
+                        setSurgeBearing(
+                          worldXZBearing(surgeWorldRef.current.x, surgeWorldRef.current.z) + 15,
+                        )
+                      }
+                    />
+                    <SettingRow
+                      label={t("dial.wave.surgeRotationMode")}
+                      value={t(SURGE_ROTATION_MODE_LABEL_KEYS[surgeRotationMode])}
+                      options={SURGE_ROTATION_MODES.map((m) => t(SURGE_ROTATION_MODE_LABEL_KEYS[m]))}
+                      selectedIndex={SURGE_ROTATION_MODES.indexOf(surgeRotationMode)}
+                      onSelectIndex={(i) => setSurgeRotationMode(SURGE_ROTATION_MODES[i])}
+                      onDec={() =>
+                        setSurgeRotationMode(
+                          SURGE_ROTATION_MODES[
+                            (SURGE_ROTATION_MODES.indexOf(surgeRotationMode) -
+                              1 +
+                              SURGE_ROTATION_MODES.length) %
+                              SURGE_ROTATION_MODES.length
+                          ],
+                        )
+                      }
+                      onInc={() =>
+                        setSurgeRotationMode(
+                          SURGE_ROTATION_MODES[
+                            (SURGE_ROTATION_MODES.indexOf(surgeRotationMode) + 1) %
+                              SURGE_ROTATION_MODES.length
+                          ],
+                        )
+                      }
+                    />
+                    <SettingRow
+                      label={t("dial.wave.surgeRotationSpeed")}
+                      mode="number"
+                      value={`${surgeRotationSpeed.toFixed(1)}°/s`}
+                      rawValue={surgeRotationSpeed}
+                      onSet={setSurgeRotationSpeed}
+                      min={0}
+                      max={30}
+                      step={0.5}
+                      onDec={() => setSurgeRotationSpeed((v) => Math.max(0, +(v - 0.5).toFixed(2)))}
+                      onInc={() => setSurgeRotationSpeed((v) => Math.min(30, +(v + 0.5).toFixed(2)))}
                     />
                     <SettingRow
                       label={t("dial.wave.bob")}

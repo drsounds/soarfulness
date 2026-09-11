@@ -78,6 +78,12 @@
       "fixed": "FIXED",
       "leanForward": "LEAN FORWARD"
     },
+    "surgeRotationMode": {
+      "ccw": "COUNTER-CLOCKWISE",
+      "cw": "CLOCKWISE",
+      "off": "FIXED",
+      "random": "RANDOM"
+    },
     "whirlpoolDirection": {
       "ccw": "COUNTER-CLOCKWISE",
       "cw": "CLOCKWISE"
@@ -267,6 +273,11 @@
         "on": "FFT OCEAN"
       },
       "speed": "TEMPO",
+      "surge": "SURGE",
+      "surgeDirection": "SURGE DIRECTION",
+      "surgeRotationMode": "SURGE ROTATION",
+      "surgeRotationSpeed": "SURGE ROTATION SPEED",
+      "surgeSpeed": "SURGE TEMPO",
       "sway": "SWAY",
       "swayDirection": "SWAY DIRECTION",
       "swayDrift": "SWAY DRIFT",

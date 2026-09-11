@@ -78,6 +78,12 @@
       "fixed": "FAST",
       "leanForward": "FREMOVERLÆNET"
     },
+    "surgeRotationMode": {
+      "ccw": "MOD URET",
+      "cw": "MED URET",
+      "off": "FAST",
+      "random": "TILFÆLDIG"
+    },
     "whirlpoolDirection": {
       "ccw": "MOD URET",
       "cw": "MED URET"
@@ -267,6 +273,11 @@
         "on": "FFT-HAV"
       },
       "speed": "TEMPO",
+      "surge": "DØNNING",
+      "surgeDirection": "DØNNING RETNING",
+      "surgeRotationMode": "DØNNING ROTATION",
+      "surgeRotationSpeed": "DØNNING ROTATIONSHASTIGHED",
+      "surgeSpeed": "DØNNING TEMPO",
       "sway": "SVAJ",
       "swayDirection": "SVAJ RETNING",
       "swayDrift": "SVAJ DRIFT",

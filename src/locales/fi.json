@@ -78,6 +78,12 @@
       "fixed": "KIINTEÄ",
       "leanForward": "KALLISTUS ETEEN"
     },
+    "surgeRotationMode": {
+      "ccw": "VASTAPÄIVÄÄN",
+      "cw": "MYÖTÄPÄIVÄÄN",
+      "off": "KIINTEÄ",
+      "random": "SATUNNAINEN"
+    },
     "whirlpoolDirection": {
       "ccw": "VASTAPÄIVÄÄN",
       "cw": "MYÖTÄPÄIVÄÄN"
@@ -267,6 +273,11 @@
         "on": "FFT-MERI"
       },
       "speed": "TEMPO",
+      "surge": "MAININKI",
+      "surgeDirection": "MAININGIN SUUNTA",
+      "surgeRotationMode": "MAININGIN PYÖRIMINEN",
+      "surgeRotationSpeed": "MAININGIN PYÖRIMISNOPEUS",
+      "surgeSpeed": "MAININGIN TEMPO",
       "sway": "HEILUNTA",
       "swayDirection": "HEILUNNAN SUUNTA",
       "swayDrift": "HEILUNNAN AJAUTUMA",
