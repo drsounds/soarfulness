@@ -156,6 +156,16 @@ export const CAMERA_MODES: CameraMode[] = ["float", "noclip", "whirlpool", "swin
 export type WhirlpoolDirection = "cw" | "ccw";
 export const WHIRLPOOL_DIRECTIONS: WhirlpoolDirection[] = ["cw", "ccw"];
 
+// How SURGE's own direction (surgeDirRef in routes/index.tsx) evolves over
+// time: "off" holds a fixed bearing (set via the SURGE DIRECTION dial),
+// "cw"/"ccw" turn it steadily clockwise/counter-clockwise as seen from
+// above, and "random" instead lets it wander via a smooth, damped random
+// walk — an organic drift rather than a steady spin, meant to read like a
+// real current's direction shifting over time instead of a mechanical
+// rotation.
+export type SurgeRotationMode = "off" | "cw" | "ccw" | "random";
+export const SURGE_ROTATION_MODES: SurgeRotationMode[] = ["off", "cw", "ccw", "random"];
+
 // How the whirlpool's optional automatic sequence releases the camera after
 // its "stay inside" phase: "throwBack" flings it back out to the outer
 // radius (fast launch, easing to a stop); "reverseSpin" instead unwinds it
@@ -197,6 +207,13 @@ export const CAMERA_MODE_LABEL_KEYS: Record<CameraMode, string> = {
 export const WHIRLPOOL_DIRECTION_LABEL_KEYS: Record<WhirlpoolDirection, string> = {
   cw: "camera.whirlpoolDirection.cw",
   ccw: "camera.whirlpoolDirection.ccw",
+};
+
+export const SURGE_ROTATION_MODE_LABEL_KEYS: Record<SurgeRotationMode, string> = {
+  off: "camera.surgeRotationMode.off",
+  cw: "camera.surgeRotationMode.cw",
+  ccw: "camera.surgeRotationMode.ccw",
+  random: "camera.surgeRotationMode.random",
 };
 
 export const WHIRLPOOL_EXIT_MODE_LABEL_KEYS: Record<WhirlpoolExitMode, string> = {
@@ -382,6 +399,19 @@ export type Persisted = {
   swaySpeed: number;
   swayBias: number;
   syncWaveWithSway: boolean;
+  // SURGE: an independent, slow back-and-forth current — the same feel as
+  // SVAJ (SWAY) above, but on its own clock instead of being phase-locked to
+  // the vertical HEAVE bob, so it keeps carrying the camera fore/aft along
+  // its own direction even when the wave itself is flat. surgeRotationMode/
+  // surgeRotationSpeed let that direction slowly turn (or wander, in
+  // "random") instead of staying fixed — see routes/index.tsx's surge
+  // physics for the exact math. Purely a position offset like SVAJ, applied
+  // to both the camera and its look target together so it never turns the
+  // view, only carries it.
+  surgeAmp: number;
+  surgeSpeed: number;
+  surgeRotationMode: SurgeRotationMode;
+  surgeRotationSpeed: number;
   // VÄRLDSGRÄNS (world boundary): once on, the camera's x/z and y wrap to the
   // opposite edge on crossing ±worldBoundarySize/Height — see wrapAxis in
   // routes/index.tsx. worldBoundaryYExtend is the *default* y behavior:
@@ -496,6 +526,10 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "swaySpeed",
     "swayBias",
     "syncWaveWithSway",
+    "surgeAmp",
+    "surgeSpeed",
+    "surgeRotationMode",
+    "surgeRotationSpeed",
     "buoyAmp",
     "bobSpeed",
     "regularWaves",

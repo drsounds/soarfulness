@@ -78,6 +78,12 @@
       "fixed": "FIXERAD",
       "leanForward": "FRAMÅTLUT"
     },
+    "surgeRotationMode": {
+      "ccw": "MOTURS",
+      "cw": "MEDURS",
+      "off": "FIXERAD",
+      "random": "SLUMP"
+    },
     "whirlpoolDirection": {
       "ccw": "MOTURS",
       "cw": "MEDURS"
@@ -267,6 +273,11 @@
         "on": "FFT-HAV"
       },
       "speed": "TEMPO",
+      "surge": "SVALL",
+      "surgeDirection": "SVALL RIKTNING",
+      "surgeRotationMode": "SVALL ROTATION",
+      "surgeRotationSpeed": "SVALL ROTATIONSHASTIGHET",
+      "surgeSpeed": "SVALL TEMPO",
       "sway": "SVAJ",
       "swayDirection": "SVAJ RIKTNING",
       "swayDrift": "SVAJ DRIFT",

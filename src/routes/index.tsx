@@ -60,6 +60,7 @@ import {
   type WavePresetName,
   type WhirlpoolDirection,
   type WhirlpoolExitMode,
+  type SurgeRotationMode,
   type Persisted,
 } from "@/lib/settingsShared";
 import {
@@ -832,6 +833,12 @@ const DEFAULTS: Persisted = {
   // match, so the waves read as the cause of the sway instead of two
   // independently-aimed controls.
   syncWaveWithSway: true,
+  // SURGE off by default (0 amplitude) so it's an opt-in current on top of
+  // the existing HEAVE-locked SVAJ, not a replacement for it.
+  surgeAmp: 0,
+  surgeSpeed: 0.2,
+  surgeRotationMode: "off",
+  surgeRotationSpeed: 2,
   // On by default, generous enough (20km horizontally, 3km up/down) that
   // normal float-mode swimming near origin never brushes it — mainly meant
   // to be discovered by flying far in NOCLIP. worldBoundaryYExtend on means
@@ -1247,6 +1254,12 @@ export function Aquafulness() {
   const [swaySpeed, setSwaySpeed] = useState(initial.swaySpeed);
   const [swayBias, setSwayBias] = useState(initial.swayBias);
   const [syncWaveWithSway, setSyncWaveWithSway] = useState(initial.syncWaveWithSway);
+  const [surgeAmp, setSurgeAmp] = useState(initial.surgeAmp);
+  const [surgeSpeed, setSurgeSpeed] = useState(initial.surgeSpeed);
+  const [surgeRotationMode, setSurgeRotationMode] = useState<SurgeRotationMode>(
+    initial.surgeRotationMode,
+  );
+  const [surgeRotationSpeed, setSurgeRotationSpeed] = useState(initial.surgeRotationSpeed);
   const [worldBoundaryOn, setWorldBoundaryOn] = useState(initial.worldBoundaryOn);
   const [worldBoundarySize, setWorldBoundarySize] = useState(initial.worldBoundarySize);
   const [worldBoundaryHeight, setWorldBoundaryHeight] = useState(initial.worldBoundaryHeight);
@@ -1384,6 +1397,13 @@ export function Aquafulness() {
   const [driftStick, setDriftStick] = useState({ x: 0, y: 0 });
   const [waveDirStick, setWaveDirStick] = useState({ x: 0, y: 0 });
   const [swayStick, setSwayStick] = useState({ x: 0, y: 0 });
+  // Display-only pad state for SURGE's direction, kept in sync with
+  // surgeDirRef the same way swayStick mirrors swayWorldRef — there's no
+  // draggable on-screen pad for it (direction is set via the SURGE
+  // DIRECTION dial in Settings), but the sync still needs a state setter to
+  // trigger a re-render so that dial's live bearing readout stays fresh
+  // while surgeRotationMode is turning or wandering it every frame.
+  const [surgeStick, setSurgeStick] = useState({ x: 0, y: 0 });
   // Noclip's dedicated vertical (ascend/descend) joystick, shown in place of
   // STRÖM which has no meaning outside float mode. Sticky in the main HUD/
   // remote (see the JSX below) — it's noclip's own persistent "current",
@@ -1705,6 +1725,10 @@ export function Aquafulness() {
     swaySpeed,
     swayBias,
     syncWaveWithSway,
+    surgeAmp,
+    surgeSpeed,
+    surgeRotationMode,
+    surgeRotationSpeed,
     worldBoundaryOn,
     worldBoundarySize,
     worldBoundaryHeight,
@@ -1863,6 +1887,10 @@ export function Aquafulness() {
     swaySpeed,
     swayBias,
     syncWaveWithSway,
+    surgeAmp,
+    surgeSpeed,
+    surgeRotationMode,
+    surgeRotationSpeed,
     worldBoundaryOn,
     worldBoundarySize,
     worldBoundaryHeight,
@@ -1988,6 +2016,11 @@ export function Aquafulness() {
   const swingYawRef = useRef(0);
   const swayPosRef = useRef({ x: 0, z: 0 });
   const swayVelRef = useRef({ x: 0, z: 0 });
+  // SURGE's own spring-damped position offset — same integrator shape as
+  // swayPosRef/swayVelRef above, just driven by an independent oscillator
+  // (surgeAngleRef/t below) instead of the wave's heave signal.
+  const surgePosRef = useRef({ x: 0, z: 0 });
+  const surgeVelRef = useRef({ x: 0, z: 0 });
   const waterColorRef = useRef(waterColorIdx);
   const waterOpacityRef = useRef(waterOpacity);
   const waterColorAlphaRef = useRef(waterColorAlpha);
@@ -2021,12 +2054,28 @@ export function Aquafulness() {
   const swayWorldRef = useRef({ x: 0, z: 0 });
   // Same idea as driftWorldRef, for noclip's own DRIFT XZ dial.
   const noclipDriftWorldRef = useRef({ x: 0, z: 0 });
+  // SURGE's real, fixed-in-world direction — same idea as driftWorldRef/
+  // swayWorldRef above, but recomputed from surgeAngleRef every frame
+  // instead of only on user input, since surgeRotationMode can keep turning
+  // it (cw/ccw) or nudging it (random) on its own. Defaults to a concrete
+  // bearing (not {0,0}) so raising SURGE AMOUNT alone already produces
+  // visible motion before the direction is ever touched.
+  const surgeWorldRef = useRef({ x: 0, z: 1 });
+  // Current SURGE bearing in radians (atan2(x,z) convention, matching
+  // worldXZBearing/bearingToWorldXZ) — the single source of truth for
+  // surgeWorldRef's direction; see setSurgeBearing and the physics loop.
+  const surgeAngleRef = useRef(0);
+  // Smoothed angular-velocity accumulator (rad/s) driving surgeRotationMode
+  // "random" — a damped random walk instead of raw per-frame jitter, so the
+  // direction wanders the way a real current shifts instead of jittering.
+  const surgeRandomAngVelRef = useRef(0);
   // Last pad-local coordinates pushed to the STRÖM/SVAJ knobs, so the render
   // loop only calls setState when the re-derived display value actually
   // moved (yaw changed) instead of every single frame.
   const driftDisplayRef = useRef({ x: 0, y: 0 });
   const swayDisplayRef = useRef({ x: 0, y: 0 });
   const noclipDriftDisplayRef = useRef({ x: 0, y: 0 });
+  const surgeDisplayRef = useRef({ x: 0, y: 0 });
   const yawRef = useRef(initialCameraPose?.yaw ?? 0);
   const pitchRef = useRef(initialCameraPose?.pitch ?? 0);
   const prevSurfaceRef = useRef<number | null>(null);
@@ -2132,6 +2181,10 @@ export function Aquafulness() {
   const skyCloudFadeRef = useRef(0);
   const swaySpeedRef = useRef(swaySpeed);
   const swayBiasRef = useRef(swayBias);
+  const surgeAmpRef = useRef(surgeAmp);
+  const surgeSpeedRef = useRef(surgeSpeed);
+  const surgeRotationModeRef = useRef(surgeRotationMode);
+  const surgeRotationSpeedRef = useRef(surgeRotationSpeed);
   const worldBoundaryOnRef = useRef(worldBoundaryOn);
   const worldBoundarySizeRef = useRef(worldBoundarySize);
   const worldBoundaryHeightRef = useRef(worldBoundaryHeight);
@@ -2410,6 +2463,18 @@ export function Aquafulness() {
   useEffect(() => {
     swayBiasRef.current = swayBias;
   }, [swayBias]);
+  useEffect(() => {
+    surgeAmpRef.current = surgeAmp;
+  }, [surgeAmp]);
+  useEffect(() => {
+    surgeSpeedRef.current = surgeSpeed;
+  }, [surgeSpeed]);
+  useEffect(() => {
+    surgeRotationModeRef.current = surgeRotationMode;
+  }, [surgeRotationMode]);
+  useEffect(() => {
+    surgeRotationSpeedRef.current = surgeRotationSpeed;
+  }, [surgeRotationSpeed]);
   useEffect(() => {
     worldBoundaryOnRef.current = worldBoundaryOn;
   }, [worldBoundaryOn]);
@@ -2761,6 +2826,23 @@ export function Aquafulness() {
     }
   };
 
+  // SURGE DIRECTION's own setter, distinct from setStickBearing above:
+  // surgeWorldRef is always a pure unit direction (magnitude carries no
+  // meaning the way it does for the STRÖM/SVAJ pads), and — unlike those —
+  // it's also rewritten every frame from surgeAngleRef whenever
+  // surgeRotationMode is turning or wandering it. Routing manual dial input
+  // through surgeAngleRef too (instead of writing surgeWorldRef directly)
+  // keeps both in sync, so a manual nudge while cw/ccw/random is running
+  // becomes the new starting point instead of being overwritten next frame.
+  const setSurgeBearing = (deg: number) => {
+    surgeAngleRef.current = ((((deg % 360) + 360) % 360) * Math.PI) / 180;
+    const w = { x: Math.sin(surgeAngleRef.current), z: Math.cos(surgeAngleRef.current) };
+    surgeWorldRef.current = w;
+    const disp = worldXZToPad(w.x, w.z, yawRef.current);
+    surgeDisplayRef.current = disp;
+    setSurgeStick(disp);
+  };
+
   const resetToDefaults = () => {
     setWaveAmp(DEFAULTS.waveAmp);
     setWaveSpeed(DEFAULTS.waveSpeed);
@@ -2852,6 +2934,10 @@ export function Aquafulness() {
     setSwaySpeed(DEFAULTS.swaySpeed);
     setSwayBias(DEFAULTS.swayBias);
     setSyncWaveWithSway(DEFAULTS.syncWaveWithSway);
+    setSurgeAmp(DEFAULTS.surgeAmp);
+    setSurgeSpeed(DEFAULTS.surgeSpeed);
+    setSurgeRotationMode(DEFAULTS.surgeRotationMode);
+    setSurgeRotationSpeed(DEFAULTS.surgeRotationSpeed);
     setWorldBoundaryOn(DEFAULTS.worldBoundaryOn);
     setWorldBoundarySize(DEFAULTS.worldBoundarySize);
     setWorldBoundaryHeight(DEFAULTS.worldBoundaryHeight);
@@ -3001,6 +3087,10 @@ export function Aquafulness() {
     if (patch.swaySpeed !== undefined) setSwaySpeed(patch.swaySpeed);
     if (patch.swayBias !== undefined) setSwayBias(patch.swayBias);
     if (patch.syncWaveWithSway !== undefined) setSyncWaveWithSway(patch.syncWaveWithSway);
+    if (patch.surgeAmp !== undefined) setSurgeAmp(patch.surgeAmp);
+    if (patch.surgeSpeed !== undefined) setSurgeSpeed(patch.surgeSpeed);
+    if (patch.surgeRotationMode !== undefined) setSurgeRotationMode(patch.surgeRotationMode);
+    if (patch.surgeRotationSpeed !== undefined) setSurgeRotationSpeed(patch.surgeRotationSpeed);
     if (patch.worldBoundaryOn !== undefined) setWorldBoundaryOn(patch.worldBoundaryOn);
     if (patch.worldBoundarySize !== undefined) setWorldBoundarySize(patch.worldBoundarySize);
     if (patch.worldBoundaryHeight !== undefined) setWorldBoundaryHeight(patch.worldBoundaryHeight);
@@ -3145,6 +3235,7 @@ export function Aquafulness() {
     swayDir: { x: swayWorldRef.current.x, z: swayWorldRef.current.z },
     noclipDriftDir: { x: noclipDriftWorldRef.current.x, z: noclipDriftWorldRef.current.z },
     noclipVertDrift: { x: vertStickRef.current.x, y: vertStickRef.current.y },
+    surgeDir: { x: surgeWorldRef.current.x, z: surgeWorldRef.current.z },
   });
 
   const applyRuntimeState = (runtime: RuntimeState) => {
@@ -3184,6 +3275,13 @@ export function Aquafulness() {
     if (runtime.noclipVertDrift) {
       vertStickRef.current = runtime.noclipVertDrift;
       setVertStick(runtime.noclipVertDrift);
+    }
+    if (runtime.surgeDir) {
+      surgeWorldRef.current = runtime.surgeDir;
+      surgeAngleRef.current = Math.atan2(runtime.surgeDir.x, runtime.surgeDir.z);
+      const surgeDisp = worldXZToPad(runtime.surgeDir.x, runtime.surgeDir.z, yawRef.current);
+      surgeDisplayRef.current = surgeDisp;
+      setSurgeStick(surgeDisp);
     }
   };
 
@@ -5868,6 +5966,63 @@ export function Aquafulness() {
         watercraftRig.setVisible(camMode === "watercraft");
       }
 
+      // SURGE: an independent, slow back-and-forth current — the same
+      // "carried by water" feeling as SVAJ below, but decoupled from the
+      // wave's heave entirely: it runs on its own clock (t, not
+      // heaveNorm/surfaceY) so it keeps gently carrying the camera fore/aft
+      // even while the wave itself is flat or SVAJ is off. Computed once per
+      // frame, mode-independent — like DEPTH DRIFT above it — since neither
+      // the direction rotation nor the oscillator depend on which camMode is
+      // active; only whether the resulting offset gets applied below does
+      // (skipped for GUNGA/swing, whose pendulum arc already fully owns
+      // camX/camZ, same as SVAJ skips it).
+      let surgeX = 0,
+        surgeZ = 0;
+      {
+        const rotMode = surgeRotationModeRef.current;
+        const rotSpeedRad = (surgeRotationSpeedRef.current * Math.PI) / 180;
+        if (rotMode === "cw" || rotMode === "ccw") {
+          surgeAngleRef.current += (rotMode === "cw" ? -1 : 1) * rotSpeedRad * physDt;
+        } else if (rotMode === "random") {
+          // Damped random walk in angular *velocity* rather than raw angle
+          // jitter — reads as the current's heading gradually swinging
+          // around instead of visibly jittering frame to frame, closer to
+          // how a real current's direction actually shifts.
+          surgeRandomAngVelRef.current += (Math.random() * 2 - 1) * rotSpeedRad * physDt;
+          surgeRandomAngVelRef.current *= Math.max(0, 1 - physDt * 0.5);
+          surgeAngleRef.current += surgeRandomAngVelRef.current * physDt;
+        }
+        surgeWorldRef.current = {
+          x: Math.sin(surgeAngleRef.current),
+          z: Math.cos(surgeAngleRef.current),
+        };
+
+        const suAmp = surgeAmpRef.current;
+        let surgeTargetX = 0,
+          surgeTargetZ = 0;
+        if (suAmp > 0.001) {
+          const ss = Math.max(0.02, surgeSpeedRef.current);
+          const cyc = Math.sin(t * ss * 0.4);
+          surgeTargetX = suAmp * cyc * surgeWorldRef.current.x;
+          surgeTargetZ = suAmp * cyc * surgeWorldRef.current.z;
+        }
+        // Same spring-damped ease as SVAJ's swK/swC below, so SURGE reads
+        // like the same kind of floating inertia rather than snapping
+        // straight to its target every frame.
+        const suK = 5 + 20 * Math.max(0.05, surgeSpeedRef.current);
+        const suC = 2 * 0.6 * Math.sqrt(suK);
+        const surgeAX = suK * (surgeTargetX - surgePosRef.current.x) - suC * surgeVelRef.current.x;
+        const surgeAZ = suK * (surgeTargetZ - surgePosRef.current.z) - suC * surgeVelRef.current.z;
+        surgeVelRef.current.x += surgeAX * physDt;
+        surgeVelRef.current.z += surgeAZ * physDt;
+        surgePosRef.current.x += surgeVelRef.current.x * physDt;
+        surgePosRef.current.z += surgeVelRef.current.z * physDt;
+        if (camMode !== "swing") {
+          surgeX = surgePosRef.current.x;
+          surgeZ = surgePosRef.current.z;
+        }
+      }
+
       // The wave-following buoyancy spring and current/sway drift apply in
       // float mode and whirlpool mode alike (whirlpool rides the funnel
       // surface's own height field the same way float rides the open
@@ -6172,9 +6327,9 @@ export function Aquafulness() {
       // whichever mode-specific branch above ran this frame).
       const camY = camYRef.current ?? 0;
       camera.position.set(
-        camX + camOffXRef.current + swayX,
+        camX + camOffXRef.current + swayX + surgeX,
         camY + camOffYRef.current + levelY,
-        camZ + camOffZRef.current + swayZ,
+        camZ + camOffZRef.current + swayZ + surgeZ,
       );
       // Look direction: HAV = level forward; VIRVEL = mot centrum (så kameran
       // följer med runt virveln och naturligt tittar ner mot öppningen).
@@ -6187,11 +6342,14 @@ export function Aquafulness() {
       // were already blending in gracefully underneath it.
       const lookY = camera.position.y;
       // Include the same horizontal offsets as camera.position (SVAJ sway +
-      // manual POS X/Z dial) so the look target pans with the camera instead
-      // of staying fixed — otherwise lookAt swivels the camera to compensate,
-      // which reads as unwanted yaw rotation.
-      const normalLookX = camX + camOffXRef.current + swayX;
-      const normalLookZ = camZ + camOffZRef.current + swayZ - 20;
+      // SURGE current + manual POS X/Z dial) so the look target pans with the
+      // camera instead of staying fixed — otherwise lookAt swivels the camera
+      // to compensate, which reads as unwanted yaw rotation. This is what
+      // keeps SURGE a pure translation: it shifts camera.position and this
+      // look target by the exact same amount, so the view direction itself
+      // never turns.
+      const normalLookX = camX + camOffXRef.current + swayX + surgeX;
+      const normalLookZ = camZ + camOffZRef.current + swayZ + surgeZ - 20;
       // Aim at the vortex center (0, 0), slightly below the camera so the
       // throat is visible without the horizon tilting — eased toward as
       // whirlpoolBlendRef rises, eased back off the normal look target as it
@@ -6238,6 +6396,22 @@ export function Aquafulness() {
       ) {
         swayDisplayRef.current = swayDisp;
         setSwayStick(swayDisp);
+      }
+      // SURGE has no draggable on-screen pad, but its direction can keep
+      // moving on its own (surgeRotationMode cw/ccw/random) — re-syncing
+      // this the same way keeps the SURGE DIRECTION dial's live bearing
+      // readout in Settings honest while that's happening.
+      const surgeDisp = worldXZToPad(
+        surgeWorldRef.current.x,
+        surgeWorldRef.current.z,
+        yawRef.current,
+      );
+      if (
+        Math.abs(surgeDisp.x - surgeDisplayRef.current.x) > 0.0015 ||
+        Math.abs(surgeDisp.y - surgeDisplayRef.current.y) > 0.0015
+      ) {
+        surgeDisplayRef.current = surgeDisp;
+        setSurgeStick(surgeDisp);
       }
       const noclipDriftDisp = worldXZToPad(
         noclipDriftWorldRef.current.x,
@@ -6945,6 +7119,16 @@ export function Aquafulness() {
     setSwaySpeed,
     swayBias,
     setSwayBias,
+    surgeWorldRef,
+    setSurgeBearing,
+    surgeAmp,
+    setSurgeAmp,
+    surgeSpeed,
+    setSurgeSpeed,
+    surgeRotationMode,
+    setSurgeRotationMode,
+    surgeRotationSpeed,
+    setSurgeRotationSpeed,
     buoyAmp,
     setBuoyAmp,
     bobSpeed,

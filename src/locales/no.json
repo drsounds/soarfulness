@@ -78,6 +78,12 @@
       "fixed": "FAST",
       "leanForward": "FREMOVERLENT"
     },
+    "surgeRotationMode": {
+      "ccw": "MOT KLOKKEN",
+      "cw": "MED KLOKKEN",
+      "off": "FAST",
+      "random": "TILFELDIG"
+    },
     "whirlpoolDirection": {
       "ccw": "MOT KLOKKEN",
       "cw": "MED KLOKKEN"
@@ -267,6 +273,11 @@
         "on": "FFT-HAV"
       },
       "speed": "TEMPO",
+      "surge": "SVELL",
+      "surgeDirection": "SVELL RETNING",
+      "surgeRotationMode": "SVELL ROTASJON",
+      "surgeRotationSpeed": "SVELL ROTASJONSHASTIGHET",
+      "surgeSpeed": "SVELL TEMPO",
       "sway": "SVAI",
       "swayDirection": "SVAI RETNING",
       "swayDrift": "SVAI DRIFT",
