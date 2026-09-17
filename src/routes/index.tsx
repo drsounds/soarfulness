@@ -2133,6 +2133,13 @@ export function Aquafulness() {
   // exactly where the (still winding down) orbit left off, instead of
   // snapping back to wherever the camera was before it ever entered.
   const whirlpoolLastPosRef = useRef({ x: 0, z: 0 });
+  // Where the vortex is centered in world space — captured from posRef.current
+  // the instant cameraMode switches into "whirlpool" (see that effect below),
+  // so the whirlpool always opens up right where the player currently is
+  // instead of a fixed world-origin spot. Read by the orbit math, the funnel
+  // surface height sampling, and the shader's uVortexCenter uniform, all
+  // below, so the visual funnel and the camera's ride on it stay in sync.
+  const whirlpoolCenterRef = useRef({ x: 0, z: 0 });
   const swingTornadoOnRef = useRef(swingTornadoOn);
   const swingTornadoRadiusRef = useRef(swingTornadoRadius);
   const swingTornadoSpeedRef = useRef(swingTornadoSpeed);
@@ -2689,6 +2696,7 @@ export function Aquafulness() {
       }
     } else if (cameraMode === "whirlpool") {
       whirlpoolPhaseRef.current = { phase: "drag", startMs: performance.now() };
+      whirlpoolCenterRef.current = { x: posRef.current.x, z: posRef.current.z };
     } else if (cameraMode === "swing") {
       swingYawRef.current = yawRef.current;
       swingTornadoAngleRef.current = 0;
@@ -5409,6 +5417,7 @@ export function Aquafulness() {
       uniforms.uVortex.value = whirlpoolBlendRef.current;
       uniforms.uVortexOpening.value +=
         (whirlpoolOpeningRef.current - uniforms.uVortexOpening.value) * Math.min(1, dt * 4);
+      uniforms.uVortexCenter.value.set(whirlpoolCenterRef.current.x, whirlpoolCenterRef.current.z);
 
       const p = palette(todRef.current);
       // Keep the real scene lights (see their creation above) in sync with
@@ -5716,7 +5725,9 @@ export function Aquafulness() {
           : rawSwingY;
         camVYRef.current = 0;
       } else if (inWhirlpool) {
-        // Orbit around the world origin. Without the optional sequence,
+        // Orbit around whirlpoolCenterRef — wherever the camera was when this
+        // mode was entered (see the cameraMode-change effect above), not a
+        // fixed world-origin spot. Without the optional sequence,
         // NAV.y moves in/out along the radius and NAV.x adds extra swirl,
         // exactly like the old manual vortex control; with it, the radius
         // instead automatically loops through drag-in -> stay inside -> exit
@@ -5807,8 +5818,9 @@ export function Aquafulness() {
         const stickOmega = stickRef.current.x * 1.4;
         whirlpoolAngleRef.current += (baseOmega + stickOmega) * physDt;
         const ang = whirlpoolAngleRef.current;
-        const orbitX = Math.cos(ang) * radius;
-        const orbitZ = Math.sin(ang) * radius;
+        const center = whirlpoolCenterRef.current;
+        const orbitX = center.x + Math.cos(ang) * radius;
+        const orbitZ = center.z + Math.sin(ang) * radius;
         const entryBlend = whirlpoolBlendRef.current;
         camX = posRef.current.x + (orbitX - posRef.current.x) * entryBlend;
         camZ = posRef.current.z + (orbitZ - posRef.current.z) * entryBlend;
@@ -5850,8 +5862,9 @@ export function Aquafulness() {
           0.35 * whirlpoolSpeedRef.current * exitDirSign * whirlpoolBlendRef.current;
         whirlpoolAngleRef.current += exitOmega * physDt;
         const ang = whirlpoolAngleRef.current;
-        const orbitX = Math.cos(ang) * whirlpoolRadiusRef.current;
-        const orbitZ = Math.sin(ang) * whirlpoolRadiusRef.current;
+        const center = whirlpoolCenterRef.current;
+        const orbitX = center.x + Math.cos(ang) * whirlpoolRadiusRef.current;
+        const orbitZ = center.z + Math.sin(ang) * whirlpoolRadiusRef.current;
         const w = whirlpoolBlendRef.current;
         camX = orbitX * w + camX * (1 - w);
         camZ = orbitZ * w + camZ * (1 - w);
@@ -5898,8 +5911,8 @@ export function Aquafulness() {
       const dirRad = (waveDirRef.current * Math.PI) / 180;
       const surfaceY = inWhirlpool
         ? whirlpoolSurfaceHeight(
-            camX,
-            camZ,
+            camX - whirlpoolCenterRef.current.x,
+            camZ - whirlpoolCenterRef.current.z,
             t,
             ampRef.current,
             regularPeriodRef.current,
@@ -6074,8 +6087,8 @@ export function Aquafulness() {
         const lead = anticipation / (1 + peakK * 6.0);
         const futureSurf = inWhirlpool
           ? whirlpoolSurfaceHeight(
-              camX,
-              camZ,
+              camX - whirlpoolCenterRef.current.x,
+              camZ - whirlpoolCenterRef.current.z,
               t + lead,
               ampRef.current,
               regularPeriodRef.current,
@@ -6667,8 +6680,8 @@ export function Aquafulness() {
         if (mb.bob.follow) {
           const s = inWhirlpool
             ? whirlpoolSurfaceHeight(
-                mb.base.x,
-                mb.base.z,
+                mb.base.x - whirlpoolCenterRef.current.x,
+                mb.base.z - whirlpoolCenterRef.current.z,
                 t,
                 ampRef.current,
                 regularPeriodRef.current,
