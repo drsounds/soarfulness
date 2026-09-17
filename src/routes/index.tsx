@@ -781,6 +781,8 @@ const DEFAULTS: Persisted = {
   // full-resolution 60fps render.
   targetFps: 40,
   resolutionScale: 0.5,
+  // Off by default: see lowGraphicsMode's doc comment in settingsShared.ts.
+  lowGraphicsMode: false,
   // Off by default like every other optional shading extra below (caustics,
   // chromatic aberration, torus rings, mid clouds) — this fbm-based
   // micro-chop + foam layer runs two 3-octave noise samples plus another for
@@ -1165,6 +1167,7 @@ export function Aquafulness() {
   const [gogglesFpsCap, setGogglesFpsCap] = useState(initial.gogglesFpsCap);
   const [targetFps, setTargetFps] = useState(initial.targetFps);
   const [resolutionScale, setResolutionScale] = useState(initial.resolutionScale);
+  const [lowGraphicsMode, setLowGraphicsMode] = useState(initial.lowGraphicsMode);
   const [regularWaves, setRegularWaves] = useState(initial.regularWaves);
   // Realistic (JONSWAP/FFT-ocean) waveform — see src/lib/ocean/fftOceanSpectrum.ts.
   const [realisticWaves, setRealisticWaves] = useState(initial.realisticWaves);
@@ -1672,6 +1675,7 @@ export function Aquafulness() {
     gogglesFpsCap,
     targetFps,
     resolutionScale,
+    lowGraphicsMode,
     regularWaves,
     realisticWaves,
     dyingWave,
@@ -1834,6 +1838,7 @@ export function Aquafulness() {
     gogglesFpsCap,
     targetFps,
     resolutionScale,
+    lowGraphicsMode,
     regularWaves,
     realisticWaves,
     dyingWave,
@@ -2094,6 +2099,10 @@ export function Aquafulness() {
   // multiplies the renderer's pixel ratio).
   const targetFpsRef = useRef(targetFps);
   const resolutionScaleRef = useRef(resolutionScale);
+  // Read every frame by animate() (see lowEnd there) plus by the torus-ring
+  // config effect and applyReflMix — forces every optional texture/live-
+  // noise/extra-shading toggle off without touching their own state.
+  const lowGraphicsModeRef = useRef(lowGraphicsMode);
   const camNearRef = useRef(camNear);
   const camFarRef = useRef(camFar);
   const waveDirRef = useRef(waveDir);
@@ -2335,6 +2344,10 @@ export function Aquafulness() {
   useEffect(() => {
     resolutionScaleRef.current = resolutionScale;
   }, [resolutionScale]);
+  useEffect(() => {
+    lowGraphicsModeRef.current = lowGraphicsMode;
+    applyReflMix();
+  }, [lowGraphicsMode]);
   useEffect(() => {
     camNearRef.current = camNear;
   }, [camNear]);
@@ -2628,12 +2641,15 @@ export function Aquafulness() {
   // it with these same values as its initial config).
   useEffect(() => {
     torusRingFieldRef.current?.setConfig({
-      enabled: torusRingsOn,
+      // LOW GRAPHICS MODE turns the whole field off (extra geometry + lit
+      // MeshStandardMaterial draw calls, plus its own optional texture) —
+      // see lowGraphicsMode's doc comment in settingsShared.ts.
+      enabled: torusRingsOn && !lowGraphicsMode,
       radius: torusRadius,
       tube: torusTube,
       scale: torusScale,
       opacity: torusOpacity,
-      textureUrl: TORUS_RING_TEXTURES[torusTextureIdx]?.url ?? null,
+      textureUrl: lowGraphicsMode ? null : (TORUS_RING_TEXTURES[torusTextureIdx]?.url ?? null),
       cellSize: torusCellSize,
       verticalSpacing: torusVerticalSpacing,
       verticalCount: torusVerticalCount,
@@ -2652,6 +2668,7 @@ export function Aquafulness() {
     torusVerticalCount,
     torusViewDistance,
     torusFadeDistance,
+    lowGraphicsMode,
   ]);
   // Mode switch: hand off position/orientation continuity between schemes so
   // switching never teleports the camera. Leaving whirlpool (for any other
@@ -2887,6 +2904,7 @@ export function Aquafulness() {
     setGogglesFpsCap(DEFAULTS.gogglesFpsCap);
     setTargetFps(DEFAULTS.targetFps);
     setResolutionScale(DEFAULTS.resolutionScale);
+    setLowGraphicsMode(DEFAULTS.lowGraphicsMode);
     setRegularWaves(DEFAULTS.regularWaves);
     setRealisticWaves(DEFAULTS.realisticWaves);
     setDyingWave(DEFAULTS.dyingWave);
@@ -3040,6 +3058,7 @@ export function Aquafulness() {
     if (patch.gogglesFpsCap !== undefined) setGogglesFpsCap(patch.gogglesFpsCap);
     if (patch.targetFps !== undefined) setTargetFps(patch.targetFps);
     if (patch.resolutionScale !== undefined) setResolutionScale(patch.resolutionScale);
+    if (patch.lowGraphicsMode !== undefined) setLowGraphicsMode(patch.lowGraphicsMode);
     if (patch.regularWaves !== undefined) setRegularWaves(patch.regularWaves);
     if (patch.realisticWaves !== undefined) setRealisticWaves(patch.realisticWaves);
     if (patch.dyingWave !== undefined) setDyingWave(patch.dyingWave);
@@ -3608,7 +3627,9 @@ export function Aquafulness() {
   const applyReflMix = () => {
     const u = waterUniformsRef.current;
     if (!u) return;
-    u.uReflMix.value = Math.max(0, Math.min(1, reflBaseRef.current * reflStrengthRef.current));
+    u.uReflMix.value = lowGraphicsModeRef.current
+      ? 0
+      : Math.max(0, Math.min(1, reflBaseRef.current * reflStrengthRef.current));
   };
 
   // Ocean sound: loop the selected recorded water track (see WATER_SOUNDS)
@@ -3984,13 +4005,15 @@ export function Aquafulness() {
     composer.addPass(chromaticAberrationPass);
 
     const torusRingField = new TorusRingField(scene, {
-      enabled: initial.torusRingsOn,
+      enabled: initial.torusRingsOn && !initial.lowGraphicsMode,
       radius: initial.torusRadius,
       tube: initial.torusTube,
       scale: initial.torusScale,
       opacity: initial.torusOpacity,
       color: 0xffffff,
-      textureUrl: TORUS_RING_TEXTURES[initial.torusTextureIdx]?.url ?? null,
+      textureUrl: initial.lowGraphicsMode
+        ? null
+        : (TORUS_RING_TEXTURES[initial.torusTextureIdx]?.url ?? null),
       cellSize: initial.torusCellSize,
       verticalSpacing: initial.torusVerticalSpacing,
       verticalCount: initial.torusVerticalCount,
@@ -5325,6 +5348,10 @@ export function Aquafulness() {
     };
     window.addEventListener("pagehide", saveCameraPoseNow);
     const animate = () => {
+      // LOW GRAPHICS MODE: read once per frame and threaded through every
+      // texture/live-noise/extra-shading gate below (see lowGraphicsMode's
+      // doc comment in settingsShared.ts for the full list it covers).
+      const lowEnd = lowGraphicsModeRef.current;
       // resolutionScale multiplies the renderer's pixel ratio to trade
       // sharpness for GPU load — only touch the renderer when the setting
       // actually changed.
@@ -5376,7 +5403,8 @@ export function Aquafulness() {
       uniforms.uDyingTime.value = dyingWaveT;
       uniforms.uDyingAmp.value = dyingAmpRef.current;
       uniforms.uQuality.value +=
-        ((waveHighQualityRef.current ? 1 : 0) - uniforms.uQuality.value) * Math.min(1, dt * 4);
+        ((waveHighQualityRef.current && !lowEnd ? 1 : 0) - uniforms.uQuality.value) *
+        Math.min(1, dt * 4);
       uniforms.uRegular.value +=
         ((regularRef.current ? 1 : 0) - uniforms.uRegular.value) * Math.min(1, dt * 4);
       uniforms.uFft.value +=
@@ -5471,7 +5499,8 @@ export function Aquafulness() {
       uniforms.uSurfSat.value +=
         (surfSatRef.current - uniforms.uSurfSat.value) * Math.min(1, dt * 6);
       uniforms.uRefraction.value +=
-        ((causticsOnRef.current ? 1 : 0) - uniforms.uRefraction.value) * Math.min(1, dt * 4);
+        ((causticsOnRef.current && !lowEnd ? 1 : 0) - uniforms.uRefraction.value) *
+        Math.min(1, dt * 4);
       const bot = BOTTOM_OPTIONS[bottomIdxRef.current] ?? BOTTOM_OPTIONS[0];
       // Sinus-modulerat "havsnivå"-offset. Vi flyttar hela scenen (yta, botten,
       // mellan-moln, kamera) rigidt i Y istället för att modulera bottendjupet
@@ -5521,13 +5550,17 @@ export function Aquafulness() {
         floorUniforms.uCausticAmp.value = ampRef.current;
         floorUniforms.uCausticFreq.value = uniforms.uFreq.value;
         floorUniforms.uCausticsOn.value +=
-          ((causticsOnRef.current ? 1 : 0) - floorUniforms.uCausticsOn.value) * Math.min(1, dt * 4);
-        const isClouds = bot.id === "clouds";
+          ((causticsOnRef.current && !lowEnd ? 1 : 0) - floorUniforms.uCausticsOn.value) *
+          Math.min(1, dt * 4);
+        // LOW GRAPHICS MODE treats BOTTOM "clouds" as flat (the fbm noise
+        // pattern it draws is itself a live-noise effect) — falls back to
+        // the same solid uColor every other flat bottom option renders.
+        const isClouds = bot.id === "clouds" && !lowEnd;
         // Cloud mode blends independently of the sand-texture toggle.
         const cloudTarget = isClouds ? 1 : 0;
         floorUniforms.uClouds.value +=
           (cloudTarget - floorUniforms.uClouds.value) * Math.min(1, dt * 4);
-        const target = isClouds ? 0 : floorTextureRef.current ? 1 : 0;
+        const target = isClouds || lowEnd ? 0 : floorTextureRef.current ? 1 : 0;
         floorUniforms.uTextured.value +=
           (target - floorUniforms.uTextured.value) * Math.min(1, dt * 4);
         // Drift moln-lagret långsamt över tid — nu opt-in via ANIMERA
@@ -5548,8 +5581,10 @@ export function Aquafulness() {
         floor.visible = false;
       }
 
-      // Mellan-moln (drivande lager mellan botten och yta).
-      if (midCloudsOnRef.current) {
+      // Mellan-moln (drivande lager mellan botten och yta). LOW GRAPHICS
+      // MODE forces this whole live-noise layer off.
+      const midCloudsActive = midCloudsOnRef.current && !lowEnd;
+      if (midCloudsActive) {
         const frac = Math.max(0.05, Math.min(0.95, midCloudsHeightRef.current));
         // frac=0 → precis över botten, frac=1 → nära ytan.
         midClouds.position.y = -effectiveDepth + effectiveDepth * frac + levelY;
@@ -5560,15 +5595,18 @@ export function Aquafulness() {
       // MOLN TONING: ease opacity toward on/off (cloudFadeSpeedRef, user-
       // adjustable) instead of popping visible/invisible on toggle.
       midCloudFadeRef.current +=
-        ((midCloudsOnRef.current ? 1 : 0) - midCloudFadeRef.current) *
+        ((midCloudsActive ? 1 : 0) - midCloudFadeRef.current) *
         Math.min(1, dt * cloudFadeSpeedRef.current);
       midCloudUniforms.uOpacity.value = midCloudFadeRef.current;
       midClouds.visible = midCloudFadeRef.current > 0.003;
 
       // Himmel-moln (drivande molnlager högt ovanför ytan). Höjden hålls
       // fast i världsrymden (som botten/mellan-moln) istället för relativt
-      // kameran, annars skulle molnen aldrig glida förbi.
-      if (skyCloudsOnRef.current) {
+      // kameran, annars skulle molnen aldrig glida förbi. LOW GRAPHICS MODE
+      // forces this off too (see skyCloudsTargetOn further below, which
+      // actually gates visibility/opacity — this block just needs to stop
+      // scrolling the now-invisible layer's uCloudScroll).
+      if (skyCloudsOnRef.current && !lowEnd) {
         const frac = Math.max(0, Math.min(1, skyCloudsHeightRef.current));
         skyClouds.position.y = 60 + frac * 440 + levelY;
         skyCloudUniforms.uTime.value = t;
@@ -6529,7 +6567,8 @@ export function Aquafulness() {
         worldBoundaryYExtendRef.current &&
         skyCloudsOnRef.current &&
         !envActiveRef.current &&
-        backdropRef.current <= 0;
+        backdropRef.current <= 0 &&
+        !lowEnd;
       const extendFadeStep = Math.min(1, dt * cloudFadeSpeedRef.current);
       if (extendGateOn) {
         const spacing = EXTEND_CLOUD_LAYER_SPACING;
@@ -6595,7 +6634,8 @@ export function Aquafulness() {
       // Selectable wave material (sphere-map "matcap") + trochoidal wave
       // shape — both purely cosmetic dials on the ocean shader.
       uniforms.uSphereMix.value +=
-        ((sphereMaterialRef.current ? sphereStrengthRef.current : 0) - uniforms.uSphereMix.value) *
+        ((sphereMaterialRef.current && !lowEnd ? sphereStrengthRef.current : 0) -
+          uniforms.uSphereMix.value) *
         Math.min(1, dt * 6);
       uniforms.uTrochoid.value +=
         (trochoidRef.current - uniforms.uTrochoid.value) * Math.min(1, dt * 6);
@@ -6620,7 +6660,7 @@ export function Aquafulness() {
       const useBackdrop = backdropRef.current > 0 && !envActive;
       sky.visible = !useBackdrop && !envActive;
       // MOLN TONING: ease opacity toward on/off instead of popping visible.
-      const skyCloudsTargetOn = skyCloudsOnRef.current && !useBackdrop && !envActive;
+      const skyCloudsTargetOn = skyCloudsOnRef.current && !useBackdrop && !envActive && !lowEnd;
       skyCloudFadeRef.current +=
         ((skyCloudsTargetOn ? 1 : 0) - skyCloudFadeRef.current) *
         Math.min(1, dt * cloudFadeSpeedRef.current);
@@ -6636,9 +6676,10 @@ export function Aquafulness() {
       {
         const puffMeshes = skyPuffMeshesRef.current;
         const puffStates = skyPuffStatesRef.current;
-        const activeCount = skyPuffsOnRef.current
-          ? Math.min(puffMeshes.length, Math.max(0, Math.round(skyPuffsCountRef.current)))
-          : 0;
+        const activeCount =
+          skyPuffsOnRef.current && !lowEnd
+            ? Math.min(puffMeshes.length, Math.max(0, Math.round(skyPuffsCountRef.current)))
+            : 0;
         const puffSize = Math.max(1, skyPuffsSizeRef.current);
         const puffFreq = Math.max(0.01, skyPuffsFreqRef.current);
         for (let i = 0; i < puffMeshes.length; i++) {
@@ -6740,7 +6781,7 @@ export function Aquafulness() {
         // objects properly occlude the panel uses this frame's position,
         // not last frame's.
         tvManager.render();
-        if (chromaticAberrationOnRef.current) {
+        if (chromaticAberrationOnRef.current && !lowEnd) {
           // 0..1 dial value -> a max red/blue UV offset of 0..~3.5% of the
           // frame at its corners (see CHROMATIC_ABERRATION_SHADER above).
           chromaticAberrationPass.uniforms.uAmount.value =
@@ -7273,6 +7314,8 @@ export function Aquafulness() {
     setTargetFps,
     resolutionScale,
     setResolutionScale,
+    lowGraphicsMode,
+    setLowGraphicsMode,
     chromaticAberrationOn,
     setChromaticAberrationOn,
     chromaticAberrationAmount,

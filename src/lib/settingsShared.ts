@@ -311,6 +311,19 @@ export type Persisted = {
   gogglesFpsCap: number;
   targetFps: number;
   resolutionScale: number;
+  // LOW GRAPHICS MODE: a single opt-in "everything cheap" switch for lower-
+  // end/older devices — on top of targetFps/resolutionScale above, this
+  // forces off every optional texture (seafloor sand, the reflection photo,
+  // torus-ring texture) and every live-noise fbm effect (BOTTOM "clouds",
+  // mid/sky cloud decks + their VÄRLDSGRÄNS extension layers, sky puffs,
+  // the ocean's high-quality micro-chop/foam, real caustics) plus the
+  // remaining shading extras (chromatic aberration, the sphere-map matcap
+  // material, torus rings entirely) — see lowGraphicsModeRef's reads in
+  // routes/index.tsx's animate() and the effects around applyReflMix/
+  // torusRingField.setConfig. Purely a runtime override: it doesn't touch
+  // any of those settings' own persisted values, so turning it back off
+  // restores exactly what was chosen before.
+  lowGraphicsMode: boolean;
   regularWaves: boolean;
   realisticWaves: boolean;
   dyingWave: boolean;
@@ -596,6 +609,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "gogglesFpsCap",
     "targetFps",
     "resolutionScale",
+    "lowGraphicsMode",
     "chromaticAberrationOn",
     "chromaticAberrationAmount",
   ],
