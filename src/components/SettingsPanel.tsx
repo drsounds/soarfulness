@@ -587,6 +587,11 @@ export type SettingsPanelProps = {
   setTargetFps: Dispatch<SetStateAction<number>>;
   resolutionScale: number;
   setResolutionScale: Dispatch<SetStateAction<number>>;
+  // LOW GRAPHICS MODE: one switch that forces off every optional texture
+  // and live-noise/extra-shading effect (see its doc comment in
+  // settingsShared.ts) without touching those settings' own values.
+  lowGraphicsMode: boolean;
+  setLowGraphicsMode: Dispatch<SetStateAction<boolean>>;
   // KROMATISK ABERRATION: a full-screen lens post-process (red/blue channels
   // sampled offset radially from center). chromaticAberrationAmount is the
   // dial's 0..1 strength, independent of whether the effect is on.
@@ -1257,6 +1262,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setTargetFps,
     resolutionScale,
     setResolutionScale,
+    lowGraphicsMode,
+    setLowGraphicsMode,
     chromaticAberrationOn,
     setChromaticAberrationOn,
     chromaticAberrationAmount,
@@ -2534,6 +2541,12 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   step={5}
                   onDec={() => setGogglesFpsCap((v) => Math.max(10, v - 5))}
                   onInc={() => setGogglesFpsCap((v) => Math.min(60, v + 5))}
+                />
+                <SettingRow
+                  label={t("dial.camera.lowGraphicsMode")}
+                  value={onOff(lowGraphicsMode)}
+                  onDec={() => setLowGraphicsMode(false)}
+                  onInc={() => setLowGraphicsMode(true)}
                 />
                 <SettingRow
                   label={t("dial.camera.targetFps")}

@@ -147,6 +147,7 @@
       "intervalIncludeSwing": "INTERVAL: SWING",
       "intervalIncludeWhirlpool": "INTERVAL: WHIRLPOOL",
       "intervalSession": "INTERVAL SESSION",
+      "lowGraphicsMode": "LOW GRAPHICS MODE",
       "mode": "CAMERA MODE",
       "near": "NEAR",
       "noclipAutoAlternate": "AUTO ALTERNATE",
