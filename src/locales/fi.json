@@ -161,6 +161,10 @@
       "noclipAutoAlternateInterval": "VAIHTOVÄLI",
       "noclipFallRiseSpeed": "PUTOAMIS/NOUSUNOPEUS",
       "noclipSpeed": "NOCLIP-NOPEUS",
+      "noclipTornado": "TORNADO",
+      "noclipTornadoDirection": "TORNADON SUUNTA",
+      "noclipTornadoRadius": "TORNADON SÄDE",
+      "noclipTornadoSpeed": "TORNADON TEMPO",
       "noclipVertEaseTime": "PUTOAMIS/NOUSUPEHMEYS",
       "posX": "SIJAINTI X",
       "posY": "SIJAINTI Y",
@@ -180,6 +184,7 @@
       "swingXFactor": "KEINU X",
       "swingYWaveform": "KEINUN Y-AALTOMUOTO",
       "targetFps": "KUVATAAJUUSKATTO",
+      "tornadoCloud": "TORNADON PILVI",
       "wakeLock": "VALVEILLA"
     },
     "env": {

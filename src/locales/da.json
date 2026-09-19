@@ -161,6 +161,10 @@
       "noclipAutoAlternateInterval": "SKIFTEINTERVAL",
       "noclipFallRiseSpeed": "FALD/STIGNING HASTIGHED",
       "noclipSpeed": "NOCLIP HASTIGHED",
+      "noclipTornado": "TORNADO",
+      "noclipTornadoDirection": "TORNADO RETNING",
+      "noclipTornadoRadius": "TORNADO RADIUS",
+      "noclipTornadoSpeed": "TORNADO TEMPO",
       "noclipVertEaseTime": "FALD/STIGNING BLØDHED",
       "posX": "POS X",
       "posY": "POS Y",
@@ -180,6 +184,7 @@
       "swingXFactor": "GYNGE X",
       "swingYWaveform": "GYNGE Y BØLGEFORM",
       "targetFps": "BILLEDFREKVENSLOFT",
+      "tornadoCloud": "TORNADO SKY",
       "wakeLock": "VÅGEN"
     },
     "env": {

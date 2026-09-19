@@ -161,6 +161,10 @@
       "noclipAutoAlternateInterval": "ALTERNATE INTERVAL",
       "noclipFallRiseSpeed": "FALL/RISE SPEED",
       "noclipSpeed": "NOCLIP SPEED",
+      "noclipTornado": "TORNADO",
+      "noclipTornadoDirection": "TORNADO DIRECTION",
+      "noclipTornadoRadius": "TORNADO RADIUS",
+      "noclipTornadoSpeed": "TORNADO SPEED",
       "noclipVertEaseTime": "FALL/RISE EASE",
       "posX": "POS X",
       "posY": "POS Y",
@@ -180,6 +184,7 @@
       "swingXFactor": "SWING X",
       "swingYWaveform": "SWING Y WAVEFORM",
       "targetFps": "FRAME RATE CAP",
+      "tornadoCloud": "TORNADO CLOUD",
       "wakeLock": "AWAKE"
     },
     "env": {
