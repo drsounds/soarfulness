@@ -1554,12 +1554,12 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${whirlpoolSpeed.toFixed(2)}x`}
                       rawValue={whirlpoolSpeed}
-                      onSet={(v) => setWhirlpoolSpeed(Math.max(0, Math.min(10, v)))}
-                      min={0}
-                      max={10}
+                      onSet={(v) => setWhirlpoolSpeed(Math.max(-20, Math.min(20, v)))}
+                      min={-20}
+                      max={20}
                       step={0.1}
-                      onDec={() => setWhirlpoolSpeed((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
-                      onInc={() => setWhirlpoolSpeed((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
+                      onDec={() => setWhirlpoolSpeed((v) => Math.max(-20, +(v - 0.1).toFixed(2)))}
+                      onInc={() => setWhirlpoolSpeed((v) => Math.min(20, +(v + 0.1).toFixed(2)))}
                     />
                     <SettingRow
                       label={t("dial.wave.whirlpoolDirection")}
