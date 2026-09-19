@@ -402,6 +402,17 @@ const OCEAN_BASE_SIZE = 1200;
 const OCEAN_FAR_INNER_RADIUS = OCEAN_BASE_SIZE / 2;
 const CLOUD_BASE_SIZE = 200000;
 
+// TORNADO CLOUD's shape, relative to whichever tornado mode's own radius is
+// currently active (tornadoCloudX/Y/Z/Radius/Angle in the physics loop):
+// the wide top sits a bit outside the actual orbit (so the orbiting camera
+// grazes/enters its wall rather than always staying outside it) and the
+// narrow tip is a small fraction of that, never a literal zero-width point.
+const TORNADO_CLOUD_TOP_SCALE = 1.15;
+const TORNADO_CLOUD_TIP_RATIO = 0.1;
+// Vertical extent as a multiple of the radius — tall and narrow, like a real
+// funnel cloud, rather than a squat cone.
+const TORNADO_CLOUD_HEIGHT_SCALE = 2.2;
+
 // Perf-diagnostic kill switch for the DATE & TIME TRAVEL feature (its
 // once-a-minute tick effect and the clock button/dialog in the HUD).
 // It was previously suspected of contributing to reported lag, but the
@@ -940,6 +951,14 @@ const DEFAULTS: Persisted = {
   swingTornadoRadius: 40,
   swingTornadoSpeed: 1,
   swingTornadoDirection: "cw",
+  // Optional "tornado" spin for NOCLIP: off by default (plain free flight).
+  noclipTornadoOn: false,
+  noclipTornadoRadius: 40,
+  noclipTornadoSpeed: 1,
+  noclipTornadoDirection: "cw",
+  // TORNADO CLOUD: off by default — purely cosmetic, shared by whichever of
+  // GUNGA's or NOCLIP's own tornado spin is active.
+  tornadoCloudOn: false,
   // Interval session off by default; a 30s FRI/GUNGA alternation running
   // forever once turned on, until switched to a fixed number of intervals.
   // The pool of modes it cycles through defaults to exactly that FRI/GUNGA
@@ -1396,6 +1415,19 @@ export function Aquafulness() {
   const [swingTornadoDirection, setSwingTornadoDirection] = useState<WhirlpoolDirection>(
     initial.swingTornadoDirection,
   );
+  // Optional "tornado" spin for NOCLIP: layers a circular swirl on top of
+  // NAV/HÖJD/DRIFT XZ's manual free flight instead of replacing it — see the
+  // cameraMode==="noclip" branch below.
+  const [noclipTornadoOn, setNoclipTornadoOn] = useState(initial.noclipTornadoOn);
+  const [noclipTornadoRadius, setNoclipTornadoRadius] = useState(initial.noclipTornadoRadius);
+  const [noclipTornadoSpeed, setNoclipTornadoSpeed] = useState(initial.noclipTornadoSpeed);
+  const [noclipTornadoDirection, setNoclipTornadoDirection] = useState<WhirlpoolDirection>(
+    initial.noclipTornadoDirection,
+  );
+  // TORNADO CLOUD: optional visible funnel-shaped cloud wrapping whichever
+  // of the two tornado orbits above is currently active — see
+  // tornadoCloudMeshRef further down.
+  const [tornadoCloudOn, setTornadoCloudOn] = useState(initial.tornadoCloudOn);
   // Interval session: automatically cycles the camera through whichever of
   // "float" (FRI/default)/"whirlpool" (VIRVEL)/"swing" (GUNGA, optionally
   // tornado) are enabled below, every intervalDuration seconds — see the
@@ -1820,6 +1852,11 @@ export function Aquafulness() {
     swingTornadoRadius,
     swingTornadoSpeed,
     swingTornadoDirection,
+    noclipTornadoOn,
+    noclipTornadoRadius,
+    noclipTornadoSpeed,
+    noclipTornadoDirection,
+    tornadoCloudOn,
     intervalSessionOn,
     intervalDuration,
     intervalSessionType,
@@ -1984,6 +2021,11 @@ export function Aquafulness() {
     swingTornadoRadius,
     swingTornadoSpeed,
     swingTornadoDirection,
+    noclipTornadoOn,
+    noclipTornadoRadius,
+    noclipTornadoSpeed,
+    noclipTornadoDirection,
+    tornadoCloudOn,
     intervalSessionOn,
     intervalDuration,
     intervalSessionType,
@@ -2207,6 +2249,18 @@ export function Aquafulness() {
   const swingTornadoSpeedRef = useRef(swingTornadoSpeed);
   const swingTornadoDirectionRef = useRef(swingTornadoDirection);
   const swingTornadoAngleRef = useRef(0);
+  const noclipTornadoOnRef = useRef(noclipTornadoOn);
+  const noclipTornadoRadiusRef = useRef(noclipTornadoRadius);
+  const noclipTornadoSpeedRef = useRef(noclipTornadoSpeed);
+  const noclipTornadoDirectionRef = useRef(noclipTornadoDirection);
+  const noclipTornadoAngleRef = useRef(0);
+  const tornadoCloudOnRef = useRef(tornadoCloudOn);
+  // Live-updated by the noclip/swing tornado branches of the physics loop
+  // whenever their own tornado spin is active this frame; read afterward to
+  // position/scale/rotate the shared funnel-cloud mesh (tornadoCloudMeshRef,
+  // created in the scene-setup effect below) — see tornadoCloudFadeRef too.
+  const tornadoCloudMeshRef = useRef<THREE.Mesh | null>(null);
+  const tornadoCloudFadeRef = useRef(0);
   const intervalIncludeFloatRef = useRef(intervalIncludeFloat);
   const intervalIncludeWhirlpoolRef = useRef(intervalIncludeWhirlpool);
   const intervalIncludeSwingRef = useRef(intervalIncludeSwing);
@@ -2464,6 +2518,21 @@ export function Aquafulness() {
   useEffect(() => {
     swingTornadoDirectionRef.current = swingTornadoDirection;
   }, [swingTornadoDirection]);
+  useEffect(() => {
+    noclipTornadoOnRef.current = noclipTornadoOn;
+  }, [noclipTornadoOn]);
+  useEffect(() => {
+    noclipTornadoRadiusRef.current = noclipTornadoRadius;
+  }, [noclipTornadoRadius]);
+  useEffect(() => {
+    noclipTornadoSpeedRef.current = noclipTornadoSpeed;
+  }, [noclipTornadoSpeed]);
+  useEffect(() => {
+    noclipTornadoDirectionRef.current = noclipTornadoDirection;
+  }, [noclipTornadoDirection]);
+  useEffect(() => {
+    tornadoCloudOnRef.current = tornadoCloudOn;
+  }, [tornadoCloudOn]);
   useEffect(() => {
     intervalIncludeFloatRef.current = intervalIncludeFloat;
   }, [intervalIncludeFloat]);
@@ -2755,6 +2824,7 @@ export function Aquafulness() {
       posRef.current.y = camYRef.current ?? swingPositionYRef.current;
       noclipVertVelRef.current = 0;
       noclipHeaveOffsetRef.current = 0;
+      noclipTornadoAngleRef.current = 0;
       // Unlike noclip (which deliberately never teleports), entering
       // watercraft mode snaps the camera to just outside the raft — the
       // player could otherwise be flying anywhere in open water with no way
@@ -3065,6 +3135,11 @@ export function Aquafulness() {
     setSwingTornadoRadius(DEFAULTS.swingTornadoRadius);
     setSwingTornadoSpeed(DEFAULTS.swingTornadoSpeed);
     setSwingTornadoDirection(DEFAULTS.swingTornadoDirection);
+    setNoclipTornadoOn(DEFAULTS.noclipTornadoOn);
+    setNoclipTornadoRadius(DEFAULTS.noclipTornadoRadius);
+    setNoclipTornadoSpeed(DEFAULTS.noclipTornadoSpeed);
+    setNoclipTornadoDirection(DEFAULTS.noclipTornadoDirection);
+    setTornadoCloudOn(DEFAULTS.tornadoCloudOn);
     setIntervalSessionOn(DEFAULTS.intervalSessionOn);
     setIntervalDuration(DEFAULTS.intervalDuration);
     setIntervalSessionType(DEFAULTS.intervalSessionType);
@@ -3235,6 +3310,12 @@ export function Aquafulness() {
     if (patch.swingTornadoSpeed !== undefined) setSwingTornadoSpeed(patch.swingTornadoSpeed);
     if (patch.swingTornadoDirection !== undefined)
       setSwingTornadoDirection(patch.swingTornadoDirection);
+    if (patch.noclipTornadoOn !== undefined) setNoclipTornadoOn(patch.noclipTornadoOn);
+    if (patch.noclipTornadoRadius !== undefined) setNoclipTornadoRadius(patch.noclipTornadoRadius);
+    if (patch.noclipTornadoSpeed !== undefined) setNoclipTornadoSpeed(patch.noclipTornadoSpeed);
+    if (patch.noclipTornadoDirection !== undefined)
+      setNoclipTornadoDirection(patch.noclipTornadoDirection);
+    if (patch.tornadoCloudOn !== undefined) setTornadoCloudOn(patch.tornadoCloudOn);
     if (patch.intervalSessionOn !== undefined) setIntervalSessionOn(patch.intervalSessionOn);
     if (patch.intervalDuration !== undefined) setIntervalDuration(patch.intervalDuration);
     if (patch.intervalSessionType !== undefined) setIntervalSessionType(patch.intervalSessionType);
@@ -5143,6 +5224,47 @@ export function Aquafulness() {
     skyCloudsMeshRef.current = skyClouds;
     scene.add(skyClouds);
 
+    // TORNADO CLOUD: an optional funnel-shaped cloud mesh wrapping whichever
+    // of GUNGA's or NOCLIP's own tornado spin is active (see
+    // tornadoCloudActive/tornadoCloudX/Y/Z/Radius/Angle in the physics loop
+    // below). A unit cylinder tapering from a wide top (radius 1) to a
+    // narrow tip (radius TORNADO_CLOUD_TIP_RATIO) — scaled per-frame to the
+    // active mode's own *TornadoRadius, so one mesh serves both. Reuses the
+    // exact same fbm "clouds" shader as the mid/sky cloud decks (uClouds=1
+    // below), just painted onto a cone instead of a flat plane; rotating it
+    // to the tornado's own spin angle each frame shifts the world-space
+    // fbm sampling across its surface, reading as the funnel visibly
+    // churning as it spins instead of a static, decal-like texture.
+    const tornadoCloudGeo = new THREE.CylinderGeometry(1, TORNADO_CLOUD_TIP_RATIO, 1, 28, 12, true);
+    const tornadoCloudUniforms = {
+      uColor: { value: new THREE.Color(0x9aa4ad) },
+      uTextured: { value: 0 },
+      uClouds: { value: 1 },
+      uCloudScroll: { value: new THREE.Vector2(0, 0) },
+      uTime: { value: 0 },
+      uSunDir: { value: uniforms.uSunDir.value },
+      uSandTex: { value: sandTex },
+      uSandScale: { value: 0.35 },
+      uTurbidity: { value: 0 },
+      uUnderwater: { value: 0 },
+      uFogColor: { value: new THREE.Color(0x0a2a3a) },
+      uCamNear: { value: camNearRef.current },
+      uCamFar: { value: camFarRef.current },
+      uOpacity: { value: 0 },
+    };
+    const tornadoCloudMat = new THREE.ShaderMaterial({
+      uniforms: tornadoCloudUniforms,
+      side: THREE.DoubleSide,
+      transparent: true,
+      depthWrite: false,
+      vertexShader: floorMat.vertexShader,
+      fragmentShader: floorMat.fragmentShader,
+    });
+    const tornadoCloud = new THREE.Mesh(tornadoCloudGeo, tornadoCloudMat);
+    tornadoCloud.visible = false;
+    tornadoCloudMeshRef.current = tornadoCloud;
+    scene.add(tornadoCloud);
+
     // VÄRLDSGRÄNS's extra sky-cloud layers (see EXTEND_CLOUD_LAYER_* and
     // wrapAxis above) — same geometry as skyClouds (cheap: not duplicated,
     // just referenced by more Mesh objects), each repositioned every frame
@@ -5715,6 +5837,18 @@ export function Aquafulness() {
       const walkSpeed = 16; // m/s at full deflection
       const driftSpeed = 13.2; // m/s at full deflection — mjukare än aktiv rörelse
       let camX: number, camZ: number;
+      // TORNADO CLOUD: whichever of GUNGA's or NAV/HÖJD's own tornado spin
+      // (if any) is active this frame stashes its live center/radius/angle
+      // here so the shared funnel-cloud mesh (see tornadoCloudMeshRef setup
+      // further down in this effect) can be positioned after camX/camZ/
+      // camYRef settle below, without either branch needing to know the
+      // mesh exists.
+      let tornadoCloudActive = false;
+      let tornadoCloudX = 0;
+      let tornadoCloudY = 0;
+      let tornadoCloudZ = 0;
+      let tornadoCloudRadius = 40;
+      let tornadoCloudAngle = 0;
       if (camMode === "noclip" || camMode === "watercraft") {
         // Free 3D flight, no wave physics: NAV's y-axis moves along the full
         // view direction (pitch included), so looking up/down while pushing
@@ -5767,8 +5901,30 @@ export function Aquafulness() {
         posRef.current.y += noclipVertVelRef.current * physDt;
         posRef.current.z +=
           (moveZ * speed + noclipDriftWorldRef.current.z * driftSpeedNoclip) * physDt;
-        camX = posRef.current.x;
-        camZ = posRef.current.z;
+        // TORNADO: an optional whirlpool-style circular swirl added on top
+        // of the manual flight above, instead of replacing it — posRef.current
+        // (still driven by NAV/HÖJD/DRIFT XZ exactly as above) keeps acting
+        // as the swirl's own center, so it drifts wherever you actually fly
+        // it while the view itself corkscrews around that point. Purely a
+        // rendered offset (never written back into posRef.current), so it
+        // never feeds back into the drift/physics above.
+        if (noclipTornadoOnRef.current) {
+          const tornadoDirSign = noclipTornadoDirectionRef.current === "ccw" ? -1 : 1;
+          const tornadoOmega = 0.35 * noclipTornadoSpeedRef.current * tornadoDirSign;
+          noclipTornadoAngleRef.current += tornadoOmega * physDt;
+          const ang = noclipTornadoAngleRef.current;
+          camX = posRef.current.x + Math.cos(ang) * noclipTornadoRadiusRef.current;
+          camZ = posRef.current.z + Math.sin(ang) * noclipTornadoRadiusRef.current;
+          tornadoCloudActive = true;
+          tornadoCloudX = posRef.current.x;
+          tornadoCloudY = posRef.current.y;
+          tornadoCloudZ = posRef.current.z;
+          tornadoCloudRadius = noclipTornadoRadiusRef.current;
+          tornadoCloudAngle = ang;
+        } else {
+          camX = posRef.current.x;
+          camZ = posRef.current.z;
+        }
         camYRef.current = posRef.current.y;
         camVYRef.current = 0;
       } else if (camMode === "swing") {
@@ -5807,6 +5963,12 @@ export function Aquafulness() {
           const ang = swingTornadoAngleRef.current;
           rawOffX = Math.cos(ang) * swingTornadoRadiusRef.current;
           rawOffZ = Math.sin(ang) * swingTornadoRadiusRef.current;
+          tornadoCloudActive = true;
+          tornadoCloudX = posRef.current.x;
+          tornadoCloudY = rawSwingY;
+          tornadoCloudZ = posRef.current.z;
+          tornadoCloudRadius = swingTornadoRadiusRef.current;
+          tornadoCloudAngle = ang;
         } else {
           const rightX = Math.cos(swingYawRef.current),
             rightZ = -Math.sin(swingYawRef.current);
@@ -6023,6 +6185,34 @@ export function Aquafulness() {
       midClouds.position.z = camZ;
       skyClouds.position.x = camX;
       skyClouds.position.z = camZ;
+
+      // TORNADO CLOUD: unlike the infinite-tiling decks above (which just
+      // recenter on the camera every frame, never representing a real world
+      // position), this mesh sits at the active tornado's actual center —
+      // tornadoCloudX/Y/Z/Radius/Angle, set by whichever of the swing/noclip
+      // branches above had its own tornado spin engaged this frame. MOLN
+      // TONING's shared fade rate (cloudFadeSpeedRef) eases uOpacity toward
+      // on/off instead of popping visible/invisible on toggle, exactly like
+      // the mid/sky cloud decks.
+      const tornadoCloudWanted = tornadoCloudOnRef.current && tornadoCloudActive;
+      tornadoCloudFadeRef.current +=
+        ((tornadoCloudWanted ? 1 : 0) - tornadoCloudFadeRef.current) *
+        Math.min(1, dt * cloudFadeSpeedRef.current);
+      tornadoCloudUniforms.uOpacity.value = tornadoCloudFadeRef.current;
+      tornadoCloud.visible = tornadoCloudFadeRef.current > 0.003;
+      if (tornadoCloud.visible) {
+        tornadoCloud.position.set(tornadoCloudX, tornadoCloudY, tornadoCloudZ);
+        tornadoCloud.rotation.y = tornadoCloudAngle;
+        const topRadius = tornadoCloudRadius * TORNADO_CLOUD_TOP_SCALE;
+        tornadoCloud.scale.set(
+          topRadius,
+          tornadoCloudRadius * TORNADO_CLOUD_HEIGHT_SCALE,
+          topRadius,
+        );
+        tornadoCloudUniforms.uTime.value = t;
+        tornadoCloudUniforms.uCloudScroll.value.x = Math.cos(tornadoCloudAngle) * 0.3;
+        tornadoCloudUniforms.uCloudScroll.value.y = Math.sin(tornadoCloudAngle) * 0.3;
+      }
 
       const dirRad = (waveDirRef.current * Math.PI) / 180;
       const surfaceY = inWhirlpool
@@ -6895,6 +7085,8 @@ export function Aquafulness() {
       midCloudMat.dispose();
       skyCloudGeo.dispose();
       skyCloudMat.dispose();
+      tornadoCloudGeo.dispose();
+      tornadoCloudMat.dispose();
       for (const layer of extendCloudLayersRef.current) {
         (layer.material as THREE.Material).dispose();
       }
@@ -6933,6 +7125,7 @@ export function Aquafulness() {
       farOceanRef.current = null;
       midCloudsMeshRef.current = null;
       skyCloudsMeshRef.current = null;
+      tornadoCloudMeshRef.current = null;
       tvManager.dispose();
       tvManagerRef.current = null;
       torusRingField.dispose();
@@ -7354,6 +7547,16 @@ export function Aquafulness() {
     setSwingTornadoSpeed,
     swingTornadoDirection,
     setSwingTornadoDirection,
+    noclipTornadoOn,
+    setNoclipTornadoOn,
+    noclipTornadoRadius,
+    setNoclipTornadoRadius,
+    noclipTornadoSpeed,
+    setNoclipTornadoSpeed,
+    noclipTornadoDirection,
+    setNoclipTornadoDirection,
+    tornadoCloudOn,
+    setTornadoCloudOn,
     intervalSessionOn,
     setIntervalSessionOn,
     intervalDuration,

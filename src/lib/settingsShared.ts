@@ -135,7 +135,10 @@ export const SETTINGS_TABS: { id: SettingsTab; labelKey: string }[] = [
 
 // Five mutually-exclusive camera movement schemes:
 //  - "float"      the default: buoyant, wave-riding camera (all existing behavior).
-//  - "noclip"     free 3D flight in any direction, ignoring the water/wave physics.
+//  - "noclip"     free 3D flight in any direction, ignoring the water/wave
+//                 physics (optionally given a whirlpool-like circular
+//                 "tornado" swirl around wherever NAV/HÖJD/DRIFT XZ actually
+//                 fly it — see noclipTornado* fields).
 //  - "whirlpool"  orbits a whirlpool centered a radius's distance out in
 //                 front of wherever the camera was looking when this mode
 //                 was entered — steady spin, or an automatic drag-in/stay/
@@ -153,8 +156,9 @@ export const SETTINGS_TABS: { id: SettingsTab; labelKey: string }[] = [
 export type CameraMode = "float" | "noclip" | "whirlpool" | "swing" | "watercraft";
 export const CAMERA_MODES: CameraMode[] = ["float", "noclip", "whirlpool", "swing", "watercraft"];
 
-// Angular direction shared by the whirlpool orbit and the swing's optional
-// tornado spin: "cw"/"ccw" as seen from above (+y looking down).
+// Angular direction shared by the whirlpool orbit and the swing/noclip
+// modes' optional tornado spin: "cw"/"ccw" as seen from above (+y looking
+// down).
 export type WhirlpoolDirection = "cw" | "ccw";
 export const WHIRLPOOL_DIRECTIONS: WhirlpoolDirection[] = ["cw", "ccw"];
 
@@ -387,6 +391,20 @@ export type Persisted = {
   swingTornadoRadius: number;
   swingTornadoSpeed: number;
   swingTornadoDirection: WhirlpoolDirection;
+  // Optional "tornado" spin for NOCLIP (free flight): same idea as
+  // swingTornado* above, but layered on top of NAV/HÖJD/DRIFT XZ's manual
+  // flight instead of replacing a pendulum arc — see the noclip branch of
+  // the physics loop in routes/index.tsx.
+  noclipTornadoOn: boolean;
+  noclipTornadoRadius: number;
+  noclipTornadoSpeed: number;
+  noclipTornadoDirection: WhirlpoolDirection;
+  // TORNADO CLOUD: optional visible funnel-shaped cloud mesh wrapping
+  // whichever tornado orbit (swingTornado or noclipTornado) is currently
+  // active, sized off that mode's own *TornadoRadius — see
+  // tornadoCloudMeshRef in routes/index.tsx. Purely cosmetic; the orbit
+  // itself works identically whether or not this is on.
+  tornadoCloudOn: boolean;
   intervalIncludeFloat: boolean;
   intervalIncludeWhirlpool: boolean;
   intervalIncludeSwing: boolean;
@@ -613,6 +631,11 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "swingTornadoRadius",
     "swingTornadoSpeed",
     "swingTornadoDirection",
+    "noclipTornadoOn",
+    "noclipTornadoRadius",
+    "noclipTornadoSpeed",
+    "noclipTornadoDirection",
+    "tornadoCloudOn",
     "intervalSessionOn",
     "intervalDuration",
     "intervalSessionType",

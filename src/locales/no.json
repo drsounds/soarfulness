@@ -161,6 +161,10 @@
       "noclipAutoAlternateInterval": "VEKSLINGSINTERVALL",
       "noclipFallRiseSpeed": "FALL/STIGNING FART",
       "noclipSpeed": "NOCLIP FART",
+      "noclipTornado": "TORNADO",
+      "noclipTornadoDirection": "TORNADO RETNING",
+      "noclipTornadoRadius": "TORNADO RADIUS",
+      "noclipTornadoSpeed": "TORNADO TEMPO",
       "noclipVertEaseTime": "FALL/STIGNING MYKHET",
       "posX": "POS X",
       "posY": "POS Y",
@@ -180,6 +184,7 @@
       "swingXFactor": "HUSKE X",
       "swingYWaveform": "HUSKE Y BØLGEFORM",
       "targetFps": "BILDEFREKVENSTAK",
+      "tornadoCloud": "TORNADO SKY",
       "wakeLock": "VÅKEN"
     },
     "env": {
