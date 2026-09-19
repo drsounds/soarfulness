@@ -8267,10 +8267,9 @@ export function Aquafulness() {
                     <PadSlider
                       label={t("dial.wave.whirlpoolSpeed")}
                       value={whirlpoolSpeed}
-                      min={0}
-                      max={10}
+                      min={-20}
+                      max={20}
                       step={0.1}
-                      curve={2}
                       format={(v) => `${v.toFixed(2)}×`}
                       onChange={setWhirlpoolSpeed}
                     />
