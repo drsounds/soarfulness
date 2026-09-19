@@ -60,6 +60,7 @@ import {
   type WavePresetName,
   type WhirlpoolDirection,
   type WhirlpoolExitMode,
+  type WhirlpoolSpawnDirection,
   type SurgeRotationMode,
   type Persisted,
 } from "@/lib/settingsShared";
@@ -299,6 +300,49 @@ function whirlpoolSurfaceHeight(
   const phase = r * kR - t * 0.9;
   const ring = Math.sin(phase) * 2.6 * amp * stableFade * (1 - g * 0.85);
   return pit + ring;
+}
+
+// Unit XZ direction the whirlpool's center should open up in, per the
+// WHIRLPOOL SPAWN DIRECTION dial — evaluated once, the instant whirlpool
+// mode is entered (see the cameraMode-change effect below). "ahead"/"left"/
+// "right"/"behind" are relative to the player's current look yaw; "current"
+// instead follows the net STRÖM+SVAJ (current/sway) world direction, so a
+// current/sway pushing the player forward opens the vortex ahead of them,
+// one pushing back opens it behind them, left/right likewise — falling back
+// to "ahead" when there's no current/sway to read (both at rest).
+function whirlpoolSpawnDirectionXZ(
+  direction: WhirlpoolSpawnDirection,
+  yaw: number,
+  driftX: number,
+  driftZ: number,
+  swayX: number,
+  swayZ: number,
+): { x: number; z: number } {
+  const fwdX = -Math.sin(yaw);
+  const fwdZ = -Math.cos(yaw);
+  switch (direction) {
+    case "left": {
+      const rightX = Math.cos(yaw),
+        rightZ = -Math.sin(yaw);
+      return { x: -rightX, z: -rightZ };
+    }
+    case "right": {
+      const rightX = Math.cos(yaw),
+        rightZ = -Math.sin(yaw);
+      return { x: rightX, z: rightZ };
+    }
+    case "behind":
+      return { x: -fwdX, z: -fwdZ };
+    case "current": {
+      const cx = driftX + swayX;
+      const cz = driftZ + swayZ;
+      const mag = Math.hypot(cx, cz);
+      return mag > 0.001 ? { x: cx / mag, z: cz / mag } : { x: fwdX, z: fwdZ };
+    }
+    case "ahead":
+    default:
+      return { x: fwdX, z: fwdZ };
+  }
 }
 
 // Normalized (roughly -1..1) vertical drive for GUNGA-mode's pendulum, evaluated
@@ -809,6 +853,7 @@ const DEFAULTS: Persisted = {
   whirlpoolStayDuration: 4,
   whirlpoolExitMode: "throwBack",
   whirlpoolExitSpeed: 10,
+  whirlpoolSpawnDirection: "ahead",
   depthSineOn: false,
   depthSineAmp: 2,
   depthSineFreq: 0.2,
@@ -1232,6 +1277,9 @@ export function Aquafulness() {
     initial.whirlpoolExitMode,
   );
   const [whirlpoolExitSpeed, setWhirlpoolExitSpeed] = useState(initial.whirlpoolExitSpeed);
+  const [whirlpoolSpawnDirection, setWhirlpoolSpawnDirection] = useState<WhirlpoolSpawnDirection>(
+    initial.whirlpoolSpawnDirection,
+  );
   const [depthSineOn, setDepthSineOn] = useState(initial.depthSineOn);
   const [depthSineAmp, setDepthSineAmp] = useState(initial.depthSineAmp);
   const [depthSineFreq, setDepthSineFreq] = useState(initial.depthSineFreq);
@@ -1706,6 +1754,7 @@ export function Aquafulness() {
     whirlpoolStayDuration,
     whirlpoolExitMode,
     whirlpoolExitSpeed,
+    whirlpoolSpawnDirection,
     depthSineOn,
     depthSineAmp,
     depthSineFreq,
@@ -1869,6 +1918,7 @@ export function Aquafulness() {
     whirlpoolStayDuration,
     whirlpoolExitMode,
     whirlpoolExitSpeed,
+    whirlpoolSpawnDirection,
     depthSineOn,
     depthSineAmp,
     depthSineFreq,
@@ -2119,6 +2169,7 @@ export function Aquafulness() {
   const whirlpoolStayDurationRef = useRef(whirlpoolStayDuration);
   const whirlpoolExitModeRef = useRef(whirlpoolExitMode);
   const whirlpoolExitSpeedRef = useRef(whirlpoolExitSpeed);
+  const whirlpoolSpawnDirectionRef = useRef(whirlpoolSpawnDirection);
   const whirlpoolAngleRef = useRef(0);
   // Drives the whirlpool's optional automatic drag-in/stay/exit sequence —
   // reset whenever cameraMode switches into "whirlpool" (see that effect
@@ -2142,12 +2193,14 @@ export function Aquafulness() {
   // exactly where the (still winding down) orbit left off, instead of
   // snapping back to wherever the camera was before it ever entered.
   const whirlpoolLastPosRef = useRef({ x: 0, z: 0 });
-  // Where the vortex is centered in world space — captured from posRef.current
-  // the instant cameraMode switches into "whirlpool" (see that effect below),
-  // so the whirlpool always opens up right where the player currently is
-  // instead of a fixed world-origin spot. Read by the orbit math, the funnel
-  // surface height sampling, and the shader's uVortexCenter uniform, all
-  // below, so the visual funnel and the camera's ride on it stay in sync.
+  // Where the vortex is centered in world space — computed from posRef.current
+  // via whirlpoolSpawnDirectionXZ (see that function and the WHIRLPOOL SPAWN
+  // DIRECTION dial) the instant cameraMode switches into "whirlpool" (see
+  // that effect below), a radius's distance out in the chosen direction, so
+  // the whirlpool opens up around the player instead of forming right on top
+  // of them or at a fixed world-origin spot. Read by the orbit math, the
+  // funnel surface height sampling, and the shader's uVortexCenter uniform,
+  // all below, so the visual funnel and the camera's ride on it stay in sync.
   const whirlpoolCenterRef = useRef({ x: 0, z: 0 });
   const swingTornadoOnRef = useRef(swingTornadoOn);
   const swingTornadoRadiusRef = useRef(swingTornadoRadius);
@@ -2396,6 +2449,9 @@ export function Aquafulness() {
   useEffect(() => {
     whirlpoolExitSpeedRef.current = whirlpoolExitSpeed;
   }, [whirlpoolExitSpeed]);
+  useEffect(() => {
+    whirlpoolSpawnDirectionRef.current = whirlpoolSpawnDirection;
+  }, [whirlpoolSpawnDirection]);
   useEffect(() => {
     swingTornadoOnRef.current = swingTornadoOn;
   }, [swingTornadoOn]);
@@ -2713,7 +2769,24 @@ export function Aquafulness() {
       }
     } else if (cameraMode === "whirlpool") {
       whirlpoolPhaseRef.current = { phase: "drag", startMs: performance.now() };
-      whirlpoolCenterRef.current = { x: posRef.current.x, z: posRef.current.z };
+      // Center the vortex a radius's distance out from the camera, along
+      // whichever direction the WHIRLPOOL SPAWN DIRECTION dial calls for
+      // (see whirlpoolSpawnDirectionXZ above) — not right on top of the
+      // camera, so it visibly opens up in the chosen direction instead of
+      // forming underneath the player.
+      const spawnDir = whirlpoolSpawnDirectionXZ(
+        whirlpoolSpawnDirectionRef.current,
+        yawRef.current,
+        driftWorldRef.current.x,
+        driftWorldRef.current.z,
+        swayWorldRef.current.x,
+        swayWorldRef.current.z,
+      );
+      const aheadDist = whirlpoolRadiusRef.current;
+      whirlpoolCenterRef.current = {
+        x: posRef.current.x + spawnDir.x * aheadDist,
+        z: posRef.current.z + spawnDir.z * aheadDist,
+      };
     } else if (cameraMode === "swing") {
       swingYawRef.current = yawRef.current;
       swingTornadoAngleRef.current = 0;
@@ -2935,6 +3008,7 @@ export function Aquafulness() {
     setWhirlpoolStayDuration(DEFAULTS.whirlpoolStayDuration);
     setWhirlpoolExitMode(DEFAULTS.whirlpoolExitMode);
     setWhirlpoolExitSpeed(DEFAULTS.whirlpoolExitSpeed);
+    setWhirlpoolSpawnDirection(DEFAULTS.whirlpoolSpawnDirection);
     setDepthSineOn(DEFAULTS.depthSineOn);
     setDepthSineAmp(DEFAULTS.depthSineAmp);
     setDepthSineFreq(DEFAULTS.depthSineFreq);
@@ -3091,6 +3165,8 @@ export function Aquafulness() {
       setWhirlpoolStayDuration(patch.whirlpoolStayDuration);
     if (patch.whirlpoolExitMode !== undefined) setWhirlpoolExitMode(patch.whirlpoolExitMode);
     if (patch.whirlpoolExitSpeed !== undefined) setWhirlpoolExitSpeed(patch.whirlpoolExitSpeed);
+    if (patch.whirlpoolSpawnDirection !== undefined)
+      setWhirlpoolSpawnDirection(patch.whirlpoolSpawnDirection);
     if (patch.depthSineOn !== undefined) setDepthSineOn(patch.depthSineOn);
     if (patch.depthSineAmp !== undefined) setDepthSineAmp(patch.depthSineAmp);
     if (patch.depthSineFreq !== undefined) setDepthSineFreq(patch.depthSineFreq);
@@ -5763,9 +5839,11 @@ export function Aquafulness() {
           : rawSwingY;
         camVYRef.current = 0;
       } else if (inWhirlpool) {
-        // Orbit around whirlpoolCenterRef — wherever the camera was when this
-        // mode was entered (see the cameraMode-change effect above), not a
-        // fixed world-origin spot. Without the optional sequence,
+        // Orbit around whirlpoolCenterRef — a radius's distance out from
+        // wherever the camera was when this mode was entered, in whichever
+        // direction the WHIRLPOOL SPAWN DIRECTION dial calls for (see the
+        // cameraMode-change effect above), not a fixed world-origin spot.
+        // Without the optional sequence,
         // NAV.y moves in/out along the radius and NAV.x adds extra swirl,
         // exactly like the old manual vortex control; with it, the radius
         // instead automatically loops through drag-in -> stay inside -> exit
@@ -6401,9 +6479,10 @@ export function Aquafulness() {
       // never turns.
       const normalLookX = camX + camOffXRef.current + swayX + surgeX;
       const normalLookZ = camZ + camOffZRef.current + swayZ + surgeZ - 20;
-      // Aim at the vortex center (whirlpoolCenterRef — wherever the camera
-      // was when whirlpool mode was entered, not a fixed world-origin spot;
-      // see that ref's own comment), level with the camera so the throat is
+      // Aim at the vortex center (whirlpoolCenterRef — offset from where the
+      // camera was when whirlpool mode was entered per the WHIRLPOOL SPAWN
+      // DIRECTION dial, not a fixed world-origin spot; see that ref's own
+      // comment), level with the camera so the throat is
       // visible without the horizon tilting — eased toward as
       // whirlpoolBlendRef rises, eased back off the normal look target as it
       // falls.
@@ -7238,6 +7317,8 @@ export function Aquafulness() {
     setWhirlpoolExitMode,
     whirlpoolExitSpeed,
     setWhirlpoolExitSpeed,
+    whirlpoolSpawnDirection,
+    setWhirlpoolSpawnDirection,
     cameraMode,
     setCameraMode,
     cycleCameraMode,

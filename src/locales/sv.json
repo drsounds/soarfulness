@@ -91,6 +91,13 @@
     "whirlpoolExitMode": {
       "reverseSpin": "OMVÄND SNURR",
       "throwBack": "KASTAS TILLBAKA"
+    },
+    "whirlpoolSpawnDirection": {
+      "ahead": "FRAMÅT",
+      "behind": "BAKOM",
+      "current": "MED STRÖMMEN",
+      "left": "VÄNSTER",
+      "right": "HÖGER"
     }
   },
   "common": {
@@ -300,6 +307,7 @@
       "whirlpoolExitSpeed": "UTGÅNGSHASTIGHET",
       "whirlpoolOpening": "ÖPPNING",
       "whirlpoolSequence": "AUTO-SEKVENS",
+      "whirlpoolSpawnDirection": "STARTRIKTNING",
       "whirlpoolSpeed": "VIRVEL TEMPO",
       "whirlpoolStayDuration": "STANNA INNE"
     }

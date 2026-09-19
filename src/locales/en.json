@@ -91,6 +91,13 @@
     "whirlpoolExitMode": {
       "reverseSpin": "REVERSE SPIN",
       "throwBack": "THROWN BACK"
+    },
+    "whirlpoolSpawnDirection": {
+      "ahead": "AHEAD",
+      "behind": "BEHIND",
+      "current": "FOLLOW CURRENT",
+      "left": "LEFT",
+      "right": "RIGHT"
     }
   },
   "common": {
@@ -300,6 +307,7 @@
       "whirlpoolExitSpeed": "EXIT SPEED",
       "whirlpoolOpening": "OPENING",
       "whirlpoolSequence": "AUTO SEQUENCE",
+      "whirlpoolSpawnDirection": "SPAWN DIRECTION",
       "whirlpoolSpeed": "WHIRLPOOL SPEED",
       "whirlpoolStayDuration": "STAY INSIDE"
     }
