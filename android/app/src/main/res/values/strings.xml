@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Aquafulness</string>
+    <string name="title_activity_main">Aquafulness</string>
+    <string name="package_name">se.aquafulness.app.gen7</string>
+    <string name="custom_url_scheme">se.aquafulness.app.gen7</string>
+</resources>

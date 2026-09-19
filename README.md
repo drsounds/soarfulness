@@ -50,6 +50,8 @@ original Godot-based [`drsounds/aquafulness-2028`](https://github.com/drsounds/a
 | [`docs/README.md`](docs/README.md) | Documentation index |
 | [`docs/01-background-and-purpose.md`](docs/01-background-and-purpose.md) | Digital bathing, the case study, seeding, and the "aquaful" state |
 | [`docs/02-optic-flow-and-kinesthetics.md`](docs/02-optic-flow-and-kinesthetics.md) | The perceptual design: optic flow, vection and kinesthetic movement |
+| [`CAPACITOR_APP.md`](CAPACITOR_APP.md) | Offline Android app (Capacitor) for Google Play distribution |
+| [`native/NATIVE_APP.md`](native/NATIVE_APP.md) | Native iOS/Android app (Expo + react-native-webgpu) — status |
 
 ## Credits
 

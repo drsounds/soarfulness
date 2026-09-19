@@ -1,0 +1,116 @@
+name: Capacitor Android build
+
+on:
+  pull_request:
+    paths:
+      - "android/**"
+      - "capacitor.config.ts"
+      - "scripts/capacitor-snapshot-shell.mjs"
+      - "package.json"
+      - ".github/workflows/capacitor-android-build.yml"
+  workflow_dispatch:
+    inputs:
+      track:
+        description: "Play Store track to submit to (only used when GOOGLE_PLAY_SERVICE_ACCOUNT_JSON is set)"
+        required: false
+        default: internal
+        type: choice
+        options:
+          - internal
+          - alpha
+          - beta
+          - production
+
+jobs:
+  android:
+    name: Build Android (Capacitor)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    # Unlike native/'s react-native-webgpu port, this is a WebView shell
+    # around the already-built web app — no NDK/CMake compile, no per-ABI
+    # native binaries. Much lighter than native-android-build.yml, so (per
+    # NATIVE_APP.md's hard-won lessons there) it doesn't need that
+    # workflow's disk-space or Actions-artifact-quota workarounds.
+    env:
+      HAS_ANDROID_SIGNING: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 != '' }}
+      HAS_PLAY_SUBMIT: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 != '' && secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON != '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web app for Capacitor (offline SPA shell)
+        run: npm run build:capacitor
+
+      - name: Sync Capacitor Android project
+        run: npx cap sync android
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
+
+      - name: Build debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug
+
+      - name: Decode upload keystore
+        if: env.HAS_ANDROID_SIGNING == 'true'
+        run: |
+          echo "${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/upload-keystore.jks"
+          echo "ANDROID_UPLOAD_STORE_FILE=$RUNNER_TEMP/upload-keystore.jks" >> "$GITHUB_ENV"
+
+      - name: Build signed release AAB
+        if: env.HAS_ANDROID_SIGNING == 'true'
+        working-directory: android
+        env:
+          ANDROID_UPLOAD_STORE_FILE: ${{ env.ANDROID_UPLOAD_STORE_FILE }}
+          ANDROID_UPLOAD_STORE_PASSWORD: ${{ secrets.ANDROID_UPLOAD_STORE_PASSWORD }}
+          ANDROID_UPLOAD_KEY_ALIAS: ${{ secrets.ANDROID_UPLOAD_KEY_ALIAS }}
+          ANDROID_UPLOAD_KEY_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEY_PASSWORD }}
+        run: ./gradlew bundleRelease
+
+      # Only exists to prove PRs without the signing secret still compile —
+      # no reason to also store it alongside the AAB on signed runs (see
+      # NATIVE_APP.md's Actions-artifact-quota notes).
+      - name: Upload debug APK
+        if: env.HAS_ANDROID_SIGNING != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: aquafulness-capacitor-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 3
+
+      - name: Publish signed release AAB as a GitHub Release asset
+        if: env.HAS_ANDROID_SIGNING == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: capacitor-android-build-${{ github.run_number }}
+          name: Capacitor Android build ${{ github.run_number }}
+          draft: true
+          files: android/app/build/outputs/bundle/release/app-release.aab
+
+      - name: Submit to Play Console
+        if: env.HAS_PLAY_SUBMIT == 'true' && github.event_name == 'workflow_dispatch'
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: se.aquafulness.app.gen7
+          releaseFiles: android/app/build/outputs/bundle/release/app-release.aab
+          track: ${{ github.event.inputs.track || 'internal' }}
