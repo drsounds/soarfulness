@@ -5713,7 +5713,7 @@ export function Aquafulness() {
       const camMode = cameraModeRef.current;
       const inWhirlpool = camMode === "whirlpool";
       const walkSpeed = 16; // m/s at full deflection
-      const driftSpeed = 4.4; // m/s at full deflection — mjukare än aktiv rörelse
+      const driftSpeed = 13.2; // m/s at full deflection — mjukare än aktiv rörelse
       let camX: number, camZ: number;
       if (camMode === "noclip" || camMode === "watercraft") {
         // Free 3D flight, no wave physics: NAV's y-axis moves along the full
