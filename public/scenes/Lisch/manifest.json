@@ -1,0 +1,7 @@
+{
+  "name": "Lisch",
+  "position": [30, 1, 0],
+  "rotation": [0, 0, 0],
+  "scale": 2.5,
+  "bob": { "follow": false }
+}
