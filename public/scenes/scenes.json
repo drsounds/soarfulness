@@ -2,6 +2,7 @@
   "scenes": [
     { "id": "Strandpark", "name": "Strandpark" },
     { "id": "Strandpark2", "name": "Strandpark2" },
-    { "id": "Lisch", "name": "Lisch" }
+    { "id": "Lisch", "name": "Lisch" },
+    { "id": "Coordlux", "name": "Coordlux" }
   ]
 }
