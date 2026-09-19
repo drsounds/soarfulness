@@ -136,9 +136,10 @@ export const SETTINGS_TABS: { id: SettingsTab; labelKey: string }[] = [
 // Five mutually-exclusive camera movement schemes:
 //  - "float"      the default: buoyant, wave-riding camera (all existing behavior).
 //  - "noclip"     free 3D flight in any direction, ignoring the water/wave physics.
-//  - "whirlpool"  orbits a whirlpool centered wherever the camera was when
-//                 this mode was entered — steady spin, or an automatic
-//                 drag-in/stay/exit sequence (see whirlpool* fields).
+//  - "whirlpool"  orbits a whirlpool centered a radius's distance out in
+//                 front of wherever the camera was looking when this mode
+//                 was entered — steady spin, or an automatic drag-in/stay/
+//                 exit sequence (see whirlpool* fields).
 //  - "swing"      a pendulum that swings back and forth high above the water
 //                 (optionally spun into a circular "tornado" orbit instead —
 //                 see swingTornado* fields).

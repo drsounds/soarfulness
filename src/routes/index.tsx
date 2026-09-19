@@ -2142,12 +2142,13 @@ export function Aquafulness() {
   // exactly where the (still winding down) orbit left off, instead of
   // snapping back to wherever the camera was before it ever entered.
   const whirlpoolLastPosRef = useRef({ x: 0, z: 0 });
-  // Where the vortex is centered in world space — captured from posRef.current
-  // the instant cameraMode switches into "whirlpool" (see that effect below),
-  // so the whirlpool always opens up right where the player currently is
-  // instead of a fixed world-origin spot. Read by the orbit math, the funnel
-  // surface height sampling, and the shader's uVortexCenter uniform, all
-  // below, so the visual funnel and the camera's ride on it stay in sync.
+  // Where the vortex is centered in world space — computed from posRef.current
+  // and the current look yaw the instant cameraMode switches into "whirlpool"
+  // (see that effect below), a radius's distance out in front of the player,
+  // so the whirlpool opens up ahead of them instead of forming right on top
+  // of them or at a fixed world-origin spot. Read by the orbit math, the
+  // funnel surface height sampling, and the shader's uVortexCenter uniform,
+  // all below, so the visual funnel and the camera's ride on it stay in sync.
   const whirlpoolCenterRef = useRef({ x: 0, z: 0 });
   const swingTornadoOnRef = useRef(swingTornadoOn);
   const swingTornadoRadiusRef = useRef(swingTornadoRadius);
@@ -2713,7 +2714,17 @@ export function Aquafulness() {
       }
     } else if (cameraMode === "whirlpool") {
       whirlpoolPhaseRef.current = { phase: "drag", startMs: performance.now() };
-      whirlpoolCenterRef.current = { x: posRef.current.x, z: posRef.current.z };
+      // Center the vortex a radius's distance out in front of wherever the
+      // camera is currently looking (yaw only — pitch doesn't matter for an
+      // XZ-plane orbit), not right on top of the camera, so it visibly opens
+      // up ahead of the player instead of forming underneath them.
+      const fwdX = -Math.sin(yawRef.current);
+      const fwdZ = -Math.cos(yawRef.current);
+      const aheadDist = whirlpoolRadiusRef.current;
+      whirlpoolCenterRef.current = {
+        x: posRef.current.x + fwdX * aheadDist,
+        z: posRef.current.z + fwdZ * aheadDist,
+      };
     } else if (cameraMode === "swing") {
       swingYawRef.current = yawRef.current;
       swingTornadoAngleRef.current = 0;
@@ -5763,9 +5774,10 @@ export function Aquafulness() {
           : rawSwingY;
         camVYRef.current = 0;
       } else if (inWhirlpool) {
-        // Orbit around whirlpoolCenterRef — wherever the camera was when this
-        // mode was entered (see the cameraMode-change effect above), not a
-        // fixed world-origin spot. Without the optional sequence,
+        // Orbit around whirlpoolCenterRef — a radius's distance ahead of
+        // wherever the camera was looking when this mode was entered (see
+        // the cameraMode-change effect above), not a fixed world-origin
+        // spot. Without the optional sequence,
         // NAV.y moves in/out along the radius and NAV.x adds extra swirl,
         // exactly like the old manual vortex control; with it, the radius
         // instead automatically loops through drag-in -> stay inside -> exit
@@ -6401,9 +6413,10 @@ export function Aquafulness() {
       // never turns.
       const normalLookX = camX + camOffXRef.current + swayX + surgeX;
       const normalLookZ = camZ + camOffZRef.current + swayZ + surgeZ - 20;
-      // Aim at the vortex center (whirlpoolCenterRef — wherever the camera
-      // was when whirlpool mode was entered, not a fixed world-origin spot;
-      // see that ref's own comment), level with the camera so the throat is
+      // Aim at the vortex center (whirlpoolCenterRef — out in front of where
+      // the camera was looking when whirlpool mode was entered, not a fixed
+      // world-origin spot; see that ref's own comment), level with the
+      // camera so the throat is
       // visible without the horizon tilting — eased toward as
       // whirlpoolBlendRef rises, eased back off the normal look target as it
       // falls.
