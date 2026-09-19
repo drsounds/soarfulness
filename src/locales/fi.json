@@ -91,6 +91,13 @@
     "whirlpoolExitMode": {
       "reverseSpin": "KÄÄNTEINEN PYÖRITYS",
       "throwBack": "HEITETÄÄN TAKAISIN"
+    },
+    "whirlpoolSpawnDirection": {
+      "ahead": "EDESSÄ",
+      "behind": "TAKANA",
+      "current": "VIRRAN MUKAAN",
+      "left": "VASEMMALLA",
+      "right": "OIKEALLA"
     }
   },
   "common": {
@@ -300,6 +307,7 @@
       "whirlpoolExitSpeed": "POISTUMISNOPEUS",
       "whirlpoolOpening": "AUKKO",
       "whirlpoolSequence": "AUTOSEKVENSSI",
+      "whirlpoolSpawnDirection": "ALOITUSSUUNTA",
       "whirlpoolSpeed": "PYÖRTEEN TEMPO",
       "whirlpoolStayDuration": "PYSY SISÄLLÄ"
     }

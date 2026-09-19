@@ -29,6 +29,8 @@ import {
   WHIRLPOOL_DIRECTION_LABEL_KEYS,
   WHIRLPOOL_EXIT_MODES,
   WHIRLPOOL_EXIT_MODE_LABEL_KEYS,
+  WHIRLPOOL_SPAWN_DIRECTIONS,
+  WHIRLPOOL_SPAWN_DIRECTION_LABEL_KEYS,
   SURGE_ROTATION_MODES,
   SURGE_ROTATION_MODE_LABEL_KEYS,
   SWING_PRESETS,
@@ -48,6 +50,7 @@ import {
   type WavePresetName,
   type WhirlpoolDirection,
   type WhirlpoolExitMode,
+  type WhirlpoolSpawnDirection,
   type SurgeRotationMode,
 } from "@/lib/settingsShared";
 import { pickJsonFile, type PresetScope, type SavedPreset, type SavedState } from "@/lib/presets";
@@ -496,6 +499,8 @@ export type SettingsPanelProps = {
   setWhirlpoolExitMode: Dispatch<SetStateAction<WhirlpoolExitMode>>;
   whirlpoolExitSpeed: number;
   setWhirlpoolExitSpeed: Dispatch<SetStateAction<number>>;
+  whirlpoolSpawnDirection: WhirlpoolSpawnDirection;
+  setWhirlpoolSpawnDirection: Dispatch<SetStateAction<WhirlpoolSpawnDirection>>;
 
   // Kamera
   cameraMode: CameraMode;
@@ -1183,6 +1188,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setWhirlpoolExitMode,
     whirlpoolExitSpeed,
     setWhirlpoolExitSpeed,
+    whirlpoolSpawnDirection,
+    setWhirlpoolSpawnDirection,
     cameraMode,
     setCameraMode,
     cycleCameraMode,
@@ -1564,6 +1571,35 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       onSelectIndex={(i) => setWhirlpoolDirection(WHIRLPOOL_DIRECTIONS[i])}
                       onDec={() => setWhirlpoolDirection("cw")}
                       onInc={() => setWhirlpoolDirection("ccw")}
+                    />
+                    <SettingRow
+                      label={t("dial.wave.whirlpoolSpawnDirection")}
+                      value={t(WHIRLPOOL_SPAWN_DIRECTION_LABEL_KEYS[whirlpoolSpawnDirection])}
+                      options={WHIRLPOOL_SPAWN_DIRECTIONS.map((d) =>
+                        t(WHIRLPOOL_SPAWN_DIRECTION_LABEL_KEYS[d]),
+                      )}
+                      selectedIndex={WHIRLPOOL_SPAWN_DIRECTIONS.indexOf(whirlpoolSpawnDirection)}
+                      onSelectIndex={(i) =>
+                        setWhirlpoolSpawnDirection(WHIRLPOOL_SPAWN_DIRECTIONS[i])
+                      }
+                      onDec={() =>
+                        setWhirlpoolSpawnDirection(
+                          WHIRLPOOL_SPAWN_DIRECTIONS[
+                            (WHIRLPOOL_SPAWN_DIRECTIONS.indexOf(whirlpoolSpawnDirection) -
+                              1 +
+                              WHIRLPOOL_SPAWN_DIRECTIONS.length) %
+                              WHIRLPOOL_SPAWN_DIRECTIONS.length
+                          ],
+                        )
+                      }
+                      onInc={() =>
+                        setWhirlpoolSpawnDirection(
+                          WHIRLPOOL_SPAWN_DIRECTIONS[
+                            (WHIRLPOOL_SPAWN_DIRECTIONS.indexOf(whirlpoolSpawnDirection) + 1) %
+                              WHIRLPOOL_SPAWN_DIRECTIONS.length
+                          ],
+                        )
+                      }
                     />
                     <SettingRow
                       label={t("dial.wave.whirlpoolDistance")}
