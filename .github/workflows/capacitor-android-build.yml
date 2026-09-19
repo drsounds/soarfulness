@@ -1,13 +1,10 @@
 name: Capacitor Android build
 
 on:
-  pull_request:
-    paths:
-      - "android/**"
-      - "capacitor.config.ts"
-      - "scripts/capacitor-snapshot-shell.mjs"
-      - "package.json"
-      - ".github/workflows/capacitor-android-build.yml"
+  # Manual only — no push/pull_request trigger. Keeps this off the same
+  # automatic-CI cost/quota path native-android-build.yml deliberately
+  # avoids (see NATIVE_APP.md). Run this from the Actions tab once a
+  # capacitor.config.ts/android/ change needs verifying.
   workflow_dispatch:
     inputs:
       track:
@@ -42,7 +39,8 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # @capacitor/cli 8.x requires Node >= 22.
+          node-version: 22
           cache: npm
 
       - name: Install dependencies

@@ -65,10 +65,10 @@ cd android
 ./gradlew bundleRelease     # release AAB — see "Play Store signing" below
 ```
 
-`.github/workflows/capacitor-android-build.yml` runs the same steps in CI
-(PRs touching `android/**`/`capacitor.config.ts`, or manual dispatch), and
-builds+publishes a signed release AAB when the signing secrets below are
-configured.
+`.github/workflows/capacitor-android-build.yml` runs the same steps in CI,
+manually (`workflow_dispatch` only — no automatic push/PR trigger, matching
+`native-android-build.yml`'s stance), and builds+publishes a signed release
+AAB when the signing secrets below are configured.
 
 ## Play Store signing
 
