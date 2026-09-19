@@ -6401,13 +6401,16 @@ export function Aquafulness() {
       // never turns.
       const normalLookX = camX + camOffXRef.current + swayX + surgeX;
       const normalLookZ = camZ + camOffZRef.current + swayZ + surgeZ - 20;
-      // Aim at the vortex center (0, 0), slightly below the camera so the
-      // throat is visible without the horizon tilting — eased toward as
+      // Aim at the vortex center (whirlpoolCenterRef — wherever the camera
+      // was when whirlpool mode was entered, not a fixed world-origin spot;
+      // see that ref's own comment), level with the camera so the throat is
+      // visible without the horizon tilting — eased toward as
       // whirlpoolBlendRef rises, eased back off the normal look target as it
       // falls.
       const vortexBlend = whirlpoolBlendRef.current;
-      const lookX = normalLookX * (1 - vortexBlend);
-      const lookZ = normalLookZ * (1 - vortexBlend);
+      const vortexCenter = whirlpoolCenterRef.current;
+      const lookX = normalLookX + (vortexCenter.x - normalLookX) * vortexBlend;
+      const lookZ = normalLookZ + (vortexCenter.z - normalLookZ) * vortexBlend;
       camera.lookAt(lookX, lookY, lookZ);
 
       // Rotation stick: yaw (x) + pitch (y). Integrate stick as angular velocity.
