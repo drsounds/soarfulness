@@ -161,6 +161,10 @@
       "noclipAutoAlternateInterval": "VEKSLINGSINTERVALL",
       "noclipFallRiseSpeed": "FALL/STIGNING FART",
       "noclipSpeed": "NOCLIP FART",
+      "noclipTornado": "TORNADO",
+      "noclipTornadoDirection": "TORNADO RETNING",
+      "noclipTornadoRadius": "TORNADO RADIUS",
+      "noclipTornadoSpeed": "TORNADO TEMPO",
       "noclipVertEaseTime": "FALL/STIGNING MYKHET",
       "posX": "POS X",
       "posY": "POS Y",
@@ -180,6 +184,7 @@
       "swingXFactor": "HUSKE X",
       "swingYWaveform": "HUSKE Y BØLGEFORM",
       "targetFps": "BILDEFREKVENSTAK",
+      "tornadoCloud": "TORNADO SKY",
       "wakeLock": "VÅKEN"
     },
     "env": {
@@ -891,6 +896,32 @@
       "square": "FIRKANT",
       "triangle": "TREKANT"
     }
+  },
+  "terms": {
+    "backToApp": "Tilbake til appen",
+    "intro": "Denne siden beskriver vilkårene for din bruk av Aquafulness.",
+    "lastUpdated": "Sist oppdatert: 19. september 2026",
+    "sections": {
+      "authorizedUse": {
+        "academicResearch": {
+          "body": "Bruk av denne programvaren, inkludert dens visuelle, akustiske eller simulerte bevegelsesmekanikk, som en intervensjon, stimulus eller måleverktøy i kliniske studier, observasjonsstudier eller akademisk forskning.",
+          "term": "Akademisk og vitenskapelig forskning"
+        },
+        "clinicalDeployment": {
+          "body": "Bruk av denne applikasjonen i helsemiljøer, psykologiske behandlingsprogrammer eller formelle terapiøkter.",
+          "term": "Klinisk eller terapeutisk bruk"
+        },
+        "contact": "For henvendelser om akademisk samarbeid, forskningslisenser eller institusjonelle studier, kontakt: drsounds@gmail.com.",
+        "dataCollection": {
+          "body": "Enhver automatisert eller strukturert uttrekking, innsamling eller logging av applikasjonens ytelse, sensoriske responser eller brukerinteraksjon for forsknings- eller sammenligningsrapportering.",
+          "term": "Systematisk datainnsamling"
+        },
+        "heading": "Tillatt bruk og forskningsbegrensninger",
+        "intro": "Denne applikasjonen tilbys utelukkende for personlig, ikke-kommersiell avslapning og velvære. Den er ikke et medisinsk utstyr og er ikke beregnet for diagnostisk, terapeutisk eller medisinsk bruk.",
+        "prohibitedIntro": "Følgende bruk er strengt forbudt uten forutgående uttrykkelig skriftlig samtykke og en formell avtale med rettighetshaveren:"
+      }
+    },
+    "title": "Bruksvilkår"
   },
   "theme": {
     "title": "TEMA",

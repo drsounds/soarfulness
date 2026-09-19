@@ -161,6 +161,10 @@
       "noclipAutoAlternateInterval": "VAIHTOVÄLI",
       "noclipFallRiseSpeed": "PUTOAMIS/NOUSUNOPEUS",
       "noclipSpeed": "NOCLIP-NOPEUS",
+      "noclipTornado": "TORNADO",
+      "noclipTornadoDirection": "TORNADON SUUNTA",
+      "noclipTornadoRadius": "TORNADON SÄDE",
+      "noclipTornadoSpeed": "TORNADON TEMPO",
       "noclipVertEaseTime": "PUTOAMIS/NOUSUPEHMEYS",
       "posX": "SIJAINTI X",
       "posY": "SIJAINTI Y",
@@ -180,6 +184,7 @@
       "swingXFactor": "KEINU X",
       "swingYWaveform": "KEINUN Y-AALTOMUOTO",
       "targetFps": "KUVATAAJUUSKATTO",
+      "tornadoCloud": "TORNADON PILVI",
       "wakeLock": "VALVEILLA"
     },
     "env": {
@@ -891,6 +896,32 @@
       "square": "NELIÖ",
       "triangle": "KOLMIO"
     }
+  },
+  "terms": {
+    "backToApp": "Takaisin sovellukseen",
+    "intro": "Tämä sivu määrittää ehdot, joiden mukaisesti voit käyttää Aquafulnessia.",
+    "lastUpdated": "Päivitetty viimeksi: 19. syyskuuta 2026",
+    "sections": {
+      "authorizedUse": {
+        "academicResearch": {
+          "body": "Tämän ohjelmiston, mukaan lukien sen visuaaliset, akustiset tai simuloidut liikemekaniikat, käyttäminen interventiona, ärsykkeenä tai mittausvälineenä missä tahansa kliinisessä tutkimuksessa, seurantatutkimuksessa tai akateemisessa tutkimuksessa.",
+          "term": "Akateeminen ja tieteellinen tutkimus"
+        },
+        "clinicalDeployment": {
+          "body": "Tämän sovelluksen käyttöönotto terveydenhuollon ympäristöissä, psykologisissa hoito-ohjelmissa tai virallisissa terapiaistunnoissa.",
+          "term": "Kliininen tai terapeuttinen käyttöönotto"
+        },
+        "contact": "Akateemisia yhteistöitä, tutkimuslisenssejä tai institutionaalisia tutkimuksia koskevissa tiedusteluissa ota yhteyttä: drsounds@gmail.com.",
+        "dataCollection": {
+          "body": "Sovelluksen suorituskyvyn, aistivasteiden tai käyttäjän vuorovaikutuksen automaattinen tai jäsennelty poimiminen, kerääminen tai lokittaminen tutkimusta tai vertailuraportointia varten.",
+          "term": "Systemaattinen tiedonkeruu"
+        },
+        "heading": "Sallittu käyttö ja tutkimusrajoitukset",
+        "intro": "Tämä sovellus on tarkoitettu yksinomaan henkilökohtaiseen, ei-kaupalliseen rentoutumiseen ja hyvinvointiin. Se ei ole lääkinnällinen laite, eikä sitä ole tarkoitettu diagnostiseen, terapeuttiseen tai lääketieteelliseen käyttöön.",
+        "prohibitedIntro": "Seuraavat käyttötarkoitukset ovat ehdottomasti kiellettyjä ilman tekijänoikeuden haltijan etukäteen antamaa nimenomaista kirjallista suostumusta ja virallista sopimusta:"
+      }
+    },
+    "title": "Käyttöehdot"
   },
   "theme": {
     "title": "TEEMA",

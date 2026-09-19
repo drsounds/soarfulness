@@ -161,6 +161,10 @@
       "noclipAutoAlternateInterval": "SKIFTEINTERVAL",
       "noclipFallRiseSpeed": "FALD/STIGNING HASTIGHED",
       "noclipSpeed": "NOCLIP HASTIGHED",
+      "noclipTornado": "TORNADO",
+      "noclipTornadoDirection": "TORNADO RETNING",
+      "noclipTornadoRadius": "TORNADO RADIUS",
+      "noclipTornadoSpeed": "TORNADO TEMPO",
       "noclipVertEaseTime": "FALD/STIGNING BLØDHED",
       "posX": "POS X",
       "posY": "POS Y",
@@ -180,6 +184,7 @@
       "swingXFactor": "GYNGE X",
       "swingYWaveform": "GYNGE Y BØLGEFORM",
       "targetFps": "BILLEDFREKVENSLOFT",
+      "tornadoCloud": "TORNADO SKY",
       "wakeLock": "VÅGEN"
     },
     "env": {
@@ -891,6 +896,32 @@
       "square": "FIRKANT",
       "triangle": "TREKANT"
     }
+  },
+  "terms": {
+    "backToApp": "Tilbage til appen",
+    "intro": "Denne side beskriver vilkårene for din brug af Aquafulness.",
+    "lastUpdated": "Senest opdateret: 19. september 2026",
+    "sections": {
+      "authorizedUse": {
+        "academicResearch": {
+          "body": "Anvendelse af denne software, herunder dens visuelle, akustiske eller simulerede bevægelsesmekanikker, som en intervention, stimulus eller måleredskab i et klinisk forsøg, en observationsundersøgelse eller akademisk forskning.",
+          "term": "Akademisk og videnskabelig forskning"
+        },
+        "clinicalDeployment": {
+          "body": "Implementering af denne applikation i sundhedsmiljøer, psykologiske behandlingsprogrammer eller formelle terapisessioner.",
+          "term": "Klinisk eller terapeutisk anvendelse"
+        },
+        "contact": "Ved henvendelser vedrørende akademiske samarbejder, forskningslicenser eller institutionelle forsøg, kontakt venligst: drsounds@gmail.com.",
+        "dataCollection": {
+          "body": "Enhver automatiseret eller struktureret udtrækning, indsamling eller logning af applikationens ydeevne, sensoriske reaktioner eller brugerinteraktion til forsknings- eller sammenligningsrapportering.",
+          "term": "Systematisk dataindsamling"
+        },
+        "heading": "Tilladt brug og forskningsbegrænsninger",
+        "intro": "Denne applikation stilles udelukkende til rådighed til personlig, ikke-kommerciel afslapning og velvære. Den er ikke et medicinsk udstyr og er ikke beregnet til diagnostisk, terapeutisk eller medicinsk brug.",
+        "prohibitedIntro": "Følgende anvendelser er strengt forbudt uden forudgående udtrykkeligt skriftligt samtykke og en formel aftale med indehaveren af ophavsretten:"
+      }
+    },
+    "title": "Vilkår for brug"
   },
   "theme": {
     "title": "TEMA",
