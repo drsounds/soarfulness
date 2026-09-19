@@ -892,6 +892,32 @@
       "triangle": "TRIANGEL"
     }
   },
+  "terms": {
+    "backToApp": "Tillbaka till appen",
+    "intro": "Den här sidan anger villkoren för din användning av Aquafulness.",
+    "lastUpdated": "Senast uppdaterad: 19 september 2026",
+    "sections": {
+      "authorizedUse": {
+        "academicResearch": {
+          "body": "Att använda denna programvara, inklusive dess visuella, akustiska eller simulerade rörelsemekanik, som en intervention, stimulus eller mätverktyg i kliniska prövningar, observationsstudier eller akademisk forskning.",
+          "term": "Akademisk och vetenskaplig forskning"
+        },
+        "clinicalDeployment": {
+          "body": "Att implementera denna applikation inom vårdmiljöer, psykologiska behandlingsprogram eller formella terapisessioner.",
+          "term": "Klinisk eller terapeutisk användning"
+        },
+        "contact": "För frågor om akademiska samarbeten, forskningslicenser eller institutionella studier, kontakta: drsounds@gmail.com.",
+        "dataCollection": {
+          "body": "All automatiserad eller strukturerad extrahering, insamling eller loggning av applikationens prestanda, sensoriska reaktioner eller användarinteraktion för forsknings- eller jämförelserapportering.",
+          "term": "Systematisk datainsamling"
+        },
+        "heading": "Tillåten användning och forskningsbegränsningar",
+        "intro": "Denna applikation tillhandahålls enbart för personlig, icke-kommersiell avkoppling och välbefinnande. Den är inte en medicinteknisk produkt och är inte avsedd för diagnostisk, terapeutisk eller medicinsk användning.",
+        "prohibitedIntro": "Följande användningar är strängt förbjudna utan föregående uttryckligt skriftligt samtycke och ett formellt avtal med upphovsrättsinnehavaren:"
+      }
+    },
+    "title": "Användarvillkor"
+  },
   "theme": {
     "title": "TEMA",
     "aqua": "AQUA",
