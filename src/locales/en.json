@@ -892,6 +892,32 @@
       "triangle": "TRIANGLE"
     }
   },
+  "terms": {
+    "backToApp": "Back to app",
+    "intro": "This page sets out the terms under which you may use Aquafulness.",
+    "lastUpdated": "Last updated: September 19, 2026",
+    "sections": {
+      "authorizedUse": {
+        "academicResearch": {
+          "body": "Utilizing this software, including its visual, acoustic, or simulated motion mechanics, as an intervention, stimulus, or measurement tool in any clinical trial, observational study, or academic research.",
+          "term": "Academic and Scientific Research"
+        },
+        "clinicalDeployment": {
+          "body": "Implementing this application within healthcare environments, psychological treatment programs, or formal therapy sessions.",
+          "term": "Clinical or Therapeutic Deployment"
+        },
+        "contact": "For inquiries regarding academic collaborations, research licensing, or institutional trials, please contact: drsounds@gmail.com.",
+        "dataCollection": {
+          "body": "Any automated or structured extraction, harvesting, or logging of application performance, sensory responses, or user interaction for research or comparative reporting.",
+          "term": "Systematic Data Collection"
+        },
+        "heading": "Authorized Use and Research Restrictions",
+        "intro": "This application is provided solely for personal, non-commercial relaxation and wellness purposes. It is not a medical device and is not intended for diagnostic, therapeutic, or medical use.",
+        "prohibitedIntro": "The following uses are strictly prohibited without prior explicit written consent and a formal agreement with the copyright holder:"
+      }
+    },
+    "title": "Terms of Use"
+  },
   "theme": {
     "title": "THEME",
     "aqua": "AQUA",

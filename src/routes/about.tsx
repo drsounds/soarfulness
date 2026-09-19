@@ -7,11 +7,11 @@ export const Route = createFileRoute("/about")({
   component: AboutPage,
   head: () => ({
     meta: [
-      { title: "About & Privacy Policy — Aquafulness" },
+      { title: "About, Terms of Use & Privacy Policy — Aquafulness" },
       {
         name: "description",
         content:
-          "Operator contact details, EU consumer protection information, entertainment-only disclaimer, and the privacy policy for Aquafulness.",
+          "Operator contact details, EU consumer protection information, entertainment-only disclaimer, terms of use, and the privacy policy for Aquafulness.",
       },
     ],
   }),
@@ -184,6 +184,44 @@ function AboutPage() {
         </Card>
 
         <p className="text-xs text-muted-foreground">{t("about.lastUpdated")}</p>
+
+        <div>
+          <h2 className="text-2xl font-semibold tracking-tight">{t("terms.title")}</h2>
+          <p className="mt-2 text-sm text-muted-foreground">{t("terms.intro")}</p>
+        </div>
+
+        <Card className="border-0 bg-transparent shadow-none">
+          <CardHeader>
+            <CardTitle>{t("terms.sections.authorizedUse.heading")}</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3 text-sm leading-relaxed text-muted-foreground">
+            <p>{t("terms.sections.authorizedUse.intro")}</p>
+            <p>{t("terms.sections.authorizedUse.prohibitedIntro")}</p>
+            <ul className="list-disc space-y-2 pl-5">
+              <li>
+                <strong className="text-foreground">
+                  {t("terms.sections.authorizedUse.academicResearch.term")}
+                </strong>
+                : {t("terms.sections.authorizedUse.academicResearch.body")}
+              </li>
+              <li>
+                <strong className="text-foreground">
+                  {t("terms.sections.authorizedUse.clinicalDeployment.term")}
+                </strong>
+                : {t("terms.sections.authorizedUse.clinicalDeployment.body")}
+              </li>
+              <li>
+                <strong className="text-foreground">
+                  {t("terms.sections.authorizedUse.dataCollection.term")}
+                </strong>
+                : {t("terms.sections.authorizedUse.dataCollection.body")}
+              </li>
+            </ul>
+            <p>{t("terms.sections.authorizedUse.contact")}</p>
+          </CardContent>
+        </Card>
+
+        <p className="text-xs text-muted-foreground">{t("terms.lastUpdated")}</p>
 
         <div>
           <h2 className="text-2xl font-semibold tracking-tight">{t("privacy.title")}</h2>
