@@ -60,6 +60,7 @@ import {
   type WavePresetName,
   type WhirlpoolDirection,
   type WhirlpoolExitMode,
+  type WhirlpoolSpawnDirection,
   type SurgeRotationMode,
   type Persisted,
 } from "@/lib/settingsShared";
@@ -299,6 +300,49 @@ function whirlpoolSurfaceHeight(
   const phase = r * kR - t * 0.9;
   const ring = Math.sin(phase) * 2.6 * amp * stableFade * (1 - g * 0.85);
   return pit + ring;
+}
+
+// Unit XZ direction the whirlpool's center should open up in, per the
+// WHIRLPOOL SPAWN DIRECTION dial — evaluated once, the instant whirlpool
+// mode is entered (see the cameraMode-change effect below). "ahead"/"left"/
+// "right"/"behind" are relative to the player's current look yaw; "current"
+// instead follows the net STRÖM+SVAJ (current/sway) world direction, so a
+// current/sway pushing the player forward opens the vortex ahead of them,
+// one pushing back opens it behind them, left/right likewise — falling back
+// to "ahead" when there's no current/sway to read (both at rest).
+function whirlpoolSpawnDirectionXZ(
+  direction: WhirlpoolSpawnDirection,
+  yaw: number,
+  driftX: number,
+  driftZ: number,
+  swayX: number,
+  swayZ: number,
+): { x: number; z: number } {
+  const fwdX = -Math.sin(yaw);
+  const fwdZ = -Math.cos(yaw);
+  switch (direction) {
+    case "left": {
+      const rightX = Math.cos(yaw),
+        rightZ = -Math.sin(yaw);
+      return { x: -rightX, z: -rightZ };
+    }
+    case "right": {
+      const rightX = Math.cos(yaw),
+        rightZ = -Math.sin(yaw);
+      return { x: rightX, z: rightZ };
+    }
+    case "behind":
+      return { x: -fwdX, z: -fwdZ };
+    case "current": {
+      const cx = driftX + swayX;
+      const cz = driftZ + swayZ;
+      const mag = Math.hypot(cx, cz);
+      return mag > 0.001 ? { x: cx / mag, z: cz / mag } : { x: fwdX, z: fwdZ };
+    }
+    case "ahead":
+    default:
+      return { x: fwdX, z: fwdZ };
+  }
 }
 
 // Normalized (roughly -1..1) vertical drive for GUNGA-mode's pendulum, evaluated
@@ -781,6 +825,8 @@ const DEFAULTS: Persisted = {
   // full-resolution 60fps render.
   targetFps: 40,
   resolutionScale: 0.5,
+  // Off by default: see lowGraphicsMode's doc comment in settingsShared.ts.
+  lowGraphicsMode: false,
   // Off by default like every other optional shading extra below (caustics,
   // chromatic aberration, torus rings, mid clouds) — this fbm-based
   // micro-chop + foam layer runs two 3-octave noise samples plus another for
@@ -807,6 +853,7 @@ const DEFAULTS: Persisted = {
   whirlpoolStayDuration: 4,
   whirlpoolExitMode: "throwBack",
   whirlpoolExitSpeed: 10,
+  whirlpoolSpawnDirection: "ahead",
   depthSineOn: false,
   depthSineAmp: 2,
   depthSineFreq: 0.2,
@@ -1165,6 +1212,7 @@ export function Aquafulness() {
   const [gogglesFpsCap, setGogglesFpsCap] = useState(initial.gogglesFpsCap);
   const [targetFps, setTargetFps] = useState(initial.targetFps);
   const [resolutionScale, setResolutionScale] = useState(initial.resolutionScale);
+  const [lowGraphicsMode, setLowGraphicsMode] = useState(initial.lowGraphicsMode);
   const [regularWaves, setRegularWaves] = useState(initial.regularWaves);
   // Realistic (JONSWAP/FFT-ocean) waveform — see src/lib/ocean/fftOceanSpectrum.ts.
   const [realisticWaves, setRealisticWaves] = useState(initial.realisticWaves);
@@ -1229,6 +1277,9 @@ export function Aquafulness() {
     initial.whirlpoolExitMode,
   );
   const [whirlpoolExitSpeed, setWhirlpoolExitSpeed] = useState(initial.whirlpoolExitSpeed);
+  const [whirlpoolSpawnDirection, setWhirlpoolSpawnDirection] = useState<WhirlpoolSpawnDirection>(
+    initial.whirlpoolSpawnDirection,
+  );
   const [depthSineOn, setDepthSineOn] = useState(initial.depthSineOn);
   const [depthSineAmp, setDepthSineAmp] = useState(initial.depthSineAmp);
   const [depthSineFreq, setDepthSineFreq] = useState(initial.depthSineFreq);
@@ -1672,6 +1723,7 @@ export function Aquafulness() {
     gogglesFpsCap,
     targetFps,
     resolutionScale,
+    lowGraphicsMode,
     regularWaves,
     realisticWaves,
     dyingWave,
@@ -1702,6 +1754,7 @@ export function Aquafulness() {
     whirlpoolStayDuration,
     whirlpoolExitMode,
     whirlpoolExitSpeed,
+    whirlpoolSpawnDirection,
     depthSineOn,
     depthSineAmp,
     depthSineFreq,
@@ -1834,6 +1887,7 @@ export function Aquafulness() {
     gogglesFpsCap,
     targetFps,
     resolutionScale,
+    lowGraphicsMode,
     regularWaves,
     realisticWaves,
     dyingWave,
@@ -1864,6 +1918,7 @@ export function Aquafulness() {
     whirlpoolStayDuration,
     whirlpoolExitMode,
     whirlpoolExitSpeed,
+    whirlpoolSpawnDirection,
     depthSineOn,
     depthSineAmp,
     depthSineFreq,
@@ -2094,6 +2149,10 @@ export function Aquafulness() {
   // multiplies the renderer's pixel ratio).
   const targetFpsRef = useRef(targetFps);
   const resolutionScaleRef = useRef(resolutionScale);
+  // Read every frame by animate() (see lowEnd there) plus by the torus-ring
+  // config effect and applyReflMix — forces every optional texture/live-
+  // noise/extra-shading toggle off without touching their own state.
+  const lowGraphicsModeRef = useRef(lowGraphicsMode);
   const camNearRef = useRef(camNear);
   const camFarRef = useRef(camFar);
   const waveDirRef = useRef(waveDir);
@@ -2110,6 +2169,7 @@ export function Aquafulness() {
   const whirlpoolStayDurationRef = useRef(whirlpoolStayDuration);
   const whirlpoolExitModeRef = useRef(whirlpoolExitMode);
   const whirlpoolExitSpeedRef = useRef(whirlpoolExitSpeed);
+  const whirlpoolSpawnDirectionRef = useRef(whirlpoolSpawnDirection);
   const whirlpoolAngleRef = useRef(0);
   // Drives the whirlpool's optional automatic drag-in/stay/exit sequence —
   // reset whenever cameraMode switches into "whirlpool" (see that effect
@@ -2133,6 +2193,15 @@ export function Aquafulness() {
   // exactly where the (still winding down) orbit left off, instead of
   // snapping back to wherever the camera was before it ever entered.
   const whirlpoolLastPosRef = useRef({ x: 0, z: 0 });
+  // Where the vortex is centered in world space — computed from posRef.current
+  // via whirlpoolSpawnDirectionXZ (see that function and the WHIRLPOOL SPAWN
+  // DIRECTION dial) the instant cameraMode switches into "whirlpool" (see
+  // that effect below), a radius's distance out in the chosen direction, so
+  // the whirlpool opens up around the player instead of forming right on top
+  // of them or at a fixed world-origin spot. Read by the orbit math, the
+  // funnel surface height sampling, and the shader's uVortexCenter uniform,
+  // all below, so the visual funnel and the camera's ride on it stay in sync.
+  const whirlpoolCenterRef = useRef({ x: 0, z: 0 });
   const swingTornadoOnRef = useRef(swingTornadoOn);
   const swingTornadoRadiusRef = useRef(swingTornadoRadius);
   const swingTornadoSpeedRef = useRef(swingTornadoSpeed);
@@ -2329,6 +2398,10 @@ export function Aquafulness() {
     resolutionScaleRef.current = resolutionScale;
   }, [resolutionScale]);
   useEffect(() => {
+    lowGraphicsModeRef.current = lowGraphicsMode;
+    applyReflMix();
+  }, [lowGraphicsMode]);
+  useEffect(() => {
     camNearRef.current = camNear;
   }, [camNear]);
   useEffect(() => {
@@ -2376,6 +2449,9 @@ export function Aquafulness() {
   useEffect(() => {
     whirlpoolExitSpeedRef.current = whirlpoolExitSpeed;
   }, [whirlpoolExitSpeed]);
+  useEffect(() => {
+    whirlpoolSpawnDirectionRef.current = whirlpoolSpawnDirection;
+  }, [whirlpoolSpawnDirection]);
   useEffect(() => {
     swingTornadoOnRef.current = swingTornadoOn;
   }, [swingTornadoOn]);
@@ -2621,12 +2697,15 @@ export function Aquafulness() {
   // it with these same values as its initial config).
   useEffect(() => {
     torusRingFieldRef.current?.setConfig({
-      enabled: torusRingsOn,
+      // LOW GRAPHICS MODE turns the whole field off (extra geometry + lit
+      // MeshStandardMaterial draw calls, plus its own optional texture) —
+      // see lowGraphicsMode's doc comment in settingsShared.ts.
+      enabled: torusRingsOn && !lowGraphicsMode,
       radius: torusRadius,
       tube: torusTube,
       scale: torusScale,
       opacity: torusOpacity,
-      textureUrl: TORUS_RING_TEXTURES[torusTextureIdx]?.url ?? null,
+      textureUrl: lowGraphicsMode ? null : (TORUS_RING_TEXTURES[torusTextureIdx]?.url ?? null),
       cellSize: torusCellSize,
       verticalSpacing: torusVerticalSpacing,
       verticalCount: torusVerticalCount,
@@ -2645,6 +2724,7 @@ export function Aquafulness() {
     torusVerticalCount,
     torusViewDistance,
     torusFadeDistance,
+    lowGraphicsMode,
   ]);
   // Mode switch: hand off position/orientation continuity between schemes so
   // switching never teleports the camera. Leaving whirlpool (for any other
@@ -2689,6 +2769,24 @@ export function Aquafulness() {
       }
     } else if (cameraMode === "whirlpool") {
       whirlpoolPhaseRef.current = { phase: "drag", startMs: performance.now() };
+      // Center the vortex a radius's distance out from the camera, along
+      // whichever direction the WHIRLPOOL SPAWN DIRECTION dial calls for
+      // (see whirlpoolSpawnDirectionXZ above) — not right on top of the
+      // camera, so it visibly opens up in the chosen direction instead of
+      // forming underneath the player.
+      const spawnDir = whirlpoolSpawnDirectionXZ(
+        whirlpoolSpawnDirectionRef.current,
+        yawRef.current,
+        driftWorldRef.current.x,
+        driftWorldRef.current.z,
+        swayWorldRef.current.x,
+        swayWorldRef.current.z,
+      );
+      const aheadDist = whirlpoolRadiusRef.current;
+      whirlpoolCenterRef.current = {
+        x: posRef.current.x + spawnDir.x * aheadDist,
+        z: posRef.current.z + spawnDir.z * aheadDist,
+      };
     } else if (cameraMode === "swing") {
       swingYawRef.current = yawRef.current;
       swingTornadoAngleRef.current = 0;
@@ -2879,6 +2977,7 @@ export function Aquafulness() {
     setGogglesFpsCap(DEFAULTS.gogglesFpsCap);
     setTargetFps(DEFAULTS.targetFps);
     setResolutionScale(DEFAULTS.resolutionScale);
+    setLowGraphicsMode(DEFAULTS.lowGraphicsMode);
     setRegularWaves(DEFAULTS.regularWaves);
     setRealisticWaves(DEFAULTS.realisticWaves);
     setDyingWave(DEFAULTS.dyingWave);
@@ -2909,6 +3008,7 @@ export function Aquafulness() {
     setWhirlpoolStayDuration(DEFAULTS.whirlpoolStayDuration);
     setWhirlpoolExitMode(DEFAULTS.whirlpoolExitMode);
     setWhirlpoolExitSpeed(DEFAULTS.whirlpoolExitSpeed);
+    setWhirlpoolSpawnDirection(DEFAULTS.whirlpoolSpawnDirection);
     setDepthSineOn(DEFAULTS.depthSineOn);
     setDepthSineAmp(DEFAULTS.depthSineAmp);
     setDepthSineFreq(DEFAULTS.depthSineFreq);
@@ -3032,6 +3132,7 @@ export function Aquafulness() {
     if (patch.gogglesFpsCap !== undefined) setGogglesFpsCap(patch.gogglesFpsCap);
     if (patch.targetFps !== undefined) setTargetFps(patch.targetFps);
     if (patch.resolutionScale !== undefined) setResolutionScale(patch.resolutionScale);
+    if (patch.lowGraphicsMode !== undefined) setLowGraphicsMode(patch.lowGraphicsMode);
     if (patch.regularWaves !== undefined) setRegularWaves(patch.regularWaves);
     if (patch.realisticWaves !== undefined) setRealisticWaves(patch.realisticWaves);
     if (patch.dyingWave !== undefined) setDyingWave(patch.dyingWave);
@@ -3064,6 +3165,8 @@ export function Aquafulness() {
       setWhirlpoolStayDuration(patch.whirlpoolStayDuration);
     if (patch.whirlpoolExitMode !== undefined) setWhirlpoolExitMode(patch.whirlpoolExitMode);
     if (patch.whirlpoolExitSpeed !== undefined) setWhirlpoolExitSpeed(patch.whirlpoolExitSpeed);
+    if (patch.whirlpoolSpawnDirection !== undefined)
+      setWhirlpoolSpawnDirection(patch.whirlpoolSpawnDirection);
     if (patch.depthSineOn !== undefined) setDepthSineOn(patch.depthSineOn);
     if (patch.depthSineAmp !== undefined) setDepthSineAmp(patch.depthSineAmp);
     if (patch.depthSineFreq !== undefined) setDepthSineFreq(patch.depthSineFreq);
@@ -3600,7 +3703,9 @@ export function Aquafulness() {
   const applyReflMix = () => {
     const u = waterUniformsRef.current;
     if (!u) return;
-    u.uReflMix.value = Math.max(0, Math.min(1, reflBaseRef.current * reflStrengthRef.current));
+    u.uReflMix.value = lowGraphicsModeRef.current
+      ? 0
+      : Math.max(0, Math.min(1, reflBaseRef.current * reflStrengthRef.current));
   };
 
   // Ocean sound: loop the selected recorded water track (see WATER_SOUNDS)
@@ -3976,13 +4081,15 @@ export function Aquafulness() {
     composer.addPass(chromaticAberrationPass);
 
     const torusRingField = new TorusRingField(scene, {
-      enabled: initial.torusRingsOn,
+      enabled: initial.torusRingsOn && !initial.lowGraphicsMode,
       radius: initial.torusRadius,
       tube: initial.torusTube,
       scale: initial.torusScale,
       opacity: initial.torusOpacity,
       color: 0xffffff,
-      textureUrl: TORUS_RING_TEXTURES[initial.torusTextureIdx]?.url ?? null,
+      textureUrl: initial.lowGraphicsMode
+        ? null
+        : (TORUS_RING_TEXTURES[initial.torusTextureIdx]?.url ?? null),
       cellSize: initial.torusCellSize,
       verticalSpacing: initial.torusVerticalSpacing,
       verticalCount: initial.torusVerticalCount,
@@ -5317,6 +5424,10 @@ export function Aquafulness() {
     };
     window.addEventListener("pagehide", saveCameraPoseNow);
     const animate = () => {
+      // LOW GRAPHICS MODE: read once per frame and threaded through every
+      // texture/live-noise/extra-shading gate below (see lowGraphicsMode's
+      // doc comment in settingsShared.ts for the full list it covers).
+      const lowEnd = lowGraphicsModeRef.current;
       // resolutionScale multiplies the renderer's pixel ratio to trade
       // sharpness for GPU load — only touch the renderer when the setting
       // actually changed.
@@ -5368,7 +5479,8 @@ export function Aquafulness() {
       uniforms.uDyingTime.value = dyingWaveT;
       uniforms.uDyingAmp.value = dyingAmpRef.current;
       uniforms.uQuality.value +=
-        ((waveHighQualityRef.current ? 1 : 0) - uniforms.uQuality.value) * Math.min(1, dt * 4);
+        ((waveHighQualityRef.current && !lowEnd ? 1 : 0) - uniforms.uQuality.value) *
+        Math.min(1, dt * 4);
       uniforms.uRegular.value +=
         ((regularRef.current ? 1 : 0) - uniforms.uRegular.value) * Math.min(1, dt * 4);
       uniforms.uFft.value +=
@@ -5409,6 +5521,7 @@ export function Aquafulness() {
       uniforms.uVortex.value = whirlpoolBlendRef.current;
       uniforms.uVortexOpening.value +=
         (whirlpoolOpeningRef.current - uniforms.uVortexOpening.value) * Math.min(1, dt * 4);
+      uniforms.uVortexCenter.value.set(whirlpoolCenterRef.current.x, whirlpoolCenterRef.current.z);
 
       const p = palette(todRef.current);
       // Keep the real scene lights (see their creation above) in sync with
@@ -5462,7 +5575,8 @@ export function Aquafulness() {
       uniforms.uSurfSat.value +=
         (surfSatRef.current - uniforms.uSurfSat.value) * Math.min(1, dt * 6);
       uniforms.uRefraction.value +=
-        ((causticsOnRef.current ? 1 : 0) - uniforms.uRefraction.value) * Math.min(1, dt * 4);
+        ((causticsOnRef.current && !lowEnd ? 1 : 0) - uniforms.uRefraction.value) *
+        Math.min(1, dt * 4);
       const bot = BOTTOM_OPTIONS[bottomIdxRef.current] ?? BOTTOM_OPTIONS[0];
       // Sinus-modulerat "havsnivå"-offset. Vi flyttar hela scenen (yta, botten,
       // mellan-moln, kamera) rigidt i Y istället för att modulera bottendjupet
@@ -5512,13 +5626,17 @@ export function Aquafulness() {
         floorUniforms.uCausticAmp.value = ampRef.current;
         floorUniforms.uCausticFreq.value = uniforms.uFreq.value;
         floorUniforms.uCausticsOn.value +=
-          ((causticsOnRef.current ? 1 : 0) - floorUniforms.uCausticsOn.value) * Math.min(1, dt * 4);
-        const isClouds = bot.id === "clouds";
+          ((causticsOnRef.current && !lowEnd ? 1 : 0) - floorUniforms.uCausticsOn.value) *
+          Math.min(1, dt * 4);
+        // LOW GRAPHICS MODE treats BOTTOM "clouds" as flat (the fbm noise
+        // pattern it draws is itself a live-noise effect) — falls back to
+        // the same solid uColor every other flat bottom option renders.
+        const isClouds = bot.id === "clouds" && !lowEnd;
         // Cloud mode blends independently of the sand-texture toggle.
         const cloudTarget = isClouds ? 1 : 0;
         floorUniforms.uClouds.value +=
           (cloudTarget - floorUniforms.uClouds.value) * Math.min(1, dt * 4);
-        const target = isClouds ? 0 : floorTextureRef.current ? 1 : 0;
+        const target = isClouds || lowEnd ? 0 : floorTextureRef.current ? 1 : 0;
         floorUniforms.uTextured.value +=
           (target - floorUniforms.uTextured.value) * Math.min(1, dt * 4);
         // Drift moln-lagret långsamt över tid — nu opt-in via ANIMERA
@@ -5539,8 +5657,10 @@ export function Aquafulness() {
         floor.visible = false;
       }
 
-      // Mellan-moln (drivande lager mellan botten och yta).
-      if (midCloudsOnRef.current) {
+      // Mellan-moln (drivande lager mellan botten och yta). LOW GRAPHICS
+      // MODE forces this whole live-noise layer off.
+      const midCloudsActive = midCloudsOnRef.current && !lowEnd;
+      if (midCloudsActive) {
         const frac = Math.max(0.05, Math.min(0.95, midCloudsHeightRef.current));
         // frac=0 → precis över botten, frac=1 → nära ytan.
         midClouds.position.y = -effectiveDepth + effectiveDepth * frac + levelY;
@@ -5551,15 +5671,18 @@ export function Aquafulness() {
       // MOLN TONING: ease opacity toward on/off (cloudFadeSpeedRef, user-
       // adjustable) instead of popping visible/invisible on toggle.
       midCloudFadeRef.current +=
-        ((midCloudsOnRef.current ? 1 : 0) - midCloudFadeRef.current) *
+        ((midCloudsActive ? 1 : 0) - midCloudFadeRef.current) *
         Math.min(1, dt * cloudFadeSpeedRef.current);
       midCloudUniforms.uOpacity.value = midCloudFadeRef.current;
       midClouds.visible = midCloudFadeRef.current > 0.003;
 
       // Himmel-moln (drivande molnlager högt ovanför ytan). Höjden hålls
       // fast i världsrymden (som botten/mellan-moln) istället för relativt
-      // kameran, annars skulle molnen aldrig glida förbi.
-      if (skyCloudsOnRef.current) {
+      // kameran, annars skulle molnen aldrig glida förbi. LOW GRAPHICS MODE
+      // forces this off too (see skyCloudsTargetOn further below, which
+      // actually gates visibility/opacity — this block just needs to stop
+      // scrolling the now-invisible layer's uCloudScroll).
+      if (skyCloudsOnRef.current && !lowEnd) {
         const frac = Math.max(0, Math.min(1, skyCloudsHeightRef.current));
         skyClouds.position.y = 60 + frac * 440 + levelY;
         skyCloudUniforms.uTime.value = t;
@@ -5716,7 +5839,11 @@ export function Aquafulness() {
           : rawSwingY;
         camVYRef.current = 0;
       } else if (inWhirlpool) {
-        // Orbit around the world origin. Without the optional sequence,
+        // Orbit around whirlpoolCenterRef — a radius's distance out from
+        // wherever the camera was when this mode was entered, in whichever
+        // direction the WHIRLPOOL SPAWN DIRECTION dial calls for (see the
+        // cameraMode-change effect above), not a fixed world-origin spot.
+        // Without the optional sequence,
         // NAV.y moves in/out along the radius and NAV.x adds extra swirl,
         // exactly like the old manual vortex control; with it, the radius
         // instead automatically loops through drag-in -> stay inside -> exit
@@ -5807,8 +5934,9 @@ export function Aquafulness() {
         const stickOmega = stickRef.current.x * 1.4;
         whirlpoolAngleRef.current += (baseOmega + stickOmega) * physDt;
         const ang = whirlpoolAngleRef.current;
-        const orbitX = Math.cos(ang) * radius;
-        const orbitZ = Math.sin(ang) * radius;
+        const center = whirlpoolCenterRef.current;
+        const orbitX = center.x + Math.cos(ang) * radius;
+        const orbitZ = center.z + Math.sin(ang) * radius;
         const entryBlend = whirlpoolBlendRef.current;
         camX = posRef.current.x + (orbitX - posRef.current.x) * entryBlend;
         camZ = posRef.current.z + (orbitZ - posRef.current.z) * entryBlend;
@@ -5850,8 +5978,9 @@ export function Aquafulness() {
           0.35 * whirlpoolSpeedRef.current * exitDirSign * whirlpoolBlendRef.current;
         whirlpoolAngleRef.current += exitOmega * physDt;
         const ang = whirlpoolAngleRef.current;
-        const orbitX = Math.cos(ang) * whirlpoolRadiusRef.current;
-        const orbitZ = Math.sin(ang) * whirlpoolRadiusRef.current;
+        const center = whirlpoolCenterRef.current;
+        const orbitX = center.x + Math.cos(ang) * whirlpoolRadiusRef.current;
+        const orbitZ = center.z + Math.sin(ang) * whirlpoolRadiusRef.current;
         const w = whirlpoolBlendRef.current;
         camX = orbitX * w + camX * (1 - w);
         camZ = orbitZ * w + camZ * (1 - w);
@@ -5898,8 +6027,8 @@ export function Aquafulness() {
       const dirRad = (waveDirRef.current * Math.PI) / 180;
       const surfaceY = inWhirlpool
         ? whirlpoolSurfaceHeight(
-            camX,
-            camZ,
+            camX - whirlpoolCenterRef.current.x,
+            camZ - whirlpoolCenterRef.current.z,
             t,
             ampRef.current,
             regularPeriodRef.current,
@@ -6074,8 +6203,8 @@ export function Aquafulness() {
         const lead = anticipation / (1 + peakK * 6.0);
         const futureSurf = inWhirlpool
           ? whirlpoolSurfaceHeight(
-              camX,
-              camZ,
+              camX - whirlpoolCenterRef.current.x,
+              camZ - whirlpoolCenterRef.current.z,
               t + lead,
               ampRef.current,
               regularPeriodRef.current,
@@ -6350,13 +6479,17 @@ export function Aquafulness() {
       // never turns.
       const normalLookX = camX + camOffXRef.current + swayX + surgeX;
       const normalLookZ = camZ + camOffZRef.current + swayZ + surgeZ - 20;
-      // Aim at the vortex center (0, 0), slightly below the camera so the
-      // throat is visible without the horizon tilting — eased toward as
+      // Aim at the vortex center (whirlpoolCenterRef — offset from where the
+      // camera was when whirlpool mode was entered per the WHIRLPOOL SPAWN
+      // DIRECTION dial, not a fixed world-origin spot; see that ref's own
+      // comment), level with the camera so the throat is
+      // visible without the horizon tilting — eased toward as
       // whirlpoolBlendRef rises, eased back off the normal look target as it
       // falls.
       const vortexBlend = whirlpoolBlendRef.current;
-      const lookX = normalLookX * (1 - vortexBlend);
-      const lookZ = normalLookZ * (1 - vortexBlend);
+      const vortexCenter = whirlpoolCenterRef.current;
+      const lookX = normalLookX + (vortexCenter.x - normalLookX) * vortexBlend;
+      const lookZ = normalLookZ + (vortexCenter.z - normalLookZ) * vortexBlend;
       camera.lookAt(lookX, lookY, lookZ);
 
       // Rotation stick: yaw (x) + pitch (y). Integrate stick as angular velocity.
@@ -6516,7 +6649,8 @@ export function Aquafulness() {
         worldBoundaryYExtendRef.current &&
         skyCloudsOnRef.current &&
         !envActiveRef.current &&
-        backdropRef.current <= 0;
+        backdropRef.current <= 0 &&
+        !lowEnd;
       const extendFadeStep = Math.min(1, dt * cloudFadeSpeedRef.current);
       if (extendGateOn) {
         const spacing = EXTEND_CLOUD_LAYER_SPACING;
@@ -6582,7 +6716,8 @@ export function Aquafulness() {
       // Selectable wave material (sphere-map "matcap") + trochoidal wave
       // shape — both purely cosmetic dials on the ocean shader.
       uniforms.uSphereMix.value +=
-        ((sphereMaterialRef.current ? sphereStrengthRef.current : 0) - uniforms.uSphereMix.value) *
+        ((sphereMaterialRef.current && !lowEnd ? sphereStrengthRef.current : 0) -
+          uniforms.uSphereMix.value) *
         Math.min(1, dt * 6);
       uniforms.uTrochoid.value +=
         (trochoidRef.current - uniforms.uTrochoid.value) * Math.min(1, dt * 6);
@@ -6607,7 +6742,7 @@ export function Aquafulness() {
       const useBackdrop = backdropRef.current > 0 && !envActive;
       sky.visible = !useBackdrop && !envActive;
       // MOLN TONING: ease opacity toward on/off instead of popping visible.
-      const skyCloudsTargetOn = skyCloudsOnRef.current && !useBackdrop && !envActive;
+      const skyCloudsTargetOn = skyCloudsOnRef.current && !useBackdrop && !envActive && !lowEnd;
       skyCloudFadeRef.current +=
         ((skyCloudsTargetOn ? 1 : 0) - skyCloudFadeRef.current) *
         Math.min(1, dt * cloudFadeSpeedRef.current);
@@ -6623,9 +6758,10 @@ export function Aquafulness() {
       {
         const puffMeshes = skyPuffMeshesRef.current;
         const puffStates = skyPuffStatesRef.current;
-        const activeCount = skyPuffsOnRef.current
-          ? Math.min(puffMeshes.length, Math.max(0, Math.round(skyPuffsCountRef.current)))
-          : 0;
+        const activeCount =
+          skyPuffsOnRef.current && !lowEnd
+            ? Math.min(puffMeshes.length, Math.max(0, Math.round(skyPuffsCountRef.current)))
+            : 0;
         const puffSize = Math.max(1, skyPuffsSizeRef.current);
         const puffFreq = Math.max(0.01, skyPuffsFreqRef.current);
         for (let i = 0; i < puffMeshes.length; i++) {
@@ -6667,8 +6803,8 @@ export function Aquafulness() {
         if (mb.bob.follow) {
           const s = inWhirlpool
             ? whirlpoolSurfaceHeight(
-                mb.base.x,
-                mb.base.z,
+                mb.base.x - whirlpoolCenterRef.current.x,
+                mb.base.z - whirlpoolCenterRef.current.z,
                 t,
                 ampRef.current,
                 regularPeriodRef.current,
@@ -6727,7 +6863,7 @@ export function Aquafulness() {
         // objects properly occlude the panel uses this frame's position,
         // not last frame's.
         tvManager.render();
-        if (chromaticAberrationOnRef.current) {
+        if (chromaticAberrationOnRef.current && !lowEnd) {
           // 0..1 dial value -> a max red/blue UV offset of 0..~3.5% of the
           // frame at its corners (see CHROMATIC_ABERRATION_SHADER above).
           chromaticAberrationPass.uniforms.uAmount.value =
@@ -7181,6 +7317,8 @@ export function Aquafulness() {
     setWhirlpoolExitMode,
     whirlpoolExitSpeed,
     setWhirlpoolExitSpeed,
+    whirlpoolSpawnDirection,
+    setWhirlpoolSpawnDirection,
     cameraMode,
     setCameraMode,
     cycleCameraMode,
@@ -7260,6 +7398,8 @@ export function Aquafulness() {
     setTargetFps,
     resolutionScale,
     setResolutionScale,
+    lowGraphicsMode,
+    setLowGraphicsMode,
     chromaticAberrationOn,
     setChromaticAberrationOn,
     chromaticAberrationAmount,

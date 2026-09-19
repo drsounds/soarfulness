@@ -91,6 +91,13 @@
     "whirlpoolExitMode": {
       "reverseSpin": "REVERSE SPIN",
       "throwBack": "THROWN BACK"
+    },
+    "whirlpoolSpawnDirection": {
+      "ahead": "AHEAD",
+      "behind": "BEHIND",
+      "current": "FOLLOW CURRENT",
+      "left": "LEFT",
+      "right": "RIGHT"
     }
   },
   "common": {
@@ -147,6 +154,7 @@
       "intervalIncludeSwing": "INTERVAL: SWING",
       "intervalIncludeWhirlpool": "INTERVAL: WHIRLPOOL",
       "intervalSession": "INTERVAL SESSION",
+      "lowGraphicsMode": "LOW GRAPHICS MODE",
       "mode": "CAMERA MODE",
       "near": "NEAR",
       "noclipAutoAlternate": "AUTO ALTERNATE",
@@ -299,6 +307,7 @@
       "whirlpoolExitSpeed": "EXIT SPEED",
       "whirlpoolOpening": "OPENING",
       "whirlpoolSequence": "AUTO SEQUENCE",
+      "whirlpoolSpawnDirection": "SPAWN DIRECTION",
       "whirlpoolSpeed": "WHIRLPOOL SPEED",
       "whirlpoolStayDuration": "STAY INSIDE"
     }

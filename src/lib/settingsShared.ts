@@ -136,8 +136,10 @@ export const SETTINGS_TABS: { id: SettingsTab; labelKey: string }[] = [
 // Five mutually-exclusive camera movement schemes:
 //  - "float"      the default: buoyant, wave-riding camera (all existing behavior).
 //  - "noclip"     free 3D flight in any direction, ignoring the water/wave physics.
-//  - "whirlpool"  orbits a whirlpool at the world origin — steady spin, or an
-//                 automatic drag-in/stay/exit sequence (see whirlpool* fields).
+//  - "whirlpool"  orbits a whirlpool centered a radius's distance out in
+//                 front of wherever the camera was looking when this mode
+//                 was entered — steady spin, or an automatic drag-in/stay/
+//                 exit sequence (see whirlpool* fields).
 //  - "swing"      a pendulum that swings back and forth high above the water
 //                 (optionally spun into a circular "tornado" orbit instead —
 //                 see swingTornado* fields).
@@ -155,6 +157,22 @@ export const CAMERA_MODES: CameraMode[] = ["float", "noclip", "whirlpool", "swin
 // tornado spin: "cw"/"ccw" as seen from above (+y looking down).
 export type WhirlpoolDirection = "cw" | "ccw";
 export const WHIRLPOOL_DIRECTIONS: WhirlpoolDirection[] = ["cw", "ccw"];
+
+// Where the whirlpool's center opens up relative to the player the instant
+// whirlpool mode is entered (routes/index.tsx's cameraMode-change effect):
+// "ahead"/"left"/"right"/"behind" are relative to the player's current look
+// yaw; "current" instead follows the net STRÖM+SVAJ (current/sway) world
+// direction, so a current/sway pushing the player forward opens the vortex
+// ahead of them, one pushing back opens it behind them, etc. — falling back
+// to "ahead" when there's no current/sway to read.
+export type WhirlpoolSpawnDirection = "ahead" | "left" | "right" | "behind" | "current";
+export const WHIRLPOOL_SPAWN_DIRECTIONS: WhirlpoolSpawnDirection[] = [
+  "ahead",
+  "left",
+  "right",
+  "behind",
+  "current",
+];
 
 // How SURGE's own direction (surgeDirRef in routes/index.tsx) evolves over
 // time: "off" holds a fixed bearing (set via the SURGE DIRECTION dial),
@@ -207,6 +225,14 @@ export const CAMERA_MODE_LABEL_KEYS: Record<CameraMode, string> = {
 export const WHIRLPOOL_DIRECTION_LABEL_KEYS: Record<WhirlpoolDirection, string> = {
   cw: "camera.whirlpoolDirection.cw",
   ccw: "camera.whirlpoolDirection.ccw",
+};
+
+export const WHIRLPOOL_SPAWN_DIRECTION_LABEL_KEYS: Record<WhirlpoolSpawnDirection, string> = {
+  ahead: "camera.whirlpoolSpawnDirection.ahead",
+  left: "camera.whirlpoolSpawnDirection.left",
+  right: "camera.whirlpoolSpawnDirection.right",
+  behind: "camera.whirlpoolSpawnDirection.behind",
+  current: "camera.whirlpoolSpawnDirection.current",
 };
 
 export const SURGE_ROTATION_MODE_LABEL_KEYS: Record<SurgeRotationMode, string> = {
@@ -310,6 +336,19 @@ export type Persisted = {
   gogglesFpsCap: number;
   targetFps: number;
   resolutionScale: number;
+  // LOW GRAPHICS MODE: a single opt-in "everything cheap" switch for lower-
+  // end/older devices — on top of targetFps/resolutionScale above, this
+  // forces off every optional texture (seafloor sand, the reflection photo,
+  // torus-ring texture) and every live-noise fbm effect (BOTTOM "clouds",
+  // mid/sky cloud decks + their VÄRLDSGRÄNS extension layers, sky puffs,
+  // the ocean's high-quality micro-chop/foam, real caustics) plus the
+  // remaining shading extras (chromatic aberration, the sphere-map matcap
+  // material, torus rings entirely) — see lowGraphicsModeRef's reads in
+  // routes/index.tsx's animate() and the effects around applyReflMix/
+  // torusRingField.setConfig. Purely a runtime override: it doesn't touch
+  // any of those settings' own persisted values, so turning it back off
+  // restores exactly what was chosen before.
+  lowGraphicsMode: boolean;
   regularWaves: boolean;
   realisticWaves: boolean;
   dyingWave: boolean;
@@ -343,6 +382,7 @@ export type Persisted = {
   whirlpoolStayDuration: number;
   whirlpoolExitMode: WhirlpoolExitMode;
   whirlpoolExitSpeed: number;
+  whirlpoolSpawnDirection: WhirlpoolSpawnDirection;
   swingTornadoOn: boolean;
   swingTornadoRadius: number;
   swingTornadoSpeed: number;
@@ -556,6 +596,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "whirlpoolStayDuration",
     "whirlpoolExitMode",
     "whirlpoolExitSpeed",
+    "whirlpoolSpawnDirection",
   ],
   kamera: [
     "cameraMode",
@@ -595,6 +636,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "gogglesFpsCap",
     "targetFps",
     "resolutionScale",
+    "lowGraphicsMode",
     "chromaticAberrationOn",
     "chromaticAberrationAmount",
   ],

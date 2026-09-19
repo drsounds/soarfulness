@@ -29,6 +29,8 @@ import {
   WHIRLPOOL_DIRECTION_LABEL_KEYS,
   WHIRLPOOL_EXIT_MODES,
   WHIRLPOOL_EXIT_MODE_LABEL_KEYS,
+  WHIRLPOOL_SPAWN_DIRECTIONS,
+  WHIRLPOOL_SPAWN_DIRECTION_LABEL_KEYS,
   SURGE_ROTATION_MODES,
   SURGE_ROTATION_MODE_LABEL_KEYS,
   SWING_PRESETS,
@@ -48,6 +50,7 @@ import {
   type WavePresetName,
   type WhirlpoolDirection,
   type WhirlpoolExitMode,
+  type WhirlpoolSpawnDirection,
   type SurgeRotationMode,
 } from "@/lib/settingsShared";
 import { pickJsonFile, type PresetScope, type SavedPreset, type SavedState } from "@/lib/presets";
@@ -496,6 +499,8 @@ export type SettingsPanelProps = {
   setWhirlpoolExitMode: Dispatch<SetStateAction<WhirlpoolExitMode>>;
   whirlpoolExitSpeed: number;
   setWhirlpoolExitSpeed: Dispatch<SetStateAction<number>>;
+  whirlpoolSpawnDirection: WhirlpoolSpawnDirection;
+  setWhirlpoolSpawnDirection: Dispatch<SetStateAction<WhirlpoolSpawnDirection>>;
 
   // Kamera
   cameraMode: CameraMode;
@@ -587,6 +592,11 @@ export type SettingsPanelProps = {
   setTargetFps: Dispatch<SetStateAction<number>>;
   resolutionScale: number;
   setResolutionScale: Dispatch<SetStateAction<number>>;
+  // LOW GRAPHICS MODE: one switch that forces off every optional texture
+  // and live-noise/extra-shading effect (see its doc comment in
+  // settingsShared.ts) without touching those settings' own values.
+  lowGraphicsMode: boolean;
+  setLowGraphicsMode: Dispatch<SetStateAction<boolean>>;
   // KROMATISK ABERRATION: a full-screen lens post-process (red/blue channels
   // sampled offset radially from center). chromaticAberrationAmount is the
   // dial's 0..1 strength, independent of whether the effect is on.
@@ -1178,6 +1188,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setWhirlpoolExitMode,
     whirlpoolExitSpeed,
     setWhirlpoolExitSpeed,
+    whirlpoolSpawnDirection,
+    setWhirlpoolSpawnDirection,
     cameraMode,
     setCameraMode,
     cycleCameraMode,
@@ -1257,6 +1269,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setTargetFps,
     resolutionScale,
     setResolutionScale,
+    lowGraphicsMode,
+    setLowGraphicsMode,
     chromaticAberrationOn,
     setChromaticAberrationOn,
     chromaticAberrationAmount,
@@ -1557,6 +1571,35 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       onSelectIndex={(i) => setWhirlpoolDirection(WHIRLPOOL_DIRECTIONS[i])}
                       onDec={() => setWhirlpoolDirection("cw")}
                       onInc={() => setWhirlpoolDirection("ccw")}
+                    />
+                    <SettingRow
+                      label={t("dial.wave.whirlpoolSpawnDirection")}
+                      value={t(WHIRLPOOL_SPAWN_DIRECTION_LABEL_KEYS[whirlpoolSpawnDirection])}
+                      options={WHIRLPOOL_SPAWN_DIRECTIONS.map((d) =>
+                        t(WHIRLPOOL_SPAWN_DIRECTION_LABEL_KEYS[d]),
+                      )}
+                      selectedIndex={WHIRLPOOL_SPAWN_DIRECTIONS.indexOf(whirlpoolSpawnDirection)}
+                      onSelectIndex={(i) =>
+                        setWhirlpoolSpawnDirection(WHIRLPOOL_SPAWN_DIRECTIONS[i])
+                      }
+                      onDec={() =>
+                        setWhirlpoolSpawnDirection(
+                          WHIRLPOOL_SPAWN_DIRECTIONS[
+                            (WHIRLPOOL_SPAWN_DIRECTIONS.indexOf(whirlpoolSpawnDirection) -
+                              1 +
+                              WHIRLPOOL_SPAWN_DIRECTIONS.length) %
+                              WHIRLPOOL_SPAWN_DIRECTIONS.length
+                          ],
+                        )
+                      }
+                      onInc={() =>
+                        setWhirlpoolSpawnDirection(
+                          WHIRLPOOL_SPAWN_DIRECTIONS[
+                            (WHIRLPOOL_SPAWN_DIRECTIONS.indexOf(whirlpoolSpawnDirection) + 1) %
+                              WHIRLPOOL_SPAWN_DIRECTIONS.length
+                          ],
+                        )
+                      }
                     />
                     <SettingRow
                       label={t("dial.wave.whirlpoolDistance")}
@@ -2534,6 +2577,12 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   step={5}
                   onDec={() => setGogglesFpsCap((v) => Math.max(10, v - 5))}
                   onInc={() => setGogglesFpsCap((v) => Math.min(60, v + 5))}
+                />
+                <SettingRow
+                  label={t("dial.camera.lowGraphicsMode")}
+                  value={onOff(lowGraphicsMode)}
+                  onDec={() => setLowGraphicsMode(false)}
+                  onInc={() => setLowGraphicsMode(true)}
                 />
                 <SettingRow
                   label={t("dial.camera.targetFps")}

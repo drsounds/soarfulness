@@ -91,6 +91,13 @@
     "whirlpoolExitMode": {
       "reverseSpin": "KÄÄNTEINEN PYÖRITYS",
       "throwBack": "HEITETÄÄN TAKAISIN"
+    },
+    "whirlpoolSpawnDirection": {
+      "ahead": "EDESSÄ",
+      "behind": "TAKANA",
+      "current": "VIRRAN MUKAAN",
+      "left": "VASEMMALLA",
+      "right": "OIKEALLA"
     }
   },
   "common": {
@@ -147,6 +154,7 @@
       "intervalIncludeSwing": "INTERVALLI: KEINU",
       "intervalIncludeWhirlpool": "INTERVALLI: PYÖRRE",
       "intervalSession": "INTERVALLIHARJOITUS",
+      "lowGraphicsMode": "KEVYT GRAFIIKKATILA",
       "mode": "KAMERATILA",
       "near": "LÄHI",
       "noclipAutoAlternate": "AUTOMAATTINEN VAIHTO",
@@ -299,6 +307,7 @@
       "whirlpoolExitSpeed": "POISTUMISNOPEUS",
       "whirlpoolOpening": "AUKKO",
       "whirlpoolSequence": "AUTOSEKVENSSI",
+      "whirlpoolSpawnDirection": "ALOITUSSUUNTA",
       "whirlpoolSpeed": "PYÖRTEEN TEMPO",
       "whirlpoolStayDuration": "PYSY SISÄLLÄ"
     }

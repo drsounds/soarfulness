@@ -91,6 +91,13 @@
     "whirlpoolExitMode": {
       "reverseSpin": "OMVÄND SNURR",
       "throwBack": "KASTAS TILLBAKA"
+    },
+    "whirlpoolSpawnDirection": {
+      "ahead": "FRAMÅT",
+      "behind": "BAKOM",
+      "current": "MED STRÖMMEN",
+      "left": "VÄNSTER",
+      "right": "HÖGER"
     }
   },
   "common": {
@@ -147,6 +154,7 @@
       "intervalIncludeSwing": "INTERVALL: GUNGA",
       "intervalIncludeWhirlpool": "INTERVALL: VIRVEL",
       "intervalSession": "INTERVALLPASS",
+      "lowGraphicsMode": "LÅGT GRAFIKLÄGE",
       "mode": "KAMERALÄGE",
       "near": "NÄRA",
       "noclipAutoAlternate": "AUTO VÄXLING",
@@ -299,6 +307,7 @@
       "whirlpoolExitSpeed": "UTGÅNGSHASTIGHET",
       "whirlpoolOpening": "ÖPPNING",
       "whirlpoolSequence": "AUTO-SEKVENS",
+      "whirlpoolSpawnDirection": "STARTRIKTNING",
       "whirlpoolSpeed": "VIRVEL TEMPO",
       "whirlpoolStayDuration": "STANNA INNE"
     }
