@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import * as THREE from "three";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
@@ -479,9 +479,11 @@ function hexToRgbNorm(hex: string): [number, number, number] {
   return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
 }
 
-// A loadable .glb scene lives in public/scenes/<id>/<id>.glb with an optional
-// public/scenes/<id>/manifest.json describing where/how to place it. The list
-// of available scenes and their display names comes from public/scenes/scenes.json.
+// A loadable scene lives in public/scenes/<id>/<id>.glb (or <id>.gltf, for
+// scenes exported with external .bin/texture files instead of a single
+// binary blob) with an optional public/scenes/<id>/manifest.json describing
+// where/how to place it. The list of available scenes and their display
+// names comes from public/scenes/scenes.json.
 type SceneEntry = { id: string; name: string };
 // One named player start point, listed under a scene manifest's "locations"
 // (or "places" — either key is accepted) array. yaw is in radians, matching
@@ -6944,8 +6946,8 @@ export function Aquafulness() {
     return () => window.clearTimeout(id);
   }, [bootReady]);
 
-  // Load / swap the selected .glb scene into the live three.js scene graph.
-  // Runs after the WebGL setup effect above has populated sceneRef, and re-runs
+  // Load / swap the selected scene into the live three.js scene graph. Runs
+  // after the WebGL setup effect above has populated sceneRef, and re-runs
   // whenever the user picks a different scene.
   useEffect(() => {
     const scene = sceneRef.current;
@@ -6968,6 +6970,13 @@ export function Aquafulness() {
     let cancelled = false;
     const base = `/scenes/${encodeURIComponent(sceneId)}`;
     const loader = new GLTFLoader();
+    // Scenes are exported as either a single-file .glb or a .gltf with
+    // sibling .bin/texture files; try .glb first (the common case) and fall
+    // back to .gltf so both layouts resolve without a manifest flag.
+    const loadModel = (ext: "glb" | "gltf") =>
+      new Promise<GLTF>((resolve, reject) => {
+        loader.load(`${base}/${encodeURIComponent(sceneId)}.${ext}`, resolve, undefined, reject);
+      });
 
     fetch(`${base}/manifest.json`)
       .then((r) => (r.ok ? (r.json() as Promise<SceneManifest>) : {}))
@@ -6975,9 +6984,9 @@ export function Aquafulness() {
       .then((manifest: SceneManifest) => {
         if (cancelled) return;
         setSpawnLocations(resolveSpawnLocations(manifest));
-        loader.load(
-          `${base}/${encodeURIComponent(sceneId)}.glb`,
-          (gltf) => {
+        loadModel("glb")
+          .catch(() => loadModel("gltf"))
+          .then((gltf) => {
             if (cancelled) {
               disposeObject(gltf.scene);
               return;
@@ -6989,13 +6998,11 @@ export function Aquafulness() {
             const bob = resolveBob(manifest.bob);
             modelBobRef.current = bob ? { base: model.position.clone(), bob } : null;
             setSceneBootSettled(true);
-          },
-          undefined,
-          (err) => {
+          })
+          .catch((err) => {
             console.error(`Failed to load scene "${sceneId}"`, err);
             if (!cancelled) setSceneBootSettled(true);
-          },
-        );
+          });
       });
 
     return () => {

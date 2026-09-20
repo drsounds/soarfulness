@@ -8,8 +8,9 @@
 // offline rather than triggering a redundant network fetch the first time a
 // route matches it:
 //   - "content": the scenes/environments/surfaces catalogs, their per-entry
-//     manifest.json files, and the .glb/skybox/reflection assets they name.
-//     Discovered by walking the same JSON catalogs the app itself reads
+//     manifest.json files, and the .glb (or .gltf, plus its referenced
+//     .bin/texture files)/skybox/reflection assets they name. Discovered by
+//     walking the same JSON catalogs the app itself reads
 //     (public/scenes/scenes.json, public/environments/environment.json,
 //     public/surfaces/surfaces.json) rather than by globbing the public/
 //     directory — that directory also holds original .xcf source files for
@@ -31,6 +32,10 @@ type EnvironmentCatalog = { environments?: EnvEntry[] };
 type SurfaceCatalog = { surfaces?: { id: string }[] };
 type EnvManifest = { image?: string };
 type SurfaceManifest = { image?: string };
+// The subset of the glTF JSON schema this file cares about: the external
+// files a .gltf references relative to its own directory (a .glb has none of
+// these — buffers/images are embedded in the single binary).
+type GltfDependencies = { buffers?: { uri?: string }[]; images?: { uri?: string }[] };
 
 async function fetchJson<T>(url: string): Promise<T | null> {
   try {
@@ -40,6 +45,40 @@ async function fetchJson<T>(url: string): Promise<T | null> {
   } catch {
     return null;
   }
+}
+
+// glTF buffer/image "uri" values are relative paths that are already
+// percent-encoded per the spec (e.g. "textures%2Ffoo.png" for a subfolder
+// entry) — decode fully, then re-encode each path segment to match how the
+// rest of this file builds URLs (and how the app's static server expects them).
+function resolveGltfDependencyUrl(base: string, uri: string): string {
+  const decoded = decodeURIComponent(uri);
+  return `${base}/${decoded.split("/").map(encodeURIComponent).join("/")}`;
+}
+
+// A scene's model file is either <id>.glb (self-contained) or <id>.gltf
+// (references sibling .bin/texture files that also need caching for offline
+// use) — see the loader fallback in routes/index.tsx for the same .glb-then-
+// .gltf precedence.
+async function resolveSceneModelUrls(base: string, sceneId: string): Promise<string[]> {
+  const glbUrl = `${base}/${encodeURIComponent(sceneId)}.glb`;
+  const glbHead = await fetch(glbUrl, { method: "HEAD" }).catch(() => null);
+  if (glbHead?.ok) return [glbUrl];
+
+  const gltfUrl = `${base}/${encodeURIComponent(sceneId)}.gltf`;
+  const gltf = await fetchJson<GltfDependencies>(gltfUrl);
+  if (!gltf) return [glbUrl];
+
+  const urls = [gltfUrl];
+  const uris = [
+    ...(gltf.buffers ?? []).map((b) => b.uri),
+    ...(gltf.images ?? []).map((i) => i.uri),
+  ];
+  for (const uri of uris) {
+    if (!uri || uri.startsWith("data:")) continue;
+    urls.push(resolveGltfDependencyUrl(base, uri));
+  }
+  return urls;
 }
 
 // Same-origin CDN pointer files bundled into the JS build (see
@@ -88,7 +127,8 @@ export async function collectOfflineAssetBuckets(): Promise<OfflineAssetBuckets>
     (sceneCatalog?.scenes ?? []).map(async (scene) => {
       const base = `/scenes/${encodeURIComponent(scene.id)}`;
       content.add(`${base}/manifest.json`);
-      content.add(`${base}/${encodeURIComponent(scene.id)}.glb`);
+      const modelUrls = await resolveSceneModelUrls(base, scene.id);
+      for (const url of modelUrls) content.add(url);
     }),
   );
 
