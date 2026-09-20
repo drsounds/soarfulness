@@ -58,9 +58,7 @@ import {
   type DepthSineWaveform,
   type IntervalSessionType,
   type WavePresetName,
-  type WhirlpoolDirection,
-  type WhirlpoolExitMode,
-  type WhirlpoolSpawnDirection,
+  type TornadoDirection,
   type SurgeRotationMode,
   type Persisted,
 } from "@/lib/settingsShared";
@@ -279,9 +277,11 @@ function smoothstep(edge0: number, edge1: number, x: number) {
   return v * v * (3 - 2 * v);
 }
 
-// Pure radial sine surface used in whirlpool camera mode. Keep in sync with
-// the shader's vortex block so the camera rides the same even wave that is
-// rendered.
+// Pure radial sine surface used for the water whirlpool that opens up while
+// swinging with TORNADO on. Keep in sync with the shader's vortex block so
+// the camera rides the same even wave that is rendered. x/z are relative to
+// the tornado/whirlpool's own center (the swing anchor — see the
+// cameraMode==="swing" branch of the physics loop).
 function whirlpoolSurfaceHeight(
   x: number,
   z: number,
@@ -300,49 +300,6 @@ function whirlpoolSurfaceHeight(
   const phase = r * kR - t * 0.9;
   const ring = Math.sin(phase) * 2.6 * amp * stableFade * (1 - g * 0.85);
   return pit + ring;
-}
-
-// Unit XZ direction the whirlpool's center should open up in, per the
-// WHIRLPOOL SPAWN DIRECTION dial — evaluated once, the instant whirlpool
-// mode is entered (see the cameraMode-change effect below). "ahead"/"left"/
-// "right"/"behind" are relative to the player's current look yaw; "current"
-// instead follows the net STRÖM+SVAJ (current/sway) world direction, so a
-// current/sway pushing the player forward opens the vortex ahead of them,
-// one pushing back opens it behind them, left/right likewise — falling back
-// to "ahead" when there's no current/sway to read (both at rest).
-function whirlpoolSpawnDirectionXZ(
-  direction: WhirlpoolSpawnDirection,
-  yaw: number,
-  driftX: number,
-  driftZ: number,
-  swayX: number,
-  swayZ: number,
-): { x: number; z: number } {
-  const fwdX = -Math.sin(yaw);
-  const fwdZ = -Math.cos(yaw);
-  switch (direction) {
-    case "left": {
-      const rightX = Math.cos(yaw),
-        rightZ = -Math.sin(yaw);
-      return { x: -rightX, z: -rightZ };
-    }
-    case "right": {
-      const rightX = Math.cos(yaw),
-        rightZ = -Math.sin(yaw);
-      return { x: rightX, z: rightZ };
-    }
-    case "behind":
-      return { x: -fwdX, z: -fwdZ };
-    case "current": {
-      const cx = driftX + swayX;
-      const cz = driftZ + swayZ;
-      const mag = Math.hypot(cx, cz);
-      return mag > 0.001 ? { x: cx / mag, z: cz / mag } : { x: fwdX, z: fwdZ };
-    }
-    case "ahead":
-    default:
-      return { x: fwdX, z: fwdZ };
-  }
 }
 
 // Normalized (roughly -1..1) vertical drive for GUNGA-mode's pendulum, evaluated
@@ -453,10 +410,9 @@ const EXTEND_CLOUD_LAYER_SPACING = 500;
 const EXTEND_CLOUD_LAYER_COUNT = 5;
 // Display order for the top camera mode toggle's tab buttons — independent
 // of CAMERA_MODES' own order (which cycleCameraMode/the KAMERA settings
-// dial still cycle through), so the four tabs can read left-to-right as
-// VIRVEL/SIMMARE/GUNGA/FLYG regardless of how CAMERA_MODES itself is
-// ordered.
-const CAMERA_MODE_TAB_ORDER: CameraMode[] = ["whirlpool", "float", "swing", "noclip"];
+// dial still cycle through), so the three tabs can read left-to-right as
+// SIMMARE/GUNGA/FLYG regardless of how CAMERA_MODES itself is ordered.
+const CAMERA_MODE_TAB_ORDER: CameraMode[] = ["float", "swing", "noclip"];
 // SKY PUFFS: a pool of this many puff meshes is always created (cheap —
 // shared geometry, one small cloned material each); SKY PUFFS COUNT just
 // controls how many of them animate() keeps active, so raising/lowering the
@@ -854,17 +810,6 @@ const DEFAULTS: Persisted = {
   floorDepth: 28,
   floorTexture: true,
   floorCloudsAnimated: false,
-  whirlpoolOpening: 14,
-  whirlpoolRadius: 26,
-  whirlpoolSpeed: 1,
-  whirlpoolDirection: "cw",
-  whirlpoolSequenceOn: false,
-  whirlpoolDragSpeed: 6,
-  whirlpoolDragDuration: 6,
-  whirlpoolStayDuration: 4,
-  whirlpoolExitMode: "throwBack",
-  whirlpoolExitSpeed: 10,
-  whirlpoolSpawnDirection: "ahead",
   depthSineOn: false,
   depthSineAmp: 2,
   depthSineFreq: 0.2,
@@ -946,31 +891,26 @@ const DEFAULTS: Persisted = {
   swingHeight: 20000,
   swingPreset: "water",
   swingYWaveform: "pendulum",
-  // Optional "tornado" spin for GUNGA: off by default (plain pendulum arc).
-  swingTornadoOn: false,
-  swingTornadoRadius: 40,
-  swingTornadoSpeed: 1,
-  swingTornadoDirection: "cw",
-  // Optional "tornado" spin for NOCLIP: off by default (plain free flight).
-  noclipTornadoOn: false,
-  noclipTornadoRadius: 40,
-  noclipTornadoSpeed: 1,
-  noclipTornadoDirection: "cw",
-  // TORNADO CLOUD: off by default — purely cosmetic, shared by whichever of
-  // GUNGA's or NOCLIP's own tornado spin is active.
+  // Unified TORNADO toggle for GUNGA (swing) and flying (noclip/watercraft):
+  // off by default (plain pendulum arc / plain free flight).
+  tornadoOn: false,
+  tornadoRadius: 40,
+  tornadoSpeed: 1,
+  tornadoDirection: "cw",
+  tornadoOpening: 14,
+  // Off by default: camera keeps whatever forward direction NAV/LOOK has it
+  // facing instead of easing toward staring at the tornado/whirlpool center.
+  tornadoFollowCenter: false,
+  // TORNADO CLOUD: off by default — purely cosmetic.
   tornadoCloudOn: false,
   // Interval session off by default; a 30s FRI/GUNGA alternation running
   // forever once turned on, until switched to a fixed number of intervals.
-  // The pool of modes it cycles through defaults to exactly that FRI/GUNGA
-  // pair (VIRVEL/whirlpool opts in explicitly) so existing sessions keep
-  // behaving the same until a user turns it on.
   intervalSessionOn: false,
   intervalDuration: 30,
   intervalSessionType: "infinite",
   intervalCount: 6,
   intervalShowStats: true,
   intervalIncludeFloat: true,
-  intervalIncludeWhirlpool: false,
   intervalIncludeSwing: true,
   surfaceArea: 1000,
   // Floating torus "bath rings" field — off by default so existing scenes
@@ -993,8 +933,32 @@ function loadSettings(): Persisted {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULTS;
-    const parsed = JSON.parse(raw);
-    return { ...DEFAULTS, ...parsed };
+    const parsed: Record<string, unknown> = JSON.parse(raw);
+    // Migrate settings saved before TORNADO/WHIRLPOOL were merged into one
+    // shared toggle: the old standalone "whirlpool" camera mode no longer
+    // exists, so fall back to "swing" — the mode the merged water-whirlpool
+    // visual now lives in. Old swingTornadoOn/noclipTornadoOn carry over
+    // into the new shared tornadoOn (plus whichever one of them was on's own
+    // radius/speed/direction) as long as a newer save hasn't already set
+    // tornadoOn itself.
+    if (parsed.cameraMode === "whirlpool") parsed.cameraMode = "swing";
+    if (parsed.tornadoOn === undefined) {
+      const legacySrc = parsed.swingTornadoOn
+        ? "swingTornado"
+        : parsed.noclipTornadoOn
+          ? "noclipTornado"
+          : null;
+      if (legacySrc) {
+        parsed.tornadoOn = true;
+        if (typeof parsed[`${legacySrc}Radius`] === "number")
+          parsed.tornadoRadius = parsed[`${legacySrc}Radius`];
+        if (typeof parsed[`${legacySrc}Speed`] === "number")
+          parsed.tornadoSpeed = parsed[`${legacySrc}Speed`];
+        if (parsed[`${legacySrc}Direction`])
+          parsed.tornadoDirection = parsed[`${legacySrc}Direction`];
+      }
+    }
+    return { ...DEFAULTS, ...(parsed as Partial<Persisted>) };
   } catch {
     return DEFAULTS;
   }
@@ -1277,28 +1241,6 @@ export function Aquafulness() {
   const [floorDepth, setFloorDepth] = useState(initial.floorDepth);
   const [floorTexture, setFloorTexture] = useState(initial.floorTexture);
   const [floorCloudsAnimated, setFloorCloudsAnimated] = useState(initial.floorCloudsAnimated);
-  // VIRVEL (whirlpool camera mode) — see the cameraMode==="whirlpool" branch
-  // of the render loop below. whirlpoolOpening/Radius/Speed/Direction drive
-  // the steady orbit (shared with the shader's funnel visual); the rest only
-  // matter when whirlpoolSequenceOn loops the camera through drag-in / stay
-  // inside / thrown-back-or-reverse-spin automatically.
-  const [whirlpoolOpening, setWhirlpoolOpening] = useState(initial.whirlpoolOpening);
-  const [whirlpoolRadius, setWhirlpoolRadius] = useState(initial.whirlpoolRadius);
-  const [whirlpoolSpeed, setWhirlpoolSpeed] = useState(initial.whirlpoolSpeed);
-  const [whirlpoolDirection, setWhirlpoolDirection] = useState<WhirlpoolDirection>(
-    initial.whirlpoolDirection,
-  );
-  const [whirlpoolSequenceOn, setWhirlpoolSequenceOn] = useState(initial.whirlpoolSequenceOn);
-  const [whirlpoolDragSpeed, setWhirlpoolDragSpeed] = useState(initial.whirlpoolDragSpeed);
-  const [whirlpoolDragDuration, setWhirlpoolDragDuration] = useState(initial.whirlpoolDragDuration);
-  const [whirlpoolStayDuration, setWhirlpoolStayDuration] = useState(initial.whirlpoolStayDuration);
-  const [whirlpoolExitMode, setWhirlpoolExitMode] = useState<WhirlpoolExitMode>(
-    initial.whirlpoolExitMode,
-  );
-  const [whirlpoolExitSpeed, setWhirlpoolExitSpeed] = useState(initial.whirlpoolExitSpeed);
-  const [whirlpoolSpawnDirection, setWhirlpoolSpawnDirection] = useState<WhirlpoolSpawnDirection>(
-    initial.whirlpoolSpawnDirection,
-  );
   const [depthSineOn, setDepthSineOn] = useState(initial.depthSineOn);
   const [depthSineAmp, setDepthSineAmp] = useState(initial.depthSineAmp);
   const [depthSineFreq, setDepthSineFreq] = useState(initial.depthSineFreq);
@@ -1406,34 +1348,33 @@ export function Aquafulness() {
   const [swingHeight, setSwingHeight] = useState(initial.swingHeight);
   const [swingYWaveform, setSwingYWaveform] = useState<SwingYWaveform>(initial.swingYWaveform);
   const [swingPreset, setSwingPreset] = useState<SwingPreset>(initial.swingPreset);
-  // Optional "tornado" spin for GUNGA: instead of a back-and-forth pendulum
-  // arc, the camera orbits its anchor in a circle at swing altitude (a
-  // whirlpool in the sky) — see the cameraMode==="swing" branch below.
-  const [swingTornadoOn, setSwingTornadoOn] = useState(initial.swingTornadoOn);
-  const [swingTornadoRadius, setSwingTornadoRadius] = useState(initial.swingTornadoRadius);
-  const [swingTornadoSpeed, setSwingTornadoSpeed] = useState(initial.swingTornadoSpeed);
-  const [swingTornadoDirection, setSwingTornadoDirection] = useState<WhirlpoolDirection>(
-    initial.swingTornadoDirection,
+  // Unified TORNADO toggle, shared by GUNGA (swing) and flying (noclip/
+  // watercraft) alike: instead of a back-and-forth pendulum arc / plain
+  // manual flight, the camera orbits a circle around the anchor (posRef) —
+  // see the cameraMode==="swing"/"noclip"/"watercraft" branches below.
+  // While swinging, this also opens a real water whirlpool centered at that
+  // same anchor (tornadoOpening controls its throat width; see uVortex*
+  // below) — flying never shows that water effect. tornadoFollowCenter
+  // additionally eases the camera's look direction toward that center
+  // instead of leaving it wherever NAV/LOOK already has it facing.
+  // Activating/deactivating this eases in/out (see tornadoBlendRef/
+  // vortexBlendRef in the physics loop) rather than snapping instantly.
+  const [tornadoOn, setTornadoOn] = useState(initial.tornadoOn);
+  const [tornadoRadius, setTornadoRadius] = useState(initial.tornadoRadius);
+  const [tornadoSpeed, setTornadoSpeed] = useState(initial.tornadoSpeed);
+  const [tornadoDirection, setTornadoDirection] = useState<TornadoDirection>(
+    initial.tornadoDirection,
   );
-  // Optional "tornado" spin for NOCLIP: layers a circular swirl on top of
-  // NAV/HÖJD/DRIFT XZ's manual free flight instead of replacing it — see the
-  // cameraMode==="noclip" branch below.
-  const [noclipTornadoOn, setNoclipTornadoOn] = useState(initial.noclipTornadoOn);
-  const [noclipTornadoRadius, setNoclipTornadoRadius] = useState(initial.noclipTornadoRadius);
-  const [noclipTornadoSpeed, setNoclipTornadoSpeed] = useState(initial.noclipTornadoSpeed);
-  const [noclipTornadoDirection, setNoclipTornadoDirection] = useState<WhirlpoolDirection>(
-    initial.noclipTornadoDirection,
-  );
-  // TORNADO CLOUD: optional visible funnel-shaped cloud wrapping whichever
-  // of the two tornado orbits above is currently active — see
-  // tornadoCloudMeshRef further down.
+  const [tornadoOpening, setTornadoOpening] = useState(initial.tornadoOpening);
+  const [tornadoFollowCenter, setTornadoFollowCenter] = useState(initial.tornadoFollowCenter);
+  // TORNADO CLOUD: optional visible funnel-shaped cloud wrapping the active
+  // tornado orbit — see tornadoCloudMeshRef further down.
   const [tornadoCloudOn, setTornadoCloudOn] = useState(initial.tornadoCloudOn);
   // Interval session: automatically cycles the camera through whichever of
-  // "float" (FRI/default)/"whirlpool" (VIRVEL)/"swing" (GUNGA, optionally
-  // tornado) are enabled below, every intervalDuration seconds — see the
-  // session-driver effect further down. intervalIndex/intervalProgress/
-  // intervalElapsedTotal are runtime-only (not persisted) progress readouts
-  // for the bottom HUD bars.
+  // "float" (FRI/default)/"swing" (GUNGA, optionally TORNADO) are enabled
+  // below, every intervalDuration seconds — see the session-driver effect
+  // further down. intervalIndex/intervalProgress/intervalElapsedTotal are
+  // runtime-only (not persisted) progress readouts for the bottom HUD bars.
   const [intervalSessionOn, setIntervalSessionOn] = useState(initial.intervalSessionOn);
   const [intervalDuration, setIntervalDuration] = useState(initial.intervalDuration);
   const [intervalSessionType, setIntervalSessionType] = useState<IntervalSessionType>(
@@ -1442,9 +1383,6 @@ export function Aquafulness() {
   const [intervalCount, setIntervalCount] = useState(initial.intervalCount);
   const [intervalShowStats, setIntervalShowStats] = useState(initial.intervalShowStats);
   const [intervalIncludeFloat, setIntervalIncludeFloat] = useState(initial.intervalIncludeFloat);
-  const [intervalIncludeWhirlpool, setIntervalIncludeWhirlpool] = useState(
-    initial.intervalIncludeWhirlpool,
-  );
   const [intervalIncludeSwing, setIntervalIncludeSwing] = useState(initial.intervalIncludeSwing);
   const [intervalIndex, setIntervalIndex] = useState(0);
   const [intervalProgress, setIntervalProgress] = useState(0);
@@ -1776,17 +1714,6 @@ export function Aquafulness() {
     floorDepth,
     floorTexture,
     floorCloudsAnimated,
-    whirlpoolOpening,
-    whirlpoolRadius,
-    whirlpoolSpeed,
-    whirlpoolDirection,
-    whirlpoolSequenceOn,
-    whirlpoolDragSpeed,
-    whirlpoolDragDuration,
-    whirlpoolStayDuration,
-    whirlpoolExitMode,
-    whirlpoolExitSpeed,
-    whirlpoolSpawnDirection,
     depthSineOn,
     depthSineAmp,
     depthSineFreq,
@@ -1848,14 +1775,12 @@ export function Aquafulness() {
     swingHeight,
     swingPreset,
     swingYWaveform,
-    swingTornadoOn,
-    swingTornadoRadius,
-    swingTornadoSpeed,
-    swingTornadoDirection,
-    noclipTornadoOn,
-    noclipTornadoRadius,
-    noclipTornadoSpeed,
-    noclipTornadoDirection,
+    tornadoOn,
+    tornadoRadius,
+    tornadoSpeed,
+    tornadoDirection,
+    tornadoOpening,
+    tornadoFollowCenter,
     tornadoCloudOn,
     intervalSessionOn,
     intervalDuration,
@@ -1863,7 +1788,6 @@ export function Aquafulness() {
     intervalCount,
     intervalShowStats,
     intervalIncludeFloat,
-    intervalIncludeWhirlpool,
     intervalIncludeSwing,
     surfaceArea,
     torusRingsOn,
@@ -1945,17 +1869,6 @@ export function Aquafulness() {
     floorDepth,
     floorTexture,
     floorCloudsAnimated,
-    whirlpoolOpening,
-    whirlpoolRadius,
-    whirlpoolSpeed,
-    whirlpoolDirection,
-    whirlpoolSequenceOn,
-    whirlpoolDragSpeed,
-    whirlpoolDragDuration,
-    whirlpoolStayDuration,
-    whirlpoolExitMode,
-    whirlpoolExitSpeed,
-    whirlpoolSpawnDirection,
     depthSineOn,
     depthSineAmp,
     depthSineFreq,
@@ -2017,14 +1930,12 @@ export function Aquafulness() {
     swingHeight,
     swingPreset,
     swingYWaveform,
-    swingTornadoOn,
-    swingTornadoRadius,
-    swingTornadoSpeed,
-    swingTornadoDirection,
-    noclipTornadoOn,
-    noclipTornadoRadius,
-    noclipTornadoSpeed,
-    noclipTornadoDirection,
+    tornadoOn,
+    tornadoRadius,
+    tornadoSpeed,
+    tornadoDirection,
+    tornadoOpening,
+    tornadoFollowCenter,
     tornadoCloudOn,
     intervalSessionOn,
     intervalDuration,
@@ -2032,7 +1943,6 @@ export function Aquafulness() {
     intervalCount,
     intervalShowStats,
     intervalIncludeFloat,
-    intervalIncludeWhirlpool,
     intervalIncludeSwing,
     surfaceArea,
     torusRingsOn,
@@ -2201,68 +2111,41 @@ export function Aquafulness() {
   const floorDepthRef = useRef(floorDepth);
   const floorTextureRef = useRef(floorTexture);
   const floorCloudsAnimatedRef = useRef(floorCloudsAnimated);
-  const whirlpoolOpeningRef = useRef(whirlpoolOpening);
-  const whirlpoolRadiusRef = useRef(whirlpoolRadius);
-  const whirlpoolSpeedRef = useRef(whirlpoolSpeed);
-  const whirlpoolDirectionRef = useRef(whirlpoolDirection);
-  const whirlpoolSequenceOnRef = useRef(whirlpoolSequenceOn);
-  const whirlpoolDragSpeedRef = useRef(whirlpoolDragSpeed);
-  const whirlpoolDragDurationRef = useRef(whirlpoolDragDuration);
-  const whirlpoolStayDurationRef = useRef(whirlpoolStayDuration);
-  const whirlpoolExitModeRef = useRef(whirlpoolExitMode);
-  const whirlpoolExitSpeedRef = useRef(whirlpoolExitSpeed);
-  const whirlpoolSpawnDirectionRef = useRef(whirlpoolSpawnDirection);
-  const whirlpoolAngleRef = useRef(0);
-  // Drives the whirlpool's optional automatic drag-in/stay/exit sequence —
-  // reset whenever cameraMode switches into "whirlpool" (see that effect
-  // below) so every entry starts the loop fresh from the drag-in phase.
-  const whirlpoolPhaseRef = useRef<{
-    phase: "drag" | "stay" | "exit";
-    startMs: number;
-  }>({ phase: "drag", startMs: 0 });
-  // Continuous 0..1 "how whirlpool-y are we right now" blend, eased toward
-  // cameraMode==="whirlpool" over ~1.4s regardless of how abruptly the mode
-  // itself switches (button, KAMERA dial, or the interval session) — see its
-  // update in the render loop below. 1 = fully orbiting the vortex, 0 =
-  // fully back to whatever the current mode's own motion is. Used both to
-  // fade the funnel's shape in/out (uVortex) and to scale the orbit's
-  // angular speed, so entering ramps the spin up from a standstill and
-  // leaving lets it wind back down instead of cutting out mid-spin.
-  const whirlpoolBlendRef = useRef(0);
-  // The camera's last actual orbit position while whirlpoolBlendRef was
-  // above zero — seeded into posRef.current the moment cameraMode leaves
-  // "whirlpool" (see that effect below) so float/noclip/swing resume
-  // exactly where the (still winding down) orbit left off, instead of
-  // snapping back to wherever the camera was before it ever entered.
-  const whirlpoolLastPosRef = useRef({ x: 0, z: 0 });
-  // Where the vortex is centered in world space — computed from posRef.current
-  // via whirlpoolSpawnDirectionXZ (see that function and the WHIRLPOOL SPAWN
-  // DIRECTION dial) the instant cameraMode switches into "whirlpool" (see
-  // that effect below), a radius's distance out in the chosen direction, so
-  // the whirlpool opens up around the player instead of forming right on top
-  // of them or at a fixed world-origin spot. Read by the orbit math, the
-  // funnel surface height sampling, and the shader's uVortexCenter uniform,
-  // all below, so the visual funnel and the camera's ride on it stay in sync.
-  const whirlpoolCenterRef = useRef({ x: 0, z: 0 });
-  const swingTornadoOnRef = useRef(swingTornadoOn);
-  const swingTornadoRadiusRef = useRef(swingTornadoRadius);
-  const swingTornadoSpeedRef = useRef(swingTornadoSpeed);
-  const swingTornadoDirectionRef = useRef(swingTornadoDirection);
-  const swingTornadoAngleRef = useRef(0);
-  const noclipTornadoOnRef = useRef(noclipTornadoOn);
-  const noclipTornadoRadiusRef = useRef(noclipTornadoRadius);
-  const noclipTornadoSpeedRef = useRef(noclipTornadoSpeed);
-  const noclipTornadoDirectionRef = useRef(noclipTornadoDirection);
-  const noclipTornadoAngleRef = useRef(0);
+  const tornadoOnRef = useRef(tornadoOn);
+  const tornadoRadiusRef = useRef(tornadoRadius);
+  const tornadoSpeedRef = useRef(tornadoSpeed);
+  const tornadoDirectionRef = useRef(tornadoDirection);
+  const tornadoOpeningRef = useRef(tornadoOpening);
+  const tornadoFollowCenterRef = useRef(tornadoFollowCenter);
+  // Shared orbit angle for the tornado spin, whichever of swing/noclip/
+  // watercraft is currently driving it (only one of those branches runs any
+  // given frame, so one angle can serve all of them) — reset to 0 whenever
+  // cameraMode switches into swing or noclip/watercraft (see that effect
+  // below) so every entry starts the spin fresh.
+  const tornadoAngleRef = useRef(0);
+  // Continuous 0..1 "how tornado-y are we right now" blend, eased toward 1
+  // while tornadoOn and cameraMode is swing/noclip/watercraft, toward 0
+  // otherwise — regardless of how abruptly tornadoOn itself is toggled or
+  // cameraMode switches (button, KAMERA dial, or the interval session) — see
+  // its update in the render loop below. Scales the orbit's angular speed
+  // and how much its offset contributes to the camera's position, so turning
+  // TORNADO on/off ramps the spin up from (or back down to) a standstill —
+  // and, while swinging, crossfades the pendulum arc and the circular orbit —
+  // instead of snapping instantly.
+  const tornadoBlendRef = useRef(0);
+  // Same idea as tornadoBlendRef, but specifically for the water whirlpool
+  // visual (uVortex* below), which only ever applies while swinging — so it
+  // eases toward 1 only when tornadoOn && cameraMode==="swing", independent
+  // of tornadoBlendRef staying high if the player then switches to flying.
+  const vortexBlendRef = useRef(0);
   const tornadoCloudOnRef = useRef(tornadoCloudOn);
   // Live-updated by the noclip/swing tornado branches of the physics loop
-  // whenever their own tornado spin is active this frame; read afterward to
+  // whenever the tornado orbit is active this frame; read afterward to
   // position/scale/rotate the shared funnel-cloud mesh (tornadoCloudMeshRef,
   // created in the scene-setup effect below) — see tornadoCloudFadeRef too.
   const tornadoCloudMeshRef = useRef<THREE.Mesh | null>(null);
   const tornadoCloudFadeRef = useRef(0);
   const intervalIncludeFloatRef = useRef(intervalIncludeFloat);
-  const intervalIncludeWhirlpoolRef = useRef(intervalIncludeWhirlpool);
   const intervalIncludeSwingRef = useRef(intervalIncludeSwing);
   const depthSineOnRef = useRef(depthSineOn);
   const depthSineAmpRef = useRef(depthSineAmp);
@@ -2474,71 +2357,29 @@ export function Aquafulness() {
     floorCloudsAnimatedRef.current = floorCloudsAnimated;
   }, [floorCloudsAnimated]);
   useEffect(() => {
-    whirlpoolOpeningRef.current = whirlpoolOpening;
-  }, [whirlpoolOpening]);
+    tornadoOnRef.current = tornadoOn;
+  }, [tornadoOn]);
   useEffect(() => {
-    whirlpoolRadiusRef.current = whirlpoolRadius;
-  }, [whirlpoolRadius]);
+    tornadoRadiusRef.current = tornadoRadius;
+  }, [tornadoRadius]);
   useEffect(() => {
-    whirlpoolSpeedRef.current = whirlpoolSpeed;
-  }, [whirlpoolSpeed]);
+    tornadoSpeedRef.current = tornadoSpeed;
+  }, [tornadoSpeed]);
   useEffect(() => {
-    whirlpoolDirectionRef.current = whirlpoolDirection;
-  }, [whirlpoolDirection]);
+    tornadoDirectionRef.current = tornadoDirection;
+  }, [tornadoDirection]);
   useEffect(() => {
-    whirlpoolSequenceOnRef.current = whirlpoolSequenceOn;
-  }, [whirlpoolSequenceOn]);
+    tornadoOpeningRef.current = tornadoOpening;
+  }, [tornadoOpening]);
   useEffect(() => {
-    whirlpoolDragSpeedRef.current = whirlpoolDragSpeed;
-  }, [whirlpoolDragSpeed]);
-  useEffect(() => {
-    whirlpoolDragDurationRef.current = whirlpoolDragDuration;
-  }, [whirlpoolDragDuration]);
-  useEffect(() => {
-    whirlpoolStayDurationRef.current = whirlpoolStayDuration;
-  }, [whirlpoolStayDuration]);
-  useEffect(() => {
-    whirlpoolExitModeRef.current = whirlpoolExitMode;
-  }, [whirlpoolExitMode]);
-  useEffect(() => {
-    whirlpoolExitSpeedRef.current = whirlpoolExitSpeed;
-  }, [whirlpoolExitSpeed]);
-  useEffect(() => {
-    whirlpoolSpawnDirectionRef.current = whirlpoolSpawnDirection;
-  }, [whirlpoolSpawnDirection]);
-  useEffect(() => {
-    swingTornadoOnRef.current = swingTornadoOn;
-  }, [swingTornadoOn]);
-  useEffect(() => {
-    swingTornadoRadiusRef.current = swingTornadoRadius;
-  }, [swingTornadoRadius]);
-  useEffect(() => {
-    swingTornadoSpeedRef.current = swingTornadoSpeed;
-  }, [swingTornadoSpeed]);
-  useEffect(() => {
-    swingTornadoDirectionRef.current = swingTornadoDirection;
-  }, [swingTornadoDirection]);
-  useEffect(() => {
-    noclipTornadoOnRef.current = noclipTornadoOn;
-  }, [noclipTornadoOn]);
-  useEffect(() => {
-    noclipTornadoRadiusRef.current = noclipTornadoRadius;
-  }, [noclipTornadoRadius]);
-  useEffect(() => {
-    noclipTornadoSpeedRef.current = noclipTornadoSpeed;
-  }, [noclipTornadoSpeed]);
-  useEffect(() => {
-    noclipTornadoDirectionRef.current = noclipTornadoDirection;
-  }, [noclipTornadoDirection]);
+    tornadoFollowCenterRef.current = tornadoFollowCenter;
+  }, [tornadoFollowCenter]);
   useEffect(() => {
     tornadoCloudOnRef.current = tornadoCloudOn;
   }, [tornadoCloudOn]);
   useEffect(() => {
     intervalIncludeFloatRef.current = intervalIncludeFloat;
   }, [intervalIncludeFloat]);
-  useEffect(() => {
-    intervalIncludeWhirlpoolRef.current = intervalIncludeWhirlpool;
-  }, [intervalIncludeWhirlpool]);
   useEffect(() => {
     intervalIncludeSwingRef.current = intervalIncludeSwing;
   }, [intervalIncludeSwing]);
@@ -2796,35 +2637,23 @@ export function Aquafulness() {
     lowGraphicsMode,
   ]);
   // Mode switch: hand off position/orientation continuity between schemes so
-  // switching never teleports the camera. Leaving whirlpool (for any other
-  // mode) first seeds posRef.current from wherever the orbit actually was
-  // (whirlpoolLastPosRef, updated every frame the render loop spends in or
-  // winding down from whirlpool) so the new mode's own motion picks up
-  // exactly where the orbit left off — the orbit itself keeps spinning
-  // (decelerating) and blending under that motion for a bit afterward, per
-  // whirlpoolBlendRef in the render loop, instead of cutting out instantly.
-  // Entering noclip seeds its vertical position from wherever the wave
-  // spring last had the camera; entering swing captures the current look
-  // yaw as the pendulum's swing plane and arms a short blend (swingBlendRef)
-  // so the pendulum's y and horizontal arc ease in from wherever the camera
-  // actually was, instead of snapping straight to the swing formula's value
-  // for the current clock phase; entering whirlpool always (re)starts its
-  // automatic sequence, if any, fresh from the drag-in phase — see the
-  // cameraMode==="whirlpool" branch of the render loop below (whose own
-  // entry is likewise eased, via whirlpoolBlendRef, rather than an instant
-  // teleport onto the orbit).
+  // switching never teleports the camera. Entering noclip seeds its vertical
+  // position from wherever the wave spring last had the camera; entering
+  // swing captures the current look yaw as the pendulum's swing plane and
+  // arms a short blend (swingBlendRef) so the pendulum's y and horizontal
+  // arc ease in from wherever the camera actually was, instead of snapping
+  // straight to the swing formula's value for the current clock phase. Both
+  // also reset tornadoAngleRef to 0 so TORNADO's spin (if on) starts fresh
+  // rather than resuming whatever angle it was left at by the other mode —
+  // TORNADO's own activation/deactivation is eased separately via
+  // tornadoBlendRef/vortexBlendRef in the render loop, not by this effect.
   useEffect(() => {
-    const wasWhirlpool = cameraModeRef.current === "whirlpool";
     cameraModeRef.current = cameraMode;
-    if (wasWhirlpool && cameraMode !== "whirlpool") {
-      posRef.current.x = whirlpoolLastPosRef.current.x;
-      posRef.current.z = whirlpoolLastPosRef.current.z;
-    }
     if (cameraMode === "noclip" || cameraMode === "watercraft") {
       posRef.current.y = camYRef.current ?? swingPositionYRef.current;
       noclipVertVelRef.current = 0;
       noclipHeaveOffsetRef.current = 0;
-      noclipTornadoAngleRef.current = 0;
+      tornadoAngleRef.current = 0;
       // Unlike noclip (which deliberately never teleports), entering
       // watercraft mode snaps the camera to just outside the raft — the
       // player could otherwise be flying anywhere in open water with no way
@@ -2837,29 +2666,9 @@ export function Aquafulness() {
         yawRef.current = 0;
         pitchRef.current = -0.28;
       }
-    } else if (cameraMode === "whirlpool") {
-      whirlpoolPhaseRef.current = { phase: "drag", startMs: performance.now() };
-      // Center the vortex a radius's distance out from the camera, along
-      // whichever direction the WHIRLPOOL SPAWN DIRECTION dial calls for
-      // (see whirlpoolSpawnDirectionXZ above) — not right on top of the
-      // camera, so it visibly opens up in the chosen direction instead of
-      // forming underneath the player.
-      const spawnDir = whirlpoolSpawnDirectionXZ(
-        whirlpoolSpawnDirectionRef.current,
-        yawRef.current,
-        driftWorldRef.current.x,
-        driftWorldRef.current.z,
-        swayWorldRef.current.x,
-        swayWorldRef.current.z,
-      );
-      const aheadDist = whirlpoolRadiusRef.current;
-      whirlpoolCenterRef.current = {
-        x: posRef.current.x + spawnDir.x * aheadDist,
-        z: posRef.current.z + spawnDir.z * aheadDist,
-      };
     } else if (cameraMode === "swing") {
       swingYawRef.current = yawRef.current;
-      swingTornadoAngleRef.current = 0;
+      tornadoAngleRef.current = 0;
       swingBlendRef.current = {
         fromY: camYRef.current ?? swingPositionYRef.current,
         startMs: performance.now(),
@@ -2876,9 +2685,9 @@ export function Aquafulness() {
   }, [cameraMode]);
 
   // Interval session driver: while on, cycles cameraMode through whichever of
-  // "float" (FRI/default), "whirlpool" (VIRVEL) and "swing" (GUNGA,
-  // optionally TORNADO) are enabled (intervalInclude{Float,Whirlpool,Swing})
-  // every intervalDuration seconds, ticking a low-frequency (10Hz) clock for
+  // "float" (FRI/default) and "swing" (GUNGA, optionally TORNADO) are
+  // enabled (intervalInclude{Float,Swing}) every intervalDuration seconds,
+  // ticking a low-frequency (10Hz) clock for
   // the bottom HUD progress bars. The pool is rebuilt from those refs on
   // every tick so live toggling applies immediately without restarting the
   // effect; falls back to ["float"] if a user switches every mode off. Reads
@@ -2901,8 +2710,8 @@ export function Aquafulness() {
   // GUNGA INTENSITET, far coarser than the poll rate. Falls back to the
   // hard deadline if no crossing turns up in time (e.g. an extremely slow
   // swing), so a session can never hang waiting on one. Transitions that
-  // don't involve GUNGA at all (e.g. FRI <-> VIRVEL) always just use the
-  // hard deadline, since the pendulum-arc sync has nothing to do with them.
+  // don't involve GUNGA at all always just use the hard deadline, since the
+  // pendulum-arc sync has nothing to do with them.
   useEffect(() => {
     if (!intervalSessionOn) {
       setIntervalIndex(0);
@@ -2919,7 +2728,6 @@ export function Aquafulness() {
     const buildPool = (): CameraMode[] => {
       const pool: CameraMode[] = [];
       if (intervalIncludeFloatRef.current) pool.push("float");
-      if (intervalIncludeWhirlpoolRef.current) pool.push("whirlpool");
       if (intervalIncludeSwingRef.current) pool.push("swing");
       return pool.length > 0 ? pool : ["float"];
     };
@@ -3068,17 +2876,6 @@ export function Aquafulness() {
     setFloorDepth(DEFAULTS.floorDepth);
     setFloorTexture(DEFAULTS.floorTexture);
     setFloorCloudsAnimated(DEFAULTS.floorCloudsAnimated);
-    setWhirlpoolOpening(DEFAULTS.whirlpoolOpening);
-    setWhirlpoolRadius(DEFAULTS.whirlpoolRadius);
-    setWhirlpoolSpeed(DEFAULTS.whirlpoolSpeed);
-    setWhirlpoolDirection(DEFAULTS.whirlpoolDirection);
-    setWhirlpoolSequenceOn(DEFAULTS.whirlpoolSequenceOn);
-    setWhirlpoolDragSpeed(DEFAULTS.whirlpoolDragSpeed);
-    setWhirlpoolDragDuration(DEFAULTS.whirlpoolDragDuration);
-    setWhirlpoolStayDuration(DEFAULTS.whirlpoolStayDuration);
-    setWhirlpoolExitMode(DEFAULTS.whirlpoolExitMode);
-    setWhirlpoolExitSpeed(DEFAULTS.whirlpoolExitSpeed);
-    setWhirlpoolSpawnDirection(DEFAULTS.whirlpoolSpawnDirection);
     setDepthSineOn(DEFAULTS.depthSineOn);
     setDepthSineAmp(DEFAULTS.depthSineAmp);
     setDepthSineFreq(DEFAULTS.depthSineFreq);
@@ -3131,14 +2928,12 @@ export function Aquafulness() {
     setSwingXFactor(DEFAULTS.swingXFactor);
     setSwingHeight(DEFAULTS.swingHeight);
     setSwingYWaveform(DEFAULTS.swingYWaveform);
-    setSwingTornadoOn(DEFAULTS.swingTornadoOn);
-    setSwingTornadoRadius(DEFAULTS.swingTornadoRadius);
-    setSwingTornadoSpeed(DEFAULTS.swingTornadoSpeed);
-    setSwingTornadoDirection(DEFAULTS.swingTornadoDirection);
-    setNoclipTornadoOn(DEFAULTS.noclipTornadoOn);
-    setNoclipTornadoRadius(DEFAULTS.noclipTornadoRadius);
-    setNoclipTornadoSpeed(DEFAULTS.noclipTornadoSpeed);
-    setNoclipTornadoDirection(DEFAULTS.noclipTornadoDirection);
+    setTornadoOn(DEFAULTS.tornadoOn);
+    setTornadoRadius(DEFAULTS.tornadoRadius);
+    setTornadoSpeed(DEFAULTS.tornadoSpeed);
+    setTornadoDirection(DEFAULTS.tornadoDirection);
+    setTornadoOpening(DEFAULTS.tornadoOpening);
+    setTornadoFollowCenter(DEFAULTS.tornadoFollowCenter);
     setTornadoCloudOn(DEFAULTS.tornadoCloudOn);
     setIntervalSessionOn(DEFAULTS.intervalSessionOn);
     setIntervalDuration(DEFAULTS.intervalDuration);
@@ -3146,7 +2941,6 @@ export function Aquafulness() {
     setIntervalCount(DEFAULTS.intervalCount);
     setIntervalShowStats(DEFAULTS.intervalShowStats);
     setIntervalIncludeFloat(DEFAULTS.intervalIncludeFloat);
-    setIntervalIncludeWhirlpool(DEFAULTS.intervalIncludeWhirlpool);
     setIntervalIncludeSwing(DEFAULTS.intervalIncludeSwing);
     setSurfaceArea(DEFAULTS.surfaceArea);
     setSwingPreset(DEFAULTS.swingPreset);
@@ -3228,20 +3022,6 @@ export function Aquafulness() {
     if (patch.floorDepth !== undefined) setFloorDepth(patch.floorDepth);
     if (patch.floorTexture !== undefined) setFloorTexture(patch.floorTexture);
     if (patch.floorCloudsAnimated !== undefined) setFloorCloudsAnimated(patch.floorCloudsAnimated);
-    if (patch.whirlpoolOpening !== undefined) setWhirlpoolOpening(patch.whirlpoolOpening);
-    if (patch.whirlpoolRadius !== undefined) setWhirlpoolRadius(patch.whirlpoolRadius);
-    if (patch.whirlpoolSpeed !== undefined) setWhirlpoolSpeed(patch.whirlpoolSpeed);
-    if (patch.whirlpoolDirection !== undefined) setWhirlpoolDirection(patch.whirlpoolDirection);
-    if (patch.whirlpoolSequenceOn !== undefined) setWhirlpoolSequenceOn(patch.whirlpoolSequenceOn);
-    if (patch.whirlpoolDragSpeed !== undefined) setWhirlpoolDragSpeed(patch.whirlpoolDragSpeed);
-    if (patch.whirlpoolDragDuration !== undefined)
-      setWhirlpoolDragDuration(patch.whirlpoolDragDuration);
-    if (patch.whirlpoolStayDuration !== undefined)
-      setWhirlpoolStayDuration(patch.whirlpoolStayDuration);
-    if (patch.whirlpoolExitMode !== undefined) setWhirlpoolExitMode(patch.whirlpoolExitMode);
-    if (patch.whirlpoolExitSpeed !== undefined) setWhirlpoolExitSpeed(patch.whirlpoolExitSpeed);
-    if (patch.whirlpoolSpawnDirection !== undefined)
-      setWhirlpoolSpawnDirection(patch.whirlpoolSpawnDirection);
     if (patch.depthSineOn !== undefined) setDepthSineOn(patch.depthSineOn);
     if (patch.depthSineAmp !== undefined) setDepthSineAmp(patch.depthSineAmp);
     if (patch.depthSineFreq !== undefined) setDepthSineFreq(patch.depthSineFreq);
@@ -3305,16 +3085,13 @@ export function Aquafulness() {
     if (patch.swingHeight !== undefined) setSwingHeight(patch.swingHeight);
     if (patch.swingPreset !== undefined) setSwingPreset(patch.swingPreset);
     if (patch.swingYWaveform !== undefined) setSwingYWaveform(patch.swingYWaveform);
-    if (patch.swingTornadoOn !== undefined) setSwingTornadoOn(patch.swingTornadoOn);
-    if (patch.swingTornadoRadius !== undefined) setSwingTornadoRadius(patch.swingTornadoRadius);
-    if (patch.swingTornadoSpeed !== undefined) setSwingTornadoSpeed(patch.swingTornadoSpeed);
-    if (patch.swingTornadoDirection !== undefined)
-      setSwingTornadoDirection(patch.swingTornadoDirection);
-    if (patch.noclipTornadoOn !== undefined) setNoclipTornadoOn(patch.noclipTornadoOn);
-    if (patch.noclipTornadoRadius !== undefined) setNoclipTornadoRadius(patch.noclipTornadoRadius);
-    if (patch.noclipTornadoSpeed !== undefined) setNoclipTornadoSpeed(patch.noclipTornadoSpeed);
-    if (patch.noclipTornadoDirection !== undefined)
-      setNoclipTornadoDirection(patch.noclipTornadoDirection);
+    if (patch.tornadoOn !== undefined) setTornadoOn(patch.tornadoOn);
+    if (patch.tornadoRadius !== undefined) setTornadoRadius(patch.tornadoRadius);
+    if (patch.tornadoSpeed !== undefined) setTornadoSpeed(patch.tornadoSpeed);
+    if (patch.tornadoDirection !== undefined) setTornadoDirection(patch.tornadoDirection);
+    if (patch.tornadoOpening !== undefined) setTornadoOpening(patch.tornadoOpening);
+    if (patch.tornadoFollowCenter !== undefined)
+      setTornadoFollowCenter(patch.tornadoFollowCenter);
     if (patch.tornadoCloudOn !== undefined) setTornadoCloudOn(patch.tornadoCloudOn);
     if (patch.intervalSessionOn !== undefined) setIntervalSessionOn(patch.intervalSessionOn);
     if (patch.intervalDuration !== undefined) setIntervalDuration(patch.intervalDuration);
@@ -3323,8 +3100,6 @@ export function Aquafulness() {
     if (patch.intervalShowStats !== undefined) setIntervalShowStats(patch.intervalShowStats);
     if (patch.intervalIncludeFloat !== undefined)
       setIntervalIncludeFloat(patch.intervalIncludeFloat);
-    if (patch.intervalIncludeWhirlpool !== undefined)
-      setIntervalIncludeWhirlpool(patch.intervalIncludeWhirlpool);
     if (patch.intervalIncludeSwing !== undefined)
       setIntervalIncludeSwing(patch.intervalIncludeSwing);
     if (patch.surfaceArea !== undefined) setSurfaceArea(patch.surfaceArea);
@@ -5625,25 +5400,32 @@ export function Aquafulness() {
         uniforms.uDir.value += delta * Math.min(1, dt * 4);
       }
 
-      // Graceful whirlpool spin-up/spin-down: a single continuous blend (0 =
-      // fully out, 1 = fully in) that eases toward whichever state cameraMode
-      // is actually in, at a slow enough rate (~1.4s time constant) to read
-      // as the water gradually working itself into a vortex rather than
-      // popping in — and, symmetrically, unwinding back to plain waves
-      // rather than cutting out the moment the mode switches away. Drives
-      // both the funnel's shape (uVortex below) and the orbit's angular
-      // speed (see whirlpoolBlendRef.current used as a spin multiplier in
-      // the camMode branch below), so the visual deepening and the camera's
-      // spin-up/down always stay in lockstep.
-      const whirlpoolTarget = cameraModeRef.current === "whirlpool" ? 1 : 0;
-      whirlpoolBlendRef.current +=
-        (whirlpoolTarget - whirlpoolBlendRef.current) * Math.min(1, dt * 0.7);
-      if (whirlpoolBlendRef.current < 0.0008) whirlpoolBlendRef.current = 0;
-      else if (whirlpoolBlendRef.current > 0.9992) whirlpoolBlendRef.current = 1;
-      uniforms.uVortex.value = whirlpoolBlendRef.current;
+      // Graceful TORNADO spin-up/spin-down: two continuous blends (0 = fully
+      // out, 1 = fully in), each eased toward whichever state is actually
+      // active at a slow enough rate (~1.4s time constant) to read as
+      // gradually working up to full speed rather than popping in — and,
+      // symmetrically, winding back down rather than cutting out the moment
+      // TORNADO is toggled off or cameraMode switches away.
+      // tornadoBlendRef drives the camera's own orbit, shared by swing and
+      // noclip/watercraft alike (see the camMode branch below); vortexBlendRef
+      // drives the water whirlpool visual (uVortex below), which only ever
+      // applies while swinging.
+      const tornadoApplicableMode =
+        cameraModeRef.current === "swing" ||
+        cameraModeRef.current === "noclip" ||
+        cameraModeRef.current === "watercraft";
+      const tornadoTarget = tornadoOnRef.current && tornadoApplicableMode ? 1 : 0;
+      tornadoBlendRef.current += (tornadoTarget - tornadoBlendRef.current) * Math.min(1, dt * 0.7);
+      if (tornadoBlendRef.current < 0.0008) tornadoBlendRef.current = 0;
+      else if (tornadoBlendRef.current > 0.9992) tornadoBlendRef.current = 1;
+      const vortexTarget = tornadoOnRef.current && cameraModeRef.current === "swing" ? 1 : 0;
+      vortexBlendRef.current += (vortexTarget - vortexBlendRef.current) * Math.min(1, dt * 0.7);
+      if (vortexBlendRef.current < 0.0008) vortexBlendRef.current = 0;
+      else if (vortexBlendRef.current > 0.9992) vortexBlendRef.current = 1;
+      uniforms.uVortex.value = vortexBlendRef.current;
       uniforms.uVortexOpening.value +=
-        (whirlpoolOpeningRef.current - uniforms.uVortexOpening.value) * Math.min(1, dt * 4);
-      uniforms.uVortexCenter.value.set(whirlpoolCenterRef.current.x, whirlpoolCenterRef.current.z);
+        (tornadoOpeningRef.current - uniforms.uVortexOpening.value) * Math.min(1, dt * 4);
+      uniforms.uVortexCenter.value.set(posRef.current.x, posRef.current.z);
 
       const p = palette(todRef.current);
       // Keep the real scene lights (see their creation above) in sync with
@@ -5833,7 +5615,6 @@ export function Aquafulness() {
       // I VIRVEL-läge tolkas NAV om: stick.y = närmare/längre bort från
       // virvelns centrum, stick.x = vridriktning kring virveln.
       const camMode = cameraModeRef.current;
-      const inWhirlpool = camMode === "whirlpool";
       const walkSpeed = 16; // m/s at full deflection
       const driftSpeed = 13.2; // m/s at full deflection — mjukare än aktiv rörelse
       let camX: number, camZ: number;
@@ -5907,23 +5688,24 @@ export function Aquafulness() {
         // as the swirl's own center, so it drifts wherever you actually fly
         // it while the view itself corkscrews around that point. Purely a
         // rendered offset (never written back into posRef.current), so it
-        // never feeds back into the drift/physics above.
-        if (noclipTornadoOnRef.current) {
-          const tornadoDirSign = noclipTornadoDirectionRef.current === "ccw" ? -1 : 1;
-          const tornadoOmega = 0.35 * noclipTornadoSpeedRef.current * tornadoDirSign;
-          noclipTornadoAngleRef.current += tornadoOmega * physDt;
-          const ang = noclipTornadoAngleRef.current;
-          camX = posRef.current.x + Math.cos(ang) * noclipTornadoRadiusRef.current;
-          camZ = posRef.current.z + Math.sin(ang) * noclipTornadoRadiusRef.current;
-          tornadoCloudActive = true;
+        // never feeds back into the drift/physics above. tornadoBlendRef both
+        // ramps the spin up from a standstill and scales how far the orbit
+        // reaches, so toggling TORNADO on/off eases the swirl in/out instead
+        // of popping.
+        {
+          const tornadoDirSign = tornadoDirectionRef.current === "ccw" ? -1 : 1;
+          const tornadoOmega =
+            0.35 * tornadoSpeedRef.current * tornadoDirSign * tornadoBlendRef.current;
+          tornadoAngleRef.current += tornadoOmega * physDt;
+          const ang = tornadoAngleRef.current;
+          camX = posRef.current.x + Math.cos(ang) * tornadoRadiusRef.current * tornadoBlendRef.current;
+          camZ = posRef.current.z + Math.sin(ang) * tornadoRadiusRef.current * tornadoBlendRef.current;
+          tornadoCloudActive = tornadoBlendRef.current > 0.003;
           tornadoCloudX = posRef.current.x;
           tornadoCloudY = posRef.current.y;
           tornadoCloudZ = posRef.current.z;
-          tornadoCloudRadius = noclipTornadoRadiusRef.current;
+          tornadoCloudRadius = tornadoRadiusRef.current;
           tornadoCloudAngle = ang;
-        } else {
-          camX = posRef.current.x;
-          camZ = posRef.current.z;
         }
         camYRef.current = posRef.current.y;
         camVYRef.current = 0;
@@ -5949,34 +5731,35 @@ export function Aquafulness() {
           swingPositionYRef.current +
           swingHeightRef.current * swingYWaveformValue(swingYWaveformRef.current, theta, t * omega);
 
-        // TORNADO: spin the horizontal position in a circle around the
-        // anchor at swing altitude instead of a back-and-forth arc — a
-        // whirlpool in the sky. GUNGA X's pendulum shape no longer applies;
-        // TORNADO SPEED/RIKTNING/RADIUS drive the horizontal motion instead,
-        // while GUNGA HÖJD/GUNGA Y-VÅGFORM still drive the vertical bob on
-        // top either way.
-        let rawOffX: number, rawOffZ: number;
-        if (swingTornadoOnRef.current) {
-          const tornadoDirSign = swingTornadoDirectionRef.current === "ccw" ? -1 : 1;
-          const tornadoOmega = 0.35 * swingTornadoSpeedRef.current * tornadoDirSign;
-          swingTornadoAngleRef.current += tornadoOmega * physDt;
-          const ang = swingTornadoAngleRef.current;
-          rawOffX = Math.cos(ang) * swingTornadoRadiusRef.current;
-          rawOffZ = Math.sin(ang) * swingTornadoRadiusRef.current;
-          tornadoCloudActive = true;
-          tornadoCloudX = posRef.current.x;
-          tornadoCloudY = rawSwingY;
-          tornadoCloudZ = posRef.current.z;
-          tornadoCloudRadius = swingTornadoRadiusRef.current;
-          tornadoCloudAngle = ang;
-        } else {
-          const rightX = Math.cos(swingYawRef.current),
-            rightZ = -Math.sin(swingYawRef.current);
-          const horizArmLen = Math.max(8, Math.min(60, swingPositionYRef.current * 0.6));
-          const rawSwingOff = Math.sin(theta) * horizArmLen * swingXFactorRef.current;
-          rawOffX = rightX * rawSwingOff;
-          rawOffZ = rightZ * rawSwingOff;
-        }
+        // TORNADO: crossfades the pendulum arc into a circular orbit around
+        // the anchor at swing altitude instead of replacing it outright — a
+        // whirlpool in the sky (plus a real one in the water directly below,
+        // see uVortex/vortexBlendRef above). Both the pendulum's own offset
+        // and the orbit's keep computing every frame; tornadoBlendRef blends
+        // between them and ramps the orbit's own angular speed up from a
+        // standstill, so toggling TORNADO on/off crossfades smoothly instead
+        // of snapping straight from one shape to the other.
+        const rightX = Math.cos(swingYawRef.current),
+          rightZ = -Math.sin(swingYawRef.current);
+        const horizArmLen = Math.max(8, Math.min(60, swingPositionYRef.current * 0.6));
+        const rawSwingOff = Math.sin(theta) * horizArmLen * swingXFactorRef.current;
+        const pendOffX = rightX * rawSwingOff;
+        const pendOffZ = rightZ * rawSwingOff;
+        const tornadoDirSign = tornadoDirectionRef.current === "ccw" ? -1 : 1;
+        const tornadoOmega =
+          0.35 * tornadoSpeedRef.current * tornadoDirSign * tornadoBlendRef.current;
+        tornadoAngleRef.current += tornadoOmega * physDt;
+        const ang = tornadoAngleRef.current;
+        const tornadoOffX = Math.cos(ang) * tornadoRadiusRef.current;
+        const tornadoOffZ = Math.sin(ang) * tornadoRadiusRef.current;
+        const rawOffX = pendOffX + (tornadoOffX - pendOffX) * tornadoBlendRef.current;
+        const rawOffZ = pendOffZ + (tornadoOffZ - pendOffZ) * tornadoBlendRef.current;
+        tornadoCloudActive = tornadoBlendRef.current > 0.003;
+        tornadoCloudX = posRef.current.x;
+        tornadoCloudY = rawSwingY;
+        tornadoCloudZ = posRef.current.z;
+        tornadoCloudRadius = tornadoRadiusRef.current;
+        tornadoCloudAngle = ang;
 
         // Ease in from wherever the camera actually was the instant swing
         // mode was entered (swingBlendRef, armed in the cameraMode-change
@@ -6000,110 +5783,6 @@ export function Aquafulness() {
           ? activeBlend.fromY + (rawSwingY - activeBlend.fromY) * blend
           : rawSwingY;
         camVYRef.current = 0;
-      } else if (inWhirlpool) {
-        // Orbit around whirlpoolCenterRef — a radius's distance out from
-        // wherever the camera was when this mode was entered, in whichever
-        // direction the WHIRLPOOL SPAWN DIRECTION dial calls for (see the
-        // cameraMode-change effect above), not a fixed world-origin spot.
-        // Without the optional sequence,
-        // NAV.y moves in/out along the radius and NAV.x adds extra swirl,
-        // exactly like the old manual vortex control; with it, the radius
-        // instead automatically loops through drag-in -> stay inside -> exit
-        // (whirlpoolPhaseRef, reset to "drag" on entering this mode — see the
-        // cameraMode-change effect above).
-        //
-        // Entry is graceful rather than an instant teleport onto the orbit
-        // circle: posRef.current is left untouched by this branch (nothing
-        // below writes to it), so it still holds wherever the camera was the
-        // instant cameraMode switched to "whirlpool" — camX/camZ blend from
-        // that frozen point toward the live orbit position as
-        // whirlpoolBlendRef eases 0 -> 1 (see its update above), reading as
-        // the current gradually pulling the camera in and spinning it up
-        // rather than snapping straight to full speed.
-        const op = whirlpoolOpeningRef.current;
-        const outerR = whirlpoolRadiusRef.current;
-        const dirSign = whirlpoolDirectionRef.current === "ccw" ? -1 : 1;
-        const minR = Math.max(op * 0.55, 3); // don't dive into the throat
-        let radius: number;
-        let omegaSign = dirSign;
-
-        if (whirlpoolSequenceOnRef.current) {
-          const ph = whirlpoolPhaseRef.current;
-          const elapsedS = (now - ph.startMs) / 1000;
-          const dragDist = Math.max(
-            2,
-            whirlpoolDragSpeedRef.current * Math.max(0.5, whirlpoolDragDurationRef.current),
-          );
-          const innerR = Math.max(minR, outerR - dragDist);
-          if (ph.phase === "drag") {
-            const dur = Math.max(0.5, whirlpoolDragDurationRef.current);
-            const lin = Math.min(1, elapsedS / dur);
-            const eased = lin * lin * (3 - 2 * lin); // smoothstep: eases into the pull
-            radius = outerR + (innerR - outerR) * eased;
-            if (lin >= 1) {
-              ph.phase = "stay";
-              ph.startMs = now;
-            }
-          } else if (ph.phase === "stay") {
-            radius = innerR;
-            if (elapsedS >= Math.max(0, whirlpoolStayDurationRef.current)) {
-              ph.phase = "exit";
-              ph.startMs = now;
-            }
-          } else {
-            // "exit": either thrown back out to the outer radius (fast
-            // launch, easing to a stop) or whirled back out in reverse (a
-            // smooth unwind, spinning the opposite way it dragged in).
-            const exitDist = Math.max(2, outerR - innerR);
-            const dur = Math.max(0.3, exitDist / Math.max(0.5, whirlpoolExitSpeedRef.current));
-            const lin = Math.min(1, elapsedS / dur);
-            if (whirlpoolExitModeRef.current === "reverseSpin") {
-              const eased = lin * lin * (3 - 2 * lin); // smoothstep
-              radius = innerR + (outerR - innerR) * eased;
-              omegaSign = -dirSign;
-            } else {
-              const eased = 1 - (1 - lin) * (1 - lin) * (1 - lin); // ease-out cubic: fast launch
-              radius = innerR + (outerR - innerR) * eased;
-            }
-            if (lin >= 1) {
-              ph.phase = "drag";
-              ph.startMs = now;
-            }
-          }
-          whirlpoolRadiusRef.current = radius;
-        } else {
-          // Steady manual orbit: NAV.y moves in/out along the radius
-          // (STRÖM.y also nudges drift in/out); driftWorldRef is the fixed
-          // real direction (see padToWorldXZ above), so this stays a stable
-          // in/out nudge even as the camera looks around.
-          const radialVel = -stickRef.current.y * walkSpeed + driftWorldRef.current.z * driftSpeed;
-          const maxR = 220;
-          whirlpoolRadiusRef.current = Math.max(
-            minR,
-            Math.min(maxR, whirlpoolRadiusRef.current + radialVel * physDt),
-          );
-          setWhirlpoolRadius(whirlpoolRadiusRef.current);
-          radius = whirlpoolRadiusRef.current;
-        }
-
-        // Base angular speed scales with the whirlpool speed dial and its
-        // direction toggle, scaled by whirlpoolBlendRef so the spin itself
-        // ramps up from a standstill on entry instead of starting at full
-        // speed; NAV.x always adds a bit of extra swirl on top at full
-        // strength (direct manual input shouldn't feel eased), sequence or
-        // not.
-        const baseOmega = 0.35 * whirlpoolSpeedRef.current * omegaSign * whirlpoolBlendRef.current;
-        const stickOmega = stickRef.current.x * 1.4;
-        whirlpoolAngleRef.current += (baseOmega + stickOmega) * physDt;
-        const ang = whirlpoolAngleRef.current;
-        const center = whirlpoolCenterRef.current;
-        const orbitX = center.x + Math.cos(ang) * radius;
-        const orbitZ = center.z + Math.sin(ang) * radius;
-        const entryBlend = whirlpoolBlendRef.current;
-        camX = posRef.current.x + (orbitX - posRef.current.x) * entryBlend;
-        camZ = posRef.current.z + (orbitZ - posRef.current.z) * entryBlend;
-        whirlpoolLastPosRef.current.x = camX;
-        whirlpoolLastPosRef.current.z = camZ;
       } else {
         // NAV-spaken är kamera-relativ: stick.y "framåt" ska alltid röra sig
         // dit kameran för tillfället tittar (yaw), inte fast världs -z, annars
@@ -6123,38 +5802,11 @@ export function Aquafulness() {
         camZ = posRef.current.z;
       }
 
-      // Whirlpool exit tail: cameraMode has already switched to whatever
-      // mode's motion was just computed above (seeded, via the
-      // cameraMode-change effect, to resume exactly where the orbit left
-      // off), but whirlpoolBlendRef is still winding down from its last
-      // value — so keep the orbit spinning (decelerating with the blend,
-      // radius frozen at wherever it last was rather than resuming the
-      // drag-in/stay/exit sequence or manual radius control) and blend it
-      // under the new mode's own position. As the blend reaches 0 this
-      // contributes nothing and the new mode's motion alone remains,
-      // reading as the vortex gracefully unwinding into plain waves/swing/
-      // flight instead of cutting out the instant the mode switches.
-      if (!inWhirlpool && whirlpoolBlendRef.current > 0.0008) {
-        const exitDirSign = whirlpoolDirectionRef.current === "ccw" ? -1 : 1;
-        const exitOmega =
-          0.35 * whirlpoolSpeedRef.current * exitDirSign * whirlpoolBlendRef.current;
-        whirlpoolAngleRef.current += exitOmega * physDt;
-        const ang = whirlpoolAngleRef.current;
-        const center = whirlpoolCenterRef.current;
-        const orbitX = center.x + Math.cos(ang) * whirlpoolRadiusRef.current;
-        const orbitZ = center.z + Math.sin(ang) * whirlpoolRadiusRef.current;
-        const w = whirlpoolBlendRef.current;
-        camX = orbitX * w + camX * (1 - w);
-        camZ = orbitZ * w + camZ * (1 - w);
-      }
-
       // VÄRLDSGRÄNS (world boundary): wrap x/z to the opposite edge once the
       // camera crosses ±worldBoundarySize — invisible below since the ocean/
       // floor/cloud planes recenter on the camera every frame regardless of
-      // its absolute position (see wrapAxis above). VIRVEL (whirlpool) is
-      // exempt: it's already bounded near the origin by whirlpoolRadiusRef's
-      // own max.
-      if (worldBoundaryOnRef.current && !inWhirlpool) {
+      // its absolute position (see wrapAxis above).
+      if (worldBoundaryOnRef.current) {
         const halfXZ = Math.max(50, worldBoundarySizeRef.current);
         const wrappedX = wrapAxis(posRef.current.x, halfXZ);
         const wrappedZ = wrapAxis(posRef.current.z, halfXZ);
@@ -6215,35 +5867,45 @@ export function Aquafulness() {
       }
 
       const dirRad = (waveDirRef.current * Math.PI) / 180;
-      const surfaceY = inWhirlpool
-        ? whirlpoolSurfaceHeight(
-            camX - whirlpoolCenterRef.current.x,
-            camZ - whirlpoolCenterRef.current.z,
-            t,
-            ampRef.current,
-            regularPeriodRef.current,
-            whirlpoolOpeningRef.current,
-            freqRef.current,
-          )
-        : waveHeight(
-            camX,
-            camZ,
-            t,
-            ampRef.current,
-            regularRef.current,
-            regularCrossRef.current,
-            regularPeriodRef.current,
-            wavePeakRef.current,
-            dirRad,
-            realisticRef.current,
-            fftWaveComponents,
-            dyingRef.current,
-            dyingWaveComponents,
-            dyingAmpRef.current,
-            dyingWaveT,
-            freqRef.current,
-            heaveSkewRef.current,
-          );
+      const normalSurfaceY = waveHeight(
+        camX,
+        camZ,
+        t,
+        ampRef.current,
+        regularRef.current,
+        regularCrossRef.current,
+        regularPeriodRef.current,
+        wavePeakRef.current,
+        dirRad,
+        realisticRef.current,
+        fftWaveComponents,
+        dyingRef.current,
+        dyingWaveComponents,
+        dyingAmpRef.current,
+        dyingWaveT,
+        freqRef.current,
+        heaveSkewRef.current,
+      );
+      // Blend the whirlpool's own radial surface in on top of the normal
+      // wave as vortexBlendRef eases in/out, so the water gradually deepens
+      // into (or fills back in from) the vortex instead of the camera's
+      // buoyancy/goggles/underwater checks below snapping between the two
+      // formulas the instant TORNADO toggles or cameraMode switches.
+      const surfaceY =
+        vortexBlendRef.current > 0.0008
+          ? normalSurfaceY +
+            (whirlpoolSurfaceHeight(
+              camX - posRef.current.x,
+              camZ - posRef.current.z,
+              t,
+              ampRef.current,
+              regularPeriodRef.current,
+              tornadoOpeningRef.current,
+              freqRef.current,
+            ) -
+              normalSurfaceY) *
+              vortexBlendRef.current
+          : normalSurfaceY;
 
       // "Watercraft" camera mode: the raft (see WatercraftRig) floats on the
       // real rendered ocean by sampling the exact same waveHeight() the
@@ -6342,14 +6004,15 @@ export function Aquafulness() {
         }
       }
 
-      // The wave-following buoyancy spring and current/sway drift apply in
-      // float mode and whirlpool mode alike (whirlpool rides the funnel
-      // surface's own height field the same way float rides the open
-      // ocean's) — noclip flies free of the wave surface and swing already
-      // set camYRef.current to its pendulum height above.
+      // The wave-following buoyancy spring and current/sway drift apply only
+      // in float mode — noclip/watercraft fly free of the wave surface and
+      // swing already set camYRef.current to its pendulum height above (the
+      // water whirlpool that may be opening up beneath it, if TORNADO is on,
+      // is purely a visual the swing camera rides above, not something its
+      // own height needs to follow).
       let swayX = 0,
         swayZ = 0;
-      if (camMode === "float" || camMode === "whirlpool") {
+      if (camMode === "float") {
         // Compute wave vertical velocity first so buoyancy can react to it.
         // Clamp it too, not just the anticipatory peek below: on a dropped
         // frame (large dt) a sharp crest can still alias into a real spike
@@ -6391,35 +6054,25 @@ export function Aquafulness() {
         // noise of the surface's peak instead of trailing it.
         const anticipation = waveAnticipationRef.current;
         const lead = anticipation / (1 + peakK * 6.0);
-        const futureSurf = inWhirlpool
-          ? whirlpoolSurfaceHeight(
-              camX - whirlpoolCenterRef.current.x,
-              camZ - whirlpoolCenterRef.current.z,
-              t + lead,
-              ampRef.current,
-              regularPeriodRef.current,
-              whirlpoolOpeningRef.current,
-              freqRef.current,
-            )
-          : waveHeight(
-              camX,
-              camZ,
-              t + lead,
-              ampRef.current,
-              regularRef.current,
-              regularCrossRef.current,
-              regularPeriodRef.current,
-              wavePeakRef.current,
-              dirRad,
-              realisticRef.current,
-              fftWaveComponents,
-              dyingRef.current,
-              dyingWaveComponents,
-              dyingAmpRef.current,
-              dyingWaveT + lead,
-              freqRef.current,
-              heaveSkewRef.current,
-            );
+        const futureSurf = waveHeight(
+          camX,
+          camZ,
+          t + lead,
+          ampRef.current,
+          regularRef.current,
+          regularCrossRef.current,
+          regularPeriodRef.current,
+          wavePeakRef.current,
+          dirRad,
+          realisticRef.current,
+          fftWaveComponents,
+          dyingRef.current,
+          dyingWaveComponents,
+          dyingAmpRef.current,
+          dyingWaveT + lead,
+          freqRef.current,
+          heaveSkewRef.current,
+        );
         const maxSlope = ampRef.current * 6.0;
         const rawAnticip = Math.max(
           -maxSlope,
@@ -6650,15 +6303,14 @@ export function Aquafulness() {
         camY + camOffYRef.current + levelY,
         camZ + camOffZRef.current + swayZ + surgeZ,
       );
-      // Look direction: HAV = level forward; VIRVEL = mot centrum (så kameran
-      // följer med runt virveln och naturligt tittar ner mot öppningen).
-      // Blended by whirlpoolBlendRef — the same continuous 0..1 "how
-      // whirlpool-y are we" value the position/spin transition already eases
-      // with — instead of switching the instant cameraMode flips. Without
-      // this the camera used to snap-rotate to stare at the world origin (or
-      // back to looking forward) the moment the mode changed, which read as
-      // the whole transition being abrupt even though camX/camZ themselves
-      // were already blending in gracefully underneath it.
+      // Look direction: normally level forward; with TORNADO FOLLOW CENTER
+      // on, eases toward facing the tornado/whirlpool's own center instead
+      // (så kameran följer med runt virveln och naturligt tittar ner mot
+      // öppningen) — blended by tornadoBlendRef, the same continuous 0..1
+      // "how tornado-y are we" value the position/spin transition already
+      // eases with, so this only engages while TORNADO is actually spun up
+      // and eases back to normal right along with it, instead of snapping
+      // the instant the toggle or cameraMode flips.
       const lookY = camera.position.y;
       // Include the same horizontal offsets as camera.position (SVAJ sway +
       // SURGE current + manual POS X/Z dial) so the look target pans with the
@@ -6669,17 +6321,13 @@ export function Aquafulness() {
       // never turns.
       const normalLookX = camX + camOffXRef.current + swayX + surgeX;
       const normalLookZ = camZ + camOffZRef.current + swayZ + surgeZ - 20;
-      // Aim at the vortex center (whirlpoolCenterRef — offset from where the
-      // camera was when whirlpool mode was entered per the WHIRLPOOL SPAWN
-      // DIRECTION dial, not a fixed world-origin spot; see that ref's own
-      // comment), level with the camera so the throat is
-      // visible without the horizon tilting — eased toward as
-      // whirlpoolBlendRef rises, eased back off the normal look target as it
-      // falls.
-      const vortexBlend = whirlpoolBlendRef.current;
-      const vortexCenter = whirlpoolCenterRef.current;
-      const lookX = normalLookX + (vortexCenter.x - normalLookX) * vortexBlend;
-      const lookZ = normalLookZ + (vortexCenter.z - normalLookZ) * vortexBlend;
+      // Aim at the tornado/whirlpool's own center — posRef.current, the same
+      // anchor the orbit itself is centered on ("at the same xz spot") —
+      // level with the camera so the throat is visible without the horizon
+      // tilting.
+      const followBlend = tornadoFollowCenterRef.current ? tornadoBlendRef.current : 0;
+      const lookX = normalLookX + (posRef.current.x - normalLookX) * followBlend;
+      const lookZ = normalLookZ + (posRef.current.z - normalLookZ) * followBlend;
       camera.lookAt(lookX, lookY, lookZ);
 
       // Rotation stick: yaw (x) + pitch (y). Integrate stick as angular velocity.
@@ -6991,35 +6639,40 @@ export function Aquafulness() {
       if (mb && model) {
         let h: number;
         if (mb.bob.follow) {
-          const s = inWhirlpool
-            ? whirlpoolSurfaceHeight(
-                mb.base.x - whirlpoolCenterRef.current.x,
-                mb.base.z - whirlpoolCenterRef.current.z,
-                t,
-                ampRef.current,
-                regularPeriodRef.current,
-                whirlpoolOpeningRef.current,
-                freqRef.current,
-              )
-            : waveHeight(
-                mb.base.x,
-                mb.base.z,
-                t,
-                ampRef.current,
-                regularRef.current,
-                regularCrossRef.current,
-                regularPeriodRef.current,
-                wavePeakRef.current,
-                dirRad,
-                realisticRef.current,
-                fftWaveComponents,
-                dyingRef.current,
-                dyingWaveComponents,
-                dyingAmpRef.current,
-                dyingWaveT,
-                freqRef.current,
-                heaveSkewRef.current,
-              );
+          const normalS = waveHeight(
+            mb.base.x,
+            mb.base.z,
+            t,
+            ampRef.current,
+            regularRef.current,
+            regularCrossRef.current,
+            regularPeriodRef.current,
+            wavePeakRef.current,
+            dirRad,
+            realisticRef.current,
+            fftWaveComponents,
+            dyingRef.current,
+            dyingWaveComponents,
+            dyingAmpRef.current,
+            dyingWaveT,
+            freqRef.current,
+            heaveSkewRef.current,
+          );
+          const s =
+            vortexBlendRef.current > 0.0008
+              ? normalS +
+                (whirlpoolSurfaceHeight(
+                  mb.base.x - posRef.current.x,
+                  mb.base.z - posRef.current.z,
+                  t,
+                  ampRef.current,
+                  regularPeriodRef.current,
+                  tornadoOpeningRef.current,
+                  freqRef.current,
+                ) -
+                  normalS) *
+                  vortexBlendRef.current
+              : normalS;
           h = s * mb.bob.amp;
         } else {
           h = Math.sin(t * mb.bob.speed) * mb.bob.amp;
@@ -7490,28 +7143,6 @@ export function Aquafulness() {
     setWaveHighQuality,
     waveDir,
     setWaveDir,
-    whirlpoolOpening,
-    setWhirlpoolOpening,
-    whirlpoolRadius,
-    setWhirlpoolRadius,
-    whirlpoolSpeed,
-    setWhirlpoolSpeed,
-    whirlpoolDirection,
-    setWhirlpoolDirection,
-    whirlpoolSequenceOn,
-    setWhirlpoolSequenceOn,
-    whirlpoolDragSpeed,
-    setWhirlpoolDragSpeed,
-    whirlpoolDragDuration,
-    setWhirlpoolDragDuration,
-    whirlpoolStayDuration,
-    setWhirlpoolStayDuration,
-    whirlpoolExitMode,
-    setWhirlpoolExitMode,
-    whirlpoolExitSpeed,
-    setWhirlpoolExitSpeed,
-    whirlpoolSpawnDirection,
-    setWhirlpoolSpawnDirection,
     cameraMode,
     setCameraMode,
     cycleCameraMode,
@@ -7539,22 +7170,18 @@ export function Aquafulness() {
     swingYWaveform,
     setSwingYWaveform,
     cycleSwingYWaveform,
-    swingTornadoOn,
-    setSwingTornadoOn,
-    swingTornadoRadius,
-    setSwingTornadoRadius,
-    swingTornadoSpeed,
-    setSwingTornadoSpeed,
-    swingTornadoDirection,
-    setSwingTornadoDirection,
-    noclipTornadoOn,
-    setNoclipTornadoOn,
-    noclipTornadoRadius,
-    setNoclipTornadoRadius,
-    noclipTornadoSpeed,
-    setNoclipTornadoSpeed,
-    noclipTornadoDirection,
-    setNoclipTornadoDirection,
+    tornadoOn,
+    setTornadoOn,
+    tornadoRadius,
+    setTornadoRadius,
+    tornadoSpeed,
+    setTornadoSpeed,
+    tornadoDirection,
+    setTornadoDirection,
+    tornadoOpening,
+    setTornadoOpening,
+    tornadoFollowCenter,
+    setTornadoFollowCenter,
     tornadoCloudOn,
     setTornadoCloudOn,
     intervalSessionOn,
@@ -7569,8 +7196,6 @@ export function Aquafulness() {
     setIntervalShowStats,
     intervalIncludeFloat,
     setIntervalIncludeFloat,
-    intervalIncludeWhirlpool,
-    setIntervalIncludeWhirlpool,
     intervalIncludeSwing,
     setIntervalIncludeSwing,
     camOffX,
@@ -8462,29 +8087,6 @@ export function Aquafulness() {
                       curve={2}
                       format={(v) => `${v.toFixed(0)}m/s`}
                       onChange={setNoclipFallRiseSpeed}
-                    />
-                  </>
-                )}
-                {cameraDrawerTab === "whirlpool" && (
-                  <>
-                    <PadSlider
-                      label={t("dial.wave.whirlpoolSpeed")}
-                      value={whirlpoolSpeed}
-                      min={-20}
-                      max={20}
-                      step={0.1}
-                      format={(v) => `${v.toFixed(2)}×`}
-                      onChange={setWhirlpoolSpeed}
-                    />
-                    <PadSlider
-                      label={t("dial.wave.whirlpoolDistance")}
-                      value={whirlpoolRadius}
-                      min={3}
-                      max={220}
-                      step={1}
-                      curve={2}
-                      format={(v) => `${v.toFixed(0)}m`}
-                      onChange={setWhirlpoolRadius}
                     />
                   </>
                 )}

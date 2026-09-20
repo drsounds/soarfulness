@@ -71,7 +71,6 @@
       "float": "UIJA",
       "noclip": "LENTO",
       "swing": "KEINU",
-      "whirlpool": "PYÖRRE",
       "watercraft": "ALUS"
     },
     "rotationValue": {
@@ -84,20 +83,9 @@
       "off": "KIINTEÄ",
       "random": "SATUNNAINEN"
     },
-    "whirlpoolDirection": {
+    "tornadoDirection": {
       "ccw": "VASTAPÄIVÄÄN",
       "cw": "MYÖTÄPÄIVÄÄN"
-    },
-    "whirlpoolExitMode": {
-      "reverseSpin": "KÄÄNTEINEN PYÖRITYS",
-      "throwBack": "HEITETÄÄN TAKAISIN"
-    },
-    "whirlpoolSpawnDirection": {
-      "ahead": "EDESSÄ",
-      "behind": "TAKANA",
-      "current": "VIRRAN MUKAAN",
-      "left": "VASEMMALLA",
-      "right": "OIKEALLA"
     }
   },
   "common": {
@@ -152,7 +140,6 @@
       "intervalDuration": "INTERVALLI",
       "intervalIncludeFloat": "INTERVALLI: VAKIO",
       "intervalIncludeSwing": "INTERVALLI: KEINU",
-      "intervalIncludeWhirlpool": "INTERVALLI: PYÖRRE",
       "intervalSession": "INTERVALLIHARJOITUS",
       "lowGraphicsMode": "KEVYT GRAFIIKKATILA",
       "mode": "KAMERATILA",
@@ -161,10 +148,6 @@
       "noclipAutoAlternateInterval": "VAIHTOVÄLI",
       "noclipFallRiseSpeed": "PUTOAMIS/NOUSUNOPEUS",
       "noclipSpeed": "NOCLIP-NOPEUS",
-      "noclipTornado": "TORNADO",
-      "noclipTornadoDirection": "TORNADON SUUNTA",
-      "noclipTornadoRadius": "TORNADON SÄDE",
-      "noclipTornadoSpeed": "TORNADON TEMPO",
       "noclipVertEaseTime": "PUTOAMIS/NOUSUPEHMEYS",
       "posX": "SIJAINTI X",
       "posY": "SIJAINTI Y",
@@ -177,14 +160,16 @@
       "swingIntensity": "KEINUN INTENSITEETTI",
       "swingPositionY": "KEINUN Y-SIJAINTI",
       "swingStart": "KEINU ALOITUS",
-      "swingTornado": "TORNADO",
-      "swingTornadoDirection": "TORNADON SUUNTA",
-      "swingTornadoRadius": "TORNADON SÄDE",
-      "swingTornadoSpeed": "TORNADON TEMPO",
       "swingXFactor": "KEINU X",
       "swingYWaveform": "KEINUN Y-AALTOMUOTO",
       "targetFps": "KUVATAAJUUSKATTO",
+      "tornado": "TORNADO",
       "tornadoCloud": "TORNADON PILVI",
+      "tornadoDirection": "TORNADON SUUNTA",
+      "tornadoFollowCenter": "SEURAA KESKUSTAA",
+      "tornadoOpening": "TORNADON AUKKO",
+      "tornadoRadius": "TORNADON SÄDE",
+      "tornadoSpeed": "TORNADON TEMPO",
       "wakeLock": "VALVEILLA"
     },
     "env": {
@@ -303,18 +288,7 @@
         "regular": "SÄÄNNÖLLINEN",
         "spread": "HAJONTA"
       },
-      "wavePeriod": "AALLON JAKSO",
-      "whirlpoolDirection": "PYÖRTEEN SUUNTA",
-      "whirlpoolDistance": "ETÄISYYS KESKUSTAAN",
-      "whirlpoolDragDuration": "VEDON KESTO",
-      "whirlpoolDragSpeed": "VETONOPEUS",
-      "whirlpoolExitMode": "POISTUMISTILA",
-      "whirlpoolExitSpeed": "POISTUMISNOPEUS",
-      "whirlpoolOpening": "AUKKO",
-      "whirlpoolSequence": "AUTOSEKVENSSI",
-      "whirlpoolSpawnDirection": "ALOITUSSUUNTA",
-      "whirlpoolSpeed": "PYÖRTEEN TEMPO",
-      "whirlpoolStayDuration": "PYSY SISÄLLÄ"
+      "wavePeriod": "AALLON JAKSO"
     }
   },
   "docsPhilosophy": {
@@ -844,8 +818,7 @@
     "syncButton": "SYNKRONOI AALTO HEILUNNAN KANSSA: {{state}}",
     "syncTitle": "Anna AALLON SUUNNAN seurata HEILUNNAN SUUNTAA automaattisesti (oletus: päällä)",
     "title": "KAUKOSÄÄDIN",
-    "vagrikt": "AALLON SUUNTA",
-    "whirlpoolHint": "PYÖRRE-tilassa kamera kiertää automaattisesti — ei ohjaimia täällä."
+    "vagrikt": "AALLON SUUNTA"
   },
   "screens": {
     "editModeDescription": "Pysäyttää aallot ja kameran liikkeen, jotta 3D-näkymän TV/mobiilinäytöt voidaan siirtää, kääntää ja mitoittaa tarkasti.",
