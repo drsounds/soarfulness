@@ -637,6 +637,10 @@
       "wave": "WAVE"
     },
     "timeTravelOpenAria": "Open time travel",
+    "tornadoToggle": {
+      "tornado": "TORNADO",
+      "whirlpool": "WHIRLPOOL"
+    },
     "totalLabel": " · Total "
   },
   "interval": {

@@ -2642,11 +2642,12 @@ export function Aquafulness() {
   // swing captures the current look yaw as the pendulum's swing plane and
   // arms a short blend (swingBlendRef) so the pendulum's y and horizontal
   // arc ease in from wherever the camera actually was, instead of snapping
-  // straight to the swing formula's value for the current clock phase. Both
-  // also reset tornadoAngleRef to 0 so TORNADO's spin (if on) starts fresh
-  // rather than resuming whatever angle it was left at by the other mode —
-  // TORNADO's own activation/deactivation is eased separately via
-  // tornadoBlendRef/vortexBlendRef in the render loop, not by this effect.
+  // straight to the swing formula's value for the current clock phase. All
+  // three (float included) also reset tornadoAngleRef to 0 so TORNADO's spin
+  // (if on) starts fresh rather than resuming whatever angle it was left at
+  // by the other mode — TORNADO's own activation/deactivation is eased
+  // separately via tornadoBlendRef/vortexBlendRef in the render loop, not by
+  // this effect.
   useEffect(() => {
     cameraModeRef.current = cameraMode;
     if (cameraMode === "noclip" || cameraMode === "watercraft") {
@@ -2673,6 +2674,8 @@ export function Aquafulness() {
         fromY: camYRef.current ?? swingPositionYRef.current,
         startMs: performance.now(),
       };
+    } else if (cameraMode === "float") {
+      tornadoAngleRef.current = 0;
     }
   }, [cameraMode]);
 
@@ -5406,11 +5409,13 @@ export function Aquafulness() {
       // gradually working up to full speed rather than popping in — and,
       // symmetrically, winding back down rather than cutting out the moment
       // TORNADO is toggled off or cameraMode switches away.
-      // tornadoBlendRef drives the camera's own orbit, shared by swing and
-      // noclip/watercraft alike (see the camMode branch below); vortexBlendRef
-      // drives the water whirlpool visual (uVortex below), which only ever
-      // applies while swinging.
+      // tornadoBlendRef drives the camera's own orbit, shared by float
+      // (swimming — the WHIRLPOOL/VIRVEL feel), swing and noclip/watercraft
+      // alike (see the camMode branch below); vortexBlendRef drives the real
+      // water whirlpool visual (uVortex below), which only ever applies
+      // while floating or swinging — flying never shows it.
       const tornadoApplicableMode =
+        cameraModeRef.current === "float" ||
         cameraModeRef.current === "swing" ||
         cameraModeRef.current === "noclip" ||
         cameraModeRef.current === "watercraft";
@@ -5418,7 +5423,11 @@ export function Aquafulness() {
       tornadoBlendRef.current += (tornadoTarget - tornadoBlendRef.current) * Math.min(1, dt * 0.7);
       if (tornadoBlendRef.current < 0.0008) tornadoBlendRef.current = 0;
       else if (tornadoBlendRef.current > 0.9992) tornadoBlendRef.current = 1;
-      const vortexTarget = tornadoOnRef.current && cameraModeRef.current === "swing" ? 1 : 0;
+      const vortexTarget =
+        tornadoOnRef.current &&
+        (cameraModeRef.current === "float" || cameraModeRef.current === "swing")
+          ? 1
+          : 0;
       vortexBlendRef.current += (vortexTarget - vortexBlendRef.current) * Math.min(1, dt * 0.7);
       if (vortexBlendRef.current < 0.0008) vortexBlendRef.current = 0;
       else if (vortexBlendRef.current > 0.9992) vortexBlendRef.current = 1;
@@ -5798,8 +5807,31 @@ export function Aquafulness() {
         const walkZ = stickRef.current.x * rightZ + stickRef.current.y * fwdZ;
         posRef.current.x += (walkX * walkSpeed + driftWorldRef.current.x * driftSpeed) * physDt;
         posRef.current.z += (walkZ * walkSpeed + driftWorldRef.current.z * driftSpeed) * physDt;
-        camX = posRef.current.x;
-        camZ = posRef.current.z;
+        // TORNADO/WHIRLPOOL: while swimming, an optional circular swirl added
+        // on top of the normal current-driven position — posRef.current
+        // (still driven by NAV/STRÖM exactly as above) keeps acting as the
+        // whirlpool's own center, so it drifts wherever the current carries
+        // it while the view corkscrews (and, per vortexBlendRef above, a real
+        // water vortex opens) around that point — this is the old standalone
+        // VIRVEL mode's feel, reached here via the top HUD's WHIRLPOOL toggle
+        // instead of its own camera mode. Purely a rendered offset (never
+        // written back into posRef.current), so it never feeds back into the
+        // drift/current physics above.
+        {
+          const tornadoDirSign = tornadoDirectionRef.current === "ccw" ? -1 : 1;
+          const tornadoOmega =
+            0.35 * tornadoSpeedRef.current * tornadoDirSign * tornadoBlendRef.current;
+          tornadoAngleRef.current += tornadoOmega * physDt;
+          const ang = tornadoAngleRef.current;
+          camX = posRef.current.x + Math.cos(ang) * tornadoRadiusRef.current * tornadoBlendRef.current;
+          camZ = posRef.current.z + Math.sin(ang) * tornadoRadiusRef.current * tornadoBlendRef.current;
+          tornadoCloudActive = tornadoBlendRef.current > 0.003;
+          tornadoCloudX = posRef.current.x;
+          tornadoCloudY = camYRef.current ?? 0;
+          tornadoCloudZ = posRef.current.z;
+          tornadoCloudRadius = tornadoRadiusRef.current;
+          tornadoCloudAngle = ang;
+        }
       }
 
       // VÄRLDSGRÄNS (world boundary): wrap x/z to the opposite edge once the
@@ -6006,10 +6038,11 @@ export function Aquafulness() {
 
       // The wave-following buoyancy spring and current/sway drift apply only
       // in float mode — noclip/watercraft fly free of the wave surface and
-      // swing already set camYRef.current to its pendulum height above (the
-      // water whirlpool that may be opening up beneath it, if TORNADO is on,
-      // is purely a visual the swing camera rides above, not something its
-      // own height needs to follow).
+      // swing already set camYRef.current to its pendulum height above. In
+      // float mode, surfaceY already blends in the water whirlpool's own
+      // depression when TORNADO is on (see vortexBlendRef above), so the
+      // buoyancy spring below naturally rides the camera down into it —
+      // exactly the old standalone VIRVEL mode's feel.
       let swayX = 0,
         swayZ = 0;
       if (camMode === "float") {
@@ -7774,8 +7807,30 @@ export function Aquafulness() {
             the same read-only treatment the KAMERA settings tab gives it),
             so manual taps here never fight the session's own alternation.
             Changing cameraMode by any means re-syncs the bottom camera
-            drawer's tab (see the cameraDrawerTab effect above) to match. */}
-        <div className="pointer-events-none absolute inset-x-0 top-20 z-20 flex justify-center">
+            drawer's tab (see the cameraDrawerTab effect above) to match.
+            To its left, a standalone WHIRLPOOL/TORNADO toggle button binds
+            directly to the shared tornadoOn setting regardless of which
+            mode is active: while swimming (float) it reads WHIRLPOOL and
+            brings back the old standalone VIRVEL mode's feel (camera orbits
+            and dips into a real water vortex); in every other mode it reads
+            TORNADO and behaves exactly like the KAMERA settings dial. */}
+        <div className="pointer-events-none absolute inset-x-0 top-20 z-20 flex items-center justify-center gap-2">
+          {!intervalSessionOn && (
+            <button
+              type="button"
+              onClick={() => setTornadoOn((v) => !v)}
+              aria-pressed={tornadoOn}
+              className={`pointer-events-auto rounded-full border px-3 py-1.5 text-[10px] font-light tracking-[0.2em] backdrop-blur-md transition active:scale-95 ${
+                tornadoOn ? "ui-line-3 ui-tint-2 ui-ink" : "ui-line-2 ui-surface ui-ink-muted"
+              }`}
+            >
+              {t(
+                cameraMode === "float"
+                  ? "hud.tornadoToggle.whirlpool"
+                  : "hud.tornadoToggle.tornado",
+              )}
+            </button>
+          )}
           {intervalSessionOn ? (
             <div className="pointer-events-auto rounded-full border ui-line-1 ui-surface px-4 py-1.5 text-[10px] font-light tracking-[0.3em] ui-ink-muted backdrop-blur-md">
               {t(CAMERA_MODE_LABEL_KEYS[cameraMode])} {t("camera.mode.autoSuffix")}
