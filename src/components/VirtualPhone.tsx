@@ -981,10 +981,6 @@ export function VirtualPhone({
                 <div className="ui-ink-faint mt-6 text-center text-[10px] leading-relaxed">
                   {t("remote.swingHint")}
                 </div>
-              ) : remoteControllerProps.cameraMode === "whirlpool" ? (
-                <div className="ui-ink-faint mt-6 text-center text-[10px] leading-relaxed">
-                  {t("remote.whirlpoolHint")}
-                </div>
               ) : (
                 <>
                   <div className="flex flex-wrap items-start justify-center gap-3">

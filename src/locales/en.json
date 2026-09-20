@@ -71,7 +71,6 @@
       "float": "SWIMMER",
       "noclip": "FLY",
       "swing": "SWING",
-      "whirlpool": "WHIRLPOOL",
       "watercraft": "WATERCRAFT"
     },
     "rotationValue": {
@@ -84,20 +83,9 @@
       "off": "FIXED",
       "random": "RANDOM"
     },
-    "whirlpoolDirection": {
+    "tornadoDirection": {
       "ccw": "COUNTER-CLOCKWISE",
       "cw": "CLOCKWISE"
-    },
-    "whirlpoolExitMode": {
-      "reverseSpin": "REVERSE SPIN",
-      "throwBack": "THROWN BACK"
-    },
-    "whirlpoolSpawnDirection": {
-      "ahead": "AHEAD",
-      "behind": "BEHIND",
-      "current": "FOLLOW CURRENT",
-      "left": "LEFT",
-      "right": "RIGHT"
     }
   },
   "common": {
@@ -152,7 +140,6 @@
       "intervalDuration": "INTERVAL",
       "intervalIncludeFloat": "INTERVAL: DEFAULT",
       "intervalIncludeSwing": "INTERVAL: SWING",
-      "intervalIncludeWhirlpool": "INTERVAL: WHIRLPOOL",
       "intervalSession": "INTERVAL SESSION",
       "lowGraphicsMode": "LOW GRAPHICS MODE",
       "mode": "CAMERA MODE",
@@ -161,10 +148,6 @@
       "noclipAutoAlternateInterval": "ALTERNATE INTERVAL",
       "noclipFallRiseSpeed": "FALL/RISE SPEED",
       "noclipSpeed": "NOCLIP SPEED",
-      "noclipTornado": "TORNADO",
-      "noclipTornadoDirection": "TORNADO DIRECTION",
-      "noclipTornadoRadius": "TORNADO RADIUS",
-      "noclipTornadoSpeed": "TORNADO SPEED",
       "noclipVertEaseTime": "FALL/RISE EASE",
       "posX": "POS X",
       "posY": "POS Y",
@@ -177,14 +160,17 @@
       "swingIntensity": "SWING INTENSITY",
       "swingPositionY": "SWING POSITION Y",
       "swingStart": "SWING START",
-      "swingTornado": "TORNADO",
-      "swingTornadoDirection": "TORNADO DIRECTION",
-      "swingTornadoRadius": "TORNADO RADIUS",
-      "swingTornadoSpeed": "TORNADO SPEED",
       "swingXFactor": "SWING X",
       "swingYWaveform": "SWING Y WAVEFORM",
       "targetFps": "FRAME RATE CAP",
+      "tornado": "TORNADO",
       "tornadoCloud": "TORNADO CLOUD",
+      "tornadoCloudYOffset": "TORNADO CLOUD Y OFFSET",
+      "tornadoDirection": "TORNADO DIRECTION",
+      "tornadoFollowCenter": "FOLLOW CENTER",
+      "tornadoOpening": "TORNADO OPENING",
+      "tornadoRadius": "TORNADO RADIUS",
+      "tornadoSpeed": "TORNADO SPEED",
       "wakeLock": "AWAKE"
     },
     "env": {
@@ -303,18 +289,7 @@
         "regular": "REGULAR",
         "spread": "SPREAD"
       },
-      "wavePeriod": "WAVE PERIOD",
-      "whirlpoolDirection": "WHIRLPOOL DIRECTION",
-      "whirlpoolDistance": "DISTANCE TO CENTER",
-      "whirlpoolDragDuration": "DRAG-IN LENGTH",
-      "whirlpoolDragSpeed": "DRAG-IN SPEED",
-      "whirlpoolExitMode": "EXIT MODE",
-      "whirlpoolExitSpeed": "EXIT SPEED",
-      "whirlpoolOpening": "OPENING",
-      "whirlpoolSequence": "AUTO SEQUENCE",
-      "whirlpoolSpawnDirection": "SPAWN DIRECTION",
-      "whirlpoolSpeed": "WHIRLPOOL SPEED",
-      "whirlpoolStayDuration": "STAY INSIDE"
+      "wavePeriod": "WAVE PERIOD"
     }
   },
   "docsPhilosophy": {
@@ -663,6 +638,10 @@
       "wave": "WAVE"
     },
     "timeTravelOpenAria": "Open time travel",
+    "tornadoToggle": {
+      "tornado": "TORNADO",
+      "whirlpool": "WHIRLPOOL"
+    },
     "totalLabel": " · Total "
   },
   "interval": {
@@ -844,8 +823,7 @@
     "syncButton": "SYNC WAVE WITH SWAY: {{state}}",
     "syncTitle": "Let WAVE DIRECTION automatically follow SWAY DIRECTION (default: on)",
     "title": "REMOTE",
-    "vagrikt": "WAVE DIR",
-    "whirlpoolHint": "In WHIRLPOOL mode the camera orbits automatically — no sticks to control here."
+    "vagrikt": "WAVE DIR"
   },
   "screens": {
     "editModeDescription": "Pauses waves and camera movement so the TV/mobile screens in the 3D view can be moved, rotated and resized precisely.",

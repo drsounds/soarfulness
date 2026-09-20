@@ -71,7 +71,6 @@
       "float": "SIMMARE",
       "noclip": "FLYG",
       "swing": "GUNGA",
-      "whirlpool": "VIRVEL",
       "watercraft": "FARKOST"
     },
     "rotationValue": {
@@ -84,20 +83,9 @@
       "off": "FIXERAD",
       "random": "SLUMP"
     },
-    "whirlpoolDirection": {
+    "tornadoDirection": {
       "ccw": "MOTURS",
       "cw": "MEDURS"
-    },
-    "whirlpoolExitMode": {
-      "reverseSpin": "OMVÄND SNURR",
-      "throwBack": "KASTAS TILLBAKA"
-    },
-    "whirlpoolSpawnDirection": {
-      "ahead": "FRAMÅT",
-      "behind": "BAKOM",
-      "current": "MED STRÖMMEN",
-      "left": "VÄNSTER",
-      "right": "HÖGER"
     }
   },
   "common": {
@@ -152,7 +140,6 @@
       "intervalDuration": "INTERVALL",
       "intervalIncludeFloat": "INTERVALL: STANDARD",
       "intervalIncludeSwing": "INTERVALL: GUNGA",
-      "intervalIncludeWhirlpool": "INTERVALL: VIRVEL",
       "intervalSession": "INTERVALLPASS",
       "lowGraphicsMode": "LÅGT GRAFIKLÄGE",
       "mode": "KAMERALÄGE",
@@ -161,10 +148,6 @@
       "noclipAutoAlternateInterval": "VÄXLINGSINTERVALL",
       "noclipFallRiseSpeed": "FALL/STIGNING FART",
       "noclipSpeed": "NOCLIP FART",
-      "noclipTornado": "TORNADO",
-      "noclipTornadoDirection": "TORNADO RIKTNING",
-      "noclipTornadoRadius": "TORNADO RADIE",
-      "noclipTornadoSpeed": "TORNADO TEMPO",
       "noclipVertEaseTime": "FALL/STIGNING MJUKHET",
       "posX": "POS X",
       "posY": "POS Y",
@@ -177,14 +160,17 @@
       "swingIntensity": "GUNGA INTENSITET",
       "swingPositionY": "GUNGA POSITION Y",
       "swingStart": "GUNGA START",
-      "swingTornado": "TORNADO",
-      "swingTornadoDirection": "TORNADO RIKTNING",
-      "swingTornadoRadius": "TORNADO RADIE",
-      "swingTornadoSpeed": "TORNADO TEMPO",
       "swingXFactor": "GUNGA X",
       "swingYWaveform": "GUNGA Y VÅGFORM",
       "targetFps": "BILDFREKVENS-TAK",
+      "tornado": "TORNADO",
       "tornadoCloud": "TORNADO MOLN",
+      "tornadoCloudYOffset": "TORNADO MOLN Y-OFFSET",
+      "tornadoDirection": "TORNADO RIKTNING",
+      "tornadoFollowCenter": "FÖLJ CENTRUM",
+      "tornadoOpening": "TORNADO ÖPPNING",
+      "tornadoRadius": "TORNADO RADIE",
+      "tornadoSpeed": "TORNADO TEMPO",
       "wakeLock": "VAKEN"
     },
     "env": {
@@ -303,18 +289,7 @@
         "regular": "REGELBUNDEN",
         "spread": "SPRIDD"
       },
-      "wavePeriod": "VÅGPERIOD",
-      "whirlpoolDirection": "VIRVEL RIKTNING",
-      "whirlpoolDistance": "AVSTÅND TILL CENTRUM",
-      "whirlpoolDragDuration": "INDRAGNINGSLÄNGD",
-      "whirlpoolDragSpeed": "INDRAGNINGSHASTIGHET",
-      "whirlpoolExitMode": "UTGÅNGSLÄGE",
-      "whirlpoolExitSpeed": "UTGÅNGSHASTIGHET",
-      "whirlpoolOpening": "ÖPPNING",
-      "whirlpoolSequence": "AUTO-SEKVENS",
-      "whirlpoolSpawnDirection": "STARTRIKTNING",
-      "whirlpoolSpeed": "VIRVEL TEMPO",
-      "whirlpoolStayDuration": "STANNA INNE"
+      "wavePeriod": "VÅGPERIOD"
     }
   },
   "docsPhilosophy": {
@@ -663,6 +638,10 @@
       "wave": "VÅG"
     },
     "timeTravelOpenAria": "Öppna tidsresa",
+    "tornadoToggle": {
+      "tornado": "TORNADO",
+      "whirlpool": "VIRVEL"
+    },
     "totalLabel": " · Totalt "
   },
   "interval": {
@@ -844,8 +823,7 @@
     "syncButton": "SYNKA VÅG MED SVAJ: {{state}}",
     "syncTitle": "Låt VÅGRIKTNING följa SVAJ RIKTNING automatiskt (standard: på)",
     "title": "FJÄRRKONTROLL",
-    "vagrikt": "VÅGRIKT",
-    "whirlpoolHint": "I VIRVEL-läge kretsar kameran automatiskt runt virveln — inga spakar att styra här."
+    "vagrikt": "VÅGRIKT"
   },
   "screens": {
     "editModeDescription": "Pausar vågor och kamerarörelse så att TV/mobil-skärmarna i 3D-vyn kan flyttas, roteras och ändras i storlek exakt.",

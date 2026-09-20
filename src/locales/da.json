@@ -71,7 +71,6 @@
       "float": "SVØMMER",
       "noclip": "FLYV",
       "swing": "GYNGE",
-      "whirlpool": "HVIRVEL",
       "watercraft": "FARTØJ"
     },
     "rotationValue": {
@@ -84,20 +83,9 @@
       "off": "FAST",
       "random": "TILFÆLDIG"
     },
-    "whirlpoolDirection": {
+    "tornadoDirection": {
       "ccw": "MOD URET",
       "cw": "MED URET"
-    },
-    "whirlpoolExitMode": {
-      "reverseSpin": "OMVENDT SNURR",
-      "throwBack": "KASTES TILBAGE"
-    },
-    "whirlpoolSpawnDirection": {
-      "ahead": "FORAN",
-      "behind": "BAG",
-      "current": "MED STRØMMEN",
-      "left": "VENSTRE",
-      "right": "HØJRE"
     }
   },
   "common": {
@@ -152,7 +140,6 @@
       "intervalDuration": "INTERVAL",
       "intervalIncludeFloat": "INTERVAL: STANDARD",
       "intervalIncludeSwing": "INTERVAL: GYNGE",
-      "intervalIncludeWhirlpool": "INTERVAL: HVIRVEL",
       "intervalSession": "INTERVALSESSION",
       "lowGraphicsMode": "LAV GRAFIKTILSTAND",
       "mode": "KAMERATILSTAND",
@@ -161,10 +148,6 @@
       "noclipAutoAlternateInterval": "SKIFTEINTERVAL",
       "noclipFallRiseSpeed": "FALD/STIGNING HASTIGHED",
       "noclipSpeed": "NOCLIP HASTIGHED",
-      "noclipTornado": "TORNADO",
-      "noclipTornadoDirection": "TORNADO RETNING",
-      "noclipTornadoRadius": "TORNADO RADIUS",
-      "noclipTornadoSpeed": "TORNADO TEMPO",
       "noclipVertEaseTime": "FALD/STIGNING BLØDHED",
       "posX": "POS X",
       "posY": "POS Y",
@@ -177,14 +160,17 @@
       "swingIntensity": "GYNGE INTENSITET",
       "swingPositionY": "GYNGE POSITION Y",
       "swingStart": "GYNGE START",
-      "swingTornado": "TORNADO",
-      "swingTornadoDirection": "TORNADO RETNING",
-      "swingTornadoRadius": "TORNADO RADIUS",
-      "swingTornadoSpeed": "TORNADO TEMPO",
       "swingXFactor": "GYNGE X",
       "swingYWaveform": "GYNGE Y BØLGEFORM",
       "targetFps": "BILLEDFREKVENSLOFT",
+      "tornado": "TORNADO",
       "tornadoCloud": "TORNADO SKY",
+      "tornadoCloudYOffset": "TORNADO SKY Y-OFFSET",
+      "tornadoDirection": "TORNADO RETNING",
+      "tornadoFollowCenter": "FØLG CENTRUM",
+      "tornadoOpening": "TORNADO ÅBNING",
+      "tornadoRadius": "TORNADO RADIUS",
+      "tornadoSpeed": "TORNADO TEMPO",
       "wakeLock": "VÅGEN"
     },
     "env": {
@@ -303,18 +289,7 @@
         "regular": "REGELMÆSSIG",
         "spread": "SPREDT"
       },
-      "wavePeriod": "BØLGEPERIODE",
-      "whirlpoolDirection": "HVIRVEL RETNING",
-      "whirlpoolDistance": "AFSTAND TIL CENTRUM",
-      "whirlpoolDragDuration": "INDTRÆKNINGSLÆNGDE",
-      "whirlpoolDragSpeed": "INDTRÆKNINGSHASTIGHED",
-      "whirlpoolExitMode": "AFGANGSTILSTAND",
-      "whirlpoolExitSpeed": "AFGANGSHASTIGHED",
-      "whirlpoolOpening": "ÅBNING",
-      "whirlpoolSequence": "AUTO-SEKVENS",
-      "whirlpoolSpawnDirection": "STARTRETNING",
-      "whirlpoolSpeed": "HVIRVEL TEMPO",
-      "whirlpoolStayDuration": "BLIV INDENFOR"
+      "wavePeriod": "BØLGEPERIODE"
     }
   },
   "docsPhilosophy": {
@@ -663,6 +638,10 @@
       "wave": "BØLGE"
     },
     "timeTravelOpenAria": "Åbn tidsrejse",
+    "tornadoToggle": {
+      "tornado": "TORNADO",
+      "whirlpool": "HVIRVEL"
+    },
     "totalLabel": " · I alt "
   },
   "interval": {
@@ -844,8 +823,7 @@
     "syncButton": "SYNK BØLGE MED SVAJ: {{state}}",
     "syncTitle": "Lad BØLGERETNING automatisk følge SVAJ RETNING (standard: til)",
     "title": "FJERNBETJENING",
-    "vagrikt": "BØLGERETN",
-    "whirlpoolHint": "I HVIRVEL-tilstand kredser kameraet automatisk om hvirvlen — ingen styrepinde her."
+    "vagrikt": "BØLGERETN"
   },
   "screens": {
     "editModeDescription": "Pauser bølger og kamerabevægelse, så tv/mobil-skærmene i 3D-visningen kan flyttes, roteres og ændre størrelse præcist.",

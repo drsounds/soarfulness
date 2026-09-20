@@ -133,50 +133,35 @@ export const SETTINGS_TABS: { id: SettingsTab; labelKey: string }[] = [
   { id: "tema", labelKey: "settings.tabs.tema" },
 ];
 
-// Five mutually-exclusive camera movement schemes:
-//  - "float"      the default: buoyant, wave-riding camera (all existing behavior).
+// Four mutually-exclusive camera movement schemes:
+//  - "float"      the default: buoyant, wave-riding camera (optionally given
+//                 a circular "tornado" swirl around wherever the current
+//                 carries it, with a real water whirlpool opening up
+//                 directly beneath it at the same xz spot — the old
+//                 standalone VIRVEL mode's feel, now reached via the shared
+//                 tornado* fields instead of its own camera mode).
 //  - "noclip"     free 3D flight in any direction, ignoring the water/wave
-//                 physics (optionally given a whirlpool-like circular
-//                 "tornado" swirl around wherever NAV/HÖJD/DRIFT XZ actually
-//                 fly it — see noclipTornado* fields).
-//  - "whirlpool"  orbits a whirlpool centered a radius's distance out in
-//                 front of wherever the camera was looking when this mode
-//                 was entered — steady spin, or an automatic drag-in/stay/
-//                 exit sequence (see whirlpool* fields).
+//                 physics (optionally given the same whirlpool-style
+//                 circular "tornado" swirl around wherever NAV/HÖJD/DRIFT XZ
+//                 actually fly it — see the shared tornado* fields).
 //  - "swing"      a pendulum that swings back and forth high above the water
-//                 (optionally spun into a circular "tornado" orbit instead —
-//                 see swingTornado* fields).
+//                 (optionally spun into a circular "tornado" orbit instead,
+//                 with a real water whirlpool opening up directly beneath
+//                 it at the same xz spot — see the shared tornado* fields).
 //  - "watercraft" free 3D flight exactly like "noclip" (see every noclip
 //                 branch in routes/index.tsx's render loop, each extended to
 //                 also match this mode), plus a raft bobbing on the real
 //                 ocean with a Minecraft-like block grid and a brush-
 //                 sculptable clay pad — see WatercraftRig in
 //                 src/lib/watercraft/. The one optional "build a world"
-//                 mode among these five.
-export type CameraMode = "float" | "noclip" | "whirlpool" | "swing" | "watercraft";
-export const CAMERA_MODES: CameraMode[] = ["float", "noclip", "whirlpool", "swing", "watercraft"];
+//                 mode among these four.
+export type CameraMode = "float" | "noclip" | "swing" | "watercraft";
+export const CAMERA_MODES: CameraMode[] = ["float", "noclip", "swing", "watercraft"];
 
-// Angular direction shared by the whirlpool orbit and the swing/noclip
-// modes' optional tornado spin: "cw"/"ccw" as seen from above (+y looking
-// down).
-export type WhirlpoolDirection = "cw" | "ccw";
-export const WHIRLPOOL_DIRECTIONS: WhirlpoolDirection[] = ["cw", "ccw"];
-
-// Where the whirlpool's center opens up relative to the player the instant
-// whirlpool mode is entered (routes/index.tsx's cameraMode-change effect):
-// "ahead"/"left"/"right"/"behind" are relative to the player's current look
-// yaw; "current" instead follows the net STRÖM+SVAJ (current/sway) world
-// direction, so a current/sway pushing the player forward opens the vortex
-// ahead of them, one pushing back opens it behind them, etc. — falling back
-// to "ahead" when there's no current/sway to read.
-export type WhirlpoolSpawnDirection = "ahead" | "left" | "right" | "behind" | "current";
-export const WHIRLPOOL_SPAWN_DIRECTIONS: WhirlpoolSpawnDirection[] = [
-  "ahead",
-  "left",
-  "right",
-  "behind",
-  "current",
-];
+// Angular direction of the unified TORNADO orbit (see tornado* fields
+// below): "cw"/"ccw" as seen from above (+y looking down).
+export type TornadoDirection = "cw" | "ccw";
+export const TORNADO_DIRECTIONS: TornadoDirection[] = ["cw", "ccw"];
 
 // How SURGE's own direction (surgeDirRef in routes/index.tsx) evolves over
 // time: "off" holds a fixed bearing (set via the SURGE DIRECTION dial),
@@ -188,12 +173,6 @@ export const WHIRLPOOL_SPAWN_DIRECTIONS: WhirlpoolSpawnDirection[] = [
 export type SurgeRotationMode = "off" | "cw" | "ccw" | "random";
 export const SURGE_ROTATION_MODES: SurgeRotationMode[] = ["off", "cw", "ccw", "random"];
 
-// How the whirlpool's optional automatic sequence releases the camera after
-// its "stay inside" phase: "throwBack" flings it back out to the outer
-// radius (fast launch, easing to a stop); "reverseSpin" instead unwinds it
-// back out while spinning the opposite way it dragged in.
-export type WhirlpoolExitMode = "throwBack" | "reverseSpin";
-export const WHIRLPOOL_EXIT_MODES: WhirlpoolExitMode[] = ["throwBack", "reverseSpin"];
 // Quick-jump starting heights for sky-swing mode: a fixed preset, or "custom"
 // meaning the GUNGA POSITION Y dial is left exactly as the user set it.
 export type SwingPreset = "water" | "clouds" | "custom";
@@ -221,22 +200,13 @@ export const DEPTH_SINE_WAVEFORMS: DepthSineWaveform[] = ["sine", "sawtooth"];
 export const CAMERA_MODE_LABEL_KEYS: Record<CameraMode, string> = {
   float: "camera.mode.float",
   noclip: "camera.mode.noclip",
-  whirlpool: "camera.mode.whirlpool",
   swing: "camera.mode.swing",
   watercraft: "camera.mode.watercraft",
 };
 
-export const WHIRLPOOL_DIRECTION_LABEL_KEYS: Record<WhirlpoolDirection, string> = {
-  cw: "camera.whirlpoolDirection.cw",
-  ccw: "camera.whirlpoolDirection.ccw",
-};
-
-export const WHIRLPOOL_SPAWN_DIRECTION_LABEL_KEYS: Record<WhirlpoolSpawnDirection, string> = {
-  ahead: "camera.whirlpoolSpawnDirection.ahead",
-  left: "camera.whirlpoolSpawnDirection.left",
-  right: "camera.whirlpoolSpawnDirection.right",
-  behind: "camera.whirlpoolSpawnDirection.behind",
-  current: "camera.whirlpoolSpawnDirection.current",
+export const TORNADO_DIRECTION_LABEL_KEYS: Record<TornadoDirection, string> = {
+  cw: "camera.tornadoDirection.cw",
+  ccw: "camera.tornadoDirection.ccw",
 };
 
 export const SURGE_ROTATION_MODE_LABEL_KEYS: Record<SurgeRotationMode, string> = {
@@ -244,11 +214,6 @@ export const SURGE_ROTATION_MODE_LABEL_KEYS: Record<SurgeRotationMode, string> =
   cw: "camera.surgeRotationMode.cw",
   ccw: "camera.surgeRotationMode.ccw",
   random: "camera.surgeRotationMode.random",
-};
-
-export const WHIRLPOOL_EXIT_MODE_LABEL_KEYS: Record<WhirlpoolExitMode, string> = {
-  throwBack: "camera.whirlpoolExitMode.throwBack",
-  reverseSpin: "camera.whirlpoolExitMode.reverseSpin",
 };
 
 // An interval session automatically alternates the camera between "float"
@@ -376,37 +341,43 @@ export type Persisted = {
   // time; that drift is now opt-in (default off, so the clouds sit still)
   // via this toggle instead of always animating.
   floorCloudsAnimated: boolean;
-  whirlpoolOpening: number;
-  whirlpoolRadius: number;
-  whirlpoolSpeed: number;
-  whirlpoolDirection: WhirlpoolDirection;
-  whirlpoolSequenceOn: boolean;
-  whirlpoolDragSpeed: number;
-  whirlpoolDragDuration: number;
-  whirlpoolStayDuration: number;
-  whirlpoolExitMode: WhirlpoolExitMode;
-  whirlpoolExitSpeed: number;
-  whirlpoolSpawnDirection: WhirlpoolSpawnDirection;
-  swingTornadoOn: boolean;
-  swingTornadoRadius: number;
-  swingTornadoSpeed: number;
-  swingTornadoDirection: WhirlpoolDirection;
-  // Optional "tornado" spin for NOCLIP (free flight): same idea as
-  // swingTornado* above, but layered on top of NAV/HÖJD/DRIFT XZ's manual
-  // flight instead of replacing a pendulum arc — see the noclip branch of
-  // the physics loop in routes/index.tsx.
-  noclipTornadoOn: boolean;
-  noclipTornadoRadius: number;
-  noclipTornadoSpeed: number;
-  noclipTornadoDirection: WhirlpoolDirection;
-  // TORNADO CLOUD: optional visible funnel-shaped cloud mesh wrapping
-  // whichever tornado orbit (swingTornado or noclipTornado) is currently
-  // active, sized off that mode's own *TornadoRadius — see
-  // tornadoCloudMeshRef in routes/index.tsx. Purely cosmetic; the orbit
-  // itself works identically whether or not this is on.
+  // TORNADO: one unified toggle shared by every applicable camera mode —
+  // "float" (FRI/swimming), "swing" (GUNGA) and "noclip"/"watercraft"
+  // (flying) — instead of the old standalone "whirlpool" camera mode plus
+  // the separate swingTornado*/noclipTornado* schemas this replaced.
+  // Radius/Speed/Direction/Opening all mean the same thing regardless of
+  // which mode is active. While floating or swinging, turning this on also
+  // opens a real water whirlpool centered at the same xz spot as the orbit
+  // itself (see tornadoOpening and the vortexBlendRef-gated branches of the
+  // physics loop in routes/index.tsx); while flying, only the camera's
+  // circular orbit applies (no water effect). Activating/deactivating eases
+  // in/out over time (tornadoBlendRef/vortexBlendRef in routes/index.tsx)
+  // rather than snapping instantly.
+  tornadoOn: boolean;
+  tornadoRadius: number;
+  tornadoSpeed: number;
+  tornadoDirection: TornadoDirection;
+  // Width of the water whirlpool's throat while floating or swinging — has
+  // no effect while flying (noclip/watercraft never show the water vortex).
+  tornadoOpening: number;
+  // Whether the camera's look direction eases toward facing the tornado/
+  // whirlpool's center (like looking down into the vortex) instead of
+  // keeping whatever forward direction NAV/LOOK already has it facing.
+  tornadoFollowCenter: boolean;
+  // TORNADO CLOUD: optional visible funnel-shaped cloud mesh wrapping the
+  // active tornado orbit, sized off tornadoRadius — see tornadoCloudMeshRef
+  // in routes/index.tsx. Purely cosmetic; the orbit itself works
+  // identically whether or not this is on.
   tornadoCloudOn: boolean;
+  // While swinging or flying, the TORNADO CLOUD's vertical position is
+  // pinned to the real water surface at its own xz spot (not to the
+  // camera's/swing's own altitude — a tornado should look rooted in the
+  // water, not bob around with wherever the camera happens to be) plus this
+  // adjustable offset in meters; its height (vertical extent) is swingHeight
+  // regardless of which of those two modes is active. Has no effect while
+  // floating, where the cloud still simply follows the camera's own height.
+  tornadoCloudYOffset: number;
   intervalIncludeFloat: boolean;
-  intervalIncludeWhirlpool: boolean;
   intervalIncludeSwing: boolean;
   depthSineOn: boolean;
   depthSineAmp: number;
@@ -604,17 +575,6 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "heaveSkew",
     "waveHighQuality",
     "waveDir",
-    "whirlpoolOpening",
-    "whirlpoolRadius",
-    "whirlpoolSpeed",
-    "whirlpoolDirection",
-    "whirlpoolSequenceOn",
-    "whirlpoolDragSpeed",
-    "whirlpoolDragDuration",
-    "whirlpoolStayDuration",
-    "whirlpoolExitMode",
-    "whirlpoolExitSpeed",
-    "whirlpoolSpawnDirection",
   ],
   kamera: [
     "cameraMode",
@@ -627,22 +587,20 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "swingXFactor",
     "swingHeight",
     "swingYWaveform",
-    "swingTornadoOn",
-    "swingTornadoRadius",
-    "swingTornadoSpeed",
-    "swingTornadoDirection",
-    "noclipTornadoOn",
-    "noclipTornadoRadius",
-    "noclipTornadoSpeed",
-    "noclipTornadoDirection",
+    "tornadoOn",
+    "tornadoRadius",
+    "tornadoSpeed",
+    "tornadoDirection",
+    "tornadoOpening",
+    "tornadoFollowCenter",
     "tornadoCloudOn",
+    "tornadoCloudYOffset",
     "intervalSessionOn",
     "intervalDuration",
     "intervalSessionType",
     "intervalCount",
     "intervalShowStats",
     "intervalIncludeFloat",
-    "intervalIncludeWhirlpool",
     "intervalIncludeSwing",
     "camOffX",
     "camOffY",

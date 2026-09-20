@@ -25,12 +25,8 @@ import {
   TORUS_TEXTURE_LABEL_KEYS,
   CAMERA_MODES,
   CAMERA_MODE_LABEL_KEYS,
-  WHIRLPOOL_DIRECTIONS,
-  WHIRLPOOL_DIRECTION_LABEL_KEYS,
-  WHIRLPOOL_EXIT_MODES,
-  WHIRLPOOL_EXIT_MODE_LABEL_KEYS,
-  WHIRLPOOL_SPAWN_DIRECTIONS,
-  WHIRLPOOL_SPAWN_DIRECTION_LABEL_KEYS,
+  TORNADO_DIRECTIONS,
+  TORNADO_DIRECTION_LABEL_KEYS,
   SURGE_ROTATION_MODES,
   SURGE_ROTATION_MODE_LABEL_KEYS,
   SWING_PRESETS,
@@ -48,9 +44,7 @@ import {
   type DepthSineWaveform,
   type IntervalSessionType,
   type WavePresetName,
-  type WhirlpoolDirection,
-  type WhirlpoolExitMode,
-  type WhirlpoolSpawnDirection,
+  type TornadoDirection,
   type SurgeRotationMode,
 } from "@/lib/settingsShared";
 import { pickJsonFile, type PresetScope, type SavedPreset, type SavedState } from "@/lib/presets";
@@ -474,33 +468,6 @@ export type SettingsPanelProps = {
   setWaveHighQuality: Dispatch<SetStateAction<boolean>>;
   waveDir: number;
   setWaveDir: Dispatch<SetStateAction<number>>;
-  // VIRVEL (whirlpool camera mode) — shown here in place of the wave dials
-  // above whenever cameraMode === "whirlpool" (see the vagor tab render
-  // below). whirlpoolOpening/Radius/Speed/Direction drive the steady orbit;
-  // the rest only matter while whirlpoolSequenceOn loops the camera through
-  // drag-in / stay inside / thrown-back-or-reverse-spin automatically.
-  whirlpoolOpening: number;
-  setWhirlpoolOpening: Dispatch<SetStateAction<number>>;
-  whirlpoolRadius: number;
-  setWhirlpoolRadius: Dispatch<SetStateAction<number>>;
-  whirlpoolSpeed: number;
-  setWhirlpoolSpeed: Dispatch<SetStateAction<number>>;
-  whirlpoolDirection: WhirlpoolDirection;
-  setWhirlpoolDirection: Dispatch<SetStateAction<WhirlpoolDirection>>;
-  whirlpoolSequenceOn: boolean;
-  setWhirlpoolSequenceOn: Dispatch<SetStateAction<boolean>>;
-  whirlpoolDragSpeed: number;
-  setWhirlpoolDragSpeed: Dispatch<SetStateAction<number>>;
-  whirlpoolDragDuration: number;
-  setWhirlpoolDragDuration: Dispatch<SetStateAction<number>>;
-  whirlpoolStayDuration: number;
-  setWhirlpoolStayDuration: Dispatch<SetStateAction<number>>;
-  whirlpoolExitMode: WhirlpoolExitMode;
-  setWhirlpoolExitMode: Dispatch<SetStateAction<WhirlpoolExitMode>>;
-  whirlpoolExitSpeed: number;
-  setWhirlpoolExitSpeed: Dispatch<SetStateAction<number>>;
-  whirlpoolSpawnDirection: WhirlpoolSpawnDirection;
-  setWhirlpoolSpawnDirection: Dispatch<SetStateAction<WhirlpoolSpawnDirection>>;
 
   // Kamera
   cameraMode: CameraMode;
@@ -533,33 +500,39 @@ export type SettingsPanelProps = {
   swingYWaveform: SwingYWaveform;
   setSwingYWaveform: Dispatch<SetStateAction<SwingYWaveform>>;
   cycleSwingYWaveform: (dir: number) => void;
-  // TORNADO: optional whirlpool-style circular orbit for GUNGA, instead of
-  // its default back-and-forth pendulum arc — a whirlpool in the sky.
-  swingTornadoOn: boolean;
-  setSwingTornadoOn: Dispatch<SetStateAction<boolean>>;
-  swingTornadoRadius: number;
-  setSwingTornadoRadius: Dispatch<SetStateAction<number>>;
-  swingTornadoSpeed: number;
-  setSwingTornadoSpeed: Dispatch<SetStateAction<number>>;
-  swingTornadoDirection: WhirlpoolDirection;
-  setSwingTornadoDirection: Dispatch<SetStateAction<WhirlpoolDirection>>;
-  // TORNADO: same idea as swingTornado above, but layered on top of NOCLIP's
-  // manual free flight instead of replacing a pendulum arc.
-  noclipTornadoOn: boolean;
-  setNoclipTornadoOn: Dispatch<SetStateAction<boolean>>;
-  noclipTornadoRadius: number;
-  setNoclipTornadoRadius: Dispatch<SetStateAction<number>>;
-  noclipTornadoSpeed: number;
-  setNoclipTornadoSpeed: Dispatch<SetStateAction<number>>;
-  noclipTornadoDirection: WhirlpoolDirection;
-  setNoclipTornadoDirection: Dispatch<SetStateAction<WhirlpoolDirection>>;
-  // TORNADO CLOUD: optional visible funnel-shaped cloud wrapping whichever
-  // of the two tornado orbits above is currently active.
+  // TORNADO: one unified toggle shared by GUNGA (swing) and flying (noclip/
+  // watercraft) alike — a circular orbit instead of GUNGA's default
+  // back-and-forth pendulum arc / NOCLIP's plain free flight. While
+  // swinging, also opens a real water whirlpool at the same xz spot (see
+  // tornadoOpening); flying never shows that water effect. Activating/
+  // deactivating eases in/out rather than snapping instantly.
+  tornadoOn: boolean;
+  setTornadoOn: Dispatch<SetStateAction<boolean>>;
+  tornadoRadius: number;
+  setTornadoRadius: Dispatch<SetStateAction<number>>;
+  tornadoSpeed: number;
+  setTornadoSpeed: Dispatch<SetStateAction<number>>;
+  tornadoDirection: TornadoDirection;
+  setTornadoDirection: Dispatch<SetStateAction<TornadoDirection>>;
+  // Width of the water whirlpool's throat while swinging.
+  tornadoOpening: number;
+  setTornadoOpening: Dispatch<SetStateAction<number>>;
+  // Whether the camera's look direction eases toward facing the tornado/
+  // whirlpool's center instead of keeping whatever direction it's facing.
+  tornadoFollowCenter: boolean;
+  setTornadoFollowCenter: Dispatch<SetStateAction<boolean>>;
+  // TORNADO CLOUD: optional visible funnel-shaped cloud wrapping the active
+  // tornado orbit.
   tornadoCloudOn: boolean;
   setTornadoCloudOn: Dispatch<SetStateAction<boolean>>;
+  // Meters above the real water surface (at the tornado's own xz spot) the
+  // TORNADO CLOUD's tip sits while swinging or flying — has no effect while
+  // floating, where the cloud just follows the camera's own height.
+  tornadoCloudYOffset: number;
+  setTornadoCloudYOffset: Dispatch<SetStateAction<number>>;
   // Interval session: automatically cycles cameraMode through whichever of
-  // FRI/VIRVEL/GUNGA are enabled below, every intervalDuration seconds,
-  // either forever or for a fixed intervalCount.
+  // FRI/GUNGA are enabled below, every intervalDuration seconds, either
+  // forever or for a fixed intervalCount.
   intervalSessionOn: boolean;
   setIntervalSessionOn: Dispatch<SetStateAction<boolean>>;
   intervalDuration: number;
@@ -572,8 +545,6 @@ export type SettingsPanelProps = {
   setIntervalShowStats: Dispatch<SetStateAction<boolean>>;
   intervalIncludeFloat: boolean;
   setIntervalIncludeFloat: Dispatch<SetStateAction<boolean>>;
-  intervalIncludeWhirlpool: boolean;
-  setIntervalIncludeWhirlpool: Dispatch<SetStateAction<boolean>>;
   intervalIncludeSwing: boolean;
   setIntervalIncludeSwing: Dispatch<SetStateAction<boolean>>;
   camOffX: number;
@@ -1182,28 +1153,6 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setWaveHighQuality,
     waveDir,
     setWaveDir,
-    whirlpoolOpening,
-    setWhirlpoolOpening,
-    whirlpoolRadius,
-    setWhirlpoolRadius,
-    whirlpoolSpeed,
-    setWhirlpoolSpeed,
-    whirlpoolDirection,
-    setWhirlpoolDirection,
-    whirlpoolSequenceOn,
-    setWhirlpoolSequenceOn,
-    whirlpoolDragSpeed,
-    setWhirlpoolDragSpeed,
-    whirlpoolDragDuration,
-    setWhirlpoolDragDuration,
-    whirlpoolStayDuration,
-    setWhirlpoolStayDuration,
-    whirlpoolExitMode,
-    setWhirlpoolExitMode,
-    whirlpoolExitSpeed,
-    setWhirlpoolExitSpeed,
-    whirlpoolSpawnDirection,
-    setWhirlpoolSpawnDirection,
     cameraMode,
     setCameraMode,
     cycleCameraMode,
@@ -1231,24 +1180,22 @@ export function SettingsPanel(props: SettingsPanelProps) {
     swingYWaveform,
     setSwingYWaveform,
     cycleSwingYWaveform,
-    swingTornadoOn,
-    setSwingTornadoOn,
-    swingTornadoRadius,
-    setSwingTornadoRadius,
-    swingTornadoSpeed,
-    setSwingTornadoSpeed,
-    swingTornadoDirection,
-    setSwingTornadoDirection,
-    noclipTornadoOn,
-    setNoclipTornadoOn,
-    noclipTornadoRadius,
-    setNoclipTornadoRadius,
-    noclipTornadoSpeed,
-    setNoclipTornadoSpeed,
-    noclipTornadoDirection,
-    setNoclipTornadoDirection,
+    tornadoOn,
+    setTornadoOn,
+    tornadoRadius,
+    setTornadoRadius,
+    tornadoSpeed,
+    setTornadoSpeed,
+    tornadoDirection,
+    setTornadoDirection,
+    tornadoOpening,
+    setTornadoOpening,
+    tornadoFollowCenter,
+    setTornadoFollowCenter,
     tornadoCloudOn,
     setTornadoCloudOn,
+    tornadoCloudYOffset,
+    setTornadoCloudYOffset,
     intervalSessionOn,
     setIntervalSessionOn,
     intervalDuration,
@@ -1261,8 +1208,6 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setIntervalShowStats,
     intervalIncludeFloat,
     setIntervalIncludeFloat,
-    intervalIncludeWhirlpool,
-    setIntervalIncludeWhirlpool,
     intervalIncludeSwing,
     setIntervalIncludeSwing,
     camOffX,
@@ -1571,172 +1516,6 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   loadSavedPreset={loadSavedPreset}
                   deleteSavedPreset={deleteSavedPreset}
                 />
-                {cameraMode === "whirlpool" ? (
-                  <>
-                    <SettingRow
-                      label={t("dial.wave.whirlpoolSpeed")}
-                      mode="number"
-                      value={`${whirlpoolSpeed.toFixed(2)}x`}
-                      rawValue={whirlpoolSpeed}
-                      onSet={(v) => setWhirlpoolSpeed(Math.max(-20, Math.min(20, v)))}
-                      min={-20}
-                      max={20}
-                      step={0.1}
-                      onDec={() => setWhirlpoolSpeed((v) => Math.max(-20, +(v - 0.1).toFixed(2)))}
-                      onInc={() => setWhirlpoolSpeed((v) => Math.min(20, +(v + 0.1).toFixed(2)))}
-                    />
-                    <SettingRow
-                      label={t("dial.wave.whirlpoolDirection")}
-                      value={t(WHIRLPOOL_DIRECTION_LABEL_KEYS[whirlpoolDirection])}
-                      options={WHIRLPOOL_DIRECTIONS.map((d) =>
-                        t(WHIRLPOOL_DIRECTION_LABEL_KEYS[d]),
-                      )}
-                      selectedIndex={WHIRLPOOL_DIRECTIONS.indexOf(whirlpoolDirection)}
-                      onSelectIndex={(i) => setWhirlpoolDirection(WHIRLPOOL_DIRECTIONS[i])}
-                      onDec={() => setWhirlpoolDirection("cw")}
-                      onInc={() => setWhirlpoolDirection("ccw")}
-                    />
-                    <SettingRow
-                      label={t("dial.wave.whirlpoolSpawnDirection")}
-                      value={t(WHIRLPOOL_SPAWN_DIRECTION_LABEL_KEYS[whirlpoolSpawnDirection])}
-                      options={WHIRLPOOL_SPAWN_DIRECTIONS.map((d) =>
-                        t(WHIRLPOOL_SPAWN_DIRECTION_LABEL_KEYS[d]),
-                      )}
-                      selectedIndex={WHIRLPOOL_SPAWN_DIRECTIONS.indexOf(whirlpoolSpawnDirection)}
-                      onSelectIndex={(i) =>
-                        setWhirlpoolSpawnDirection(WHIRLPOOL_SPAWN_DIRECTIONS[i])
-                      }
-                      onDec={() =>
-                        setWhirlpoolSpawnDirection(
-                          WHIRLPOOL_SPAWN_DIRECTIONS[
-                            (WHIRLPOOL_SPAWN_DIRECTIONS.indexOf(whirlpoolSpawnDirection) -
-                              1 +
-                              WHIRLPOOL_SPAWN_DIRECTIONS.length) %
-                              WHIRLPOOL_SPAWN_DIRECTIONS.length
-                          ],
-                        )
-                      }
-                      onInc={() =>
-                        setWhirlpoolSpawnDirection(
-                          WHIRLPOOL_SPAWN_DIRECTIONS[
-                            (WHIRLPOOL_SPAWN_DIRECTIONS.indexOf(whirlpoolSpawnDirection) + 1) %
-                              WHIRLPOOL_SPAWN_DIRECTIONS.length
-                          ],
-                        )
-                      }
-                    />
-                    <SettingRow
-                      label={t("dial.wave.whirlpoolDistance")}
-                      mode="number"
-                      value={`${whirlpoolRadius.toFixed(1)}m`}
-                      rawValue={whirlpoolRadius}
-                      onSet={(v) => setWhirlpoolRadius(Math.max(3, Math.min(220, v)))}
-                      min={3}
-                      max={220}
-                      step={1}
-                      onDec={() => setWhirlpoolRadius((v) => Math.max(3, +(v - 1).toFixed(2)))}
-                      onInc={() => setWhirlpoolRadius((v) => Math.min(220, +(v + 1).toFixed(2)))}
-                    />
-                    <SettingRow
-                      label={t("dial.wave.whirlpoolOpening")}
-                      mode="number"
-                      value={`${whirlpoolOpening.toFixed(1)}m`}
-                      rawValue={whirlpoolOpening}
-                      onSet={(v) => setWhirlpoolOpening(Math.max(3, Math.min(60, v)))}
-                      min={3}
-                      max={60}
-                      step={0.5}
-                      onDec={() => setWhirlpoolOpening((v) => Math.max(3, +(v - 0.5).toFixed(2)))}
-                      onInc={() => setWhirlpoolOpening((v) => Math.min(60, +(v + 0.5).toFixed(2)))}
-                    />
-                    <SettingRow
-                      label={t("dial.wave.whirlpoolSequence")}
-                      value={onOff(whirlpoolSequenceOn)}
-                      onDec={() => setWhirlpoolSequenceOn(false)}
-                      onInc={() => setWhirlpoolSequenceOn(true)}
-                    />
-                    {whirlpoolSequenceOn && (
-                      <>
-                        <SettingRow
-                          label={t("dial.wave.whirlpoolDragSpeed")}
-                          mode="number"
-                          value={`${whirlpoolDragSpeed.toFixed(1)}m/s`}
-                          rawValue={whirlpoolDragSpeed}
-                          onSet={(v) => setWhirlpoolDragSpeed(Math.max(0.5, Math.min(60, v)))}
-                          min={0.5}
-                          max={60}
-                          step={0.5}
-                          onDec={() =>
-                            setWhirlpoolDragSpeed((v) => Math.max(0.5, +(v - 0.5).toFixed(2)))
-                          }
-                          onInc={() =>
-                            setWhirlpoolDragSpeed((v) => Math.min(60, +(v + 0.5).toFixed(2)))
-                          }
-                        />
-                        <SettingRow
-                          label={t("dial.wave.whirlpoolDragDuration")}
-                          mode="number"
-                          value={formatClock(whirlpoolDragDuration)}
-                          rawValue={whirlpoolDragDuration}
-                          onSet={(v) => setWhirlpoolDragDuration(Math.max(0.5, Math.min(120, v)))}
-                          min={0.5}
-                          max={120}
-                          step={0.5}
-                          onDec={() =>
-                            setWhirlpoolDragDuration((v) => Math.max(0.5, +(v - 0.5).toFixed(2)))
-                          }
-                          onInc={() =>
-                            setWhirlpoolDragDuration((v) => Math.min(120, +(v + 0.5).toFixed(2)))
-                          }
-                        />
-                        <SettingRow
-                          label={t("dial.wave.whirlpoolStayDuration")}
-                          mode="number"
-                          value={formatClock(whirlpoolStayDuration)}
-                          rawValue={whirlpoolStayDuration}
-                          onSet={(v) => setWhirlpoolStayDuration(Math.max(0, Math.min(120, v)))}
-                          min={0}
-                          max={120}
-                          step={0.5}
-                          onDec={() =>
-                            setWhirlpoolStayDuration((v) => Math.max(0, +(v - 0.5).toFixed(2)))
-                          }
-                          onInc={() =>
-                            setWhirlpoolStayDuration((v) => Math.min(120, +(v + 0.5).toFixed(2)))
-                          }
-                        />
-                        <SettingRow
-                          label={t("dial.wave.whirlpoolExitMode")}
-                          value={t(WHIRLPOOL_EXIT_MODE_LABEL_KEYS[whirlpoolExitMode])}
-                          options={WHIRLPOOL_EXIT_MODES.map((m) =>
-                            t(WHIRLPOOL_EXIT_MODE_LABEL_KEYS[m]),
-                          )}
-                          selectedIndex={WHIRLPOOL_EXIT_MODES.indexOf(whirlpoolExitMode)}
-                          onSelectIndex={(i) => setWhirlpoolExitMode(WHIRLPOOL_EXIT_MODES[i])}
-                          onDec={() => setWhirlpoolExitMode("throwBack")}
-                          onInc={() => setWhirlpoolExitMode("reverseSpin")}
-                        />
-                        <SettingRow
-                          label={t("dial.wave.whirlpoolExitSpeed")}
-                          mode="number"
-                          value={`${whirlpoolExitSpeed.toFixed(1)}m/s`}
-                          rawValue={whirlpoolExitSpeed}
-                          onSet={(v) => setWhirlpoolExitSpeed(Math.max(0.5, Math.min(60, v)))}
-                          min={0.5}
-                          max={60}
-                          step={0.5}
-                          onDec={() =>
-                            setWhirlpoolExitSpeed((v) => Math.max(0.5, +(v - 0.5).toFixed(2)))
-                          }
-                          onInc={() =>
-                            setWhirlpoolExitSpeed((v) => Math.min(60, +(v + 0.5).toFixed(2)))
-                          }
-                        />
-                      </>
-                    )}
-                  </>
-                ) : (
-                  <>
                     <SettingRow
                       label={t("dial.wave.amp")}
                       mode="number"
@@ -2164,8 +1943,6 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       onDec={() => setWaveDir((v) => (((v - 15) % 360) + 360) % 360)}
                       onInc={() => setWaveDir((v) => (((v + 15) % 360) + 360) % 360)}
                     />
-                  </>
-                )}
               </>
             )}
             {settingsTab === "kamera" && (
@@ -2270,63 +2047,113 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     }
                   />
                 )}
-                {cameraMode === "noclip" && (
+                {/* TORNADO: one unified toggle+dial block for FRI (float/
+                    swimming), GUNGA (swing) and flying (noclip/watercraft)
+                    alike — same settings drive the camera's orbit in every
+                    applicable mode; the water whirlpool visual (TORNADO
+                    OPENING) only applies while floating or swinging. */}
+                {(cameraMode === "float" ||
+                  cameraMode === "noclip" ||
+                  cameraMode === "watercraft" ||
+                  cameraMode === "swing") && (
                   <SettingRow
-                    label={t("dial.camera.noclipTornado")}
-                    value={onOff(noclipTornadoOn)}
-                    onDec={() => setNoclipTornadoOn(false)}
-                    onInc={() => setNoclipTornadoOn(true)}
+                    label={t("dial.camera.tornado")}
+                    value={onOff(tornadoOn)}
+                    onDec={() => setTornadoOn(false)}
+                    onInc={() => setTornadoOn(true)}
                   />
                 )}
-                {cameraMode === "noclip" && noclipTornadoOn && (
-                  <>
-                    <SettingRow
-                      label={t("dial.camera.noclipTornadoRadius")}
-                      mode="number"
-                      value={`${noclipTornadoRadius.toFixed(0)}m`}
-                      rawValue={noclipTornadoRadius}
-                      onSet={(v) => setNoclipTornadoRadius(Math.max(0, Math.min(2000, v)))}
-                      min={0}
-                      max={2000}
-                      step={5}
-                      onDec={() => setNoclipTornadoRadius((v) => Math.max(0, +(v - 5).toFixed(0)))}
-                      onInc={() =>
-                        setNoclipTornadoRadius((v) => Math.min(2000, +(v + 5).toFixed(0)))
-                      }
-                    />
-                    <SettingRow
-                      label={t("dial.camera.noclipTornadoSpeed")}
-                      mode="number"
-                      value={`${noclipTornadoSpeed.toFixed(2)}x`}
-                      rawValue={noclipTornadoSpeed}
-                      onSet={(v) => setNoclipTornadoSpeed(Math.max(0, Math.min(10, v)))}
-                      min={0}
-                      max={10}
-                      step={0.1}
-                      onDec={() => setNoclipTornadoSpeed((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
-                      onInc={() =>
-                        setNoclipTornadoSpeed((v) => Math.min(10, +(v + 0.1).toFixed(2)))
-                      }
-                    />
-                    <SettingRow
-                      label={t("dial.camera.noclipTornadoDirection")}
-                      value={t(WHIRLPOOL_DIRECTION_LABEL_KEYS[noclipTornadoDirection])}
-                      options={WHIRLPOOL_DIRECTIONS.map((d) =>
-                        t(WHIRLPOOL_DIRECTION_LABEL_KEYS[d]),
+                {(cameraMode === "float" ||
+                  cameraMode === "noclip" ||
+                  cameraMode === "watercraft" ||
+                  cameraMode === "swing") &&
+                  tornadoOn && (
+                    <>
+                      <SettingRow
+                        label={t("dial.camera.tornadoRadius")}
+                        mode="number"
+                        value={`${tornadoRadius.toFixed(0)}m`}
+                        rawValue={tornadoRadius}
+                        onSet={(v) => setTornadoRadius(Math.max(0, Math.min(2000, v)))}
+                        min={0}
+                        max={2000}
+                        step={5}
+                        onDec={() => setTornadoRadius((v) => Math.max(0, +(v - 5).toFixed(0)))}
+                        onInc={() => setTornadoRadius((v) => Math.min(2000, +(v + 5).toFixed(0)))}
+                      />
+                      <SettingRow
+                        label={t("dial.camera.tornadoSpeed")}
+                        mode="number"
+                        value={`${tornadoSpeed.toFixed(2)}x`}
+                        rawValue={tornadoSpeed}
+                        onSet={(v) => setTornadoSpeed(Math.max(0, Math.min(10, v)))}
+                        min={0}
+                        max={10}
+                        step={0.1}
+                        onDec={() => setTornadoSpeed((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
+                        onInc={() => setTornadoSpeed((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
+                      />
+                      <SettingRow
+                        label={t("dial.camera.tornadoDirection")}
+                        value={t(TORNADO_DIRECTION_LABEL_KEYS[tornadoDirection])}
+                        options={TORNADO_DIRECTIONS.map((d) =>
+                          t(TORNADO_DIRECTION_LABEL_KEYS[d]),
+                        )}
+                        selectedIndex={TORNADO_DIRECTIONS.indexOf(tornadoDirection)}
+                        onSelectIndex={(i) => setTornadoDirection(TORNADO_DIRECTIONS[i])}
+                        onDec={() => setTornadoDirection("cw")}
+                        onInc={() => setTornadoDirection("ccw")}
+                      />
+                      {(cameraMode === "float" || cameraMode === "swing") && (
+                        <SettingRow
+                          label={t("dial.camera.tornadoOpening")}
+                          mode="number"
+                          value={`${tornadoOpening.toFixed(1)}m`}
+                          rawValue={tornadoOpening}
+                          onSet={(v) => setTornadoOpening(Math.max(3, Math.min(60, v)))}
+                          min={3}
+                          max={60}
+                          step={0.5}
+                          onDec={() =>
+                            setTornadoOpening((v) => Math.max(3, +(v - 0.5).toFixed(2)))
+                          }
+                          onInc={() =>
+                            setTornadoOpening((v) => Math.min(60, +(v + 0.5).toFixed(2)))
+                          }
+                        />
                       )}
-                      selectedIndex={WHIRLPOOL_DIRECTIONS.indexOf(noclipTornadoDirection)}
-                      onSelectIndex={(i) => setNoclipTornadoDirection(WHIRLPOOL_DIRECTIONS[i])}
-                      onDec={() => setNoclipTornadoDirection("cw")}
-                      onInc={() => setNoclipTornadoDirection("ccw")}
-                    />
-                    <SettingRow
-                      label={t("dial.camera.tornadoCloud")}
-                      value={onOff(tornadoCloudOn)}
-                      onDec={() => setTornadoCloudOn(false)}
-                      onInc={() => setTornadoCloudOn(true)}
-                    />
-                  </>
-                )}
+                      <SettingRow
+                        label={t("dial.camera.tornadoFollowCenter")}
+                        value={onOff(tornadoFollowCenter)}
+                        onDec={() => setTornadoFollowCenter(false)}
+                        onInc={() => setTornadoFollowCenter(true)}
+                      />
+                      <SettingRow
+                        label={t("dial.camera.tornadoCloud")}
+                        value={onOff(tornadoCloudOn)}
+                        onDec={() => setTornadoCloudOn(false)}
+                        onInc={() => setTornadoCloudOn(true)}
+                      />
+                      {tornadoCloudOn && cameraMode !== "float" && (
+                        <SettingRow
+                          label={t("dial.camera.tornadoCloudYOffset")}
+                          mode="number"
+                          value={`${tornadoCloudYOffset.toFixed(0)}m`}
+                          rawValue={tornadoCloudYOffset}
+                          onSet={(v) => setTornadoCloudYOffset(Math.max(-200, Math.min(200, v)))}
+                          min={-200}
+                          max={200}
+                          step={5}
+                          onDec={() =>
+                            setTornadoCloudYOffset((v) => Math.max(-200, +(v - 5).toFixed(0)))
+                          }
+                          onInc={() =>
+                            setTornadoCloudYOffset((v) => Math.min(200, +(v + 5).toFixed(0)))
+                          }
+                        />
+                      )}
+                    </>
+                  )}
                 {cameraMode === "swing" && (
                   <>
                     <SettingRow
@@ -2401,65 +2228,6 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       onDec={() => cycleSwingYWaveform(-1)}
                       onInc={() => cycleSwingYWaveform(1)}
                     />
-                    <SettingRow
-                      label={t("dial.camera.swingTornado")}
-                      value={onOff(swingTornadoOn)}
-                      onDec={() => setSwingTornadoOn(false)}
-                      onInc={() => setSwingTornadoOn(true)}
-                    />
-                    {swingTornadoOn && (
-                      <>
-                        <SettingRow
-                          label={t("dial.camera.swingTornadoRadius")}
-                          mode="number"
-                          value={`${swingTornadoRadius.toFixed(0)}m`}
-                          rawValue={swingTornadoRadius}
-                          onSet={(v) => setSwingTornadoRadius(Math.max(0, Math.min(2000, v)))}
-                          min={0}
-                          max={2000}
-                          step={5}
-                          onDec={() =>
-                            setSwingTornadoRadius((v) => Math.max(0, +(v - 5).toFixed(0)))
-                          }
-                          onInc={() =>
-                            setSwingTornadoRadius((v) => Math.min(2000, +(v + 5).toFixed(0)))
-                          }
-                        />
-                        <SettingRow
-                          label={t("dial.camera.swingTornadoSpeed")}
-                          mode="number"
-                          value={`${swingTornadoSpeed.toFixed(2)}x`}
-                          rawValue={swingTornadoSpeed}
-                          onSet={(v) => setSwingTornadoSpeed(Math.max(0, Math.min(10, v)))}
-                          min={0}
-                          max={10}
-                          step={0.1}
-                          onDec={() =>
-                            setSwingTornadoSpeed((v) => Math.max(0, +(v - 0.1).toFixed(2)))
-                          }
-                          onInc={() =>
-                            setSwingTornadoSpeed((v) => Math.min(10, +(v + 0.1).toFixed(2)))
-                          }
-                        />
-                        <SettingRow
-                          label={t("dial.camera.swingTornadoDirection")}
-                          value={t(WHIRLPOOL_DIRECTION_LABEL_KEYS[swingTornadoDirection])}
-                          options={WHIRLPOOL_DIRECTIONS.map((d) =>
-                            t(WHIRLPOOL_DIRECTION_LABEL_KEYS[d]),
-                          )}
-                          selectedIndex={WHIRLPOOL_DIRECTIONS.indexOf(swingTornadoDirection)}
-                          onSelectIndex={(i) => setSwingTornadoDirection(WHIRLPOOL_DIRECTIONS[i])}
-                          onDec={() => setSwingTornadoDirection("cw")}
-                          onInc={() => setSwingTornadoDirection("ccw")}
-                        />
-                        <SettingRow
-                          label={t("dial.camera.tornadoCloud")}
-                          value={onOff(tornadoCloudOn)}
-                          onDec={() => setTornadoCloudOn(false)}
-                          onInc={() => setTornadoCloudOn(true)}
-                        />
-                      </>
-                    )}
                   </>
                 )}
                 <SettingRow
@@ -2520,12 +2288,6 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   value={onOff(intervalIncludeFloat)}
                   onDec={() => setIntervalIncludeFloat(false)}
                   onInc={() => setIntervalIncludeFloat(true)}
-                />
-                <SettingRow
-                  label={t("dial.camera.intervalIncludeWhirlpool")}
-                  value={onOff(intervalIncludeWhirlpool)}
-                  onDec={() => setIntervalIncludeWhirlpool(false)}
-                  onInc={() => setIntervalIncludeWhirlpool(true)}
                 />
                 <SettingRow
                   label={t("dial.camera.intervalIncludeSwing")}
