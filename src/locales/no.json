@@ -825,6 +825,19 @@
     "title": "FJERNKONTROLL",
     "vagrikt": "BØLGERETN"
   },
+  "sceneryPresets": {
+    "buttonAriaLabel": "Velg scenografi og lagre forhåndsinnstillinger",
+    "buttonTitle": "SCENOGRAFI",
+    "choosePreset": "VELG LAGRET…",
+    "delete": "SLETT",
+    "deleteConfirm": "Slette denne lagrede scenografien?",
+    "load": "LAST INN",
+    "loadConfirm": "Dette erstatter gjeldende scene, miljø og vannoverflate.",
+    "loadConfirmTitle": "Laste inn denne scenografien?",
+    "save": "LAGRE",
+    "savePromptTitle": "Lagre scenografi som:",
+    "title": "SCENOGRAFI"
+  },
   "screens": {
     "editModeDescription": "Pauser bølger og kamerabevegelse slik at TV/mobil-skjermene i 3D-visningen kan flyttes, roteres og endre størrelse presist.",
     "editModeOff": "REDIGERINGSMODUS",

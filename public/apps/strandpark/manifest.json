@@ -1,0 +1,27 @@
+{
+  "scenes": [
+    { "id": "Strandpark", "name": "Strandpark" },
+    { "id": "Strandpark2", "name": "Strandpark2" }
+  ],
+  "environments": [
+    {
+      "id": "strandpark",
+      "name": "Strandpark",
+      "eras": [
+        {
+          "id": "present",
+          "name": "Nutid",
+          "times": [{ "id": "day", "name": "Dag" }]
+        },
+        {
+          "id": "future",
+          "name": "Framtid",
+          "times": [
+            { "id": "day", "name": "Dag" },
+            { "id": "night", "name": "Natt" }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -825,6 +825,19 @@
     "title": "FJERNBETJENING",
     "vagrikt": "BØLGERETN"
   },
+  "sceneryPresets": {
+    "buttonAriaLabel": "Vælg scenografi og gem forudindstillinger",
+    "buttonTitle": "SCENOGRAFI",
+    "choosePreset": "VÆLG GEMT…",
+    "delete": "SLET",
+    "deleteConfirm": "Slet denne gemte scenografi?",
+    "load": "INDLÆS",
+    "loadConfirm": "Dette erstatter den nuværende scene, miljø og vandoverflade.",
+    "loadConfirmTitle": "Indlæs denne scenografi?",
+    "save": "GEM",
+    "savePromptTitle": "Gem scenografi som:",
+    "title": "SCENOGRAFI"
+  },
   "screens": {
     "editModeDescription": "Pauser bølger og kamerabevægelse, så tv/mobil-skærmene i 3D-visningen kan flyttes, roteres og ændre størrelse præcist.",
     "editModeOff": "REDIGERINGSTILSTAND",

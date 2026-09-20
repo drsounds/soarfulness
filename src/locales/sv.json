@@ -825,6 +825,19 @@
     "title": "FJÄRRKONTROLL",
     "vagrikt": "VÅGRIKT"
   },
+  "sceneryPresets": {
+    "buttonAriaLabel": "Välj scenografi och spara förinställningar",
+    "buttonTitle": "SCENOGRAFI",
+    "choosePreset": "VÄLJ SPARAD…",
+    "delete": "RADERA",
+    "deleteConfirm": "Ta bort denna sparade scenografi?",
+    "load": "LÄS IN",
+    "loadConfirm": "Detta ersätter nuvarande scen, miljö och vattenyta.",
+    "loadConfirmTitle": "Läsa in denna scenografi?",
+    "save": "SPARA",
+    "savePromptTitle": "Spara scenografi som:",
+    "title": "SCENOGRAFI"
+  },
   "screens": {
     "editModeDescription": "Pausar vågor och kamerarörelse så att TV/mobil-skärmarna i 3D-vyn kan flyttas, roteras och ändras i storlek exakt.",
     "editModeOff": "REDIGERINGSLÄGE",

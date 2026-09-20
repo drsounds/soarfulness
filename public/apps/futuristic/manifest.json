@@ -1,0 +1,18 @@
+{
+  "environments": [
+    {
+      "id": "futuristic",
+      "name": "Futuristisk",
+      "eras": [
+        {
+          "id": "present",
+          "name": "Nutid",
+          "times": [
+            { "id": "day", "name": "Dag" },
+            { "id": "night", "name": "Natt" }
+          ]
+        }
+      ]
+    }
+  ]
+}

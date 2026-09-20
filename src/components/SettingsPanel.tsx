@@ -19,7 +19,6 @@ import {
   BOTTOM_LABEL_KEYS,
   BACKDROPS,
   BACKDROP_LABEL_KEYS,
-  WATER_SOUNDS,
   WATER_SOUND_LABEL_KEYS,
   TORUS_RING_TEXTURES,
   TORUS_TEXTURE_LABEL_KEYS,
@@ -51,6 +50,17 @@ import { pickJsonFile, type PresetScope, type SavedPreset, type SavedState } fro
 import { changeLanguage, SUPPORTED_LANGUAGES, LANGUAGE_NAMES, type LanguageCode } from "@/lib/i18n";
 import { useUiTheme, UI_THEME_IDS } from "@/lib/uiTheme";
 import { ShareBathDialog } from "@/components/ShareBathDialog";
+import { ScenerySelectorButton } from "@/components/ScenerySelectorDialog";
+import type { AppSceneryPreset, SavedSceneryPreset, SceneryData } from "@/lib/sceneryPresets";
+
+// The built-in WATER_SOUNDS entries have an i18next label key; per-app audio
+// tracks (routes/index.tsx's allWaterSounds) don't, so they fall back to
+// their own catalog "name" field, same as scene/environment/surface names.
+function waterSoundLabel(t: (key: string) => string, sound?: { id: string; name?: string }) {
+  if (!sound) return "";
+  const key = WATER_SOUND_LABEL_KEYS[sound.id];
+  return key ? t(key) : (sound.name ?? sound.id);
+}
 
 // i18next keys for enum values that don't already carry a human-readable
 // "name" (unlike scenes/environments/surfaces, which come from data with
@@ -325,7 +335,7 @@ function ThemeSettingsSection() {
   );
 }
 
-type NamedOption = { id: string; name: string };
+type NamedOption = { id: string; name: string; appId?: string };
 type EnvTimeOption = NamedOption;
 type EnvEraOption = NamedOption & { times: EnvTimeOption[] };
 type EnvOption = NamedOption & { eras: EnvEraOption[] };
@@ -710,6 +720,11 @@ export type SettingsPanelProps = {
   setTorusViewDistance: Dispatch<SetStateAction<number>>;
   torusFadeDistance: number;
   setTorusFadeDistance: Dispatch<SetStateAction<number>>;
+  // Every installed app's own metadata (public/apps/apps.json) — used only
+  // to label scenes/environments/surfaces by which app they shipped with in
+  // the ScenerySelectorDialog; apps never restrict which options are
+  // selectable elsewhere in this panel.
+  apps: { id: string; name: string }[];
   scenes: NamedOption[];
   sceneId: string | null;
   setSceneId: Dispatch<SetStateAction<string | null>>;
@@ -744,6 +759,18 @@ export type SettingsPanelProps = {
   setAudioSpatial: Dispatch<SetStateAction<boolean>>;
   waterSoundIdx: number;
   setWaterSoundIdx: Dispatch<SetStateAction<number>>;
+  // Built-in WATER_SOUNDS entries plus every installed app's own audio
+  // tracks appended after them — see routes/index.tsx's allWaterSounds.
+  waterSounds: { id: string; url: string; name?: string }[];
+
+  // Scenery presets (scene + environment/era/time + surface only — see
+  // src/lib/sceneryPresets.ts) backing the ScenerySelectorDialog trigger
+  // rendered in the header below, alongside SaveLoadMenu.
+  savedSceneryPresets: SavedSceneryPreset[];
+  appSceneryPresets: AppSceneryPreset[];
+  saveSceneryPresetAs: (name: string) => void;
+  loadSceneryPreset: (data: SceneryData) => void;
+  deleteSceneryPreset: (id: string) => void;
 };
 
 // Compact save/load/export/import row for one preset scope ("all", or a
@@ -1083,6 +1110,12 @@ export function SettingsPanel(props: SettingsPanelProps) {
     saveStateAs,
     loadSavedStateById,
     deleteSavedState,
+    apps,
+    savedSceneryPresets,
+    appSceneryPresets,
+    saveSceneryPresetAs,
+    loadSceneryPreset,
+    deleteSceneryPreset,
     buildBathLink,
     waveAmp,
     setWaveAmp,
@@ -1393,6 +1426,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setAudioSpatial,
     waterSoundIdx,
     setWaterSoundIdx,
+    waterSounds,
   } = props;
 
   const { t } = useTranslation();
@@ -1430,6 +1464,32 @@ export function SettingsPanel(props: SettingsPanelProps) {
             saveStateAs={saveStateAs}
             loadSavedStateById={loadSavedStateById}
             deleteSavedState={deleteSavedState}
+          />
+          <ScenerySelectorButton
+            apps={apps}
+            scenes={scenes}
+            sceneId={sceneId}
+            setSceneId={setSceneId}
+            cycleScene={cycleScene}
+            environments={environments}
+            curEnv={curEnv}
+            curEra={curEra}
+            curTime={curTime}
+            applyEnv={applyEnv}
+            applyEra={applyEra}
+            setEnvTime={setEnvTime}
+            cycleEnv={cycleEnv}
+            cycleEra={cycleEra}
+            cycleTime={cycleTime}
+            surfaces={surfaces}
+            surfaceId={surfaceId}
+            setSurfaceId={setSurfaceId}
+            cycleSurface={cycleSurface}
+            savedSceneryPresets={savedSceneryPresets}
+            appSceneryPresets={appSceneryPresets}
+            saveSceneryPresetAs={saveSceneryPresetAs}
+            loadSceneryPreset={loadSceneryPreset}
+            deleteSceneryPreset={deleteSceneryPreset}
           />
           <LanguageSwitcher />
           <Link
@@ -3264,14 +3324,14 @@ export function SettingsPanel(props: SettingsPanelProps) {
                 />
                 <SettingRow
                   label={t("dial.audio.sound")}
-                  value={t(WATER_SOUND_LABEL_KEYS[WATER_SOUNDS[waterSoundIdx].id])}
-                  options={WATER_SOUNDS.map((s) => t(WATER_SOUND_LABEL_KEYS[s.id]))}
+                  value={waterSoundLabel(t, waterSounds[waterSoundIdx] ?? waterSounds[0])}
+                  options={waterSounds.map((s) => waterSoundLabel(t, s))}
                   selectedIndex={waterSoundIdx}
                   onSelectIndex={setWaterSoundIdx}
                   onDec={() =>
-                    setWaterSoundIdx((i) => (i - 1 + WATER_SOUNDS.length) % WATER_SOUNDS.length)
+                    setWaterSoundIdx((i) => (i - 1 + waterSounds.length) % waterSounds.length)
                   }
-                  onInc={() => setWaterSoundIdx((i) => (i + 1) % WATER_SOUNDS.length)}
+                  onInc={() => setWaterSoundIdx((i) => (i + 1) % waterSounds.length)}
                 />
                 <SettingRow
                   label={t("dial.audio.syncSpeed")}

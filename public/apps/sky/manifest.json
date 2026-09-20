@@ -1,0 +1,15 @@
+{
+  "environments": [
+    {
+      "id": "sky",
+      "name": "Himmel",
+      "eras": [
+        {
+          "id": "present",
+          "name": "Nutid",
+          "times": [{ "id": "day", "name": "Dag" }]
+        }
+      ]
+    }
+  ]
+}

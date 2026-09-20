@@ -1,0 +1,12 @@
+{
+  "apps": [
+    { "id": "strandpark", "name": "Strandpark", "description": "Strandpark's beach scenes and skybox." },
+    { "id": "lisch", "name": "Lisch", "description": "The Lisch scene." },
+    { "id": "coordlux", "name": "Coordlux", "description": "The Coordlux scene." },
+    { "id": "stockholm", "name": "Stockholm", "description": "Stockholm skybox." },
+    { "id": "bucharest", "name": "Bucharest", "description": "Bucharest skybox." },
+    { "id": "vanern", "name": "Vänern", "description": "Vänern's skybox and water-surface reflection." },
+    { "id": "futuristic", "name": "Futuristisk", "description": "A futuristic skybox." },
+    { "id": "sky", "name": "Himmel", "description": "A plain sky skybox." }
+  ]
+}

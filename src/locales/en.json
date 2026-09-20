@@ -825,6 +825,19 @@
     "title": "REMOTE",
     "vagrikt": "WAVE DIR"
   },
+  "sceneryPresets": {
+    "buttonAriaLabel": "Choose scenery and save presets",
+    "buttonTitle": "SCENERY",
+    "choosePreset": "CHOOSE SAVED…",
+    "delete": "DELETE",
+    "deleteConfirm": "Delete this saved scenery preset?",
+    "load": "LOAD",
+    "loadConfirm": "This replaces the current scene, environment and water surface.",
+    "loadConfirmTitle": "Load this scenery?",
+    "save": "SAVE",
+    "savePromptTitle": "Save scenery as:",
+    "title": "SCENERY"
+  },
   "screens": {
     "editModeDescription": "Pauses waves and camera movement so the TV/mobile screens in the 3D view can be moved, rotated and resized precisely.",
     "editModeOff": "EDIT MODE",

@@ -13,6 +13,7 @@ import { WatercraftRig } from "@/lib/watercraft/WatercraftRig";
 import type { BuildAction, SculptAction, ToolMode } from "@/lib/watercraft/types";
 import { WatercraftHud } from "@/components/watercraft/WatercraftHud";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { ScenerySelectorButton } from "@/components/ScenerySelectorDialog";
 import { VirtualPhone, type RemoteControllerProps } from "@/components/VirtualPhone";
 import { SettingsPanel, type SettingsPanelProps } from "@/components/SettingsPanel";
 import { ShareBathDialog } from "@/components/ShareBathDialog";
@@ -82,6 +83,27 @@ import {
   addSavedState,
   removeSavedState,
 } from "@/lib/presets";
+import {
+  type AppEntry,
+  type AppEnvEra,
+  type AppEnvironmentEntry,
+  type AppSceneEntry,
+  type AppSurfaceEntry,
+  type AppAudioEntry,
+  fetchAppCatalog,
+  sceneDir,
+  environmentDir,
+  surfaceDir,
+} from "@/lib/appCatalog";
+import {
+  type SavedSceneryPreset,
+  type AppSceneryPreset,
+  type SceneryData,
+  loadSavedSceneryPresets,
+  addSavedSceneryPreset,
+  removeSavedSceneryPreset,
+  fetchAllAppSceneryPresets,
+} from "@/lib/sceneryPresets";
 import {
   encodeStateToBase62,
   buildBathUrl,
@@ -494,12 +516,13 @@ function hexToRgbNorm(hex: string): [number, number, number] {
   return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
 }
 
-// A loadable scene lives in public/scenes/<id>/<id>.glb (or <id>.gltf, for
-// scenes exported with external .bin/texture files instead of a single
-// binary blob) with an optional public/scenes/<id>/manifest.json describing
-// where/how to place it. The list of available scenes and their display
-// names comes from public/scenes/scenes.json.
-type SceneEntry = { id: string; name: string };
+// A loadable scene lives in public/apps/<appId>/scenes/<id>/<id>.glb (or
+// <id>.gltf, for scenes exported with external .bin/texture files instead of
+// a single binary blob) with an optional
+// public/apps/<appId>/scenes/<id>/manifest.json describing where/how to
+// place it. The list of available scenes (and which app each ships with)
+// comes from walking every installed app's own manifest.json — see
+// src/lib/appCatalog.ts's fetchAppCatalog / AppSceneEntry.
 // One named player start point, listed under a scene manifest's "locations"
 // (or "places" — either key is accepted) array. yaw is in radians, matching
 // yawRef; omitted fields default to 0.
@@ -617,14 +640,13 @@ function disposeObject(obj: THREE.Object3D) {
 }
 
 // A real (3D) skybox environment lives under
-//   public/environments/<env>/<era>/<time>/skybox.png  (+ manifest.json)
-// and the tree of available environments/eras/times comes from
-// public/environments/environment.json. The skybox is rendered as the scene's
-// equirectangular background so it responds correctly to camera rotation,
-// unlike the flat DOM backdrop which stays fixed on screen.
-type EnvTime = { id: string; name: string };
-type EnvEra = { id: string; name: string; times: EnvTime[] };
-type EnvironmentEntry = { id: string; name: string; eras: EnvEra[] };
+//   public/apps/<appId>/environments/<env>/<era>/<time>/skybox.png  (+ manifest.json)
+// and the tree of available environments/eras/times (and which app each
+// ships with) comes from walking every installed app's own manifest.json —
+// see src/lib/appCatalog.ts's fetchAppCatalog / AppEnvironmentEntry. The
+// skybox is rendered as the scene's equirectangular background so it
+// responds correctly to camera rotation, unlike the flat DOM backdrop which
+// stays fixed on screen.
 type EnvManifest = {
   name?: string;
   // If set, the water/lighting palette snaps to this time-of-day (0..1).
@@ -635,43 +657,13 @@ type EnvManifest = {
   image?: string;
 };
 
-// Parse the loosely-typed environment.json into a validated tree.
-function parseEnvironments(data: unknown): EnvironmentEntry[] {
-  const rawList = Array.isArray(data)
-    ? data
-    : ((data as { environments?: unknown }).environments ?? []);
-  if (!Array.isArray(rawList)) return [];
-  const str = (v: unknown, fallback: string) => (typeof v === "string" ? v : fallback);
-  return rawList
-    .map((e) => {
-      const env = e as { id?: unknown; name?: unknown; eras?: unknown };
-      if (typeof env.id !== "string") return null;
-      const eras = (Array.isArray(env.eras) ? env.eras : [])
-        .map((er) => {
-          const era = er as { id?: unknown; name?: unknown; times?: unknown };
-          if (typeof era.id !== "string") return null;
-          const times = (Array.isArray(era.times) ? era.times : [])
-            .map((tm) => {
-              const time = tm as { id?: unknown; name?: unknown };
-              return typeof time.id === "string"
-                ? { id: time.id, name: str(time.name, time.id) }
-                : null;
-            })
-            .filter((t): t is EnvTime => t !== null);
-          return times.length ? { id: era.id, name: str(era.name, era.id), times } : null;
-        })
-        .filter((er): er is EnvEra => er !== null);
-      return eras.length ? { id: env.id, name: str(env.name, env.id), eras } : null;
-    })
-    .filter((e): e is EnvironmentEntry => e !== null);
-}
-
 // A water-surface reflection preset lives at
-//   public/surfaces/<id>/surface.png  (+ manifest.json)
-// and the list comes from public/surfaces/surfaces.json. The photo is sampled
-// along the reflection vector to fake a richer environment reflection than the
-// flat horizon→sky gradient.
-type SurfaceEntry = { id: string; name: string };
+//   public/apps/<appId>/surfaces/<id>/surface.png  (+ manifest.json)
+// and the list (and which app each ships with) comes from walking every
+// installed app's own manifest.json — see src/lib/appCatalog.ts's
+// fetchAppCatalog / AppSurfaceEntry. The photo is sampled along the
+// reflection vector to fake a richer environment reflection than the flat
+// horizon→sky gradient.
 type SurfaceManifest = {
   name?: string;
   // How strongly the photo replaces the gradient reflection (0..1, default 0.6).
@@ -1297,16 +1289,21 @@ export function Aquafulness() {
   const [worldBoundaryHeight, setWorldBoundaryHeight] = useState(initial.worldBoundaryHeight);
   const [worldBoundaryYExtend, setWorldBoundaryYExtend] = useState(initial.worldBoundaryYExtend);
   const [liveMode, setLiveMode] = useState(initial.liveMode);
-  // Loadable .glb scenes discovered from public/scenes/scenes.json.
-  const [scenes, setScenes] = useState<SceneEntry[]>([]);
+  // Every installed app's own metadata (public/apps/apps.json) — used to
+  // label/group scene/environment/surface/audio options by which app they
+  // shipped with (see ScenerySelectorDialog); apps are a packaging unit
+  // only, so this never restricts which options are selectable.
+  const [apps, setApps] = useState<AppEntry[]>([]);
+  // Loadable scenes discovered by walking every installed app's manifest.json.
+  const [scenes, setScenes] = useState<AppSceneEntry[]>([]);
   const [sceneId, setSceneId] = useState<string | null>(initial.sceneId);
   // Named respawn points for the current scene, from its manifest's
   // "locations"/"places" list (see resolveSpawnLocations) — always at least
   // one entry (the {0,0,0} fallback when the manifest defines none).
   const [spawnLocations, setSpawnLocations] = useState<SpawnLocation[]>([DEFAULT_SPAWN_LOCATION]);
   const [spawnLocationId, setSpawnLocationId] = useState<string | null>(initial.spawnLocationId);
-  // Real-skybox environments discovered from public/environments/environment.json.
-  const [environments, setEnvironments] = useState<EnvironmentEntry[]>([]);
+  // Real-skybox environments discovered by walking every installed app's manifest.json.
+  const [environments, setEnvironments] = useState<AppEnvironmentEntry[]>([]);
   const [envId, setEnvId] = useState<string | null>(initial.envId);
   const [envEra, setEnvEra] = useState<string | null>(initial.envEra);
   const [envTime, setEnvTime] = useState<string | null>(initial.envTime);
@@ -1336,9 +1333,13 @@ export function Aquafulness() {
   // the year-2100 gate below, so it can be reverted automatically too —
   // without ever overriding an era the user picked by hand.
   const autoFuturisticEraRef = useRef(false);
-  // Selectable water-surface reflection presets from public/surfaces/surfaces.json.
-  const [surfaces, setSurfaces] = useState<SurfaceEntry[]>([]);
+  // Selectable water-surface reflection presets discovered by walking every
+  // installed app's manifest.json.
+  const [surfaces, setSurfaces] = useState<AppSurfaceEntry[]>([]);
   const [surfaceId, setSurfaceId] = useState<string | null>(initial.surfaceId);
+  // Per-app audio tracks (public/apps/<appId>/audio/*), appended after the
+  // built-in WATER_SOUNDS entries — see allWaterSounds below.
+  const [appAudioTracks, setAppAudioTracks] = useState<AppAudioEntry[]>([]);
   const [reflStrength, setReflStrength] = useState(initial.reflStrength);
   const [bottomColor, setBottomColor] = useState(initial.bottomColor);
   const [sphereMaterial, setSphereMaterial] = useState(initial.sphereMaterial);
@@ -1505,6 +1506,16 @@ export function Aquafulness() {
   // direction) — see buildFullStateSnapshot/applyFullState below and
   // src/lib/presets.ts's separate "state" file kind/localStorage list.
   const [savedStates, setSavedStates] = useState<SavedState[]>(() => loadSavedStates());
+  // Named "scenery" presets (scene + environment/era/time + surface only) —
+  // see src/lib/sceneryPresets.ts and the ScenerySelectorDialog this backs.
+  // Separate from savedPresets above (a different, narrower field set than
+  // any existing PresetScope covers) — user-saved ones live in localStorage
+  // here, while appSceneryPresets holds each installed app's own shipped
+  // defaults (read-only, fetched below once the app catalog loads).
+  const [savedSceneryPresets, setSavedSceneryPresets] = useState<SavedSceneryPreset[]>(() =>
+    loadSavedSceneryPresets(),
+  );
+  const [appSceneryPresets, setAppSceneryPresets] = useState<AppSceneryPreset[]>([]);
   const [phoneOpen, setPhoneOpen] = useState(false);
   const [uiVisible, setUiVisible] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -3218,6 +3229,21 @@ export function Aquafulness() {
     setSavedPresets((list) => removeSavedPreset(list, id));
   };
 
+  // Scenery preset save/load/delete (see src/lib/sceneryPresets.ts) — the
+  // narrower {sceneId, envId, envEra, envTime, surfaceId} bundle backing the
+  // ScenerySelectorDialog. Loading one reuses applySettingsPatch (defined
+  // above) directly, since SceneryData is already a valid Partial<Persisted>.
+  const saveSceneryPresetAs = (name: string) => {
+    const data: SceneryData = { sceneId, envId, envEra, envTime, surfaceId };
+    setSavedSceneryPresets((list) => addSavedSceneryPreset(list, name, data));
+  };
+  const loadSceneryPreset = (data: SceneryData) => {
+    applySettingsPatch(data);
+  };
+  const deleteSceneryPreset = (id: string) => {
+    setSavedSceneryPresets((list) => removeSavedSceneryPreset(list, id));
+  };
+
   // The runtime-only half of a full "state" save/load (as opposed to a
   // parameters-only preset above): the player's live position/look and the
   // STRÖM/SVAJ world-space direction vectors. None of these are part of
@@ -3606,7 +3632,18 @@ export function Aquafulness() {
       : Math.max(0, Math.min(1, reflBaseRef.current * reflStrengthRef.current));
   };
 
-  // Ocean sound: loop the selected recorded water track (see WATER_SOUNDS)
+  // The built-in WATER_SOUNDS tracks, plus every installed app's own audio
+  // tracks appended after them — waterSoundIdx stays a plain array index
+  // (rather than becoming a catalog-style string id like sceneId/surfaceId)
+  // since the 3 built-ins never change position, so old persisted indices
+  // keep pointing at the same track even as apps contribute more entries
+  // after them.
+  const allWaterSounds = useMemo(
+    () => [...WATER_SOUNDS, ...appAudioTracks.map((a) => ({ id: a.id, url: a.url, name: a.name }))],
+    [appAudioTracks],
+  );
+
+  // Ocean sound: loop the selected recorded water track (see allWaterSounds)
   // through a lowpass + depth gain so we can still muffle & boost it based
   // on how deep the camera is.
   useEffect(() => {
@@ -3654,7 +3691,7 @@ export function Aquafulness() {
       (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     const ctx = new Ctx();
 
-    const el = new Audio(WATER_SOUNDS[waterSoundIdx]?.url ?? WATER_SOUNDS[0].url);
+    const el = new Audio(allWaterSounds[waterSoundIdx]?.url ?? WATER_SOUNDS[0].url);
     el.loop = true;
     el.crossOrigin = "anonymous";
     el.preload = "auto";
@@ -3684,7 +3721,7 @@ export function Aquafulness() {
     master.gain.setTargetAtTime(audioVol, ctx.currentTime, 0.6);
 
     audioRef.current = { ctx, el, master, depthGain, lp };
-  }, [audioOn, waterSoundIdx]);
+  }, [audioOn, waterSoundIdx, allWaterSounds]);
 
   // React to volume changes
   useEffect(() => {
@@ -3820,49 +3857,53 @@ export function Aquafulness() {
     }
   };
 
-  // Discover the available .glb scenes from public/scenes/scenes.json.
+  // Discover every scene/environment/surface/audio track bundled across all
+  // installed apps (public/apps/apps.json + each app's own manifest.json) —
+  // see src/lib/appCatalog.ts for the shared discovery/path-building module
+  // also used by the offline precache walker (src/lib/offlineAssets.ts).
   useEffect(() => {
     let alive = true;
-    fetch("/scenes/scenes.json")
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("no scenes.json"))))
-      .then((data: unknown) => {
+    fetchAppCatalog()
+      .then((catalog) => {
         if (!alive) return;
-        const raw = Array.isArray(data) ? data : ((data as { scenes?: unknown }).scenes ?? []);
-        const list: SceneEntry[] = (Array.isArray(raw) ? raw : [])
-          .map((s) => {
-            const e = s as { id?: unknown; name?: unknown };
-            return typeof e.id === "string"
-              ? { id: e.id, name: typeof e.name === "string" ? e.name : e.id }
-              : null;
-          })
-          .filter((s): s is SceneEntry => s !== null);
-        setScenes(list);
+        setApps(catalog.apps);
+        setScenes(catalog.scenes);
         // Drop a persisted selection that no longer exists.
-        setSceneId((cur) => (cur && !list.some((s) => s.id === cur) ? null : cur));
+        setSceneId((cur) => (cur && !catalog.scenes.some((s) => s.id === cur) ? null : cur));
+        setEnvironments(catalog.environments);
+        setSurfaces(catalog.surfaces);
+        setSurfaceId((cur) => (cur && !catalog.surfaces.some((s) => s.id === cur) ? null : cur));
+        setAppAudioTracks(catalog.audio);
       })
       .catch(() => {
-        if (alive) setScenes([]);
+        if (!alive) return;
+        setApps([]);
+        setScenes([]);
+        setEnvironments([]);
+        setSurfaces([]);
+        setAppAudioTracks([]);
       });
     return () => {
       alive = false;
     };
   }, []);
 
-  // Discover the available skybox environments from environment.json.
+  // Once the installed apps are known, fetch each one's shipped "scenery"
+  // presets (public/apps/<appId>/scenary/manifest.json) — read-only defaults
+  // shown alongside the player's own saved ones in the ScenerySelectorDialog.
   useEffect(() => {
     let alive = true;
-    fetch("/environments/environment.json")
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("no environment.json"))))
-      .then((data: unknown) => {
-        if (alive) setEnvironments(parseEnvironments(data));
-      })
-      .catch(() => {
-        if (alive) setEnvironments([]);
-      });
+    if (apps.length === 0) {
+      setAppSceneryPresets([]);
+      return;
+    }
+    fetchAllAppSceneryPresets(apps.map((a) => a.id)).then((list) => {
+      if (alive) setAppSceneryPresets(list);
+    });
     return () => {
       alive = false;
     };
-  }, []);
+  }, [apps]);
 
   // Once the environment list loads, repair a persisted selection whose
   // env/era/time no longer exists (e.g. renamed or removed on disk).
@@ -3881,33 +3922,6 @@ export function Aquafulness() {
     if (time?.id !== envTime) setEnvTime(time?.id ?? null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [environments]);
-
-  // Discover the available reflection surfaces from surfaces.json.
-  useEffect(() => {
-    let alive = true;
-    fetch("/surfaces/surfaces.json")
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("no surfaces.json"))))
-      .then((data: unknown) => {
-        if (!alive) return;
-        const raw = Array.isArray(data) ? data : ((data as { surfaces?: unknown }).surfaces ?? []);
-        const list: SurfaceEntry[] = (Array.isArray(raw) ? raw : [])
-          .map((s) => {
-            const e = s as { id?: unknown; name?: unknown };
-            return typeof e.id === "string"
-              ? { id: e.id, name: typeof e.name === "string" ? e.name : e.id }
-              : null;
-          })
-          .filter((s): s is SurfaceEntry => s !== null);
-        setSurfaces(list);
-        setSurfaceId((cur) => (cur && !list.some((s) => s.id === cur) ? null : cur));
-      })
-      .catch(() => {
-        if (alive) setSurfaces([]);
-      });
-    return () => {
-      alive = false;
-    };
-  }, []);
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -6977,14 +6991,20 @@ export function Aquafulness() {
     }
     modelBobRef.current = null;
 
-    if (!sceneId) {
+    // The owning app is looked up from the merged catalog (see the
+    // appCatalog-fetch effect above) rather than stored alongside sceneId
+    // itself, so a persisted sceneId from localStorage still resolves once
+    // the catalog loads (apps are a packaging unit, not part of the
+    // player's saved selection).
+    const sceneEntry = sceneId ? scenes.find((s) => s.id === sceneId) : null;
+    if (!sceneId || !sceneEntry) {
       setSpawnLocations([DEFAULT_SPAWN_LOCATION]);
       setSceneBootSettled(true);
       return;
     }
 
     let cancelled = false;
-    const base = `/scenes/${encodeURIComponent(sceneId)}`;
+    const base = sceneDir(sceneEntry.appId, sceneId);
     const loader = new GLTFLoader();
     // Scenes are exported as either a single-file .glb or a .gltf with
     // sibling .bin/texture files; try .glb first (the common case) and fall
@@ -7024,7 +7044,7 @@ export function Aquafulness() {
     return () => {
       cancelled = true;
     };
-  }, [sceneId]);
+  }, [sceneId, scenes]);
 
   // Drop a persisted spawn-location selection that no longer exists once the
   // current scene's location list resolves (e.g. after switching scenes, or
@@ -7051,16 +7071,16 @@ export function Aquafulness() {
       }
     };
 
-    // No environment (or an incomplete selection) → procedural sky dome.
-    if (!envId || !envEra || !envTime) {
+    const envEntry = envId ? environments.find((e) => e.id === envId) : null;
+    // No environment (or an incomplete/not-yet-resolved selection) → procedural sky dome.
+    if (!envId || !envEra || !envTime || !envEntry) {
       clearSkybox();
       setEnvBootSettled(true);
       return;
     }
 
     let cancelled = false;
-    const base = [envId, envEra, envTime].map(encodeURIComponent).join("/");
-    const dir = `/environments/${base}`;
+    const dir = environmentDir(envEntry.appId, envId, envEra, envTime);
 
     fetch(`${dir}/manifest.json`)
       .then((r) => (r.ok ? (r.json() as Promise<EnvManifest>) : {}))
@@ -7091,7 +7111,7 @@ export function Aquafulness() {
           },
           undefined,
           (err) => {
-            console.error(`Failed to load skybox "${base}"`, err);
+            console.error(`Failed to load skybox "${envId}/${envEra}/${envTime}"`, err);
             if (!cancelled) {
               clearSkybox();
               setEnvBootSettled(true);
@@ -7103,7 +7123,7 @@ export function Aquafulness() {
     return () => {
       cancelled = true;
     };
-  }, [envId, envEra, envTime]);
+  }, [envId, envEra, envTime, environments]);
 
   // Load / swap the selected water-surface reflection photo into the water
   // shader. Re-runs whenever the surface selection changes.
@@ -7121,14 +7141,15 @@ export function Aquafulness() {
       }
     };
 
-    if (!surfaceId) {
+    const surfaceEntry = surfaceId ? surfaces.find((s) => s.id === surfaceId) : null;
+    if (!surfaceId || !surfaceEntry) {
       revert();
       setSurfaceBootSettled(true);
       return;
     }
 
     let cancelled = false;
-    const dir = `/surfaces/${encodeURIComponent(surfaceId)}`;
+    const dir = surfaceDir(surfaceEntry.appId, surfaceId);
 
     fetch(`${dir}/manifest.json`)
       .then((r) => (r.ok ? (r.json() as Promise<SurfaceManifest>) : {}))
@@ -7173,7 +7194,7 @@ export function Aquafulness() {
     return () => {
       cancelled = true;
     };
-  }, [surfaceId]);
+  }, [surfaceId, surfaces]);
 
   // Time-of-day label
   const todLabel = (() => {
@@ -7527,6 +7548,13 @@ export function Aquafulness() {
     setAudioSpatial,
     waterSoundIdx,
     setWaterSoundIdx,
+    waterSounds: allWaterSounds,
+    apps,
+    savedSceneryPresets,
+    appSceneryPresets,
+    saveSceneryPresetAs,
+    loadSceneryPreset,
+    deleteSceneryPreset,
   };
 
   // JUMP: noclip's vertical mode slider condenses FRITT FALL/OMVÄND STIGNING/

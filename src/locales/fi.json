@@ -825,6 +825,19 @@
     "title": "KAUKOSÄÄDIN",
     "vagrikt": "AALLON SUUNTA"
   },
+  "sceneryPresets": {
+    "buttonAriaLabel": "Valitse maisema ja tallenna esiasetuksia",
+    "buttonTitle": "MAISEMA",
+    "choosePreset": "VALITSE TALLENNETTU…",
+    "delete": "POISTA",
+    "deleteConfirm": "Poistetaanko tämä tallennettu maisema?",
+    "load": "LATAA",
+    "loadConfirm": "Tämä korvaa nykyisen kohtauksen, ympäristön ja vedenpinnan.",
+    "loadConfirmTitle": "Ladataanko tämä maisema?",
+    "save": "TALLENNA",
+    "savePromptTitle": "Tallenna maisema nimellä:",
+    "title": "MAISEMA"
+  },
   "screens": {
     "editModeDescription": "Pysäyttää aallot ja kameran liikkeen, jotta 3D-näkymän TV/mobiilinäytöt voidaan siirtää, kääntää ja mitoittaa tarkasti.",
     "editModeOff": "MUOKKAUSTILA",
