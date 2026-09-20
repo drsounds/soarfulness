@@ -40,6 +40,7 @@ import {
   SETTINGS_TABS,
   CAMERA_MODES,
   CAMERA_MODE_LABEL_KEYS,
+  TORNADO_DIRECTION_LABEL_KEYS,
   SWING_PRESETS,
   TORUS_RING_TEXTURES,
   SWING_Y_WAVEFORMS,
@@ -898,9 +899,10 @@ const DEFAULTS: Persisted = {
   tornadoSpeed: 1,
   tornadoDirection: "cw",
   tornadoOpening: 14,
-  // Off by default: camera keeps whatever forward direction NAV/LOOK has it
-  // facing instead of easing toward staring at the tornado/whirlpool center.
-  tornadoFollowCenter: false,
+  // On by default: camera eases toward staring at the tornado/whirlpool
+  // center (like the old standalone VIRVEL mode always did) instead of
+  // keeping whatever forward direction NAV/LOOK has it facing.
+  tornadoFollowCenter: true,
   // TORNADO CLOUD: off by default — purely cosmetic.
   tornadoCloudOn: false,
   // Interval session off by default; a 30s FRI/GUNGA alternation running
@@ -1463,10 +1465,14 @@ export function Aquafulness() {
   // SETTINGS) rather than as always-on sliders, so a stray touch near
   // bottom-center can't accidentally nudge a value mid-session.
   const [cameraDrawerOpen, setCameraDrawerOpen] = useState(false);
-  // Which camera mode's tab the drawer above is showing — kept independent
-  // of cameraMode itself (so it can be browsed without switching modes) but
-  // re-synced to it below whenever cameraMode actually changes.
-  const [cameraDrawerTab, setCameraDrawerTab] = useState<CameraMode>(cameraMode);
+  // Which tab the drawer above is showing — usually one of the camera modes
+  // (kept independent of cameraMode itself, so it can be browsed without
+  // switching modes, but re-synced to it below whenever cameraMode actually
+  // changes) plus one extra "tornado" tab that isn't a camera mode at all,
+  // just a settings category always available regardless of which mode is
+  // active (mirrors the old standalone VIRVEL tab this drawer used to have).
+  type CameraDrawerTab = CameraMode | "tornado";
+  const [cameraDrawerTab, setCameraDrawerTab] = useState<CameraDrawerTab>(cameraMode);
   // Named settings presets (save/load, in addition to file export/import
   // below) — kept in their own localStorage list, separate from the
   // always-on autosave under STORAGE_KEY. See src/lib/presets.ts.
@@ -8083,6 +8089,16 @@ export function Aquafulness() {
                       {t(CAMERA_MODE_LABEL_KEYS[m])}
                     </button>
                   ))}
+                  <button
+                    type="button"
+                    onClick={() => setCameraDrawerTab("tornado")}
+                    aria-pressed={cameraDrawerTab === "tornado"}
+                    className={`rounded-full px-3 py-1 text-[9px] font-light tracking-[0.2em] transition active:scale-95 ${
+                      cameraDrawerTab === "tornado" ? "ui-tint-2 ui-ink" : "ui-ink-muted"
+                    }`}
+                  >
+                    {t("dial.camera.tornado")}
+                  </button>
                 </div>
                 {cameraDrawerTab === "float" && (
                   <>
@@ -8169,6 +8185,87 @@ export function Aquafulness() {
                     />
                   </>
                 )}
+                {/* TORNADO: a fixed tab (not tied to any one camera mode)
+                    exposing every tornado* setting at once — mirrors the old
+                    standalone VIRVEL tab this drawer used to have. */}
+                {cameraDrawerTab === "tornado" && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setTornadoOn((v) => !v)}
+                      aria-pressed={tornadoOn}
+                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                        tornadoOn ? "ui-line-3 ui-tint-2 ui-ink" : "ui-line-2 ui-surface ui-ink-muted"
+                      }`}
+                    >
+                      {t("dial.camera.tornado")}: {t(tornadoOn ? "common.on" : "common.off")}
+                    </button>
+                    <PadSlider
+                      label={t("dial.camera.tornadoRadius")}
+                      value={tornadoRadius}
+                      min={0}
+                      max={2000}
+                      step={5}
+                      curve={2}
+                      format={(v) => `${v.toFixed(0)}m`}
+                      onChange={setTornadoRadius}
+                    />
+                    <PadSlider
+                      label={t("dial.camera.tornadoSpeed")}
+                      value={tornadoSpeed}
+                      min={0}
+                      max={10}
+                      step={0.1}
+                      curve={2}
+                      format={(v) => `${v.toFixed(2)}×`}
+                      onChange={setTornadoSpeed}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setTornadoDirection((d) => (d === "cw" ? "ccw" : "cw"))}
+                      className="rounded-full border ui-line-2 ui-surface px-4 py-1.5 text-[10px] font-light tracking-[0.2em] ui-ink-muted transition active:scale-95"
+                    >
+                      {t("dial.camera.tornadoDirection")}:{" "}
+                      {t(TORNADO_DIRECTION_LABEL_KEYS[tornadoDirection])}
+                    </button>
+                    {(cameraMode === "float" || cameraMode === "swing") && (
+                      <PadSlider
+                        label={t("dial.camera.tornadoOpening")}
+                        value={tornadoOpening}
+                        min={3}
+                        max={60}
+                        step={0.5}
+                        format={(v) => `${v.toFixed(1)}m`}
+                        onChange={setTornadoOpening}
+                      />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setTornadoFollowCenter((v) => !v)}
+                      aria-pressed={tornadoFollowCenter}
+                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                        tornadoFollowCenter
+                          ? "ui-line-3 ui-tint-2 ui-ink"
+                          : "ui-line-2 ui-surface ui-ink-muted"
+                      }`}
+                    >
+                      {t("dial.camera.tornadoFollowCenter")}:{" "}
+                      {t(tornadoFollowCenter ? "common.on" : "common.off")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTornadoCloudOn((v) => !v)}
+                      aria-pressed={tornadoCloudOn}
+                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                        tornadoCloudOn
+                          ? "ui-line-3 ui-tint-2 ui-ink"
+                          : "ui-line-2 ui-surface ui-ink-muted"
+                      }`}
+                    >
+                      {t("dial.camera.tornadoCloud")}: {t(tornadoCloudOn ? "common.on" : "common.off")}
+                    </button>
+                  </>
+                )}
               </div>
             )}
             <button
@@ -8181,7 +8278,9 @@ export function Aquafulness() {
             >
               {cameraDrawerOpen
                 ? t("hud.cameraDrawer.closeLabel")
-                : t(CAMERA_MODE_LABEL_KEYS[cameraDrawerTab])}
+                : cameraDrawerTab === "tornado"
+                  ? t("dial.camera.tornado")
+                  : t(CAMERA_MODE_LABEL_KEYS[cameraDrawerTab])}
             </button>
           </div>
         )}
