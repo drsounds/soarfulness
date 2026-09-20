@@ -165,6 +165,7 @@
       "targetFps": "FRAME RATE CAP",
       "tornado": "TORNADO",
       "tornadoCloud": "TORNADO CLOUD",
+      "tornadoCloudYOffset": "TORNADO CLOUD Y OFFSET",
       "tornadoDirection": "TORNADO DIRECTION",
       "tornadoFollowCenter": "FOLLOW CENTER",
       "tornadoOpening": "TORNADO OPENING",

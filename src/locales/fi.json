@@ -165,6 +165,7 @@
       "targetFps": "KUVATAAJUUSKATTO",
       "tornado": "TORNADO",
       "tornadoCloud": "TORNADON PILVI",
+      "tornadoCloudYOffset": "TORNADON PILVI Y-OFFSET",
       "tornadoDirection": "TORNADON SUUNTA",
       "tornadoFollowCenter": "SEURAA KESKUSTAA",
       "tornadoOpening": "TORNADON AUKKO",

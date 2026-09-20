@@ -905,6 +905,7 @@ const DEFAULTS: Persisted = {
   tornadoFollowCenter: true,
   // TORNADO CLOUD: off by default — purely cosmetic.
   tornadoCloudOn: false,
+  tornadoCloudYOffset: 0,
   // Interval session off by default; a 30s FRI/GUNGA alternation running
   // forever once turned on, until switched to a fixed number of intervals.
   intervalSessionOn: false,
@@ -1372,6 +1373,12 @@ export function Aquafulness() {
   // TORNADO CLOUD: optional visible funnel-shaped cloud wrapping the active
   // tornado orbit — see tornadoCloudMeshRef further down.
   const [tornadoCloudOn, setTornadoCloudOn] = useState(initial.tornadoCloudOn);
+  // Meters above the real water surface (at the tornado's own xz spot) the
+  // TORNADO CLOUD's tip sits while swinging or flying — see
+  // tornadoWaterHeightAt in the physics loop.
+  const [tornadoCloudYOffset, setTornadoCloudYOffset] = useState(
+    initial.tornadoCloudYOffset,
+  );
   // Interval session: automatically cycles the camera through whichever of
   // "float" (FRI/default)/"swing" (GUNGA, optionally TORNADO) are enabled
   // below, every intervalDuration seconds — see the session-driver effect
@@ -1788,6 +1795,7 @@ export function Aquafulness() {
     tornadoOpening,
     tornadoFollowCenter,
     tornadoCloudOn,
+    tornadoCloudYOffset,
     intervalSessionOn,
     intervalDuration,
     intervalSessionType,
@@ -1943,6 +1951,7 @@ export function Aquafulness() {
     tornadoOpening,
     tornadoFollowCenter,
     tornadoCloudOn,
+    tornadoCloudYOffset,
     intervalSessionOn,
     intervalDuration,
     intervalSessionType,
@@ -2145,6 +2154,7 @@ export function Aquafulness() {
   // of tornadoBlendRef staying high if the player then switches to flying.
   const vortexBlendRef = useRef(0);
   const tornadoCloudOnRef = useRef(tornadoCloudOn);
+  const tornadoCloudYOffsetRef = useRef(tornadoCloudYOffset);
   // Live-updated by the noclip/swing tornado branches of the physics loop
   // whenever the tornado orbit is active this frame; read afterward to
   // position/scale/rotate the shared funnel-cloud mesh (tornadoCloudMeshRef,
@@ -2383,6 +2393,9 @@ export function Aquafulness() {
   useEffect(() => {
     tornadoCloudOnRef.current = tornadoCloudOn;
   }, [tornadoCloudOn]);
+  useEffect(() => {
+    tornadoCloudYOffsetRef.current = tornadoCloudYOffset;
+  }, [tornadoCloudYOffset]);
   useEffect(() => {
     intervalIncludeFloatRef.current = intervalIncludeFloat;
   }, [intervalIncludeFloat]);
@@ -2944,6 +2957,7 @@ export function Aquafulness() {
     setTornadoOpening(DEFAULTS.tornadoOpening);
     setTornadoFollowCenter(DEFAULTS.tornadoFollowCenter);
     setTornadoCloudOn(DEFAULTS.tornadoCloudOn);
+    setTornadoCloudYOffset(DEFAULTS.tornadoCloudYOffset);
     setIntervalSessionOn(DEFAULTS.intervalSessionOn);
     setIntervalDuration(DEFAULTS.intervalDuration);
     setIntervalSessionType(DEFAULTS.intervalSessionType);
@@ -3102,6 +3116,8 @@ export function Aquafulness() {
     if (patch.tornadoFollowCenter !== undefined)
       setTornadoFollowCenter(patch.tornadoFollowCenter);
     if (patch.tornadoCloudOn !== undefined) setTornadoCloudOn(patch.tornadoCloudOn);
+    if (patch.tornadoCloudYOffset !== undefined)
+      setTornadoCloudYOffset(patch.tornadoCloudYOffset);
     if (patch.intervalSessionOn !== undefined) setIntervalSessionOn(patch.intervalSessionOn);
     if (patch.intervalDuration !== undefined) setIntervalDuration(patch.intervalDuration);
     if (patch.intervalSessionType !== undefined) setIntervalSessionType(patch.intervalSessionType);
@@ -5630,6 +5646,11 @@ export function Aquafulness() {
       // I VIRVEL-läge tolkas NAV om: stick.y = närmare/längre bort från
       // virvelns centrum, stick.x = vridriktning kring virveln.
       const camMode = cameraModeRef.current;
+      // Computed early (not just before normalSurfaceY below) so the TORNADO
+      // CLOUD block further down — which runs before that point in the frame
+      // — can also sample the real wave height (see tornadoWaterHeightAt
+      // there).
+      const dirRad = (waveDirRef.current * Math.PI) / 180;
       const walkSpeed = 16; // m/s at full deflection
       const driftSpeed = 13.2; // m/s at full deflection — mjukare än aktiv rörelse
       let camX: number, camZ: number;
@@ -5644,7 +5665,33 @@ export function Aquafulness() {
       let tornadoCloudY = 0;
       let tornadoCloudZ = 0;
       let tornadoCloudRadius = 40;
+      let tornadoCloudHeight = 40 * TORNADO_CLOUD_HEIGHT_SCALE;
       let tornadoCloudAngle = 0;
+      // Real ocean height at (x, z) right now — used below by the swing and
+      // noclip/watercraft branches to pin the TORNADO CLOUD's tip to the
+      // actual water surface at its own xz spot, instead of the camera's/
+      // swing's own altitude (a tornado should look rooted in the water, not
+      // bob around with wherever the camera happens to be).
+      const tornadoWaterHeightAt = (x: number, z: number) =>
+        waveHeight(
+          x,
+          z,
+          t,
+          ampRef.current,
+          regularRef.current,
+          regularCrossRef.current,
+          regularPeriodRef.current,
+          wavePeakRef.current,
+          dirRad,
+          realisticRef.current,
+          fftWaveComponents,
+          dyingRef.current,
+          dyingWaveComponents,
+          dyingAmpRef.current,
+          dyingWaveT,
+          freqRef.current,
+          heaveSkewRef.current,
+        );
       if (camMode === "noclip" || camMode === "watercraft") {
         // Free 3D flight, no wave physics: NAV's y-axis moves along the full
         // view direction (pitch included), so looking up/down while pushing
@@ -5717,9 +5764,17 @@ export function Aquafulness() {
           camZ = posRef.current.z + Math.sin(ang) * tornadoRadiusRef.current * tornadoBlendRef.current;
           tornadoCloudActive = tornadoBlendRef.current > 0.003;
           tornadoCloudX = posRef.current.x;
-          tornadoCloudY = posRef.current.y;
           tornadoCloudZ = posRef.current.z;
           tornadoCloudRadius = tornadoRadiusRef.current;
+          // Fixed to the real water surface (see tornadoWaterHeightAt above)
+          // plus the adjustable Y offset, not to the camera's own altitude —
+          // and swingHeight-tall regardless of not actually swinging, per the
+          // shared tornadoCloudYOffset/TORNADO settings.
+          tornadoCloudHeight = swingHeightRef.current;
+          tornadoCloudY =
+            tornadoWaterHeightAt(tornadoCloudX, tornadoCloudZ) +
+            tornadoCloudYOffsetRef.current +
+            tornadoCloudHeight / 2;
           tornadoCloudAngle = ang;
         }
         camYRef.current = posRef.current.y;
@@ -5771,9 +5826,17 @@ export function Aquafulness() {
         const rawOffZ = pendOffZ + (tornadoOffZ - pendOffZ) * tornadoBlendRef.current;
         tornadoCloudActive = tornadoBlendRef.current > 0.003;
         tornadoCloudX = posRef.current.x;
-        tornadoCloudY = rawSwingY;
         tornadoCloudZ = posRef.current.z;
         tornadoCloudRadius = tornadoRadiusRef.current;
+        // Fixed to the real water surface (see tornadoWaterHeightAt above)
+        // plus the adjustable Y offset, not to the pendulum's own bobbing
+        // height (rawSwingY) — a tornado should look rooted in the water,
+        // not swing along with the camera.
+        tornadoCloudHeight = swingHeightRef.current;
+        tornadoCloudY =
+          tornadoWaterHeightAt(tornadoCloudX, tornadoCloudZ) +
+          tornadoCloudYOffsetRef.current +
+          tornadoCloudHeight / 2;
         tornadoCloudAngle = ang;
 
         // Ease in from wherever the camera actually was the instant swing
@@ -5836,6 +5899,7 @@ export function Aquafulness() {
           tornadoCloudY = camYRef.current ?? 0;
           tornadoCloudZ = posRef.current.z;
           tornadoCloudRadius = tornadoRadiusRef.current;
+          tornadoCloudHeight = tornadoCloudRadius * TORNADO_CLOUD_HEIGHT_SCALE;
           tornadoCloudAngle = ang;
         }
       }
@@ -5894,17 +5958,12 @@ export function Aquafulness() {
         tornadoCloud.position.set(tornadoCloudX, tornadoCloudY, tornadoCloudZ);
         tornadoCloud.rotation.y = tornadoCloudAngle;
         const topRadius = tornadoCloudRadius * TORNADO_CLOUD_TOP_SCALE;
-        tornadoCloud.scale.set(
-          topRadius,
-          tornadoCloudRadius * TORNADO_CLOUD_HEIGHT_SCALE,
-          topRadius,
-        );
+        tornadoCloud.scale.set(topRadius, tornadoCloudHeight, topRadius);
         tornadoCloudUniforms.uTime.value = t;
         tornadoCloudUniforms.uCloudScroll.value.x = Math.cos(tornadoCloudAngle) * 0.3;
         tornadoCloudUniforms.uCloudScroll.value.y = Math.sin(tornadoCloudAngle) * 0.3;
       }
 
-      const dirRad = (waveDirRef.current * Math.PI) / 180;
       const normalSurfaceY = waveHeight(
         camX,
         camZ,
@@ -7246,6 +7305,8 @@ export function Aquafulness() {
     setTornadoFollowCenter,
     tornadoCloudOn,
     setTornadoCloudOn,
+    tornadoCloudYOffset,
+    setTornadoCloudYOffset,
     intervalSessionOn,
     setIntervalSessionOn,
     intervalDuration,
@@ -8287,6 +8348,17 @@ export function Aquafulness() {
                     >
                       {t("dial.camera.tornadoCloud")}: {t(tornadoCloudOn ? "common.on" : "common.off")}
                     </button>
+                    {tornadoCloudOn && cameraMode !== "float" && (
+                      <PadSlider
+                        label={t("dial.camera.tornadoCloudYOffset")}
+                        value={tornadoCloudYOffset}
+                        min={-200}
+                        max={200}
+                        step={5}
+                        format={(v) => `${v.toFixed(0)}m`}
+                        onChange={setTornadoCloudYOffset}
+                      />
+                    )}
                   </>
                 )}
               </div>

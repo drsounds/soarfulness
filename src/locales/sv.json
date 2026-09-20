@@ -165,6 +165,7 @@
       "targetFps": "BILDFREKVENS-TAK",
       "tornado": "TORNADO",
       "tornadoCloud": "TORNADO MOLN",
+      "tornadoCloudYOffset": "TORNADO MOLN Y-OFFSET",
       "tornadoDirection": "TORNADO RIKTNING",
       "tornadoFollowCenter": "FÖLJ CENTRUM",
       "tornadoOpening": "TORNADO ÖPPNING",

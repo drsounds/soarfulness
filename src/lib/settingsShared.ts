@@ -369,6 +369,14 @@ export type Persisted = {
   // in routes/index.tsx. Purely cosmetic; the orbit itself works
   // identically whether or not this is on.
   tornadoCloudOn: boolean;
+  // While swinging or flying, the TORNADO CLOUD's vertical position is
+  // pinned to the real water surface at its own xz spot (not to the
+  // camera's/swing's own altitude — a tornado should look rooted in the
+  // water, not bob around with wherever the camera happens to be) plus this
+  // adjustable offset in meters; its height (vertical extent) is swingHeight
+  // regardless of which of those two modes is active. Has no effect while
+  // floating, where the cloud still simply follows the camera's own height.
+  tornadoCloudYOffset: number;
   intervalIncludeFloat: boolean;
   intervalIncludeSwing: boolean;
   depthSineOn: boolean;
@@ -586,6 +594,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "tornadoOpening",
     "tornadoFollowCenter",
     "tornadoCloudOn",
+    "tornadoCloudYOffset",
     "intervalSessionOn",
     "intervalDuration",
     "intervalSessionType",
