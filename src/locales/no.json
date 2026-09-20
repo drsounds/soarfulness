@@ -165,6 +165,7 @@
       "targetFps": "BILDEFREKVENSTAK",
       "tornado": "TORNADO",
       "tornadoCloud": "TORNADO SKY",
+      "tornadoCloudYOffset": "TORNADO SKY Y-OFFSET",
       "tornadoDirection": "TORNADO RETNING",
       "tornadoFollowCenter": "FØLG SENTRUM",
       "tornadoOpening": "TORNADO ÅPNING",

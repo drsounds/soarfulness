@@ -525,6 +525,11 @@ export type SettingsPanelProps = {
   // tornado orbit.
   tornadoCloudOn: boolean;
   setTornadoCloudOn: Dispatch<SetStateAction<boolean>>;
+  // Meters above the real water surface (at the tornado's own xz spot) the
+  // TORNADO CLOUD's tip sits while swinging or flying — has no effect while
+  // floating, where the cloud just follows the camera's own height.
+  tornadoCloudYOffset: number;
+  setTornadoCloudYOffset: Dispatch<SetStateAction<number>>;
   // Interval session: automatically cycles cameraMode through whichever of
   // FRI/GUNGA are enabled below, every intervalDuration seconds, either
   // forever or for a fixed intervalCount.
@@ -1189,6 +1194,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setTornadoFollowCenter,
     tornadoCloudOn,
     setTornadoCloudOn,
+    tornadoCloudYOffset,
+    setTornadoCloudYOffset,
     intervalSessionOn,
     setIntervalSessionOn,
     intervalDuration,
@@ -2127,6 +2134,24 @@ export function SettingsPanel(props: SettingsPanelProps) {
                         onDec={() => setTornadoCloudOn(false)}
                         onInc={() => setTornadoCloudOn(true)}
                       />
+                      {tornadoCloudOn && cameraMode !== "float" && (
+                        <SettingRow
+                          label={t("dial.camera.tornadoCloudYOffset")}
+                          mode="number"
+                          value={`${tornadoCloudYOffset.toFixed(0)}m`}
+                          rawValue={tornadoCloudYOffset}
+                          onSet={(v) => setTornadoCloudYOffset(Math.max(-200, Math.min(200, v)))}
+                          min={-200}
+                          max={200}
+                          step={5}
+                          onDec={() =>
+                            setTornadoCloudYOffset((v) => Math.max(-200, +(v - 5).toFixed(0)))
+                          }
+                          onInc={() =>
+                            setTornadoCloudYOffset((v) => Math.min(200, +(v + 5).toFixed(0)))
+                          }
+                        />
+                      )}
                     </>
                   )}
                 {cameraMode === "swing" && (
