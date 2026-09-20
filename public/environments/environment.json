@@ -1,5 +1,6 @@
 {
-  "environments": [    {
+  "environments": [    
+    {
       "id": "strandpark",
       "name": "Strandpark",
       "eras": [
@@ -15,6 +16,28 @@
             { "id": "day", "name": "Dag" },
             { "id": "night", "name": "Natt" }
           ]
+        }
+      ]
+    },
+    {
+      "id": "stockholm",
+      "name": "Stockholm",
+      "eras": [
+        {
+          "id": "present",
+          "name": "Nutid",
+          "times": [{ "id": "day", "name": "Dag" }]
+        }
+      ]
+    },    
+    {
+      "id": "bucharest",
+      "name": "Bucharest",
+      "eras": [
+        {
+          "id": "present",
+          "name": "Nutid",
+          "times": [{ "id": "day", "name": "Dag" }]
         }
       ]
     },
