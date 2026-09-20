@@ -2040,12 +2040,13 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     }
                   />
                 )}
-                {/* TORNADO: one unified toggle+dial block for GUNGA (swing)
-                    and flying (noclip/watercraft) alike — same settings
-                    drive the camera's orbit in every applicable mode; the
-                    water whirlpool visual (TORNADO OPENING) only applies
-                    while swinging. */}
-                {(cameraMode === "noclip" ||
+                {/* TORNADO: one unified toggle+dial block for FRI (float/
+                    swimming), GUNGA (swing) and flying (noclip/watercraft)
+                    alike — same settings drive the camera's orbit in every
+                    applicable mode; the water whirlpool visual (TORNADO
+                    OPENING) only applies while floating or swinging. */}
+                {(cameraMode === "float" ||
+                  cameraMode === "noclip" ||
                   cameraMode === "watercraft" ||
                   cameraMode === "swing") && (
                   <SettingRow
@@ -2055,7 +2056,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     onInc={() => setTornadoOn(true)}
                   />
                 )}
-                {(cameraMode === "noclip" ||
+                {(cameraMode === "float" ||
+                  cameraMode === "noclip" ||
                   cameraMode === "watercraft" ||
                   cameraMode === "swing") &&
                   tornadoOn && (
@@ -2095,7 +2097,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                         onDec={() => setTornadoDirection("cw")}
                         onInc={() => setTornadoDirection("ccw")}
                       />
-                      {cameraMode === "swing" && (
+                      {(cameraMode === "float" || cameraMode === "swing") && (
                         <SettingRow
                           label={t("dial.camera.tornadoOpening")}
                           mode="number"

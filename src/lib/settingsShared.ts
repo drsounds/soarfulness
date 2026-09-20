@@ -134,11 +134,16 @@ export const SETTINGS_TABS: { id: SettingsTab; labelKey: string }[] = [
 ];
 
 // Four mutually-exclusive camera movement schemes:
-//  - "float"      the default: buoyant, wave-riding camera (all existing behavior).
+//  - "float"      the default: buoyant, wave-riding camera (optionally given
+//                 a circular "tornado" swirl around wherever the current
+//                 carries it, with a real water whirlpool opening up
+//                 directly beneath it at the same xz spot — the old
+//                 standalone VIRVEL mode's feel, now reached via the shared
+//                 tornado* fields instead of its own camera mode).
 //  - "noclip"     free 3D flight in any direction, ignoring the water/wave
-//                 physics (optionally given a whirlpool-style circular
-//                 "tornado" swirl around wherever NAV/HÖJD/DRIFT XZ actually
-//                 fly it — see the shared tornado* fields).
+//                 physics (optionally given the same whirlpool-style
+//                 circular "tornado" swirl around wherever NAV/HÖJD/DRIFT XZ
+//                 actually fly it — see the shared tornado* fields).
 //  - "swing"      a pendulum that swings back and forth high above the water
 //                 (optionally spun into a circular "tornado" orbit instead,
 //                 with a real water whirlpool opening up directly beneath
@@ -336,23 +341,24 @@ export type Persisted = {
   // time; that drift is now opt-in (default off, so the clouds sit still)
   // via this toggle instead of always animating.
   floorCloudsAnimated: boolean;
-  // TORNADO: one unified toggle shared by both applicable camera modes —
-  // "swing" (GUNGA) and "noclip"/"watercraft" (flying) — instead of the
-  // separate swingTornado*/noclipTornado* schemas this replaced. Radius/
-  // Speed/Direction/Opening all mean the same thing regardless of which
-  // mode is active. While swinging, turning this on also opens a real
-  // water whirlpool centered at the same xz spot as the orbit itself (see
-  // tornadoOpening and the cameraMode==="swing" branch of the physics loop
-  // in routes/index.tsx); while flying, only the camera's circular orbit
-  // applies (no water effect). Activating/deactivating eases in/out over
-  // time (tornadoBlendRef/vortexBlendRef in routes/index.tsx) rather than
-  // snapping instantly.
+  // TORNADO: one unified toggle shared by every applicable camera mode —
+  // "float" (FRI/swimming), "swing" (GUNGA) and "noclip"/"watercraft"
+  // (flying) — instead of the old standalone "whirlpool" camera mode plus
+  // the separate swingTornado*/noclipTornado* schemas this replaced.
+  // Radius/Speed/Direction/Opening all mean the same thing regardless of
+  // which mode is active. While floating or swinging, turning this on also
+  // opens a real water whirlpool centered at the same xz spot as the orbit
+  // itself (see tornadoOpening and the vortexBlendRef-gated branches of the
+  // physics loop in routes/index.tsx); while flying, only the camera's
+  // circular orbit applies (no water effect). Activating/deactivating eases
+  // in/out over time (tornadoBlendRef/vortexBlendRef in routes/index.tsx)
+  // rather than snapping instantly.
   tornadoOn: boolean;
   tornadoRadius: number;
   tornadoSpeed: number;
   tornadoDirection: TornadoDirection;
-  // Width of the water whirlpool's throat while swinging — has no effect
-  // while flying (noclip/watercraft never show the water vortex).
+  // Width of the water whirlpool's throat while floating or swinging — has
+  // no effect while flying (noclip/watercraft never show the water vortex).
   tornadoOpening: number;
   // Whether the camera's look direction eases toward facing the tornado/
   // whirlpool's center (like looking down into the vortex) instead of

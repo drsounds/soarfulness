@@ -637,6 +637,10 @@
       "wave": "AALTO"
     },
     "timeTravelOpenAria": "Avaa aikamatka",
+    "tornadoToggle": {
+      "tornado": "TORNADO",
+      "whirlpool": "PYÖRRE"
+    },
     "totalLabel": " · Yhteensä "
   },
   "interval": {

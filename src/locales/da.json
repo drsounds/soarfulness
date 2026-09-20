@@ -637,6 +637,10 @@
       "wave": "BØLGE"
     },
     "timeTravelOpenAria": "Åbn tidsrejse",
+    "tornadoToggle": {
+      "tornado": "TORNADO",
+      "whirlpool": "HVIRVEL"
+    },
     "totalLabel": " · I alt "
   },
   "interval": {
