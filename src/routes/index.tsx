@@ -303,15 +303,22 @@ function whirlpoolSurfaceHeight(
   return pit + ring;
 }
 
-// Normalized (roughly -1..1) vertical drive for GUNGA-mode's pendulum, evaluated
-// once per frame from the swing's own angle (theta, radians — the horizontal
-// arc's instantaneous deflection) and phase (t*omega, radians — the swing
-// clock, unwrapped). "pendulum" is the physically-inspired default: y rises
-// at both ends of the arc and dips at the bottom, twice per side-to-side
-// cycle, and is always >= 0. The other shapes drive y directly off the swing
-// clock's phase instead, for a simpler symmetric up/down motion (able to dip
-// below GUNGA POSITION Y) once per cycle.
-function swingYWaveformValue(kind: SwingYWaveform, theta: number, phase: number): number {
+// Normalized (roughly -1..1, peaking at exactly 1) vertical drive for GUNGA-
+// mode's pendulum, evaluated once per frame from the swing's own angle
+// (theta, radians — the horizontal arc's instantaneous deflection), phase
+// (t*omega, radians — the swing clock, unwrapped), and thetaMax (theta's own
+// peak deflection this frame, i.e. GUNGA INTENSITET's current arc width —
+// see swingAmpRadNow in the physics loop). "pendulum" is the physically-
+// inspired default: y rises at both ends of the arc and dips at the bottom,
+// twice per side-to-side cycle, and is always >= 0. The other shapes drive y
+// directly off the swing clock's phase instead, for a simpler symmetric
+// up/down motion (able to dip below GUNGA POSITION Y) once per cycle.
+function swingYWaveformValue(
+  kind: SwingYWaveform,
+  theta: number,
+  phase: number,
+  thetaMax: number,
+): number {
   switch (kind) {
     case "sine":
       return Math.sin(phase);
@@ -322,8 +329,16 @@ function swingYWaveformValue(kind: SwingYWaveform, theta: number, phase: number)
     case "square":
       return Math.sin(phase) >= 0 ? 1 : -1;
     case "pendulum":
-    default:
-      return 1 - Math.cos(theta);
+    default: {
+      // Divide out thetaMax's own contribution so this always peaks at
+      // exactly 1, same as every other waveform above, regardless of how
+      // wide GUNGA INTENSITET happens to be swinging the arc this frame —
+      // otherwise a faster/wider swing (higher intensity) would also read
+      // as a taller one even with GUNGA HÖJD left untouched, coupling the
+      // SPEED and HEIGHT dials together instead of keeping them independent.
+      const peak = Math.max(1e-9, 1 - Math.cos(thetaMax));
+      return (1 - Math.cos(theta)) / peak;
+    }
   }
 }
 
@@ -5801,7 +5816,8 @@ export function Aquafulness() {
         const theta = swingThetaNow;
         const rawSwingY =
           swingPositionYRef.current +
-          swingHeightRef.current * swingYWaveformValue(swingYWaveformRef.current, theta, t * omega);
+          swingHeightRef.current *
+            swingYWaveformValue(swingYWaveformRef.current, theta, t * omega, swingAmpRadNow);
 
         // TORNADO: crossfades the pendulum arc into a circular orbit around
         // the anchor at swing altitude instead of replacing it outright — a
@@ -8273,6 +8289,16 @@ export function Aquafulness() {
                       curve={2}
                       format={(v) => `${v.toFixed(0)}m`}
                       onChange={setSwingPositionY}
+                    />
+                    <PadSlider
+                      label={t("dial.camera.swingHeight")}
+                      value={swingHeight}
+                      min={0}
+                      max={100000}
+                      step={100}
+                      curve={2}
+                      format={(v) => `${v.toFixed(0)}m`}
+                      onChange={setSwingHeight}
                     />
                   </>
                 )}
