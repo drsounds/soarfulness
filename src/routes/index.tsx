@@ -41,6 +41,8 @@ import {
   CAMERA_MODES,
   CAMERA_MODE_LABEL_KEYS,
   TORNADO_DIRECTION_LABEL_KEYS,
+  TORNADO_SEQUENCE_EXIT_MODES,
+  TORNADO_SEQUENCE_EXIT_MODE_LABEL_KEYS,
   SWING_PRESETS,
   TORUS_RING_TEXTURES,
   SWING_Y_WAVEFORMS,
@@ -60,6 +62,7 @@ import {
   type IntervalSessionType,
   type WavePresetName,
   type TornadoDirection,
+  type TornadoSequenceExitMode,
   type SurgeRotationMode,
   type Persisted,
 } from "@/lib/settingsShared";
@@ -409,6 +412,17 @@ function wrapAxis(value: number, half: number): number {
   if (!(half > 0)) return value;
   const period = half * 2;
   return ((((value + half) % period) + period) % period) - half;
+}
+
+// Moves `value` toward `target` at a constant `rate` (units/s), snapping
+// exactly onto it once within one frame's step instead of asymptotically
+// approaching forever — used by the TORNADO SEQUENCE state machine so each
+// phase reaches its target radius/lift height in finite time.
+function stepToward(value: number, target: number, rate: number, dt: number): number {
+  const diff = target - value;
+  const step = Math.max(0, rate) * dt;
+  if (Math.abs(diff) <= step) return target;
+  return value + Math.sign(diff) * step;
 }
 
 // VÄRLDSGRÄNS's y-extension: rather than a hard wrap, more instances of the
@@ -923,6 +937,16 @@ const DEFAULTS: Persisted = {
   // TORNADO CLOUD: off by default — purely cosmetic.
   tornadoCloudOn: false,
   tornadoCloudYOffset: 0,
+  // TORNADO SEQUENCE: off by default — the automatic drag-in/stay/exit cycle
+  // is opt-in on top of the always-available manual NAV+current radial pull.
+  tornadoSequenceOn: false,
+  tornadoSequenceDragSpeed: 20,
+  tornadoSequenceDragDuration: 4,
+  tornadoSequenceStayDuration: 5,
+  tornadoSequenceExitMode: "outer",
+  tornadoSequenceExitSpeed: 15,
+  tornadoSequenceLiftHeight: 60,
+  tornadoSequencePauseDuration: 3,
   // Interval session off by default; a 30s FRI/GUNGA alternation running
   // forever once turned on, until switched to a fixed number of intervals.
   intervalSessionOn: false,
@@ -1396,6 +1420,33 @@ export function Aquafulness() {
   const [tornadoCloudYOffset, setTornadoCloudYOffset] = useState(
     initial.tornadoCloudYOffset,
   );
+  // TORNADO SEQUENCE: an optional automatic drag-in/stay/exit loop layered on
+  // top of the always-available manual NAV+current radial control — see
+  // TornadoSequenceExitMode and the tornadoSequence* Persisted fields'
+  // comments in settingsShared.ts, and tornadoSeqPhaseRef/
+  // tornadoLiveRadiusRef/tornadoLiftOffsetRef in the physics loop below.
+  const [tornadoSequenceOn, setTornadoSequenceOn] = useState(initial.tornadoSequenceOn);
+  const [tornadoSequenceDragSpeed, setTornadoSequenceDragSpeed] = useState(
+    initial.tornadoSequenceDragSpeed,
+  );
+  const [tornadoSequenceDragDuration, setTornadoSequenceDragDuration] = useState(
+    initial.tornadoSequenceDragDuration,
+  );
+  const [tornadoSequenceStayDuration, setTornadoSequenceStayDuration] = useState(
+    initial.tornadoSequenceStayDuration,
+  );
+  const [tornadoSequenceExitMode, setTornadoSequenceExitMode] = useState<TornadoSequenceExitMode>(
+    initial.tornadoSequenceExitMode,
+  );
+  const [tornadoSequenceExitSpeed, setTornadoSequenceExitSpeed] = useState(
+    initial.tornadoSequenceExitSpeed,
+  );
+  const [tornadoSequenceLiftHeight, setTornadoSequenceLiftHeight] = useState(
+    initial.tornadoSequenceLiftHeight,
+  );
+  const [tornadoSequencePauseDuration, setTornadoSequencePauseDuration] = useState(
+    initial.tornadoSequencePauseDuration,
+  );
   // Interval session: automatically cycles the camera through whichever of
   // "float" (FRI/default)/"swing" (GUNGA, optionally TORNADO) are enabled
   // below, every intervalDuration seconds — see the session-driver effect
@@ -1813,6 +1864,14 @@ export function Aquafulness() {
     tornadoFollowCenter,
     tornadoCloudOn,
     tornadoCloudYOffset,
+    tornadoSequenceOn,
+    tornadoSequenceDragSpeed,
+    tornadoSequenceDragDuration,
+    tornadoSequenceStayDuration,
+    tornadoSequenceExitMode,
+    tornadoSequenceExitSpeed,
+    tornadoSequenceLiftHeight,
+    tornadoSequencePauseDuration,
     intervalSessionOn,
     intervalDuration,
     intervalSessionType,
@@ -1969,6 +2028,14 @@ export function Aquafulness() {
     tornadoFollowCenter,
     tornadoCloudOn,
     tornadoCloudYOffset,
+    tornadoSequenceOn,
+    tornadoSequenceDragSpeed,
+    tornadoSequenceDragDuration,
+    tornadoSequenceStayDuration,
+    tornadoSequenceExitMode,
+    tornadoSequenceExitSpeed,
+    tornadoSequenceLiftHeight,
+    tornadoSequencePauseDuration,
     intervalSessionOn,
     intervalDuration,
     intervalSessionType,
@@ -2149,12 +2216,42 @@ export function Aquafulness() {
   const tornadoDirectionRef = useRef(tornadoDirection);
   const tornadoOpeningRef = useRef(tornadoOpening);
   const tornadoFollowCenterRef = useRef(tornadoFollowCenter);
+  const tornadoSequenceOnRef = useRef(tornadoSequenceOn);
+  const tornadoSequenceDragSpeedRef = useRef(tornadoSequenceDragSpeed);
+  const tornadoSequenceDragDurationRef = useRef(tornadoSequenceDragDuration);
+  const tornadoSequenceStayDurationRef = useRef(tornadoSequenceStayDuration);
+  const tornadoSequenceExitModeRef = useRef(tornadoSequenceExitMode);
+  const tornadoSequenceExitSpeedRef = useRef(tornadoSequenceExitSpeed);
+  const tornadoSequenceLiftHeightRef = useRef(tornadoSequenceLiftHeight);
+  const tornadoSequencePauseDurationRef = useRef(tornadoSequencePauseDuration);
   // Shared orbit angle for the tornado spin, whichever of swing/noclip/
   // watercraft is currently driving it (only one of those branches runs any
   // given frame, so one angle can serve all of them) — reset to 0 whenever
   // cameraMode switches into swing or noclip/watercraft (see that effect
   // below) so every entry starts the spin fresh.
   const tornadoAngleRef = useRef(0);
+  // Live orbit radius the camera actually uses this frame, in place of the
+  // static tornadoRadius dial — pushed in/out by NAV+current (manual, always
+  // available whenever tornadoOn) and by the TORNADO SEQUENCE state machine
+  // (optional, see tornadoSeqPhaseRef below). Starts equal to tornadoRadius
+  // so TORNADO looks unchanged until the player or the sequence pulls it in.
+  const tornadoLiveRadiusRef = useRef(tornadoRadius);
+  // Extra vertical offset added to the camera only during the TORNADO
+  // SEQUENCE's "lift"/"pause"/"return" phases (see updateTornadoLiveRadius in
+  // the physics loop) — always 0 outside of those, and outside the sequence
+  // entirely.
+  const tornadoLiftOffsetRef = useRef(0);
+  // TORNADO SEQUENCE's own state machine: null whenever tornadoSequenceOn is
+  // off, otherwise the current phase, when it started, and the orbit radius
+  // captured at the start of the current "drag" phase — the "starting
+  // position" the "lift" exit mode returns to once its pause elapses (see
+  // TornadoSequenceExitMode in settingsShared.ts). Re-created fresh every
+  // time the sequence is turned on so it always begins at "drag".
+  const tornadoSeqPhaseRef = useRef<{
+    phase: "drag" | "stay" | "exitOuter" | "lift" | "pause" | "return";
+    startMs: number;
+    startRadius: number;
+  } | null>(null);
   // Continuous 0..1 "how tornado-y are we right now" blend, eased toward 1
   // while tornadoOn and cameraMode is swing/noclip/watercraft, toward 0
   // otherwise — regardless of how abruptly tornadoOn itself is toggled or
@@ -2391,6 +2488,13 @@ export function Aquafulness() {
   }, [floorCloudsAnimated]);
   useEffect(() => {
     tornadoOnRef.current = tornadoOn;
+    // Fresh start every time TORNADO itself is (re)activated — same reset as
+    // a camera-mode change (see that effect above), so neither the manual
+    // radial control nor the sequence carries over a stale live
+    // radius/lift/phase from a previous activation.
+    tornadoLiveRadiusRef.current = tornadoRadiusRef.current;
+    tornadoLiftOffsetRef.current = 0;
+    tornadoSeqPhaseRef.current = null;
   }, [tornadoOn]);
   useEffect(() => {
     tornadoRadiusRef.current = tornadoRadius;
@@ -2407,6 +2511,35 @@ export function Aquafulness() {
   useEffect(() => {
     tornadoFollowCenterRef.current = tornadoFollowCenter;
   }, [tornadoFollowCenter]);
+  useEffect(() => {
+    tornadoSequenceOnRef.current = tornadoSequenceOn;
+    // Fresh start every time the sequence is (re)enabled — always begins at
+    // "drag" rather than resuming whatever phase a previous activation left
+    // behind (armed lazily on the physics loop's next frame; see
+    // updateTornadoLiveRadius).
+    tornadoSeqPhaseRef.current = null;
+  }, [tornadoSequenceOn]);
+  useEffect(() => {
+    tornadoSequenceDragSpeedRef.current = tornadoSequenceDragSpeed;
+  }, [tornadoSequenceDragSpeed]);
+  useEffect(() => {
+    tornadoSequenceDragDurationRef.current = tornadoSequenceDragDuration;
+  }, [tornadoSequenceDragDuration]);
+  useEffect(() => {
+    tornadoSequenceStayDurationRef.current = tornadoSequenceStayDuration;
+  }, [tornadoSequenceStayDuration]);
+  useEffect(() => {
+    tornadoSequenceExitModeRef.current = tornadoSequenceExitMode;
+  }, [tornadoSequenceExitMode]);
+  useEffect(() => {
+    tornadoSequenceExitSpeedRef.current = tornadoSequenceExitSpeed;
+  }, [tornadoSequenceExitSpeed]);
+  useEffect(() => {
+    tornadoSequenceLiftHeightRef.current = tornadoSequenceLiftHeight;
+  }, [tornadoSequenceLiftHeight]);
+  useEffect(() => {
+    tornadoSequencePauseDurationRef.current = tornadoSequencePauseDuration;
+  }, [tornadoSequencePauseDuration]);
   useEffect(() => {
     tornadoCloudOnRef.current = tornadoCloudOn;
   }, [tornadoCloudOn]);
@@ -2691,6 +2824,9 @@ export function Aquafulness() {
       noclipVertVelRef.current = 0;
       noclipHeaveOffsetRef.current = 0;
       tornadoAngleRef.current = 0;
+      tornadoLiveRadiusRef.current = tornadoRadiusRef.current;
+      tornadoLiftOffsetRef.current = 0;
+      tornadoSeqPhaseRef.current = null;
       // Unlike noclip (which deliberately never teleports), entering
       // watercraft mode snaps the camera to just outside the raft — the
       // player could otherwise be flying anywhere in open water with no way
@@ -2706,12 +2842,18 @@ export function Aquafulness() {
     } else if (cameraMode === "swing") {
       swingYawRef.current = yawRef.current;
       tornadoAngleRef.current = 0;
+      tornadoLiveRadiusRef.current = tornadoRadiusRef.current;
+      tornadoLiftOffsetRef.current = 0;
+      tornadoSeqPhaseRef.current = null;
       swingBlendRef.current = {
         fromY: camYRef.current ?? swingPositionYRef.current,
         startMs: performance.now(),
       };
     } else if (cameraMode === "float") {
       tornadoAngleRef.current = 0;
+      tornadoLiveRadiusRef.current = tornadoRadiusRef.current;
+      tornadoLiftOffsetRef.current = 0;
+      tornadoSeqPhaseRef.current = null;
     }
   }, [cameraMode]);
 
@@ -2975,6 +3117,14 @@ export function Aquafulness() {
     setTornadoFollowCenter(DEFAULTS.tornadoFollowCenter);
     setTornadoCloudOn(DEFAULTS.tornadoCloudOn);
     setTornadoCloudYOffset(DEFAULTS.tornadoCloudYOffset);
+    setTornadoSequenceOn(DEFAULTS.tornadoSequenceOn);
+    setTornadoSequenceDragSpeed(DEFAULTS.tornadoSequenceDragSpeed);
+    setTornadoSequenceDragDuration(DEFAULTS.tornadoSequenceDragDuration);
+    setTornadoSequenceStayDuration(DEFAULTS.tornadoSequenceStayDuration);
+    setTornadoSequenceExitMode(DEFAULTS.tornadoSequenceExitMode);
+    setTornadoSequenceExitSpeed(DEFAULTS.tornadoSequenceExitSpeed);
+    setTornadoSequenceLiftHeight(DEFAULTS.tornadoSequenceLiftHeight);
+    setTornadoSequencePauseDuration(DEFAULTS.tornadoSequencePauseDuration);
     setIntervalSessionOn(DEFAULTS.intervalSessionOn);
     setIntervalDuration(DEFAULTS.intervalDuration);
     setIntervalSessionType(DEFAULTS.intervalSessionType);
@@ -3135,6 +3285,21 @@ export function Aquafulness() {
     if (patch.tornadoCloudOn !== undefined) setTornadoCloudOn(patch.tornadoCloudOn);
     if (patch.tornadoCloudYOffset !== undefined)
       setTornadoCloudYOffset(patch.tornadoCloudYOffset);
+    if (patch.tornadoSequenceOn !== undefined) setTornadoSequenceOn(patch.tornadoSequenceOn);
+    if (patch.tornadoSequenceDragSpeed !== undefined)
+      setTornadoSequenceDragSpeed(patch.tornadoSequenceDragSpeed);
+    if (patch.tornadoSequenceDragDuration !== undefined)
+      setTornadoSequenceDragDuration(patch.tornadoSequenceDragDuration);
+    if (patch.tornadoSequenceStayDuration !== undefined)
+      setTornadoSequenceStayDuration(patch.tornadoSequenceStayDuration);
+    if (patch.tornadoSequenceExitMode !== undefined)
+      setTornadoSequenceExitMode(patch.tornadoSequenceExitMode);
+    if (patch.tornadoSequenceExitSpeed !== undefined)
+      setTornadoSequenceExitSpeed(patch.tornadoSequenceExitSpeed);
+    if (patch.tornadoSequenceLiftHeight !== undefined)
+      setTornadoSequenceLiftHeight(patch.tornadoSequenceLiftHeight);
+    if (patch.tornadoSequencePauseDuration !== undefined)
+      setTornadoSequencePauseDuration(patch.tornadoSequencePauseDuration);
     if (patch.intervalSessionOn !== undefined) setIntervalSessionOn(patch.intervalSessionOn);
     if (patch.intervalDuration !== undefined) setIntervalDuration(patch.intervalDuration);
     if (patch.intervalSessionType !== undefined) setIntervalSessionType(patch.intervalSessionType);
@@ -5709,6 +5874,126 @@ export function Aquafulness() {
           freqRef.current,
           heaveSkewRef.current,
         );
+      // TORNADO manual radial control + optional TORNADO SEQUENCE — shared by
+      // all three tornado-applicable branches below, each of which only
+      // differs in how it derives radialVel (NAV + whichever "current" dial
+      // that mode has, if any). `radialVel` (m/s, positive = inward) always
+      // applies first, so manual NAV/current input keeps working whether or
+      // not the sequence is on; the sequence (when on) then drives
+      // tornadoLiveRadiusRef/tornadoLiftOffsetRef through its own drag/stay/
+      // exit phases on top of that, taking over the baseline each cycle. See
+      // the tornadoSequence* Persisted fields' comments in settingsShared.ts
+      // for the overall phase design.
+      const updateTornadoLiveRadius = (radialVel: number) => {
+        tornadoLiveRadiusRef.current = Math.max(
+          0,
+          Math.min(tornadoRadiusRef.current, tornadoLiveRadiusRef.current + radialVel * physDt),
+        );
+        if (!tornadoSequenceOnRef.current) {
+          tornadoSeqPhaseRef.current = null;
+          tornadoLiftOffsetRef.current = stepToward(
+            tornadoLiftOffsetRef.current,
+            0,
+            Math.max(0.1, tornadoSequenceExitSpeedRef.current),
+            physDt,
+          );
+          return;
+        }
+        let seq = tornadoSeqPhaseRef.current;
+        if (!seq) {
+          seq = { phase: "drag", startMs: now, startRadius: tornadoLiveRadiusRef.current };
+          tornadoSeqPhaseRef.current = seq;
+        }
+        const elapsedS = (now - seq.startMs) / 1000;
+        const dragSpeed = Math.max(0.1, tornadoSequenceDragSpeedRef.current);
+        const exitSpeed = Math.max(0.1, tornadoSequenceExitSpeedRef.current);
+        switch (seq.phase) {
+          case "drag": {
+            tornadoLiveRadiusRef.current = stepToward(
+              tornadoLiveRadiusRef.current,
+              0,
+              dragSpeed,
+              physDt,
+            );
+            if (
+              tornadoLiveRadiusRef.current <= 0 ||
+              elapsedS >= tornadoSequenceDragDurationRef.current
+            ) {
+              tornadoLiveRadiusRef.current = 0;
+              seq.phase = "stay";
+              seq.startMs = now;
+            }
+            break;
+          }
+          case "stay": {
+            tornadoLiveRadiusRef.current = 0;
+            if (elapsedS >= tornadoSequenceStayDurationRef.current) {
+              seq.phase = tornadoSequenceExitModeRef.current === "lift" ? "lift" : "exitOuter";
+              seq.startMs = now;
+            }
+            break;
+          }
+          case "exitOuter": {
+            tornadoLiveRadiusRef.current = stepToward(
+              tornadoLiveRadiusRef.current,
+              tornadoRadiusRef.current,
+              exitSpeed,
+              physDt,
+            );
+            if (tornadoLiveRadiusRef.current >= tornadoRadiusRef.current) {
+              seq.phase = "drag";
+              seq.startMs = now;
+              seq.startRadius = tornadoLiveRadiusRef.current;
+            }
+            break;
+          }
+          case "lift": {
+            tornadoLiveRadiusRef.current = 0;
+            tornadoLiftOffsetRef.current = stepToward(
+              tornadoLiftOffsetRef.current,
+              tornadoSequenceLiftHeightRef.current,
+              exitSpeed,
+              physDt,
+            );
+            if (tornadoLiftOffsetRef.current >= tornadoSequenceLiftHeightRef.current) {
+              seq.phase = "pause";
+              seq.startMs = now;
+            }
+            break;
+          }
+          case "pause": {
+            tornadoLiveRadiusRef.current = 0;
+            if (elapsedS >= tornadoSequencePauseDurationRef.current) {
+              seq.phase = "return";
+              seq.startMs = now;
+            }
+            break;
+          }
+          case "return": {
+            tornadoLiftOffsetRef.current = stepToward(
+              tornadoLiftOffsetRef.current,
+              0,
+              exitSpeed,
+              physDt,
+            );
+            tornadoLiveRadiusRef.current = stepToward(
+              tornadoLiveRadiusRef.current,
+              seq.startRadius,
+              exitSpeed,
+              physDt,
+            );
+            if (
+              tornadoLiftOffsetRef.current <= 0 &&
+              tornadoLiveRadiusRef.current === seq.startRadius
+            ) {
+              seq.phase = "drag";
+              seq.startMs = now;
+              seq.startRadius = tornadoLiveRadiusRef.current;
+            }
+            break;
+          }
+        }
+      };
       if (camMode === "noclip" || camMode === "watercraft") {
         // Free 3D flight, no wave physics: NAV's y-axis moves along the full
         // view direction (pitch included), so looking up/down while pushing
@@ -5772,13 +6057,23 @@ export function Aquafulness() {
         // reaches, so toggling TORNADO on/off eases the swirl in/out instead
         // of popping.
         {
+          // Manual radial control: NAV's y-axis (already driving forward/
+          // back flight above) also pulls the orbit in/out while TORNADO is
+          // active, plus DRIFT XZ's own z-component carrying it the same way
+          // STRÖM does for float — see updateTornadoLiveRadius above.
+          if (tornadoOnRef.current) {
+            const radialVel =
+              -stickRef.current.y * speed + noclipDriftWorldRef.current.z * driftSpeedNoclip;
+            updateTornadoLiveRadius(radialVel);
+          }
           const tornadoDirSign = tornadoDirectionRef.current === "ccw" ? -1 : 1;
           const tornadoOmega =
             0.35 * tornadoSpeedRef.current * tornadoDirSign * tornadoBlendRef.current;
           tornadoAngleRef.current += tornadoOmega * physDt;
           const ang = tornadoAngleRef.current;
-          camX = posRef.current.x + Math.cos(ang) * tornadoRadiusRef.current * tornadoBlendRef.current;
-          camZ = posRef.current.z + Math.sin(ang) * tornadoRadiusRef.current * tornadoBlendRef.current;
+          const liveRadius = tornadoLiveRadiusRef.current;
+          camX = posRef.current.x + Math.cos(ang) * liveRadius * tornadoBlendRef.current;
+          camZ = posRef.current.z + Math.sin(ang) * liveRadius * tornadoBlendRef.current;
           tornadoCloudActive = tornadoBlendRef.current > 0.003;
           tornadoCloudX = posRef.current.x;
           tornadoCloudZ = posRef.current.z;
@@ -5833,13 +6128,20 @@ export function Aquafulness() {
         const rawSwingOff = Math.sin(theta) * horizArmLen * swingXFactorRef.current;
         const pendOffX = rightX * rawSwingOff;
         const pendOffZ = rightZ * rawSwingOff;
+        // Manual radial control: swing has no "current" dial of its own, so
+        // only NAV's y-axis (shown alongside the pendulum controls whenever
+        // TORNADO is on — see the Joystick's visibility condition) pulls the
+        // orbit in/out — see updateTornadoLiveRadius above.
+        if (tornadoOnRef.current) {
+          updateTornadoLiveRadius(-stickRef.current.y * walkSpeed);
+        }
         const tornadoDirSign = tornadoDirectionRef.current === "ccw" ? -1 : 1;
         const tornadoOmega =
           0.35 * tornadoSpeedRef.current * tornadoDirSign * tornadoBlendRef.current;
         tornadoAngleRef.current += tornadoOmega * physDt;
         const ang = tornadoAngleRef.current;
-        const tornadoOffX = Math.cos(ang) * tornadoRadiusRef.current;
-        const tornadoOffZ = Math.sin(ang) * tornadoRadiusRef.current;
+        const tornadoOffX = Math.cos(ang) * tornadoLiveRadiusRef.current;
+        const tornadoOffZ = Math.sin(ang) * tornadoLiveRadiusRef.current;
         const rawOffX = pendOffX + (tornadoOffX - pendOffX) * tornadoBlendRef.current;
         const rawOffZ = pendOffZ + (tornadoOffZ - pendOffZ) * tornadoBlendRef.current;
         tornadoCloudActive = tornadoBlendRef.current > 0.003;
@@ -5905,13 +6207,24 @@ export function Aquafulness() {
         // written back into posRef.current), so it never feeds back into the
         // drift/current physics above.
         {
+          // Manual radial control: NAV's y-axis (already driving forward/
+          // back swimming above) also pulls the orbit in/out while TORNADO is
+          // active, plus STRÖM's own z-component carrying it the same way it
+          // already carries the swim position — see updateTornadoLiveRadius
+          // above.
+          if (tornadoOnRef.current) {
+            const radialVel =
+              -stickRef.current.y * walkSpeed + driftWorldRef.current.z * driftSpeed;
+            updateTornadoLiveRadius(radialVel);
+          }
           const tornadoDirSign = tornadoDirectionRef.current === "ccw" ? -1 : 1;
           const tornadoOmega =
             0.35 * tornadoSpeedRef.current * tornadoDirSign * tornadoBlendRef.current;
           tornadoAngleRef.current += tornadoOmega * physDt;
           const ang = tornadoAngleRef.current;
-          camX = posRef.current.x + Math.cos(ang) * tornadoRadiusRef.current * tornadoBlendRef.current;
-          camZ = posRef.current.z + Math.sin(ang) * tornadoRadiusRef.current * tornadoBlendRef.current;
+          const liveRadius = tornadoLiveRadiusRef.current;
+          camX = posRef.current.x + Math.cos(ang) * liveRadius * tornadoBlendRef.current;
+          camZ = posRef.current.z + Math.sin(ang) * liveRadius * tornadoBlendRef.current;
           tornadoCloudActive = tornadoBlendRef.current > 0.003;
           tornadoCloudX = posRef.current.x;
           tornadoCloudY = camYRef.current ?? 0;
@@ -6435,8 +6748,13 @@ export function Aquafulness() {
       // Manual XYZ camera offset (POS X/Y/Z dials) — applied after physics so
       // the user can nudge the viewpoint without disturbing the buoyancy loop.
       // camYRef.current is only null before the very first frame sets it (in
-      // whichever mode-specific branch above ran this frame).
-      const camY = camYRef.current ?? 0;
+      // whichever mode-specific branch above ran this frame). TORNADO SEQUENCE's
+      // "lift" offset is added here (rather than into camYRef.current itself)
+      // so it stays a purely rendered nudge — for float mode in particular,
+      // baking it into camYRef.current would feed back into next frame's
+      // buoyancy spring (which targets the real wave surface) and just get
+      // sprung back down instead of actually lifting the view.
+      const camY = (camYRef.current ?? 0) + tornadoLiftOffsetRef.current * tornadoBlendRef.current;
       camera.position.set(
         camX + camOffXRef.current + swayX + surgeX,
         camY + camOffYRef.current + levelY,
@@ -7330,6 +7648,22 @@ export function Aquafulness() {
     setTornadoCloudOn,
     tornadoCloudYOffset,
     setTornadoCloudYOffset,
+    tornadoSequenceOn,
+    setTornadoSequenceOn,
+    tornadoSequenceDragSpeed,
+    setTornadoSequenceDragSpeed,
+    tornadoSequenceDragDuration,
+    setTornadoSequenceDragDuration,
+    tornadoSequenceStayDuration,
+    setTornadoSequenceStayDuration,
+    tornadoSequenceExitMode,
+    setTornadoSequenceExitMode,
+    tornadoSequenceExitSpeed,
+    setTornadoSequenceExitSpeed,
+    tornadoSequenceLiftHeight,
+    setTornadoSequenceLiftHeight,
+    tornadoSequencePauseDuration,
+    setTornadoSequencePauseDuration,
     intervalSessionOn,
     setIntervalSessionOn,
     intervalDuration,
@@ -7992,8 +8326,10 @@ export function Aquafulness() {
             STRÖM/HÖJD/SVAJ/VÅGRIKT finns även i "Fjärrkontroll"-appen i
             bathOS-telefonen (se VirtualPhone.tsx) — samma state/handlers,
             bara ett andra sätt att nå dem. I GUNGA-läget styrs positionen
-            helt av gungans fysik, så bara LOOK visas. */}
-        {cameraMode !== "swing" && (
+            helt av gungans fysik, så bara LOOK visas — utom när TORNADO är
+            på, då NAV:s y-axel även får styra avståndet in mot/ut från
+            virvelns centrum (se updateTornadoLiveRadius). */}
+        {(cameraMode !== "swing" || tornadoOn) && (
           <Joystick
             onChange={setStick}
             value={stick}
@@ -8391,6 +8727,94 @@ export function Aquafulness() {
                         format={(v) => `${v.toFixed(0)}m`}
                         onChange={setTornadoCloudYOffset}
                       />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setTornadoSequenceOn((v) => !v)}
+                      aria-pressed={tornadoSequenceOn}
+                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                        tornadoSequenceOn
+                          ? "ui-line-3 ui-tint-2 ui-ink"
+                          : "ui-line-2 ui-surface ui-ink-muted"
+                      }`}
+                    >
+                      {t("dial.camera.tornadoSequence")}:{" "}
+                      {t(tornadoSequenceOn ? "common.on" : "common.off")}
+                    </button>
+                    {tornadoSequenceOn && (
+                      <>
+                        <PadSlider
+                          label={t("dial.camera.tornadoSequenceDragSpeed")}
+                          value={tornadoSequenceDragSpeed}
+                          min={1}
+                          max={100}
+                          step={1}
+                          curve={2}
+                          format={(v) => `${v.toFixed(0)}m/s`}
+                          onChange={setTornadoSequenceDragSpeed}
+                        />
+                        <PadSlider
+                          label={t("dial.camera.tornadoSequenceDragDuration")}
+                          value={tornadoSequenceDragDuration}
+                          min={0.5}
+                          max={30}
+                          step={0.5}
+                          format={(v) => `${v.toFixed(1)}s`}
+                          onChange={setTornadoSequenceDragDuration}
+                        />
+                        <PadSlider
+                          label={t("dial.camera.tornadoSequenceStayDuration")}
+                          value={tornadoSequenceStayDuration}
+                          min={0}
+                          max={60}
+                          step={0.5}
+                          format={(v) => `${v.toFixed(1)}s`}
+                          onChange={setTornadoSequenceStayDuration}
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setTornadoSequenceExitMode((m) => (m === "outer" ? "lift" : "outer"))
+                          }
+                          className="rounded-full border ui-line-2 ui-surface px-4 py-1.5 text-[10px] font-light tracking-[0.2em] ui-ink-muted transition active:scale-95"
+                        >
+                          {t("dial.camera.tornadoSequenceExitMode")}:{" "}
+                          {t(TORNADO_SEQUENCE_EXIT_MODE_LABEL_KEYS[tornadoSequenceExitMode])}
+                        </button>
+                        <PadSlider
+                          label={t("dial.camera.tornadoSequenceExitSpeed")}
+                          value={tornadoSequenceExitSpeed}
+                          min={1}
+                          max={100}
+                          step={1}
+                          curve={2}
+                          format={(v) => `${v.toFixed(0)}m/s`}
+                          onChange={setTornadoSequenceExitSpeed}
+                        />
+                        {tornadoSequenceExitMode === "lift" && (
+                          <>
+                            <PadSlider
+                              label={t("dial.camera.tornadoSequenceLiftHeight")}
+                              value={tornadoSequenceLiftHeight}
+                              min={5}
+                              max={500}
+                              step={5}
+                              curve={2}
+                              format={(v) => `${v.toFixed(0)}m`}
+                              onChange={setTornadoSequenceLiftHeight}
+                            />
+                            <PadSlider
+                              label={t("dial.camera.tornadoSequencePauseDuration")}
+                              value={tornadoSequencePauseDuration}
+                              min={0}
+                              max={30}
+                              step={0.5}
+                              format={(v) => `${v.toFixed(1)}s`}
+                              onChange={setTornadoSequencePauseDuration}
+                            />
+                          </>
+                        )}
+                      </>
                     )}
                   </>
                 )}

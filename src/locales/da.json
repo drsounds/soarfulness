@@ -86,6 +86,10 @@
     "tornadoDirection": {
       "ccw": "MOD URET",
       "cw": "MED URET"
+    },
+    "tornadoSequenceExitMode": {
+      "lift": "LØFT & VEND TILBAGE",
+      "outer": "TRÆK TIL YDRE"
     }
   },
   "common": {
@@ -170,6 +174,14 @@
       "tornadoFollowCenter": "FØLG CENTRUM",
       "tornadoOpening": "TORNADO ÅBNING",
       "tornadoRadius": "TORNADO RADIUS",
+      "tornadoSequence": "TORNADOSEKVENS",
+      "tornadoSequenceDragDuration": "SEKVENS TRÆKTID",
+      "tornadoSequenceDragSpeed": "SEKVENS TRÆKHASTIGHED",
+      "tornadoSequenceExitMode": "SEKVENS AFSLUTNING",
+      "tornadoSequenceExitSpeed": "SEKVENS AFSLUTNINGSHASTIGHED",
+      "tornadoSequenceLiftHeight": "SEKVENS LØFTEHØJDE",
+      "tornadoSequencePauseDuration": "SEKVENS PAUSETID",
+      "tornadoSequenceStayDuration": "SEKVENS OPHOLDSTID",
       "tornadoSpeed": "TORNADO TEMPO",
       "wakeLock": "VÅGEN"
     },

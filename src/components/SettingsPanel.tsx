@@ -27,6 +27,8 @@ import {
   CAMERA_MODE_LABEL_KEYS,
   TORNADO_DIRECTIONS,
   TORNADO_DIRECTION_LABEL_KEYS,
+  TORNADO_SEQUENCE_EXIT_MODES,
+  TORNADO_SEQUENCE_EXIT_MODE_LABEL_KEYS,
   SURGE_ROTATION_MODES,
   SURGE_ROTATION_MODE_LABEL_KEYS,
   SWING_PRESETS,
@@ -45,6 +47,7 @@ import {
   type IntervalSessionType,
   type WavePresetName,
   type TornadoDirection,
+  type TornadoSequenceExitMode,
   type SurgeRotationMode,
 } from "@/lib/settingsShared";
 import { pickJsonFile, type PresetScope, type SavedPreset, type SavedState } from "@/lib/presets";
@@ -530,6 +533,26 @@ export type SettingsPanelProps = {
   // floating, where the cloud just follows the camera's own height.
   tornadoCloudYOffset: number;
   setTornadoCloudYOffset: Dispatch<SetStateAction<number>>;
+  // TORNADO SEQUENCE: an optional automatic drag-in/stay/exit loop layered on
+  // top of the always-available manual NAV+current radial control (see
+  // TornadoSequenceExitMode's comment in settingsShared.ts for the full
+  // drag/stay/exit phase design).
+  tornadoSequenceOn: boolean;
+  setTornadoSequenceOn: Dispatch<SetStateAction<boolean>>;
+  tornadoSequenceDragSpeed: number;
+  setTornadoSequenceDragSpeed: Dispatch<SetStateAction<number>>;
+  tornadoSequenceDragDuration: number;
+  setTornadoSequenceDragDuration: Dispatch<SetStateAction<number>>;
+  tornadoSequenceStayDuration: number;
+  setTornadoSequenceStayDuration: Dispatch<SetStateAction<number>>;
+  tornadoSequenceExitMode: TornadoSequenceExitMode;
+  setTornadoSequenceExitMode: Dispatch<SetStateAction<TornadoSequenceExitMode>>;
+  tornadoSequenceExitSpeed: number;
+  setTornadoSequenceExitSpeed: Dispatch<SetStateAction<number>>;
+  tornadoSequenceLiftHeight: number;
+  setTornadoSequenceLiftHeight: Dispatch<SetStateAction<number>>;
+  tornadoSequencePauseDuration: number;
+  setTornadoSequencePauseDuration: Dispatch<SetStateAction<number>>;
   // Interval session: automatically cycles cameraMode through whichever of
   // FRI/GUNGA are enabled below, every intervalDuration seconds, either
   // forever or for a fixed intervalCount.
@@ -1196,6 +1219,22 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setTornadoCloudOn,
     tornadoCloudYOffset,
     setTornadoCloudYOffset,
+    tornadoSequenceOn,
+    setTornadoSequenceOn,
+    tornadoSequenceDragSpeed,
+    setTornadoSequenceDragSpeed,
+    tornadoSequenceDragDuration,
+    setTornadoSequenceDragDuration,
+    tornadoSequenceStayDuration,
+    setTornadoSequenceStayDuration,
+    tornadoSequenceExitMode,
+    setTornadoSequenceExitMode,
+    tornadoSequenceExitSpeed,
+    setTornadoSequenceExitSpeed,
+    tornadoSequenceLiftHeight,
+    setTornadoSequenceLiftHeight,
+    tornadoSequencePauseDuration,
+    setTornadoSequencePauseDuration,
     intervalSessionOn,
     setIntervalSessionOn,
     intervalDuration,
@@ -2151,6 +2190,161 @@ export function SettingsPanel(props: SettingsPanelProps) {
                             setTornadoCloudYOffset((v) => Math.min(200, +(v + 5).toFixed(0)))
                           }
                         />
+                      )}
+                      <SettingRow
+                        label={t("dial.camera.tornadoSequence")}
+                        value={onOff(tornadoSequenceOn)}
+                        onDec={() => setTornadoSequenceOn(false)}
+                        onInc={() => setTornadoSequenceOn(true)}
+                      />
+                      {tornadoSequenceOn && (
+                        <>
+                          <SettingRow
+                            label={t("dial.camera.tornadoSequenceDragSpeed")}
+                            mode="number"
+                            value={`${tornadoSequenceDragSpeed.toFixed(0)}m/s`}
+                            rawValue={tornadoSequenceDragSpeed}
+                            onSet={(v) =>
+                              setTornadoSequenceDragSpeed(Math.max(1, Math.min(100, v)))
+                            }
+                            min={1}
+                            max={100}
+                            step={1}
+                            onDec={() =>
+                              setTornadoSequenceDragSpeed((v) => Math.max(1, +(v - 1).toFixed(0)))
+                            }
+                            onInc={() =>
+                              setTornadoSequenceDragSpeed((v) => Math.min(100, +(v + 1).toFixed(0)))
+                            }
+                          />
+                          <SettingRow
+                            label={t("dial.camera.tornadoSequenceDragDuration")}
+                            mode="number"
+                            value={`${tornadoSequenceDragDuration.toFixed(1)}s`}
+                            rawValue={tornadoSequenceDragDuration}
+                            onSet={(v) =>
+                              setTornadoSequenceDragDuration(Math.max(0.5, Math.min(30, v)))
+                            }
+                            min={0.5}
+                            max={30}
+                            step={0.5}
+                            onDec={() =>
+                              setTornadoSequenceDragDuration((v) =>
+                                Math.max(0.5, +(v - 0.5).toFixed(1)),
+                              )
+                            }
+                            onInc={() =>
+                              setTornadoSequenceDragDuration((v) =>
+                                Math.min(30, +(v + 0.5).toFixed(1)),
+                              )
+                            }
+                          />
+                          <SettingRow
+                            label={t("dial.camera.tornadoSequenceStayDuration")}
+                            mode="number"
+                            value={`${tornadoSequenceStayDuration.toFixed(1)}s`}
+                            rawValue={tornadoSequenceStayDuration}
+                            onSet={(v) =>
+                              setTornadoSequenceStayDuration(Math.max(0, Math.min(60, v)))
+                            }
+                            min={0}
+                            max={60}
+                            step={0.5}
+                            onDec={() =>
+                              setTornadoSequenceStayDuration((v) =>
+                                Math.max(0, +(v - 0.5).toFixed(1)),
+                              )
+                            }
+                            onInc={() =>
+                              setTornadoSequenceStayDuration((v) =>
+                                Math.min(60, +(v + 0.5).toFixed(1)),
+                              )
+                            }
+                          />
+                          <SettingRow
+                            label={t("dial.camera.tornadoSequenceExitMode")}
+                            value={t(
+                              TORNADO_SEQUENCE_EXIT_MODE_LABEL_KEYS[tornadoSequenceExitMode],
+                            )}
+                            options={TORNADO_SEQUENCE_EXIT_MODES.map((m) =>
+                              t(TORNADO_SEQUENCE_EXIT_MODE_LABEL_KEYS[m]),
+                            )}
+                            selectedIndex={TORNADO_SEQUENCE_EXIT_MODES.indexOf(
+                              tornadoSequenceExitMode,
+                            )}
+                            onSelectIndex={(i) =>
+                              setTornadoSequenceExitMode(TORNADO_SEQUENCE_EXIT_MODES[i])
+                            }
+                            onDec={() => setTornadoSequenceExitMode("outer")}
+                            onInc={() => setTornadoSequenceExitMode("lift")}
+                          />
+                          <SettingRow
+                            label={t("dial.camera.tornadoSequenceExitSpeed")}
+                            mode="number"
+                            value={`${tornadoSequenceExitSpeed.toFixed(0)}m/s`}
+                            rawValue={tornadoSequenceExitSpeed}
+                            onSet={(v) =>
+                              setTornadoSequenceExitSpeed(Math.max(1, Math.min(100, v)))
+                            }
+                            min={1}
+                            max={100}
+                            step={1}
+                            onDec={() =>
+                              setTornadoSequenceExitSpeed((v) => Math.max(1, +(v - 1).toFixed(0)))
+                            }
+                            onInc={() =>
+                              setTornadoSequenceExitSpeed((v) => Math.min(100, +(v + 1).toFixed(0)))
+                            }
+                          />
+                          {tornadoSequenceExitMode === "lift" && (
+                            <>
+                              <SettingRow
+                                label={t("dial.camera.tornadoSequenceLiftHeight")}
+                                mode="number"
+                                value={`${tornadoSequenceLiftHeight.toFixed(0)}m`}
+                                rawValue={tornadoSequenceLiftHeight}
+                                onSet={(v) =>
+                                  setTornadoSequenceLiftHeight(Math.max(5, Math.min(500, v)))
+                                }
+                                min={5}
+                                max={500}
+                                step={5}
+                                onDec={() =>
+                                  setTornadoSequenceLiftHeight((v) =>
+                                    Math.max(5, +(v - 5).toFixed(0)),
+                                  )
+                                }
+                                onInc={() =>
+                                  setTornadoSequenceLiftHeight((v) =>
+                                    Math.min(500, +(v + 5).toFixed(0)),
+                                  )
+                                }
+                              />
+                              <SettingRow
+                                label={t("dial.camera.tornadoSequencePauseDuration")}
+                                mode="number"
+                                value={`${tornadoSequencePauseDuration.toFixed(1)}s`}
+                                rawValue={tornadoSequencePauseDuration}
+                                onSet={(v) =>
+                                  setTornadoSequencePauseDuration(Math.max(0, Math.min(30, v)))
+                                }
+                                min={0}
+                                max={30}
+                                step={0.5}
+                                onDec={() =>
+                                  setTornadoSequencePauseDuration((v) =>
+                                    Math.max(0, +(v - 0.5).toFixed(1)),
+                                  )
+                                }
+                                onInc={() =>
+                                  setTornadoSequencePauseDuration((v) =>
+                                    Math.min(30, +(v + 0.5).toFixed(1)),
+                                  )
+                                }
+                              />
+                            </>
+                          )}
+                        </>
                       )}
                     </>
                   )}
