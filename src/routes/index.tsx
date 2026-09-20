@@ -6093,7 +6093,7 @@ export function Aquafulness() {
         // noise of the surface's peak instead of trailing it.
         const anticipation = waveAnticipationRef.current;
         const lead = anticipation / (1 + peakK * 6.0);
-        const futureSurf = waveHeight(
+        const futureNormalSurf = waveHeight(
           camX,
           camZ,
           t + lead,
@@ -6112,6 +6112,29 @@ export function Aquafulness() {
           freqRef.current,
           heaveSkewRef.current,
         );
+        // Mirror surfaceY's own vortexBlendRef blend here too (using the same
+        // current-frame blend value, since it eases too slowly over ~1.4s for
+        // the short `lead` lookahead to matter) — otherwise, whenever TORNADO
+        // is on, futureSurf silently drops back to the plain ocean while
+        // surfaceY includes the whirlpool's real depression, and the mismatch
+        // between the two feeds a large spurious anticipatory velocity into
+        // the buoyancy spring below, fighting the vortex and reading as janky
+        // heave instead of a smooth ride down into it.
+        const futureSurf =
+          vortexBlendRef.current > 0.0008
+            ? futureNormalSurf +
+              (whirlpoolSurfaceHeight(
+                camX - posRef.current.x,
+                camZ - posRef.current.z,
+                t + lead,
+                ampRef.current,
+                regularPeriodRef.current,
+                tornadoOpeningRef.current,
+                freqRef.current,
+              ) -
+                futureNormalSurf) *
+                vortexBlendRef.current
+            : futureNormalSurf;
         const maxSlope = ampRef.current * 6.0;
         const rawAnticip = Math.max(
           -maxSlope,
