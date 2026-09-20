@@ -8283,6 +8283,16 @@ export function Aquafulness() {
                       format={(v) => `${v.toFixed(0)}m`}
                       onChange={setSwingPositionY}
                     />
+                    <PadSlider
+                      label={t("dial.camera.swingHeight")}
+                      value={swingHeight}
+                      min={0}
+                      max={100000}
+                      step={100}
+                      curve={2}
+                      format={(v) => `${v.toFixed(0)}m`}
+                      onChange={setSwingHeight}
+                    />
                   </>
                 )}
                 {/* TORNADO: a fixed tab (not tied to any one camera mode)
