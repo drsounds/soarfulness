@@ -5884,9 +5884,17 @@ export function Aquafulness() {
       // exit phases on top of that, taking over the baseline each cycle. See
       // the tornadoSequence* Persisted fields' comments in settingsShared.ts
       // for the overall phase design.
+      //
+      // tornadoLiveRadiusRef is signed rather than clamped to [0, outer]: once
+      // manual input drags it past the exact center, it keeps going negative
+      // instead of stopping there — the render sites below take its absolute
+      // value as the actual orbit distance and add a half-turn (π) to the
+      // orbit angle whenever it's negative, so continuing to push "inward"
+      // seamlessly carries the camera through the center and back out the
+      // opposite side of the orbit, rather than getting stuck at the middle.
       const updateTornadoLiveRadius = (radialVel: number) => {
         tornadoLiveRadiusRef.current = Math.max(
-          0,
+          -tornadoRadiusRef.current,
           Math.min(tornadoRadiusRef.current, tornadoLiveRadiusRef.current + radialVel * physDt),
         );
         if (!tornadoSequenceOnRef.current) {
@@ -5915,8 +5923,12 @@ export function Aquafulness() {
               dragSpeed,
               physDt,
             );
+            // stepToward snaps exactly to 0 once within one step of it, from
+            // either side — so this checks for having actually arrived, not
+            // just "at or past zero" (which a signed value already may have
+            // been the instant this phase started, without moving at all).
             if (
-              tornadoLiveRadiusRef.current <= 0 ||
+              tornadoLiveRadiusRef.current === 0 ||
               elapsedS >= tornadoSequenceDragDurationRef.current
             ) {
               tornadoLiveRadiusRef.current = 0;
@@ -6071,6 +6083,12 @@ export function Aquafulness() {
             0.35 * tornadoSpeedRef.current * tornadoDirSign * tornadoBlendRef.current;
           tornadoAngleRef.current += tornadoOmega * physDt;
           const ang = tornadoAngleRef.current;
+          // Signed, not clamped to >= 0 — see tornadoLiveRadiusRef's own
+          // comment above updateTornadoLiveRadius. cos/sin already place a
+          // negative radius on the diametrically opposite point of the same
+          // line through the center (r*cos(θ) === |r|*cos(θ+π)), so this
+          // seamlessly carries the camera through the middle and out the far
+          // side instead of needing any extra angle-flip logic here.
           const liveRadius = tornadoLiveRadiusRef.current;
           camX = posRef.current.x + Math.cos(ang) * liveRadius * tornadoBlendRef.current;
           camZ = posRef.current.z + Math.sin(ang) * liveRadius * tornadoBlendRef.current;
@@ -6140,6 +6158,7 @@ export function Aquafulness() {
           0.35 * tornadoSpeedRef.current * tornadoDirSign * tornadoBlendRef.current;
         tornadoAngleRef.current += tornadoOmega * physDt;
         const ang = tornadoAngleRef.current;
+        // Signed — see the comment on updateTornadoLiveRadius above.
         const tornadoOffX = Math.cos(ang) * tornadoLiveRadiusRef.current;
         const tornadoOffZ = Math.sin(ang) * tornadoLiveRadiusRef.current;
         const rawOffX = pendOffX + (tornadoOffX - pendOffX) * tornadoBlendRef.current;
@@ -6222,6 +6241,8 @@ export function Aquafulness() {
             0.35 * tornadoSpeedRef.current * tornadoDirSign * tornadoBlendRef.current;
           tornadoAngleRef.current += tornadoOmega * physDt;
           const ang = tornadoAngleRef.current;
+          // Signed — see the comment on updateTornadoLiveRadius above and its
+          // twin in the noclip/watercraft branch.
           const liveRadius = tornadoLiveRadiusRef.current;
           camX = posRef.current.x + Math.cos(ang) * liveRadius * tornadoBlendRef.current;
           camZ = posRef.current.z + Math.sin(ang) * liveRadius * tornadoBlendRef.current;
