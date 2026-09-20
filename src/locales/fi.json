@@ -86,6 +86,10 @@
     "tornadoDirection": {
       "ccw": "VASTAPÄIVÄÄN",
       "cw": "MYÖTÄPÄIVÄÄN"
+    },
+    "tornadoSequenceExitMode": {
+      "lift": "NOSTO & PALUU",
+      "outer": "VETO ULOS"
     }
   },
   "common": {
@@ -170,6 +174,14 @@
       "tornadoFollowCenter": "SEURAA KESKUSTAA",
       "tornadoOpening": "TORNADON AUKKO",
       "tornadoRadius": "TORNADON SÄDE",
+      "tornadoSequence": "TORNADOSEKVENSSI",
+      "tornadoSequenceDragDuration": "SEKVENSSIN VETOKESTO",
+      "tornadoSequenceDragSpeed": "SEKVENSSIN VETONOPEUS",
+      "tornadoSequenceExitMode": "SEKVENSSIN POISTUMINEN",
+      "tornadoSequenceExitSpeed": "SEKVENSSIN POISTUMISNOPEUS",
+      "tornadoSequenceLiftHeight": "SEKVENSSIN NOSTOKORKEUS",
+      "tornadoSequencePauseDuration": "SEKVENSSIN TAUON KESTO",
+      "tornadoSequenceStayDuration": "SEKVENSSIN VIIPYMÄKESTO",
       "tornadoSpeed": "TORNADON TEMPO",
       "wakeLock": "VALVEILLA"
     },

@@ -86,6 +86,10 @@
     "tornadoDirection": {
       "ccw": "MOTURS",
       "cw": "MEDURS"
+    },
+    "tornadoSequenceExitMode": {
+      "lift": "LYFT & ÅTERVÄND",
+      "outer": "DRA TILL YTTRE"
     }
   },
   "common": {
@@ -170,6 +174,14 @@
       "tornadoFollowCenter": "FÖLJ CENTRUM",
       "tornadoOpening": "TORNADO ÖPPNING",
       "tornadoRadius": "TORNADO RADIE",
+      "tornadoSequence": "TORNADOSEKVENS",
+      "tornadoSequenceDragDuration": "SEKVENS DRAGTID",
+      "tornadoSequenceDragSpeed": "SEKVENS DRAGHASTIGHET",
+      "tornadoSequenceExitMode": "SEKVENS AVSLUT",
+      "tornadoSequenceExitSpeed": "SEKVENS AVSLUTSHASTIGHET",
+      "tornadoSequenceLiftHeight": "SEKVENS LYFTHÖJD",
+      "tornadoSequencePauseDuration": "SEKVENS PAUSTID",
+      "tornadoSequenceStayDuration": "SEKVENS STANNATID",
       "tornadoSpeed": "TORNADO TEMPO",
       "wakeLock": "VAKEN"
     },

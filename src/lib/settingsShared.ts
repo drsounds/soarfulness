@@ -163,6 +163,15 @@ export const CAMERA_MODES: CameraMode[] = ["float", "noclip", "swing", "watercra
 export type TornadoDirection = "cw" | "ccw";
 export const TORNADO_DIRECTIONS: TornadoDirection[] = ["cw", "ccw"];
 
+// How the TORNADO SEQUENCE's "exit" phase leaves the center once the "stay"
+// phase's duration elapses: "outer" pulls the camera back out to
+// tornadoRadius (the reverse of the initial drag-in), while "lift" instead
+// raises it straight up by tornadoSequenceLiftHeight, pauses briefly, then
+// sends it back down to wherever that cycle's drag-in phase started from
+// (not a single fixed spot — each loop iteration recaptures its own start).
+export type TornadoSequenceExitMode = "outer" | "lift";
+export const TORNADO_SEQUENCE_EXIT_MODES: TornadoSequenceExitMode[] = ["outer", "lift"];
+
 // How SURGE's own direction (surgeDirRef in routes/index.tsx) evolves over
 // time: "off" holds a fixed bearing (set via the SURGE DIRECTION dial),
 // "cw"/"ccw" turn it steadily clockwise/counter-clockwise as seen from
@@ -207,6 +216,11 @@ export const CAMERA_MODE_LABEL_KEYS: Record<CameraMode, string> = {
 export const TORNADO_DIRECTION_LABEL_KEYS: Record<TornadoDirection, string> = {
   cw: "camera.tornadoDirection.cw",
   ccw: "camera.tornadoDirection.ccw",
+};
+
+export const TORNADO_SEQUENCE_EXIT_MODE_LABEL_KEYS: Record<TornadoSequenceExitMode, string> = {
+  outer: "camera.tornadoSequenceExitMode.outer",
+  lift: "camera.tornadoSequenceExitMode.lift",
 };
 
 export const SURGE_ROTATION_MODE_LABEL_KEYS: Record<SurgeRotationMode, string> = {
@@ -377,6 +391,32 @@ export type Persisted = {
   // regardless of which of those two modes is active. Has no effect while
   // floating, where the cloud still simply follows the camera's own height.
   tornadoCloudYOffset: number;
+  // Manual radial control (all tornado-applicable modes, whenever tornadoOn):
+  // NAV's y-axis and the mode's own "current" dial (STRÖM for float, DRIFT XZ
+  // for noclip/watercraft) both push the camera's live orbit radius in/out
+  // between a small inner minimum and tornadoRadius — see tornadoLiveRadiusRef
+  // in routes/index.tsx. Purely a runtime position, not itself persisted;
+  // only the toggle/tuning for the automatic sequence below lives here.
+  //
+  // TORNADO SEQUENCE: an optional automatic cycle layered on top of that same
+  // live radius — drags the camera in to the center over
+  // tornadoSequenceDragDuration (at tornadoSequenceDragSpeed), holds it there
+  // for tornadoSequenceStayDuration (default 5s), then either pulls it back
+  // out to tornadoRadius ("outer") or lifts it straight up by
+  // tornadoSequenceLiftHeight, pauses for tornadoSequencePauseDuration, and
+  // sends it back down to that cycle's own drag-in starting position ("lift")
+  // — see tornadoSequenceExitMode/TornadoSequenceExitMode above. Loops
+  // continuously for as long as it's on. Manual NAV/current input above still
+  // works alongside it (added on top of the sequence's own radius), but the
+  // sequence resumes control of the baseline each cycle.
+  tornadoSequenceOn: boolean;
+  tornadoSequenceDragSpeed: number;
+  tornadoSequenceDragDuration: number;
+  tornadoSequenceStayDuration: number;
+  tornadoSequenceExitMode: TornadoSequenceExitMode;
+  tornadoSequenceExitSpeed: number;
+  tornadoSequenceLiftHeight: number;
+  tornadoSequencePauseDuration: number;
   intervalIncludeFloat: boolean;
   intervalIncludeSwing: boolean;
   depthSineOn: boolean;
@@ -595,6 +635,14 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "tornadoFollowCenter",
     "tornadoCloudOn",
     "tornadoCloudYOffset",
+    "tornadoSequenceOn",
+    "tornadoSequenceDragSpeed",
+    "tornadoSequenceDragDuration",
+    "tornadoSequenceStayDuration",
+    "tornadoSequenceExitMode",
+    "tornadoSequenceExitSpeed",
+    "tornadoSequenceLiftHeight",
+    "tornadoSequencePauseDuration",
     "intervalSessionOn",
     "intervalDuration",
     "intervalSessionType",

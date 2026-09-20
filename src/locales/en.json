@@ -86,6 +86,10 @@
     "tornadoDirection": {
       "ccw": "COUNTER-CLOCKWISE",
       "cw": "CLOCKWISE"
+    },
+    "tornadoSequenceExitMode": {
+      "lift": "LIFT & RETURN",
+      "outer": "PULL TO OUTER"
     }
   },
   "common": {
@@ -170,6 +174,14 @@
       "tornadoFollowCenter": "FOLLOW CENTER",
       "tornadoOpening": "TORNADO OPENING",
       "tornadoRadius": "TORNADO RADIUS",
+      "tornadoSequence": "TORNADO SEQUENCE",
+      "tornadoSequenceDragDuration": "SEQUENCE DRAG DURATION",
+      "tornadoSequenceDragSpeed": "SEQUENCE DRAG SPEED",
+      "tornadoSequenceExitMode": "SEQUENCE EXIT",
+      "tornadoSequenceExitSpeed": "SEQUENCE EXIT SPEED",
+      "tornadoSequenceLiftHeight": "SEQUENCE LIFT HEIGHT",
+      "tornadoSequencePauseDuration": "SEQUENCE PAUSE DURATION",
+      "tornadoSequenceStayDuration": "SEQUENCE STAY DURATION",
       "tornadoSpeed": "TORNADO SPEED",
       "wakeLock": "AWAKE"
     },
