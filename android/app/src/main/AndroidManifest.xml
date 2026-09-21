@@ -27,9 +27,27 @@
             android:grantUriPermissions="true">
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
         </provider>
+
+        <!-- Owns the ambient/ocean sound's MediaPlayer as a real foreground
+             service (see AmbientAudioService's own doc comment) — bound to
+             by AmbientAudioPlugin, never started via an external Intent
+             except the notification's own Stop action. -->
+        <service
+            android:name=".AmbientAudioService"
+            android:foregroundServiceType="mediaPlayback"
+            android:exported="false" />
     </application>
 
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- AmbientAudioService's foreground notification: FOREGROUND_SERVICE is
+         needed for any foreground service since API 28;
+         FOREGROUND_SERVICE_MEDIA_PLAYBACK specifically since API 34 (this
+         app's targetSdkVersion) for the "mediaPlayback" type declared above;
+         POST_NOTIFICATIONS since API 33, or the notification (though not
+         playback itself) silently doesn't show. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 </manifest>
