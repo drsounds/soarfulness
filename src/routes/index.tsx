@@ -7981,7 +7981,7 @@ export function Aquafulness() {
   };
 
   return (
-    <main className="relative h-screen w-screen overflow-hidden bg-black">
+    <main className="relative h-dvh w-screen overflow-hidden bg-black">
       {!envId && BACKDROPS[backdropIdx]?.url && (
         <img
           src={BACKDROPS[backdropIdx].url!}
@@ -8031,15 +8031,21 @@ export function Aquafulness() {
         />
       )}
 
-      {/* Persistent brand mark — inverted (white), semi-transparent, 24pt, 12pt margin */}
+      {/* Persistent brand mark — inverted (white), semi-transparent, 24pt,
+          12pt margin from the safe-area edge (not the raw screen edge), so
+          a notch/status bar or a browser's fullscreen exit-hint bar never
+          eats into it. Also kept clear of by the top button row below (see
+          its pr-*) instead of the two fighting over the same corner. */}
       <img
         src={appIconAsset.url}
         alt="Aquafulness"
         aria-hidden="true"
         className="pointer-events-none absolute z-30"
         style={{
-          top: "12pt",
-          right: "12pt",
+          top: isFullscreen
+            ? "calc(env(safe-area-inset-top, 0px) + 28pt)"
+            : "calc(env(safe-area-inset-top, 0px) + 12pt)",
+          right: "calc(env(safe-area-inset-right, 0px) + 12pt)",
           width: "24pt",
           height: "24pt",
           filter: "invert(1)",
@@ -8051,12 +8057,19 @@ export function Aquafulness() {
           brand mark above, always up regardless of HUD fade. Tap to open the
           time-travel dialog. Only rendered once simNowLabel is set client-
           side (see simNow's useState above) so the server-rendered markup
-          never includes a live time value. */}
+          never includes a live time value. Shares the brand mark's safe-area
+          top/right offsets (plus the extra fullscreen bump) so the two move
+          together. */}
       {!CLOCK_DISABLED_FOR_PERF_TEST && clockOn && simNowLabel && (
         <button
           onClick={() => setTimeTravelOpen(true)}
           className="absolute z-30 text-right text-[10px] font-light tabular-nums ui-ink-faint transition ui-press-ink"
-          style={{ top: "40pt", right: "12pt" }}
+          style={{
+            top: isFullscreen
+              ? "calc(env(safe-area-inset-top, 0px) + 56pt)"
+              : "calc(env(safe-area-inset-top, 0px) + 40pt)",
+            right: "calc(env(safe-area-inset-right, 0px) + 12pt)",
+          }}
           aria-label={t("hud.timeTravelOpenAria")}
           title={t("hud.timeTravelOpenAria")}
         >
@@ -8114,8 +8127,21 @@ export function Aquafulness() {
       >
         {/* Top bar: settings + speaker toggle + phone + fullscreen + share.
             Edit-mode (the "pencil") no longer lives here — it moved into the
-            bathOS phone's dedicated Skärmar app. */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between px-6 pt-6">
+            bathOS phone's dedicated Skärmar app.
+            pt- includes safe-area-inset-top (notch/status bar), with an
+            extra bump while isFullscreen so a browser/OS fullscreen hint
+            bar at the very top doesn't sit under the buttons. pr- is wide
+            enough to keep the right-hand button group clear of the
+            persistent brand mark + clock in the top-right corner (see
+            those elements' own safe-area-matched offsets above) instead of
+            the two overlapping. */}
+        <div
+          className={`pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-2 pl-[calc(env(safe-area-inset-left,0px)+1.5rem)] pr-[calc(env(safe-area-inset-right,0px)+4.5rem)] ${
+            isFullscreen
+              ? "pt-[calc(env(safe-area-inset-top,0px)+2.5rem)]"
+              : "pt-[calc(env(safe-area-inset-top,0px)+1.5rem)]"
+          }`}
+        >
           <button
             onClick={() => setAudioOn((v) => !v)}
             className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border ui-line-2 ui-surface ui-ink backdrop-blur-md transition active:scale-95 ui-press"
@@ -8309,8 +8335,17 @@ export function Aquafulness() {
             mode is active: while swimming (float) it reads WHIRLPOOL and
             brings back the old standalone VIRVEL mode's feel (camera orbits
             and dips into a real water vortex); in every other mode it reads
-            TORNADO and behaves exactly like the KAMERA settings dial. */}
-        <div className="pointer-events-none absolute inset-x-0 top-20 z-20 flex items-center justify-center gap-2">
+            TORNADO and behaves exactly like the KAMERA settings dial.
+            top- tracks the top bar's own safe-area/fullscreen-aware offset
+            above (plus its button height) so this row keeps a steady gap
+            below it instead of a fixed distance from the raw screen top. */}
+        <div
+          className={`pointer-events-none absolute inset-x-0 z-20 flex items-center justify-center gap-2 ${
+            isFullscreen
+              ? "top-[calc(env(safe-area-inset-top,0px)+5.5rem)]"
+              : "top-[calc(env(safe-area-inset-top,0px)+4.5rem)]"
+          }`}
+        >
           {!intervalSessionOn && (
             <button
               type="button"
@@ -8383,7 +8418,7 @@ export function Aquafulness() {
             onChange={setStick}
             value={stick}
             label={t("hud.joystick.nav")}
-            positionClass="bottom-8 left-8"
+            positionClass="bottom-[calc(env(safe-area-inset-bottom,0px)+2rem)] left-[calc(env(safe-area-inset-left,0px)+2rem)]"
           />
         )}
         {cameraMode === "float" && (
@@ -8391,7 +8426,7 @@ export function Aquafulness() {
             onChange={remoteControllerProps.onDriftChange}
             value={remoteControllerProps.driftStick}
             label={t("hud.joystick.current")}
-            positionClass="bottom-36 left-8"
+            positionClass="bottom-[calc(env(safe-area-inset-bottom,0px)+9rem)] left-[calc(env(safe-area-inset-left,0px)+2rem)]"
             sticky
           />
         )}
@@ -8400,7 +8435,7 @@ export function Aquafulness() {
             onChange={remoteControllerProps.onSwayChange}
             value={remoteControllerProps.swayStick}
             label={t("hud.joystick.sway")}
-            positionClass="bottom-64 left-8"
+            positionClass="bottom-[calc(env(safe-area-inset-bottom,0px)+16rem)] left-[calc(env(safe-area-inset-left,0px)+2rem)]"
             sticky
           />
         )}
@@ -8414,12 +8449,12 @@ export function Aquafulness() {
             onChange={remoteControllerProps.onNoclipDriftChange}
             value={remoteControllerProps.noclipDriftStick}
             label={t("hud.joystick.noclipDriftXZ")}
-            positionClass="bottom-36 left-8"
+            positionClass="bottom-[calc(env(safe-area-inset-bottom,0px)+9rem)] left-[calc(env(safe-area-inset-left,0px)+2rem)]"
             sticky
           />
         )}
         {(cameraMode === "noclip" || cameraMode === "watercraft") && (
-          <div className="pointer-events-none absolute bottom-64 left-8 z-10 select-none">
+          <div className="pointer-events-none absolute bottom-[calc(env(safe-area-inset-bottom,0px)+16rem)] left-[calc(env(safe-area-inset-left,0px)+2rem)] z-10 select-none">
             <div className="flex flex-col items-center gap-1">
               <button
                 type="button"
@@ -8505,21 +8540,25 @@ export function Aquafulness() {
           onChange={setRotStick}
           value={rotStick}
           label={t("hud.joystick.look")}
-          positionClass="bottom-8 right-8"
+          // Extra bottom clearance (+3.5rem beyond the left column's
+          // matching offset) keeps this clear of the "Edit with Lovable"
+          // badge that Lovable's published preview pins to the bottom-right
+          // corner of the viewport.
+          positionClass="bottom-[calc(env(safe-area-inset-bottom,0px)+5.5rem)] right-[calc(env(safe-area-inset-right,0px)+2rem)]"
         />
         {cameraMode === "float" && (
           <Joystick
             onChange={remoteControllerProps.onWaveDirChange}
             value={remoteControllerProps.waveDirStick}
             label={t("hud.joystick.waveDirection")}
-            positionClass="bottom-36 right-8"
+            positionClass="bottom-[calc(env(safe-area-inset-bottom,0px)+12.5rem)] right-[calc(env(safe-area-inset-right,0px)+2rem)]"
             sticky
           />
         )}
         {/* LEVEL DRIFT: unlike STRÖM/SVAJ/VÅGRIKT/HÖJD above, this isn't
             gated behind a cameraMode check — the water level drifts the same
             way regardless of how the camera is currently moving. */}
-        <div className="pointer-events-none absolute bottom-64 right-8 z-10 select-none">
+        <div className="pointer-events-none absolute bottom-[calc(env(safe-area-inset-bottom,0px)+19.5rem)] right-[calc(env(safe-area-inset-right,0px)+2rem)] z-10 select-none">
           <VerticalDial
             value={depthDriftSpeed}
             onChange={setDepthDriftSpeed}
@@ -8536,7 +8575,7 @@ export function Aquafulness() {
             VÅGRIKT's unused spot on the right since noclip has no wave
             direction to steer. */}
         {(cameraMode === "noclip" || cameraMode === "watercraft") && (
-          <div className="pointer-events-none absolute bottom-36 right-8 z-10 select-none">
+          <div className="pointer-events-none absolute bottom-[calc(env(safe-area-inset-bottom,0px)+12.5rem)] right-[calc(env(safe-area-inset-right,0px)+2rem)] z-10 select-none">
             <VerticalModeSlider
               value={noclipVerticalMode}
               onChange={setNoclipVerticalMode}
@@ -8564,7 +8603,7 @@ export function Aquafulness() {
             and it would otherwise collide with WatercraftHud occupying the
             same bottom-center spot. */}
         {cameraMode !== "watercraft" && (
-          <div className="pointer-events-auto absolute bottom-8 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center gap-2">
+          <div className="pointer-events-auto absolute bottom-[calc(env(safe-area-inset-bottom,0px)+2rem)] left-1/2 z-20 flex -translate-x-1/2 flex-col items-center gap-2">
             {cameraDrawerOpen && (
               <div className="flex flex-col items-center gap-2 rounded-3xl border ui-line-1 ui-surface-strong p-4 shadow-2xl backdrop-blur-xl">
                 <div className="flex gap-1 rounded-full border ui-line-1 ui-surface p-1">
