@@ -93,14 +93,16 @@ lint/tmp/
 # Cordova plugins for Capacitor
 capacitor-cordova-android-plugins
 
-# Copied web assets and generated config files: committed, not ignored.
-# The offline web bundle is built here (locally, not in CI — see
-# CAPACITOR_APP.md and .github/workflows/capacitor-android-build.yml) via
-# `npm run build:capacitor && npx cap sync android`, then committed as part
-# of the same change, so CI's Gradle jobs only ever package an
-# already-built, already-reviewed bundle instead of rebuilding it.
-# app/src/main/assets/public
-# app/src/main/assets/capacitor.config.json
-# app/src/main/assets/capacitor.plugins.json
+# Copied web assets and generated config files. Built here (locally, not
+# in CI — see CAPACITOR_APP.md) via `npm run build:capacitor && npx cap
+# sync android`, but NOT committed to git — a ~50MB+ binary bundle in every
+# commit that touches it would bloat this repo's history forever. Instead
+# it's published as the "capacitor-web-bundle" GitHub Release asset (via
+# .github/workflows/publish-capacitor-web-bundle.yml), and
+# capacitor-android-build.yml's Gradle jobs download+extract it here at
+# build time.
+app/src/main/assets/public
+app/src/main/assets/capacitor.config.json
+app/src/main/assets/capacitor.plugins.json
 
 app/src/main/res/xml/config.xml
