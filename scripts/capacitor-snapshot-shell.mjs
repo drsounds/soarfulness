@@ -20,8 +20,9 @@
 // at all: every asset under .output/public (including everything from
 // public/, copied there during the build) ships inside the app package.
 import { spawn } from "node:child_process";
-import { writeFile, access } from "node:fs/promises";
+import { writeFile, access, readdir, unlink } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
 const rootDir = fileURLToPath(new URL("..", import.meta.url));
 const serverEntry = new URL("../.output/server/index.mjs", import.meta.url);
@@ -82,3 +83,22 @@ try {
 } finally {
   server.kill();
 }
+
+// This build's output is what actually ships inside the Android app
+// package (see capacitor.config.ts's webDir + CAPACITOR_APP.md — it's
+// built here, not in CI, and the result is committed straight into
+// android/app/src/main/assets/public). GIMP .xcf sources for the skyboxes
+// live under public/ alongside the exported .png the app actually fetches
+// (see src/lib/offlineAssets.ts's own comment on this) — Vite copies the
+// whole public/ directory verbatim, so they end up here too even though
+// nothing ever loads them. Dropping them keeps tens of MB of dev-only
+// source files out of both the git commit and the installed APK.
+const publicDirPath = fileURLToPath(publicDir);
+let xcfCount = 0;
+for (const entry of await readdir(publicDirPath, { recursive: true, withFileTypes: true })) {
+  if (entry.isFile() && entry.name.toLowerCase().endsWith(".xcf")) {
+    await unlink(join(entry.parentPath ?? entry.path, entry.name));
+    xcfCount++;
+  }
+}
+if (xcfCount > 0) console.log(`Removed ${xcfCount} unused .xcf source file(s) from .output/public`);

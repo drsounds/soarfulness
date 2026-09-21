@@ -1,0 +1,8 @@
+{
+  "name": "Strandpark",
+  "position": [30, 1, 0],
+  "rotation": [0, 0, 0],
+  "scale": 2.5,
+  "bob": { "follow": false },
+  "locations": [{ "id": "spawn", "name": "Spawn", "x": 0, "y": 0, "z": 0 }]
+}

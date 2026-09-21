@@ -18,21 +18,32 @@ on:
           - beta
           - production
 
-# Split into sequential jobs (rather than one long job) so "Re-run failed
+# No job here builds the web app — npm ci + `npm run build:capacitor` +
+# `cap sync android` are too heavy to redo on every CI run (a ~1900-module
+# TanStack Start build plus a ~60 MB offline asset bundle) for output that
+# only changes when the web app itself does. Instead that build runs
+# locally (see CAPACITOR_APP.md) and its result —
+# android/app/src/main/assets/public — is committed straight into git, so
+# every job below just packages an already-built, already-reviewed bundle
+# with Gradle. Sequential jobs (rather than one long one) so "Re-run failed
 # jobs" resumes from whichever step actually failed instead of redoing the
-# npm install/web build every time — that's the slow, expensive part, and
-# it's identical on every retry unless the web app itself changed.
+# earlier Gradle work too.
 jobs:
-  web-build:
-    name: Build web app + sync Android project
+  debug-apk:
+    name: Build debug APK
     runs-on: ubuntu-latest
     outputs:
       has-signing: ${{ steps.flags.outputs.has-signing }}
       has-play-submit: ${{ steps.flags.outputs.has-play-submit }}
+    # Unlike native/'s react-native-webgpu port, this is a WebView shell
+    # around the already-built web app — no NDK/CMake compile, no per-ABI
+    # native binaries. Much lighter than native-android-build.yml, so (per
+    # NATIVE_APP.md's hard-won lessons there) it doesn't need that
+    # workflow's disk-space or Actions-artifact-quota workarounds.
     steps:
       # secrets.* can't be read directly in a job/step `if:` — computing
       # these once here as job outputs is the documented workaround, and
-      # lets every downstream job gate on them via `needs.web-build.outputs`.
+      # lets the later jobs gate on them via `needs.debug-apk.outputs`.
       - name: Compute signing/submit flags
         id: flags
         env:
@@ -44,51 +55,6 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          # @capacitor/cli 8.x requires Node >= 22.
-          node-version: 22
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build web app for Capacitor (offline SPA shell)
-        run: npm run build:capacitor
-
-      - name: Sync Capacitor Android project
-        run: npx cap sync android
-
-      # The only output of this job the Gradle jobs need — everything else
-      # they need (gradlew, build.gradle, ...) already lives in git and
-      # comes back via their own checkout.
-      - name: Upload synced web assets
-        uses: actions/upload-artifact@v4
-        with:
-          name: capacitor-android-assets
-          path: android/app/src/main/assets
-          retention-days: 1
-
-  debug-apk:
-    name: Build debug APK
-    needs: web-build
-    runs-on: ubuntu-latest
-    # Unlike native/'s react-native-webgpu port, this is a WebView shell
-    # around the already-built web app — no NDK/CMake compile, no per-ABI
-    # native binaries. Much lighter than native-android-build.yml, so (per
-    # NATIVE_APP.md's hard-won lessons there) it doesn't need that
-    # workflow's disk-space or Actions-artifact-quota workarounds.
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Download synced web assets
-        uses: actions/download-artifact@v4
-        with:
-          name: capacitor-android-assets
-          path: android/app/src/main/assets
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -111,7 +77,7 @@ jobs:
       # it alongside the AAB on signed runs (see NATIVE_APP.md's
       # Actions-artifact-quota notes).
       - name: Upload debug APK
-        if: needs.web-build.outputs.has-signing != 'true'
+        if: steps.flags.outputs.has-signing != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: aquafulness-capacitor-debug-apk
@@ -120,20 +86,14 @@ jobs:
 
   release-aab:
     name: Build & publish signed release AAB
-    needs: [web-build, debug-apk]
-    if: needs.web-build.outputs.has-signing == 'true'
+    needs: debug-apk
+    if: needs.debug-apk.outputs.has-signing == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Download synced web assets
-        uses: actions/download-artifact@v4
-        with:
-          name: capacitor-android-assets
-          path: android/app/src/main/assets
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -178,8 +138,8 @@ jobs:
 
   play-submit:
     name: Submit to Play Console
-    needs: [web-build, release-aab]
-    if: needs.web-build.outputs.has-play-submit == 'true'
+    needs: [debug-apk, release-aab]
+    if: needs.debug-apk.outputs.has-play-submit == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Download release AAB

@@ -46,15 +46,29 @@ Capacitor `webDir` directly.
 `capacitor.config.ts` points `webDir` at `.output/public` with no
 `server.url`, so Capacitor copies that whole directory — app shell **and**
 every scene/environment/skybox/audio asset under `public/`
-(`android/app/src/main/assets/public`, ~100 MB) — into the APK. The app
-launches and runs fully offline from a cold install, no network required.
+(`android/app/src/main/assets/public`, ~60 MB — `capacitor-snapshot-shell.mjs`
+also strips the GIMP `.xcf` skybox sources that `public/` carries alongside
+the `.png` the app actually fetches, ~50 MB nothing ever loads) — into the
+APK. The app launches and runs fully offline from a cold install, no
+network required.
 
 ## Building
+
+**The web build is not done in CI** — `npm ci` + `npm run build:capacitor`
+(a ~1900-module TanStack Start build) plus `cap sync android` (copying a
+~60 MB asset bundle) is too heavy to redo on every CI run for output that
+only changes when the web app itself does. Instead it's built locally and
+`android/app/src/main/assets/public` is **committed to git**, so CI's Gradle
+jobs only ever package an already-built, already-reviewed bundle.
+
+Rebuild it whenever `src/`, `public/`, or a dependency that affects the
+built output changes, and commit the result as part of that change:
 
 ```sh
 npm ci
 npm run build:capacitor   # → .output/public (static, offline-ready)
 npx cap sync android      # copies it into android/app/src/main/assets/public
+git add android/app/src/main/assets
 ```
 
 Then either open `android/` in Android Studio, or build from the CLI:
@@ -65,10 +79,14 @@ cd android
 ./gradlew bundleRelease     # release AAB — see "Play Store signing" below
 ```
 
-`.github/workflows/capacitor-android-build.yml` runs the same steps in CI,
+`.github/workflows/capacitor-android-build.yml` runs the Gradle half of
+this in CI (checkout → `assembleDebug` → `bundleRelease` → Play submit, as
+separate jobs against the already-committed `android/app/src/main/assets`),
 manually (`workflow_dispatch` only — no automatic push/PR trigger, matching
 `native-android-build.yml`'s stance), and builds+publishes a signed release
-AAB when the signing secrets below are configured.
+AAB when the signing secrets below are configured. If `android/app/src/main/
+assets/public` is stale relative to `src/`/`public/`, CI packages the stale
+bundle without complaint — rebuilding and committing it is on you.
 
 ## Play Store signing
 
