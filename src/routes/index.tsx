@@ -3822,6 +3822,19 @@ export function Aquafulness() {
     () => [...WATER_SOUNDS, ...appAudioTracks.map((a) => ({ id: a.id, url: a.url, name: a.name }))],
     [appAudioTracks],
   );
+  // The audio effect below only needs to rebuild when the currently-selected
+  // track's URL actually changes — not whenever allWaterSounds gets a new
+  // array reference (e.g. the installed-app catalog fetch resolving shortly
+  // after mount/an audio-on toggle, appending unrelated entries). Depending
+  // on the array itself caused an audible stop+restart glitch right after
+  // starting audio on native builds, where AmbientAudioPlugin's
+  // MediaPlayer.prepareAsync() makes that restart gap perceptible (the old
+  // plain <audio> Web Audio path restarted near-instantly, so this was
+  // latent but inaudible there).
+  const currentWaterUrl = useMemo(
+    () => allWaterSounds[waterSoundIdx]?.url ?? WATER_SOUNDS[0].url,
+    [allWaterSounds, waterSoundIdx],
+  );
 
   // Ocean sound: loop the selected recorded water track (see allWaterSounds)
   // through a lowpass + depth gain so we can still muffle & boost it based
@@ -3830,10 +3843,9 @@ export function Aquafulness() {
   // src/lib/ambientAudio.ts — because Chromium's WebView pauses/ducks this
   // Web Audio graph on its own on audio-focus loss, with no way to disable
   // that from here. Falls back to the Web Audio graph on native too, for any
-  // source AmbientAudio can't play (see resolveNativeAudioSource) — notably
-  // an installed app's own audio track loaded via a blob: URL.
+  // source AmbientAudio can't play (see resolveNativeAudioSource).
   useEffect(() => {
-    const url = allWaterSounds[waterSoundIdx]?.url ?? WATER_SOUNDS[0].url;
+    const url = currentWaterUrl;
     const nativeSource = Capacitor.isNativePlatform() ? resolveNativeAudioSource(url) : null;
 
     if (!audioOn) {
@@ -3935,7 +3947,7 @@ export function Aquafulness() {
     master.gain.setTargetAtTime(audioVol, ctx.currentTime, 0.6);
 
     audioRef.current = { kind: "web", ctx, el, master, depthGain, lp };
-  }, [audioOn, waterSoundIdx, allWaterSounds]);
+  }, [audioOn, currentWaterUrl]);
 
   // React to volume changes
   useEffect(() => {
@@ -8470,11 +8482,38 @@ export function Aquafulness() {
           buildBathLink={buildBathLink}
         />
 
-        {/* Collapsible settings panel */}
+        {/* Collapsible settings panel. The outer div stays pointer-events-none
+            and spans the full width only for centering (mx-auto) — it used
+            to carry pointer-events-auto itself, which made its *entire*
+            inset-x-0 strip (including the empty padding either side of the
+            narrower centered card) swallow clicks, silently blocking the
+            settings gear button in the top bar whenever it fell in that
+            vertical band even though nothing was visibly drawn over it.
+            pointer-events-auto now lives only on the card, which is also
+            pushed down (accounting for safe-area-inset-top) clear of the
+            top bar instead of merely overlapping it, and z-30 (same tier as
+            the offline banner) instead of the top bar's z-20 makes it
+            unambiguously on top while open. The header's own close button
+            means closing no longer depends on that gear button at all. */}
         {settingsOpen && (
-          <div className="pointer-events-auto absolute inset-x-0 top-16 z-20 mx-auto max-w-2xl px-6">
-            <div className="max-h-[70vh] overflow-y-auto rounded-3xl border ui-line-1 ui-surface-strong p-4 shadow-2xl backdrop-blur-xl">
-              <SettingsPanel {...settingsPanelProps} />
+          <div className="pointer-events-none absolute inset-x-0 top-[calc(env(safe-area-inset-top,0px)+6rem)] z-30 mx-auto max-w-2xl px-6">
+            <div className="pointer-events-auto flex max-h-[65vh] flex-col overflow-hidden rounded-3xl border ui-line-1 ui-surface-strong shadow-2xl backdrop-blur-xl">
+              <div className="flex shrink-0 items-center justify-between border-b ui-line-2 px-4 py-2.5">
+                <span className="text-[10px] font-light tracking-[0.28em] ui-ink-muted">
+                  {t("hud.settingsOpenAria")}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSettingsOpen(false)}
+                  aria-label={t("hud.settingsCloseAria")}
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border ui-line-2 ui-surface ui-ink transition active:scale-95 ui-press"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="overflow-y-auto p-4">
+                <SettingsPanel {...settingsPanelProps} />
+              </div>
             </div>
           </div>
         )}

@@ -62,6 +62,11 @@ dependencies {
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    // Explicit (already pulled in transitively by core-splashscreen) since
+    // AmbientAudioService uses NotificationCompat/ServiceCompat directly —
+    // androidx.core:core 1.12.0+ for ServiceCompat.startForeground()'s
+    // foregroundServiceType-aware overload; androidxCoreVersion is 1.17.0.
+    implementation "androidx.core:core:$androidxCoreVersion"
     implementation project(':capacitor-android')
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"

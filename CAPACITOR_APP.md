@@ -66,12 +66,32 @@ So on native (Android) builds, the looping ocean/water sound in
 `src/routes/index.tsx` is played by a small native plugin instead of the
 Web Audio graph it uses in the browser/PWA build:
 `android/app/src/main/java/se/soarfulness/app/gen7/AmbientAudioPlugin.java`
-(a plain `android.media.MediaPlayer`, entirely outside the WebView's own
-media pipeline) requests `AUDIOFOCUS_GAIN` once and then simply never reacts
-to focus-change callbacks, so playback is never interrupted. `src/lib/
+is a thin JS-facing bridge — the actual `android.media.MediaPlayer`
+(entirely outside the WebView's own media pipeline) lives in
+`AmbientAudioService`, a real foreground `Service` the plugin binds to.
+It requests `AUDIOFOCUS_GAIN` once and then simply never reacts to
+focus-change callbacks, so playback is never interrupted. `src/lib/
 ambientAudio.ts` is the JS-side wrapper (`registerPlugin("AmbientAudio")`);
 `MainActivity.java` registers the plugin by hand since it isn't an
 npm-published Capacitor plugin `cap sync` would pick up on its own.
+
+Playback runs in a genuine foreground `Service` (not just plugin-held
+state) for two reasons: a plain background process with nothing marking
+it as doing user-requested work is a prime target for the OS to kill to
+reclaim memory, which would stop "uninterruptible" ambient audio far more
+thoroughly than any audio-focus event — a foreground service with an
+active notification tells the OS not to do that; and the notification
+itself (`AmbientAudioService.showPlayingNotification`, a low-priority
+`NotificationCompat` with a Stop action, channel `ambient_audio`) is a
+visible, always-current "yes, it's really still playing" signal, both for
+the user's convenience and to make future audio bugs easier to diagnose
+without adb/logcat — if the notification's gone, the service died; if
+it's there but silent, the bug is in MediaPlayer/Equalizer, not process
+lifecycle. Needs `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_MEDIA_PLAYBACK`
+(Android 14+, matching this app's `foregroundServiceType="mediaPlayback"`)
+and `POST_NOTIFICATIONS` (Android 13+, or the notification silently
+doesn't show — playback itself is unaffected either way) permissions,
+declared in `AndroidManifest.xml`.
 
 The plugin approximates the web graph's depth-based effects (louder +
 more muffled the deeper the camera goes) too — gain via `MediaPlayer
