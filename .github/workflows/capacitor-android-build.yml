@@ -18,15 +18,17 @@ on:
           - beta
           - production
 
-# No job here builds the web app — npm ci + `npm run build:capacitor` +
-# `cap sync android` are too heavy to redo on every CI run (a ~1900-module
-# TanStack Start build plus a ~50MB offline asset bundle) for output that
-# only changes when the web app itself does. That build runs locally (see
+# No job here runs `npm run build:capacitor` (the actual web bundling —
+# a ~1900-module TanStack Start build producing a ~50MB offline asset
+# bundle) — too heavy to redo on every CI run for output that only
+# changes when the web app itself does. That build runs locally (see
 # CAPACITOR_APP.md) and its result (android/app/src/main/assets) is
 # published as the "capacitor-web-bundle" GitHub Release asset by
 # publish-capacitor-web-bundle.yml — every job below just downloads that
-# (a fast, cheap step) and packages it with Gradle. Sequential jobs (rather
-# than one long one) so "Re-run failed jobs" resumes from whichever step
+# (a fast, cheap step). They still run a plain `npm ci` (no build) since
+# Gradle itself needs node_modules/@capacitor/android present — see the
+# "Install dependencies" step's own comment. Sequential jobs (rather than
+# one long one) so "Re-run failed jobs" resumes from whichever step
 # actually failed instead of redoing the earlier Gradle work too.
 jobs:
   debug-apk:
@@ -66,6 +68,23 @@ jobs:
             --pattern capacitor-android-assets.tar.gz \
             --dir "$RUNNER_TEMP"
           tar xzf "$RUNNER_TEMP/capacitor-android-assets.tar.gz" -C android/app/src/main/assets
+
+      # Not the heavy part being avoided — that's `vite build` (the actual
+      # web bundling, replaced above by the release-asset download).
+      # `npm ci` is just fast package installation, and Gradle genuinely
+      # needs it: android/capacitor.settings.gradle points the
+      # `:capacitor-android` project at ../node_modules/@capacitor/android/
+      # capacitor directly (Capacitor's real Android library source, not
+      # something `cap sync` generates) — skip this and Gradle fails with
+      # "Could not resolve project :capacitor-android".
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -122,6 +141,23 @@ jobs:
             --pattern capacitor-android-assets.tar.gz \
             --dir "$RUNNER_TEMP"
           tar xzf "$RUNNER_TEMP/capacitor-android-assets.tar.gz" -C android/app/src/main/assets
+
+      # Not the heavy part being avoided — that's `vite build` (the actual
+      # web bundling, replaced above by the release-asset download).
+      # `npm ci` is just fast package installation, and Gradle genuinely
+      # needs it: android/capacitor.settings.gradle points the
+      # `:capacitor-android` project at ../node_modules/@capacitor/android/
+      # capacitor directly (Capacitor's real Android library source, not
+      # something `cap sync` generates) — skip this and Gradle fails with
+      # "Could not resolve project :capacitor-android".
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4

@@ -93,10 +93,12 @@ change that touches it would bloat this repo's history forever. Instead:
 `release-aab` → `play-submit`) each start by downloading and extracting
 that release asset (`gh release download capacitor-web-bundle`, already
 authenticated via the runner's default token — a few seconds, not a build),
-then run Gradle against it. Runs manually (`workflow_dispatch` only — no
-automatic push/PR trigger, matching `native-android-build.yml`'s stance),
-and builds+publishes a signed release AAB when the signing secrets below
-are configured.
+then `npm ci` (fast — Gradle needs `node_modules/@capacitor/android`
+present; `android/capacitor.settings.gradle` points the `:capacitor-android`
+project straight at it), then run Gradle. Runs manually (`workflow_dispatch`
+only — no automatic push/PR trigger, matching `native-android-build.yml`'s
+stance), and builds+publishes a signed release AAB when the signing
+secrets below are configured.
 
 **If you forget step 2, CI keeps building whatever bundle was last
 published** — it has no way to know `src/`/`public/` changed underneath it.
