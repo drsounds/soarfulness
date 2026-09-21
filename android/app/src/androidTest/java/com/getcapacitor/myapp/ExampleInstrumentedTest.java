@@ -21,6 +21,6 @@ public class ExampleInstrumentedTest {
         // Context of the app under test.
         Context appContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
-        assertEquals("se.soarfulness.app", appContext.getPackageName());
+        assertEquals("se.soarfulness.app.gen7", appContext.getPackageName());
     }
 }
