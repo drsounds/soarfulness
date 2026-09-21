@@ -1,0 +1,59 @@
+name: Publish Capacitor web bundle
+
+on:
+  # Manual only, and deliberately doesn't build anything — it just takes
+  # tarball chunks that already exist on some ref (built locally via
+  # `npm run capacitor:package-bundle`, see CAPACITOR_APP.md's "Building
+  # the offline web bundle" section), reassembles them, and attaches the
+  # result to a stable GitHub Release. capacitor-android-build.yml's Gradle
+  # jobs download it from there instead of building it themselves.
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: >-
+          Branch/ref that has capacitor-android-assets.tar.gz.part-* files
+          committed at its root (typically a short-lived staging branch,
+          deleted after this run publishes it)
+        required: true
+
+jobs:
+  publish:
+    name: Publish release asset
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout source ref
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.source_ref }}
+
+      # capacitor-android-assets.tar.gz is committed to the staging branch
+      # split into <100MB chunks (`npm run capacitor:package-bundle`) — a
+      # single git push of the whole thing would exceed GitHub's 100MB
+      # per-file limit. Reassembling here doesn't need those chunks kept
+      # around anywhere except that short-lived branch.
+      - name: Reassemble tarball from parts
+        run: |
+          shopt -s nullglob
+          parts=(capacitor-android-assets.tar.gz.part-*)
+          if [ ${#parts[@]} -eq 0 ]; then
+            echo "No capacitor-android-assets.tar.gz.part-* files found on this ref" >&2
+            exit 1
+          fi
+          cat "${parts[@]}" > capacitor-android-assets.tar.gz
+          tar tzf capacitor-android-assets.tar.gz > /dev/null
+
+      - name: Publish/update the capacitor-web-bundle release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: capacitor-web-bundle
+          name: Capacitor web bundle
+          body: >-
+            Prebuilt offline web bundle for the Capacitor Android app
+            (android/app/src/main/assets contents). Not a product release —
+            downloaded by capacitor-android-build.yml at build time. See
+            CAPACITOR_APP.md.
+          prerelease: true
+          make_latest: false
+          files: capacitor-android-assets.tar.gz

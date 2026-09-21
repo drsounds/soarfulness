@@ -1,0 +1,81 @@
+apply plugin: 'com.android.application'
+
+android {
+    namespace = "se.soarfulness.app"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "se.soarfulness.app"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        // GITHUB_RUN_NUMBER strictly increases on every Actions run, so a
+        // CI-built AAB always carries a versionCode Google hasn't seen
+        // before, with no manual bumping. Falls back to 1 for local builds,
+        // which are never used to produce Play Store uploads. See
+        // native/NATIVE_APP.md for why this repo learned this the hard way
+        // (two static versionCode bumps in a row both collided with codes
+        // Google had already seen) — same fix applied here up front.
+        versionCode System.getenv("GITHUB_RUN_NUMBER") ? System.getenv("GITHUB_RUN_NUMBER").toInteger() : 1
+        versionName "0.1.0"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    signingConfigs {
+        // Real key material comes from environment variables at *build*
+        // time (CI decodes the ANDROID_UPLOAD_KEYSTORE_BASE64 secret to a
+        // file first — see .github/workflows/capacitor-android-build.yml),
+        // never baked in here. Same secret names/shape as the native/ app's
+        // signing (see native/NATIVE_APP.md's "Play Store signing" section)
+        // so one set of repo secrets covers both.
+        release {
+            if (System.getenv("ANDROID_UPLOAD_STORE_FILE")) {
+                storeFile file(System.getenv("ANDROID_UPLOAD_STORE_FILE"))
+                storePassword System.getenv("ANDROID_UPLOAD_STORE_PASSWORD")
+                keyAlias System.getenv("ANDROID_UPLOAD_KEY_ALIAS")
+                keyPassword System.getenv("ANDROID_UPLOAD_KEY_PASSWORD")
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // Falls back to the auto-generated debug keystore when the
+            // ANDROID_UPLOAD_* secrets aren't set, so local/dev release
+            // builds still produce an installable (if Play-unsuitable) APK.
+            signingConfig System.getenv("ANDROID_UPLOAD_STORE_FILE") ? signingConfigs.release : signingConfigs.debug
+        }
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+
+try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}

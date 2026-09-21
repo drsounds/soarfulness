@@ -1,0 +1,179 @@
+name: Capacitor Android build
+
+on:
+  # Manual only — no push/pull_request trigger. Keeps this off the same
+  # automatic-CI cost/quota path native-android-build.yml deliberately
+  # avoids (see NATIVE_APP.md). Run this from the Actions tab once a
+  # capacitor.config.ts/android/ change needs verifying.
+  workflow_dispatch:
+    inputs:
+      track:
+        description: "Play Store track to submit to (only used when GOOGLE_PLAY_SERVICE_ACCOUNT_JSON is set)"
+        required: false
+        default: internal
+        type: choice
+        options:
+          - internal
+          - alpha
+          - beta
+          - production
+
+# No job here builds the web app — npm ci + `npm run build:capacitor` +
+# `cap sync android` are too heavy to redo on every CI run (a ~1900-module
+# TanStack Start build plus a ~50MB offline asset bundle) for output that
+# only changes when the web app itself does. That build runs locally (see
+# CAPACITOR_APP.md) and its result (android/app/src/main/assets) is
+# published as the "capacitor-web-bundle" GitHub Release asset by
+# publish-capacitor-web-bundle.yml — every job below just downloads that
+# (a fast, cheap step) and packages it with Gradle. Sequential jobs (rather
+# than one long one) so "Re-run failed jobs" resumes from whichever step
+# actually failed instead of redoing the earlier Gradle work too.
+jobs:
+  debug-apk:
+    name: Build debug APK
+    runs-on: ubuntu-latest
+    outputs:
+      has-signing: ${{ steps.flags.outputs.has-signing }}
+      has-play-submit: ${{ steps.flags.outputs.has-play-submit }}
+    # Unlike native/'s react-native-webgpu port, this is a WebView shell
+    # around the already-built web app — no NDK/CMake compile, no per-ABI
+    # native binaries. Much lighter than native-android-build.yml, so (per
+    # NATIVE_APP.md's hard-won lessons there) it doesn't need that
+    # workflow's disk-space or Actions-artifact-quota workarounds.
+    steps:
+      # secrets.* can't be read directly in a job/step `if:` — computing
+      # these once here as job outputs is the documented workaround, and
+      # lets the later jobs gate on them via `needs.debug-apk.outputs`.
+      - name: Compute signing/submit flags
+        id: flags
+        env:
+          HAS_ANDROID_SIGNING: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 != '' }}
+          HAS_PLAY_SUBMIT: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 != '' && secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON != '' }}
+        run: |
+          echo "has-signing=$HAS_ANDROID_SIGNING" >> "$GITHUB_OUTPUT"
+          echo "has-play-submit=$HAS_PLAY_SUBMIT" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download prebuilt web bundle
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p android/app/src/main/assets
+          gh release download capacitor-web-bundle \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern capacitor-android-assets.tar.gz \
+            --dir "$RUNNER_TEMP"
+          tar xzf "$RUNNER_TEMP/capacitor-android-assets.tar.gz" -C android/app/src/main/assets
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
+
+      - name: Build debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug
+
+      # Only exists to prove the project still compiles when there's no
+      # signed release build to look at instead — no reason to also store
+      # it alongside the AAB on signed runs (see NATIVE_APP.md's
+      # Actions-artifact-quota notes).
+      - name: Upload debug APK
+        if: steps.flags.outputs.has-signing != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: soarfulness-capacitor-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 3
+
+  release-aab:
+    name: Build & publish signed release AAB
+    needs: debug-apk
+    if: needs.debug-apk.outputs.has-signing == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download prebuilt web bundle
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p android/app/src/main/assets
+          gh release download capacitor-web-bundle \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern capacitor-android-assets.tar.gz \
+            --dir "$RUNNER_TEMP"
+          tar xzf "$RUNNER_TEMP/capacitor-android-assets.tar.gz" -C android/app/src/main/assets
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
+
+      - name: Decode upload keystore
+        run: |
+          echo "${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/upload-keystore.jks"
+          echo "ANDROID_UPLOAD_STORE_FILE=$RUNNER_TEMP/upload-keystore.jks" >> "$GITHUB_ENV"
+
+      - name: Build signed release AAB
+        working-directory: android
+        env:
+          ANDROID_UPLOAD_STORE_FILE: ${{ env.ANDROID_UPLOAD_STORE_FILE }}
+          ANDROID_UPLOAD_STORE_PASSWORD: ${{ secrets.ANDROID_UPLOAD_STORE_PASSWORD }}
+          ANDROID_UPLOAD_KEY_ALIAS: ${{ secrets.ANDROID_UPLOAD_KEY_ALIAS }}
+          ANDROID_UPLOAD_KEY_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEY_PASSWORD }}
+        run: ./gradlew bundleRelease
+
+      - name: Upload release AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: soarfulness-capacitor-release-aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 3
+
+      - name: Publish signed release AAB as a GitHub Release asset
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: capacitor-android-build-${{ github.run_number }}
+          name: Capacitor Android build ${{ github.run_number }}
+          draft: true
+          files: android/app/build/outputs/bundle/release/app-release.aab
+
+  play-submit:
+    name: Submit to Play Console
+    needs: [debug-apk, release-aab]
+    if: needs.debug-apk.outputs.has-play-submit == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download release AAB
+        uses: actions/download-artifact@v4
+        with:
+          name: soarfulness-capacitor-release-aab
+          path: android/app/build/outputs/bundle/release
+
+      - name: Submit to Play Console
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: se.soarfulness.app
+          releaseFiles: android/app/build/outputs/bundle/release/app-release.aab
+          track: ${{ github.event.inputs.track || 'internal' }}
