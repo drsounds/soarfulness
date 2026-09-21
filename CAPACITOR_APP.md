@@ -108,12 +108,12 @@ number.
 ## Play Store signing
 
 **This app needs its own upload keystore, separate from `native/`'s.**
-`native/`'s `se.aquafulness.app.gen7` and this app's `se.soarfulness.app`
+`native/`'s `se.aquafulness.app.gen7` and this app's `se.soarfulness.app.gen7`
 are two different Play Store listings — a Play Console upload key is
 registered against one specific `packageName` on first upload, and even
 where reuse would be technically possible, mixing two distinct apps'
 signing identity under one key is exactly the kind of blast-radius
-sharing worth avoiding. Generate a fresh keystore for `se.soarfulness.app`
+sharing worth avoiding. Generate a fresh keystore for `se.soarfulness.app.gen7`
 (same command `native/NATIVE_APP.md`'s "Play Store signing" section
 gives) and store it under its own set of repo secrets — the mechanism is
 otherwise identical to `native/`'s:
@@ -210,7 +210,7 @@ one, Android's WebView (Chromium-based) is a well-trodden path.
 Both can coexist — they're different Gradle/Xcode projects
 (`native/android` vs `android/`), and (unlike this repo's own earlier
 history) deliberately ship under **different** `applicationId`s
-(`se.aquafulness.app.gen7` vs `se.soarfulness.app`) with their own signing
+(`se.aquafulness.app.gen7` vs `se.soarfulness.app.gen7`) with their own signing
 keys, since they're two separate Play Store listings — see "Play Store
 signing" above. If you only want to maintain one going forward, this one
 carries far less risk.
