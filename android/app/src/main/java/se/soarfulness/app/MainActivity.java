@@ -1,4 +1,4 @@
-package se.aquafulness.app.gen7;
+package se.soarfulness.app;
 
 import com.getcapacitor.BridgeActivity;
 

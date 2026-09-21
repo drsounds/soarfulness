@@ -45,9 +45,11 @@ Capacitor `webDir` directly.
 
 `capacitor.config.ts` points `webDir` at `.output/public` with no
 `server.url`, so Capacitor copies that whole directory — app shell **and**
-every scene/environment/skybox/audio asset under `public/`
-(`android/app/src/main/assets/public`, ~50 MB — `capacitor-snapshot-shell.mjs`
-also strips the GIMP `.xcf` skybox sources that `public/` carries alongside
+every scene/environment/skybox/audio asset under `public/` — now a
+multi-app catalog (`public/apps/*`), so this is large and will keep growing
+as more apps/scenes are added (`android/app/src/main/assets/public`,
+~120 MB as of this writing — `capacitor-snapshot-shell.mjs` also strips the
+GIMP `.xcf` skybox sources that `public/apps/strandpark/` carries alongside
 the `.png` the app actually fetches, tens of MB nothing ever loads) — into
 the APK. The app launches and runs fully offline from a cold install, no
 network required.
@@ -56,7 +58,7 @@ network required.
 
 **The web build is not done in CI, and its output is not committed to
 git** — `npm ci` + `npm run build:capacitor` (a ~1900-module TanStack Start
-build) plus `cap sync android` (copying a ~50 MB asset bundle) is too heavy
+build) plus `cap sync android` (copying a 100MB+ asset bundle) is too heavy
 to redo on every CI run, and that same ~50 MB landing in git on every
 change that touches it would bloat this repo's history forever. Instead:
 
@@ -73,13 +75,18 @@ change that touches it would bloat this repo's history forever. Instead:
    it in place, it isn't versioned per-change):
 
    ```sh
-   npm run capacitor:package-bundle   # → capacitor-android-assets.tar.gz
+   npm run capacitor:package-bundle   # → capacitor-android-assets.tar.gz.part-*
    ```
 
-   Then push that tarball to a throwaway branch and run the
+   This tars up `android/app/src/main/assets` and splits it into <100MB
+   chunks (`.part-000`, `.part-001`, ...) — a single 100MB+ file would be
+   rejected by a plain `git push`, and this bundle only grows as more
+   apps/scenes are added.
+
+   Then push those part files to a throwaway branch and run the
    **Publish Capacitor web bundle** workflow (`workflow_dispatch`, input
-   `source_ref` = that branch) from the Actions tab — it just checks the
-   tarball out and attaches it to the release, no build step. Delete the
+   `source_ref` = that branch) from the Actions tab — it just reassembles
+   them and attaches the result to the release, no build step. Delete the
    throwaway branch once the run succeeds.
 
 `.github/workflows/capacitor-android-build.yml`'s jobs (`debug-apk` →
@@ -98,11 +105,16 @@ number.
 
 ## Play Store signing
 
-Same approach and same secret names as `native/`'s (see
-`native/NATIVE_APP.md`'s "Play Store signing" section for the full
-rationale) — one upload keystore covers both apps if you want it to,
-since they currently share the same `applicationId`
-(`se.aquafulness.app.gen7`):
+**This app needs its own upload keystore, separate from `native/`'s.**
+`native/`'s `se.aquafulness.app.gen7` and this app's `se.soarfulness.app`
+are two different Play Store listings — a Play Console upload key is
+registered against one specific `packageName` on first upload, and even
+where reuse would be technically possible, mixing two distinct apps'
+signing identity under one key is exactly the kind of blast-radius
+sharing worth avoiding. Generate a fresh keystore for `se.soarfulness.app`
+(same command `native/NATIVE_APP.md`'s "Play Store signing" section
+gives) and store it under its own set of repo secrets — the mechanism is
+otherwise identical to `native/`'s:
 
 | Secret | Value |
 | --- | --- |
@@ -194,6 +206,9 @@ the final answer, but for a WebGL (not WebGPU) three.js scene like this
 one, Android's WebView (Chromium-based) is a well-trodden path.
 
 Both can coexist — they're different Gradle/Xcode projects
-(`native/android` vs `android/`) that happen to currently share an
-`applicationId`. If you only want to maintain one going forward, this one
+(`native/android` vs `android/`), and (unlike this repo's own earlier
+history) deliberately ship under **different** `applicationId`s
+(`se.aquafulness.app.gen7` vs `se.soarfulness.app`) with their own signing
+keys, since they're two separate Play Store listings — see "Play Store
+signing" above. If you only want to maintain one going forward, this one
 carries far less risk.

@@ -7,7 +7,12 @@ import type { CapacitorConfig } from "@capacitor/cli";
 // public/ — straight out of the APK's bundled assets; no network is needed
 // to launch or run the core experience. See CAPACITOR_APP.md.
 const config: CapacitorConfig = {
-  appId: "se.aquafulness.app.gen7",
+  // Distinct from native/'s `se.aquafulness.app.gen7` and from the
+  // aqua-wave-dream sibling fork's Capacitor app — despite sharing origin,
+  // Soartify/soarfulness and drsounds/aqua-wave-dream ship as two separate
+  // Play Store listings with their own package identity and signing key
+  // (see CAPACITOR_APP.md's "Play Store signing").
+  appId: "se.soarfulness.app",
   appName: "Aquafulness",
   webDir: ".output/public",
   server: {
