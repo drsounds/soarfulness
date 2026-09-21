@@ -18,21 +18,30 @@ on:
           - beta
           - production
 
+# Split into sequential jobs (rather than one long job) so "Re-run failed
+# jobs" resumes from whichever step actually failed instead of redoing the
+# npm install/web build every time — that's the slow, expensive part, and
+# it's identical on every retry unless the web app itself changed.
 jobs:
-  android:
-    name: Build Android (Capacitor)
+  web-build:
+    name: Build web app + sync Android project
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    # Unlike native/'s react-native-webgpu port, this is a WebView shell
-    # around the already-built web app — no NDK/CMake compile, no per-ABI
-    # native binaries. Much lighter than native-android-build.yml, so (per
-    # NATIVE_APP.md's hard-won lessons there) it doesn't need that
-    # workflow's disk-space or Actions-artifact-quota workarounds.
-    env:
-      HAS_ANDROID_SIGNING: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 != '' }}
-      HAS_PLAY_SUBMIT: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 != '' && secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON != '' }}
+    outputs:
+      has-signing: ${{ steps.flags.outputs.has-signing }}
+      has-play-submit: ${{ steps.flags.outputs.has-play-submit }}
     steps:
+      # secrets.* can't be read directly in a job/step `if:` — computing
+      # these once here as job outputs is the documented workaround, and
+      # lets every downstream job gate on them via `needs.web-build.outputs`.
+      - name: Compute signing/submit flags
+        id: flags
+        env:
+          HAS_ANDROID_SIGNING: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 != '' }}
+          HAS_PLAY_SUBMIT: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 != '' && secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON != '' }}
+        run: |
+          echo "has-signing=$HAS_ANDROID_SIGNING" >> "$GITHUB_OUTPUT"
+          echo "has-play-submit=$HAS_PLAY_SUBMIT" >> "$GITHUB_OUTPUT"
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -52,6 +61,35 @@ jobs:
       - name: Sync Capacitor Android project
         run: npx cap sync android
 
+      # The only output of this job the Gradle jobs need — everything else
+      # they need (gradlew, build.gradle, ...) already lives in git and
+      # comes back via their own checkout.
+      - name: Upload synced web assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: capacitor-android-assets
+          path: android/app/src/main/assets
+          retention-days: 1
+
+  debug-apk:
+    name: Build debug APK
+    needs: web-build
+    runs-on: ubuntu-latest
+    # Unlike native/'s react-native-webgpu port, this is a WebView shell
+    # around the already-built web app — no NDK/CMake compile, no per-ABI
+    # native binaries. Much lighter than native-android-build.yml, so (per
+    # NATIVE_APP.md's hard-won lessons there) it doesn't need that
+    # workflow's disk-space or Actions-artifact-quota workarounds.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download synced web assets
+        uses: actions/download-artifact@v4
+        with:
+          name: capacitor-android-assets
+          path: android/app/src/main/assets
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -68,14 +106,53 @@ jobs:
         working-directory: android
         run: ./gradlew assembleDebug
 
+      # Only exists to prove the project still compiles when there's no
+      # signed release build to look at instead — no reason to also store
+      # it alongside the AAB on signed runs (see NATIVE_APP.md's
+      # Actions-artifact-quota notes).
+      - name: Upload debug APK
+        if: needs.web-build.outputs.has-signing != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: aquafulness-capacitor-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 3
+
+  release-aab:
+    name: Build & publish signed release AAB
+    needs: [web-build, debug-apk]
+    if: needs.web-build.outputs.has-signing == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download synced web assets
+        uses: actions/download-artifact@v4
+        with:
+          name: capacitor-android-assets
+          path: android/app/src/main/assets
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
+
       - name: Decode upload keystore
-        if: env.HAS_ANDROID_SIGNING == 'true'
         run: |
           echo "${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/upload-keystore.jks"
           echo "ANDROID_UPLOAD_STORE_FILE=$RUNNER_TEMP/upload-keystore.jks" >> "$GITHUB_ENV"
 
       - name: Build signed release AAB
-        if: env.HAS_ANDROID_SIGNING == 'true'
         working-directory: android
         env:
           ANDROID_UPLOAD_STORE_FILE: ${{ env.ANDROID_UPLOAD_STORE_FILE }}
@@ -84,19 +161,14 @@ jobs:
           ANDROID_UPLOAD_KEY_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEY_PASSWORD }}
         run: ./gradlew bundleRelease
 
-      # Only exists to prove PRs without the signing secret still compile —
-      # no reason to also store it alongside the AAB on signed runs (see
-      # NATIVE_APP.md's Actions-artifact-quota notes).
-      - name: Upload debug APK
-        if: env.HAS_ANDROID_SIGNING != 'true'
+      - name: Upload release AAB
         uses: actions/upload-artifact@v4
         with:
-          name: aquafulness-capacitor-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: aquafulness-capacitor-release-aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
           retention-days: 3
 
       - name: Publish signed release AAB as a GitHub Release asset
-        if: env.HAS_ANDROID_SIGNING == 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: capacitor-android-build-${{ github.run_number }}
@@ -104,8 +176,19 @@ jobs:
           draft: true
           files: android/app/build/outputs/bundle/release/app-release.aab
 
+  play-submit:
+    name: Submit to Play Console
+    needs: [web-build, release-aab]
+    if: needs.web-build.outputs.has-play-submit == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download release AAB
+        uses: actions/download-artifact@v4
+        with:
+          name: aquafulness-capacitor-release-aab
+          path: android/app/build/outputs/bundle/release
+
       - name: Submit to Play Console
-        if: env.HAS_PLAY_SUBMIT == 'true' && github.event_name == 'workflow_dispatch'
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
