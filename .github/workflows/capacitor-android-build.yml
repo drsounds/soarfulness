@@ -20,14 +20,14 @@ on:
 
 # No job here builds the web app — npm ci + `npm run build:capacitor` +
 # `cap sync android` are too heavy to redo on every CI run (a ~1900-module
-# TanStack Start build plus a ~60 MB offline asset bundle) for output that
-# only changes when the web app itself does. Instead that build runs
-# locally (see CAPACITOR_APP.md) and its result —
-# android/app/src/main/assets/public — is committed straight into git, so
-# every job below just packages an already-built, already-reviewed bundle
-# with Gradle. Sequential jobs (rather than one long one) so "Re-run failed
-# jobs" resumes from whichever step actually failed instead of redoing the
-# earlier Gradle work too.
+# TanStack Start build plus a ~50MB offline asset bundle) for output that
+# only changes when the web app itself does. That build runs locally (see
+# CAPACITOR_APP.md) and its result (android/app/src/main/assets) is
+# published as the "capacitor-web-bundle" GitHub Release asset by
+# publish-capacitor-web-bundle.yml — every job below just downloads that
+# (a fast, cheap step) and packages it with Gradle. Sequential jobs (rather
+# than one long one) so "Re-run failed jobs" resumes from whichever step
+# actually failed instead of redoing the earlier Gradle work too.
 jobs:
   debug-apk:
     name: Build debug APK
@@ -55,6 +55,17 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Download prebuilt web bundle
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p android/app/src/main/assets
+          gh release download capacitor-web-bundle \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern capacitor-android-assets.tar.gz \
+            --dir "$RUNNER_TEMP"
+          tar xzf "$RUNNER_TEMP/capacitor-android-assets.tar.gz" -C android/app/src/main/assets
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -94,6 +105,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Download prebuilt web bundle
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p android/app/src/main/assets
+          gh release download capacitor-web-bundle \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern capacitor-android-assets.tar.gz \
+            --dir "$RUNNER_TEMP"
+          tar xzf "$RUNNER_TEMP/capacitor-android-assets.tar.gz" -C android/app/src/main/assets
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4

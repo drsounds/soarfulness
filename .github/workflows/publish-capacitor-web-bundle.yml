@@ -1,0 +1,45 @@
+name: Publish Capacitor web bundle
+
+on:
+  # Manual only, and deliberately doesn't build anything — it just takes a
+  # tarball that already exists on some ref (built locally, see
+  # CAPACITOR_APP.md's "Building the offline web bundle" section) and
+  # attaches it to a stable GitHub Release. capacitor-android-build.yml's
+  # Gradle jobs download it from there instead of building it themselves.
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: >-
+          Branch/ref that has capacitor-android-assets.tar.gz committed at
+          its root (typically a short-lived staging branch, deleted after
+          this run publishes it)
+        required: true
+
+jobs:
+  publish:
+    name: Publish release asset
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout source ref
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.source_ref }}
+
+      - name: Verify tarball is present
+        run: test -f capacitor-android-assets.tar.gz
+
+      - name: Publish/update the capacitor-web-bundle release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: capacitor-web-bundle
+          name: Capacitor web bundle
+          body: >-
+            Prebuilt offline web bundle for the Capacitor Android app
+            (android/app/src/main/assets contents). Not a product release —
+            downloaded by capacitor-android-build.yml at build time. See
+            CAPACITOR_APP.md.
+          prerelease: true
+          make_latest: false
+          files: capacitor-android-assets.tar.gz
