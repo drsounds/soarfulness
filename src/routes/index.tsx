@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { Capacitor } from "@capacitor/core";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import * as THREE from "three";
@@ -29,6 +30,7 @@ import {
   type VerticalMode,
 } from "@/components/Joystick";
 import { hsvToRgb } from "@/lib/waterTint";
+import AmbientAudio, { resolveNativeAudioSource } from "@/lib/ambientAudio";
 import {
   padToWorldXZ,
   worldXZToPad,
@@ -1418,9 +1420,7 @@ export function Aquafulness() {
   // Meters above the real water surface (at the tornado's own xz spot) the
   // TORNADO CLOUD's tip sits while swinging or flying — see
   // tornadoWaterHeightAt in the physics loop.
-  const [tornadoCloudYOffset, setTornadoCloudYOffset] = useState(
-    initial.tornadoCloudYOffset,
-  );
+  const [tornadoCloudYOffset, setTornadoCloudYOffset] = useState(initial.tornadoCloudYOffset);
   // TORNADO SEQUENCE: an optional automatic drag-in/stay/exit loop layered on
   // top of the always-available manual NAV+current radial control — see
   // TornadoSequenceExitMode and the tornadoSequence* Persisted fields'
@@ -2067,13 +2067,30 @@ export function Aquafulness() {
     torusViewDistance,
     torusFadeDistance,
   ]);
-  const audioRef = useRef<{
-    ctx: AudioContext;
-    el: HTMLAudioElement;
-    master: GainNode;
-    depthGain: GainNode;
-    lp: BiquadFilterNode;
-  } | null>(null);
+  // "web" is the original Web Audio graph (used in the browser/PWA, and as a
+  // fallback on native for sources AmbientAudio can't play — see
+  // resolveNativeAudioSource). "native" hands playback to AmbientAudioPlugin
+  // (android/.../AmbientAudioPlugin.java) so it survives audio-focus loss,
+  // which Chromium's WebView doesn't let this Web Audio graph do — see
+  // src/lib/ambientAudio.ts.
+  const audioRef = useRef<
+    | {
+        kind: "web";
+        ctx: AudioContext;
+        el: HTMLAudioElement;
+        master: GainNode;
+        depthGain: GainNode;
+        lp: BiquadFilterNode;
+      }
+    | { kind: "native" }
+    | null
+  >(null);
+  // Throttles AmbientAudio.setDepth() native-bridge calls — the depth-sync
+  // block below runs once per animation frame (~60Hz), which the Web Audio
+  // path handles fine (setTargetAtTime is just scheduling on the audio
+  // thread), but a JS↔native Capacitor bridge call at that rate is wasteful;
+  // it only needs to keep up with setTargetAtTime's own ~120-150ms ramp.
+  const lastNativeDepthSyncMsRef = useRef(0);
 
   // Live values consumed inside the RAF loop.
   const ampRef = useRef(waveAmp);
@@ -3291,11 +3308,9 @@ export function Aquafulness() {
     if (patch.tornadoSpeed !== undefined) setTornadoSpeed(patch.tornadoSpeed);
     if (patch.tornadoDirection !== undefined) setTornadoDirection(patch.tornadoDirection);
     if (patch.tornadoOpening !== undefined) setTornadoOpening(patch.tornadoOpening);
-    if (patch.tornadoFollowCenter !== undefined)
-      setTornadoFollowCenter(patch.tornadoFollowCenter);
+    if (patch.tornadoFollowCenter !== undefined) setTornadoFollowCenter(patch.tornadoFollowCenter);
     if (patch.tornadoCloudOn !== undefined) setTornadoCloudOn(patch.tornadoCloudOn);
-    if (patch.tornadoCloudYOffset !== undefined)
-      setTornadoCloudYOffset(patch.tornadoCloudYOffset);
+    if (patch.tornadoCloudYOffset !== undefined) setTornadoCloudYOffset(patch.tornadoCloudYOffset);
     if (patch.tornadoSequenceOn !== undefined) setTornadoSequenceOn(patch.tornadoSequenceOn);
     if (patch.tornadoSequenceDragSpeed !== undefined)
       setTornadoSequenceDragSpeed(patch.tornadoSequenceDragSpeed);
@@ -3810,10 +3825,24 @@ export function Aquafulness() {
 
   // Ocean sound: loop the selected recorded water track (see allWaterSounds)
   // through a lowpass + depth gain so we can still muffle & boost it based
-  // on how deep the camera is.
+  // on how deep the camera is. On native (Capacitor Android), this hands off
+  // to AmbientAudioPlugin instead — see the audioRef type comment above and
+  // src/lib/ambientAudio.ts — because Chromium's WebView pauses/ducks this
+  // Web Audio graph on its own on audio-focus loss, with no way to disable
+  // that from here. Falls back to the Web Audio graph on native too, for any
+  // source AmbientAudio can't play (see resolveNativeAudioSource) — notably
+  // an installed app's own audio track loaded via a blob: URL.
   useEffect(() => {
+    const url = allWaterSounds[waterSoundIdx]?.url ?? WATER_SOUNDS[0].url;
+    const nativeSource = Capacitor.isNativePlatform() ? resolveNativeAudioSource(url) : null;
+
     if (!audioOn) {
-      if (audioRef.current) {
+      if (audioRef.current?.kind === "native") {
+        AmbientAudio.stop().catch(() => {
+          /* noop */
+        });
+        audioRef.current = null;
+      } else if (audioRef.current) {
         const a = audioRef.current;
         a.master.gain.cancelScheduledValues(a.ctx.currentTime);
         a.master.gain.setTargetAtTime(0, a.ctx.currentTime, 0.4);
@@ -3837,7 +3866,12 @@ export function Aquafulness() {
     // This effect also re-runs when the selected water sound changes while
     // audio is already on, so tear down any existing graph immediately
     // (no fade — it's a deliberate track swap, not a mute) before rebuilding.
-    if (audioRef.current) {
+    if (audioRef.current?.kind === "native") {
+      AmbientAudio.stop().catch(() => {
+        /* noop */
+      });
+      audioRef.current = null;
+    } else if (audioRef.current) {
       const prev = audioRef.current;
       try {
         prev.el.pause();
@@ -3851,12 +3885,27 @@ export function Aquafulness() {
       }
       audioRef.current = null;
     }
+
+    if (nativeSource) {
+      AmbientAudio.play({
+        source: nativeSource.source,
+        isAsset: nativeSource.isAsset,
+        loop: true,
+        volume: audioVol,
+        rate: audioSyncSpeed ? Math.max(0.2, Math.min(5, waveSpeed)) : 1,
+      }).catch(() => {
+        /* user gesture / device quirk — will retry on next toggle */
+      });
+      audioRef.current = { kind: "native" };
+      return;
+    }
+
     const Ctx =
       window.AudioContext ||
       (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     const ctx = new Ctx();
 
-    const el = new Audio(allWaterSounds[waterSoundIdx]?.url ?? WATER_SOUNDS[0].url);
+    const el = new Audio(url);
     el.loop = true;
     el.crossOrigin = "anonymous";
     el.preload = "auto";
@@ -3885,13 +3934,19 @@ export function Aquafulness() {
     });
     master.gain.setTargetAtTime(audioVol, ctx.currentTime, 0.6);
 
-    audioRef.current = { ctx, el, master, depthGain, lp };
+    audioRef.current = { kind: "web", ctx, el, master, depthGain, lp };
   }, [audioOn, waterSoundIdx, allWaterSounds]);
 
   // React to volume changes
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
+    if (a.kind === "native") {
+      AmbientAudio.setVolume({ volume: audioVol }).catch(() => {
+        /* noop */
+      });
+      return;
+    }
     a.master.gain.setTargetAtTime(audioVol, a.ctx.currentTime, 0.2);
   }, [audioVol]);
 
@@ -3899,7 +3954,14 @@ export function Aquafulness() {
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
-    a.el.playbackRate = audioSyncSpeed ? Math.max(0.2, Math.min(5, waveSpeed)) : 1;
+    const rate = audioSyncSpeed ? Math.max(0.2, Math.min(5, waveSpeed)) : 1;
+    if (a.kind === "native") {
+      AmbientAudio.setPlaybackRate({ rate }).catch(() => {
+        /* noop */
+      });
+      return;
+    }
+    a.el.playbackRate = rate;
     a.el.preservesPitch = true;
   }, [audioSyncSpeed, waveSpeed]);
 
@@ -6915,18 +6977,35 @@ export function Aquafulness() {
       // audio is enabled. Default: constant volume with no filtering.
       const depth = surfaceY - camY; // positive when underwater
       const a = audioRef.current;
-      if (a) {
-        const now = a.ctx.currentTime;
+      if (a?.kind === "native") {
+        if (now - lastNativeDepthSyncMsRef.current >= 100) {
+          lastNativeDepthSyncMsRef.current = now;
+          const depthMult = audioSpatialRef.current
+            ? depth > 0
+              ? Math.min(1 + 0.35 * depth, 2.5)
+              : 1
+            : 1;
+          const lpFreq = audioSpatialRef.current
+            ? depth > 0
+              ? Math.max(18000 - 4000 * depth, 500)
+              : 18000
+            : 18000;
+          AmbientAudio.setDepth({ gain: depthMult, lowpass: lpFreq }).catch(() => {
+            /* noop */
+          });
+        }
+      } else if (a) {
+        const audioNow = a.ctx.currentTime;
         if (audioSpatialRef.current) {
           // deeper -> louder (up to ~2.5x), faster ramp
           const depthMult = depth > 0 ? Math.min(1 + 0.35 * depth, 2.5) : 1;
-          a.depthGain.gain.setTargetAtTime(depthMult, now, 0.12);
+          a.depthGain.gain.setTargetAtTime(depthMult, audioNow, 0.12);
           // deeper -> more muffled (lowpass closes)
           const lpFreq = depth > 0 ? Math.max(18000 - 4000 * depth, 500) : 18000;
-          a.lp.frequency.setTargetAtTime(lpFreq, now, 0.15);
+          a.lp.frequency.setTargetAtTime(lpFreq, audioNow, 0.15);
         } else {
-          a.depthGain.gain.setTargetAtTime(1, now, 0.2);
-          a.lp.frequency.setTargetAtTime(18000, now, 0.2);
+          a.depthGain.gain.setTargetAtTime(1, audioNow, 0.2);
+          a.lp.frequency.setTargetAtTime(18000, audioNow, 0.2);
         }
       }
 
@@ -8697,7 +8776,9 @@ export function Aquafulness() {
                       onClick={() => setTornadoOn((v) => !v)}
                       aria-pressed={tornadoOn}
                       className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
-                        tornadoOn ? "ui-line-3 ui-tint-2 ui-ink" : "ui-line-2 ui-surface ui-ink-muted"
+                        tornadoOn
+                          ? "ui-line-3 ui-tint-2 ui-ink"
+                          : "ui-line-2 ui-surface ui-ink-muted"
                       }`}
                     >
                       {t("dial.camera.tornado")}: {t(tornadoOn ? "common.on" : "common.off")}
@@ -8764,7 +8845,8 @@ export function Aquafulness() {
                           : "ui-line-2 ui-surface ui-ink-muted"
                       }`}
                     >
-                      {t("dial.camera.tornadoCloud")}: {t(tornadoCloudOn ? "common.on" : "common.off")}
+                      {t("dial.camera.tornadoCloud")}:{" "}
+                      {t(tornadoCloudOn ? "common.on" : "common.off")}
                     </button>
                     {tornadoCloudOn && cameraMode !== "float" && (
                       <PadSlider

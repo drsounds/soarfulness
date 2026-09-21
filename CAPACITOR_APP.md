@@ -54,6 +54,38 @@ the `.png` the app actually fetches, tens of MB nothing ever loads) — into
 the APK. The app launches and runs fully offline from a cold install, no
 network required.
 
+## Ambient audio survives audio-focus loss
+
+Chromium's WebView pauses/ducks HTML5 `<audio>`/Web Audio playback on its own
+whenever Android audio focus is lost or reduced (a notification sound,
+another app's short clip, even some system sounds) — this is internal to
+`org.chromium.media.AudioManagerAndroid` and there's no public Capacitor or
+WebView toggle to disable it.
+
+So on native (Android) builds, the looping ocean/water sound in
+`src/routes/index.tsx` is played by a small native plugin instead of the
+Web Audio graph it uses in the browser/PWA build:
+`android/app/src/main/java/se/soarfulness/app/gen7/AmbientAudioPlugin.java`
+(a plain `android.media.MediaPlayer`, entirely outside the WebView's own
+media pipeline) requests `AUDIOFOCUS_GAIN` once and then simply never reacts
+to focus-change callbacks, so playback is never interrupted. `src/lib/
+ambientAudio.ts` is the JS-side wrapper (`registerPlugin("AmbientAudio")`);
+`MainActivity.java` registers the plugin by hand since it isn't an
+npm-published Capacitor plugin `cap sync` would pick up on its own.
+
+The plugin approximates the web graph's depth-based effects (louder +
+more muffled the deeper the camera goes) too — gain via `MediaPlayer
+.setVolume`, muffling via an `android.media.audiofx.Equalizer` pulling down
+the top bands, both best-effort (wrapped so a device without Equalizer
+support just skips the muffle, never fails playback). It only handles
+sources it can resolve to either a bundled asset path or a plain http(s)
+URL (see `resolveNativeAudioSource` in `ambientAudio.ts`) — covers every
+built-in `WATER_SOUNDS` entry and every installed app's own audio track
+too, since those are also relative `public/apps/<appId>/...` paths bundled
+into the same APK (see `appCatalog.ts`). Any future source shape it can't
+resolve falls back to the original Web Audio graph, same as on the
+browser/PWA build.
+
 ## Building the offline web bundle
 
 **The web build is not done in CI, and its output is not committed to
