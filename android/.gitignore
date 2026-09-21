@@ -90,8 +90,16 @@ lint/tmp/
 # Android Profiling
 *.hprof
 
-# Cordova plugins for Capacitor
-capacitor-cordova-android-plugins
+# Cordova plugins for Capacitor — committed, not ignored (despite this
+# repo's stock .gitignore template default). Unlike app/src/main/assets
+# below, this is real Gradle project scaffolding (build.gradle,
+# cordova.variables.gradle, AndroidManifest.xml — ~36K, no web assets)
+# that `cap sync` generates once and the build then depends on directly;
+# CI no longer runs `cap sync` (see below), so if this weren't committed
+# the build would fail with "Could not read script
+# '.../capacitor-cordova-android-plugins/cordova.variables.gradle' as it
+# does not exist" — confirmed by hitting exactly that failure.
+# capacitor-cordova-android-plugins
 
 # Copied web assets and generated config files. Built here (locally, not
 # in CI — see CAPACITOR_APP.md) via `npm run build:capacitor && npx cap
