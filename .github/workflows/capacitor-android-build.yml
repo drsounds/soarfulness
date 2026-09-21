@@ -73,9 +73,15 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
+      # No explicit SDK setup step: android-actions/setup-android@v3 fails
+      # here (its sdkmanager step tries to install the long-removed legacy
+      # "tools" package — "Warning: Failed to find package 'tools'", exit
+      # code 1 — a known issue with that action, unrelated to this repo).
+      # ubuntu-latest already ships a working Android SDK preinstalled
+      # (ANDROID_HOME/ANDROID_SDK_ROOT set, licenses pre-accepted), which is
+      # all a WebView-only Gradle project like this one needs — AGP
+      # resolves/downloads whatever specific platform or build-tools
+      # version it's missing on its own.
       - name: Make gradlew executable
         run: chmod +x android/gradlew
 
@@ -123,9 +129,15 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
+      # No explicit SDK setup step: android-actions/setup-android@v3 fails
+      # here (its sdkmanager step tries to install the long-removed legacy
+      # "tools" package — "Warning: Failed to find package 'tools'", exit
+      # code 1 — a known issue with that action, unrelated to this repo).
+      # ubuntu-latest already ships a working Android SDK preinstalled
+      # (ANDROID_HOME/ANDROID_SDK_ROOT set, licenses pre-accepted), which is
+      # all a WebView-only Gradle project like this one needs — AGP
+      # resolves/downloads whatever specific platform or build-tools
+      # version it's missing on its own.
       - name: Make gradlew executable
         run: chmod +x android/gradlew
 
