@@ -86,11 +86,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Set up JDK 17
+      # JDK 21, not 17: @capacitor/android's build.gradle sets
+      # sourceCompatibility/targetCompatibility to JavaVersion.VERSION_21,
+      # and javac can't target a release newer than the JDK compiling it
+      # ("error: invalid source release: 21" under JDK 17, confirmed by
+      # hitting exactly that failure once Gradle got this far).
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: "21"
 
       # No explicit SDK setup step: android-actions/setup-android@v3 fails
       # here (its sdkmanager step tries to install the long-removed legacy
@@ -159,11 +164,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Set up JDK 17
+      # JDK 21, not 17: @capacitor/android's build.gradle sets
+      # sourceCompatibility/targetCompatibility to JavaVersion.VERSION_21,
+      # and javac can't target a release newer than the JDK compiling it
+      # ("error: invalid source release: 21" under JDK 17, confirmed by
+      # hitting exactly that failure once Gradle got this far).
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: "21"
 
       # No explicit SDK setup step: android-actions/setup-android@v3 fails
       # here (its sdkmanager step tries to install the long-removed legacy
