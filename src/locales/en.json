@@ -71,7 +71,6 @@
       "float": "SWIMMER",
       "noclip": "FLY",
       "swing": "SWING",
-      "whirlpool": "WHIRLPOOL",
       "watercraft": "WATERCRAFT"
     },
     "rotationValue": {
@@ -84,13 +83,13 @@
       "off": "FIXED",
       "random": "RANDOM"
     },
-    "whirlpoolDirection": {
+    "tornadoDirection": {
       "ccw": "COUNTER-CLOCKWISE",
       "cw": "CLOCKWISE"
     },
-    "whirlpoolExitMode": {
-      "reverseSpin": "REVERSE SPIN",
-      "throwBack": "THROWN BACK"
+    "tornadoSequenceExitMode": {
+      "lift": "LIFT & RETURN",
+      "outer": "PULL TO OUTER"
     }
   },
   "common": {
@@ -145,7 +144,6 @@
       "intervalDuration": "INTERVAL",
       "intervalIncludeFloat": "INTERVAL: DEFAULT",
       "intervalIncludeSwing": "INTERVAL: SWING",
-      "intervalIncludeWhirlpool": "INTERVAL: WHIRLPOOL",
       "intervalSession": "INTERVAL SESSION",
       "lowGraphicsMode": "LOW GRAPHICS MODE",
       "mode": "CAMERA MODE",
@@ -166,13 +164,25 @@
       "swingIntensity": "SWING INTENSITY",
       "swingPositionY": "SWING POSITION Y",
       "swingStart": "SWING START",
-      "swingTornado": "TORNADO",
-      "swingTornadoDirection": "TORNADO DIRECTION",
-      "swingTornadoRadius": "TORNADO RADIUS",
-      "swingTornadoSpeed": "TORNADO SPEED",
       "swingXFactor": "SWING X",
       "swingYWaveform": "SWING Y WAVEFORM",
       "targetFps": "FRAME RATE CAP",
+      "tornado": "TORNADO",
+      "tornadoCloud": "TORNADO CLOUD",
+      "tornadoCloudYOffset": "TORNADO CLOUD Y OFFSET",
+      "tornadoDirection": "TORNADO DIRECTION",
+      "tornadoFollowCenter": "FOLLOW CENTER",
+      "tornadoOpening": "TORNADO OPENING",
+      "tornadoRadius": "TORNADO RADIUS",
+      "tornadoSequence": "TORNADO SEQUENCE",
+      "tornadoSequenceDragDuration": "SEQUENCE DRAG DURATION",
+      "tornadoSequenceDragSpeed": "SEQUENCE DRAG SPEED",
+      "tornadoSequenceExitMode": "SEQUENCE EXIT",
+      "tornadoSequenceExitSpeed": "SEQUENCE EXIT SPEED",
+      "tornadoSequenceLiftHeight": "SEQUENCE LIFT HEIGHT",
+      "tornadoSequencePauseDuration": "SEQUENCE PAUSE DURATION",
+      "tornadoSequenceStayDuration": "SEQUENCE STAY DURATION",
+      "tornadoSpeed": "TORNADO SPEED",
       "wakeLock": "AWAKE"
     },
     "env": {
@@ -291,17 +301,7 @@
         "regular": "REGULAR",
         "spread": "SPREAD"
       },
-      "wavePeriod": "WAVE PERIOD",
-      "whirlpoolDirection": "WHIRLPOOL DIRECTION",
-      "whirlpoolDistance": "DISTANCE TO CENTER",
-      "whirlpoolDragDuration": "DRAG-IN LENGTH",
-      "whirlpoolDragSpeed": "DRAG-IN SPEED",
-      "whirlpoolExitMode": "EXIT MODE",
-      "whirlpoolExitSpeed": "EXIT SPEED",
-      "whirlpoolOpening": "OPENING",
-      "whirlpoolSequence": "AUTO SEQUENCE",
-      "whirlpoolSpeed": "WHIRLPOOL SPEED",
-      "whirlpoolStayDuration": "STAY INSIDE"
+      "wavePeriod": "WAVE PERIOD"
     }
   },
   "docsPhilosophy": {
@@ -650,6 +650,10 @@
       "wave": "WAVE"
     },
     "timeTravelOpenAria": "Open time travel",
+    "tornadoToggle": {
+      "tornado": "TORNADO",
+      "whirlpool": "WHIRLPOOL"
+    },
     "totalLabel": " · Total "
   },
   "interval": {
@@ -831,8 +835,20 @@
     "syncButton": "SYNC WAVE WITH SWAY: {{state}}",
     "syncTitle": "Let WAVE DIRECTION automatically follow SWAY DIRECTION (default: on)",
     "title": "REMOTE",
-    "vagrikt": "WAVE DIR",
-    "whirlpoolHint": "In WHIRLPOOL mode the camera orbits automatically — no sticks to control here."
+    "vagrikt": "WAVE DIR"
+  },
+  "sceneryPresets": {
+    "buttonAriaLabel": "Choose scenery and save presets",
+    "buttonTitle": "SCENERY",
+    "choosePreset": "CHOOSE SAVED…",
+    "delete": "DELETE",
+    "deleteConfirm": "Delete this saved scenery preset?",
+    "load": "LOAD",
+    "loadConfirm": "This replaces the current scene, environment and water surface.",
+    "loadConfirmTitle": "Load this scenery?",
+    "save": "SAVE",
+    "savePromptTitle": "Save scenery as:",
+    "title": "SCENERY"
   },
   "screens": {
     "editModeDescription": "Pauses waves and camera movement so the TV/mobile screens in the 3D view can be moved, rotated and resized precisely.",
@@ -883,6 +899,32 @@
       "square": "SQUARE",
       "triangle": "TRIANGLE"
     }
+  },
+  "terms": {
+    "backToApp": "Back to app",
+    "intro": "This page sets out the terms under which you may use Aquafulness.",
+    "lastUpdated": "Last updated: September 19, 2026",
+    "sections": {
+      "authorizedUse": {
+        "academicResearch": {
+          "body": "Utilizing this software, including its visual, acoustic, or simulated motion mechanics, as an intervention, stimulus, or measurement tool in any clinical trial, observational study, or academic research.",
+          "term": "Academic and Scientific Research"
+        },
+        "clinicalDeployment": {
+          "body": "Implementing this application within healthcare environments, psychological treatment programs, or formal therapy sessions.",
+          "term": "Clinical or Therapeutic Deployment"
+        },
+        "contact": "For inquiries regarding academic collaborations, research licensing, or institutional trials, please contact: drsounds@gmail.com.",
+        "dataCollection": {
+          "body": "Any automated or structured extraction, harvesting, or logging of application performance, sensory responses, or user interaction for research or comparative reporting.",
+          "term": "Systematic Data Collection"
+        },
+        "heading": "Authorized Use and Research Restrictions",
+        "intro": "This application is provided solely for personal, non-commercial relaxation and wellness purposes. It is not a medical device and is not intended for diagnostic, therapeutic, or medical use.",
+        "prohibitedIntro": "The following uses are strictly prohibited without prior explicit written consent and a formal agreement with the copyright holder:"
+      }
+    },
+    "title": "Terms of Use"
   },
   "theme": {
     "title": "THEME",

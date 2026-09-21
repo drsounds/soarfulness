@@ -1,0 +1,15 @@
+{
+  "environments": [
+    {
+      "id": "stockholm",
+      "name": "Stockholm",
+      "eras": [
+        {
+          "id": "present",
+          "name": "Nutid",
+          "times": [{ "id": "day", "name": "Dag" }]
+        }
+      ]
+    }
+  ]
+}

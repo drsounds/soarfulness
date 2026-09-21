@@ -7,28 +7,32 @@
 // routes in src/sw.ts read from — so a precached entry is actually served
 // offline rather than triggering a redundant network fetch the first time a
 // route matches it:
-//   - "content": the scenes/environments/surfaces catalogs, their per-entry
-//     manifest.json files, and the .glb/skybox/reflection assets they name.
-//     Discovered by walking the same JSON catalogs the app itself reads
-//     (public/scenes/scenes.json, public/environments/environment.json,
-//     public/surfaces/surfaces.json) rather than by globbing the public/
-//     directory — that directory also holds original .xcf source files for
-//     the skyboxes (tens of MB) that the app never fetches and shouldn't be
-//     downloaded to every player's device.
+//   - "content": apps.json, every installed app's own manifest.json, and the
+//     scenes/environments/surfaces (+ per-scene .glb/.gltf dependencies,
+//     +skybox/reflection images) they list — see src/lib/appCatalog.ts for
+//     the shared catalog-walk/path-building logic this and the live scene
+//     loader (routes/index.tsx) both use, instead of each re-implementing it.
+//     Deliberately discovered by walking apps.json -> each app's manifest.json
+//     rather than by globbing public/ — that directory also holds original
+//     .xcf source files for the skyboxes (tens of MB) that the app never
+//     fetches and shouldn't be downloaded to every player's device.
 //   - "assets": same-origin CDN-hosted binaries referenced via the
 //     src/assets/*.asset.json pointer files (fonts, images, the "advanced"
-//     water sound) plus the two public/audio/*.m4a tracks — everything
-//     loaded through an <img>/<audio> element or TextureLoader rather than
-//     GLTFLoader/fetch.
+//     water sound) plus the two public/audio/*.m4a tracks and every
+//     installed app's own audio tracks — everything loaded through an
+//     <img>/<audio> element or TextureLoader rather than GLTFLoader/fetch.
+import {
+  appDir,
+  environmentDir,
+  fetchAppCatalog,
+  resolveSceneAssetUrls,
+  scenaryManifestUrl,
+  surfaceDir,
+} from "@/lib/appCatalog";
+
 export const OFFLINE_CONTENT_CACHE = "aquafulness-content";
 export const OFFLINE_ASSETS_CACHE = "aquafulness-assets";
 
-type SceneCatalog = { scenes?: { id: string }[] };
-type EnvTime = { id: string };
-type EnvEra = { id: string; times?: EnvTime[] };
-type EnvEntry = { id: string; eras?: EnvEra[] };
-type EnvironmentCatalog = { environments?: EnvEntry[] };
-type SurfaceCatalog = { surfaces?: { id: string }[] };
 type EnvManifest = { image?: string };
 type SurfaceManifest = { image?: string };
 
@@ -61,10 +65,10 @@ export type OfflineAssetBuckets = {
   assets: string[];
 };
 
-// Walks the scenes/environments/surfaces catalogs exactly the way the app's
-// own loader effects in routes/index.tsx do, and returns every URL that
-// needs to be in the cache for the whole catalog (not just whatever the
-// player has picked so far) to work offline.
+// Walks apps.json -> each installed app's manifest.json exactly the way the
+// app's own loader effects in routes/index.tsx do (via src/lib/appCatalog.ts),
+// and returns every URL that needs to be in the cache for the whole catalog
+// (not just whatever the player has picked so far) to work offline.
 export async function collectOfflineAssetBuckets(): Promise<OfflineAssetBuckets> {
   const content = new Set<string>();
   const assets = new Set<string>();
@@ -74,48 +78,49 @@ export async function collectOfflineAssetBuckets(): Promise<OfflineAssetBuckets>
   }
   for (const url of PUBLIC_AUDIO_URLS) assets.add(url);
 
-  const [sceneCatalog, envCatalog, surfaceCatalog] = await Promise.all([
-    fetchJson<SceneCatalog>("/scenes/scenes.json"),
-    fetchJson<EnvironmentCatalog>("/environments/environment.json"),
-    fetchJson<SurfaceCatalog>("/surfaces/surfaces.json"),
-  ]);
-
-  if (sceneCatalog) content.add("/scenes/scenes.json");
-  if (envCatalog) content.add("/environments/environment.json");
-  if (surfaceCatalog) content.add("/surfaces/surfaces.json");
+  const catalog = await fetchAppCatalog();
+  if (catalog.apps.length > 0) content.add("/apps/apps.json");
+  for (const app of catalog.apps) {
+    content.add(`${appDir(app.id)}/manifest.json`);
+  }
 
   await Promise.all(
-    (sceneCatalog?.scenes ?? []).map(async (scene) => {
-      const base = `/scenes/${encodeURIComponent(scene.id)}`;
-      content.add(`${base}/manifest.json`);
-      content.add(`${base}/${encodeURIComponent(scene.id)}.glb`);
+    catalog.scenes.map(async (scene) => {
+      const urls = await resolveSceneAssetUrls(scene.appId, scene.id);
+      for (const url of urls) content.add(url);
     }),
   );
 
-  const envCombos = (envCatalog?.environments ?? []).flatMap((env) =>
-    (env.eras ?? []).flatMap((era) =>
-      (era.times ?? []).map((time) => ({ envId: env.id, eraId: era.id, timeId: time.id })),
+  await Promise.all(
+    catalog.environments.flatMap((env) =>
+      env.eras.flatMap((era) =>
+        era.times.map(async (time) => {
+          const dir = environmentDir(env.appId, env.id, era.id, time.id);
+          const manifest = await fetchJson<EnvManifest>(`${dir}/manifest.json`);
+          content.add(`${dir}/manifest.json`);
+          const image = manifest?.image ?? "skybox.png";
+          content.add(`${dir}/${encodeURIComponent(image)}`);
+        }),
+      ),
     ),
   );
-  await Promise.all(
-    envCombos.map(async ({ envId, eraId, timeId }) => {
-      const dir = `/environments/${[envId, eraId, timeId].map(encodeURIComponent).join("/")}`;
-      const manifest = await fetchJson<EnvManifest>(`${dir}/manifest.json`);
-      content.add(`${dir}/manifest.json`);
-      const image = manifest?.image ?? "skybox.png";
-      content.add(`${dir}/${encodeURIComponent(image)}`);
-    }),
-  );
 
   await Promise.all(
-    (surfaceCatalog?.surfaces ?? []).map(async (surface) => {
-      const dir = `/surfaces/${encodeURIComponent(surface.id)}`;
+    catalog.surfaces.map(async (surface) => {
+      const dir = surfaceDir(surface.appId, surface.id);
       const manifest = await fetchJson<SurfaceManifest>(`${dir}/manifest.json`);
       content.add(`${dir}/manifest.json`);
       const image = manifest?.image ?? "surface.png";
       content.add(`${dir}/${encodeURIComponent(image)}`);
     }),
   );
+
+  for (const track of catalog.audio) assets.add(track.url);
+
+  // Each app's shipped scenery presets (see src/lib/sceneryPresets.ts) — a
+  // small JSON file, but still needed offline so the scenery selector
+  // dialog's default presets list is available without a network round trip.
+  for (const app of catalog.apps) content.add(scenaryManifestUrl(app.id));
 
   return { content: Array.from(content), assets: Array.from(assets) };
 }

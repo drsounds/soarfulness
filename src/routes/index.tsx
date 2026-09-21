@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import * as THREE from "three";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
@@ -13,6 +13,7 @@ import { WatercraftRig } from "@/lib/watercraft/WatercraftRig";
 import type { BuildAction, SculptAction, ToolMode } from "@/lib/watercraft/types";
 import { WatercraftHud } from "@/components/watercraft/WatercraftHud";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { ScenerySelectorButton } from "@/components/ScenerySelectorDialog";
 import { VirtualPhone, type RemoteControllerProps } from "@/components/VirtualPhone";
 import { SettingsPanel, type SettingsPanelProps } from "@/components/SettingsPanel";
 import { ShareBathDialog } from "@/components/ShareBathDialog";
@@ -40,6 +41,9 @@ import {
   SETTINGS_TABS,
   CAMERA_MODES,
   CAMERA_MODE_LABEL_KEYS,
+  TORNADO_DIRECTION_LABEL_KEYS,
+  TORNADO_SEQUENCE_EXIT_MODES,
+  TORNADO_SEQUENCE_EXIT_MODE_LABEL_KEYS,
   SWING_PRESETS,
   TORUS_RING_TEXTURES,
   SWING_Y_WAVEFORMS,
@@ -58,8 +62,8 @@ import {
   type DepthSineWaveform,
   type IntervalSessionType,
   type WavePresetName,
-  type WhirlpoolDirection,
-  type WhirlpoolExitMode,
+  type TornadoDirection,
+  type TornadoSequenceExitMode,
   type SurgeRotationMode,
   type Persisted,
 } from "@/lib/settingsShared";
@@ -82,6 +86,27 @@ import {
   addSavedState,
   removeSavedState,
 } from "@/lib/presets";
+import {
+  type AppEntry,
+  type AppEnvEra,
+  type AppEnvironmentEntry,
+  type AppSceneEntry,
+  type AppSurfaceEntry,
+  type AppAudioEntry,
+  fetchAppCatalog,
+  sceneDir,
+  environmentDir,
+  surfaceDir,
+} from "@/lib/appCatalog";
+import {
+  type SavedSceneryPreset,
+  type AppSceneryPreset,
+  type SceneryData,
+  loadSavedSceneryPresets,
+  addSavedSceneryPreset,
+  removeSavedSceneryPreset,
+  fetchAllAppSceneryPresets,
+} from "@/lib/sceneryPresets";
 import {
   encodeStateToBase62,
   buildBathUrl,
@@ -278,9 +303,11 @@ function smoothstep(edge0: number, edge1: number, x: number) {
   return v * v * (3 - 2 * v);
 }
 
-// Pure radial sine surface used in whirlpool camera mode. Keep in sync with
-// the shader's vortex block so the camera rides the same even wave that is
-// rendered.
+// Pure radial sine surface used for the water whirlpool that opens up while
+// swinging with TORNADO on. Keep in sync with the shader's vortex block so
+// the camera rides the same even wave that is rendered. x/z are relative to
+// the tornado/whirlpool's own center (the swing anchor — see the
+// cameraMode==="swing" branch of the physics loop).
 function whirlpoolSurfaceHeight(
   x: number,
   z: number,
@@ -301,15 +328,22 @@ function whirlpoolSurfaceHeight(
   return pit + ring;
 }
 
-// Normalized (roughly -1..1) vertical drive for GUNGA-mode's pendulum, evaluated
-// once per frame from the swing's own angle (theta, radians — the horizontal
-// arc's instantaneous deflection) and phase (t*omega, radians — the swing
-// clock, unwrapped). "pendulum" is the physically-inspired default: y rises
-// at both ends of the arc and dips at the bottom, twice per side-to-side
-// cycle, and is always >= 0. The other shapes drive y directly off the swing
-// clock's phase instead, for a simpler symmetric up/down motion (able to dip
-// below GUNGA POSITION Y) once per cycle.
-function swingYWaveformValue(kind: SwingYWaveform, theta: number, phase: number): number {
+// Normalized (roughly -1..1, peaking at exactly 1) vertical drive for GUNGA-
+// mode's pendulum, evaluated once per frame from the swing's own angle
+// (theta, radians — the horizontal arc's instantaneous deflection), phase
+// (t*omega, radians — the swing clock, unwrapped), and thetaMax (theta's own
+// peak deflection this frame, i.e. GUNGA INTENSITET's current arc width —
+// see swingAmpRadNow in the physics loop). "pendulum" is the physically-
+// inspired default: y rises at both ends of the arc and dips at the bottom,
+// twice per side-to-side cycle, and is always >= 0. The other shapes drive y
+// directly off the swing clock's phase instead, for a simpler symmetric
+// up/down motion (able to dip below GUNGA POSITION Y) once per cycle.
+function swingYWaveformValue(
+  kind: SwingYWaveform,
+  theta: number,
+  phase: number,
+  thetaMax: number,
+): number {
   switch (kind) {
     case "sine":
       return Math.sin(phase);
@@ -320,8 +354,16 @@ function swingYWaveformValue(kind: SwingYWaveform, theta: number, phase: number)
     case "square":
       return Math.sin(phase) >= 0 ? 1 : -1;
     case "pendulum":
-    default:
-      return 1 - Math.cos(theta);
+    default: {
+      // Divide out thetaMax's own contribution so this always peaks at
+      // exactly 1, same as every other waveform above, regardless of how
+      // wide GUNGA INTENSITET happens to be swinging the arc this frame —
+      // otherwise a faster/wider swing (higher intensity) would also read
+      // as a taller one even with GUNGA HÖJD left untouched, coupling the
+      // SPEED and HEIGHT dials together instead of keeping them independent.
+      const peak = Math.max(1e-9, 1 - Math.cos(thetaMax));
+      return (1 - Math.cos(theta)) / peak;
+    }
   }
 }
 
@@ -358,6 +400,17 @@ const OCEAN_BASE_SIZE = 1200;
 const OCEAN_FAR_INNER_RADIUS = OCEAN_BASE_SIZE / 2;
 const CLOUD_BASE_SIZE = 200000;
 
+// TORNADO CLOUD's shape, relative to whichever tornado mode's own radius is
+// currently active (tornadoCloudX/Y/Z/Radius/Angle in the physics loop):
+// the wide top sits a bit outside the actual orbit (so the orbiting camera
+// grazes/enters its wall rather than always staying outside it) and the
+// narrow tip is a small fraction of that, never a literal zero-width point.
+const TORNADO_CLOUD_TOP_SCALE = 1.15;
+const TORNADO_CLOUD_TIP_RATIO = 0.1;
+// Vertical extent as a multiple of the radius — tall and narrow, like a real
+// funnel cloud, rather than a squat cone.
+const TORNADO_CLOUD_HEIGHT_SCALE = 2.2;
+
 // Perf-diagnostic kill switch for the DATE & TIME TRAVEL feature (its
 // once-a-minute tick effect and the clock button/dialog in the HUD).
 // It was previously suspected of contributing to reported lag, but the
@@ -383,6 +436,17 @@ function wrapAxis(value: number, half: number): number {
   return ((((value + half) % period) + period) % period) - half;
 }
 
+// Moves `value` toward `target` at a constant `rate` (units/s), snapping
+// exactly onto it once within one frame's step instead of asymptotically
+// approaching forever — used by the TORNADO SEQUENCE state machine so each
+// phase reaches its target radius/lift height in finite time.
+function stepToward(value: number, target: number, rate: number, dt: number): number {
+  const diff = target - value;
+  const step = Math.max(0, rate) * dt;
+  if (Math.abs(diff) <= step) return target;
+  return value + Math.sign(diff) * step;
+}
+
 // VÄRLDSGRÄNS's y-extension: rather than a hard wrap, more instances of the
 // same sky-cloud layer (see EXTEND_CLOUD_LAYER_COUNT below, and the skyClouds
 // setup + animate() loop) tile every EXTEND_CLOUD_LAYER_SPACING meters of
@@ -398,10 +462,9 @@ const EXTEND_CLOUD_LAYER_SPACING = 500;
 const EXTEND_CLOUD_LAYER_COUNT = 5;
 // Display order for the top camera mode toggle's tab buttons — independent
 // of CAMERA_MODES' own order (which cycleCameraMode/the KAMERA settings
-// dial still cycle through), so the four tabs can read left-to-right as
-// VIRVEL/SIMMARE/GUNGA/FLYG regardless of how CAMERA_MODES itself is
-// ordered.
-const CAMERA_MODE_TAB_ORDER: CameraMode[] = ["whirlpool", "float", "swing", "noclip"];
+// dial still cycle through), so the three tabs can read left-to-right as
+// SIMMARE/GUNGA/FLYG regardless of how CAMERA_MODES itself is ordered.
+const CAMERA_MODE_TAB_ORDER: CameraMode[] = ["float", "swing", "noclip"];
 // SKY PUFFS: a pool of this many puff meshes is always created (cheap —
 // shared geometry, one small cloned material each); SKY PUFFS COUNT just
 // controls how many of them animate() keeps active, so raising/lowering the
@@ -467,10 +530,13 @@ function hexToRgbNorm(hex: string): [number, number, number] {
   return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
 }
 
-// A loadable .glb scene lives in public/scenes/<id>/<id>.glb with an optional
-// public/scenes/<id>/manifest.json describing where/how to place it. The list
-// of available scenes and their display names comes from public/scenes/scenes.json.
-type SceneEntry = { id: string; name: string };
+// A loadable scene lives in public/apps/<appId>/scenes/<id>/<id>.glb (or
+// <id>.gltf, for scenes exported with external .bin/texture files instead of
+// a single binary blob) with an optional
+// public/apps/<appId>/scenes/<id>/manifest.json describing where/how to
+// place it. The list of available scenes (and which app each ships with)
+// comes from walking every installed app's own manifest.json — see
+// src/lib/appCatalog.ts's fetchAppCatalog / AppSceneEntry.
 // One named player start point, listed under a scene manifest's "locations"
 // (or "places" — either key is accepted) array. yaw is in radians, matching
 // yawRef; omitted fields default to 0.
@@ -588,14 +654,13 @@ function disposeObject(obj: THREE.Object3D) {
 }
 
 // A real (3D) skybox environment lives under
-//   public/environments/<env>/<era>/<time>/skybox.png  (+ manifest.json)
-// and the tree of available environments/eras/times comes from
-// public/environments/environment.json. The skybox is rendered as the scene's
-// equirectangular background so it responds correctly to camera rotation,
-// unlike the flat DOM backdrop which stays fixed on screen.
-type EnvTime = { id: string; name: string };
-type EnvEra = { id: string; name: string; times: EnvTime[] };
-type EnvironmentEntry = { id: string; name: string; eras: EnvEra[] };
+//   public/apps/<appId>/environments/<env>/<era>/<time>/skybox.png  (+ manifest.json)
+// and the tree of available environments/eras/times (and which app each
+// ships with) comes from walking every installed app's own manifest.json —
+// see src/lib/appCatalog.ts's fetchAppCatalog / AppEnvironmentEntry. The
+// skybox is rendered as the scene's equirectangular background so it
+// responds correctly to camera rotation, unlike the flat DOM backdrop which
+// stays fixed on screen.
 type EnvManifest = {
   name?: string;
   // If set, the water/lighting palette snaps to this time-of-day (0..1).
@@ -606,43 +671,13 @@ type EnvManifest = {
   image?: string;
 };
 
-// Parse the loosely-typed environment.json into a validated tree.
-function parseEnvironments(data: unknown): EnvironmentEntry[] {
-  const rawList = Array.isArray(data)
-    ? data
-    : ((data as { environments?: unknown }).environments ?? []);
-  if (!Array.isArray(rawList)) return [];
-  const str = (v: unknown, fallback: string) => (typeof v === "string" ? v : fallback);
-  return rawList
-    .map((e) => {
-      const env = e as { id?: unknown; name?: unknown; eras?: unknown };
-      if (typeof env.id !== "string") return null;
-      const eras = (Array.isArray(env.eras) ? env.eras : [])
-        .map((er) => {
-          const era = er as { id?: unknown; name?: unknown; times?: unknown };
-          if (typeof era.id !== "string") return null;
-          const times = (Array.isArray(era.times) ? era.times : [])
-            .map((tm) => {
-              const time = tm as { id?: unknown; name?: unknown };
-              return typeof time.id === "string"
-                ? { id: time.id, name: str(time.name, time.id) }
-                : null;
-            })
-            .filter((t): t is EnvTime => t !== null);
-          return times.length ? { id: era.id, name: str(era.name, era.id), times } : null;
-        })
-        .filter((er): er is EnvEra => er !== null);
-      return eras.length ? { id: env.id, name: str(env.name, env.id), eras } : null;
-    })
-    .filter((e): e is EnvironmentEntry => e !== null);
-}
-
 // A water-surface reflection preset lives at
-//   public/surfaces/<id>/surface.png  (+ manifest.json)
-// and the list comes from public/surfaces/surfaces.json. The photo is sampled
-// along the reflection vector to fake a richer environment reflection than the
-// flat horizon→sky gradient.
-type SurfaceEntry = { id: string; name: string };
+//   public/apps/<appId>/surfaces/<id>/surface.png  (+ manifest.json)
+// and the list (and which app each ships with) comes from walking every
+// installed app's own manifest.json — see src/lib/appCatalog.ts's
+// fetchAppCatalog / AppSurfaceEntry. The photo is sampled along the
+// reflection vector to fake a richer environment reflection than the flat
+// horizon→sky gradient.
 type SurfaceManifest = {
   name?: string;
   // How strongly the photo replaces the gradient reflection (0..1, default 0.6).
@@ -799,16 +834,6 @@ const DEFAULTS: Persisted = {
   floorDepth: 28,
   floorTexture: true,
   floorCloudsAnimated: false,
-  whirlpoolOpening: 14,
-  whirlpoolRadius: 26,
-  whirlpoolSpeed: 1,
-  whirlpoolDirection: "cw",
-  whirlpoolSequenceOn: false,
-  whirlpoolDragSpeed: 6,
-  whirlpoolDragDuration: 6,
-  whirlpoolStayDuration: 4,
-  whirlpoolExitMode: "throwBack",
-  whirlpoolExitSpeed: 10,
   depthSineOn: false,
   depthSineAmp: 2,
   depthSineFreq: 0.2,
@@ -890,23 +915,38 @@ const DEFAULTS: Persisted = {
   swingHeight: 20000,
   swingPreset: "water",
   swingYWaveform: "pendulum",
-  // Optional "tornado" spin for GUNGA: off by default (plain pendulum arc).
-  swingTornadoOn: false,
-  swingTornadoRadius: 40,
-  swingTornadoSpeed: 1,
-  swingTornadoDirection: "cw",
+  // Unified TORNADO toggle for GUNGA (swing) and flying (noclip/watercraft):
+  // off by default (plain pendulum arc / plain free flight).
+  tornadoOn: false,
+  tornadoRadius: 40,
+  tornadoSpeed: 1,
+  tornadoDirection: "cw",
+  tornadoOpening: 14,
+  // On by default: camera eases toward staring at the tornado/whirlpool
+  // center (like the old standalone VIRVEL mode always did) instead of
+  // keeping whatever forward direction NAV/LOOK has it facing.
+  tornadoFollowCenter: true,
+  // TORNADO CLOUD: off by default — purely cosmetic.
+  tornadoCloudOn: false,
+  tornadoCloudYOffset: 0,
+  // TORNADO SEQUENCE: off by default — the automatic drag-in/stay/exit cycle
+  // is opt-in on top of the always-available manual NAV+current radial pull.
+  tornadoSequenceOn: false,
+  tornadoSequenceDragSpeed: 20,
+  tornadoSequenceDragDuration: 4,
+  tornadoSequenceStayDuration: 5,
+  tornadoSequenceExitMode: "outer",
+  tornadoSequenceExitSpeed: 15,
+  tornadoSequenceLiftHeight: 60,
+  tornadoSequencePauseDuration: 3,
   // Interval session off by default; a 30s FRI/GUNGA alternation running
   // forever once turned on, until switched to a fixed number of intervals.
-  // The pool of modes it cycles through defaults to exactly that FRI/GUNGA
-  // pair (VIRVEL/whirlpool opts in explicitly) so existing sessions keep
-  // behaving the same until a user turns it on.
   intervalSessionOn: false,
   intervalDuration: 30,
   intervalSessionType: "infinite",
   intervalCount: 6,
   intervalShowStats: true,
   intervalIncludeFloat: true,
-  intervalIncludeWhirlpool: false,
   intervalIncludeSwing: true,
   surfaceArea: 1000,
   // Floating torus "bath rings" field — off by default so existing scenes
@@ -929,8 +969,32 @@ function loadSettings(): Persisted {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULTS;
-    const parsed = JSON.parse(raw);
-    return { ...DEFAULTS, ...parsed };
+    const parsed: Record<string, unknown> = JSON.parse(raw);
+    // Migrate settings saved before TORNADO/WHIRLPOOL were merged into one
+    // shared toggle: the old standalone "whirlpool" camera mode no longer
+    // exists, so fall back to "swing" — the mode the merged water-whirlpool
+    // visual now lives in. Old swingTornadoOn/noclipTornadoOn carry over
+    // into the new shared tornadoOn (plus whichever one of them was on's own
+    // radius/speed/direction) as long as a newer save hasn't already set
+    // tornadoOn itself.
+    if (parsed.cameraMode === "whirlpool") parsed.cameraMode = "swing";
+    if (parsed.tornadoOn === undefined) {
+      const legacySrc = parsed.swingTornadoOn
+        ? "swingTornado"
+        : parsed.noclipTornadoOn
+          ? "noclipTornado"
+          : null;
+      if (legacySrc) {
+        parsed.tornadoOn = true;
+        if (typeof parsed[`${legacySrc}Radius`] === "number")
+          parsed.tornadoRadius = parsed[`${legacySrc}Radius`];
+        if (typeof parsed[`${legacySrc}Speed`] === "number")
+          parsed.tornadoSpeed = parsed[`${legacySrc}Speed`];
+        if (parsed[`${legacySrc}Direction`])
+          parsed.tornadoDirection = parsed[`${legacySrc}Direction`];
+      }
+    }
+    return { ...DEFAULTS, ...(parsed as Partial<Persisted>) };
   } catch {
     return DEFAULTS;
   }
@@ -1213,25 +1277,6 @@ export function Aquafulness() {
   const [floorDepth, setFloorDepth] = useState(initial.floorDepth);
   const [floorTexture, setFloorTexture] = useState(initial.floorTexture);
   const [floorCloudsAnimated, setFloorCloudsAnimated] = useState(initial.floorCloudsAnimated);
-  // VIRVEL (whirlpool camera mode) — see the cameraMode==="whirlpool" branch
-  // of the render loop below. whirlpoolOpening/Radius/Speed/Direction drive
-  // the steady orbit (shared with the shader's funnel visual); the rest only
-  // matter when whirlpoolSequenceOn loops the camera through drag-in / stay
-  // inside / thrown-back-or-reverse-spin automatically.
-  const [whirlpoolOpening, setWhirlpoolOpening] = useState(initial.whirlpoolOpening);
-  const [whirlpoolRadius, setWhirlpoolRadius] = useState(initial.whirlpoolRadius);
-  const [whirlpoolSpeed, setWhirlpoolSpeed] = useState(initial.whirlpoolSpeed);
-  const [whirlpoolDirection, setWhirlpoolDirection] = useState<WhirlpoolDirection>(
-    initial.whirlpoolDirection,
-  );
-  const [whirlpoolSequenceOn, setWhirlpoolSequenceOn] = useState(initial.whirlpoolSequenceOn);
-  const [whirlpoolDragSpeed, setWhirlpoolDragSpeed] = useState(initial.whirlpoolDragSpeed);
-  const [whirlpoolDragDuration, setWhirlpoolDragDuration] = useState(initial.whirlpoolDragDuration);
-  const [whirlpoolStayDuration, setWhirlpoolStayDuration] = useState(initial.whirlpoolStayDuration);
-  const [whirlpoolExitMode, setWhirlpoolExitMode] = useState<WhirlpoolExitMode>(
-    initial.whirlpoolExitMode,
-  );
-  const [whirlpoolExitSpeed, setWhirlpoolExitSpeed] = useState(initial.whirlpoolExitSpeed);
   const [depthSineOn, setDepthSineOn] = useState(initial.depthSineOn);
   const [depthSineAmp, setDepthSineAmp] = useState(initial.depthSineAmp);
   const [depthSineFreq, setDepthSineFreq] = useState(initial.depthSineFreq);
@@ -1268,16 +1313,21 @@ export function Aquafulness() {
   const [worldBoundaryHeight, setWorldBoundaryHeight] = useState(initial.worldBoundaryHeight);
   const [worldBoundaryYExtend, setWorldBoundaryYExtend] = useState(initial.worldBoundaryYExtend);
   const [liveMode, setLiveMode] = useState(initial.liveMode);
-  // Loadable .glb scenes discovered from public/scenes/scenes.json.
-  const [scenes, setScenes] = useState<SceneEntry[]>([]);
+  // Every installed app's own metadata (public/apps/apps.json) — used to
+  // label/group scene/environment/surface/audio options by which app they
+  // shipped with (see ScenerySelectorDialog); apps are a packaging unit
+  // only, so this never restricts which options are selectable.
+  const [apps, setApps] = useState<AppEntry[]>([]);
+  // Loadable scenes discovered by walking every installed app's manifest.json.
+  const [scenes, setScenes] = useState<AppSceneEntry[]>([]);
   const [sceneId, setSceneId] = useState<string | null>(initial.sceneId);
   // Named respawn points for the current scene, from its manifest's
   // "locations"/"places" list (see resolveSpawnLocations) — always at least
   // one entry (the {0,0,0} fallback when the manifest defines none).
   const [spawnLocations, setSpawnLocations] = useState<SpawnLocation[]>([DEFAULT_SPAWN_LOCATION]);
   const [spawnLocationId, setSpawnLocationId] = useState<string | null>(initial.spawnLocationId);
-  // Real-skybox environments discovered from public/environments/environment.json.
-  const [environments, setEnvironments] = useState<EnvironmentEntry[]>([]);
+  // Real-skybox environments discovered by walking every installed app's manifest.json.
+  const [environments, setEnvironments] = useState<AppEnvironmentEntry[]>([]);
   const [envId, setEnvId] = useState<string | null>(initial.envId);
   const [envEra, setEnvEra] = useState<string | null>(initial.envEra);
   const [envTime, setEnvTime] = useState<string | null>(initial.envTime);
@@ -1307,9 +1357,13 @@ export function Aquafulness() {
   // the year-2100 gate below, so it can be reverted automatically too —
   // without ever overriding an era the user picked by hand.
   const autoFuturisticEraRef = useRef(false);
-  // Selectable water-surface reflection presets from public/surfaces/surfaces.json.
-  const [surfaces, setSurfaces] = useState<SurfaceEntry[]>([]);
+  // Selectable water-surface reflection presets discovered by walking every
+  // installed app's manifest.json.
+  const [surfaces, setSurfaces] = useState<AppSurfaceEntry[]>([]);
   const [surfaceId, setSurfaceId] = useState<string | null>(initial.surfaceId);
+  // Per-app audio tracks (public/apps/<appId>/audio/*), appended after the
+  // built-in WATER_SOUNDS entries — see allWaterSounds below.
+  const [appAudioTracks, setAppAudioTracks] = useState<AppAudioEntry[]>([]);
   const [reflStrength, setReflStrength] = useState(initial.reflStrength);
   const [bottomColor, setBottomColor] = useState(initial.bottomColor);
   const [sphereMaterial, setSphereMaterial] = useState(initial.sphereMaterial);
@@ -1339,21 +1393,66 @@ export function Aquafulness() {
   const [swingHeight, setSwingHeight] = useState(initial.swingHeight);
   const [swingYWaveform, setSwingYWaveform] = useState<SwingYWaveform>(initial.swingYWaveform);
   const [swingPreset, setSwingPreset] = useState<SwingPreset>(initial.swingPreset);
-  // Optional "tornado" spin for GUNGA: instead of a back-and-forth pendulum
-  // arc, the camera orbits its anchor in a circle at swing altitude (a
-  // whirlpool in the sky) — see the cameraMode==="swing" branch below.
-  const [swingTornadoOn, setSwingTornadoOn] = useState(initial.swingTornadoOn);
-  const [swingTornadoRadius, setSwingTornadoRadius] = useState(initial.swingTornadoRadius);
-  const [swingTornadoSpeed, setSwingTornadoSpeed] = useState(initial.swingTornadoSpeed);
-  const [swingTornadoDirection, setSwingTornadoDirection] = useState<WhirlpoolDirection>(
-    initial.swingTornadoDirection,
+  // Unified TORNADO toggle, shared by GUNGA (swing) and flying (noclip/
+  // watercraft) alike: instead of a back-and-forth pendulum arc / plain
+  // manual flight, the camera orbits a circle around the anchor (posRef) —
+  // see the cameraMode==="swing"/"noclip"/"watercraft" branches below.
+  // While swinging, this also opens a real water whirlpool centered at that
+  // same anchor (tornadoOpening controls its throat width; see uVortex*
+  // below) — flying never shows that water effect. tornadoFollowCenter
+  // additionally eases the camera's look direction toward that center
+  // instead of leaving it wherever NAV/LOOK already has it facing.
+  // Activating/deactivating this eases in/out (see tornadoBlendRef/
+  // vortexBlendRef in the physics loop) rather than snapping instantly.
+  const [tornadoOn, setTornadoOn] = useState(initial.tornadoOn);
+  const [tornadoRadius, setTornadoRadius] = useState(initial.tornadoRadius);
+  const [tornadoSpeed, setTornadoSpeed] = useState(initial.tornadoSpeed);
+  const [tornadoDirection, setTornadoDirection] = useState<TornadoDirection>(
+    initial.tornadoDirection,
+  );
+  const [tornadoOpening, setTornadoOpening] = useState(initial.tornadoOpening);
+  const [tornadoFollowCenter, setTornadoFollowCenter] = useState(initial.tornadoFollowCenter);
+  // TORNADO CLOUD: optional visible funnel-shaped cloud wrapping the active
+  // tornado orbit — see tornadoCloudMeshRef further down.
+  const [tornadoCloudOn, setTornadoCloudOn] = useState(initial.tornadoCloudOn);
+  // Meters above the real water surface (at the tornado's own xz spot) the
+  // TORNADO CLOUD's tip sits while swinging or flying — see
+  // tornadoWaterHeightAt in the physics loop.
+  const [tornadoCloudYOffset, setTornadoCloudYOffset] = useState(
+    initial.tornadoCloudYOffset,
+  );
+  // TORNADO SEQUENCE: an optional automatic drag-in/stay/exit loop layered on
+  // top of the always-available manual NAV+current radial control — see
+  // TornadoSequenceExitMode and the tornadoSequence* Persisted fields'
+  // comments in settingsShared.ts, and tornadoSeqPhaseRef/
+  // tornadoLiveRadiusRef/tornadoLiftOffsetRef in the physics loop below.
+  const [tornadoSequenceOn, setTornadoSequenceOn] = useState(initial.tornadoSequenceOn);
+  const [tornadoSequenceDragSpeed, setTornadoSequenceDragSpeed] = useState(
+    initial.tornadoSequenceDragSpeed,
+  );
+  const [tornadoSequenceDragDuration, setTornadoSequenceDragDuration] = useState(
+    initial.tornadoSequenceDragDuration,
+  );
+  const [tornadoSequenceStayDuration, setTornadoSequenceStayDuration] = useState(
+    initial.tornadoSequenceStayDuration,
+  );
+  const [tornadoSequenceExitMode, setTornadoSequenceExitMode] = useState<TornadoSequenceExitMode>(
+    initial.tornadoSequenceExitMode,
+  );
+  const [tornadoSequenceExitSpeed, setTornadoSequenceExitSpeed] = useState(
+    initial.tornadoSequenceExitSpeed,
+  );
+  const [tornadoSequenceLiftHeight, setTornadoSequenceLiftHeight] = useState(
+    initial.tornadoSequenceLiftHeight,
+  );
+  const [tornadoSequencePauseDuration, setTornadoSequencePauseDuration] = useState(
+    initial.tornadoSequencePauseDuration,
   );
   // Interval session: automatically cycles the camera through whichever of
-  // "float" (FRI/default)/"whirlpool" (VIRVEL)/"swing" (GUNGA, optionally
-  // tornado) are enabled below, every intervalDuration seconds — see the
-  // session-driver effect further down. intervalIndex/intervalProgress/
-  // intervalElapsedTotal are runtime-only (not persisted) progress readouts
-  // for the bottom HUD bars.
+  // "float" (FRI/default)/"swing" (GUNGA, optionally TORNADO) are enabled
+  // below, every intervalDuration seconds — see the session-driver effect
+  // further down. intervalIndex/intervalProgress/intervalElapsedTotal are
+  // runtime-only (not persisted) progress readouts for the bottom HUD bars.
   const [intervalSessionOn, setIntervalSessionOn] = useState(initial.intervalSessionOn);
   const [intervalDuration, setIntervalDuration] = useState(initial.intervalDuration);
   const [intervalSessionType, setIntervalSessionType] = useState<IntervalSessionType>(
@@ -1362,9 +1461,6 @@ export function Aquafulness() {
   const [intervalCount, setIntervalCount] = useState(initial.intervalCount);
   const [intervalShowStats, setIntervalShowStats] = useState(initial.intervalShowStats);
   const [intervalIncludeFloat, setIntervalIncludeFloat] = useState(initial.intervalIncludeFloat);
-  const [intervalIncludeWhirlpool, setIntervalIncludeWhirlpool] = useState(
-    initial.intervalIncludeWhirlpool,
-  );
   const [intervalIncludeSwing, setIntervalIncludeSwing] = useState(initial.intervalIncludeSwing);
   const [intervalIndex, setIntervalIndex] = useState(0);
   const [intervalProgress, setIntervalProgress] = useState(0);
@@ -1445,10 +1541,14 @@ export function Aquafulness() {
   // SETTINGS) rather than as always-on sliders, so a stray touch near
   // bottom-center can't accidentally nudge a value mid-session.
   const [cameraDrawerOpen, setCameraDrawerOpen] = useState(false);
-  // Which camera mode's tab the drawer above is showing — kept independent
-  // of cameraMode itself (so it can be browsed without switching modes) but
-  // re-synced to it below whenever cameraMode actually changes.
-  const [cameraDrawerTab, setCameraDrawerTab] = useState<CameraMode>(cameraMode);
+  // Which tab the drawer above is showing — usually one of the camera modes
+  // (kept independent of cameraMode itself, so it can be browsed without
+  // switching modes, but re-synced to it below whenever cameraMode actually
+  // changes) plus one extra "tornado" tab that isn't a camera mode at all,
+  // just a settings category always available regardless of which mode is
+  // active (mirrors the old standalone VIRVEL tab this drawer used to have).
+  type CameraDrawerTab = CameraMode | "tornado";
+  const [cameraDrawerTab, setCameraDrawerTab] = useState<CameraDrawerTab>(cameraMode);
   // Named settings presets (save/load, in addition to file export/import
   // below) — kept in their own localStorage list, separate from the
   // always-on autosave under STORAGE_KEY. See src/lib/presets.ts.
@@ -1457,6 +1557,16 @@ export function Aquafulness() {
   // direction) — see buildFullStateSnapshot/applyFullState below and
   // src/lib/presets.ts's separate "state" file kind/localStorage list.
   const [savedStates, setSavedStates] = useState<SavedState[]>(() => loadSavedStates());
+  // Named "scenery" presets (scene + environment/era/time + surface only) —
+  // see src/lib/sceneryPresets.ts and the ScenerySelectorDialog this backs.
+  // Separate from savedPresets above (a different, narrower field set than
+  // any existing PresetScope covers) — user-saved ones live in localStorage
+  // here, while appSceneryPresets holds each installed app's own shipped
+  // defaults (read-only, fetched below once the app catalog loads).
+  const [savedSceneryPresets, setSavedSceneryPresets] = useState<SavedSceneryPreset[]>(() =>
+    loadSavedSceneryPresets(),
+  );
+  const [appSceneryPresets, setAppSceneryPresets] = useState<AppSceneryPreset[]>([]);
   const [phoneOpen, setPhoneOpen] = useState(false);
   const [uiVisible, setUiVisible] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -1696,16 +1806,6 @@ export function Aquafulness() {
     floorDepth,
     floorTexture,
     floorCloudsAnimated,
-    whirlpoolOpening,
-    whirlpoolRadius,
-    whirlpoolSpeed,
-    whirlpoolDirection,
-    whirlpoolSequenceOn,
-    whirlpoolDragSpeed,
-    whirlpoolDragDuration,
-    whirlpoolStayDuration,
-    whirlpoolExitMode,
-    whirlpoolExitSpeed,
     depthSineOn,
     depthSineAmp,
     depthSineFreq,
@@ -1767,17 +1867,28 @@ export function Aquafulness() {
     swingHeight,
     swingPreset,
     swingYWaveform,
-    swingTornadoOn,
-    swingTornadoRadius,
-    swingTornadoSpeed,
-    swingTornadoDirection,
+    tornadoOn,
+    tornadoRadius,
+    tornadoSpeed,
+    tornadoDirection,
+    tornadoOpening,
+    tornadoFollowCenter,
+    tornadoCloudOn,
+    tornadoCloudYOffset,
+    tornadoSequenceOn,
+    tornadoSequenceDragSpeed,
+    tornadoSequenceDragDuration,
+    tornadoSequenceStayDuration,
+    tornadoSequenceExitMode,
+    tornadoSequenceExitSpeed,
+    tornadoSequenceLiftHeight,
+    tornadoSequencePauseDuration,
     intervalSessionOn,
     intervalDuration,
     intervalSessionType,
     intervalCount,
     intervalShowStats,
     intervalIncludeFloat,
-    intervalIncludeWhirlpool,
     intervalIncludeSwing,
     surfaceArea,
     torusRingsOn,
@@ -1859,16 +1970,6 @@ export function Aquafulness() {
     floorDepth,
     floorTexture,
     floorCloudsAnimated,
-    whirlpoolOpening,
-    whirlpoolRadius,
-    whirlpoolSpeed,
-    whirlpoolDirection,
-    whirlpoolSequenceOn,
-    whirlpoolDragSpeed,
-    whirlpoolDragDuration,
-    whirlpoolStayDuration,
-    whirlpoolExitMode,
-    whirlpoolExitSpeed,
     depthSineOn,
     depthSineAmp,
     depthSineFreq,
@@ -1930,17 +2031,28 @@ export function Aquafulness() {
     swingHeight,
     swingPreset,
     swingYWaveform,
-    swingTornadoOn,
-    swingTornadoRadius,
-    swingTornadoSpeed,
-    swingTornadoDirection,
+    tornadoOn,
+    tornadoRadius,
+    tornadoSpeed,
+    tornadoDirection,
+    tornadoOpening,
+    tornadoFollowCenter,
+    tornadoCloudOn,
+    tornadoCloudYOffset,
+    tornadoSequenceOn,
+    tornadoSequenceDragSpeed,
+    tornadoSequenceDragDuration,
+    tornadoSequenceStayDuration,
+    tornadoSequenceExitMode,
+    tornadoSequenceExitSpeed,
+    tornadoSequenceLiftHeight,
+    tornadoSequencePauseDuration,
     intervalSessionOn,
     intervalDuration,
     intervalSessionType,
     intervalCount,
     intervalShowStats,
     intervalIncludeFloat,
-    intervalIncludeWhirlpool,
     intervalIncludeSwing,
     surfaceArea,
     torusRingsOn,
@@ -2109,53 +2221,72 @@ export function Aquafulness() {
   const floorDepthRef = useRef(floorDepth);
   const floorTextureRef = useRef(floorTexture);
   const floorCloudsAnimatedRef = useRef(floorCloudsAnimated);
-  const whirlpoolOpeningRef = useRef(whirlpoolOpening);
-  const whirlpoolRadiusRef = useRef(whirlpoolRadius);
-  const whirlpoolSpeedRef = useRef(whirlpoolSpeed);
-  const whirlpoolDirectionRef = useRef(whirlpoolDirection);
-  const whirlpoolSequenceOnRef = useRef(whirlpoolSequenceOn);
-  const whirlpoolDragSpeedRef = useRef(whirlpoolDragSpeed);
-  const whirlpoolDragDurationRef = useRef(whirlpoolDragDuration);
-  const whirlpoolStayDurationRef = useRef(whirlpoolStayDuration);
-  const whirlpoolExitModeRef = useRef(whirlpoolExitMode);
-  const whirlpoolExitSpeedRef = useRef(whirlpoolExitSpeed);
-  const whirlpoolAngleRef = useRef(0);
-  // Drives the whirlpool's optional automatic drag-in/stay/exit sequence —
-  // reset whenever cameraMode switches into "whirlpool" (see that effect
-  // below) so every entry starts the loop fresh from the drag-in phase.
-  const whirlpoolPhaseRef = useRef<{
-    phase: "drag" | "stay" | "exit";
+  const tornadoOnRef = useRef(tornadoOn);
+  const tornadoRadiusRef = useRef(tornadoRadius);
+  const tornadoSpeedRef = useRef(tornadoSpeed);
+  const tornadoDirectionRef = useRef(tornadoDirection);
+  const tornadoOpeningRef = useRef(tornadoOpening);
+  const tornadoFollowCenterRef = useRef(tornadoFollowCenter);
+  const tornadoSequenceOnRef = useRef(tornadoSequenceOn);
+  const tornadoSequenceDragSpeedRef = useRef(tornadoSequenceDragSpeed);
+  const tornadoSequenceDragDurationRef = useRef(tornadoSequenceDragDuration);
+  const tornadoSequenceStayDurationRef = useRef(tornadoSequenceStayDuration);
+  const tornadoSequenceExitModeRef = useRef(tornadoSequenceExitMode);
+  const tornadoSequenceExitSpeedRef = useRef(tornadoSequenceExitSpeed);
+  const tornadoSequenceLiftHeightRef = useRef(tornadoSequenceLiftHeight);
+  const tornadoSequencePauseDurationRef = useRef(tornadoSequencePauseDuration);
+  // Shared orbit angle for the tornado spin, whichever of swing/noclip/
+  // watercraft is currently driving it (only one of those branches runs any
+  // given frame, so one angle can serve all of them) — reset to 0 whenever
+  // cameraMode switches into swing or noclip/watercraft (see that effect
+  // below) so every entry starts the spin fresh.
+  const tornadoAngleRef = useRef(0);
+  // Live orbit radius the camera actually uses this frame, in place of the
+  // static tornadoRadius dial — pushed in/out by NAV+current (manual, always
+  // available whenever tornadoOn) and by the TORNADO SEQUENCE state machine
+  // (optional, see tornadoSeqPhaseRef below). Starts equal to tornadoRadius
+  // so TORNADO looks unchanged until the player or the sequence pulls it in.
+  const tornadoLiveRadiusRef = useRef(tornadoRadius);
+  // Extra vertical offset added to the camera only during the TORNADO
+  // SEQUENCE's "lift"/"pause"/"return" phases (see updateTornadoLiveRadius in
+  // the physics loop) — always 0 outside of those, and outside the sequence
+  // entirely.
+  const tornadoLiftOffsetRef = useRef(0);
+  // TORNADO SEQUENCE's own state machine: null whenever tornadoSequenceOn is
+  // off, otherwise the current phase, when it started, and the orbit radius
+  // captured at the start of the current "drag" phase — the "starting
+  // position" the "lift" exit mode returns to once its pause elapses (see
+  // TornadoSequenceExitMode in settingsShared.ts). Re-created fresh every
+  // time the sequence is turned on so it always begins at "drag".
+  const tornadoSeqPhaseRef = useRef<{
+    phase: "drag" | "stay" | "exitOuter" | "lift" | "pause" | "return";
     startMs: number;
-  }>({ phase: "drag", startMs: 0 });
-  // Continuous 0..1 "how whirlpool-y are we right now" blend, eased toward
-  // cameraMode==="whirlpool" over ~1.4s regardless of how abruptly the mode
-  // itself switches (button, KAMERA dial, or the interval session) — see its
-  // update in the render loop below. 1 = fully orbiting the vortex, 0 =
-  // fully back to whatever the current mode's own motion is. Used both to
-  // fade the funnel's shape in/out (uVortex) and to scale the orbit's
-  // angular speed, so entering ramps the spin up from a standstill and
-  // leaving lets it wind back down instead of cutting out mid-spin.
-  const whirlpoolBlendRef = useRef(0);
-  // The camera's last actual orbit position while whirlpoolBlendRef was
-  // above zero — seeded into posRef.current the moment cameraMode leaves
-  // "whirlpool" (see that effect below) so float/noclip/swing resume
-  // exactly where the (still winding down) orbit left off, instead of
-  // snapping back to wherever the camera was before it ever entered.
-  const whirlpoolLastPosRef = useRef({ x: 0, z: 0 });
-  // Where the vortex is centered in world space — captured from posRef.current
-  // the instant cameraMode switches into "whirlpool" (see that effect below),
-  // so the whirlpool always opens up right where the player currently is
-  // instead of a fixed world-origin spot. Read by the orbit math, the funnel
-  // surface height sampling, and the shader's uVortexCenter uniform, all
-  // below, so the visual funnel and the camera's ride on it stay in sync.
-  const whirlpoolCenterRef = useRef({ x: 0, z: 0 });
-  const swingTornadoOnRef = useRef(swingTornadoOn);
-  const swingTornadoRadiusRef = useRef(swingTornadoRadius);
-  const swingTornadoSpeedRef = useRef(swingTornadoSpeed);
-  const swingTornadoDirectionRef = useRef(swingTornadoDirection);
-  const swingTornadoAngleRef = useRef(0);
+    startRadius: number;
+  } | null>(null);
+  // Continuous 0..1 "how tornado-y are we right now" blend, eased toward 1
+  // while tornadoOn and cameraMode is swing/noclip/watercraft, toward 0
+  // otherwise — regardless of how abruptly tornadoOn itself is toggled or
+  // cameraMode switches (button, KAMERA dial, or the interval session) — see
+  // its update in the render loop below. Scales the orbit's angular speed
+  // and how much its offset contributes to the camera's position, so turning
+  // TORNADO on/off ramps the spin up from (or back down to) a standstill —
+  // and, while swinging, crossfades the pendulum arc and the circular orbit —
+  // instead of snapping instantly.
+  const tornadoBlendRef = useRef(0);
+  // Same idea as tornadoBlendRef, but specifically for the water whirlpool
+  // visual (uVortex* below), which only ever applies while swinging — so it
+  // eases toward 1 only when tornadoOn && cameraMode==="swing", independent
+  // of tornadoBlendRef staying high if the player then switches to flying.
+  const vortexBlendRef = useRef(0);
+  const tornadoCloudOnRef = useRef(tornadoCloudOn);
+  const tornadoCloudYOffsetRef = useRef(tornadoCloudYOffset);
+  // Live-updated by the noclip/swing tornado branches of the physics loop
+  // whenever the tornado orbit is active this frame; read afterward to
+  // position/scale/rotate the shared funnel-cloud mesh (tornadoCloudMeshRef,
+  // created in the scene-setup effect below) — see tornadoCloudFadeRef too.
+  const tornadoCloudMeshRef = useRef<THREE.Mesh | null>(null);
+  const tornadoCloudFadeRef = useRef(0);
   const intervalIncludeFloatRef = useRef(intervalIncludeFloat);
-  const intervalIncludeWhirlpoolRef = useRef(intervalIncludeWhirlpool);
   const intervalIncludeSwingRef = useRef(intervalIncludeSwing);
   const depthSineOnRef = useRef(depthSineOn);
   const depthSineAmpRef = useRef(depthSineAmp);
@@ -2367,53 +2498,68 @@ export function Aquafulness() {
     floorCloudsAnimatedRef.current = floorCloudsAnimated;
   }, [floorCloudsAnimated]);
   useEffect(() => {
-    whirlpoolOpeningRef.current = whirlpoolOpening;
-  }, [whirlpoolOpening]);
+    tornadoOnRef.current = tornadoOn;
+    // Fresh start every time TORNADO itself is (re)activated — same reset as
+    // a camera-mode change (see that effect above), so neither the manual
+    // radial control nor the sequence carries over a stale live
+    // radius/lift/phase from a previous activation.
+    tornadoLiveRadiusRef.current = tornadoRadiusRef.current;
+    tornadoLiftOffsetRef.current = 0;
+    tornadoSeqPhaseRef.current = null;
+  }, [tornadoOn]);
   useEffect(() => {
-    whirlpoolRadiusRef.current = whirlpoolRadius;
-  }, [whirlpoolRadius]);
+    tornadoRadiusRef.current = tornadoRadius;
+  }, [tornadoRadius]);
   useEffect(() => {
-    whirlpoolSpeedRef.current = whirlpoolSpeed;
-  }, [whirlpoolSpeed]);
+    tornadoSpeedRef.current = tornadoSpeed;
+  }, [tornadoSpeed]);
   useEffect(() => {
-    whirlpoolDirectionRef.current = whirlpoolDirection;
-  }, [whirlpoolDirection]);
+    tornadoDirectionRef.current = tornadoDirection;
+  }, [tornadoDirection]);
   useEffect(() => {
-    whirlpoolSequenceOnRef.current = whirlpoolSequenceOn;
-  }, [whirlpoolSequenceOn]);
+    tornadoOpeningRef.current = tornadoOpening;
+  }, [tornadoOpening]);
   useEffect(() => {
-    whirlpoolDragSpeedRef.current = whirlpoolDragSpeed;
-  }, [whirlpoolDragSpeed]);
+    tornadoFollowCenterRef.current = tornadoFollowCenter;
+  }, [tornadoFollowCenter]);
   useEffect(() => {
-    whirlpoolDragDurationRef.current = whirlpoolDragDuration;
-  }, [whirlpoolDragDuration]);
+    tornadoSequenceOnRef.current = tornadoSequenceOn;
+    // Fresh start every time the sequence is (re)enabled — always begins at
+    // "drag" rather than resuming whatever phase a previous activation left
+    // behind (armed lazily on the physics loop's next frame; see
+    // updateTornadoLiveRadius).
+    tornadoSeqPhaseRef.current = null;
+  }, [tornadoSequenceOn]);
   useEffect(() => {
-    whirlpoolStayDurationRef.current = whirlpoolStayDuration;
-  }, [whirlpoolStayDuration]);
+    tornadoSequenceDragSpeedRef.current = tornadoSequenceDragSpeed;
+  }, [tornadoSequenceDragSpeed]);
   useEffect(() => {
-    whirlpoolExitModeRef.current = whirlpoolExitMode;
-  }, [whirlpoolExitMode]);
+    tornadoSequenceDragDurationRef.current = tornadoSequenceDragDuration;
+  }, [tornadoSequenceDragDuration]);
   useEffect(() => {
-    whirlpoolExitSpeedRef.current = whirlpoolExitSpeed;
-  }, [whirlpoolExitSpeed]);
+    tornadoSequenceStayDurationRef.current = tornadoSequenceStayDuration;
+  }, [tornadoSequenceStayDuration]);
   useEffect(() => {
-    swingTornadoOnRef.current = swingTornadoOn;
-  }, [swingTornadoOn]);
+    tornadoSequenceExitModeRef.current = tornadoSequenceExitMode;
+  }, [tornadoSequenceExitMode]);
   useEffect(() => {
-    swingTornadoRadiusRef.current = swingTornadoRadius;
-  }, [swingTornadoRadius]);
+    tornadoSequenceExitSpeedRef.current = tornadoSequenceExitSpeed;
+  }, [tornadoSequenceExitSpeed]);
   useEffect(() => {
-    swingTornadoSpeedRef.current = swingTornadoSpeed;
-  }, [swingTornadoSpeed]);
+    tornadoSequenceLiftHeightRef.current = tornadoSequenceLiftHeight;
+  }, [tornadoSequenceLiftHeight]);
   useEffect(() => {
-    swingTornadoDirectionRef.current = swingTornadoDirection;
-  }, [swingTornadoDirection]);
+    tornadoSequencePauseDurationRef.current = tornadoSequencePauseDuration;
+  }, [tornadoSequencePauseDuration]);
+  useEffect(() => {
+    tornadoCloudOnRef.current = tornadoCloudOn;
+  }, [tornadoCloudOn]);
+  useEffect(() => {
+    tornadoCloudYOffsetRef.current = tornadoCloudYOffset;
+  }, [tornadoCloudYOffset]);
   useEffect(() => {
     intervalIncludeFloatRef.current = intervalIncludeFloat;
   }, [intervalIncludeFloat]);
-  useEffect(() => {
-    intervalIncludeWhirlpoolRef.current = intervalIncludeWhirlpool;
-  }, [intervalIncludeWhirlpool]);
   useEffect(() => {
     intervalIncludeSwingRef.current = intervalIncludeSwing;
   }, [intervalIncludeSwing]);
@@ -2671,34 +2817,27 @@ export function Aquafulness() {
     lowGraphicsMode,
   ]);
   // Mode switch: hand off position/orientation continuity between schemes so
-  // switching never teleports the camera. Leaving whirlpool (for any other
-  // mode) first seeds posRef.current from wherever the orbit actually was
-  // (whirlpoolLastPosRef, updated every frame the render loop spends in or
-  // winding down from whirlpool) so the new mode's own motion picks up
-  // exactly where the orbit left off — the orbit itself keeps spinning
-  // (decelerating) and blending under that motion for a bit afterward, per
-  // whirlpoolBlendRef in the render loop, instead of cutting out instantly.
-  // Entering noclip seeds its vertical position from wherever the wave
-  // spring last had the camera; entering swing captures the current look
-  // yaw as the pendulum's swing plane and arms a short blend (swingBlendRef)
-  // so the pendulum's y and horizontal arc ease in from wherever the camera
-  // actually was, instead of snapping straight to the swing formula's value
-  // for the current clock phase; entering whirlpool always (re)starts its
-  // automatic sequence, if any, fresh from the drag-in phase — see the
-  // cameraMode==="whirlpool" branch of the render loop below (whose own
-  // entry is likewise eased, via whirlpoolBlendRef, rather than an instant
-  // teleport onto the orbit).
+  // switching never teleports the camera. Entering noclip seeds its vertical
+  // position from wherever the wave spring last had the camera; entering
+  // swing captures the current look yaw as the pendulum's swing plane and
+  // arms a short blend (swingBlendRef) so the pendulum's y and horizontal
+  // arc ease in from wherever the camera actually was, instead of snapping
+  // straight to the swing formula's value for the current clock phase. All
+  // three (float included) also reset tornadoAngleRef to 0 so TORNADO's spin
+  // (if on) starts fresh rather than resuming whatever angle it was left at
+  // by the other mode — TORNADO's own activation/deactivation is eased
+  // separately via tornadoBlendRef/vortexBlendRef in the render loop, not by
+  // this effect.
   useEffect(() => {
-    const wasWhirlpool = cameraModeRef.current === "whirlpool";
     cameraModeRef.current = cameraMode;
-    if (wasWhirlpool && cameraMode !== "whirlpool") {
-      posRef.current.x = whirlpoolLastPosRef.current.x;
-      posRef.current.z = whirlpoolLastPosRef.current.z;
-    }
     if (cameraMode === "noclip" || cameraMode === "watercraft") {
       posRef.current.y = camYRef.current ?? swingPositionYRef.current;
       noclipVertVelRef.current = 0;
       noclipHeaveOffsetRef.current = 0;
+      tornadoAngleRef.current = 0;
+      tornadoLiveRadiusRef.current = tornadoRadiusRef.current;
+      tornadoLiftOffsetRef.current = 0;
+      tornadoSeqPhaseRef.current = null;
       // Unlike noclip (which deliberately never teleports), entering
       // watercraft mode snaps the camera to just outside the raft — the
       // player could otherwise be flying anywhere in open water with no way
@@ -2711,16 +2850,21 @@ export function Aquafulness() {
         yawRef.current = 0;
         pitchRef.current = -0.28;
       }
-    } else if (cameraMode === "whirlpool") {
-      whirlpoolPhaseRef.current = { phase: "drag", startMs: performance.now() };
-      whirlpoolCenterRef.current = { x: posRef.current.x, z: posRef.current.z };
     } else if (cameraMode === "swing") {
       swingYawRef.current = yawRef.current;
-      swingTornadoAngleRef.current = 0;
+      tornadoAngleRef.current = 0;
+      tornadoLiveRadiusRef.current = tornadoRadiusRef.current;
+      tornadoLiftOffsetRef.current = 0;
+      tornadoSeqPhaseRef.current = null;
       swingBlendRef.current = {
         fromY: camYRef.current ?? swingPositionYRef.current,
         startMs: performance.now(),
       };
+    } else if (cameraMode === "float") {
+      tornadoAngleRef.current = 0;
+      tornadoLiveRadiusRef.current = tornadoRadiusRef.current;
+      tornadoLiftOffsetRef.current = 0;
+      tornadoSeqPhaseRef.current = null;
     }
   }, [cameraMode]);
 
@@ -2733,9 +2877,9 @@ export function Aquafulness() {
   }, [cameraMode]);
 
   // Interval session driver: while on, cycles cameraMode through whichever of
-  // "float" (FRI/default), "whirlpool" (VIRVEL) and "swing" (GUNGA,
-  // optionally TORNADO) are enabled (intervalInclude{Float,Whirlpool,Swing})
-  // every intervalDuration seconds, ticking a low-frequency (10Hz) clock for
+  // "float" (FRI/default) and "swing" (GUNGA, optionally TORNADO) are
+  // enabled (intervalInclude{Float,Swing}) every intervalDuration seconds,
+  // ticking a low-frequency (10Hz) clock for
   // the bottom HUD progress bars. The pool is rebuilt from those refs on
   // every tick so live toggling applies immediately without restarting the
   // effect; falls back to ["float"] if a user switches every mode off. Reads
@@ -2758,8 +2902,8 @@ export function Aquafulness() {
   // GUNGA INTENSITET, far coarser than the poll rate. Falls back to the
   // hard deadline if no crossing turns up in time (e.g. an extremely slow
   // swing), so a session can never hang waiting on one. Transitions that
-  // don't involve GUNGA at all (e.g. FRI <-> VIRVEL) always just use the
-  // hard deadline, since the pendulum-arc sync has nothing to do with them.
+  // don't involve GUNGA at all always just use the hard deadline, since the
+  // pendulum-arc sync has nothing to do with them.
   useEffect(() => {
     if (!intervalSessionOn) {
       setIntervalIndex(0);
@@ -2776,7 +2920,6 @@ export function Aquafulness() {
     const buildPool = (): CameraMode[] => {
       const pool: CameraMode[] = [];
       if (intervalIncludeFloatRef.current) pool.push("float");
-      if (intervalIncludeWhirlpoolRef.current) pool.push("whirlpool");
       if (intervalIncludeSwingRef.current) pool.push("swing");
       return pool.length > 0 ? pool : ["float"];
     };
@@ -2925,16 +3068,6 @@ export function Aquafulness() {
     setFloorDepth(DEFAULTS.floorDepth);
     setFloorTexture(DEFAULTS.floorTexture);
     setFloorCloudsAnimated(DEFAULTS.floorCloudsAnimated);
-    setWhirlpoolOpening(DEFAULTS.whirlpoolOpening);
-    setWhirlpoolRadius(DEFAULTS.whirlpoolRadius);
-    setWhirlpoolSpeed(DEFAULTS.whirlpoolSpeed);
-    setWhirlpoolDirection(DEFAULTS.whirlpoolDirection);
-    setWhirlpoolSequenceOn(DEFAULTS.whirlpoolSequenceOn);
-    setWhirlpoolDragSpeed(DEFAULTS.whirlpoolDragSpeed);
-    setWhirlpoolDragDuration(DEFAULTS.whirlpoolDragDuration);
-    setWhirlpoolStayDuration(DEFAULTS.whirlpoolStayDuration);
-    setWhirlpoolExitMode(DEFAULTS.whirlpoolExitMode);
-    setWhirlpoolExitSpeed(DEFAULTS.whirlpoolExitSpeed);
     setDepthSineOn(DEFAULTS.depthSineOn);
     setDepthSineAmp(DEFAULTS.depthSineAmp);
     setDepthSineFreq(DEFAULTS.depthSineFreq);
@@ -2987,17 +3120,28 @@ export function Aquafulness() {
     setSwingXFactor(DEFAULTS.swingXFactor);
     setSwingHeight(DEFAULTS.swingHeight);
     setSwingYWaveform(DEFAULTS.swingYWaveform);
-    setSwingTornadoOn(DEFAULTS.swingTornadoOn);
-    setSwingTornadoRadius(DEFAULTS.swingTornadoRadius);
-    setSwingTornadoSpeed(DEFAULTS.swingTornadoSpeed);
-    setSwingTornadoDirection(DEFAULTS.swingTornadoDirection);
+    setTornadoOn(DEFAULTS.tornadoOn);
+    setTornadoRadius(DEFAULTS.tornadoRadius);
+    setTornadoSpeed(DEFAULTS.tornadoSpeed);
+    setTornadoDirection(DEFAULTS.tornadoDirection);
+    setTornadoOpening(DEFAULTS.tornadoOpening);
+    setTornadoFollowCenter(DEFAULTS.tornadoFollowCenter);
+    setTornadoCloudOn(DEFAULTS.tornadoCloudOn);
+    setTornadoCloudYOffset(DEFAULTS.tornadoCloudYOffset);
+    setTornadoSequenceOn(DEFAULTS.tornadoSequenceOn);
+    setTornadoSequenceDragSpeed(DEFAULTS.tornadoSequenceDragSpeed);
+    setTornadoSequenceDragDuration(DEFAULTS.tornadoSequenceDragDuration);
+    setTornadoSequenceStayDuration(DEFAULTS.tornadoSequenceStayDuration);
+    setTornadoSequenceExitMode(DEFAULTS.tornadoSequenceExitMode);
+    setTornadoSequenceExitSpeed(DEFAULTS.tornadoSequenceExitSpeed);
+    setTornadoSequenceLiftHeight(DEFAULTS.tornadoSequenceLiftHeight);
+    setTornadoSequencePauseDuration(DEFAULTS.tornadoSequencePauseDuration);
     setIntervalSessionOn(DEFAULTS.intervalSessionOn);
     setIntervalDuration(DEFAULTS.intervalDuration);
     setIntervalSessionType(DEFAULTS.intervalSessionType);
     setIntervalCount(DEFAULTS.intervalCount);
     setIntervalShowStats(DEFAULTS.intervalShowStats);
     setIntervalIncludeFloat(DEFAULTS.intervalIncludeFloat);
-    setIntervalIncludeWhirlpool(DEFAULTS.intervalIncludeWhirlpool);
     setIntervalIncludeSwing(DEFAULTS.intervalIncludeSwing);
     setSurfaceArea(DEFAULTS.surfaceArea);
     setSwingPreset(DEFAULTS.swingPreset);
@@ -3079,18 +3223,6 @@ export function Aquafulness() {
     if (patch.floorDepth !== undefined) setFloorDepth(patch.floorDepth);
     if (patch.floorTexture !== undefined) setFloorTexture(patch.floorTexture);
     if (patch.floorCloudsAnimated !== undefined) setFloorCloudsAnimated(patch.floorCloudsAnimated);
-    if (patch.whirlpoolOpening !== undefined) setWhirlpoolOpening(patch.whirlpoolOpening);
-    if (patch.whirlpoolRadius !== undefined) setWhirlpoolRadius(patch.whirlpoolRadius);
-    if (patch.whirlpoolSpeed !== undefined) setWhirlpoolSpeed(patch.whirlpoolSpeed);
-    if (patch.whirlpoolDirection !== undefined) setWhirlpoolDirection(patch.whirlpoolDirection);
-    if (patch.whirlpoolSequenceOn !== undefined) setWhirlpoolSequenceOn(patch.whirlpoolSequenceOn);
-    if (patch.whirlpoolDragSpeed !== undefined) setWhirlpoolDragSpeed(patch.whirlpoolDragSpeed);
-    if (patch.whirlpoolDragDuration !== undefined)
-      setWhirlpoolDragDuration(patch.whirlpoolDragDuration);
-    if (patch.whirlpoolStayDuration !== undefined)
-      setWhirlpoolStayDuration(patch.whirlpoolStayDuration);
-    if (patch.whirlpoolExitMode !== undefined) setWhirlpoolExitMode(patch.whirlpoolExitMode);
-    if (patch.whirlpoolExitSpeed !== undefined) setWhirlpoolExitSpeed(patch.whirlpoolExitSpeed);
     if (patch.depthSineOn !== undefined) setDepthSineOn(patch.depthSineOn);
     if (patch.depthSineAmp !== undefined) setDepthSineAmp(patch.depthSineAmp);
     if (patch.depthSineFreq !== undefined) setDepthSineFreq(patch.depthSineFreq);
@@ -3154,11 +3286,31 @@ export function Aquafulness() {
     if (patch.swingHeight !== undefined) setSwingHeight(patch.swingHeight);
     if (patch.swingPreset !== undefined) setSwingPreset(patch.swingPreset);
     if (patch.swingYWaveform !== undefined) setSwingYWaveform(patch.swingYWaveform);
-    if (patch.swingTornadoOn !== undefined) setSwingTornadoOn(patch.swingTornadoOn);
-    if (patch.swingTornadoRadius !== undefined) setSwingTornadoRadius(patch.swingTornadoRadius);
-    if (patch.swingTornadoSpeed !== undefined) setSwingTornadoSpeed(patch.swingTornadoSpeed);
-    if (patch.swingTornadoDirection !== undefined)
-      setSwingTornadoDirection(patch.swingTornadoDirection);
+    if (patch.tornadoOn !== undefined) setTornadoOn(patch.tornadoOn);
+    if (patch.tornadoRadius !== undefined) setTornadoRadius(patch.tornadoRadius);
+    if (patch.tornadoSpeed !== undefined) setTornadoSpeed(patch.tornadoSpeed);
+    if (patch.tornadoDirection !== undefined) setTornadoDirection(patch.tornadoDirection);
+    if (patch.tornadoOpening !== undefined) setTornadoOpening(patch.tornadoOpening);
+    if (patch.tornadoFollowCenter !== undefined)
+      setTornadoFollowCenter(patch.tornadoFollowCenter);
+    if (patch.tornadoCloudOn !== undefined) setTornadoCloudOn(patch.tornadoCloudOn);
+    if (patch.tornadoCloudYOffset !== undefined)
+      setTornadoCloudYOffset(patch.tornadoCloudYOffset);
+    if (patch.tornadoSequenceOn !== undefined) setTornadoSequenceOn(patch.tornadoSequenceOn);
+    if (patch.tornadoSequenceDragSpeed !== undefined)
+      setTornadoSequenceDragSpeed(patch.tornadoSequenceDragSpeed);
+    if (patch.tornadoSequenceDragDuration !== undefined)
+      setTornadoSequenceDragDuration(patch.tornadoSequenceDragDuration);
+    if (patch.tornadoSequenceStayDuration !== undefined)
+      setTornadoSequenceStayDuration(patch.tornadoSequenceStayDuration);
+    if (patch.tornadoSequenceExitMode !== undefined)
+      setTornadoSequenceExitMode(patch.tornadoSequenceExitMode);
+    if (patch.tornadoSequenceExitSpeed !== undefined)
+      setTornadoSequenceExitSpeed(patch.tornadoSequenceExitSpeed);
+    if (patch.tornadoSequenceLiftHeight !== undefined)
+      setTornadoSequenceLiftHeight(patch.tornadoSequenceLiftHeight);
+    if (patch.tornadoSequencePauseDuration !== undefined)
+      setTornadoSequencePauseDuration(patch.tornadoSequencePauseDuration);
     if (patch.intervalSessionOn !== undefined) setIntervalSessionOn(patch.intervalSessionOn);
     if (patch.intervalDuration !== undefined) setIntervalDuration(patch.intervalDuration);
     if (patch.intervalSessionType !== undefined) setIntervalSessionType(patch.intervalSessionType);
@@ -3166,8 +3318,6 @@ export function Aquafulness() {
     if (patch.intervalShowStats !== undefined) setIntervalShowStats(patch.intervalShowStats);
     if (patch.intervalIncludeFloat !== undefined)
       setIntervalIncludeFloat(patch.intervalIncludeFloat);
-    if (patch.intervalIncludeWhirlpool !== undefined)
-      setIntervalIncludeWhirlpool(patch.intervalIncludeWhirlpool);
     if (patch.intervalIncludeSwing !== undefined)
       setIntervalIncludeSwing(patch.intervalIncludeSwing);
     if (patch.surfaceArea !== undefined) setSurfaceArea(patch.surfaceArea);
@@ -3242,6 +3392,21 @@ export function Aquafulness() {
   // RADERA: removes a previously saved named preset.
   const deleteSavedPreset = (id: string) => {
     setSavedPresets((list) => removeSavedPreset(list, id));
+  };
+
+  // Scenery preset save/load/delete (see src/lib/sceneryPresets.ts) — the
+  // narrower {sceneId, envId, envEra, envTime, surfaceId} bundle backing the
+  // ScenerySelectorDialog. Loading one reuses applySettingsPatch (defined
+  // above) directly, since SceneryData is already a valid Partial<Persisted>.
+  const saveSceneryPresetAs = (name: string) => {
+    const data: SceneryData = { sceneId, envId, envEra, envTime, surfaceId };
+    setSavedSceneryPresets((list) => addSavedSceneryPreset(list, name, data));
+  };
+  const loadSceneryPreset = (data: SceneryData) => {
+    applySettingsPatch(data);
+  };
+  const deleteSceneryPreset = (id: string) => {
+    setSavedSceneryPresets((list) => removeSavedSceneryPreset(list, id));
   };
 
   // The runtime-only half of a full "state" save/load (as opposed to a
@@ -3632,7 +3797,18 @@ export function Aquafulness() {
       : Math.max(0, Math.min(1, reflBaseRef.current * reflStrengthRef.current));
   };
 
-  // Ocean sound: loop the selected recorded water track (see WATER_SOUNDS)
+  // The built-in WATER_SOUNDS tracks, plus every installed app's own audio
+  // tracks appended after them — waterSoundIdx stays a plain array index
+  // (rather than becoming a catalog-style string id like sceneId/surfaceId)
+  // since the 3 built-ins never change position, so old persisted indices
+  // keep pointing at the same track even as apps contribute more entries
+  // after them.
+  const allWaterSounds = useMemo(
+    () => [...WATER_SOUNDS, ...appAudioTracks.map((a) => ({ id: a.id, url: a.url, name: a.name }))],
+    [appAudioTracks],
+  );
+
+  // Ocean sound: loop the selected recorded water track (see allWaterSounds)
   // through a lowpass + depth gain so we can still muffle & boost it based
   // on how deep the camera is.
   useEffect(() => {
@@ -3680,7 +3856,7 @@ export function Aquafulness() {
       (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     const ctx = new Ctx();
 
-    const el = new Audio(WATER_SOUNDS[waterSoundIdx]?.url ?? WATER_SOUNDS[0].url);
+    const el = new Audio(allWaterSounds[waterSoundIdx]?.url ?? WATER_SOUNDS[0].url);
     el.loop = true;
     el.crossOrigin = "anonymous";
     el.preload = "auto";
@@ -3710,7 +3886,7 @@ export function Aquafulness() {
     master.gain.setTargetAtTime(audioVol, ctx.currentTime, 0.6);
 
     audioRef.current = { ctx, el, master, depthGain, lp };
-  }, [audioOn, waterSoundIdx]);
+  }, [audioOn, waterSoundIdx, allWaterSounds]);
 
   // React to volume changes
   useEffect(() => {
@@ -3846,49 +4022,53 @@ export function Aquafulness() {
     }
   };
 
-  // Discover the available .glb scenes from public/scenes/scenes.json.
+  // Discover every scene/environment/surface/audio track bundled across all
+  // installed apps (public/apps/apps.json + each app's own manifest.json) —
+  // see src/lib/appCatalog.ts for the shared discovery/path-building module
+  // also used by the offline precache walker (src/lib/offlineAssets.ts).
   useEffect(() => {
     let alive = true;
-    fetch("/scenes/scenes.json")
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("no scenes.json"))))
-      .then((data: unknown) => {
+    fetchAppCatalog()
+      .then((catalog) => {
         if (!alive) return;
-        const raw = Array.isArray(data) ? data : ((data as { scenes?: unknown }).scenes ?? []);
-        const list: SceneEntry[] = (Array.isArray(raw) ? raw : [])
-          .map((s) => {
-            const e = s as { id?: unknown; name?: unknown };
-            return typeof e.id === "string"
-              ? { id: e.id, name: typeof e.name === "string" ? e.name : e.id }
-              : null;
-          })
-          .filter((s): s is SceneEntry => s !== null);
-        setScenes(list);
+        setApps(catalog.apps);
+        setScenes(catalog.scenes);
         // Drop a persisted selection that no longer exists.
-        setSceneId((cur) => (cur && !list.some((s) => s.id === cur) ? null : cur));
+        setSceneId((cur) => (cur && !catalog.scenes.some((s) => s.id === cur) ? null : cur));
+        setEnvironments(catalog.environments);
+        setSurfaces(catalog.surfaces);
+        setSurfaceId((cur) => (cur && !catalog.surfaces.some((s) => s.id === cur) ? null : cur));
+        setAppAudioTracks(catalog.audio);
       })
       .catch(() => {
-        if (alive) setScenes([]);
+        if (!alive) return;
+        setApps([]);
+        setScenes([]);
+        setEnvironments([]);
+        setSurfaces([]);
+        setAppAudioTracks([]);
       });
     return () => {
       alive = false;
     };
   }, []);
 
-  // Discover the available skybox environments from environment.json.
+  // Once the installed apps are known, fetch each one's shipped "scenery"
+  // presets (public/apps/<appId>/scenary/manifest.json) — read-only defaults
+  // shown alongside the player's own saved ones in the ScenerySelectorDialog.
   useEffect(() => {
     let alive = true;
-    fetch("/environments/environment.json")
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("no environment.json"))))
-      .then((data: unknown) => {
-        if (alive) setEnvironments(parseEnvironments(data));
-      })
-      .catch(() => {
-        if (alive) setEnvironments([]);
-      });
+    if (apps.length === 0) {
+      setAppSceneryPresets([]);
+      return;
+    }
+    fetchAllAppSceneryPresets(apps.map((a) => a.id)).then((list) => {
+      if (alive) setAppSceneryPresets(list);
+    });
     return () => {
       alive = false;
     };
-  }, []);
+  }, [apps]);
 
   // Once the environment list loads, repair a persisted selection whose
   // env/era/time no longer exists (e.g. renamed or removed on disk).
@@ -3907,33 +4087,6 @@ export function Aquafulness() {
     if (time?.id !== envTime) setEnvTime(time?.id ?? null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [environments]);
-
-  // Discover the available reflection surfaces from surfaces.json.
-  useEffect(() => {
-    let alive = true;
-    fetch("/surfaces/surfaces.json")
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("no surfaces.json"))))
-      .then((data: unknown) => {
-        if (!alive) return;
-        const raw = Array.isArray(data) ? data : ((data as { surfaces?: unknown }).surfaces ?? []);
-        const list: SurfaceEntry[] = (Array.isArray(raw) ? raw : [])
-          .map((s) => {
-            const e = s as { id?: unknown; name?: unknown };
-            return typeof e.id === "string"
-              ? { id: e.id, name: typeof e.name === "string" ? e.name : e.id }
-              : null;
-          })
-          .filter((s): s is SurfaceEntry => s !== null);
-        setSurfaces(list);
-        setSurfaceId((cur) => (cur && !list.some((s) => s.id === cur) ? null : cur));
-      })
-      .catch(() => {
-        if (alive) setSurfaces([]);
-      });
-    return () => {
-      alive = false;
-    };
-  }, []);
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -5067,6 +5220,47 @@ export function Aquafulness() {
     skyCloudsMeshRef.current = skyClouds;
     scene.add(skyClouds);
 
+    // TORNADO CLOUD: an optional funnel-shaped cloud mesh wrapping whichever
+    // of GUNGA's or NOCLIP's own tornado spin is active (see
+    // tornadoCloudActive/tornadoCloudX/Y/Z/Radius/Angle in the physics loop
+    // below). A unit cylinder tapering from a wide top (radius 1) to a
+    // narrow tip (radius TORNADO_CLOUD_TIP_RATIO) — scaled per-frame to the
+    // active mode's own *TornadoRadius, so one mesh serves both. Reuses the
+    // exact same fbm "clouds" shader as the mid/sky cloud decks (uClouds=1
+    // below), just painted onto a cone instead of a flat plane; rotating it
+    // to the tornado's own spin angle each frame shifts the world-space
+    // fbm sampling across its surface, reading as the funnel visibly
+    // churning as it spins instead of a static, decal-like texture.
+    const tornadoCloudGeo = new THREE.CylinderGeometry(1, TORNADO_CLOUD_TIP_RATIO, 1, 28, 12, true);
+    const tornadoCloudUniforms = {
+      uColor: { value: new THREE.Color(0x9aa4ad) },
+      uTextured: { value: 0 },
+      uClouds: { value: 1 },
+      uCloudScroll: { value: new THREE.Vector2(0, 0) },
+      uTime: { value: 0 },
+      uSunDir: { value: uniforms.uSunDir.value },
+      uSandTex: { value: sandTex },
+      uSandScale: { value: 0.35 },
+      uTurbidity: { value: 0 },
+      uUnderwater: { value: 0 },
+      uFogColor: { value: new THREE.Color(0x0a2a3a) },
+      uCamNear: { value: camNearRef.current },
+      uCamFar: { value: camFarRef.current },
+      uOpacity: { value: 0 },
+    };
+    const tornadoCloudMat = new THREE.ShaderMaterial({
+      uniforms: tornadoCloudUniforms,
+      side: THREE.DoubleSide,
+      transparent: true,
+      depthWrite: false,
+      vertexShader: floorMat.vertexShader,
+      fragmentShader: floorMat.fragmentShader,
+    });
+    const tornadoCloud = new THREE.Mesh(tornadoCloudGeo, tornadoCloudMat);
+    tornadoCloud.visible = false;
+    tornadoCloudMeshRef.current = tornadoCloud;
+    scene.add(tornadoCloud);
+
     // VÄRLDSGRÄNS's extra sky-cloud layers (see EXTEND_CLOUD_LAYER_* and
     // wrapAxis above) — same geometry as skyClouds (cheap: not duplicated,
     // just referenced by more Mesh objects), each repositioned every frame
@@ -5427,25 +5621,38 @@ export function Aquafulness() {
         uniforms.uDir.value += delta * Math.min(1, dt * 4);
       }
 
-      // Graceful whirlpool spin-up/spin-down: a single continuous blend (0 =
-      // fully out, 1 = fully in) that eases toward whichever state cameraMode
-      // is actually in, at a slow enough rate (~1.4s time constant) to read
-      // as the water gradually working itself into a vortex rather than
-      // popping in — and, symmetrically, unwinding back to plain waves
-      // rather than cutting out the moment the mode switches away. Drives
-      // both the funnel's shape (uVortex below) and the orbit's angular
-      // speed (see whirlpoolBlendRef.current used as a spin multiplier in
-      // the camMode branch below), so the visual deepening and the camera's
-      // spin-up/down always stay in lockstep.
-      const whirlpoolTarget = cameraModeRef.current === "whirlpool" ? 1 : 0;
-      whirlpoolBlendRef.current +=
-        (whirlpoolTarget - whirlpoolBlendRef.current) * Math.min(1, dt * 0.7);
-      if (whirlpoolBlendRef.current < 0.0008) whirlpoolBlendRef.current = 0;
-      else if (whirlpoolBlendRef.current > 0.9992) whirlpoolBlendRef.current = 1;
-      uniforms.uVortex.value = whirlpoolBlendRef.current;
+      // Graceful TORNADO spin-up/spin-down: two continuous blends (0 = fully
+      // out, 1 = fully in), each eased toward whichever state is actually
+      // active at a slow enough rate (~1.4s time constant) to read as
+      // gradually working up to full speed rather than popping in — and,
+      // symmetrically, winding back down rather than cutting out the moment
+      // TORNADO is toggled off or cameraMode switches away.
+      // tornadoBlendRef drives the camera's own orbit, shared by float
+      // (swimming — the WHIRLPOOL/VIRVEL feel), swing and noclip/watercraft
+      // alike (see the camMode branch below); vortexBlendRef drives the real
+      // water whirlpool visual (uVortex below), which only ever applies
+      // while floating or swinging — flying never shows it.
+      const tornadoApplicableMode =
+        cameraModeRef.current === "float" ||
+        cameraModeRef.current === "swing" ||
+        cameraModeRef.current === "noclip" ||
+        cameraModeRef.current === "watercraft";
+      const tornadoTarget = tornadoOnRef.current && tornadoApplicableMode ? 1 : 0;
+      tornadoBlendRef.current += (tornadoTarget - tornadoBlendRef.current) * Math.min(1, dt * 0.7);
+      if (tornadoBlendRef.current < 0.0008) tornadoBlendRef.current = 0;
+      else if (tornadoBlendRef.current > 0.9992) tornadoBlendRef.current = 1;
+      const vortexTarget =
+        tornadoOnRef.current &&
+        (cameraModeRef.current === "float" || cameraModeRef.current === "swing")
+          ? 1
+          : 0;
+      vortexBlendRef.current += (vortexTarget - vortexBlendRef.current) * Math.min(1, dt * 0.7);
+      if (vortexBlendRef.current < 0.0008) vortexBlendRef.current = 0;
+      else if (vortexBlendRef.current > 0.9992) vortexBlendRef.current = 1;
+      uniforms.uVortex.value = vortexBlendRef.current;
       uniforms.uVortexOpening.value +=
-        (whirlpoolOpeningRef.current - uniforms.uVortexOpening.value) * Math.min(1, dt * 4);
-      uniforms.uVortexCenter.value.set(whirlpoolCenterRef.current.x, whirlpoolCenterRef.current.z);
+        (tornadoOpeningRef.current - uniforms.uVortexOpening.value) * Math.min(1, dt * 4);
+      uniforms.uVortexCenter.value.set(posRef.current.x, posRef.current.z);
 
       const p = palette(todRef.current);
       // Keep the real scene lights (see their creation above) in sync with
@@ -5635,10 +5842,184 @@ export function Aquafulness() {
       // I VIRVEL-läge tolkas NAV om: stick.y = närmare/längre bort från
       // virvelns centrum, stick.x = vridriktning kring virveln.
       const camMode = cameraModeRef.current;
-      const inWhirlpool = camMode === "whirlpool";
+      // Computed early (not just before normalSurfaceY below) so the TORNADO
+      // CLOUD block further down — which runs before that point in the frame
+      // — can also sample the real wave height (see tornadoWaterHeightAt
+      // there).
+      const dirRad = (waveDirRef.current * Math.PI) / 180;
       const walkSpeed = 16; // m/s at full deflection
-      const driftSpeed = 4.4; // m/s at full deflection — mjukare än aktiv rörelse
+      const driftSpeed = 13.2; // m/s at full deflection — mjukare än aktiv rörelse
       let camX: number, camZ: number;
+      // TORNADO CLOUD: whichever of GUNGA's or NAV/HÖJD's own tornado spin
+      // (if any) is active this frame stashes its live center/radius/angle
+      // here so the shared funnel-cloud mesh (see tornadoCloudMeshRef setup
+      // further down in this effect) can be positioned after camX/camZ/
+      // camYRef settle below, without either branch needing to know the
+      // mesh exists.
+      let tornadoCloudActive = false;
+      let tornadoCloudX = 0;
+      let tornadoCloudY = 0;
+      let tornadoCloudZ = 0;
+      let tornadoCloudRadius = 40;
+      let tornadoCloudHeight = 40 * TORNADO_CLOUD_HEIGHT_SCALE;
+      let tornadoCloudAngle = 0;
+      // Real ocean height at (x, z) right now — used below by the swing and
+      // noclip/watercraft branches to pin the TORNADO CLOUD's tip to the
+      // actual water surface at its own xz spot, instead of the camera's/
+      // swing's own altitude (a tornado should look rooted in the water, not
+      // bob around with wherever the camera happens to be).
+      const tornadoWaterHeightAt = (x: number, z: number) =>
+        waveHeight(
+          x,
+          z,
+          t,
+          ampRef.current,
+          regularRef.current,
+          regularCrossRef.current,
+          regularPeriodRef.current,
+          wavePeakRef.current,
+          dirRad,
+          realisticRef.current,
+          fftWaveComponents,
+          dyingRef.current,
+          dyingWaveComponents,
+          dyingAmpRef.current,
+          dyingWaveT,
+          freqRef.current,
+          heaveSkewRef.current,
+        );
+      // TORNADO manual radial control + optional TORNADO SEQUENCE — shared by
+      // all three tornado-applicable branches below, each of which only
+      // differs in how it derives radialVel (NAV + whichever "current" dial
+      // that mode has, if any). `radialVel` (m/s, positive = inward) always
+      // applies first, so manual NAV/current input keeps working whether or
+      // not the sequence is on; the sequence (when on) then drives
+      // tornadoLiveRadiusRef/tornadoLiftOffsetRef through its own drag/stay/
+      // exit phases on top of that, taking over the baseline each cycle. See
+      // the tornadoSequence* Persisted fields' comments in settingsShared.ts
+      // for the overall phase design.
+      //
+      // tornadoLiveRadiusRef is signed rather than clamped to [0, outer]: once
+      // manual input drags it past the exact center, it keeps going negative
+      // instead of stopping there — the render sites below take its absolute
+      // value as the actual orbit distance and add a half-turn (π) to the
+      // orbit angle whenever it's negative, so continuing to push "inward"
+      // seamlessly carries the camera through the center and back out the
+      // opposite side of the orbit, rather than getting stuck at the middle.
+      const updateTornadoLiveRadius = (radialVel: number) => {
+        tornadoLiveRadiusRef.current = Math.max(
+          -tornadoRadiusRef.current,
+          Math.min(tornadoRadiusRef.current, tornadoLiveRadiusRef.current + radialVel * physDt),
+        );
+        if (!tornadoSequenceOnRef.current) {
+          tornadoSeqPhaseRef.current = null;
+          tornadoLiftOffsetRef.current = stepToward(
+            tornadoLiftOffsetRef.current,
+            0,
+            Math.max(0.1, tornadoSequenceExitSpeedRef.current),
+            physDt,
+          );
+          return;
+        }
+        let seq = tornadoSeqPhaseRef.current;
+        if (!seq) {
+          seq = { phase: "drag", startMs: now, startRadius: tornadoLiveRadiusRef.current };
+          tornadoSeqPhaseRef.current = seq;
+        }
+        const elapsedS = (now - seq.startMs) / 1000;
+        const dragSpeed = Math.max(0.1, tornadoSequenceDragSpeedRef.current);
+        const exitSpeed = Math.max(0.1, tornadoSequenceExitSpeedRef.current);
+        switch (seq.phase) {
+          case "drag": {
+            tornadoLiveRadiusRef.current = stepToward(
+              tornadoLiveRadiusRef.current,
+              0,
+              dragSpeed,
+              physDt,
+            );
+            // stepToward snaps exactly to 0 once within one step of it, from
+            // either side — so this checks for having actually arrived, not
+            // just "at or past zero" (which a signed value already may have
+            // been the instant this phase started, without moving at all).
+            if (
+              tornadoLiveRadiusRef.current === 0 ||
+              elapsedS >= tornadoSequenceDragDurationRef.current
+            ) {
+              tornadoLiveRadiusRef.current = 0;
+              seq.phase = "stay";
+              seq.startMs = now;
+            }
+            break;
+          }
+          case "stay": {
+            tornadoLiveRadiusRef.current = 0;
+            if (elapsedS >= tornadoSequenceStayDurationRef.current) {
+              seq.phase = tornadoSequenceExitModeRef.current === "lift" ? "lift" : "exitOuter";
+              seq.startMs = now;
+            }
+            break;
+          }
+          case "exitOuter": {
+            tornadoLiveRadiusRef.current = stepToward(
+              tornadoLiveRadiusRef.current,
+              tornadoRadiusRef.current,
+              exitSpeed,
+              physDt,
+            );
+            if (tornadoLiveRadiusRef.current >= tornadoRadiusRef.current) {
+              seq.phase = "drag";
+              seq.startMs = now;
+              seq.startRadius = tornadoLiveRadiusRef.current;
+            }
+            break;
+          }
+          case "lift": {
+            tornadoLiveRadiusRef.current = 0;
+            tornadoLiftOffsetRef.current = stepToward(
+              tornadoLiftOffsetRef.current,
+              tornadoSequenceLiftHeightRef.current,
+              exitSpeed,
+              physDt,
+            );
+            if (tornadoLiftOffsetRef.current >= tornadoSequenceLiftHeightRef.current) {
+              seq.phase = "pause";
+              seq.startMs = now;
+            }
+            break;
+          }
+          case "pause": {
+            tornadoLiveRadiusRef.current = 0;
+            if (elapsedS >= tornadoSequencePauseDurationRef.current) {
+              seq.phase = "return";
+              seq.startMs = now;
+            }
+            break;
+          }
+          case "return": {
+            tornadoLiftOffsetRef.current = stepToward(
+              tornadoLiftOffsetRef.current,
+              0,
+              exitSpeed,
+              physDt,
+            );
+            tornadoLiveRadiusRef.current = stepToward(
+              tornadoLiveRadiusRef.current,
+              seq.startRadius,
+              exitSpeed,
+              physDt,
+            );
+            if (
+              tornadoLiftOffsetRef.current <= 0 &&
+              tornadoLiveRadiusRef.current === seq.startRadius
+            ) {
+              seq.phase = "drag";
+              seq.startMs = now;
+              seq.startRadius = tornadoLiveRadiusRef.current;
+            }
+            break;
+          }
+        }
+      };
       if (camMode === "noclip" || camMode === "watercraft") {
         // Free 3D flight, no wave physics: NAV's y-axis moves along the full
         // view direction (pitch included), so looking up/down while pushing
@@ -5691,8 +6072,55 @@ export function Aquafulness() {
         posRef.current.y += noclipVertVelRef.current * physDt;
         posRef.current.z +=
           (moveZ * speed + noclipDriftWorldRef.current.z * driftSpeedNoclip) * physDt;
-        camX = posRef.current.x;
-        camZ = posRef.current.z;
+        // TORNADO: an optional whirlpool-style circular swirl added on top
+        // of the manual flight above, instead of replacing it — posRef.current
+        // (still driven by NAV/HÖJD/DRIFT XZ exactly as above) keeps acting
+        // as the swirl's own center, so it drifts wherever you actually fly
+        // it while the view itself corkscrews around that point. Purely a
+        // rendered offset (never written back into posRef.current), so it
+        // never feeds back into the drift/physics above. tornadoBlendRef both
+        // ramps the spin up from a standstill and scales how far the orbit
+        // reaches, so toggling TORNADO on/off eases the swirl in/out instead
+        // of popping.
+        {
+          // Manual radial control: NAV's y-axis (already driving forward/
+          // back flight above) also pulls the orbit in/out while TORNADO is
+          // active, plus DRIFT XZ's own z-component carrying it the same way
+          // STRÖM does for float — see updateTornadoLiveRadius above.
+          if (tornadoOnRef.current) {
+            const radialVel =
+              -stickRef.current.y * speed + noclipDriftWorldRef.current.z * driftSpeedNoclip;
+            updateTornadoLiveRadius(radialVel);
+          }
+          const tornadoDirSign = tornadoDirectionRef.current === "ccw" ? -1 : 1;
+          const tornadoOmega =
+            0.35 * tornadoSpeedRef.current * tornadoDirSign * tornadoBlendRef.current;
+          tornadoAngleRef.current += tornadoOmega * physDt;
+          const ang = tornadoAngleRef.current;
+          // Signed, not clamped to >= 0 — see tornadoLiveRadiusRef's own
+          // comment above updateTornadoLiveRadius. cos/sin already place a
+          // negative radius on the diametrically opposite point of the same
+          // line through the center (r*cos(θ) === |r|*cos(θ+π)), so this
+          // seamlessly carries the camera through the middle and out the far
+          // side instead of needing any extra angle-flip logic here.
+          const liveRadius = tornadoLiveRadiusRef.current;
+          camX = posRef.current.x + Math.cos(ang) * liveRadius * tornadoBlendRef.current;
+          camZ = posRef.current.z + Math.sin(ang) * liveRadius * tornadoBlendRef.current;
+          tornadoCloudActive = tornadoBlendRef.current > 0.003;
+          tornadoCloudX = posRef.current.x;
+          tornadoCloudZ = posRef.current.z;
+          tornadoCloudRadius = tornadoRadiusRef.current;
+          // Fixed to the real water surface (see tornadoWaterHeightAt above)
+          // plus the adjustable Y offset, not to the camera's own altitude —
+          // and swingHeight-tall regardless of not actually swinging, per the
+          // shared tornadoCloudYOffset/TORNADO settings.
+          tornadoCloudHeight = swingHeightRef.current;
+          tornadoCloudY =
+            tornadoWaterHeightAt(tornadoCloudX, tornadoCloudZ) +
+            tornadoCloudYOffsetRef.current +
+            tornadoCloudHeight / 2;
+          tornadoCloudAngle = ang;
+        }
         camYRef.current = posRef.current.y;
         camVYRef.current = 0;
       } else if (camMode === "swing") {
@@ -5715,30 +6143,54 @@ export function Aquafulness() {
         const theta = swingThetaNow;
         const rawSwingY =
           swingPositionYRef.current +
-          swingHeightRef.current * swingYWaveformValue(swingYWaveformRef.current, theta, t * omega);
+          swingHeightRef.current *
+            swingYWaveformValue(swingYWaveformRef.current, theta, t * omega, swingAmpRadNow);
 
-        // TORNADO: spin the horizontal position in a circle around the
-        // anchor at swing altitude instead of a back-and-forth arc — a
-        // whirlpool in the sky. GUNGA X's pendulum shape no longer applies;
-        // TORNADO SPEED/RIKTNING/RADIUS drive the horizontal motion instead,
-        // while GUNGA HÖJD/GUNGA Y-VÅGFORM still drive the vertical bob on
-        // top either way.
-        let rawOffX: number, rawOffZ: number;
-        if (swingTornadoOnRef.current) {
-          const tornadoDirSign = swingTornadoDirectionRef.current === "ccw" ? -1 : 1;
-          const tornadoOmega = 0.35 * swingTornadoSpeedRef.current * tornadoDirSign;
-          swingTornadoAngleRef.current += tornadoOmega * physDt;
-          const ang = swingTornadoAngleRef.current;
-          rawOffX = Math.cos(ang) * swingTornadoRadiusRef.current;
-          rawOffZ = Math.sin(ang) * swingTornadoRadiusRef.current;
-        } else {
-          const rightX = Math.cos(swingYawRef.current),
-            rightZ = -Math.sin(swingYawRef.current);
-          const horizArmLen = Math.max(8, Math.min(60, swingPositionYRef.current * 0.6));
-          const rawSwingOff = Math.sin(theta) * horizArmLen * swingXFactorRef.current;
-          rawOffX = rightX * rawSwingOff;
-          rawOffZ = rightZ * rawSwingOff;
+        // TORNADO: crossfades the pendulum arc into a circular orbit around
+        // the anchor at swing altitude instead of replacing it outright — a
+        // whirlpool in the sky (plus a real one in the water directly below,
+        // see uVortex/vortexBlendRef above). Both the pendulum's own offset
+        // and the orbit's keep computing every frame; tornadoBlendRef blends
+        // between them and ramps the orbit's own angular speed up from a
+        // standstill, so toggling TORNADO on/off crossfades smoothly instead
+        // of snapping straight from one shape to the other.
+        const rightX = Math.cos(swingYawRef.current),
+          rightZ = -Math.sin(swingYawRef.current);
+        const horizArmLen = Math.max(8, Math.min(60, swingPositionYRef.current * 0.6));
+        const rawSwingOff = Math.sin(theta) * horizArmLen * swingXFactorRef.current;
+        const pendOffX = rightX * rawSwingOff;
+        const pendOffZ = rightZ * rawSwingOff;
+        // Manual radial control: swing has no "current" dial of its own, so
+        // only NAV's y-axis (shown alongside the pendulum controls whenever
+        // TORNADO is on — see the Joystick's visibility condition) pulls the
+        // orbit in/out — see updateTornadoLiveRadius above.
+        if (tornadoOnRef.current) {
+          updateTornadoLiveRadius(-stickRef.current.y * walkSpeed);
         }
+        const tornadoDirSign = tornadoDirectionRef.current === "ccw" ? -1 : 1;
+        const tornadoOmega =
+          0.35 * tornadoSpeedRef.current * tornadoDirSign * tornadoBlendRef.current;
+        tornadoAngleRef.current += tornadoOmega * physDt;
+        const ang = tornadoAngleRef.current;
+        // Signed — see the comment on updateTornadoLiveRadius above.
+        const tornadoOffX = Math.cos(ang) * tornadoLiveRadiusRef.current;
+        const tornadoOffZ = Math.sin(ang) * tornadoLiveRadiusRef.current;
+        const rawOffX = pendOffX + (tornadoOffX - pendOffX) * tornadoBlendRef.current;
+        const rawOffZ = pendOffZ + (tornadoOffZ - pendOffZ) * tornadoBlendRef.current;
+        tornadoCloudActive = tornadoBlendRef.current > 0.003;
+        tornadoCloudX = posRef.current.x;
+        tornadoCloudZ = posRef.current.z;
+        tornadoCloudRadius = tornadoRadiusRef.current;
+        // Fixed to the real water surface (see tornadoWaterHeightAt above)
+        // plus the adjustable Y offset, not to the pendulum's own bobbing
+        // height (rawSwingY) — a tornado should look rooted in the water,
+        // not swing along with the camera.
+        tornadoCloudHeight = swingHeightRef.current;
+        tornadoCloudY =
+          tornadoWaterHeightAt(tornadoCloudX, tornadoCloudZ) +
+          tornadoCloudYOffsetRef.current +
+          tornadoCloudHeight / 2;
+        tornadoCloudAngle = ang;
 
         // Ease in from wherever the camera actually was the instant swing
         // mode was entered (swingBlendRef, armed in the cameraMode-change
@@ -5762,108 +6214,6 @@ export function Aquafulness() {
           ? activeBlend.fromY + (rawSwingY - activeBlend.fromY) * blend
           : rawSwingY;
         camVYRef.current = 0;
-      } else if (inWhirlpool) {
-        // Orbit around whirlpoolCenterRef — wherever the camera was when this
-        // mode was entered (see the cameraMode-change effect above), not a
-        // fixed world-origin spot. Without the optional sequence,
-        // NAV.y moves in/out along the radius and NAV.x adds extra swirl,
-        // exactly like the old manual vortex control; with it, the radius
-        // instead automatically loops through drag-in -> stay inside -> exit
-        // (whirlpoolPhaseRef, reset to "drag" on entering this mode — see the
-        // cameraMode-change effect above).
-        //
-        // Entry is graceful rather than an instant teleport onto the orbit
-        // circle: posRef.current is left untouched by this branch (nothing
-        // below writes to it), so it still holds wherever the camera was the
-        // instant cameraMode switched to "whirlpool" — camX/camZ blend from
-        // that frozen point toward the live orbit position as
-        // whirlpoolBlendRef eases 0 -> 1 (see its update above), reading as
-        // the current gradually pulling the camera in and spinning it up
-        // rather than snapping straight to full speed.
-        const op = whirlpoolOpeningRef.current;
-        const outerR = whirlpoolRadiusRef.current;
-        const dirSign = whirlpoolDirectionRef.current === "ccw" ? -1 : 1;
-        const minR = Math.max(op * 0.55, 3); // don't dive into the throat
-        let radius: number;
-        let omegaSign = dirSign;
-
-        if (whirlpoolSequenceOnRef.current) {
-          const ph = whirlpoolPhaseRef.current;
-          const elapsedS = (now - ph.startMs) / 1000;
-          const dragDist = Math.max(
-            2,
-            whirlpoolDragSpeedRef.current * Math.max(0.5, whirlpoolDragDurationRef.current),
-          );
-          const innerR = Math.max(minR, outerR - dragDist);
-          if (ph.phase === "drag") {
-            const dur = Math.max(0.5, whirlpoolDragDurationRef.current);
-            const lin = Math.min(1, elapsedS / dur);
-            const eased = lin * lin * (3 - 2 * lin); // smoothstep: eases into the pull
-            radius = outerR + (innerR - outerR) * eased;
-            if (lin >= 1) {
-              ph.phase = "stay";
-              ph.startMs = now;
-            }
-          } else if (ph.phase === "stay") {
-            radius = innerR;
-            if (elapsedS >= Math.max(0, whirlpoolStayDurationRef.current)) {
-              ph.phase = "exit";
-              ph.startMs = now;
-            }
-          } else {
-            // "exit": either thrown back out to the outer radius (fast
-            // launch, easing to a stop) or whirled back out in reverse (a
-            // smooth unwind, spinning the opposite way it dragged in).
-            const exitDist = Math.max(2, outerR - innerR);
-            const dur = Math.max(0.3, exitDist / Math.max(0.5, whirlpoolExitSpeedRef.current));
-            const lin = Math.min(1, elapsedS / dur);
-            if (whirlpoolExitModeRef.current === "reverseSpin") {
-              const eased = lin * lin * (3 - 2 * lin); // smoothstep
-              radius = innerR + (outerR - innerR) * eased;
-              omegaSign = -dirSign;
-            } else {
-              const eased = 1 - (1 - lin) * (1 - lin) * (1 - lin); // ease-out cubic: fast launch
-              radius = innerR + (outerR - innerR) * eased;
-            }
-            if (lin >= 1) {
-              ph.phase = "drag";
-              ph.startMs = now;
-            }
-          }
-          whirlpoolRadiusRef.current = radius;
-        } else {
-          // Steady manual orbit: NAV.y moves in/out along the radius
-          // (STRÖM.y also nudges drift in/out); driftWorldRef is the fixed
-          // real direction (see padToWorldXZ above), so this stays a stable
-          // in/out nudge even as the camera looks around.
-          const radialVel = -stickRef.current.y * walkSpeed + driftWorldRef.current.z * driftSpeed;
-          const maxR = 220;
-          whirlpoolRadiusRef.current = Math.max(
-            minR,
-            Math.min(maxR, whirlpoolRadiusRef.current + radialVel * physDt),
-          );
-          setWhirlpoolRadius(whirlpoolRadiusRef.current);
-          radius = whirlpoolRadiusRef.current;
-        }
-
-        // Base angular speed scales with the whirlpool speed dial and its
-        // direction toggle, scaled by whirlpoolBlendRef so the spin itself
-        // ramps up from a standstill on entry instead of starting at full
-        // speed; NAV.x always adds a bit of extra swirl on top at full
-        // strength (direct manual input shouldn't feel eased), sequence or
-        // not.
-        const baseOmega = 0.35 * whirlpoolSpeedRef.current * omegaSign * whirlpoolBlendRef.current;
-        const stickOmega = stickRef.current.x * 1.4;
-        whirlpoolAngleRef.current += (baseOmega + stickOmega) * physDt;
-        const ang = whirlpoolAngleRef.current;
-        const center = whirlpoolCenterRef.current;
-        const orbitX = center.x + Math.cos(ang) * radius;
-        const orbitZ = center.z + Math.sin(ang) * radius;
-        const entryBlend = whirlpoolBlendRef.current;
-        camX = posRef.current.x + (orbitX - posRef.current.x) * entryBlend;
-        camZ = posRef.current.z + (orbitZ - posRef.current.z) * entryBlend;
-        whirlpoolLastPosRef.current.x = camX;
-        whirlpoolLastPosRef.current.z = camZ;
       } else {
         // NAV-spaken är kamera-relativ: stick.y "framåt" ska alltid röra sig
         // dit kameran för tillfället tittar (yaw), inte fast världs -z, annars
@@ -5879,42 +6229,52 @@ export function Aquafulness() {
         const walkZ = stickRef.current.x * rightZ + stickRef.current.y * fwdZ;
         posRef.current.x += (walkX * walkSpeed + driftWorldRef.current.x * driftSpeed) * physDt;
         posRef.current.z += (walkZ * walkSpeed + driftWorldRef.current.z * driftSpeed) * physDt;
-        camX = posRef.current.x;
-        camZ = posRef.current.z;
-      }
-
-      // Whirlpool exit tail: cameraMode has already switched to whatever
-      // mode's motion was just computed above (seeded, via the
-      // cameraMode-change effect, to resume exactly where the orbit left
-      // off), but whirlpoolBlendRef is still winding down from its last
-      // value — so keep the orbit spinning (decelerating with the blend,
-      // radius frozen at wherever it last was rather than resuming the
-      // drag-in/stay/exit sequence or manual radius control) and blend it
-      // under the new mode's own position. As the blend reaches 0 this
-      // contributes nothing and the new mode's motion alone remains,
-      // reading as the vortex gracefully unwinding into plain waves/swing/
-      // flight instead of cutting out the instant the mode switches.
-      if (!inWhirlpool && whirlpoolBlendRef.current > 0.0008) {
-        const exitDirSign = whirlpoolDirectionRef.current === "ccw" ? -1 : 1;
-        const exitOmega =
-          0.35 * whirlpoolSpeedRef.current * exitDirSign * whirlpoolBlendRef.current;
-        whirlpoolAngleRef.current += exitOmega * physDt;
-        const ang = whirlpoolAngleRef.current;
-        const center = whirlpoolCenterRef.current;
-        const orbitX = center.x + Math.cos(ang) * whirlpoolRadiusRef.current;
-        const orbitZ = center.z + Math.sin(ang) * whirlpoolRadiusRef.current;
-        const w = whirlpoolBlendRef.current;
-        camX = orbitX * w + camX * (1 - w);
-        camZ = orbitZ * w + camZ * (1 - w);
+        // TORNADO/WHIRLPOOL: while swimming, an optional circular swirl added
+        // on top of the normal current-driven position — posRef.current
+        // (still driven by NAV/STRÖM exactly as above) keeps acting as the
+        // whirlpool's own center, so it drifts wherever the current carries
+        // it while the view corkscrews (and, per vortexBlendRef above, a real
+        // water vortex opens) around that point — this is the old standalone
+        // VIRVEL mode's feel, reached here via the top HUD's WHIRLPOOL toggle
+        // instead of its own camera mode. Purely a rendered offset (never
+        // written back into posRef.current), so it never feeds back into the
+        // drift/current physics above.
+        {
+          // Manual radial control: NAV's y-axis (already driving forward/
+          // back swimming above) also pulls the orbit in/out while TORNADO is
+          // active, plus STRÖM's own z-component carrying it the same way it
+          // already carries the swim position — see updateTornadoLiveRadius
+          // above.
+          if (tornadoOnRef.current) {
+            const radialVel =
+              -stickRef.current.y * walkSpeed + driftWorldRef.current.z * driftSpeed;
+            updateTornadoLiveRadius(radialVel);
+          }
+          const tornadoDirSign = tornadoDirectionRef.current === "ccw" ? -1 : 1;
+          const tornadoOmega =
+            0.35 * tornadoSpeedRef.current * tornadoDirSign * tornadoBlendRef.current;
+          tornadoAngleRef.current += tornadoOmega * physDt;
+          const ang = tornadoAngleRef.current;
+          // Signed — see the comment on updateTornadoLiveRadius above and its
+          // twin in the noclip/watercraft branch.
+          const liveRadius = tornadoLiveRadiusRef.current;
+          camX = posRef.current.x + Math.cos(ang) * liveRadius * tornadoBlendRef.current;
+          camZ = posRef.current.z + Math.sin(ang) * liveRadius * tornadoBlendRef.current;
+          tornadoCloudActive = tornadoBlendRef.current > 0.003;
+          tornadoCloudX = posRef.current.x;
+          tornadoCloudY = camYRef.current ?? 0;
+          tornadoCloudZ = posRef.current.z;
+          tornadoCloudRadius = tornadoRadiusRef.current;
+          tornadoCloudHeight = tornadoCloudRadius * TORNADO_CLOUD_HEIGHT_SCALE;
+          tornadoCloudAngle = ang;
+        }
       }
 
       // VÄRLDSGRÄNS (world boundary): wrap x/z to the opposite edge once the
       // camera crosses ±worldBoundarySize — invisible below since the ocean/
       // floor/cloud planes recenter on the camera every frame regardless of
-      // its absolute position (see wrapAxis above). VIRVEL (whirlpool) is
-      // exempt: it's already bounded near the origin by whirlpoolRadiusRef's
-      // own max.
-      if (worldBoundaryOnRef.current && !inWhirlpool) {
+      // its absolute position (see wrapAxis above).
+      if (worldBoundaryOnRef.current) {
         const halfXZ = Math.max(50, worldBoundarySizeRef.current);
         const wrappedX = wrapAxis(posRef.current.x, halfXZ);
         const wrappedZ = wrapAxis(posRef.current.z, halfXZ);
@@ -5946,36 +6306,69 @@ export function Aquafulness() {
       skyClouds.position.x = camX;
       skyClouds.position.z = camZ;
 
-      const dirRad = (waveDirRef.current * Math.PI) / 180;
-      const surfaceY = inWhirlpool
-        ? whirlpoolSurfaceHeight(
-            camX - whirlpoolCenterRef.current.x,
-            camZ - whirlpoolCenterRef.current.z,
-            t,
-            ampRef.current,
-            regularPeriodRef.current,
-            whirlpoolOpeningRef.current,
-            freqRef.current,
-          )
-        : waveHeight(
-            camX,
-            camZ,
-            t,
-            ampRef.current,
-            regularRef.current,
-            regularCrossRef.current,
-            regularPeriodRef.current,
-            wavePeakRef.current,
-            dirRad,
-            realisticRef.current,
-            fftWaveComponents,
-            dyingRef.current,
-            dyingWaveComponents,
-            dyingAmpRef.current,
-            dyingWaveT,
-            freqRef.current,
-            heaveSkewRef.current,
-          );
+      // TORNADO CLOUD: unlike the infinite-tiling decks above (which just
+      // recenter on the camera every frame, never representing a real world
+      // position), this mesh sits at the active tornado's actual center —
+      // tornadoCloudX/Y/Z/Radius/Angle, set by whichever of the swing/noclip
+      // branches above had its own tornado spin engaged this frame. MOLN
+      // TONING's shared fade rate (cloudFadeSpeedRef) eases uOpacity toward
+      // on/off instead of popping visible/invisible on toggle, exactly like
+      // the mid/sky cloud decks.
+      const tornadoCloudWanted = tornadoCloudOnRef.current && tornadoCloudActive;
+      tornadoCloudFadeRef.current +=
+        ((tornadoCloudWanted ? 1 : 0) - tornadoCloudFadeRef.current) *
+        Math.min(1, dt * cloudFadeSpeedRef.current);
+      tornadoCloudUniforms.uOpacity.value = tornadoCloudFadeRef.current;
+      tornadoCloud.visible = tornadoCloudFadeRef.current > 0.003;
+      if (tornadoCloud.visible) {
+        tornadoCloud.position.set(tornadoCloudX, tornadoCloudY, tornadoCloudZ);
+        tornadoCloud.rotation.y = tornadoCloudAngle;
+        const topRadius = tornadoCloudRadius * TORNADO_CLOUD_TOP_SCALE;
+        tornadoCloud.scale.set(topRadius, tornadoCloudHeight, topRadius);
+        tornadoCloudUniforms.uTime.value = t;
+        tornadoCloudUniforms.uCloudScroll.value.x = Math.cos(tornadoCloudAngle) * 0.3;
+        tornadoCloudUniforms.uCloudScroll.value.y = Math.sin(tornadoCloudAngle) * 0.3;
+      }
+
+      const normalSurfaceY = waveHeight(
+        camX,
+        camZ,
+        t,
+        ampRef.current,
+        regularRef.current,
+        regularCrossRef.current,
+        regularPeriodRef.current,
+        wavePeakRef.current,
+        dirRad,
+        realisticRef.current,
+        fftWaveComponents,
+        dyingRef.current,
+        dyingWaveComponents,
+        dyingAmpRef.current,
+        dyingWaveT,
+        freqRef.current,
+        heaveSkewRef.current,
+      );
+      // Blend the whirlpool's own radial surface in on top of the normal
+      // wave as vortexBlendRef eases in/out, so the water gradually deepens
+      // into (or fills back in from) the vortex instead of the camera's
+      // buoyancy/goggles/underwater checks below snapping between the two
+      // formulas the instant TORNADO toggles or cameraMode switches.
+      const surfaceY =
+        vortexBlendRef.current > 0.0008
+          ? normalSurfaceY +
+            (whirlpoolSurfaceHeight(
+              camX - posRef.current.x,
+              camZ - posRef.current.z,
+              t,
+              ampRef.current,
+              regularPeriodRef.current,
+              tornadoOpeningRef.current,
+              freqRef.current,
+            ) -
+              normalSurfaceY) *
+              vortexBlendRef.current
+          : normalSurfaceY;
 
       // "Watercraft" camera mode: the raft (see WatercraftRig) floats on the
       // real rendered ocean by sampling the exact same waveHeight() the
@@ -6074,14 +6467,16 @@ export function Aquafulness() {
         }
       }
 
-      // The wave-following buoyancy spring and current/sway drift apply in
-      // float mode and whirlpool mode alike (whirlpool rides the funnel
-      // surface's own height field the same way float rides the open
-      // ocean's) — noclip flies free of the wave surface and swing already
-      // set camYRef.current to its pendulum height above.
+      // The wave-following buoyancy spring and current/sway drift apply only
+      // in float mode — noclip/watercraft fly free of the wave surface and
+      // swing already set camYRef.current to its pendulum height above. In
+      // float mode, surfaceY already blends in the water whirlpool's own
+      // depression when TORNADO is on (see vortexBlendRef above), so the
+      // buoyancy spring below naturally rides the camera down into it —
+      // exactly the old standalone VIRVEL mode's feel.
       let swayX = 0,
         swayZ = 0;
-      if (camMode === "float" || camMode === "whirlpool") {
+      if (camMode === "float") {
         // Compute wave vertical velocity first so buoyancy can react to it.
         // Clamp it too, not just the anticipatory peek below: on a dropped
         // frame (large dt) a sharp crest can still alias into a real spike
@@ -6123,35 +6518,48 @@ export function Aquafulness() {
         // noise of the surface's peak instead of trailing it.
         const anticipation = waveAnticipationRef.current;
         const lead = anticipation / (1 + peakK * 6.0);
-        const futureSurf = inWhirlpool
-          ? whirlpoolSurfaceHeight(
-              camX - whirlpoolCenterRef.current.x,
-              camZ - whirlpoolCenterRef.current.z,
-              t + lead,
-              ampRef.current,
-              regularPeriodRef.current,
-              whirlpoolOpeningRef.current,
-              freqRef.current,
-            )
-          : waveHeight(
-              camX,
-              camZ,
-              t + lead,
-              ampRef.current,
-              regularRef.current,
-              regularCrossRef.current,
-              regularPeriodRef.current,
-              wavePeakRef.current,
-              dirRad,
-              realisticRef.current,
-              fftWaveComponents,
-              dyingRef.current,
-              dyingWaveComponents,
-              dyingAmpRef.current,
-              dyingWaveT + lead,
-              freqRef.current,
-              heaveSkewRef.current,
-            );
+        const futureNormalSurf = waveHeight(
+          camX,
+          camZ,
+          t + lead,
+          ampRef.current,
+          regularRef.current,
+          regularCrossRef.current,
+          regularPeriodRef.current,
+          wavePeakRef.current,
+          dirRad,
+          realisticRef.current,
+          fftWaveComponents,
+          dyingRef.current,
+          dyingWaveComponents,
+          dyingAmpRef.current,
+          dyingWaveT + lead,
+          freqRef.current,
+          heaveSkewRef.current,
+        );
+        // Mirror surfaceY's own vortexBlendRef blend here too (using the same
+        // current-frame blend value, since it eases too slowly over ~1.4s for
+        // the short `lead` lookahead to matter) — otherwise, whenever TORNADO
+        // is on, futureSurf silently drops back to the plain ocean while
+        // surfaceY includes the whirlpool's real depression, and the mismatch
+        // between the two feeds a large spurious anticipatory velocity into
+        // the buoyancy spring below, fighting the vortex and reading as janky
+        // heave instead of a smooth ride down into it.
+        const futureSurf =
+          vortexBlendRef.current > 0.0008
+            ? futureNormalSurf +
+              (whirlpoolSurfaceHeight(
+                camX - posRef.current.x,
+                camZ - posRef.current.z,
+                t + lead,
+                ampRef.current,
+                regularPeriodRef.current,
+                tornadoOpeningRef.current,
+                freqRef.current,
+              ) -
+                futureNormalSurf) *
+                vortexBlendRef.current
+            : futureNormalSurf;
         const maxSlope = ampRef.current * 6.0;
         const rawAnticip = Math.max(
           -maxSlope,
@@ -6375,22 +6783,26 @@ export function Aquafulness() {
       // Manual XYZ camera offset (POS X/Y/Z dials) — applied after physics so
       // the user can nudge the viewpoint without disturbing the buoyancy loop.
       // camYRef.current is only null before the very first frame sets it (in
-      // whichever mode-specific branch above ran this frame).
-      const camY = camYRef.current ?? 0;
+      // whichever mode-specific branch above ran this frame). TORNADO SEQUENCE's
+      // "lift" offset is added here (rather than into camYRef.current itself)
+      // so it stays a purely rendered nudge — for float mode in particular,
+      // baking it into camYRef.current would feed back into next frame's
+      // buoyancy spring (which targets the real wave surface) and just get
+      // sprung back down instead of actually lifting the view.
+      const camY = (camYRef.current ?? 0) + tornadoLiftOffsetRef.current * tornadoBlendRef.current;
       camera.position.set(
         camX + camOffXRef.current + swayX + surgeX,
         camY + camOffYRef.current + levelY,
         camZ + camOffZRef.current + swayZ + surgeZ,
       );
-      // Look direction: HAV = level forward; VIRVEL = mot centrum (så kameran
-      // följer med runt virveln och naturligt tittar ner mot öppningen).
-      // Blended by whirlpoolBlendRef — the same continuous 0..1 "how
-      // whirlpool-y are we" value the position/spin transition already eases
-      // with — instead of switching the instant cameraMode flips. Without
-      // this the camera used to snap-rotate to stare at the world origin (or
-      // back to looking forward) the moment the mode changed, which read as
-      // the whole transition being abrupt even though camX/camZ themselves
-      // were already blending in gracefully underneath it.
+      // Look direction: normally level forward; with TORNADO FOLLOW CENTER
+      // on, eases toward facing the tornado/whirlpool's own center instead
+      // (så kameran följer med runt virveln och naturligt tittar ner mot
+      // öppningen) — blended by tornadoBlendRef, the same continuous 0..1
+      // "how tornado-y are we" value the position/spin transition already
+      // eases with, so this only engages while TORNADO is actually spun up
+      // and eases back to normal right along with it, instead of snapping
+      // the instant the toggle or cameraMode flips.
       const lookY = camera.position.y;
       // Include the same horizontal offsets as camera.position (SVAJ sway +
       // SURGE current + manual POS X/Z dial) so the look target pans with the
@@ -6401,13 +6813,13 @@ export function Aquafulness() {
       // never turns.
       const normalLookX = camX + camOffXRef.current + swayX + surgeX;
       const normalLookZ = camZ + camOffZRef.current + swayZ + surgeZ - 20;
-      // Aim at the vortex center (0, 0), slightly below the camera so the
-      // throat is visible without the horizon tilting — eased toward as
-      // whirlpoolBlendRef rises, eased back off the normal look target as it
-      // falls.
-      const vortexBlend = whirlpoolBlendRef.current;
-      const lookX = normalLookX * (1 - vortexBlend);
-      const lookZ = normalLookZ * (1 - vortexBlend);
+      // Aim at the tornado/whirlpool's own center — posRef.current, the same
+      // anchor the orbit itself is centered on ("at the same xz spot") —
+      // level with the camera so the throat is visible without the horizon
+      // tilting.
+      const followBlend = tornadoFollowCenterRef.current ? tornadoBlendRef.current : 0;
+      const lookX = normalLookX + (posRef.current.x - normalLookX) * followBlend;
+      const lookZ = normalLookZ + (posRef.current.z - normalLookZ) * followBlend;
       camera.lookAt(lookX, lookY, lookZ);
 
       // Rotation stick: yaw (x) + pitch (y). Integrate stick as angular velocity.
@@ -6719,35 +7131,40 @@ export function Aquafulness() {
       if (mb && model) {
         let h: number;
         if (mb.bob.follow) {
-          const s = inWhirlpool
-            ? whirlpoolSurfaceHeight(
-                mb.base.x - whirlpoolCenterRef.current.x,
-                mb.base.z - whirlpoolCenterRef.current.z,
-                t,
-                ampRef.current,
-                regularPeriodRef.current,
-                whirlpoolOpeningRef.current,
-                freqRef.current,
-              )
-            : waveHeight(
-                mb.base.x,
-                mb.base.z,
-                t,
-                ampRef.current,
-                regularRef.current,
-                regularCrossRef.current,
-                regularPeriodRef.current,
-                wavePeakRef.current,
-                dirRad,
-                realisticRef.current,
-                fftWaveComponents,
-                dyingRef.current,
-                dyingWaveComponents,
-                dyingAmpRef.current,
-                dyingWaveT,
-                freqRef.current,
-                heaveSkewRef.current,
-              );
+          const normalS = waveHeight(
+            mb.base.x,
+            mb.base.z,
+            t,
+            ampRef.current,
+            regularRef.current,
+            regularCrossRef.current,
+            regularPeriodRef.current,
+            wavePeakRef.current,
+            dirRad,
+            realisticRef.current,
+            fftWaveComponents,
+            dyingRef.current,
+            dyingWaveComponents,
+            dyingAmpRef.current,
+            dyingWaveT,
+            freqRef.current,
+            heaveSkewRef.current,
+          );
+          const s =
+            vortexBlendRef.current > 0.0008
+              ? normalS +
+                (whirlpoolSurfaceHeight(
+                  mb.base.x - posRef.current.x,
+                  mb.base.z - posRef.current.z,
+                  t,
+                  ampRef.current,
+                  regularPeriodRef.current,
+                  tornadoOpeningRef.current,
+                  freqRef.current,
+                ) -
+                  normalS) *
+                  vortexBlendRef.current
+              : normalS;
           h = s * mb.bob.amp;
         } else {
           h = Math.sin(t * mb.bob.speed) * mb.bob.amp;
@@ -6813,6 +7230,8 @@ export function Aquafulness() {
       midCloudMat.dispose();
       skyCloudGeo.dispose();
       skyCloudMat.dispose();
+      tornadoCloudGeo.dispose();
+      tornadoCloudMat.dispose();
       for (const layer of extendCloudLayersRef.current) {
         (layer.material as THREE.Material).dispose();
       }
@@ -6851,6 +7270,7 @@ export function Aquafulness() {
       farOceanRef.current = null;
       midCloudsMeshRef.current = null;
       skyCloudsMeshRef.current = null;
+      tornadoCloudMeshRef.current = null;
       tvManager.dispose();
       tvManagerRef.current = null;
       torusRingField.dispose();
@@ -6895,8 +7315,8 @@ export function Aquafulness() {
     return () => window.clearTimeout(id);
   }, [bootReady]);
 
-  // Load / swap the selected .glb scene into the live three.js scene graph.
-  // Runs after the WebGL setup effect above has populated sceneRef, and re-runs
+  // Load / swap the selected scene into the live three.js scene graph. Runs
+  // after the WebGL setup effect above has populated sceneRef, and re-runs
   // whenever the user picks a different scene.
   useEffect(() => {
     const scene = sceneRef.current;
@@ -6910,15 +7330,28 @@ export function Aquafulness() {
     }
     modelBobRef.current = null;
 
-    if (!sceneId) {
+    // The owning app is looked up from the merged catalog (see the
+    // appCatalog-fetch effect above) rather than stored alongside sceneId
+    // itself, so a persisted sceneId from localStorage still resolves once
+    // the catalog loads (apps are a packaging unit, not part of the
+    // player's saved selection).
+    const sceneEntry = sceneId ? scenes.find((s) => s.id === sceneId) : null;
+    if (!sceneId || !sceneEntry) {
       setSpawnLocations([DEFAULT_SPAWN_LOCATION]);
       setSceneBootSettled(true);
       return;
     }
 
     let cancelled = false;
-    const base = `/scenes/${encodeURIComponent(sceneId)}`;
+    const base = sceneDir(sceneEntry.appId, sceneId);
     const loader = new GLTFLoader();
+    // Scenes are exported as either a single-file .glb or a .gltf with
+    // sibling .bin/texture files; try .glb first (the common case) and fall
+    // back to .gltf so both layouts resolve without a manifest flag.
+    const loadModel = (ext: "glb" | "gltf") =>
+      new Promise<GLTF>((resolve, reject) => {
+        loader.load(`${base}/${encodeURIComponent(sceneId)}.${ext}`, resolve, undefined, reject);
+      });
 
     fetch(`${base}/manifest.json`)
       .then((r) => (r.ok ? (r.json() as Promise<SceneManifest>) : {}))
@@ -6926,9 +7359,9 @@ export function Aquafulness() {
       .then((manifest: SceneManifest) => {
         if (cancelled) return;
         setSpawnLocations(resolveSpawnLocations(manifest));
-        loader.load(
-          `${base}/${encodeURIComponent(sceneId)}.glb`,
-          (gltf) => {
+        loadModel("glb")
+          .catch(() => loadModel("gltf"))
+          .then((gltf) => {
             if (cancelled) {
               disposeObject(gltf.scene);
               return;
@@ -6940,19 +7373,17 @@ export function Aquafulness() {
             const bob = resolveBob(manifest.bob);
             modelBobRef.current = bob ? { base: model.position.clone(), bob } : null;
             setSceneBootSettled(true);
-          },
-          undefined,
-          (err) => {
+          })
+          .catch((err) => {
             console.error(`Failed to load scene "${sceneId}"`, err);
             if (!cancelled) setSceneBootSettled(true);
-          },
-        );
+          });
       });
 
     return () => {
       cancelled = true;
     };
-  }, [sceneId]);
+  }, [sceneId, scenes]);
 
   // Drop a persisted spawn-location selection that no longer exists once the
   // current scene's location list resolves (e.g. after switching scenes, or
@@ -6979,16 +7410,16 @@ export function Aquafulness() {
       }
     };
 
-    // No environment (or an incomplete selection) → procedural sky dome.
-    if (!envId || !envEra || !envTime) {
+    const envEntry = envId ? environments.find((e) => e.id === envId) : null;
+    // No environment (or an incomplete/not-yet-resolved selection) → procedural sky dome.
+    if (!envId || !envEra || !envTime || !envEntry) {
       clearSkybox();
       setEnvBootSettled(true);
       return;
     }
 
     let cancelled = false;
-    const base = [envId, envEra, envTime].map(encodeURIComponent).join("/");
-    const dir = `/environments/${base}`;
+    const dir = environmentDir(envEntry.appId, envId, envEra, envTime);
 
     fetch(`${dir}/manifest.json`)
       .then((r) => (r.ok ? (r.json() as Promise<EnvManifest>) : {}))
@@ -7019,7 +7450,7 @@ export function Aquafulness() {
           },
           undefined,
           (err) => {
-            console.error(`Failed to load skybox "${base}"`, err);
+            console.error(`Failed to load skybox "${envId}/${envEra}/${envTime}"`, err);
             if (!cancelled) {
               clearSkybox();
               setEnvBootSettled(true);
@@ -7031,7 +7462,7 @@ export function Aquafulness() {
     return () => {
       cancelled = true;
     };
-  }, [envId, envEra, envTime]);
+  }, [envId, envEra, envTime, environments]);
 
   // Load / swap the selected water-surface reflection photo into the water
   // shader. Re-runs whenever the surface selection changes.
@@ -7049,14 +7480,15 @@ export function Aquafulness() {
       }
     };
 
-    if (!surfaceId) {
+    const surfaceEntry = surfaceId ? surfaces.find((s) => s.id === surfaceId) : null;
+    if (!surfaceId || !surfaceEntry) {
       revert();
       setSurfaceBootSettled(true);
       return;
     }
 
     let cancelled = false;
-    const dir = `/surfaces/${encodeURIComponent(surfaceId)}`;
+    const dir = surfaceDir(surfaceEntry.appId, surfaceId);
 
     fetch(`${dir}/manifest.json`)
       .then((r) => (r.ok ? (r.json() as Promise<SurfaceManifest>) : {}))
@@ -7101,7 +7533,7 @@ export function Aquafulness() {
     return () => {
       cancelled = true;
     };
-  }, [surfaceId]);
+  }, [surfaceId, surfaces]);
 
   // Time-of-day label
   const todLabel = (() => {
@@ -7215,26 +7647,6 @@ export function Aquafulness() {
     setWaveHighQuality,
     waveDir,
     setWaveDir,
-    whirlpoolOpening,
-    setWhirlpoolOpening,
-    whirlpoolRadius,
-    setWhirlpoolRadius,
-    whirlpoolSpeed,
-    setWhirlpoolSpeed,
-    whirlpoolDirection,
-    setWhirlpoolDirection,
-    whirlpoolSequenceOn,
-    setWhirlpoolSequenceOn,
-    whirlpoolDragSpeed,
-    setWhirlpoolDragSpeed,
-    whirlpoolDragDuration,
-    setWhirlpoolDragDuration,
-    whirlpoolStayDuration,
-    setWhirlpoolStayDuration,
-    whirlpoolExitMode,
-    setWhirlpoolExitMode,
-    whirlpoolExitSpeed,
-    setWhirlpoolExitSpeed,
     cameraMode,
     setCameraMode,
     cycleCameraMode,
@@ -7262,14 +7674,38 @@ export function Aquafulness() {
     swingYWaveform,
     setSwingYWaveform,
     cycleSwingYWaveform,
-    swingTornadoOn,
-    setSwingTornadoOn,
-    swingTornadoRadius,
-    setSwingTornadoRadius,
-    swingTornadoSpeed,
-    setSwingTornadoSpeed,
-    swingTornadoDirection,
-    setSwingTornadoDirection,
+    tornadoOn,
+    setTornadoOn,
+    tornadoRadius,
+    setTornadoRadius,
+    tornadoSpeed,
+    setTornadoSpeed,
+    tornadoDirection,
+    setTornadoDirection,
+    tornadoOpening,
+    setTornadoOpening,
+    tornadoFollowCenter,
+    setTornadoFollowCenter,
+    tornadoCloudOn,
+    setTornadoCloudOn,
+    tornadoCloudYOffset,
+    setTornadoCloudYOffset,
+    tornadoSequenceOn,
+    setTornadoSequenceOn,
+    tornadoSequenceDragSpeed,
+    setTornadoSequenceDragSpeed,
+    tornadoSequenceDragDuration,
+    setTornadoSequenceDragDuration,
+    tornadoSequenceStayDuration,
+    setTornadoSequenceStayDuration,
+    tornadoSequenceExitMode,
+    setTornadoSequenceExitMode,
+    tornadoSequenceExitSpeed,
+    setTornadoSequenceExitSpeed,
+    tornadoSequenceLiftHeight,
+    setTornadoSequenceLiftHeight,
+    tornadoSequencePauseDuration,
+    setTornadoSequencePauseDuration,
     intervalSessionOn,
     setIntervalSessionOn,
     intervalDuration,
@@ -7282,8 +7718,6 @@ export function Aquafulness() {
     setIntervalShowStats,
     intervalIncludeFloat,
     setIntervalIncludeFloat,
-    intervalIncludeWhirlpool,
-    setIntervalIncludeWhirlpool,
     intervalIncludeSwing,
     setIntervalIncludeSwing,
     camOffX,
@@ -7469,6 +7903,13 @@ export function Aquafulness() {
     setAudioSpatial,
     waterSoundIdx,
     setWaterSoundIdx,
+    waterSounds: allWaterSounds,
+    apps,
+    savedSceneryPresets,
+    appSceneryPresets,
+    saveSceneryPresetAs,
+    loadSceneryPreset,
+    deleteSceneryPreset,
   };
 
   // JUMP: noclip's vertical mode slider condenses FRITT FALL/OMVÄND STIGNING/
@@ -7862,8 +8303,30 @@ export function Aquafulness() {
             the same read-only treatment the KAMERA settings tab gives it),
             so manual taps here never fight the session's own alternation.
             Changing cameraMode by any means re-syncs the bottom camera
-            drawer's tab (see the cameraDrawerTab effect above) to match. */}
-        <div className="pointer-events-none absolute inset-x-0 top-20 z-20 flex justify-center">
+            drawer's tab (see the cameraDrawerTab effect above) to match.
+            To its left, a standalone WHIRLPOOL/TORNADO toggle button binds
+            directly to the shared tornadoOn setting regardless of which
+            mode is active: while swimming (float) it reads WHIRLPOOL and
+            brings back the old standalone VIRVEL mode's feel (camera orbits
+            and dips into a real water vortex); in every other mode it reads
+            TORNADO and behaves exactly like the KAMERA settings dial. */}
+        <div className="pointer-events-none absolute inset-x-0 top-20 z-20 flex items-center justify-center gap-2">
+          {!intervalSessionOn && (
+            <button
+              type="button"
+              onClick={() => setTornadoOn((v) => !v)}
+              aria-pressed={tornadoOn}
+              className={`pointer-events-auto rounded-full border px-3 py-1.5 text-[10px] font-light tracking-[0.2em] backdrop-blur-md transition active:scale-95 ${
+                tornadoOn ? "ui-line-3 ui-tint-2 ui-ink" : "ui-line-2 ui-surface ui-ink-muted"
+              }`}
+            >
+              {t(
+                cameraMode === "float"
+                  ? "hud.tornadoToggle.whirlpool"
+                  : "hud.tornadoToggle.tornado",
+              )}
+            </button>
+          )}
           {intervalSessionOn ? (
             <div className="pointer-events-auto rounded-full border ui-line-1 ui-surface px-4 py-1.5 text-[10px] font-light tracking-[0.3em] ui-ink-muted backdrop-blur-md">
               {t(CAMERA_MODE_LABEL_KEYS[cameraMode])} {t("camera.mode.autoSuffix")}
@@ -7912,8 +8375,10 @@ export function Aquafulness() {
             STRÖM/HÖJD/SVAJ/VÅGRIKT finns även i "Fjärrkontroll"-appen i
             bathOS-telefonen (se VirtualPhone.tsx) — samma state/handlers,
             bara ett andra sätt att nå dem. I GUNGA-läget styrs positionen
-            helt av gungans fysik, så bara LOOK visas. */}
-        {cameraMode !== "swing" && (
+            helt av gungans fysik, så bara LOOK visas — utom när TORNADO är
+            på, då NAV:s y-axel även får styra avståndet in mot/ut från
+            virvelns centrum (se updateTornadoLiveRadius). */}
+        {(cameraMode !== "swing" || tornadoOn) && (
           <Joystick
             onChange={setStick}
             value={stick}
@@ -8116,6 +8581,16 @@ export function Aquafulness() {
                       {t(CAMERA_MODE_LABEL_KEYS[m])}
                     </button>
                   ))}
+                  <button
+                    type="button"
+                    onClick={() => setCameraDrawerTab("tornado")}
+                    aria-pressed={cameraDrawerTab === "tornado"}
+                    className={`rounded-full px-3 py-1 text-[9px] font-light tracking-[0.2em] transition active:scale-95 ${
+                      cameraDrawerTab === "tornado" ? "ui-tint-2 ui-ink" : "ui-ink-muted"
+                    }`}
+                  >
+                    {t("dial.camera.tornado")}
+                  </button>
                 </div>
                 {cameraDrawerTab === "float" && (
                   <>
@@ -8178,30 +8653,6 @@ export function Aquafulness() {
                     />
                   </>
                 )}
-                {cameraDrawerTab === "whirlpool" && (
-                  <>
-                    <PadSlider
-                      label={t("dial.wave.whirlpoolSpeed")}
-                      value={whirlpoolSpeed}
-                      min={0}
-                      max={10}
-                      step={0.1}
-                      curve={2}
-                      format={(v) => `${v.toFixed(2)}×`}
-                      onChange={setWhirlpoolSpeed}
-                    />
-                    <PadSlider
-                      label={t("dial.wave.whirlpoolDistance")}
-                      value={whirlpoolRadius}
-                      min={3}
-                      max={220}
-                      step={1}
-                      curve={2}
-                      format={(v) => `${v.toFixed(0)}m`}
-                      onChange={setWhirlpoolRadius}
-                    />
-                  </>
-                )}
                 {cameraDrawerTab === "swing" && (
                   <>
                     <PadSlider
@@ -8224,6 +8675,196 @@ export function Aquafulness() {
                       format={(v) => `${v.toFixed(0)}m`}
                       onChange={setSwingPositionY}
                     />
+                    <PadSlider
+                      label={t("dial.camera.swingHeight")}
+                      value={swingHeight}
+                      min={0}
+                      max={100000}
+                      step={100}
+                      curve={2}
+                      format={(v) => `${v.toFixed(0)}m`}
+                      onChange={setSwingHeight}
+                    />
+                  </>
+                )}
+                {/* TORNADO: a fixed tab (not tied to any one camera mode)
+                    exposing every tornado* setting at once — mirrors the old
+                    standalone VIRVEL tab this drawer used to have. */}
+                {cameraDrawerTab === "tornado" && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setTornadoOn((v) => !v)}
+                      aria-pressed={tornadoOn}
+                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                        tornadoOn ? "ui-line-3 ui-tint-2 ui-ink" : "ui-line-2 ui-surface ui-ink-muted"
+                      }`}
+                    >
+                      {t("dial.camera.tornado")}: {t(tornadoOn ? "common.on" : "common.off")}
+                    </button>
+                    <PadSlider
+                      label={t("dial.camera.tornadoRadius")}
+                      value={tornadoRadius}
+                      min={0}
+                      max={2000}
+                      step={5}
+                      curve={2}
+                      format={(v) => `${v.toFixed(0)}m`}
+                      onChange={setTornadoRadius}
+                    />
+                    <PadSlider
+                      label={t("dial.camera.tornadoSpeed")}
+                      value={tornadoSpeed}
+                      min={0}
+                      max={10}
+                      step={0.1}
+                      curve={2}
+                      format={(v) => `${v.toFixed(2)}×`}
+                      onChange={setTornadoSpeed}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setTornadoDirection((d) => (d === "cw" ? "ccw" : "cw"))}
+                      className="rounded-full border ui-line-2 ui-surface px-4 py-1.5 text-[10px] font-light tracking-[0.2em] ui-ink-muted transition active:scale-95"
+                    >
+                      {t("dial.camera.tornadoDirection")}:{" "}
+                      {t(TORNADO_DIRECTION_LABEL_KEYS[tornadoDirection])}
+                    </button>
+                    {(cameraMode === "float" || cameraMode === "swing") && (
+                      <PadSlider
+                        label={t("dial.camera.tornadoOpening")}
+                        value={tornadoOpening}
+                        min={3}
+                        max={60}
+                        step={0.5}
+                        format={(v) => `${v.toFixed(1)}m`}
+                        onChange={setTornadoOpening}
+                      />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setTornadoFollowCenter((v) => !v)}
+                      aria-pressed={tornadoFollowCenter}
+                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                        tornadoFollowCenter
+                          ? "ui-line-3 ui-tint-2 ui-ink"
+                          : "ui-line-2 ui-surface ui-ink-muted"
+                      }`}
+                    >
+                      {t("dial.camera.tornadoFollowCenter")}:{" "}
+                      {t(tornadoFollowCenter ? "common.on" : "common.off")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTornadoCloudOn((v) => !v)}
+                      aria-pressed={tornadoCloudOn}
+                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                        tornadoCloudOn
+                          ? "ui-line-3 ui-tint-2 ui-ink"
+                          : "ui-line-2 ui-surface ui-ink-muted"
+                      }`}
+                    >
+                      {t("dial.camera.tornadoCloud")}: {t(tornadoCloudOn ? "common.on" : "common.off")}
+                    </button>
+                    {tornadoCloudOn && cameraMode !== "float" && (
+                      <PadSlider
+                        label={t("dial.camera.tornadoCloudYOffset")}
+                        value={tornadoCloudYOffset}
+                        min={-200}
+                        max={200}
+                        step={5}
+                        format={(v) => `${v.toFixed(0)}m`}
+                        onChange={setTornadoCloudYOffset}
+                      />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setTornadoSequenceOn((v) => !v)}
+                      aria-pressed={tornadoSequenceOn}
+                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                        tornadoSequenceOn
+                          ? "ui-line-3 ui-tint-2 ui-ink"
+                          : "ui-line-2 ui-surface ui-ink-muted"
+                      }`}
+                    >
+                      {t("dial.camera.tornadoSequence")}:{" "}
+                      {t(tornadoSequenceOn ? "common.on" : "common.off")}
+                    </button>
+                    {tornadoSequenceOn && (
+                      <>
+                        <PadSlider
+                          label={t("dial.camera.tornadoSequenceDragSpeed")}
+                          value={tornadoSequenceDragSpeed}
+                          min={1}
+                          max={100}
+                          step={1}
+                          curve={2}
+                          format={(v) => `${v.toFixed(0)}m/s`}
+                          onChange={setTornadoSequenceDragSpeed}
+                        />
+                        <PadSlider
+                          label={t("dial.camera.tornadoSequenceDragDuration")}
+                          value={tornadoSequenceDragDuration}
+                          min={0.5}
+                          max={30}
+                          step={0.5}
+                          format={(v) => `${v.toFixed(1)}s`}
+                          onChange={setTornadoSequenceDragDuration}
+                        />
+                        <PadSlider
+                          label={t("dial.camera.tornadoSequenceStayDuration")}
+                          value={tornadoSequenceStayDuration}
+                          min={0}
+                          max={60}
+                          step={0.5}
+                          format={(v) => `${v.toFixed(1)}s`}
+                          onChange={setTornadoSequenceStayDuration}
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setTornadoSequenceExitMode((m) => (m === "outer" ? "lift" : "outer"))
+                          }
+                          className="rounded-full border ui-line-2 ui-surface px-4 py-1.5 text-[10px] font-light tracking-[0.2em] ui-ink-muted transition active:scale-95"
+                        >
+                          {t("dial.camera.tornadoSequenceExitMode")}:{" "}
+                          {t(TORNADO_SEQUENCE_EXIT_MODE_LABEL_KEYS[tornadoSequenceExitMode])}
+                        </button>
+                        <PadSlider
+                          label={t("dial.camera.tornadoSequenceExitSpeed")}
+                          value={tornadoSequenceExitSpeed}
+                          min={1}
+                          max={100}
+                          step={1}
+                          curve={2}
+                          format={(v) => `${v.toFixed(0)}m/s`}
+                          onChange={setTornadoSequenceExitSpeed}
+                        />
+                        {tornadoSequenceExitMode === "lift" && (
+                          <>
+                            <PadSlider
+                              label={t("dial.camera.tornadoSequenceLiftHeight")}
+                              value={tornadoSequenceLiftHeight}
+                              min={5}
+                              max={500}
+                              step={5}
+                              curve={2}
+                              format={(v) => `${v.toFixed(0)}m`}
+                              onChange={setTornadoSequenceLiftHeight}
+                            />
+                            <PadSlider
+                              label={t("dial.camera.tornadoSequencePauseDuration")}
+                              value={tornadoSequencePauseDuration}
+                              min={0}
+                              max={30}
+                              step={0.5}
+                              format={(v) => `${v.toFixed(1)}s`}
+                              onChange={setTornadoSequencePauseDuration}
+                            />
+                          </>
+                        )}
+                      </>
+                    )}
                   </>
                 )}
               </div>
@@ -8238,7 +8879,9 @@ export function Aquafulness() {
             >
               {cameraDrawerOpen
                 ? t("hud.cameraDrawer.closeLabel")
-                : t(CAMERA_MODE_LABEL_KEYS[cameraDrawerTab])}
+                : cameraDrawerTab === "tornado"
+                  ? t("dial.camera.tornado")
+                  : t(CAMERA_MODE_LABEL_KEYS[cameraDrawerTab])}
             </button>
           </div>
         )}

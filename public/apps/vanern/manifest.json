@@ -1,0 +1,24 @@
+{
+  "environments": [
+    {
+      "id": "vanern",
+      "name": "Vänern",
+      "eras": [
+        {
+          "id": "present",
+          "name": "Nutid",
+          "times": [{ "id": "day", "name": "Dag" }]
+        },
+        {
+          "id": "future",
+          "name": "Framtid",
+          "times": [
+            { "id": "day", "name": "Dag" },
+            { "id": "night", "name": "Natt" }
+          ]
+        }
+      ]
+    }
+  ],
+  "surfaces": [{ "id": "vanern", "name": "Vänern" }]
+}

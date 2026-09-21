@@ -71,7 +71,6 @@
       "float": "SVØMMER",
       "noclip": "FLY",
       "swing": "HUSKE",
-      "whirlpool": "VIRVEL",
       "watercraft": "FARKOST"
     },
     "rotationValue": {
@@ -84,13 +83,13 @@
       "off": "FAST",
       "random": "TILFELDIG"
     },
-    "whirlpoolDirection": {
+    "tornadoDirection": {
       "ccw": "MOT KLOKKEN",
       "cw": "MED KLOKKEN"
     },
-    "whirlpoolExitMode": {
-      "reverseSpin": "OMVENDT SNURR",
-      "throwBack": "KASTES TILBAKE"
+    "tornadoSequenceExitMode": {
+      "lift": "LØFT & RETURNER",
+      "outer": "TREKK TIL YTRE"
     }
   },
   "common": {
@@ -145,7 +144,6 @@
       "intervalDuration": "INTERVALL",
       "intervalIncludeFloat": "INTERVALL: STANDARD",
       "intervalIncludeSwing": "INTERVALL: HUSKE",
-      "intervalIncludeWhirlpool": "INTERVALL: VIRVEL",
       "intervalSession": "INTERVALLØKT",
       "lowGraphicsMode": "LAV GRAFIKKMODUS",
       "mode": "KAMERAMODUS",
@@ -166,13 +164,25 @@
       "swingIntensity": "HUSKE INTENSITET",
       "swingPositionY": "HUSKE POSISJON Y",
       "swingStart": "HUSKE START",
-      "swingTornado": "TORNADO",
-      "swingTornadoDirection": "TORNADO RETNING",
-      "swingTornadoRadius": "TORNADO RADIUS",
-      "swingTornadoSpeed": "TORNADO TEMPO",
       "swingXFactor": "HUSKE X",
       "swingYWaveform": "HUSKE Y BØLGEFORM",
       "targetFps": "BILDEFREKVENSTAK",
+      "tornado": "TORNADO",
+      "tornadoCloud": "TORNADO SKY",
+      "tornadoCloudYOffset": "TORNADO SKY Y-OFFSET",
+      "tornadoDirection": "TORNADO RETNING",
+      "tornadoFollowCenter": "FØLG SENTRUM",
+      "tornadoOpening": "TORNADO ÅPNING",
+      "tornadoRadius": "TORNADO RADIUS",
+      "tornadoSequence": "TORNADOSEKVENS",
+      "tornadoSequenceDragDuration": "SEKVENS DRATID",
+      "tornadoSequenceDragSpeed": "SEKVENS DRAHASTIGHET",
+      "tornadoSequenceExitMode": "SEKVENS AVSLUTNING",
+      "tornadoSequenceExitSpeed": "SEKVENS AVSLUTNINGSHASTIGHET",
+      "tornadoSequenceLiftHeight": "SEKVENS LØFTEHØYDE",
+      "tornadoSequencePauseDuration": "SEKVENS PAUSETID",
+      "tornadoSequenceStayDuration": "SEKVENS OPPHOLDSTID",
+      "tornadoSpeed": "TORNADO TEMPO",
       "wakeLock": "VÅKEN"
     },
     "env": {
@@ -291,17 +301,7 @@
         "regular": "REGELMESSIG",
         "spread": "SPREDT"
       },
-      "wavePeriod": "BØLGEPERIODE",
-      "whirlpoolDirection": "VIRVEL RETNING",
-      "whirlpoolDistance": "AVSTAND TIL SENTRUM",
-      "whirlpoolDragDuration": "INNTREKKSLENGDE",
-      "whirlpoolDragSpeed": "INNTREKKSHASTIGHET",
-      "whirlpoolExitMode": "AVGANGSMODUS",
-      "whirlpoolExitSpeed": "AVGANGSHASTIGHET",
-      "whirlpoolOpening": "ÅPNING",
-      "whirlpoolSequence": "AUTO-SEKVENS",
-      "whirlpoolSpeed": "VIRVEL TEMPO",
-      "whirlpoolStayDuration": "BLI INNENFOR"
+      "wavePeriod": "BØLGEPERIODE"
     }
   },
   "docsPhilosophy": {
@@ -650,6 +650,10 @@
       "wave": "BØLGE"
     },
     "timeTravelOpenAria": "Åpne tidsreise",
+    "tornadoToggle": {
+      "tornado": "TORNADO",
+      "whirlpool": "VIRVEL"
+    },
     "totalLabel": " · Totalt "
   },
   "interval": {
@@ -831,8 +835,20 @@
     "syncButton": "SYNK BØLGE MED SVAI: {{state}}",
     "syncTitle": "La BØLGERETNING automatisk følge SVAI RETNING (standard: på)",
     "title": "FJERNKONTROLL",
-    "vagrikt": "BØLGERETN",
-    "whirlpoolHint": "I VIRVEL-modus kretser kameraet automatisk rundt virvelen — ingen spaker å styre her."
+    "vagrikt": "BØLGERETN"
+  },
+  "sceneryPresets": {
+    "buttonAriaLabel": "Velg scenografi og lagre forhåndsinnstillinger",
+    "buttonTitle": "SCENOGRAFI",
+    "choosePreset": "VELG LAGRET…",
+    "delete": "SLETT",
+    "deleteConfirm": "Slette denne lagrede scenografien?",
+    "load": "LAST INN",
+    "loadConfirm": "Dette erstatter gjeldende scene, miljø og vannoverflate.",
+    "loadConfirmTitle": "Laste inn denne scenografien?",
+    "save": "LAGRE",
+    "savePromptTitle": "Lagre scenografi som:",
+    "title": "SCENOGRAFI"
   },
   "screens": {
     "editModeDescription": "Pauser bølger og kamerabevegelse slik at TV/mobil-skjermene i 3D-visningen kan flyttes, roteres og endre størrelse presist.",
@@ -883,6 +899,32 @@
       "square": "FIRKANT",
       "triangle": "TREKANT"
     }
+  },
+  "terms": {
+    "backToApp": "Tilbake til appen",
+    "intro": "Denne siden beskriver vilkårene for din bruk av Aquafulness.",
+    "lastUpdated": "Sist oppdatert: 19. september 2026",
+    "sections": {
+      "authorizedUse": {
+        "academicResearch": {
+          "body": "Bruk av denne programvaren, inkludert dens visuelle, akustiske eller simulerte bevegelsesmekanikk, som en intervensjon, stimulus eller måleverktøy i kliniske studier, observasjonsstudier eller akademisk forskning.",
+          "term": "Akademisk og vitenskapelig forskning"
+        },
+        "clinicalDeployment": {
+          "body": "Bruk av denne applikasjonen i helsemiljøer, psykologiske behandlingsprogrammer eller formelle terapiøkter.",
+          "term": "Klinisk eller terapeutisk bruk"
+        },
+        "contact": "For henvendelser om akademisk samarbeid, forskningslisenser eller institusjonelle studier, kontakt: drsounds@gmail.com.",
+        "dataCollection": {
+          "body": "Enhver automatisert eller strukturert uttrekking, innsamling eller logging av applikasjonens ytelse, sensoriske responser eller brukerinteraksjon for forsknings- eller sammenligningsrapportering.",
+          "term": "Systematisk datainnsamling"
+        },
+        "heading": "Tillatt bruk og forskningsbegrensninger",
+        "intro": "Denne applikasjonen tilbys utelukkende for personlig, ikke-kommersiell avslapning og velvære. Den er ikke et medisinsk utstyr og er ikke beregnet for diagnostisk, terapeutisk eller medisinsk bruk.",
+        "prohibitedIntro": "Følgende bruk er strengt forbudt uten forutgående uttrykkelig skriftlig samtykke og en formell avtale med rettighetshaveren:"
+      }
+    },
+    "title": "Bruksvilkår"
   },
   "theme": {
     "title": "TEMA",
