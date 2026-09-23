@@ -1042,7 +1042,7 @@ function saveCameraPose(pose: CameraPose) {
 // first-time visitor) into the same bath-link payload shape as DELA
 // BADLÄNK inside the app itself (see buildBathLink further down) — so
 // tapping it opens straight into "the bath as it was left" via the
-// /bathing/$payload route, without ever mounting the full WebGL scene on
+// /bathing/$payload/bathe route (skipping the shared-link preview), without ever mounting the full WebGL scene on
 // the splash screen. Camera pose is only included when a full x/y/z pose
 // (noclip mode) was saved — isValidBathPayload requires `y` once `c` is
 // present at all, and most saved poses only carry x/z/yaw/pitch.
@@ -1069,7 +1069,7 @@ async function buildCurrentBathPayload(
 }
 
 // The very first screen a visitor sees: brand mark, a "Start bath" button
-// that carries them into /bathing/$payload with today's settings already
+// that carries them into /bathing/$payload/bathe with today's settings already
 // encoded in the URL, and a link to /about — all in front of a slow,
 // looping meshed-gradient background (see .aq-splash-blob in styles.css).
 // Deliberately has no dependency on the ocean scene below, so it stays
@@ -1084,7 +1084,10 @@ function SplashScreen() {
     setStarting(true);
     try {
       const payload = await buildCurrentBathPayload(settingsOverride);
-      await navigate({ to: "/bathing/$payload", params: { payload } });
+      // Straight into the simulation — the /bathing/$payload preview page
+      // (title/description + "Bathe" button) is for shared links; someone
+      // who just tapped "Start bath" here has already made that choice.
+      await navigate({ to: "/bathing/$payload/bathe", params: { payload } });
     } catch {
       setStarting(false);
     }
