@@ -646,6 +646,18 @@ export type SettingsPanelProps = {
   setWaveBgColor: Dispatch<SetStateAction<string>>;
   waveBgAlpha: number;
   setWaveBgAlpha: Dispatch<SetStateAction<number>>;
+  foamAmount: number;
+  setFoamAmount: Dispatch<SetStateAction<number>>;
+  foamCoverage: number;
+  setFoamCoverage: Dispatch<SetStateAction<number>>;
+  foamScale: number;
+  setFoamScale: Dispatch<SetStateAction<number>>;
+  foamColor: string;
+  setFoamColor: Dispatch<SetStateAction<string>>;
+  detailWaves: number;
+  setDetailWaves: Dispatch<SetStateAction<number>>;
+  detailScale: number;
+  setDetailScale: Dispatch<SetStateAction<number>>;
   waterHue: number;
   setWaterHue: Dispatch<SetStateAction<number>>;
   waterSat: number;
@@ -1330,6 +1342,18 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setWaveBgColor,
     waveBgAlpha,
     setWaveBgAlpha,
+    foamAmount,
+    setFoamAmount,
+    foamCoverage,
+    setFoamCoverage,
+    foamScale,
+    setFoamScale,
+    foamColor,
+    setFoamColor,
+    detailWaves,
+    setDetailWaves,
+    detailScale,
+    setDetailScale,
     surfaces,
     surfaceId,
     setSurfaceId,
@@ -2862,6 +2886,83 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   onDec={() => setWaveBgAlpha((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
                   onInc={() => setWaveBgAlpha((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
                 />
+                <SettingRow
+                  label={t("dial.water.foam")}
+                  mode="number"
+                  value={`${Math.round(foamAmount * 100)}%`}
+                  rawValue={foamAmount}
+                  onSet={(v) => setFoamAmount(Math.max(0, Math.min(2, v)))}
+                  min={0}
+                  max={2}
+                  step={0.05}
+                  onDec={() => setFoamAmount((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                  onInc={() => setFoamAmount((v) => Math.min(2, +(v + 0.05).toFixed(2)))}
+                />
+                {foamAmount > 0 && (
+                  <>
+                <SettingRow
+                  label={t("dial.water.foamCoverage")}
+                  mode="number"
+                  value={`${Math.round(foamCoverage * 100)}%`}
+                  rawValue={foamCoverage}
+                  onSet={(v) => setFoamCoverage(Math.max(0, Math.min(1, v)))}
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  onDec={() => setFoamCoverage((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                  onInc={() => setFoamCoverage((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+                />
+                <SettingRow
+                  label={t("dial.water.foamSize")}
+                  mode="number"
+                  value={`${foamScale.toFixed(2)}x`}
+                  rawValue={foamScale}
+                  onSet={(v) => setFoamScale(Math.max(0.25, Math.min(4, v)))}
+                  min={0.25}
+                  max={4}
+                  step={0.05}
+                  onDec={() => setFoamScale((v) => Math.max(0.25, +(v - 0.05).toFixed(2)))}
+                  onInc={() => setFoamScale((v) => Math.min(4, +(v + 0.05).toFixed(2)))}
+                />
+                <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
+                  <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
+                    {t("dial.water.foamColor")}
+                  </span>
+                  <input
+                    type="color"
+                    value={foamColor}
+                    onChange={(e) => setFoamColor(e.target.value)}
+                    className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
+                  />
+                </label>
+                  </>
+                )}
+                <SettingRow
+                  label={t("dial.water.detailWaves")}
+                  mode="number"
+                  value={`${Math.round(detailWaves * 100)}%`}
+                  rawValue={detailWaves}
+                  onSet={(v) => setDetailWaves(Math.max(0, Math.min(1.5, v)))}
+                  min={0}
+                  max={1.5}
+                  step={0.05}
+                  onDec={() => setDetailWaves((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                  onInc={() => setDetailWaves((v) => Math.min(1.5, +(v + 0.05).toFixed(2)))}
+                />
+                {detailWaves > 0 && (
+                <SettingRow
+                  label={t("dial.water.detailSize")}
+                  mode="number"
+                  value={`${detailScale.toFixed(2)}x`}
+                  rawValue={detailScale}
+                  onSet={(v) => setDetailScale(Math.max(0.25, Math.min(4, v)))}
+                  min={0.25}
+                  max={4}
+                  step={0.05}
+                  onDec={() => setDetailScale((v) => Math.max(0.25, +(v - 0.05).toFixed(2)))}
+                  onInc={() => setDetailScale((v) => Math.min(4, +(v + 0.05).toFixed(2)))}
+                />
+                )}
                 <WaterColorPicker
                   pickColorLabel={t("dial.water.pickColor")}
                   hueLabel={t("dial.water.hue")}
