@@ -784,6 +784,8 @@ const DEFAULTS: Persisted = {
   waterColorIdx: 4,
   waterOpacity: 0.5,
   waterColorAlpha: 0,
+  waveBgColor: "#0b3a4a",
+  waveBgAlpha: 0,
   waterHue: 0,
   waterSat: 0.95,
   waterBright: 1,
@@ -1221,6 +1223,8 @@ export function Aquafulness() {
   const [waterColorIdx, setWaterColorIdx] = useState(initial.waterColorIdx);
   const [waterOpacity, setWaterOpacity] = useState(initial.waterOpacity);
   const [waterColorAlpha, setWaterColorAlpha] = useState(initial.waterColorAlpha);
+  const [waveBgColor, setWaveBgColor] = useState(initial.waveBgColor);
+  const [waveBgAlpha, setWaveBgAlpha] = useState(initial.waveBgAlpha);
   const [waterHue, setWaterHue] = useState(initial.waterHue);
   const [waterSat, setWaterSat] = useState(initial.waterSat);
   const [waterBright, setWaterBright] = useState(initial.waterBright);
@@ -1773,6 +1777,8 @@ export function Aquafulness() {
     waterColorIdx,
     waterOpacity,
     waterColorAlpha,
+    waveBgColor,
+    waveBgAlpha,
     waterHue,
     waterSat,
     waterBright,
@@ -1937,6 +1943,8 @@ export function Aquafulness() {
     waterColorIdx,
     waterOpacity,
     waterColorAlpha,
+    waveBgColor,
+    waveBgAlpha,
     waterHue,
     waterSat,
     waterBright,
@@ -2161,6 +2169,8 @@ export function Aquafulness() {
   const waterColorRef = useRef(waterColorIdx);
   const waterOpacityRef = useRef(waterOpacity);
   const waterColorAlphaRef = useRef(waterColorAlpha);
+  const waveBgColorRef = useRef(waveBgColor);
+  const waveBgAlphaRef = useRef(waveBgAlpha);
   const waterHueRef = useRef(waterHue);
   const waterSatRef = useRef(waterSat);
   const waterBrightRef = useRef(waterBright);
@@ -2420,6 +2430,12 @@ export function Aquafulness() {
   useEffect(() => {
     waterColorAlphaRef.current = waterColorAlpha;
   }, [waterColorAlpha]);
+  useEffect(() => {
+    waveBgColorRef.current = waveBgColor;
+  }, [waveBgColor]);
+  useEffect(() => {
+    waveBgAlphaRef.current = waveBgAlpha;
+  }, [waveBgAlpha]);
   useEffect(() => {
     waterHueRef.current = waterHue;
   }, [waterHue]);
@@ -3052,6 +3068,8 @@ export function Aquafulness() {
     setWaterColorIdx(DEFAULTS.waterColorIdx);
     setWaterOpacity(DEFAULTS.waterOpacity);
     setWaterColorAlpha(DEFAULTS.waterColorAlpha);
+    setWaveBgColor(DEFAULTS.waveBgColor);
+    setWaveBgAlpha(DEFAULTS.waveBgAlpha);
     setWaterHue(DEFAULTS.waterHue);
     setWaterSat(DEFAULTS.waterSat);
     setWaterBright(DEFAULTS.waterBright);
@@ -3207,6 +3225,8 @@ export function Aquafulness() {
     if (patch.waterColorIdx !== undefined) setWaterColorIdx(patch.waterColorIdx);
     if (patch.waterOpacity !== undefined) setWaterOpacity(patch.waterOpacity);
     if (patch.waterColorAlpha !== undefined) setWaterColorAlpha(patch.waterColorAlpha);
+    if (patch.waveBgColor !== undefined) setWaveBgColor(patch.waveBgColor);
+    if (patch.waveBgAlpha !== undefined) setWaveBgAlpha(patch.waveBgAlpha);
     if (patch.waterHue !== undefined) setWaterHue(patch.waterHue);
     if (patch.waterSat !== undefined) setWaterSat(patch.waterSat);
     if (patch.waterBright !== undefined) setWaterBright(patch.waterBright);
@@ -4336,6 +4356,10 @@ export function Aquafulness() {
       uOverlayColor: { value: new THREE.Vector3(1, 0, 0) },
       uOpacity: { value: 1 },
       uWaterColorAlpha: { value: 0 },
+      // Background layer painted *under* the shaded wave surface (see the
+      // Translucency block in the fragment shader) — WAVE BACKGROUND.
+      uWaveBgColor: { value: new THREE.Vector3(0.04, 0.23, 0.29) },
+      uWaveBgAlpha: { value: 0 },
       uTintHue: { value: 0 },
       uTintSat: { value: 1 },
       uTintBright: { value: 1 },
@@ -4642,6 +4666,10 @@ export function Aquafulness() {
       // the "Water color overlay" block) — separate from uOpacity
       // (translucency to whatever's behind the water).
       uniform float uWaterColorAlpha;
+      // Flat background color + alpha composited *beneath* the shaded wave
+      // body (layer 0 in the Translucency block below).
+      uniform vec3 uWaveBgColor;
+      uniform float uWaveBgAlpha;
       uniform float uTintHue;
       uniform float uTintSat;
       uniform float uTintBright;
@@ -4893,6 +4921,10 @@ export function Aquafulness() {
         // one flat mix of everything into a single alpha. That's what makes
         // uOpacity actually empty the shaded body out to nothing rather than
         // leaving a residual tinted haze:
+        //   0. background — flat uWaveBgColor (WAVE BACKGROUND in
+        //      SettingsPanel.tsx) with alpha uWaveBgAlpha times visGate. It
+        //      sits *under* the body, so it shows through wherever uOpacity
+        //      makes the waves see-through, in place of the scene behind.
         //   1. body  — col as shaded above (tint, reflection, sun, sphere
         //      material, underwater tone-down, turbidity). Alpha is
         //      bodyAlpha, plain uOpacity with no boost: 0 is fully gone, 1
@@ -4914,8 +4946,12 @@ export function Aquafulness() {
         float bodyAlpha = clamp(uOpacity, 0.0, 1.0);
         float visGate = pow(bodyAlpha, 0.35);
 
-        vec3 premult = col * bodyAlpha;
-        float alpha = bodyAlpha;
+        float bgAlpha = clamp(uWaveBgAlpha, 0.0, 1.0) * visGate;
+        vec3 premult = uWaveBgColor * bgAlpha;
+        float alpha = bgAlpha;
+
+        premult = col * bodyAlpha + premult * (1.0 - bodyAlpha);
+        alpha = bodyAlpha + alpha * (1.0 - bodyAlpha);
 
         float paintAlpha = clamp(uWaterColorAlpha, 0.0, 1.0) * visGate;
         premult = uOverlayColor * paintAlpha + premult * (1.0 - paintAlpha);
@@ -5774,6 +5810,15 @@ export function Aquafulness() {
         (waterOpacityRef.current - uniforms.uOpacity.value) * Math.min(1, dt * 6);
       uniforms.uWaterColorAlpha.value +=
         (waterColorAlphaRef.current - uniforms.uWaterColorAlpha.value) * Math.min(1, dt * 6);
+      const waveBgRgb = hexToRgbNorm(waveBgColorRef.current);
+      uniforms.uWaveBgColor.value.x +=
+        (waveBgRgb[0] - uniforms.uWaveBgColor.value.x) * Math.min(1, dt * 6);
+      uniforms.uWaveBgColor.value.y +=
+        (waveBgRgb[1] - uniforms.uWaveBgColor.value.y) * Math.min(1, dt * 6);
+      uniforms.uWaveBgColor.value.z +=
+        (waveBgRgb[2] - uniforms.uWaveBgColor.value.z) * Math.min(1, dt * 6);
+      uniforms.uWaveBgAlpha.value +=
+        (waveBgAlphaRef.current - uniforms.uWaveBgAlpha.value) * Math.min(1, dt * 6);
       uniforms.uTintSat.value +=
         (waterSatRef.current - uniforms.uTintSat.value) * Math.min(1, dt * 6);
       uniforms.uTintBright.value +=
@@ -7854,6 +7899,10 @@ export function Aquafulness() {
     setWaterColorIdx,
     waterColorAlpha,
     setWaterColorAlpha,
+    waveBgColor,
+    setWaveBgColor,
+    waveBgAlpha,
+    setWaveBgAlpha,
     surfaces,
     surfaceId,
     setSurfaceId,

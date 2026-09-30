@@ -254,6 +254,8 @@
       "surfBright": "OVERFLADE-LYS",
       "surfSat": "OVERFLADE-MÆTNING",
       "turbidity": "GRUMSETHED",
+      "waveBgAlpha": "BAGGRUNDSOPACITET",
+      "waveBgColor": "BØLGEBAGGRUND",
       "waveMaterial": "BØLGEMATERIALE",
       "waveMaterialValue": {
         "sphereMap": "SFÆREKORT",
