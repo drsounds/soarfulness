@@ -567,6 +567,7 @@ type SceneManifest = {
   // Optional bobbing. Omitted / false → the model stays perfectly static.
   //   true                         → floats on the waves (follow, amp 1)
   //   { follow: true, amp }        → rides the wave surface at its position
+  //   { follow: false }            → static (same as omitting bob)
   //   { follow: false, amp, speed} → simple vertical sine bob
   bob?: boolean | { follow?: boolean; amp?: number; speed?: number };
   // Named respawn points for this scene — the "Locations"/"Places" list the
@@ -618,11 +619,12 @@ type BobConfig = { follow: boolean; amp: number; speed: number };
 function resolveBob(bob: SceneManifest["bob"]): BobConfig | null {
   if (!bob) return null;
   if (bob === true) return { follow: true, amp: 1, speed: 1 };
-  return {
-    follow: bob.follow ?? true,
-    amp: bob.amp ?? 1,
-    speed: bob.speed ?? 1,
-  };
+  const follow = bob.follow ?? true;
+  // follow: false without an explicit amp means "don't ride the waves" — keep
+  // the model static instead of falling back to a default sine bob.
+  const amp = bob.amp ?? (follow ? 1 : 0);
+  if (amp === 0) return null;
+  return { follow, amp, speed: bob.speed ?? 1 };
 }
 
 // Apply a scene manifest's transform to a loaded model root.
