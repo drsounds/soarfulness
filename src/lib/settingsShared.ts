@@ -310,6 +310,20 @@ export type Persisted = {
   // see-through, instead of the scene behind; 0 alpha keeps the old look.
   waveBgColor: string;
   waveBgAlpha: number;
+  // Foam (SKUM) look — see the "Foam" block in the ocean fragment shader.
+  // foamAmount is overall strength (0 = off, 1 = default, up to 2),
+  // foamCoverage (0–1) lowers the crest/patch thresholds so more of the
+  // surface foams (0.5 matches the original foam), foamScale is the
+  // pattern size multiplier and foamColor a "#rrggbb" tint.
+  foamAmount: number;
+  foamCoverage: number;
+  foamScale: number;
+  foamColor: string;
+  // Detail waves (DETALJVÅGOR): short wind waves rendered per-pixel on top
+  // of the swell ("waves within the waves"). detailWaves is the strength
+  // (0 = off), detailScale multiplies their wavelengths.
+  detailWaves: number;
+  detailScale: number;
   waterHue: number;
   waterSat: number;
   waterBright: number;
@@ -330,7 +344,7 @@ export type Persisted = {
   // forces off every optional texture (seafloor sand, the reflection photo,
   // torus-ring texture) and every live-noise fbm effect (BOTTOM "clouds",
   // mid/sky cloud decks + their VÄRLDSGRÄNS extension layers, sky puffs,
-  // the ocean's high-quality micro-chop/foam, real caustics) plus the
+  // the ocean's high-quality micro-chop, foam and detail waves, real caustics) plus the
   // remaining shading extras (chromatic aberration, the sphere-map matcap
   // material, torus rings entirely) — see lowGraphicsModeRef's reads in
   // routes/index.tsx's animate() and the effects around applyReflMix/
@@ -685,6 +699,12 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "waterColorAlpha",
     "waveBgColor",
     "waveBgAlpha",
+    "foamAmount",
+    "foamCoverage",
+    "foamScale",
+    "foamColor",
+    "detailWaves",
+    "detailScale",
     "waterHue",
     "waterSat",
     "waterBright",

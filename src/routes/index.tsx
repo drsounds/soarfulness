@@ -786,6 +786,12 @@ const DEFAULTS: Persisted = {
   waterColorAlpha: 0,
   waveBgColor: "#0b3a4a",
   waveBgAlpha: 0,
+  foamAmount: 1,
+  foamCoverage: 0.5,
+  foamScale: 1,
+  foamColor: "#f2faff",
+  detailWaves: 0.5,
+  detailScale: 1,
   waterHue: 0,
   waterSat: 0.95,
   waterBright: 1,
@@ -1225,6 +1231,12 @@ export function Aquafulness() {
   const [waterColorAlpha, setWaterColorAlpha] = useState(initial.waterColorAlpha);
   const [waveBgColor, setWaveBgColor] = useState(initial.waveBgColor);
   const [waveBgAlpha, setWaveBgAlpha] = useState(initial.waveBgAlpha);
+  const [foamAmount, setFoamAmount] = useState(initial.foamAmount);
+  const [foamCoverage, setFoamCoverage] = useState(initial.foamCoverage);
+  const [foamScale, setFoamScale] = useState(initial.foamScale);
+  const [foamColor, setFoamColor] = useState(initial.foamColor);
+  const [detailWaves, setDetailWaves] = useState(initial.detailWaves);
+  const [detailScale, setDetailScale] = useState(initial.detailScale);
   const [waterHue, setWaterHue] = useState(initial.waterHue);
   const [waterSat, setWaterSat] = useState(initial.waterSat);
   const [waterBright, setWaterBright] = useState(initial.waterBright);
@@ -1779,6 +1791,12 @@ export function Aquafulness() {
     waterColorAlpha,
     waveBgColor,
     waveBgAlpha,
+    foamAmount,
+    foamCoverage,
+    foamScale,
+    foamColor,
+    detailWaves,
+    detailScale,
     waterHue,
     waterSat,
     waterBright,
@@ -1945,6 +1963,12 @@ export function Aquafulness() {
     waterColorAlpha,
     waveBgColor,
     waveBgAlpha,
+    foamAmount,
+    foamCoverage,
+    foamScale,
+    foamColor,
+    detailWaves,
+    detailScale,
     waterHue,
     waterSat,
     waterBright,
@@ -2171,6 +2195,12 @@ export function Aquafulness() {
   const waterColorAlphaRef = useRef(waterColorAlpha);
   const waveBgColorRef = useRef(waveBgColor);
   const waveBgAlphaRef = useRef(waveBgAlpha);
+  const foamAmountRef = useRef(foamAmount);
+  const foamCoverageRef = useRef(foamCoverage);
+  const foamScaleRef = useRef(foamScale);
+  const foamColorRef = useRef(foamColor);
+  const detailWavesRef = useRef(detailWaves);
+  const detailScaleRef = useRef(detailScale);
   const waterHueRef = useRef(waterHue);
   const waterSatRef = useRef(waterSat);
   const waterBrightRef = useRef(waterBright);
@@ -2436,6 +2466,24 @@ export function Aquafulness() {
   useEffect(() => {
     waveBgAlphaRef.current = waveBgAlpha;
   }, [waveBgAlpha]);
+  useEffect(() => {
+    foamAmountRef.current = foamAmount;
+  }, [foamAmount]);
+  useEffect(() => {
+    foamCoverageRef.current = foamCoverage;
+  }, [foamCoverage]);
+  useEffect(() => {
+    foamScaleRef.current = foamScale;
+  }, [foamScale]);
+  useEffect(() => {
+    foamColorRef.current = foamColor;
+  }, [foamColor]);
+  useEffect(() => {
+    detailWavesRef.current = detailWaves;
+  }, [detailWaves]);
+  useEffect(() => {
+    detailScaleRef.current = detailScale;
+  }, [detailScale]);
   useEffect(() => {
     waterHueRef.current = waterHue;
   }, [waterHue]);
@@ -3070,6 +3118,12 @@ export function Aquafulness() {
     setWaterColorAlpha(DEFAULTS.waterColorAlpha);
     setWaveBgColor(DEFAULTS.waveBgColor);
     setWaveBgAlpha(DEFAULTS.waveBgAlpha);
+    setFoamAmount(DEFAULTS.foamAmount);
+    setFoamCoverage(DEFAULTS.foamCoverage);
+    setFoamScale(DEFAULTS.foamScale);
+    setFoamColor(DEFAULTS.foamColor);
+    setDetailWaves(DEFAULTS.detailWaves);
+    setDetailScale(DEFAULTS.detailScale);
     setWaterHue(DEFAULTS.waterHue);
     setWaterSat(DEFAULTS.waterSat);
     setWaterBright(DEFAULTS.waterBright);
@@ -3227,6 +3281,12 @@ export function Aquafulness() {
     if (patch.waterColorAlpha !== undefined) setWaterColorAlpha(patch.waterColorAlpha);
     if (patch.waveBgColor !== undefined) setWaveBgColor(patch.waveBgColor);
     if (patch.waveBgAlpha !== undefined) setWaveBgAlpha(patch.waveBgAlpha);
+    if (patch.foamAmount !== undefined) setFoamAmount(patch.foamAmount);
+    if (patch.foamCoverage !== undefined) setFoamCoverage(patch.foamCoverage);
+    if (patch.foamScale !== undefined) setFoamScale(patch.foamScale);
+    if (patch.foamColor !== undefined) setFoamColor(patch.foamColor);
+    if (patch.detailWaves !== undefined) setDetailWaves(patch.detailWaves);
+    if (patch.detailScale !== undefined) setDetailScale(patch.detailScale);
     if (patch.waterHue !== undefined) setWaterHue(patch.waterHue);
     if (patch.waterSat !== undefined) setWaterSat(patch.waterSat);
     if (patch.waterBright !== undefined) setWaterBright(patch.waterBright);
@@ -4360,6 +4420,14 @@ export function Aquafulness() {
       // Translucency block in the fragment shader) — WAVE BACKGROUND.
       uWaveBgColor: { value: new THREE.Vector3(0.04, 0.23, 0.29) },
       uWaveBgAlpha: { value: 0 },
+      // Foam + detail-wave ("waves within the waves") controls — see the
+      // "Detail waves" and "Foam" blocks in the ocean fragment shader.
+      uFoamAmount: { value: 1 },
+      uFoamCoverage: { value: 0.5 },
+      uFoamScale: { value: 1 },
+      uFoamColor: { value: new THREE.Vector3(0.95, 0.98, 1.0) },
+      uDetailWaves: { value: 0 },
+      uDetailScale: { value: 1 },
       uTintHue: { value: 0 },
       uTintSat: { value: 1 },
       uTintBright: { value: 1 },
@@ -4670,6 +4738,18 @@ export function Aquafulness() {
       // body (layer 0 in the Translucency block below).
       uniform vec3 uWaveBgColor;
       uniform float uWaveBgAlpha;
+      // Foam look (SKUM dials): overall strength, how much of the surface
+      // it covers, pattern size in meters, and its color.
+      uniform float uFoamAmount;
+      uniform float uFoamCoverage;
+      uniform float uFoamScale;
+      uniform vec3 uFoamColor;
+      // Detail waves (DETALJVÅGOR): strength + wavelength multiplier of the
+      // short wind waves riding on top of the swell. uDir is the same wave
+      // direction the vertex shader uses, so they travel with the swell.
+      uniform float uDetailWaves;
+      uniform float uDetailScale;
+      uniform float uDir;
       uniform float uTintHue;
       uniform float uTintSat;
       uniform float uTintBright;
@@ -4721,6 +4801,59 @@ export function Aquafulness() {
           p *= 2.02; a *= 0.5;
         }
         return v;
+      }
+
+      // Cellular (Voronoi) edge distance — ~0 along the borders between
+      // cells, which is what gives foam its lacy, bubble-cluster look instead
+      // of the soft blobs plain fbm produces.
+      vec2 hash2(vec2 p){
+        p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));
+        return fract(sin(p) * 43758.5453);
+      }
+      float voronoiEdge(vec2 p){
+        vec2 i = floor(p); vec2 f = fract(p);
+        float d1 = 8.0; float d2 = 8.0;
+        for (int y = -1; y <= 1; y++) {
+          for (int x = -1; x <= 1; x++) {
+            vec2 g = vec2(float(x), float(y));
+            vec2 r = g + hash2(i + g) - f;
+            float d = dot(r, r);
+            if (d < d1) { d2 = d1; d1 = d; } else if (d < d2) { d2 = d; }
+          }
+        }
+        return sqrt(d2) - sqrt(d1);
+      }
+
+      // Detail waves — "waves within the waves": a small directional
+      // spectrum of short wind waves (≈0.5–3.5m at DETALJVÅGSTORLEK 1)
+      // spread ±45° around the swell direction, each moving at its own
+      // deep-water phase speed (w = sqrt(g·k)), so they visibly crawl over
+      // the big swell instead of being welded to it. Returns the heightfield
+      // gradient (for normal perturbation); crest is a normalized 0–1 peak
+      // indicator used to seed whitecaps. Each component fades out once it
+      // gets too fine for the pixel footprint at that distance (same
+      // anti-"boiling" reasoning as shim below).
+      vec2 detailWaveGrad(vec2 p, float t, float scale, float dist, out float crest) {
+        vec2 base = vec2(-sin(uDir), -cos(uDir));
+        vec2 grad = vec2(0.0);
+        float c = 0.0; float cw = 0.0;
+        for (int i = 0; i < 8; i++) {
+          float fi = float(i);
+          float ang = (hash(vec2(fi, 3.7)) - 0.5) * 1.6;
+          float ca = cos(ang); float sa = sin(ang);
+          vec2 d = vec2(base.x * ca - base.y * sa, base.x * sa + base.y * ca);
+          float wl = mix(0.5, 3.5, fi / 7.0) * scale;
+          float k = 6.2831853 / wl;
+          float w = sqrt(9.81 * k);
+          float a = wl * 0.018;
+          float fade = 1.0 - smoothstep(wl * 6.0, wl * 22.0, dist);
+          float ph = k * dot(d, p) - w * t + hash(vec2(fi, 9.1)) * 6.2831853;
+          grad += d * (a * k * cos(ph) * fade);
+          c += a * fade * pow(0.5 + 0.5 * sin(ph), 4.0);
+          cw += a;
+        }
+        crest = c / max(cw, 1e-4);
+        return grad;
       }
 
       // Procedural sphere-map ("matcap") material: instead of sampling a
@@ -4785,12 +4918,11 @@ export function Aquafulness() {
                      sin(vWorldPos.x * 5.1 - vWorldPos.z * 6.2) * shimFade;
         vec3 Nshim = normalize(N + vec3(shim * 0.06, 0.0, shim * 0.05));
 
-        // Fine procedural micro-chop + whitecap foam (HIGH quality only) —
-        // breaks up the too-clean analytic-sine "plasma" look with organic,
-        // non-repeating detail, and adds animated, patchy foam near steep,
-        // high crests. uQuality is a uniform (same value for every fragment
-        // in the draw call), so this branch is free when off, and LOW
-        // quality stays byte-for-byte the original shading.
+        // Fine procedural micro-chop (HIGH quality only) — breaks up the
+        // too-clean analytic-sine "plasma" look with organic, non-repeating
+        // detail. uQuality is a uniform (same value for every fragment in
+        // the draw call), so this branch is free when off. Foam used to live
+        // in here too; it now has its own SKUM-gated block below.
         float foam = 0.0;
         if (uQuality > 0.5) {
           // Coarser frequency than shim above, so it stays resolved (and
@@ -4802,10 +4934,61 @@ export function Aquafulness() {
           float microBump = ((n1 - 0.5) * 0.05 + (n2 - 0.5) * 0.025) * microFade;
           Nshim = normalize(Nshim + vec3(microBump, 0.0, microBump * 0.7));
 
+        }
+
+        // Detail waves ("waves within the waves", DETALJVÅGOR) — see
+        // detailWaveGrad above. Heightfield normal = normalize(-dh/dx, 1,
+        // -dh/dz), so the gradient is subtracted from the normal. Same
+        // grazing-angle taming as shim/micro-chop, since it also feeds the
+        // reflection-sensitive Nshim. Free when the dial is at 0.
+        float detailCrest = 0.0;
+        if (uDetailWaves > 0.001) {
+          float dScale = max(uDetailScale, 0.05);
+          vec2 dGrad = detailWaveGrad(vWorldPos.xz, uTime, dScale, shimDist, detailCrest);
+          float dGraze = smoothstep(0.02, 0.15, NdotV);
+          Nshim = normalize(Nshim - vec3(dGrad.x, 0.0, dGrad.y) * uDetailWaves * dGraze);
+          detailCrest *= clamp(uDetailWaves, 0.0, 1.5);
+        }
+
+        // Foam (SKUM) — whitecaps where the swell crests high and steep,
+        // plus smaller caps on the detail waves' own crests, broken up by
+        // drifting fbm patches and a two-scale Voronoi "lace" so it reads
+        // as clusters of bubbles: dense at the core of a crest, thinning to
+        // an open lacy net at its edges, with faint residual streaks left
+        // in the troughs. It drifts along with the wave direction. At
+        // SKUMTÄCKNING 50% the crest/patch thresholds match the previous
+        // HIGH-quality foam. Free when SKUM is 0.
+        if (uFoamAmount > 0.001) {
+          float cov = clamp(uFoamCoverage, 0.0, 1.0);
+          float fScale = max(uFoamScale, 0.05);
+          vec2 fDir = vec2(-sin(uDir), -cos(uDir));
+          vec2 fp = (vWorldPos.xz - fDir * uTime * 0.35) / fScale;
+
           float slope = 1.0 - N.y;
-          float crestF = smoothstep(uAmp * 0.55, uAmp * 1.3, vWorldPos.y);
-          float foamNoise = fbm(vWorldPos.xz * 0.8 + vec2(uTime * 0.12, -uTime * 0.09));
-          foam = clamp(crestF * (0.35 + slope * 1.8) * smoothstep(0.3, 0.75, foamNoise), 0.0, 1.0);
+          float crestLo = mix(1.1, 0.0, cov) * uAmp;
+          float crestF = smoothstep(crestLo, crestLo + uAmp * 0.75 + 0.05, vWorldPos.y);
+          // Patches (and lace below) fade to their average with distance
+          // and at grazing view angles — where a pixel's footprint gets
+          // longer than the pattern — instead of aliasing into speckle.
+          float grazeFade = smoothstep(0.04, 0.3, NdotV);
+          float farFade = (1.0 - smoothstep(25.0 * fScale, 90.0 * fScale, shimDist)) * grazeFade;
+          float patches = mix(0.5, fbm(fp * 0.8 + vec2(uTime * 0.12, -uTime * 0.09)), farFade);
+          float patchMask = smoothstep(0.55 - cov * 0.5, 0.95 - cov * 0.4, patches);
+
+          float laceFade = (1.0 - smoothstep(8.0 * fScale, 35.0 * fScale, shimDist)) * grazeFade;
+          float lace = 0.45;
+          if (laceFade > 0.001) {
+            float lace1 = 1.0 - smoothstep(0.0, 0.25, voronoiEdge(fp * 2.2));
+            float lace2 = 1.0 - smoothstep(0.0, 0.18, voronoiEdge(fp * 5.3 + 17.0));
+            lace = mix(0.45, max(lace1, lace2 * 0.7), laceFade);
+          }
+
+          float crestFoam = crestF * (0.35 + slope * 1.8);
+          float capFoam = smoothstep(0.75 - cov * 0.35, 1.0, detailCrest) * 0.8;
+          float core = clamp((crestFoam + capFoam) * patchMask, 0.0, 1.0);
+          float f = core * mix(lace, 1.0, smoothstep(0.55, 0.95, core));
+          f += lace * patchMask * patchMask * cov * 0.1;
+          foam = clamp(f * uFoamAmount, 0.0, 1.0);
         }
 
         // Sky reflection — sample along the reflection vector so different
@@ -4869,7 +5052,7 @@ export function Aquafulness() {
         float spec = pow(max(dot(Nshim, H), 0.0), shin);
         float grazeBoost = 1.0 + (1.0 - NdotV) * 1.5;
         vec3 sun = uSunColor * spec * clamp(uSunDir.y + 0.2, 0.0, 1.0)
-                   * 2.8 * grazeBoost * (1.0 - uUnderwater);
+                   * 2.8 * grazeBoost * (1.0 - uUnderwater) * (1.0 - foam * 0.8);
 
         // Reflective share of this pixel (sky/photo Fresnel term) — kept
         // around post-mix so the alpha/compositing step below can tell it
@@ -4958,7 +5141,8 @@ export function Aquafulness() {
         alpha = paintAlpha + alpha * (1.0 - paintAlpha);
 
         float foamAlpha = clamp(foam * 0.85 * (1.0 - uUnderwater), 0.0, 1.0) * visGate;
-        premult = vec3(0.95, 0.98, 1.0) * foamAlpha + premult * (1.0 - foamAlpha);
+        vec3 foamCol = uFoamColor * clamp(uSunDir.y + 0.45, 0.3, 1.0);
+        premult = foamCol * foamAlpha + premult * (1.0 - foamAlpha);
         alpha = foamAlpha + alpha * (1.0 - foamAlpha);
 
         gl_FragColor = vec4(premult, alpha);
@@ -5819,6 +6003,25 @@ export function Aquafulness() {
         (waveBgRgb[2] - uniforms.uWaveBgColor.value.z) * Math.min(1, dt * 6);
       uniforms.uWaveBgAlpha.value +=
         (waveBgAlphaRef.current - uniforms.uWaveBgAlpha.value) * Math.min(1, dt * 6);
+      // Foam + detail waves (SKUM / DETALJVÅGOR dials). LOW GRAPHICS MODE forces both off.
+      uniforms.uFoamAmount.value +=
+        ((!lowEnd ? foamAmountRef.current : 0) - uniforms.uFoamAmount.value) * Math.min(1, dt * 6);
+      uniforms.uFoamCoverage.value +=
+        (foamCoverageRef.current - uniforms.uFoamCoverage.value) * Math.min(1, dt * 6);
+      uniforms.uFoamScale.value +=
+        (foamScaleRef.current - uniforms.uFoamScale.value) * Math.min(1, dt * 6);
+      const foamRgb = hexToRgbNorm(foamColorRef.current);
+      uniforms.uFoamColor.value.x +=
+        (foamRgb[0] - uniforms.uFoamColor.value.x) * Math.min(1, dt * 6);
+      uniforms.uFoamColor.value.y +=
+        (foamRgb[1] - uniforms.uFoamColor.value.y) * Math.min(1, dt * 6);
+      uniforms.uFoamColor.value.z +=
+        (foamRgb[2] - uniforms.uFoamColor.value.z) * Math.min(1, dt * 6);
+      uniforms.uDetailWaves.value +=
+        ((!lowEnd ? detailWavesRef.current : 0) - uniforms.uDetailWaves.value) *
+        Math.min(1, dt * 6);
+      uniforms.uDetailScale.value +=
+        (detailScaleRef.current - uniforms.uDetailScale.value) * Math.min(1, dt * 6);
       uniforms.uTintSat.value +=
         (waterSatRef.current - uniforms.uTintSat.value) * Math.min(1, dt * 6);
       uniforms.uTintBright.value +=
@@ -7903,6 +8106,18 @@ export function Aquafulness() {
     setWaveBgColor,
     waveBgAlpha,
     setWaveBgAlpha,
+    foamAmount,
+    setFoamAmount,
+    foamCoverage,
+    setFoamCoverage,
+    foamScale,
+    setFoamScale,
+    foamColor,
+    setFoamColor,
+    detailWaves,
+    setDetailWaves,
+    detailScale,
+    setDetailScale,
     surfaces,
     surfaceId,
     setSurfaceId,
