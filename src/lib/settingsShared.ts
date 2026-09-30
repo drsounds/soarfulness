@@ -304,12 +304,15 @@ export type Persisted = {
   // saturated look of Super Mario Sunshine's water; 0 keeps the previous,
   // fully lit/textured appearance.
   waterColorAlpha: number;
-  // Flat "#rrggbb" background painted *under* the shaded wave surface, with
-  // its own alpha (see uWaveBgColor/uWaveBgAlpha in the ocean fragment
-  // shader). Shows through wherever waterOpacity makes the waves
-  // see-through, instead of the scene behind; 0 alpha keeps the old look.
-  waveBgColor: string;
-  waveBgAlpha: number;
+  // The wave surface's background fill — the water body behind the wave
+  // "texture" (reflections, sun glints, foam); see "Wave background" in the
+  // ocean fragment shader. waveBgCustomColor is a "#rrggbb" override for its
+  // color, "" = natural water shading. waveBgOpacity is the fill's own
+  // opacity: 1 = the normal look, 0 = only the wave texture remains.
+  // (Replaces the earlier waveBgColor/waveBgAlpha under-layer, renamed so
+  // old saved values — alpha 0 — don't turn every water surface see-through.)
+  waveBgCustomColor: string;
+  waveBgOpacity: number;
   // Foam (SKUM) look — see the "Foam" block in the ocean fragment shader.
   // foamAmount is overall strength (0 = off, 1 = default, up to 2),
   // foamCoverage (0–1) lowers the crest/patch thresholds so more of the
@@ -697,8 +700,8 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "sphereStrength",
     "waterOpacity",
     "waterColorAlpha",
-    "waveBgColor",
-    "waveBgAlpha",
+    "waveBgCustomColor",
+    "waveBgOpacity",
     "foamAmount",
     "foamCoverage",
     "foamScale",

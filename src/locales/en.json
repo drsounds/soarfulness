@@ -260,8 +260,9 @@
       "surfBright": "SURFACE LIGHT",
       "surfSat": "SURFACE SATURATION",
       "turbidity": "TURBIDITY",
-      "waveBgAlpha": "BACKGROUND OPACITY",
-      "waveBgColor": "WAVE BACKGROUND",
+      "waveBgOpacity": "BACKGROUND OPACITY",
+      "waveBgNatural": "NATURAL",
+      "waveBgCustomColor": "WAVE BACKGROUND",
       "waveMaterial": "WAVE MATERIAL",
       "waveMaterialValue": {
         "sphereMap": "SPHERE MAP",

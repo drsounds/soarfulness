@@ -784,8 +784,8 @@ const DEFAULTS: Persisted = {
   waterColorIdx: 4,
   waterOpacity: 0.5,
   waterColorAlpha: 0,
-  waveBgColor: "#0b3a4a",
-  waveBgAlpha: 0,
+  waveBgCustomColor: "",
+  waveBgOpacity: 1,
   foamAmount: 1,
   foamCoverage: 0.5,
   foamScale: 1,
@@ -1229,8 +1229,8 @@ export function Aquafulness() {
   const [waterColorIdx, setWaterColorIdx] = useState(initial.waterColorIdx);
   const [waterOpacity, setWaterOpacity] = useState(initial.waterOpacity);
   const [waterColorAlpha, setWaterColorAlpha] = useState(initial.waterColorAlpha);
-  const [waveBgColor, setWaveBgColor] = useState(initial.waveBgColor);
-  const [waveBgAlpha, setWaveBgAlpha] = useState(initial.waveBgAlpha);
+  const [waveBgCustomColor, setWaveBgCustomColor] = useState(initial.waveBgCustomColor);
+  const [waveBgOpacity, setWaveBgOpacity] = useState(initial.waveBgOpacity);
   const [foamAmount, setFoamAmount] = useState(initial.foamAmount);
   const [foamCoverage, setFoamCoverage] = useState(initial.foamCoverage);
   const [foamScale, setFoamScale] = useState(initial.foamScale);
@@ -1789,8 +1789,8 @@ export function Aquafulness() {
     waterColorIdx,
     waterOpacity,
     waterColorAlpha,
-    waveBgColor,
-    waveBgAlpha,
+    waveBgCustomColor,
+    waveBgOpacity,
     foamAmount,
     foamCoverage,
     foamScale,
@@ -1961,8 +1961,8 @@ export function Aquafulness() {
     waterColorIdx,
     waterOpacity,
     waterColorAlpha,
-    waveBgColor,
-    waveBgAlpha,
+    waveBgCustomColor,
+    waveBgOpacity,
     foamAmount,
     foamCoverage,
     foamScale,
@@ -2193,8 +2193,8 @@ export function Aquafulness() {
   const waterColorRef = useRef(waterColorIdx);
   const waterOpacityRef = useRef(waterOpacity);
   const waterColorAlphaRef = useRef(waterColorAlpha);
-  const waveBgColorRef = useRef(waveBgColor);
-  const waveBgAlphaRef = useRef(waveBgAlpha);
+  const waveBgCustomColorRef = useRef(waveBgCustomColor);
+  const waveBgOpacityRef = useRef(waveBgOpacity);
   const foamAmountRef = useRef(foamAmount);
   const foamCoverageRef = useRef(foamCoverage);
   const foamScaleRef = useRef(foamScale);
@@ -2461,11 +2461,11 @@ export function Aquafulness() {
     waterColorAlphaRef.current = waterColorAlpha;
   }, [waterColorAlpha]);
   useEffect(() => {
-    waveBgColorRef.current = waveBgColor;
-  }, [waveBgColor]);
+    waveBgCustomColorRef.current = waveBgCustomColor;
+  }, [waveBgCustomColor]);
   useEffect(() => {
-    waveBgAlphaRef.current = waveBgAlpha;
-  }, [waveBgAlpha]);
+    waveBgOpacityRef.current = waveBgOpacity;
+  }, [waveBgOpacity]);
   useEffect(() => {
     foamAmountRef.current = foamAmount;
   }, [foamAmount]);
@@ -3116,8 +3116,8 @@ export function Aquafulness() {
     setWaterColorIdx(DEFAULTS.waterColorIdx);
     setWaterOpacity(DEFAULTS.waterOpacity);
     setWaterColorAlpha(DEFAULTS.waterColorAlpha);
-    setWaveBgColor(DEFAULTS.waveBgColor);
-    setWaveBgAlpha(DEFAULTS.waveBgAlpha);
+    setWaveBgCustomColor(DEFAULTS.waveBgCustomColor);
+    setWaveBgOpacity(DEFAULTS.waveBgOpacity);
     setFoamAmount(DEFAULTS.foamAmount);
     setFoamCoverage(DEFAULTS.foamCoverage);
     setFoamScale(DEFAULTS.foamScale);
@@ -3279,8 +3279,8 @@ export function Aquafulness() {
     if (patch.waterColorIdx !== undefined) setWaterColorIdx(patch.waterColorIdx);
     if (patch.waterOpacity !== undefined) setWaterOpacity(patch.waterOpacity);
     if (patch.waterColorAlpha !== undefined) setWaterColorAlpha(patch.waterColorAlpha);
-    if (patch.waveBgColor !== undefined) setWaveBgColor(patch.waveBgColor);
-    if (patch.waveBgAlpha !== undefined) setWaveBgAlpha(patch.waveBgAlpha);
+    if (patch.waveBgCustomColor !== undefined) setWaveBgCustomColor(patch.waveBgCustomColor);
+    if (patch.waveBgOpacity !== undefined) setWaveBgOpacity(patch.waveBgOpacity);
     if (patch.foamAmount !== undefined) setFoamAmount(patch.foamAmount);
     if (patch.foamCoverage !== undefined) setFoamCoverage(patch.foamCoverage);
     if (patch.foamScale !== undefined) setFoamScale(patch.foamScale);
@@ -4416,10 +4416,13 @@ export function Aquafulness() {
       uOverlayColor: { value: new THREE.Vector3(1, 0, 0) },
       uOpacity: { value: 1 },
       uWaterColorAlpha: { value: 0 },
-      // Background layer painted *under* the shaded wave surface (see the
-      // Translucency block in the fragment shader) — WAVE BACKGROUND.
-      uWaveBgColor: { value: new THREE.Vector3(0.04, 0.23, 0.29) },
-      uWaveBgAlpha: { value: 0 },
+      // The wave surface's background fill (the transmitted water body the
+      // reflections/glints/foam "texture" sits on) — VÅGBAKGRUND / BAKGRUNDENS
+      // OPACITET. uWaveBgCustom blends its color from the natural water
+      // shading (0) to the flat uWaveBgCustomColor (1).
+      uWaveBgCustomColor: { value: new THREE.Vector3(0.04, 0.23, 0.29) },
+      uWaveBgCustom: { value: 0 },
+      uWaveBgOpacity: { value: 1 },
       // Foam + detail-wave ("waves within the waves") controls — see the
       // "Detail waves" and "Foam" blocks in the ocean fragment shader.
       uFoamAmount: { value: 1 },
@@ -4734,10 +4737,12 @@ export function Aquafulness() {
       // the "Water color overlay" block) — separate from uOpacity
       // (translucency to whatever's behind the water).
       uniform float uWaterColorAlpha;
-      // Flat background color + alpha composited *beneath* the shaded wave
-      // body (layer 0 in the Translucency block below).
-      uniform vec3 uWaveBgColor;
-      uniform float uWaveBgAlpha;
+      // Wave background fill: optional custom color (uWaveBgCustom 0..1
+      // blends it in) and the fill's own opacity, independent of the
+      // reflection/glint/foam texture on top (see "Wave background" below).
+      uniform vec3 uWaveBgCustomColor;
+      uniform float uWaveBgCustom;
+      uniform float uWaveBgOpacity;
       // Foam look (SKUM dials): overall strength, how much of the surface
       // it covers, pattern size in meters, and its color.
       uniform float uFoamAmount;
@@ -5058,13 +5063,29 @@ export function Aquafulness() {
         // around post-mix so the alpha/compositing step below can tell it
         // apart from the transmitted water body.
         float reflAmt = fres * (1.0 - uUnderwater * 0.85);
-        vec3 col = mix(water, skyRef, reflAmt) + sun;
+
+        // Wave background (VÅGBAKGRUND / BAKGRUNDENS OPACITET): the
+        // transmitted water body is the "background" the wave texture —
+        // Fresnel sky/photo reflection and sun glints — sits on. Its color
+        // can be swapped for a flat custom one (lit by daylight), and its
+        // opacity bgOp lowered independently: at 0 the fill is fully
+        // transparent and only the reflections/glints (and foam, below)
+        // remain. Kept in premultiplied form so bgOp = 1 reproduces the
+        // plain mix(water, skyRef, reflAmt) + sun exactly.
+        vec3 fillCol = mix(water, uWaveBgCustomColor * clamp(uSunDir.y + 0.45, 0.3, 1.0),
+                           clamp(uWaveBgCustom, 0.0, 1.0));
+        float bgOp = clamp(uWaveBgOpacity, 0.0, 1.0);
+        vec3 bodyPremult = skyRef * reflAmt + sun + fillCol * (1.0 - reflAmt) * bgOp;
+        float sunA = clamp(dot(sun, vec3(0.299, 0.587, 0.114)), 0.0, 1.0);
+        float texAlpha = clamp(reflAmt + sunA * (1.0 - reflAmt), 0.0, 1.0);
+        float fillAlpha = mix(texAlpha, 1.0, bgOp);
+        vec3 col = bodyPremult / max(fillAlpha, 1e-4);
 
         // Selectable sphere-map ("matcap") material — a distinct, glossier
         // look the user opts into per VÅGMATERIAL, blended on top of the
         // regular Fresnel/sky shading rather than replacing it outright.
         if (uSphereMix > 0.001) {
-          col = mix(col, sphereMapShade(Nshim, water), uSphereMix);
+          col = mix(col, sphereMapShade(Nshim, fillCol), uSphereMix);
         }
 
         // The color picker's flat uOverlayColor and the whitecap foam are
@@ -5104,14 +5125,12 @@ export function Aquafulness() {
         // one flat mix of everything into a single alpha. That's what makes
         // uOpacity actually empty the shaded body out to nothing rather than
         // leaving a residual tinted haze:
-        //   0. background — flat uWaveBgColor (WAVE BACKGROUND in
-        //      SettingsPanel.tsx) with alpha uWaveBgAlpha times visGate. It
-        //      sits *under* the body, so it shows through wherever uOpacity
-        //      makes the waves see-through, in place of the scene behind.
         //   1. body  — col as shaded above (tint, reflection, sun, sphere
         //      material, underwater tone-down, turbidity). Alpha is
         //      bodyAlpha, plain uOpacity with no boost: 0 is fully gone, 1
-        //      is fully opaque, and every value between fades linearly.
+        //      is fully opaque, and every value between fades linearly —
+        //      times fillAlpha, which drops below 1 only where the wave
+        //      background's own opacity (uWaveBgOpacity) empties the fill.
         //   2. paint — the color picker's flat uOverlayColor (WaterColorPicker
         //      in SettingsPanel.tsx). Alpha is uWaterColorAlpha ("COLOR
         //      STRENGTH") times visGate — deliberately *not* multiplied by
@@ -5129,12 +5148,9 @@ export function Aquafulness() {
         float bodyAlpha = clamp(uOpacity, 0.0, 1.0);
         float visGate = pow(bodyAlpha, 0.35);
 
-        float bgAlpha = clamp(uWaveBgAlpha, 0.0, 1.0) * visGate;
-        vec3 premult = uWaveBgColor * bgAlpha;
-        float alpha = bgAlpha;
-
-        premult = col * bodyAlpha + premult * (1.0 - bodyAlpha);
-        alpha = bodyAlpha + alpha * (1.0 - bodyAlpha);
+        float bodyA = bodyAlpha * fillAlpha;
+        vec3 premult = col * bodyA;
+        float alpha = bodyA;
 
         float paintAlpha = clamp(uWaterColorAlpha, 0.0, 1.0) * visGate;
         premult = uOverlayColor * paintAlpha + premult * (1.0 - paintAlpha);
@@ -5994,15 +6010,25 @@ export function Aquafulness() {
         (waterOpacityRef.current - uniforms.uOpacity.value) * Math.min(1, dt * 6);
       uniforms.uWaterColorAlpha.value +=
         (waterColorAlphaRef.current - uniforms.uWaterColorAlpha.value) * Math.min(1, dt * 6);
-      const waveBgRgb = hexToRgbNorm(waveBgColorRef.current);
-      uniforms.uWaveBgColor.value.x +=
-        (waveBgRgb[0] - uniforms.uWaveBgColor.value.x) * Math.min(1, dt * 6);
-      uniforms.uWaveBgColor.value.y +=
-        (waveBgRgb[1] - uniforms.uWaveBgColor.value.y) * Math.min(1, dt * 6);
-      uniforms.uWaveBgColor.value.z +=
-        (waveBgRgb[2] - uniforms.uWaveBgColor.value.z) * Math.min(1, dt * 6);
-      uniforms.uWaveBgAlpha.value +=
-        (waveBgAlphaRef.current - uniforms.uWaveBgAlpha.value) * Math.min(1, dt * 6);
+      // An empty waveBgCustomColor means "natural" (plain water shading).
+      const waveBgCustom = waveBgCustomColorRef.current;
+      uniforms.uWaveBgCustom.value +=
+        ((waveBgCustom ? 1 : 0) - uniforms.uWaveBgCustom.value) * Math.min(1, dt * 6);
+      const waveBgRgb = waveBgCustom
+        ? hexToRgbNorm(waveBgCustom)
+        : [
+            uniforms.uWaveBgCustomColor.value.x,
+            uniforms.uWaveBgCustomColor.value.y,
+            uniforms.uWaveBgCustomColor.value.z,
+          ];
+      uniforms.uWaveBgCustomColor.value.x +=
+        (waveBgRgb[0] - uniforms.uWaveBgCustomColor.value.x) * Math.min(1, dt * 6);
+      uniforms.uWaveBgCustomColor.value.y +=
+        (waveBgRgb[1] - uniforms.uWaveBgCustomColor.value.y) * Math.min(1, dt * 6);
+      uniforms.uWaveBgCustomColor.value.z +=
+        (waveBgRgb[2] - uniforms.uWaveBgCustomColor.value.z) * Math.min(1, dt * 6);
+      uniforms.uWaveBgOpacity.value +=
+        (waveBgOpacityRef.current - uniforms.uWaveBgOpacity.value) * Math.min(1, dt * 6);
       // Foam + detail waves (SKUM / DETALJVÅGOR dials). LOW GRAPHICS MODE forces both off.
       uniforms.uFoamAmount.value +=
         ((!lowEnd ? foamAmountRef.current : 0) - uniforms.uFoamAmount.value) * Math.min(1, dt * 6);
@@ -8102,10 +8128,10 @@ export function Aquafulness() {
     setWaterColorIdx,
     waterColorAlpha,
     setWaterColorAlpha,
-    waveBgColor,
-    setWaveBgColor,
-    waveBgAlpha,
-    setWaveBgAlpha,
+    waveBgCustomColor,
+    setWaveBgCustomColor,
+    waveBgOpacity,
+    setWaveBgOpacity,
     foamAmount,
     setFoamAmount,
     foamCoverage,

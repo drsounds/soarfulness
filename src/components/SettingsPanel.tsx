@@ -642,10 +642,10 @@ export type SettingsPanelProps = {
   setWaterOpacity: Dispatch<SetStateAction<number>>;
   waterColorAlpha: number;
   setWaterColorAlpha: Dispatch<SetStateAction<number>>;
-  waveBgColor: string;
-  setWaveBgColor: Dispatch<SetStateAction<string>>;
-  waveBgAlpha: number;
-  setWaveBgAlpha: Dispatch<SetStateAction<number>>;
+  waveBgCustomColor: string;
+  setWaveBgCustomColor: Dispatch<SetStateAction<string>>;
+  waveBgOpacity: number;
+  setWaveBgOpacity: Dispatch<SetStateAction<number>>;
   foamAmount: number;
   setFoamAmount: Dispatch<SetStateAction<number>>;
   foamCoverage: number;
@@ -1338,10 +1338,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setWaterColorIdx,
     waterColorAlpha,
     setWaterColorAlpha,
-    waveBgColor,
-    setWaveBgColor,
-    waveBgAlpha,
-    setWaveBgAlpha,
+    waveBgCustomColor,
+    setWaveBgCustomColor,
+    waveBgOpacity,
+    setWaveBgOpacity,
     foamAmount,
     setFoamAmount,
     foamCoverage,
@@ -2863,28 +2863,44 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   onDec={() => setWaterOpacity((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
                   onInc={() => setWaterOpacity((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
                 />
-                <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
-                  <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
-                    {t("dial.water.waveBgColor")}
-                  </span>
-                  <input
-                    type="color"
-                    value={waveBgColor}
-                    onChange={(e) => setWaveBgColor(e.target.value)}
-                    className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
-                  />
-                </label>
+                <div className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
+                  <label className="flex items-center gap-2">
+                    <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
+                      {t("dial.water.waveBgCustomColor")}
+                    </span>
+                    {waveBgCustomColor === "" && (
+                      <span className="text-[9px] font-light tracking-[0.2em] ui-ink-faint">
+                        {t("dial.water.waveBgNatural")}
+                      </span>
+                    )}
+                    <input
+                      type="color"
+                      value={waveBgCustomColor || "#0b3a4a"}
+                      onChange={(e) => setWaveBgCustomColor(e.target.value)}
+                      className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
+                    />
+                  </label>
+                  {waveBgCustomColor !== "" && (
+                    <button
+                      type="button"
+                      onClick={() => setWaveBgCustomColor("")}
+                      className="h-7 rounded-full border ui-line-2 ui-tint-1 px-2 text-[9px] tracking-[0.2em] ui-ink transition active:scale-95 ui-press"
+                    >
+                      {t("dial.water.waveBgNatural")}
+                    </button>
+                  )}
+                </div>
                 <SettingRow
-                  label={t("dial.water.waveBgAlpha")}
+                  label={t("dial.water.waveBgOpacity")}
                   mode="number"
-                  value={`${Math.round(waveBgAlpha * 100)}%`}
-                  rawValue={waveBgAlpha}
-                  onSet={(v) => setWaveBgAlpha(Math.max(0, Math.min(1, v)))}
+                  value={`${Math.round(waveBgOpacity * 100)}%`}
+                  rawValue={waveBgOpacity}
+                  onSet={(v) => setWaveBgOpacity(Math.max(0, Math.min(1, v)))}
                   min={0}
                   max={1}
                   step={0.05}
-                  onDec={() => setWaveBgAlpha((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
-                  onInc={() => setWaveBgAlpha((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+                  onDec={() => setWaveBgOpacity((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                  onInc={() => setWaveBgOpacity((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
                 />
                 <SettingRow
                   label={t("dial.water.foam")}
