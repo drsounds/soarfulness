@@ -304,6 +304,12 @@ export type Persisted = {
   // saturated look of Super Mario Sunshine's water; 0 keeps the previous,
   // fully lit/textured appearance.
   waterColorAlpha: number;
+  // Flat "#rrggbb" background painted *under* the shaded wave surface, with
+  // its own alpha (see uWaveBgColor/uWaveBgAlpha in the ocean fragment
+  // shader). Shows through wherever waterOpacity makes the waves
+  // see-through, instead of the scene behind; 0 alpha keeps the old look.
+  waveBgColor: string;
+  waveBgAlpha: number;
   waterHue: number;
   waterSat: number;
   waterBright: number;
@@ -677,6 +683,8 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "sphereStrength",
     "waterOpacity",
     "waterColorAlpha",
+    "waveBgColor",
+    "waveBgAlpha",
     "waterHue",
     "waterSat",
     "waterBright",

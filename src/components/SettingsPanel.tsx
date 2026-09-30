@@ -642,6 +642,10 @@ export type SettingsPanelProps = {
   setWaterOpacity: Dispatch<SetStateAction<number>>;
   waterColorAlpha: number;
   setWaterColorAlpha: Dispatch<SetStateAction<number>>;
+  waveBgColor: string;
+  setWaveBgColor: Dispatch<SetStateAction<string>>;
+  waveBgAlpha: number;
+  setWaveBgAlpha: Dispatch<SetStateAction<number>>;
   waterHue: number;
   setWaterHue: Dispatch<SetStateAction<number>>;
   waterSat: number;
@@ -1322,6 +1326,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setWaterColorIdx,
     waterColorAlpha,
     setWaterColorAlpha,
+    waveBgColor,
+    setWaveBgColor,
+    waveBgAlpha,
+    setWaveBgAlpha,
     surfaces,
     surfaceId,
     setSurfaceId,
@@ -2830,6 +2838,29 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   step={0.05}
                   onDec={() => setWaterOpacity((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
                   onInc={() => setWaterOpacity((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+                />
+                <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
+                  <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
+                    {t("dial.water.waveBgColor")}
+                  </span>
+                  <input
+                    type="color"
+                    value={waveBgColor}
+                    onChange={(e) => setWaveBgColor(e.target.value)}
+                    className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
+                  />
+                </label>
+                <SettingRow
+                  label={t("dial.water.waveBgAlpha")}
+                  mode="number"
+                  value={`${Math.round(waveBgAlpha * 100)}%`}
+                  rawValue={waveBgAlpha}
+                  onSet={(v) => setWaveBgAlpha(Math.max(0, Math.min(1, v)))}
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  onDec={() => setWaveBgAlpha((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                  onInc={() => setWaveBgAlpha((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
                 />
                 <WaterColorPicker
                   pickColorLabel={t("dial.water.pickColor")}
