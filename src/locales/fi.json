@@ -260,8 +260,9 @@
       "surfBright": "PINNAN VALO",
       "surfSat": "PINNAN KYLLÄISYYS",
       "turbidity": "SAMEUS",
-      "waveBgAlpha": "TAUSTAN PEITTÄVYYS",
-      "waveBgColor": "AALLON TAUSTA",
+      "waveBgOpacity": "TAUSTAN PEITTÄVYYS",
+      "waveBgNatural": "LUONNOLLINEN",
+      "waveBgCustomColor": "AALLON TAUSTA",
       "waveMaterial": "AALLON MATERIAALI",
       "waveMaterialValue": {
         "sphereMap": "PALLOKARTTA",

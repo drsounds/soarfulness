@@ -260,8 +260,9 @@
       "surfBright": "YT-LJUS",
       "surfSat": "YT-MÄTTNAD",
       "turbidity": "GRUMLIGHET",
-      "waveBgAlpha": "BAKGRUNDENS OPACITET",
-      "waveBgColor": "VÅGBAKGRUND",
+      "waveBgOpacity": "BAKGRUNDENS OPACITET",
+      "waveBgNatural": "NATURLIG",
+      "waveBgCustomColor": "VÅGBAKGRUND",
       "waveMaterial": "VÅGMATERIAL",
       "waveMaterialValue": {
         "sphereMap": "SFÄRKARTA",
