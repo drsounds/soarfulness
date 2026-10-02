@@ -118,7 +118,7 @@ function ensureStyles() {
       display: flex; flex-direction: column;
       background: #0b1620; border-radius: 10px; overflow: hidden;
       box-shadow: 0 20px 60px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.08);
-      font-family: system-ui, -apple-system, sans-serif;
+      font-family: "Bungalow Sans", system-ui, -apple-system, sans-serif;
       /* pointer-events is an inherited CSS property, and the CSS3D root
          element (see the constructor) sets pointer-events:none on itself so
          real clicks over empty 3D space fall through to whatever's behind

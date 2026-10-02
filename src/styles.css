@@ -4,8 +4,10 @@
 
 @font-face {
   font-family: "Bungalow Sans";
-  src: url("/__l5e/assets-v1/29cf3f2c-f0dd-4e46-844e-a3dcd96e72e0/Bungalow_Sans.ttf") format("truetype");
-  font-weight: 400;
+  src: url("/font/Bungalow-Sans-Bold-Condensed.ttf") format("truetype");
+  /* Single bold-condensed file covers every weight, so the browser never
+     synthesizes a faux-bold on top of it for font-semibold/font-bold text. */
+  font-weight: 100 900;
   font-style: normal;
   font-display: swap;
 }
@@ -38,6 +40,7 @@ html, body {
  */
 
 @theme inline {
+  --font-sans: "Bungalow Sans", system-ui, -apple-system, sans-serif;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
