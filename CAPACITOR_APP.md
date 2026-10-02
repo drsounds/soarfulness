@@ -110,50 +110,41 @@ browser/PWA build.
 
 **The web build's output is not committed to git** — ~120 MB landing in
 git on every change that touches it would bloat this repo's history
-forever. Instead it's built by CI and published as the
-`capacitor-web-bundle` GitHub Release asset — that release always holds
-the *current* bundle (each run republishes it in place, it isn't versioned
-per-change):
+forever. CI builds it instead, in one reusable workflow,
+`.github/workflows/build-capacitor-web-bundle.yml`:
 
-1. Run the **Publish Capacitor web bundle** workflow (`workflow_dispatch`)
-   from the Actions tab, on the branch you want to ship (or set the
-   optional `source_ref` input to any branch/tag/SHA). It runs
-   `bun install --frozen-lockfile`, `bun run build:capacitor` and
-   `bunx cap sync android`, then tars up `android/app/src/main/assets` and
-   attaches it to the release.
+```sh
+bun install --frozen-lockfile
+bun run build:capacitor   # → .output/public (static, offline-ready)
+bunx cap sync android     # copies it into android/app/src/main/assets
+```
 
-   To reproduce the same build locally:
+(run the same commands to reproduce it locally). It tars up
+`android/app/src/main/assets` and uploads it as the run's
+`capacitor-web-bundle` **build artifact** (kept 1 day — it's only for the
+later jobs of that run). Dependencies are installed with bun because
+`bun.lock` is the lockfile kept in sync with `package.json`; `npm ci` fails
+against a missing or drifted `package-lock.json`.
 
-   ```sh
-   bun install --frozen-lockfile
-   bun run build:capacitor   # → .output/public (static, offline-ready)
-   bunx cap sync android     # copies it into android/app/src/main/assets
-   ```
+Two workflows call it:
 
-   Dependencies are installed with bun because `bun.lock` is the lockfile
-   kept in sync with `package.json` (there is no `package-lock.json`, so
-   `npm ci` won't work).
-
-   *Legacy flow:* if the ref you publish from has
-   `capacitor-android-assets.tar.gz.part-*` files committed at its root
-   (from `npm run capacitor:package-bundle` on a locally built bundle), the
-   workflow publishes those as-is instead of building.
-
-`.github/workflows/capacitor-android-build.yml`'s jobs (`debug-apk` →
-`release-aab` → `play-submit`) each start by downloading and extracting
-that release asset (`gh release download capacitor-web-bundle`, already
-authenticated via the runner's default token — a few seconds, not a build),
-then `bun install` (fast — Gradle needs `node_modules/@capacitor/android`
-present; `android/capacitor.settings.gradle` points the `:capacitor-android`
-project straight at it), then run Gradle. Runs manually (`workflow_dispatch`
-only — no automatic push/PR trigger, matching `native-android-build.yml`'s
-stance), and builds+publishes a signed release AAB when the signing
-secrets below are configured.
-
-**If you forget step 1, CI keeps building whatever bundle was last
-published** — it has no way to know `src/`/`public/` changed underneath it.
-Republishing the bundle is on you, same as remembering to bump a version
-number.
+- **Capacitor Android build** (`capacitor-android-build.yml`):
+  `web-bundle` → `debug-apk` → `release-aab` → `play-submit`. The Gradle
+  jobs download and extract the artifact into `android/app/src/main/assets`,
+  then `bun install` (fast — Gradle needs `node_modules/@capacitor/android`
+  present; `android/capacitor.settings.gradle` points the
+  `:capacitor-android` project straight at it), then run Gradle. So every
+  APK/AAB always contains the web app from the same commit — nothing to
+  remember to republish first. Runs manually (`workflow_dispatch` only — no
+  automatic push/PR trigger, matching `native-android-build.yml`'s stance),
+  and builds+publishes a signed release AAB when the signing secrets below
+  are configured.
+- **Publish Capacitor web bundle** (`publish-capacitor-web-bundle.yml`,
+  `workflow_dispatch`, optional `source_ref` input — defaults to the branch
+  it's run on): attaches the artifact to the `capacitor-web-bundle` GitHub
+  Release, which always holds the most recently published bundle
+  (republished in place, not versioned per-change) for anyone who wants it
+  outside a single run. The Android build doesn't depend on it.
 
 ## Play Store signing
 
