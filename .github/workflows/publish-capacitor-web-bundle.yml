@@ -1,24 +1,27 @@
 name: Publish Capacitor web bundle
 
 on:
-  # Manual only, and deliberately doesn't build anything — it just takes
-  # tarball chunks that already exist on some ref (built locally via
-  # `npm run capacitor:package-bundle`, see CAPACITOR_APP.md's "Building
-  # the offline web bundle" section), reassembles them, and attaches the
-  # result to a stable GitHub Release. capacitor-android-build.yml's Gradle
-  # jobs download it from there instead of building it themselves.
+  # Manual only. Builds the offline web bundle (`build:capacitor` +
+  # `cap sync android`) from the selected ref, tars up
+  # android/app/src/main/assets and attaches it to the stable
+  # "capacitor-web-bundle" GitHub Release. capacitor-android-build.yml's
+  # Gradle jobs download it from there instead of building it themselves.
+  # See CAPACITOR_APP.md's "Building the offline web bundle" section.
   workflow_dispatch:
     inputs:
       source_ref:
         description: >-
-          Branch/ref that has capacitor-android-assets.tar.gz.part-* files
-          committed at its root (typically a short-lived staging branch,
-          deleted after this run publishes it)
-        required: true
+          Branch/tag/SHA to build the bundle from (defaults to the ref this
+          workflow is run on). If that ref has
+          capacitor-android-assets.tar.gz.part-* files committed at its root
+          (the old locally-built flow, `npm run capacitor:package-bundle`),
+          those are published as-is instead of building.
+        required: false
+        default: ""
 
 jobs:
   publish:
-    name: Publish release asset
+    name: Build & publish release asset
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -26,23 +29,62 @@ jobs:
       - name: Checkout source ref
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.source_ref }}
+          ref: ${{ github.event.inputs.source_ref || github.ref }}
 
-      # capacitor-android-assets.tar.gz is committed to the staging branch
-      # split into <100MB chunks (`npm run capacitor:package-bundle`) — a
-      # single git push of the whole thing would exceed GitHub's 100MB
-      # per-file limit. Reassembling here doesn't need those chunks kept
-      # around anywhere except that short-lived branch.
-      - name: Reassemble tarball from parts
+      - name: Check for prebuilt tarball parts
+        id: parts
         run: |
           shopt -s nullglob
           parts=(capacitor-android-assets.tar.gz.part-*)
-          if [ ${#parts[@]} -eq 0 ]; then
-            echo "No capacitor-android-assets.tar.gz.part-* files found on this ref" >&2
-            exit 1
+          if [ ${#parts[@]} -gt 0 ]; then
+            echo "prebuilt=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prebuilt=false" >> "$GITHUB_OUTPUT"
           fi
-          cat "${parts[@]}" > capacitor-android-assets.tar.gz
+
+      # Legacy path: chunks built locally and committed to a staging branch
+      # (split <100MB to fit GitHub's per-file git limit).
+      - name: Reassemble tarball from parts
+        if: steps.parts.outputs.prebuilt == 'true'
+        run: |
+          cat capacitor-android-assets.tar.gz.part-* > capacitor-android-assets.tar.gz
           tar tzf capacitor-android-assets.tar.gz > /dev/null
+
+      # bun, not npm: bun.lock is the lockfile this repo keeps in sync with
+      # package.json (package-lock.json was dropped), so `npm ci` fails here.
+      # Node is still needed — vite and scripts/capacitor-snapshot-shell.mjs
+      # (which boots the built node-server via process.execPath) run on it.
+      - name: Set up Node
+        if: steps.parts.outputs.prebuilt != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Set up Bun
+        if: steps.parts.outputs.prebuilt != 'true'
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        if: steps.parts.outputs.prebuilt != 'true'
+        run: bun install --frozen-lockfile
+
+      - name: Build web bundle
+        if: steps.parts.outputs.prebuilt != 'true'
+        run: bun run build:capacitor
+
+      # Copies .output/public plus capacitor.config.json/capacitor.plugins.json
+      # into android/app/src/main/assets — exactly what the APK ships.
+      - name: Sync into the Android project
+        if: steps.parts.outputs.prebuilt != 'true'
+        run: bunx cap sync android
+
+      # A single file is fine here: release assets allow up to 2GB, unlike
+      # git's 100MB per-file limit the legacy split-parts flow works around.
+      - name: Package assets
+        if: steps.parts.outputs.prebuilt != 'true'
+        run: |
+          tar czf capacitor-android-assets.tar.gz -C android/app/src/main/assets .
+          ls -lh capacitor-android-assets.tar.gz
 
       - name: Publish/update the capacitor-web-bundle release
         uses: softprops/action-gh-release@v2

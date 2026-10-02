@@ -18,15 +18,14 @@ on:
           - beta
           - production
 
-# No job here runs `npm run build:capacitor` (the actual web bundling —
-# a ~1900-module TanStack Start build producing a ~50MB offline asset
-# bundle) — too heavy to redo on every CI run for output that only
-# changes when the web app itself does. That build runs locally (see
-# CAPACITOR_APP.md) and its result (android/app/src/main/assets) is
-# published as the "capacitor-web-bundle" GitHub Release asset by
-# publish-capacitor-web-bundle.yml — every job below just downloads that
-# (a fast, cheap step). They still run a plain `npm ci` (no build) since
-# Gradle itself needs node_modules/@capacitor/android present — see the
+# No job here runs `build:capacitor` (the actual web bundling) — that's
+# done once by publish-capacitor-web-bundle.yml, which builds
+# android/app/src/main/assets and publishes it as the
+# "capacitor-web-bundle" GitHub Release asset. Every job below just
+# downloads that (a fast, cheap step), so the bundle only needs rebuilding
+# when the web app itself changes. They still run a plain `bun install`
+# (no build) since Gradle itself needs node_modules/@capacitor/android
+# present — see the
 # "Install dependencies" step's own comment. Sequential jobs (rather than
 # one long one) so "Re-run failed jobs" resumes from whichever step
 # actually failed instead of redoing the earlier Gradle work too.
@@ -71,20 +70,22 @@ jobs:
 
       # Not the heavy part being avoided — that's `vite build` (the actual
       # web bundling, replaced above by the release-asset download).
-      # `npm ci` is just fast package installation, and Gradle genuinely
+      # Installing packages is just fast package installation, and Gradle genuinely
       # needs it: android/capacitor.settings.gradle points the
       # `:capacitor-android` project at ../node_modules/@capacitor/android/
       # capacitor directly (Capacitor's real Android library source, not
       # something `cap sync` generates) — skip this and Gradle fails with
       # "Could not resolve project :capacitor-android".
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
+      #
+      # bun, not npm: bun.lock is the lockfile kept in sync with
+      # package.json — package-lock.json was dropped (and had drifted, e.g.
+      # @lovable.dev/vite-tanstack-config 2.13.1 vs 2.23.1), so `npm ci`
+      # fails before Gradle ever runs.
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       # JDK 21, not 17: @capacitor/android's build.gradle sets
       # sourceCompatibility/targetCompatibility to JavaVersion.VERSION_21,
@@ -149,20 +150,22 @@ jobs:
 
       # Not the heavy part being avoided — that's `vite build` (the actual
       # web bundling, replaced above by the release-asset download).
-      # `npm ci` is just fast package installation, and Gradle genuinely
+      # Installing packages is just fast package installation, and Gradle genuinely
       # needs it: android/capacitor.settings.gradle points the
       # `:capacitor-android` project at ../node_modules/@capacitor/android/
       # capacitor directly (Capacitor's real Android library source, not
       # something `cap sync` generates) — skip this and Gradle fails with
       # "Could not resolve project :capacitor-android".
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
+      #
+      # bun, not npm: bun.lock is the lockfile kept in sync with
+      # package.json — package-lock.json was dropped (and had drifted, e.g.
+      # @lovable.dev/vite-tanstack-config 2.13.1 vs 2.23.1), so `npm ci`
+      # fails before Gradle ever runs.
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       # JDK 21, not 17: @capacitor/android's build.gradle sets
       # sourceCompatibility/targetCompatibility to JavaVersion.VERSION_21,
