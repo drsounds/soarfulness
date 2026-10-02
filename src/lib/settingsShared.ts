@@ -363,6 +363,10 @@ export type Persisted = {
   randomizeWaves: boolean;
   wavePreset: WavePresetName;
   regularCross: boolean;
+  // VÅGFORM = STÅENDE: the regular waveform as a standing wave (alternate
+  // crests rise while their neighbours sink) instead of travelling crests.
+  // Only takes effect together with regularWaves.
+  standingWaves: boolean;
   regularPeriod: number;
   wavePeak: number;
   waveHighQuality: boolean;
@@ -632,6 +636,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "dyingWaveSpeed",
     "randomizeWaves",
     "regularCross",
+    "standingWaves",
     "regularPeriod",
     "wavePeak",
     "trochoid",

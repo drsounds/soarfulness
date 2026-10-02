@@ -308,7 +308,8 @@
       "waveform": "BØLGEFORM",
       "waveformValue": {
         "regular": "REGELMESSIG",
-        "spread": "SPREDT"
+        "spread": "SPREDT",
+        "standing": "STÅENDE"
       },
       "wavePeriod": "BØLGEPERIODE"
     }

@@ -308,7 +308,8 @@
       "waveform": "WAVEFORM",
       "waveformValue": {
         "regular": "REGULAR",
-        "spread": "SPREAD"
+        "spread": "SPREAD",
+        "standing": "STANDING"
       },
       "wavePeriod": "WAVE PERIOD"
     }

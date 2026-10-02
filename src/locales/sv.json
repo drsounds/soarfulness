@@ -308,7 +308,8 @@
       "waveform": "VÅGFORM",
       "waveformValue": {
         "regular": "REGELBUNDEN",
-        "spread": "SPRIDD"
+        "spread": "SPRIDD",
+        "standing": "STÅENDE"
       },
       "wavePeriod": "VÅGPERIOD"
     }

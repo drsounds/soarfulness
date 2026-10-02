@@ -247,6 +247,12 @@ function warpPhase(phase: number, skew: number): number {
 // is the one dial that reaches every waveform — VÅGPERIOD only ever scaled
 // REGELBUNDEN/VIRVEL, and SPRIDD and the two FFT modes had no wavelength
 // control at all. Applied on top of VÅGPERIOD where both apply.
+// `standing` (VÅGFORM = STÅENDE) turns the regular waveform into a standing
+// wave: the spatial pattern stays put and only its sign oscillates in time,
+// so every other crest rises while its neighbours sink (antinodes in
+// opposite phase, fixed nodal lines in between) instead of crests travelling
+// across the water. Only applies when `regular` is on, matching uStanding in
+// the vertex shader.
 function waveHeight(
   x: number,
   z: number,
@@ -265,6 +271,7 @@ function waveHeight(
   dyingT: number = 0,
   freq: number = 1,
   skew: number = 0,
+  standing: boolean = false,
 ) {
   // Use compass-bearing convention (matches bearingToWorldXZ / the dial:
   // 0deg = world +z, 90deg = world +x) rather than the math-angle
@@ -287,8 +294,19 @@ function waveHeight(
   if (regular) {
     const kx = (0.12 * freq) / period;
     const kz = (0.09 * freq) / period;
+    // KORSVÅG runs at the same temporal rate as the main wave (only offset
+    // in phase), so a fixed point still rises and sinks in one steady rhythm
+    // with it on. It used to run at 0.7 vs 0.9, and the two beat against
+    // each other into uneven heave: tall swells, then near-flat stretches.
+    if (standing) {
+      const sx = shapedWave(xr * kx, peak) * Math.sin(warpPhase(t * 0.9, skew)) * 2.6 * amp;
+      const sz = cross
+        ? shapedWave(zr * kz, peak) * Math.sin(warpPhase(t * 0.9, skew)) * 1.4 * amp
+        : 0;
+      return sx + sz;
+    }
     const rx = shapedWave(xr * kx + warpPhase(t * 0.9, skew), peak) * 2.6 * amp;
-    const rz = cross ? shapedWave(zr * kz + warpPhase(t * 0.7 + 1.1, skew), peak) * 1.4 * amp : 0;
+    const rz = cross ? shapedWave(zr * kz + 1.1 + warpPhase(t * 0.9, skew), peak) * 1.4 * amp : 0;
     return rx + rz;
   }
   const w1 = shapedWave(xr * 0.12 * freq + warpPhase(t * 0.9, skew), peak) * 1.0;
@@ -564,10 +582,10 @@ type SceneManifest = {
   position?: [number, number, number];
   rotation?: [number, number, number];
   scale?: number | [number, number, number];
-  // Optional bobbing. Omitted / false → the model stays perfectly static.
-  //   true                         → floats on the waves (follow, amp 1)
+  // Optional bobbing. The model only moves when `amp` is given (non-zero);
+  // omitted, false, true or any object without amp → perfectly static.
   //   { follow: true, amp }        → rides the wave surface at its position
-  //   { follow: false }            → static (same as omitting bob)
+  //   { amp }                      → same (follow defaults to true)
   //   { follow: false, amp, speed} → simple vertical sine bob
   bob?: boolean | { follow?: boolean; amp?: number; speed?: number };
   // Named respawn points for this scene — the "Locations"/"Places" list the
@@ -617,14 +635,11 @@ function resolveSpawnLocations(manifest: SceneManifest | null | undefined): Spaw
 // Resolved bob settings the animation loop consumes; null means static.
 type BobConfig = { follow: boolean; amp: number; speed: number };
 function resolveBob(bob: SceneManifest["bob"]): BobConfig | null {
-  if (!bob) return null;
-  if (bob === true) return { follow: true, amp: 1, speed: 1 };
-  const follow = bob.follow ?? true;
-  // follow: false without an explicit amp means "don't ride the waves" — keep
-  // the model static instead of falling back to a default sine bob.
-  const amp = bob.amp ?? (follow ? 1 : 0);
-  if (amp === 0) return null;
-  return { follow, amp, speed: bob.speed ?? 1 };
+  // A scene only moves when its manifest gives an explicit, non-zero amp —
+  // `bob: true`, `{ follow: false }` etc. without one keep it perfectly still
+  // rather than falling back to a default 1m bob.
+  if (!bob || bob === true || bob.amp === undefined || bob.amp === 0) return null;
+  return { follow: bob.follow ?? true, amp: bob.amp, speed: bob.speed ?? 1 };
 }
 
 // Apply a scene manifest's transform to a loaded model root.
@@ -724,6 +739,7 @@ const WAVE_PRESETS: Record<
     | "dyingWaveAmp"
     | "dyingWaveSpeed"
     | "regularCross"
+    | "standingWaves"
     | "regularPeriod"
     | "wavePeak"
   >
@@ -738,6 +754,7 @@ const WAVE_PRESETS: Record<
     dyingWaveAmp: 1.2,
     dyingWaveSpeed: 0.6,
     regularCross: false,
+    standingWaves: false,
     regularPeriod: 1,
     wavePeak: 1,
   },
@@ -751,6 +768,7 @@ const WAVE_PRESETS: Record<
     dyingWaveAmp: 1.2,
     dyingWaveSpeed: 0.6,
     regularCross: true,
+    standingWaves: false,
     regularPeriod: 1,
     wavePeak: 1,
   },
@@ -1287,6 +1305,7 @@ export function Aquafulness() {
   ).current;
   const [wavePreset, setWavePreset] = useState<WavePresetName>(initial.wavePreset);
   const [regularCross, setRegularCross] = useState(initial.regularCross);
+  const [standingWaves, setStandingWaves] = useState(initial.standingWaves);
   const [regularPeriod, setRegularPeriod] = useState(initial.regularPeriod);
   const [wavePeak, setWavePeak] = useState(initial.wavePeak);
   const [waveHighQuality, setWaveHighQuality] = useState(initial.waveHighQuality);
@@ -1823,6 +1842,7 @@ export function Aquafulness() {
     randomizeWaves,
     wavePreset,
     regularCross,
+    standingWaves,
     regularPeriod,
     wavePeak,
     waveHighQuality,
@@ -1995,6 +2015,7 @@ export function Aquafulness() {
     randomizeWaves,
     wavePreset,
     regularCross,
+    standingWaves,
     regularPeriod,
     wavePeak,
     waveHighQuality,
@@ -2217,6 +2238,7 @@ export function Aquafulness() {
   const dyingAmpRef = useRef(dyingWaveAmp);
   const dyingSpeedRef = useRef(dyingWaveSpeed);
   const regularCrossRef = useRef(regularCross);
+  const standingRef = useRef(standingWaves);
   const regularPeriodRef = useRef(regularPeriod);
   const wavePeakRef = useRef(wavePeak);
   const waveHighQualityRef = useRef(waveHighQuality);
@@ -2528,6 +2550,9 @@ export function Aquafulness() {
   useEffect(() => {
     regularCrossRef.current = regularCross;
   }, [regularCross]);
+  useEffect(() => {
+    standingRef.current = standingWaves;
+  }, [standingWaves]);
   useEffect(() => {
     regularPeriodRef.current = regularPeriod;
   }, [regularPeriod]);
@@ -3150,6 +3175,7 @@ export function Aquafulness() {
     setRandomizeWaves(DEFAULTS.randomizeWaves);
     setWavePreset(DEFAULTS.wavePreset);
     setRegularCross(DEFAULTS.regularCross);
+    setStandingWaves(DEFAULTS.standingWaves);
     setRegularPeriod(DEFAULTS.regularPeriod);
     setWavePeak(DEFAULTS.wavePeak);
     setWaveHighQuality(DEFAULTS.waveHighQuality);
@@ -3313,6 +3339,7 @@ export function Aquafulness() {
     if (patch.randomizeWaves !== undefined) setRandomizeWaves(patch.randomizeWaves);
     if (patch.wavePreset !== undefined) setWavePreset(patch.wavePreset);
     if (patch.regularCross !== undefined) setRegularCross(patch.regularCross);
+    if (patch.standingWaves !== undefined) setStandingWaves(patch.standingWaves);
     if (patch.regularPeriod !== undefined) setRegularPeriod(patch.regularPeriod);
     if (patch.wavePeak !== undefined) setWavePeak(patch.wavePeak);
     if (patch.waveHighQuality !== undefined) setWaveHighQuality(patch.waveHighQuality);
@@ -3675,6 +3702,7 @@ export function Aquafulness() {
     setDyingWaveAmp(p.dyingWaveAmp);
     setDyingWaveSpeed(p.dyingWaveSpeed);
     setRegularCross(p.regularCross);
+    setStandingWaves(p.standingWaves);
     setRegularPeriod(p.regularPeriod);
     setWavePeak(p.wavePeak);
   };
@@ -4440,6 +4468,7 @@ export function Aquafulness() {
       uSurfSat: { value: 1 },
       uUnderwater: { value: 0 },
       uRegular: { value: 0 },
+      uStanding: { value: 0 },
       uCross: { value: 1 },
       uPeriod: { value: 1 },
       // FREKVENS — multiplies the spatial wavenumbers of every waveform
@@ -4487,6 +4516,9 @@ export function Aquafulness() {
       uniform float uTime;
       uniform float uAmp;
       uniform float uRegular;
+      // VÅGFORM = STÅENDE: blends the regular waveform from travelling
+      // crests to a standing wave (see the standing branch of waveHeight()).
+      uniform float uStanding;
       uniform float uCross;
       uniform float uPeriod;
       uniform float uFreq;
@@ -4601,8 +4633,18 @@ export function Aquafulness() {
         // scales it the other way, and unlike uPeriod also reaches the swell
         // and FFT terms below.
         float regX = shp(p.x * (0.12 * uFreq / uPeriod) + warpPhase(t * 0.9, uSkew)) * 2.6 * amp;
-        float regZ = shp(p.z * (0.09 * uFreq / uPeriod) + warpPhase(t * 0.7 + 1.1, uSkew)) * 1.4 * amp * uCross;
+        // Cross wave shares the main wave's rate (see waveHeight()) so heave
+        // stays an even rise-and-sink instead of beating.
+        float regZ = shp(p.z * (0.09 * uFreq / uPeriod) + 1.1 + warpPhase(t * 0.9, uSkew)) * 1.4 * amp * uCross;
         float reg = regX + regZ;
+        if (uStanding > 0.001) {
+          // Standing wave: fixed spatial pattern whose sign oscillates, so
+          // alternate crests rise while their neighbours sink. Same
+          // wavenumbers, speeds and amplitudes as the travelling form above.
+          float stX = shp(p.x * (0.12 * uFreq / uPeriod)) * sin(warpPhase(t * 0.9, uSkew)) * 2.6 * amp;
+          float stZ = shp(p.z * (0.09 * uFreq / uPeriod)) * sin(warpPhase(t * 0.9, uSkew)) * 1.4 * amp * uCross;
+          reg = mix(reg, stX + stZ, uStanding);
+        }
 
         // Large primary swell (chaotic sum of sines)
         float w1 = shp(p.x * 0.12 * uFreq + warpPhase(t * 0.9, uSkew)) * 1.0;
@@ -5920,6 +5962,8 @@ export function Aquafulness() {
         ((realisticRef.current ? 1 : 0) - uniforms.uFft.value) * Math.min(1, dt * 4);
       uniforms.uDying.value +=
         ((dyingRef.current ? 1 : 0) - uniforms.uDying.value) * Math.min(1, dt * 4);
+      uniforms.uStanding.value +=
+        ((standingRef.current ? 1 : 0) - uniforms.uStanding.value) * Math.min(1, dt * 4);
       uniforms.uCross.value +=
         ((regularCrossRef.current ? 1 : 0) - uniforms.uCross.value) * Math.min(1, dt * 4);
       uniforms.uPeriod.value +=
@@ -6240,6 +6284,7 @@ export function Aquafulness() {
           dyingWaveT,
           freqRef.current,
           heaveSkewRef.current,
+          standingRef.current,
         );
       // TORNADO manual radial control + optional TORNADO SEQUENCE — shared by
       // all three tornado-applicable branches below, each of which only
@@ -6701,6 +6746,7 @@ export function Aquafulness() {
         dyingWaveT,
         freqRef.current,
         heaveSkewRef.current,
+        standingRef.current,
       );
       // Blend the whirlpool's own radial surface in on top of the normal
       // wave as vortexBlendRef eases in/out, so the water gradually deepens
@@ -6752,6 +6798,7 @@ export function Aquafulness() {
             dyingWaveT,
             freqRef.current,
             heaveSkewRef.current,
+            standingRef.current,
           );
           watercraftRig.setBob(
             raftSurfaceY - 0.3,
@@ -6889,6 +6936,7 @@ export function Aquafulness() {
           dyingWaveT + lead,
           freqRef.current,
           heaveSkewRef.current,
+          standingRef.current,
         );
         // Mirror surfaceY's own vortexBlendRef blend here too (using the same
         // current-frame blend value, since it eases too slowly over ~1.4s for
@@ -7519,6 +7567,7 @@ export function Aquafulness() {
             dyingWaveT,
             freqRef.current,
             heaveSkewRef.current,
+            standingRef.current,
           );
           const s =
             vortexBlendRef.current > 0.0008
@@ -8005,6 +8054,8 @@ export function Aquafulness() {
     applyWavePreset,
     regularCross,
     setRegularCross,
+    standingWaves,
+    setStandingWaves,
     regularPeriod,
     setRegularPeriod,
     wavePeak,

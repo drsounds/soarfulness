@@ -469,6 +469,11 @@ export type SettingsPanelProps = {
   applyWavePreset: (preset: WavePresetName) => void;
   regularCross: boolean;
   setRegularCross: Dispatch<SetStateAction<boolean>>;
+  // VÅGFORM's third step, STÅENDE: the regular waveform as a standing wave
+  // (alternate crests rise while their neighbours sink). Only meaningful
+  // with regularWaves on — VÅGFORM steps SPRIDD → REGELBUNDEN → STÅENDE.
+  standingWaves: boolean;
+  setStandingWaves: Dispatch<SetStateAction<boolean>>;
   regularPeriod: number;
   setRegularPeriod: Dispatch<SetStateAction<number>>;
   wavePeak: number;
@@ -1213,6 +1218,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     applyWavePreset,
     regularCross,
     setRegularCross,
+    standingWaves,
+    setStandingWaves,
     regularPeriod,
     setRegularPeriod,
     wavePeak,
@@ -1945,12 +1952,23 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     <SettingRow
                       label={t("dial.wave.waveform")}
                       value={
-                        regularWaves
-                          ? t("dial.wave.waveformValue.regular")
-                          : t("dial.wave.waveformValue.spread")
+                        !regularWaves
+                          ? t("dial.wave.waveformValue.spread")
+                          : standingWaves
+                            ? t("dial.wave.waveformValue.standing")
+                            : t("dial.wave.waveformValue.regular")
                       }
-                      onDec={() => setRegularWaves(false)}
-                      onInc={() => setRegularWaves(true)}
+                      onDec={() => {
+                        if (regularWaves && standingWaves) setStandingWaves(false);
+                        else {
+                          setRegularWaves(false);
+                          setStandingWaves(false);
+                        }
+                      }}
+                      onInc={() => {
+                        if (regularWaves) setStandingWaves(true);
+                        else setRegularWaves(true);
+                      }}
                     />
                     <SettingRow
                       label={t("dial.wave.realistic")}
