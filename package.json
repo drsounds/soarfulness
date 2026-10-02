@@ -8,7 +8,6 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "build:capacitor": "cross-env NITRO_PRESET=node-server vite build && node scripts/capacitor-snapshot-shell.mjs",
-    "capacitor:package-bundle": "tar czf capacitor-android-assets.tar.gz -C android/app/src/main/assets . && split -b 90m -d -a 3 capacitor-android-assets.tar.gz capacitor-android-assets.tar.gz.part- && rm capacitor-android-assets.tar.gz",
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
