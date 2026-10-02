@@ -308,7 +308,8 @@
       "waveform": "AALTOMUOTO",
       "waveformValue": {
         "regular": "SÄÄNNÖLLINEN",
-        "spread": "HAJONTA"
+        "spread": "HAJONTA",
+        "standing": "SEISOVA"
       },
       "wavePeriod": "AALLON JAKSO"
     }

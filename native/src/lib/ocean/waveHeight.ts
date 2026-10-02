@@ -52,7 +52,7 @@ export function waveHeight(
     const kx = (0.12 * freq) / period;
     const kz = (0.09 * freq) / period;
     const rx = shapedWave(xr * kx + t * 0.9, peak) * 2.6 * amp;
-    const rz = cross ? shapedWave(zr * kz + t * 0.7 + 1.1, peak) * 1.4 * amp : 0;
+    const rz = cross ? shapedWave(zr * kz + t * 0.9 + 1.1, peak) * 1.4 * amp : 0;
     return rx + rz;
   }
   const w1 = shapedWave(xr * 0.12 * freq + t * 0.9, peak) * 1.0;

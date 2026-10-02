@@ -235,7 +235,7 @@ export function createOceanMaterial(reflectionTexture?: THREE.Texture) {
       const p = vec3(cd.mul(pIn.x).add(sd.mul(pIn.z)), pIn.y, sd.negate().mul(pIn.x).add(cd.mul(pIn.z)));
 
       const regX = shp(p.x.mul(float(0.12).mul(u.uFreq).div(u.uPeriod)).add(t.mul(0.9))).mul(2.6).mul(amp);
-      const regZ = shp(p.z.mul(float(0.09).mul(u.uFreq).div(u.uPeriod)).add(t.mul(0.7)).add(1.1))
+      const regZ = shp(p.z.mul(float(0.09).mul(u.uFreq).div(u.uPeriod)).add(t.mul(0.9)).add(1.1))
         .mul(1.4)
         .mul(amp)
         .mul(u.uCross);
