@@ -209,7 +209,7 @@
       "skyPuffsSize": "KOKO",
       "spawnLocation": "SPAWN-PAIKKA",
       "time": "AIKA",
-      "torusCellSize": "RUUDUKKO XZ",
+      "torusCellSize": "VÄLI XZ",
       "torusFadeDistance": "HÄIVYTYS",
       "torusOpacity": "PEITTÄVYYS",
       "torusRadius": "SÄDE",
@@ -218,13 +218,12 @@
       "torusTexture": "TEKSTUURI",
       "torusTube": "PAKSUUS",
       "torusVerticalCount": "RENKAITA/SARAKE",
-      "torusVerticalSpacing": "RUUDUKON KORKEUS",
+      "torusVerticalSpacing": "VÄLI Y",
       "torusViewDistance": "NÄKYVYYS",
       "worldBoundary": "MAAILMAN RAJA",
       "worldBoundaryHeight": "RAJAN KORKEUS (Y)",
       "worldBoundarySize": "RAJAN KOKO (XZ)",
-      "worldBoundaryYExtend": "ÄÄRETTÖMÄT PILVIKERROKSET",
-      "torusVerticalDensity": "PYSTYTIHEYS"
+      "worldBoundaryYExtend": "ÄÄRETTÖMÄT PILVIKERROKSET"
     },
     "water": {
       "bottom": "POHJA",

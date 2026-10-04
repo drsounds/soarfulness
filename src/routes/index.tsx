@@ -1043,8 +1043,11 @@ const DEFAULTS: Persisted = {
   torusScale: 3,
   torusOpacity: 0.5,
   torusTextureIdx: 0,
-  torusCellSize: 6,
-  torusVerticalSpacing: 1.4,
+  // Edge-to-edge gaps between rings (horizontal XZ / vertical Y), not
+  // center distances — TorusRingField adds the ring's own scaled size on
+  // top, so resizing rings never makes neighbours intersect.
+  torusCellSize: 2,
+  torusVerticalSpacing: 1,
   torusVerticalCount: 5,
   torusViewDistance: 26,
   torusFadeDistance: 8,
@@ -1053,6 +1056,10 @@ const DEFAULTS: Persisted = {
 // a save still sitting on the old 1x default is tripled once, then this key
 // is set so a later deliberate choice of 1x is left alone.
 const TORUS_SCALE_MIGRATION_KEY = "aquafulness:torusScaleV3";
+// Same idea for torusCellSize/torusVerticalSpacing turning from center
+// distances into edge-to-edge gaps: a save still on the old center-distance
+// defaults (6 / 1.4) moves to the new gap defaults once.
+const TORUS_GAPS_MIGRATION_KEY = "aquafulness:torusGapsV1";
 function loadSettings(): Persisted {
   if (typeof window === "undefined") return DEFAULTS;
   try {
@@ -1062,6 +1069,12 @@ function loadSettings(): Persisted {
     if (!window.localStorage.getItem(TORUS_SCALE_MIGRATION_KEY)) {
       if (parsed.torusScale === 1) parsed.torusScale = DEFAULTS.torusScale;
       window.localStorage.setItem(TORUS_SCALE_MIGRATION_KEY, "1");
+    }
+    if (!window.localStorage.getItem(TORUS_GAPS_MIGRATION_KEY)) {
+      if (parsed.torusCellSize === 6) parsed.torusCellSize = DEFAULTS.torusCellSize;
+      if (parsed.torusVerticalSpacing === 1.4)
+        parsed.torusVerticalSpacing = DEFAULTS.torusVerticalSpacing;
+      window.localStorage.setItem(TORUS_GAPS_MIGRATION_KEY, "1");
     }
     // Migrate settings saved before TORNADO/WHIRLPOOL were merged into one
     // shared toggle: the old standalone "whirlpool" camera mode no longer
@@ -2993,8 +3006,8 @@ export function Aquafulness() {
       scale: torusScale,
       opacity: torusOpacity,
       textureUrl: lowGraphicsMode ? null : (TORUS_RING_TEXTURES[torusTextureIdx]?.url ?? null),
-      cellSize: torusCellSize,
-      verticalSpacing: torusVerticalSpacing,
+      gapXZ: torusCellSize,
+      gapY: torusVerticalSpacing,
       verticalCount: torusVerticalCount,
       viewDistance: torusViewDistance,
       fadeDistance: torusFadeDistance,
@@ -4455,8 +4468,8 @@ export function Aquafulness() {
       textureUrl: initial.lowGraphicsMode
         ? null
         : (TORUS_RING_TEXTURES[initial.torusTextureIdx]?.url ?? null),
-      cellSize: initial.torusCellSize,
-      verticalSpacing: initial.torusVerticalSpacing,
+      gapXZ: initial.torusCellSize,
+      gapY: initial.torusVerticalSpacing,
       verticalCount: initial.torusVerticalCount,
       viewDistance: initial.torusViewDistance,
       fadeDistance: initial.torusFadeDistance,
@@ -9502,16 +9515,33 @@ export function Aquafulness() {
                       onChange={setTorusTube}
                     />
                     <PadSlider
-                      label={t("dial.env.torusVerticalDensity")}
-                      value={1 / torusVerticalSpacing}
-                      min={0.05}
-                      max={5}
-                      step={0.01}
-                      curve="log"
-                      format={(v) => `${v.toFixed(2)}/m`}
-                      onChange={(v) =>
-                        setTorusVerticalSpacing(Math.max(0.2, Math.min(20, +(1 / v).toFixed(2))))
-                      }
+                      label={t("common.opacity")}
+                      value={torusOpacity}
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      format={(v) => `${Math.round(v * 100)}%`}
+                      onChange={setTorusOpacity}
+                    />
+                    <PadSlider
+                      label={t("dial.env.torusCellSize")}
+                      value={torusCellSize}
+                      min={0}
+                      max={30}
+                      step={0.5}
+                      curve={2}
+                      format={(v) => `${v.toFixed(1)}m`}
+                      onChange={setTorusCellSize}
+                    />
+                    <PadSlider
+                      label={t("dial.env.torusVerticalSpacing")}
+                      value={torusVerticalSpacing}
+                      min={0}
+                      max={20}
+                      step={0.1}
+                      curve={2}
+                      format={(v) => `${v.toFixed(1)}m`}
+                      onChange={setTorusVerticalSpacing}
                     />
                     <PadSlider
                       label={t("dial.env.torusVerticalCount")}

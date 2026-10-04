@@ -209,7 +209,7 @@
       "skyPuffsSize": "PUFF SIZE",
       "spawnLocation": "SPAWN LOCATION",
       "time": "TIME",
-      "torusCellSize": "GRID XZ",
+      "torusCellSize": "GAP XZ",
       "torusFadeDistance": "FADE",
       "torusOpacity": "OPACITY",
       "torusRadius": "RADIUS",
@@ -218,13 +218,12 @@
       "torusTexture": "TEXTURE",
       "torusTube": "THICKNESS",
       "torusVerticalCount": "RINGS/COLUMN",
-      "torusVerticalSpacing": "GRID HEIGHT",
+      "torusVerticalSpacing": "GAP Y",
       "torusViewDistance": "VIEW DISTANCE",
       "worldBoundary": "WORLD BOUNDARY",
       "worldBoundaryHeight": "BOUNDARY HEIGHT (Y)",
       "worldBoundarySize": "BOUNDARY SIZE (XZ)",
-      "worldBoundaryYExtend": "INFINITE CLOUD LAYERS",
-      "torusVerticalDensity": "VERTICAL DENSITY"
+      "worldBoundaryYExtend": "INFINITE CLOUD LAYERS"
     },
     "water": {
       "bottom": "BOTTOM",

@@ -209,7 +209,7 @@
       "skyPuffsSize": "STØRRELSE",
       "spawnLocation": "SPAWN-STED",
       "time": "TID",
-      "torusCellSize": "GITTER XZ",
+      "torusCellSize": "MELLEMRUM XZ",
       "torusFadeDistance": "UDTONING",
       "torusOpacity": "OPACITET",
       "torusRadius": "RADIUS",
@@ -218,13 +218,12 @@
       "torusTexture": "TEKSTUR",
       "torusTube": "TYKKELSE",
       "torusVerticalCount": "RINGE/KOLONNE",
-      "torusVerticalSpacing": "GITTER HØJDE",
+      "torusVerticalSpacing": "MELLEMRUM Y",
       "torusViewDistance": "REKKEVIDDE",
       "worldBoundary": "VERDENSGRÆNSE",
       "worldBoundaryHeight": "GRÆNSEHØJDE (Y)",
       "worldBoundarySize": "GRÆNSESTØRRELSE (XZ)",
-      "worldBoundaryYExtend": "UENDELIGE SKYLAG",
-      "torusVerticalDensity": "LODRET TÆTHED"
+      "worldBoundaryYExtend": "UENDELIGE SKYLAG"
     },
     "water": {
       "bottom": "BUND",
