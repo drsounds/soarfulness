@@ -50,6 +50,8 @@ import {
   type SurgeRotationMode,
   SKY_CLOUDS_ALTITUDE_MIN,
   SKY_CLOUDS_ALTITUDE_MAX,
+  CLOUD_SCALE_MIN,
+  CLOUD_SCALE_MAX,
 } from "@/lib/settingsShared";
 import { pickJsonFile, type PresetScope, type SavedPreset, type SavedState } from "@/lib/presets";
 import { changeLanguage, SUPPORTED_LANGUAGES, LANGUAGE_NAMES, type LanguageCode } from "@/lib/i18n";
@@ -732,6 +734,10 @@ export type SettingsPanelProps = {
   setMidClouds3d: Dispatch<SetStateAction<boolean>>;
   skyClouds3d: boolean;
   setSkyClouds3d: Dispatch<SetStateAction<boolean>>;
+  bottomCloudsScale: number;
+  setBottomCloudsScale: Dispatch<SetStateAction<number>>;
+  skyCloudsScale: number;
+  setSkyCloudsScale: Dispatch<SetStateAction<number>>;
   cloudFadeSpeed: number;
   setCloudFadeSpeed: Dispatch<SetStateAction<number>>;
   skyPuffsOn: boolean;
@@ -1448,6 +1454,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setMidClouds3d,
     skyClouds3d,
     setSkyClouds3d,
+    bottomCloudsScale,
+    setBottomCloudsScale,
+    skyCloudsScale,
+    setSkyCloudsScale,
     cloudFadeSpeed,
     setCloudFadeSpeed,
     skyPuffsOn,
@@ -3323,6 +3333,42 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   value={onOff(skyClouds3d)}
                   onDec={() => setSkyClouds3d(false)}
                   onInc={() => setSkyClouds3d(true)}
+                />
+                <SettingRow
+                  label={t("dial.env.bottomCloudsScale")}
+                  mode="number"
+                  value={`${bottomCloudsScale.toFixed(2)}x`}
+                  rawValue={bottomCloudsScale}
+                  onSet={(v) =>
+                    setBottomCloudsScale(Math.max(CLOUD_SCALE_MIN, Math.min(CLOUD_SCALE_MAX, v)))
+                  }
+                  min={CLOUD_SCALE_MIN}
+                  max={CLOUD_SCALE_MAX}
+                  step={0.25}
+                  onDec={() =>
+                    setBottomCloudsScale((v) => Math.max(CLOUD_SCALE_MIN, +(v - 0.25).toFixed(2)))
+                  }
+                  onInc={() =>
+                    setBottomCloudsScale((v) => Math.min(CLOUD_SCALE_MAX, +(v + 0.25).toFixed(2)))
+                  }
+                />
+                <SettingRow
+                  label={t("dial.env.skyCloudsScale")}
+                  mode="number"
+                  value={`${skyCloudsScale.toFixed(2)}x`}
+                  rawValue={skyCloudsScale}
+                  onSet={(v) =>
+                    setSkyCloudsScale(Math.max(CLOUD_SCALE_MIN, Math.min(CLOUD_SCALE_MAX, v)))
+                  }
+                  min={CLOUD_SCALE_MIN}
+                  max={CLOUD_SCALE_MAX}
+                  step={0.25}
+                  onDec={() =>
+                    setSkyCloudsScale((v) => Math.max(CLOUD_SCALE_MIN, +(v - 0.25).toFixed(2)))
+                  }
+                  onInc={() =>
+                    setSkyCloudsScale((v) => Math.min(CLOUD_SCALE_MAX, +(v + 0.25).toFixed(2)))
+                  }
                 />
                 <SettingRow
                   label={t("dial.env.cloudFadeSpeed")}

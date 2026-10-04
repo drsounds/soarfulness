@@ -202,6 +202,8 @@
       "bottomClouds3d": "BUNNSKYER 3D",
       "midClouds3d": "MELLOMSKYER 3D",
       "skyClouds3d": "HIMMELSKYER 3D",
+      "bottomCloudsScale": "BUNNSKYER SKALA",
+      "skyCloudsScale": "HIMMELSKYER SKALA",
       "skyPuffs": "ENKELTSKYER",
       "skyPuffsCount": "ANTALL",
       "skyPuffsFreq": "Y-FREKVENS",
