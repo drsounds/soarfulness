@@ -211,7 +211,7 @@
       "skyPuffsSize": "KOKO",
       "spawnLocation": "SPAWN-PAIKKA",
       "time": "AIKA",
-      "torusCellSize": "RUUDUKKO XZ",
+      "torusCellSize": "VÄLI XZ",
       "torusFadeDistance": "HÄIVYTYS",
       "torusOpacity": "PEITTÄVYYS",
       "torusRadius": "SÄDE",
@@ -220,7 +220,7 @@
       "torusTexture": "TEKSTUURI",
       "torusTube": "PAKSUUS",
       "torusVerticalCount": "RENKAITA/SARAKE",
-      "torusVerticalSpacing": "RUUDUKON KORKEUS",
+      "torusVerticalSpacing": "VÄLI Y",
       "torusViewDistance": "NÄKYVYYS",
       "worldBoundary": "MAAILMAN RAJA",
       "worldBoundaryHeight": "RAJAN KORKEUS (Y)",
@@ -670,7 +670,11 @@
       "tornado": "TORNADO",
       "whirlpool": "PYÖRRE"
     },
-    "totalLabel": " · Yhteensä "
+    "totalLabel": " · Yhteensä ",
+    "drawerTab": {
+      "sky": "TAIVAS"
+    },
+    "torusToggleAria": "Uimarenkaat päälle/pois"
   },
   "interval": {
     "type": {

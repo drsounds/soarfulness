@@ -211,7 +211,7 @@
       "skyPuffsSize": "PUFF SIZE",
       "spawnLocation": "SPAWN LOCATION",
       "time": "TIME",
-      "torusCellSize": "GRID XZ",
+      "torusCellSize": "GAP XZ",
       "torusFadeDistance": "FADE",
       "torusOpacity": "OPACITY",
       "torusRadius": "RADIUS",
@@ -220,7 +220,7 @@
       "torusTexture": "TEXTURE",
       "torusTube": "THICKNESS",
       "torusVerticalCount": "RINGS/COLUMN",
-      "torusVerticalSpacing": "GRID HEIGHT",
+      "torusVerticalSpacing": "GAP Y",
       "torusViewDistance": "VIEW DISTANCE",
       "worldBoundary": "WORLD BOUNDARY",
       "worldBoundaryHeight": "BOUNDARY HEIGHT (Y)",
@@ -670,7 +670,11 @@
       "tornado": "TORNADO",
       "whirlpool": "WHIRLPOOL"
     },
-    "totalLabel": " · Total "
+    "totalLabel": " · Total ",
+    "drawerTab": {
+      "sky": "SKY"
+    },
+    "torusToggleAria": "Toggle pool rings"
   },
   "interval": {
     "type": {

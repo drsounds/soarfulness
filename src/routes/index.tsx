@@ -584,6 +584,13 @@ const DYING_WAVE_SEED = 19700101;
 // (which reads them once at mount via loadSettings/loadCameraPose below)
 // ever renders.
 export const STORAGE_KEY = "aquafulness:settings:v1";
+
+// Labels for the bottom drawer's two non-camera-mode settings tabs (see
+// CameraDrawerTab) besides TORNADO.
+const DRAWER_EXTRA_TAB_LABEL_KEYS = {
+  torus: "dial.env.torusRings",
+  sky: "hud.drawerTab.sky",
+} as const;
 // Parse a "#rrggbb" hex string into normalized [0,1] RGB. Falls back to a
 // neutral sand tone on malformed input rather than throwing.
 function hexToRgbNorm(hex: string): [number, number, number] {
@@ -1032,25 +1039,47 @@ const DEFAULTS: Persisted = {
   surfaceArea: 1000,
   // Floating torus "bath rings" field — off by default so existing scenes
   // look unchanged until explicitly turned on. Defaults per the feature
-  // spec: emissive white, 50% opacity.
+  // spec: emissive white, 50% opacity. Scale defaults to 3x — the original
+  // 1x rings read as far too small (see TORUS_SCALE_MIGRATION_KEY below).
   torusRingsOn: false,
   torusRadius: 0.6,
   torusTube: 0.08,
-  torusScale: 1,
+  torusScale: 3,
   torusOpacity: 0.5,
   torusTextureIdx: 0,
-  torusCellSize: 6,
-  torusVerticalSpacing: 1.4,
+  // Edge-to-edge gaps between rings (horizontal XZ / vertical Y), not
+  // center distances — TorusRingField adds the ring's own scaled size on
+  // top, so resizing rings never makes neighbours intersect.
+  torusCellSize: 2,
+  torusVerticalSpacing: 1,
   torusVerticalCount: 5,
   torusViewDistance: 26,
   torusFadeDistance: 8,
 };
+// One-shot marker for the bath-ring size bump (torusScale default 1 -> 3):
+// a save still sitting on the old 1x default is tripled once, then this key
+// is set so a later deliberate choice of 1x is left alone.
+const TORUS_SCALE_MIGRATION_KEY = "aquafulness:torusScaleV3";
+// Same idea for torusCellSize/torusVerticalSpacing turning from center
+// distances into edge-to-edge gaps: a save still on the old center-distance
+// defaults (6 / 1.4) moves to the new gap defaults once.
+const TORUS_GAPS_MIGRATION_KEY = "aquafulness:torusGapsV1";
 function loadSettings(): Persisted {
   if (typeof window === "undefined") return DEFAULTS;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULTS;
     const parsed: Record<string, unknown> = JSON.parse(raw);
+    if (!window.localStorage.getItem(TORUS_SCALE_MIGRATION_KEY)) {
+      if (parsed.torusScale === 1) parsed.torusScale = DEFAULTS.torusScale;
+      window.localStorage.setItem(TORUS_SCALE_MIGRATION_KEY, "1");
+    }
+    if (!window.localStorage.getItem(TORUS_GAPS_MIGRATION_KEY)) {
+      if (parsed.torusCellSize === 6) parsed.torusCellSize = DEFAULTS.torusCellSize;
+      if (parsed.torusVerticalSpacing === 1.4)
+        parsed.torusVerticalSpacing = DEFAULTS.torusVerticalSpacing;
+      window.localStorage.setItem(TORUS_GAPS_MIGRATION_KEY, "1");
+    }
     // Migrate settings saved before TORNADO/WHIRLPOOL were merged into one
     // shared toggle: the old standalone "whirlpool" camera mode no longer
     // exists, so fall back to "swing" — the mode the merged water-whirlpool
@@ -1655,8 +1684,9 @@ export function Aquafulness() {
   // switching modes, but re-synced to it below whenever cameraMode actually
   // changes) plus one extra "tornado" tab that isn't a camera mode at all,
   // just a settings category always available regardless of which mode is
-  // active (mirrors the old standalone VIRVEL tab this drawer used to have).
-  type CameraDrawerTab = CameraMode | "tornado";
+  // active (mirrors the old standalone VIRVEL tab this drawer used to have),
+  // and likewise a "torus" (BADRINGAR) and a "sky" (HIMMEL: sky & clouds) tab.
+  type CameraDrawerTab = CameraMode | "tornado" | "torus" | "sky";
   const [cameraDrawerTab, setCameraDrawerTab] = useState<CameraDrawerTab>(cameraMode);
   // Named settings presets (save/load, in addition to file export/import
   // below) — kept in their own localStorage list, separate from the
@@ -3000,8 +3030,8 @@ export function Aquafulness() {
       scale: torusScale,
       opacity: torusOpacity,
       textureUrl: lowGraphicsMode ? null : (TORUS_RING_TEXTURES[torusTextureIdx]?.url ?? null),
-      cellSize: torusCellSize,
-      verticalSpacing: torusVerticalSpacing,
+      gapXZ: torusCellSize,
+      gapY: torusVerticalSpacing,
       verticalCount: torusVerticalCount,
       viewDistance: torusViewDistance,
       fadeDistance: torusFadeDistance,
@@ -4468,8 +4498,8 @@ export function Aquafulness() {
       textureUrl: initial.lowGraphicsMode
         ? null
         : (TORUS_RING_TEXTURES[initial.torusTextureIdx]?.url ?? null),
-      cellSize: initial.torusCellSize,
-      verticalSpacing: initial.torusVerticalSpacing,
+      gapXZ: initial.torusCellSize,
+      gapY: initial.torusVerticalSpacing,
       verticalCount: initial.torusVerticalCount,
       viewDistance: initial.torusViewDistance,
       fadeDistance: initial.torusFadeDistance,
@@ -9047,7 +9077,7 @@ export function Aquafulness() {
             above (plus its button height) so this row keeps a steady gap
             below it instead of a fixed distance from the raw screen top. */}
         <div
-          className={`pointer-events-none absolute inset-x-0 z-20 flex items-center justify-center gap-2 ${
+          className={`pointer-events-none absolute inset-x-0 z-20 flex flex-wrap items-center justify-center gap-2 px-4 ${
             isFullscreen
               ? "top-[calc(env(safe-area-inset-top,0px)+5.5rem)]"
               : "top-[calc(env(safe-area-inset-top,0px)+4.5rem)]"
@@ -9090,6 +9120,21 @@ export function Aquafulness() {
               ))}
             </div>
           )}
+          {/* BADRINGAR: the bath-ring counterpart of the WHIRLPOOL/TORNADO
+              toggle on the left — one tap flips torusRingsOn without opening
+              any settings. Not hidden during interval sessions (unlike the
+              tornado toggle), since the rings don't move the camera. */}
+          <button
+            type="button"
+            onClick={() => setTorusRingsOn((v) => !v)}
+            aria-pressed={torusRingsOn}
+            aria-label={t("hud.torusToggleAria")}
+            className={`pointer-events-auto rounded-full border px-3 py-1.5 text-[10px] font-light tracking-[0.2em] backdrop-blur-md transition active:scale-95 ${
+              torusRingsOn ? "ui-line-3 ui-tint-2 ui-ink" : "ui-line-2 ui-surface ui-ink-muted"
+            }`}
+          >
+            {t("dial.env.torusRings")}
+          </button>
         </div>
 
         <ShareBathDialog
@@ -9340,14 +9385,14 @@ export function Aquafulness() {
           <div className="pointer-events-auto absolute bottom-[calc(env(safe-area-inset-bottom,0px)+2rem)] left-1/2 z-20 flex -translate-x-1/2 flex-col items-center gap-2">
             {cameraDrawerOpen && (
               <div className="flex flex-col items-center gap-2 rounded-3xl border ui-line-1 ui-surface-strong p-4 shadow-2xl backdrop-blur-xl">
-                <div className="flex gap-1 rounded-full border ui-line-1 ui-surface p-1">
+                <div className="flex max-w-[calc(100vw-3rem)] flex-wrap justify-center gap-1 rounded-2xl border ui-line-1 ui-surface p-1">
                   {CAMERA_MODES.map((m) => (
                     <button
                       key={m}
                       type="button"
                       onClick={() => setCameraDrawerTab(m)}
                       aria-pressed={cameraDrawerTab === m}
-                      className={`rounded-full px-3 py-1 text-[9px] font-light tracking-[0.2em] transition active:scale-95 ${
+                      className={`whitespace-nowrap rounded-full px-3 py-1 text-[9px] font-light tracking-[0.2em] transition active:scale-95 ${
                         cameraDrawerTab === m ? "ui-tint-2 ui-ink" : "ui-ink-muted"
                       }`}
                     >
@@ -9358,12 +9403,25 @@ export function Aquafulness() {
                     type="button"
                     onClick={() => setCameraDrawerTab("tornado")}
                     aria-pressed={cameraDrawerTab === "tornado"}
-                    className={`rounded-full px-3 py-1 text-[9px] font-light tracking-[0.2em] transition active:scale-95 ${
+                    className={`whitespace-nowrap rounded-full px-3 py-1 text-[9px] font-light tracking-[0.2em] transition active:scale-95 ${
                       cameraDrawerTab === "tornado" ? "ui-tint-2 ui-ink" : "ui-ink-muted"
                     }`}
                   >
                     {t("dial.camera.tornado")}
                   </button>
+                  {(["torus", "sky"] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => setCameraDrawerTab(tab)}
+                      aria-pressed={cameraDrawerTab === tab}
+                      className={`whitespace-nowrap rounded-full px-3 py-1 text-[9px] font-light tracking-[0.2em] transition active:scale-95 ${
+                        cameraDrawerTab === tab ? "ui-tint-2 ui-ink" : "ui-ink-muted"
+                      }`}
+                    >
+                      {t(DRAWER_EXTRA_TAB_LABEL_KEYS[tab])}
+                    </button>
+                  ))}
                 </div>
                 {cameraDrawerTab === "float" && (
                   <>
@@ -9458,6 +9516,183 @@ export function Aquafulness() {
                       format={(v) => `${v.toFixed(0)}m`}
                       onChange={setSwingHeight}
                     />
+                  </>
+                )}
+                {/* BADRINGAR: the bath-ring field's main dials (the rest —
+                    opacity, texture, grid size, reach, fade — stay under
+                    MILJÖ in the full settings panel). TÄTHET VERTIKALT is the
+                    inverse of torusVerticalSpacing (rings per meter), so
+                    dragging right packs the rings closer together. */}
+                {cameraDrawerTab === "torus" && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setTorusRingsOn((v) => !v)}
+                      aria-pressed={torusRingsOn}
+                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                        torusRingsOn
+                          ? "ui-line-3 ui-tint-2 ui-ink"
+                          : "ui-line-2 ui-surface ui-ink-muted"
+                      }`}
+                    >
+                      {t("dial.env.torusRings")}: {t(torusRingsOn ? "common.on" : "common.off")}
+                    </button>
+                    <PadSlider
+                      label={t("dial.env.torusScale")}
+                      value={torusScale}
+                      min={0.1}
+                      max={20}
+                      step={0.1}
+                      curve="log"
+                      format={(v) => `${v.toFixed(1)}×`}
+                      onChange={setTorusScale}
+                    />
+                    <PadSlider
+                      label={t("dial.env.torusTube")}
+                      value={torusTube}
+                      min={0.01}
+                      max={1}
+                      step={0.01}
+                      curve="log"
+                      format={(v) => `${v.toFixed(2)}m`}
+                      onChange={setTorusTube}
+                    />
+                    <PadSlider
+                      label={t("common.opacity")}
+                      value={torusOpacity}
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      format={(v) => `${Math.round(v * 100)}%`}
+                      onChange={setTorusOpacity}
+                    />
+                    <PadSlider
+                      label={t("dial.env.torusCellSize")}
+                      value={torusCellSize}
+                      min={0}
+                      max={30}
+                      step={0.5}
+                      curve={2}
+                      format={(v) => `${v.toFixed(1)}m`}
+                      onChange={setTorusCellSize}
+                    />
+                    <PadSlider
+                      label={t("dial.env.torusVerticalSpacing")}
+                      value={torusVerticalSpacing}
+                      min={0}
+                      max={20}
+                      step={0.1}
+                      curve={2}
+                      format={(v) => `${v.toFixed(1)}m`}
+                      onChange={setTorusVerticalSpacing}
+                    />
+                    <PadSlider
+                      label={t("dial.env.torusVerticalCount")}
+                      value={torusVerticalCount}
+                      min={1}
+                      max={21}
+                      step={2}
+                      format={(v) => `${v.toFixed(0)}`}
+                      onChange={(v) =>
+                        setTorusVerticalCount(Math.max(1, Math.min(21, Math.round(v))))
+                      }
+                    />
+                  </>
+                )}
+                {/* HIMMEL: quick sky & cloud layer dials, mirrored from MILJÖ. */}
+                {cameraDrawerTab === "sky" && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setMidCloudsOn((v) => !v)}
+                      aria-pressed={midCloudsOn}
+                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                        midCloudsOn
+                          ? "ui-line-3 ui-tint-2 ui-ink"
+                          : "ui-line-2 ui-surface ui-ink-muted"
+                      }`}
+                    >
+                      {t("dial.env.midClouds")}: {t(midCloudsOn ? "common.on" : "common.off")}
+                    </button>
+                    <PadSlider
+                      label={t("dial.env.midCloudsHeight")}
+                      value={midCloudsHeight}
+                      min={0.05}
+                      max={0.95}
+                      step={0.05}
+                      format={(v) => `${Math.round(v * 100)}%`}
+                      onChange={setMidCloudsHeight}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setSkyCloudsOn((v) => !v)}
+                      aria-pressed={skyCloudsOn}
+                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                        skyCloudsOn
+                          ? "ui-line-3 ui-tint-2 ui-ink"
+                          : "ui-line-2 ui-surface ui-ink-muted"
+                      }`}
+                    >
+                      {t("dial.env.skyClouds")}: {t(skyCloudsOn ? "common.on" : "common.off")}
+                    </button>
+                    <PadSlider
+                      label={t("dial.env.skyCloudsAltitude")}
+                      value={skyCloudsAltitude}
+                      min={SKY_CLOUDS_ALTITUDE_MIN}
+                      max={SKY_CLOUDS_ALTITUDE_MAX}
+                      step={50}
+                      format={(v) => `${Math.round(v)} m`}
+                      onChange={setSkyCloudsAltitude}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setBottomClouds3d((v) => !v)}
+                      aria-pressed={bottomClouds3d}
+                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                        bottomClouds3d
+                          ? "ui-line-3 ui-tint-2 ui-ink"
+                          : "ui-line-2 ui-surface ui-ink-muted"
+                      }`}
+                    >
+                      {t("dial.env.bottomClouds3d")}:{" "}
+                      {t(bottomClouds3d ? "common.on" : "common.off")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMidClouds3d((v) => !v)}
+                      aria-pressed={midClouds3d}
+                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                        midClouds3d
+                          ? "ui-line-3 ui-tint-2 ui-ink"
+                          : "ui-line-2 ui-surface ui-ink-muted"
+                      }`}
+                    >
+                      {t("dial.env.midClouds3d")}: {t(midClouds3d ? "common.on" : "common.off")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSkyClouds3d((v) => !v)}
+                      aria-pressed={skyClouds3d}
+                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                        skyClouds3d
+                          ? "ui-line-3 ui-tint-2 ui-ink"
+                          : "ui-line-2 ui-surface ui-ink-muted"
+                      }`}
+                    >
+                      {t("dial.env.skyClouds3d")}: {t(skyClouds3d ? "common.on" : "common.off")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSkyPuffsOn((v) => !v)}
+                      aria-pressed={skyPuffsOn}
+                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                        skyPuffsOn
+                          ? "ui-line-3 ui-tint-2 ui-ink"
+                          : "ui-line-2 ui-surface ui-ink-muted"
+                      }`}
+                    >
+                      {t("dial.env.skyPuffs")}: {t(skyPuffsOn ? "common.on" : "common.off")}
+                    </button>
                   </>
                 )}
                 {/* TORNADO: a fixed tab (not tied to any one camera mode)
@@ -9657,7 +9892,9 @@ export function Aquafulness() {
                 ? t("hud.cameraDrawer.closeLabel")
                 : cameraDrawerTab === "tornado"
                   ? t("dial.camera.tornado")
-                  : t(CAMERA_MODE_LABEL_KEYS[cameraDrawerTab])}
+                  : cameraDrawerTab === "torus" || cameraDrawerTab === "sky"
+                    ? t(DRAWER_EXTRA_TAB_LABEL_KEYS[cameraDrawerTab])
+                    : t(CAMERA_MODE_LABEL_KEYS[cameraDrawerTab])}
             </button>
           </div>
         )}

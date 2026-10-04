@@ -1,13 +1,21 @@
 import * as THREE from "three";
 
 // A field of floating torus "bath rings" arrayed around the camera on an
-// invisible horizontal grid: the XZ plane is divided into `cellSize` square
-// cells, and every cell within `viewDistance` of the camera's current XZ
-// position holds a vertical stack (`verticalCount` rings, `verticalSpacing`
-// apart) of static toruses. Each ring's height snaps to a world-space
-// vertical grid line (multiples of `verticalSpacing`) so a stack always sits
-// at the same absolute heights no matter where or when it spawns — "the
-// invisible grid" the camera's position is checked against every frame.
+// invisible horizontal grid: the XZ plane is divided into square cells, and
+// every cell within `viewDistance` of the camera's current XZ position holds
+// a vertical stack (`verticalCount` rings) of static toruses. Spacing is
+// derived from the ring's own size: a cell is one ring's full (scaled) outer
+// diameter plus `gapXZ`, and stacked rings sit one ring thickness plus
+// `gapY` apart — so resizing a ring never makes neighbours intersect, and
+// the gap settings always mean the empty space between ring edges. Each
+// ring's height snaps to a world-space vertical grid line (multiples of
+// that vertical step), and every frame each
+// stack is re-centred on the grid line nearest the camera's *current* height
+// — so rings always surround the camera vertically too, even after it has
+// risen or sunk since the column spawned, while a ring that stays inside the
+// stack keeps its exact world height (only the ring falling off one end of
+// the stack moves, to the other end). This is "the invisible grid" the
+// camera's position is checked against every frame.
 //
 // A cell the camera is near fades in; one it has left behind fades out over
 // FADE_OUT_SECONDS and is then disposed, so a fresh region of the grid ahead
@@ -29,10 +37,10 @@ export type TorusRingFieldConfig = {
   // Optional texture URL for the ring surface; null renders a flat emissive
   // color instead.
   textureUrl: string | null;
-  // The invisible grid: XZ spacing between ring-stack columns, and the
-  // vertical spacing/count of rings within a column.
-  cellSize: number;
-  verticalSpacing: number;
+  // The invisible grid: empty space (world units) between neighbouring
+  // rings' edges horizontally and vertically, and the ring count per column.
+  gapXZ: number;
+  gapY: number;
   verticalCount: number;
   // How far a column may exist from the camera (world units, XZ-only), and
   // the trailing distance over which its opacity ramps down to 0 before that.
@@ -47,6 +55,7 @@ const FADE_OUT_SECONDS = 0.6;
 
 type Cell = {
   group: THREE.Group;
+  meshes: THREE.Mesh[];
   material: THREE.MeshStandardMaterial;
   // 0..1 temporal fade-in/out progress, independent of the distance-based
   // spatial fade applied in update() — see the class comment above.
@@ -93,10 +102,11 @@ export class TorusRingField {
 
   // Applies a partial config change. Anything that affects per-cell geometry
   // or material construction (radius/tube/textureUrl) or the grid layout
-  // itself (cellSize/verticalSpacing/verticalCount) clears every existing
+  // itself (gapXZ/gapY/verticalCount, and scale since the grid's cell size
+  // follows the ring's scaled diameter) clears every existing
   // column so update() lazily rebuilds them fresh — with a normal fade-in —
   // on the next frame, rather than trying to mutate live meshes in place.
-  // Everything else (opacity/color/scale/viewDistance/fadeDistance/enabled)
+  // Everything else (opacity/viewDistance/fadeDistance/enabled)
   // is read live off `this.config` every frame in update(), so it applies
   // immediately with no rebuild.
   setConfig(next: Partial<TorusRingFieldConfig>) {
@@ -107,8 +117,9 @@ export class TorusRingField {
       merged.tube !== prev.tube ||
       merged.textureUrl !== prev.textureUrl ||
       merged.color !== prev.color ||
-      merged.cellSize !== prev.cellSize ||
-      merged.verticalSpacing !== prev.verticalSpacing ||
+      merged.scale !== prev.scale ||
+      merged.gapXZ !== prev.gapXZ ||
+      merged.gapY !== prev.gapY ||
       merged.verticalCount !== prev.verticalCount;
     this.config = merged;
     if (!needsRebuild) return;
@@ -124,6 +135,21 @@ export class TorusRingField {
     this.clearAllCells();
   }
 
+  // Center-to-center distance between neighbouring columns: one ring's full
+  // scaled outer diameter plus the configured edge-to-edge gap.
+  private cellSize(): number {
+    const cfg = this.config;
+    const diameter = 2 * (Math.max(0.01, cfg.radius) + Math.max(0.001, cfg.tube)) * cfg.scale;
+    return Math.max(0.5, diameter + Math.max(0, cfg.gapXZ));
+  }
+
+  // Center-to-center distance between stacked rings: one ring's scaled tube
+  // thickness plus the configured gap.
+  private verticalStep(): number {
+    const cfg = this.config;
+    return Math.max(0.01, 2 * Math.max(0.001, cfg.tube) * cfg.scale + Math.max(0, cfg.gapY));
+  }
+
   private clearAllCells() {
     for (const cell of this.cells.values()) this.disposeCell(cell);
     this.cells.clear();
@@ -137,9 +163,9 @@ export class TorusRingField {
   // Builds one XZ column: a vertical stack of `verticalCount` rings sharing
   // one material (their opacity always fades together — see the class
   // comment above, fading is per-XZ-cell, not per ring), snapped to the
-  // world's absolute vertical grid nearest the camera's height at the moment
-  // the column spawns.
-  private createCell(ix: number, iz: number, cameraY: number): Cell {
+  // world's absolute vertical grid — update() positions the rings around the
+  // camera's current height every frame (see placeRings).
+  private createCell(ix: number, iz: number): Cell {
     const cfg = this.config;
     const material = new THREE.MeshStandardMaterial({
       color: cfg.color,
@@ -155,20 +181,42 @@ export class TorusRingField {
     });
 
     const group = new THREE.Group();
-    group.position.set(ix * cfg.cellSize, 0, iz * cfg.cellSize);
+    const cellSize = this.cellSize();
+    group.position.set(ix * cellSize, 0, iz * cellSize);
 
-    const half = Math.floor(Math.max(1, cfg.verticalCount) / 2);
-    const centerLevel = Math.round(cameraY / cfg.verticalSpacing);
-    for (let k = -half; k <= half; k++) {
+    const meshes: THREE.Mesh[] = [];
+    const count = Math.max(1, Math.round(cfg.verticalCount));
+    for (let k = 0; k < count; k++) {
       const mesh = new THREE.Mesh(this.geometry, material);
       // TorusGeometry lies flat in the XY plane by default (hole along Z);
       // rotate it to lie flat in XZ instead, like a ring floating on/in air.
       mesh.rotation.x = Math.PI / 2;
-      mesh.position.y = (centerLevel + k) * cfg.verticalSpacing;
       group.add(mesh);
+      meshes.push(mesh);
     }
     this.scene.add(group);
-    return { group, material, life: 0, activeThisFrame: true };
+    return { group, meshes, material, life: 0, activeThisFrame: true };
+  }
+
+  // Puts a column's rings on the `meshes.length` vertical grid lines centred
+  // on the one nearest the camera's height. Each ring is keyed to its
+  // absolute level modulo the stack size, so as the camera climbs past a grid
+  // line only the bottom ring jumps to the new top slot (and vice versa) —
+  // every other ring stays at its world height instead of the whole stack
+  // sliding along with the camera.
+  private placeRings(cell: Cell, cameraY: number, spacing: number, scale: number) {
+    const n = cell.meshes.length;
+    const centerLevel = Math.round(cameraY / spacing);
+    const lowest = centerLevel - Math.floor((n - 1) / 2);
+    for (let i = 0; i < n; i++) {
+      const level = lowest + i;
+      const mesh = cell.meshes[((level % n) + n) % n];
+      mesh.position.y = level * spacing;
+      // Scale each ring about its own centre. (Scaling the whole column group
+      // instead would also scale the rings' heights about y=0 — throwing them
+      // far above/below the camera whenever scale != 1.)
+      mesh.scale.setScalar(scale);
+    }
   }
 
   // Call once per frame with the camera's current world position and the
@@ -183,9 +231,10 @@ export class TorusRingField {
 
     for (const cell of this.cells.values()) cell.activeThisFrame = false;
 
-    const cellSize = Math.max(0.5, cfg.cellSize);
+    const cellSize = this.cellSize();
     const viewDistance = Math.max(cellSize, cfg.viewDistance);
     const fadeDistance = Math.max(0.01, cfg.fadeDistance);
+    const verticalSpacing = this.verticalStep();
     const camIx = Math.round(cameraPos.x / cellSize);
     const camIz = Math.round(cameraPos.z / cellSize);
     // How many grid steps out a cell could still fall within viewDistance —
@@ -204,7 +253,7 @@ export class TorusRingField {
         const key = cellKey(ix, iz);
         let cell = this.cells.get(key);
         if (!cell) {
-          cell = this.createCell(ix, iz, cameraPos.y);
+          cell = this.createCell(ix, iz);
           this.cells.set(key, cell);
         }
         cell.activeThisFrame = true;
@@ -223,11 +272,14 @@ export class TorusRingField {
         continue;
       }
 
-      const dist = Math.hypot(cell.group.position.x - cameraPos.x, cell.group.position.z - cameraPos.z);
+      const dist = Math.hypot(
+        cell.group.position.x - cameraPos.x,
+        cell.group.position.z - cameraPos.z,
+      );
       const spatialFade = Math.max(0, Math.min(1, (viewDistance - dist) / fadeDistance));
       const eased = cell.life * cell.life * (3 - 2 * cell.life); // smoothstep
       cell.material.opacity = cfg.opacity * spatialFade * eased;
-      cell.group.scale.setScalar(cfg.scale);
+      this.placeRings(cell, cameraPos.y, verticalSpacing, cfg.scale);
       cell.group.visible = cell.material.opacity > 0.002;
     }
   }

@@ -211,7 +211,7 @@
       "skyPuffsSize": "STORLEK",
       "spawnLocation": "SPAWN-PLATS",
       "time": "TID",
-      "torusCellSize": "RUTNÄT XZ",
+      "torusCellSize": "MELLANRUM XZ",
       "torusFadeDistance": "TONING",
       "torusOpacity": "OPACITET",
       "torusRadius": "RADIE",
@@ -220,7 +220,7 @@
       "torusTexture": "TEXTUR",
       "torusTube": "TJOCKLEK",
       "torusVerticalCount": "RINGAR/KOLONN",
-      "torusVerticalSpacing": "RUTNÄT HÖJD",
+      "torusVerticalSpacing": "MELLANRUM Y",
       "torusViewDistance": "RÄCKVIDD",
       "worldBoundary": "VÄRLDSGRÄNS",
       "worldBoundaryHeight": "GRÄNSHÖJD (Y)",
@@ -670,7 +670,11 @@
       "tornado": "TORNADO",
       "whirlpool": "VIRVEL"
     },
-    "totalLabel": " · Totalt "
+    "totalLabel": " · Totalt ",
+    "drawerTab": {
+      "sky": "HIMMEL"
+    },
+    "torusToggleAria": "Slå på/av badringar"
   },
   "interval": {
     "type": {
