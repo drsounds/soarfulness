@@ -3617,26 +3617,26 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     <SettingRow
                       label={t("dial.env.torusCellSize")}
                       mode="number"
-                      value={`${torusCellSize.toFixed(0)}m`}
+                      value={`${torusCellSize.toFixed(1)}m`}
                       rawValue={torusCellSize}
-                      onSet={(v) => setTorusCellSize(Math.max(1, Math.min(60, v)))}
-                      min={1}
+                      onSet={(v) => setTorusCellSize(Math.max(0, Math.min(60, v)))}
+                      min={0}
                       max={60}
-                      step={1}
-                      onDec={() => setTorusCellSize((v) => Math.max(1, +(v - 1).toFixed(0)))}
-                      onInc={() => setTorusCellSize((v) => Math.min(60, +(v + 1).toFixed(0)))}
+                      step={0.5}
+                      onDec={() => setTorusCellSize((v) => Math.max(0, +(v - 0.5).toFixed(1)))}
+                      onInc={() => setTorusCellSize((v) => Math.min(60, +(v + 0.5).toFixed(1)))}
                     />
                     <SettingRow
                       label={t("dial.env.torusVerticalSpacing")}
                       mode="number"
                       value={`${torusVerticalSpacing.toFixed(1)}m`}
                       rawValue={torusVerticalSpacing}
-                      onSet={(v) => setTorusVerticalSpacing(Math.max(0.2, Math.min(20, v)))}
-                      min={0.2}
+                      onSet={(v) => setTorusVerticalSpacing(Math.max(0, Math.min(20, v)))}
+                      min={0}
                       max={20}
                       step={0.1}
                       onDec={() =>
-                        setTorusVerticalSpacing((v) => Math.max(0.2, +(v - 0.1).toFixed(2)))
+                        setTorusVerticalSpacing((v) => Math.max(0, +(v - 0.1).toFixed(2)))
                       }
                       onInc={() =>
                         setTorusVerticalSpacing((v) => Math.min(20, +(v + 0.1).toFixed(2)))
@@ -3659,13 +3659,11 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${torusViewDistance.toFixed(0)}m`}
                       rawValue={torusViewDistance}
-                      onSet={(v) => setTorusViewDistance(Math.max(torusCellSize, Math.min(400, v)))}
-                      min={torusCellSize}
+                      onSet={(v) => setTorusViewDistance(Math.max(4, Math.min(400, v)))}
+                      min={4}
                       max={400}
                       step={2}
-                      onDec={() =>
-                        setTorusViewDistance((v) => Math.max(torusCellSize, +(v - 2).toFixed(0)))
-                      }
+                      onDec={() => setTorusViewDistance((v) => Math.max(4, +(v - 2).toFixed(0)))}
                       onInc={() => setTorusViewDistance((v) => Math.min(400, +(v + 2).toFixed(0)))}
                     />
                     <SettingRow
