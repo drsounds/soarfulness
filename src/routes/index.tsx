@@ -7632,16 +7632,13 @@ export function Aquafulness() {
       // time/scroll, since a clone's own uniforms object is independent.
       const extendLayers = extendCloudLayersRef.current;
       const extendLayerState = extendCloudLayerStateRef.current;
-      // Same visibility gate as skyClouds itself (sky.visible/skyClouds.visible
-      // further below): a real skybox environment or a flat backdrop image
-      // replaces the procedural sky entirely, so these extra layers have
-      // nothing to extend and would just be dead weight.
+      // Unlike the procedural sky dome, the cloud decks are separate
+      // transparent meshes, so they stay on over a skybox environment or a
+      // backdrop image too — only the dome itself is replaced by those.
       const extendGateOn =
         worldBoundaryOnRef.current &&
         worldBoundaryYExtendRef.current &&
         skyCloudsOnRef.current &&
-        !envActiveRef.current &&
-        backdropRef.current <= 0 &&
         !lowEnd;
       const extendFadeStep = Math.min(1, dt * cloudFadeSpeedRef.current);
       if (extendGateOn) {
@@ -7733,7 +7730,9 @@ export function Aquafulness() {
       const useBackdrop = backdropRef.current > 0 && !envActive;
       sky.visible = !useBackdrop && !envActive;
       // MOLN TONING: ease opacity toward on/off instead of popping visible.
-      const skyCloudsTargetOn = skyCloudsOnRef.current && !useBackdrop && !envActive && !lowEnd;
+      // Not gated on backdrop/skybox: the cloud deck is its own transparent
+      // mesh and should draw over them (only the sky dome is replaced).
+      const skyCloudsTargetOn = skyCloudsOnRef.current && !lowEnd;
       skyCloudFadeRef.current +=
         ((skyCloudsTargetOn ? 1 : 0) - skyCloudFadeRef.current) *
         Math.min(1, dt * cloudFadeSpeedRef.current);
