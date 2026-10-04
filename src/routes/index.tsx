@@ -70,6 +70,8 @@ import {
   type Persisted,
   SKY_CLOUDS_ALTITUDE_MIN,
   SKY_CLOUDS_ALTITUDE_MAX,
+  CLOUD_SCALE_MIN,
+  CLOUD_SCALE_MAX,
 } from "@/lib/settingsShared";
 import { createCloud3DLayer } from "@/lib/clouds3d";
 import {
@@ -924,6 +926,8 @@ const DEFAULTS: Persisted = {
   bottomClouds3d: false,
   midClouds3d: false,
   skyClouds3d: false,
+  bottomCloudsScale: 1,
+  skyCloudsScale: 1,
   cloudFadeSpeed: 3,
   skyPuffsOn: false,
   skyPuffsCount: 6,
@@ -1391,6 +1395,14 @@ export function Aquafulness() {
   const [bottomClouds3d, setBottomClouds3d] = useState(initial.bottomClouds3d);
   const [midClouds3d, setMidClouds3d] = useState(initial.midClouds3d);
   const [skyClouds3d, setSkyClouds3d] = useState(initial.skyClouds3d);
+  const clampCloudScale = (v: number, fallback: number) =>
+    Number.isFinite(v) ? Math.max(CLOUD_SCALE_MIN, Math.min(CLOUD_SCALE_MAX, v)) : fallback;
+  const [bottomCloudsScale, setBottomCloudsScale] = useState(() =>
+    clampCloudScale(initial.bottomCloudsScale, DEFAULTS.bottomCloudsScale),
+  );
+  const [skyCloudsScale, setSkyCloudsScale] = useState(() =>
+    clampCloudScale(initial.skyCloudsScale, DEFAULTS.skyCloudsScale),
+  );
   const [cloudFadeSpeed, setCloudFadeSpeed] = useState(initial.cloudFadeSpeed);
   const [skyPuffsOn, setSkyPuffsOn] = useState(initial.skyPuffsOn);
   const [skyPuffsCount, setSkyPuffsCount] = useState(initial.skyPuffsCount);
@@ -1929,6 +1941,8 @@ export function Aquafulness() {
     bottomClouds3d,
     midClouds3d,
     skyClouds3d,
+    bottomCloudsScale,
+    skyCloudsScale,
     cloudFadeSpeed,
     skyPuffsOn,
     skyPuffsCount,
@@ -2106,6 +2120,8 @@ export function Aquafulness() {
     bottomClouds3d,
     midClouds3d,
     skyClouds3d,
+    bottomCloudsScale,
+    skyCloudsScale,
     cloudFadeSpeed,
     skyPuffsOn,
     skyPuffsCount,
@@ -2460,6 +2476,8 @@ export function Aquafulness() {
   const bottomClouds3dRef = useRef(bottomClouds3d);
   const midClouds3dRef = useRef(midClouds3d);
   const skyClouds3dRef = useRef(skyClouds3d);
+  const bottomCloudsScaleRef = useRef(bottomCloudsScale);
+  const skyCloudsScaleRef = useRef(skyCloudsScale);
   const cloudFadeSpeedRef = useRef(cloudFadeSpeed);
   const skyPuffsOnRef = useRef(skyPuffsOn);
   const skyPuffsCountRef = useRef(skyPuffsCount);
@@ -2794,6 +2812,12 @@ export function Aquafulness() {
   useEffect(() => {
     skyClouds3dRef.current = skyClouds3d;
   }, [skyClouds3d]);
+  useEffect(() => {
+    bottomCloudsScaleRef.current = bottomCloudsScale;
+  }, [bottomCloudsScale]);
+  useEffect(() => {
+    skyCloudsScaleRef.current = skyCloudsScale;
+  }, [skyCloudsScale]);
   useEffect(() => {
     cloudFadeSpeedRef.current = cloudFadeSpeed;
   }, [cloudFadeSpeed]);
@@ -3276,6 +3300,8 @@ export function Aquafulness() {
     setBottomClouds3d(DEFAULTS.bottomClouds3d);
     setMidClouds3d(DEFAULTS.midClouds3d);
     setSkyClouds3d(DEFAULTS.skyClouds3d);
+    setBottomCloudsScale(DEFAULTS.bottomCloudsScale);
+    setSkyCloudsScale(DEFAULTS.skyCloudsScale);
     setCloudFadeSpeed(DEFAULTS.cloudFadeSpeed);
     setSkyPuffsOn(DEFAULTS.skyPuffsOn);
     setSkyPuffsCount(DEFAULTS.skyPuffsCount);
@@ -3448,6 +3474,10 @@ export function Aquafulness() {
     if (patch.bottomClouds3d !== undefined) setBottomClouds3d(patch.bottomClouds3d);
     if (patch.midClouds3d !== undefined) setMidClouds3d(patch.midClouds3d);
     if (patch.skyClouds3d !== undefined) setSkyClouds3d(patch.skyClouds3d);
+    if (patch.bottomCloudsScale !== undefined)
+      setBottomCloudsScale(clampCloudScale(patch.bottomCloudsScale, DEFAULTS.bottomCloudsScale));
+    if (patch.skyCloudsScale !== undefined)
+      setSkyCloudsScale(clampCloudScale(patch.skyCloudsScale, DEFAULTS.skyCloudsScale));
     if (patch.cloudFadeSpeed !== undefined) setCloudFadeSpeed(patch.cloudFadeSpeed);
     if (patch.skyPuffsOn !== undefined) setSkyPuffsOn(patch.skyPuffsOn);
     if (patch.skyPuffsCount !== undefined) setSkyPuffsCount(patch.skyPuffsCount);
@@ -5361,6 +5391,7 @@ export function Aquafulness() {
       uColor: { value: new THREE.Color(0xd8c078) },
       uTextured: { value: 0 },
       uClouds: { value: 0 },
+      uCloudScale: { value: 1 },
       uCloudScroll: { value: new THREE.Vector2(0, 0) },
       uTime: { value: 0 },
       uSunDir: { value: uniforms.uSunDir.value },
@@ -5411,6 +5442,7 @@ export function Aquafulness() {
         uniform float uTextured;
         uniform float uClouds;
         uniform vec2 uCloudScroll;
+        uniform float uCloudScale;
         uniform float uTime;
         uniform vec3 uSunDir;
         uniform sampler2D uSandTex;
@@ -5553,7 +5585,7 @@ export function Aquafulness() {
 
         void main(){
           if (uClouds > 0.5) {
-            vec2 p = vWorld.xz * 0.025 + uCloudScroll;
+            vec2 p = vWorld.xz * (0.025 / max(uCloudScale, 0.05)) + uCloudScroll;
             float n = fbm(p);
             float cloud = smoothstep(0.45, 0.78, n);
             if (cloud < 0.01) discard;
@@ -5611,6 +5643,7 @@ export function Aquafulness() {
       uColor: { value: new THREE.Color(0xffffff) },
       uTextured: { value: 0 },
       uClouds: { value: 1 },
+      uCloudScale: { value: 1 },
       uCloudScroll: { value: new THREE.Vector2(0, 0) },
       uTime: { value: 0 },
       uSunDir: { value: uniforms.uSunDir.value },
@@ -5651,6 +5684,7 @@ export function Aquafulness() {
       uColor: { value: new THREE.Color(0xffffff) },
       uTextured: { value: 0 },
       uClouds: { value: 1 },
+      uCloudScale: { value: 1 },
       uCloudScroll: { value: new THREE.Vector2(0, 0) },
       uTime: { value: 0 },
       uSunDir: { value: uniforms.uSunDir.value },
@@ -5694,6 +5728,7 @@ export function Aquafulness() {
       uColor: { value: new THREE.Color(0x9aa4ad) },
       uTextured: { value: 0 },
       uClouds: { value: 1 },
+      uCloudScale: { value: 1 },
       uCloudScroll: { value: new THREE.Vector2(0, 0) },
       uTime: { value: 0 },
       uSunDir: { value: uniforms.uSunDir.value },
@@ -6314,6 +6349,7 @@ export function Aquafulness() {
         // Drift moln-lagret långsamt över tid — nu opt-in via ANIMERA
         // (floorCloudsAnimatedRef); av som standard håller molnlagret still.
         if (floorCloudsAnimatedRef.current) {
+          floorUniforms.uCloudScale.value = bottomCloudsScaleRef.current;
           floorUniforms.uCloudScroll.value.x = t * 0.015;
           floorUniforms.uCloudScroll.value.y = t * 0.01;
         }
@@ -6337,6 +6373,7 @@ export function Aquafulness() {
         // frac=0 → precis över botten, frac=1 → nära ytan.
         midClouds.position.y = -effectiveDepth + effectiveDepth * frac + levelY;
         midCloudUniforms.uTime.value = t;
+        midCloudUniforms.uCloudScale.value = bottomCloudsScaleRef.current;
         midCloudUniforms.uCloudScroll.value.x = t * 0.04;
         midCloudUniforms.uCloudScroll.value.y = t * 0.025;
       }
@@ -6357,6 +6394,7 @@ export function Aquafulness() {
       if (skyCloudsOnRef.current && !lowEnd) {
         skyClouds.position.y = skyCloudsAltitudeRef.current + levelY;
         skyCloudUniforms.uTime.value = t;
+        skyCloudUniforms.uCloudScale.value = skyCloudsScaleRef.current;
         skyCloudUniforms.uCloudScroll.value.x = t * 0.02;
         skyCloudUniforms.uCloudScroll.value.y = t * 0.013;
       }
@@ -7596,6 +7634,7 @@ export function Aquafulness() {
           const lu = (layer.material as THREE.ShaderMaterial).uniforms;
           lu.uOpacity.value = state.opacity;
           lu.uTime.value = t;
+          lu.uCloudScale.value = skyCloudsScaleRef.current;
           lu.uCloudScroll.value.x = t * 0.02;
           lu.uCloudScroll.value.y = t * 0.013;
           lu.uTurbidity.value = skyCloudUniforms.uTurbidity.value;
@@ -8491,6 +8530,10 @@ export function Aquafulness() {
     setMidClouds3d,
     skyClouds3d,
     setSkyClouds3d,
+    bottomCloudsScale,
+    setBottomCloudsScale,
+    skyCloudsScale,
+    setSkyCloudsScale,
     cloudFadeSpeed,
     setCloudFadeSpeed,
     skyPuffsOn,

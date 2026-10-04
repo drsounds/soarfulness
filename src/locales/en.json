@@ -202,6 +202,8 @@
       "bottomClouds3d": "BOTTOM CLOUDS 3D",
       "midClouds3d": "MID CLOUDS 3D",
       "skyClouds3d": "SKY CLOUDS 3D",
+      "bottomCloudsScale": "BOTTOM CLOUD SCALE",
+      "skyCloudsScale": "SKY CLOUD SCALE",
       "skyPuffs": "SKY PUFFS",
       "skyPuffsCount": "PUFF COUNT",
       "skyPuffsFreq": "Y FREQUENCY",

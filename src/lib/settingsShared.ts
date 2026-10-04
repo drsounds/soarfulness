@@ -189,6 +189,9 @@ export const SWING_PRESETS: SwingPreset[] = ["water", "clouds", "custom"];
 // HIMMEL-MOLNHÖJD range (meters above the water surface).
 export const SKY_CLOUDS_ALTITUDE_MIN = 100;
 export const SKY_CLOUDS_ALTITUDE_MAX = 5000;
+// MOLNSKALA range (multiplier on the cloud texture's feature size).
+export const CLOUD_SCALE_MIN = 0.25;
+export const CLOUD_SCALE_MAX = 8;
 
 // Shape of the pendulum's vertical (y) motion over one swing cycle.
 // "pendulum" (default) is the physically-inspired shape: y rises at both
@@ -485,6 +488,10 @@ export type Persisted = {
   bottomClouds3d: boolean;
   midClouds3d: boolean;
   skyClouds3d: boolean;
+  // Cloud texture scale (1 = original size; higher = bigger cloud features),
+  // separately for the underwater decks (bottom + mid) and the sky decks.
+  bottomCloudsScale: number;
+  skyCloudsScale: number;
   // MOLN TONING: how fast cloud layers (mid/sky decks and VÄRLDSGRÄNS's
   // y-extension layers) ease their opacity in/out as they're toggled or
   // recycled to a new altitude band, instead of popping visible/invisible —
@@ -759,6 +766,8 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "bottomClouds3d",
     "midClouds3d",
     "skyClouds3d",
+    "bottomCloudsScale",
+    "skyCloudsScale",
     "cloudFadeSpeed",
     "skyPuffsOn",
     "skyPuffsCount",
