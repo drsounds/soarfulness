@@ -223,7 +223,8 @@
       "worldBoundary": "MAAILMAN RAJA",
       "worldBoundaryHeight": "RAJAN KORKEUS (Y)",
       "worldBoundarySize": "RAJAN KOKO (XZ)",
-      "worldBoundaryYExtend": "ÄÄRETTÖMÄT PILVIKERROKSET"
+      "worldBoundaryYExtend": "ÄÄRETTÖMÄT PILVIKERROKSET",
+      "torusVerticalDensity": "PYSTYTIHEYS"
     },
     "water": {
       "bottom": "POHJA",
@@ -668,7 +669,11 @@
       "tornado": "TORNADO",
       "whirlpool": "PYÖRRE"
     },
-    "totalLabel": " · Yhteensä "
+    "totalLabel": " · Yhteensä ",
+    "drawerTab": {
+      "sky": "TAIVAS"
+    },
+    "torusToggleAria": "Uimarenkaat päälle/pois"
   },
   "interval": {
     "type": {

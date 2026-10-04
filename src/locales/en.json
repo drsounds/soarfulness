@@ -223,7 +223,8 @@
       "worldBoundary": "WORLD BOUNDARY",
       "worldBoundaryHeight": "BOUNDARY HEIGHT (Y)",
       "worldBoundarySize": "BOUNDARY SIZE (XZ)",
-      "worldBoundaryYExtend": "INFINITE CLOUD LAYERS"
+      "worldBoundaryYExtend": "INFINITE CLOUD LAYERS",
+      "torusVerticalDensity": "VERTICAL DENSITY"
     },
     "water": {
       "bottom": "BOTTOM",
@@ -668,7 +669,11 @@
       "tornado": "TORNADO",
       "whirlpool": "WHIRLPOOL"
     },
-    "totalLabel": " · Total "
+    "totalLabel": " · Total ",
+    "drawerTab": {
+      "sky": "SKY"
+    },
+    "torusToggleAria": "Toggle pool rings"
   },
   "interval": {
     "type": {

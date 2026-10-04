@@ -223,7 +223,8 @@
       "worldBoundary": "VERDENSGRÆNSE",
       "worldBoundaryHeight": "GRÆNSEHØJDE (Y)",
       "worldBoundarySize": "GRÆNSESTØRRELSE (XZ)",
-      "worldBoundaryYExtend": "UENDELIGE SKYLAG"
+      "worldBoundaryYExtend": "UENDELIGE SKYLAG",
+      "torusVerticalDensity": "LODRET TÆTHED"
     },
     "water": {
       "bottom": "BUND",
@@ -668,7 +669,11 @@
       "tornado": "TORNADO",
       "whirlpool": "HVIRVEL"
     },
-    "totalLabel": " · I alt "
+    "totalLabel": " · I alt ",
+    "drawerTab": {
+      "sky": "HIMMEL"
+    },
+    "torusToggleAria": "Slå baderinge til/fra"
   },
   "interval": {
     "type": {
