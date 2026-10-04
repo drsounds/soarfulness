@@ -309,7 +309,8 @@
       "waveformValue": {
         "regular": "REGELMESSIG",
         "spread": "SPREDT",
-        "standing": "STÅENDE"
+        "standing": "STÅENDE",
+        "slosh": "SKVULPENDE"
       },
       "wavePeriod": "BØLGEPERIODE"
     }

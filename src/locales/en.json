@@ -309,7 +309,8 @@
       "waveformValue": {
         "regular": "REGULAR",
         "spread": "SPREAD",
-        "standing": "STANDING"
+        "standing": "STANDING",
+        "slosh": "SURGING"
       },
       "wavePeriod": "WAVE PERIOD"
     }

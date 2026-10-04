@@ -309,7 +309,8 @@
       "waveformValue": {
         "regular": "SÄÄNNÖLLINEN",
         "spread": "HAJONTA",
-        "standing": "SEISOVA"
+        "standing": "SEISOVA",
+        "slosh": "LOISKUVA"
       },
       "wavePeriod": "AALLON JAKSO"
     }

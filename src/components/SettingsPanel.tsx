@@ -474,6 +474,10 @@ export type SettingsPanelProps = {
   // with regularWaves on — VÅGFORM steps SPRIDD → REGELBUNDEN → STÅENDE.
   standingWaves: boolean;
   setStandingWaves: Dispatch<SetStateAction<boolean>>;
+  // VÅGFORM's fourth step, SKVALPANDE: rolling crests that slosh back and
+  // forth while the water level rises and falls, camera on lagging buoyancy.
+  sloshWaves: boolean;
+  setSloshWaves: Dispatch<SetStateAction<boolean>>;
   regularPeriod: number;
   setRegularPeriod: Dispatch<SetStateAction<number>>;
   wavePeak: number;
@@ -1220,6 +1224,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setRegularCross,
     standingWaves,
     setStandingWaves,
+    sloshWaves,
+    setSloshWaves,
     regularPeriod,
     setRegularPeriod,
     wavePeak,
@@ -1956,18 +1962,30 @@ export function SettingsPanel(props: SettingsPanelProps) {
                           ? t("dial.wave.waveformValue.spread")
                           : standingWaves
                             ? t("dial.wave.waveformValue.standing")
-                            : t("dial.wave.waveformValue.regular")
+                            : sloshWaves
+                              ? t("dial.wave.waveformValue.slosh")
+                              : t("dial.wave.waveformValue.regular")
                       }
+                      // SPRIDD → REGELBUNDEN → STÅENDE → SKVALPANDE
                       onDec={() => {
-                        if (regularWaves && standingWaves) setStandingWaves(false);
-                        else {
+                        if (regularWaves && sloshWaves && !standingWaves) {
+                          setSloshWaves(false);
+                          setStandingWaves(true);
+                        } else if (regularWaves && (standingWaves || sloshWaves)) {
+                          setStandingWaves(false);
+                          setSloshWaves(false);
+                        } else {
                           setRegularWaves(false);
                           setStandingWaves(false);
+                          setSloshWaves(false);
                         }
                       }}
                       onInc={() => {
-                        if (regularWaves) setStandingWaves(true);
-                        else setRegularWaves(true);
+                        if (!regularWaves) setRegularWaves(true);
+                        else if (standingWaves) {
+                          setStandingWaves(false);
+                          setSloshWaves(true);
+                        } else if (!sloshWaves) setStandingWaves(true);
                       }}
                     />
                     <SettingRow

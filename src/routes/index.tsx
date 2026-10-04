@@ -231,6 +231,28 @@ function warpPhase(phase: number, skew: number): number {
   return phase + Math.min(0.9, Math.max(0, skew)) * Math.sin(phase);
 }
 
+// VÅGFORM = SKVALPANDE (sloshing wave). One shared temporal phase drives both
+// halves of the motion so they stay locked together, like water sloshing in
+// a bay: sloshShift() is the back-and-forth displacement of the wave train
+// along the wave direction (-1..1, +1 = carried furthest in the direction the
+// dial points), sloshLevel() the rise and fall of the mean water level. The
+// level is warped by SLOSH_RISE_SKEW on top of HEAVE SKEW so it climbs fast
+// as the water surges forward and drains back slowly — fast enough that the
+// buoyant camera (see the SKVALPANDE branch of the buoyancy spring) can't
+// keep up and briefly ends up under the surface before floating back up.
+// Both are temporal-only (no x/z), for the same reason warpPhase() is.
+// Keep in sync with the uSlosh block in the vertex shader.
+const SLOSH_SWING = 2.4; // rad of wave phase the train sloshes each way
+const SLOSH_LEVEL = 1.8; // mean-level rise/fall, × WAVE AMP (m)
+const SLOSH_RISE_SKEW = 0.8;
+const SLOSH_DRIFT = 6; // camera's back-and-forth carry, × WAVE AMP (m)
+function sloshShift(t: number, skew: number): number {
+  return Math.sin(warpPhase(t * 0.45, skew));
+}
+function sloshLevel(t: number, skew: number): number {
+  return Math.sin(warpPhase(warpPhase(t * 0.45, skew) + 0.35, SLOSH_RISE_SKEW));
+}
+
 // Gerstner-like sum of sines. Keep in sync with vertex shader.
 // `realistic` swaps in the JONSWAP/FFT-ocean waveform (see
 // src/lib/ocean/fftOceanSpectrum.ts) so the camera floats correctly on it
@@ -253,6 +275,11 @@ function warpPhase(phase: number, skew: number): number {
 // opposite phase, fixed nodal lines in between) instead of crests travelling
 // across the water. Only applies when `regular` is on, matching uStanding in
 // the vertex shader.
+// `slosh` (VÅGFORM = SKVALPANDE) keeps the regular wave's rolling crests but,
+// instead of letting them travel steadily one way, sloshes the whole wave
+// train back and forth along the wave direction (see sloshShift()) while the
+// mean water level rises and falls with it (sloshLevel()). Only applies when
+// `regular` is on and `standing` is off, matching uSlosh in the vertex shader.
 function waveHeight(
   x: number,
   z: number,
@@ -272,6 +299,7 @@ function waveHeight(
   freq: number = 1,
   skew: number = 0,
   standing: boolean = false,
+  slosh: boolean = false,
 ) {
   // Use compass-bearing convention (matches bearingToWorldXZ / the dial:
   // 0deg = world +z, 90deg = world +x) rather than the math-angle
@@ -304,6 +332,12 @@ function waveHeight(
         ? shapedWave(zr * kz, peak) * Math.sin(warpPhase(t * 0.9, skew)) * 1.4 * amp
         : 0;
       return sx + sz;
+    }
+    if (slosh) {
+      const sw = SLOSH_SWING * sloshShift(t, skew);
+      const ux = shapedWave(xr * kx + sw, peak) * 2.6 * amp;
+      const uz = cross ? shapedWave(zr * kz + 1.1 + sw, peak) * 1.4 * amp : 0;
+      return ux + uz + sloshLevel(t, skew) * SLOSH_LEVEL * amp;
     }
     const rx = shapedWave(xr * kx + warpPhase(t * 0.9, skew), peak) * 2.6 * amp;
     const rz = cross ? shapedWave(zr * kz + 1.1 + warpPhase(t * 0.9, skew), peak) * 1.4 * amp : 0;
@@ -740,6 +774,7 @@ const WAVE_PRESETS: Record<
     | "dyingWaveSpeed"
     | "regularCross"
     | "standingWaves"
+    | "sloshWaves"
     | "regularPeriod"
     | "wavePeak"
   >
@@ -755,6 +790,7 @@ const WAVE_PRESETS: Record<
     dyingWaveSpeed: 0.6,
     regularCross: false,
     standingWaves: false,
+    sloshWaves: false,
     regularPeriod: 1,
     wavePeak: 1,
   },
@@ -769,6 +805,7 @@ const WAVE_PRESETS: Record<
     dyingWaveSpeed: 0.6,
     regularCross: true,
     standingWaves: false,
+    sloshWaves: false,
     regularPeriod: 1,
     wavePeak: 1,
   },
@@ -1306,6 +1343,7 @@ export function Aquafulness() {
   const [wavePreset, setWavePreset] = useState<WavePresetName>(initial.wavePreset);
   const [regularCross, setRegularCross] = useState(initial.regularCross);
   const [standingWaves, setStandingWaves] = useState(initial.standingWaves);
+  const [sloshWaves, setSloshWaves] = useState(initial.sloshWaves);
   const [regularPeriod, setRegularPeriod] = useState(initial.regularPeriod);
   const [wavePeak, setWavePeak] = useState(initial.wavePeak);
   const [waveHighQuality, setWaveHighQuality] = useState(initial.waveHighQuality);
@@ -1843,6 +1881,7 @@ export function Aquafulness() {
     wavePreset,
     regularCross,
     standingWaves,
+    sloshWaves,
     regularPeriod,
     wavePeak,
     waveHighQuality,
@@ -2016,6 +2055,7 @@ export function Aquafulness() {
     wavePreset,
     regularCross,
     standingWaves,
+    sloshWaves,
     regularPeriod,
     wavePeak,
     waveHighQuality,
@@ -2239,6 +2279,7 @@ export function Aquafulness() {
   const dyingSpeedRef = useRef(dyingWaveSpeed);
   const regularCrossRef = useRef(regularCross);
   const standingRef = useRef(standingWaves);
+  const sloshRef = useRef(sloshWaves);
   const regularPeriodRef = useRef(regularPeriod);
   const wavePeakRef = useRef(wavePeak);
   const waveHighQualityRef = useRef(waveHighQuality);
@@ -2553,6 +2594,9 @@ export function Aquafulness() {
   useEffect(() => {
     standingRef.current = standingWaves;
   }, [standingWaves]);
+  useEffect(() => {
+    sloshRef.current = sloshWaves;
+  }, [sloshWaves]);
   useEffect(() => {
     regularPeriodRef.current = regularPeriod;
   }, [regularPeriod]);
@@ -3176,6 +3220,7 @@ export function Aquafulness() {
     setWavePreset(DEFAULTS.wavePreset);
     setRegularCross(DEFAULTS.regularCross);
     setStandingWaves(DEFAULTS.standingWaves);
+    setSloshWaves(DEFAULTS.sloshWaves);
     setRegularPeriod(DEFAULTS.regularPeriod);
     setWavePeak(DEFAULTS.wavePeak);
     setWaveHighQuality(DEFAULTS.waveHighQuality);
@@ -3340,6 +3385,7 @@ export function Aquafulness() {
     if (patch.wavePreset !== undefined) setWavePreset(patch.wavePreset);
     if (patch.regularCross !== undefined) setRegularCross(patch.regularCross);
     if (patch.standingWaves !== undefined) setStandingWaves(patch.standingWaves);
+    if (patch.sloshWaves !== undefined) setSloshWaves(patch.sloshWaves);
     if (patch.regularPeriod !== undefined) setRegularPeriod(patch.regularPeriod);
     if (patch.wavePeak !== undefined) setWavePeak(patch.wavePeak);
     if (patch.waveHighQuality !== undefined) setWaveHighQuality(patch.waveHighQuality);
@@ -3703,6 +3749,7 @@ export function Aquafulness() {
     setDyingWaveSpeed(p.dyingWaveSpeed);
     setRegularCross(p.regularCross);
     setStandingWaves(p.standingWaves);
+    setSloshWaves(p.sloshWaves);
     setRegularPeriod(p.regularPeriod);
     setWavePeak(p.wavePeak);
   };
@@ -4469,6 +4516,7 @@ export function Aquafulness() {
       uUnderwater: { value: 0 },
       uRegular: { value: 0 },
       uStanding: { value: 0 },
+      uSlosh: { value: 0 },
       uCross: { value: 1 },
       uPeriod: { value: 1 },
       // FREKVENS — multiplies the spatial wavenumbers of every waveform
@@ -4519,6 +4567,10 @@ export function Aquafulness() {
       // VÅGFORM = STÅENDE: blends the regular waveform from travelling
       // crests to a standing wave (see the standing branch of waveHeight()).
       uniform float uStanding;
+      // VÅGFORM = SKVALPANDE: blends the regular waveform from travelling
+      // crests to a train that sloshes back and forth while the mean level
+      // rises and falls (see sloshShift()/sloshLevel() in the JS).
+      uniform float uSlosh;
       uniform float uCross;
       uniform float uPeriod;
       uniform float uFreq;
@@ -4644,6 +4696,17 @@ export function Aquafulness() {
           float stX = shp(p.x * (0.12 * uFreq / uPeriod)) * sin(warpPhase(t * 0.9, uSkew)) * 2.6 * amp;
           float stZ = shp(p.z * (0.09 * uFreq / uPeriod)) * sin(warpPhase(t * 0.9, uSkew)) * 1.4 * amp * uCross;
           reg = mix(reg, stX + stZ, uStanding);
+        }
+        if (uSlosh > 0.001) {
+          // Surging wave: same rolling crests, but displaced back and forth
+          // by one slow shared phase instead of travelling, plus a mean-level
+          // rise (fast) and fall (slow). Constants match SLOSH_* in the JS.
+          float sPh = warpPhase(t * 0.45, uSkew);
+          float sw = 2.4 * sin(sPh);
+          float suX = shp(p.x * (0.12 * uFreq / uPeriod) + sw) * 2.6 * amp;
+          float suZ = shp(p.z * (0.09 * uFreq / uPeriod) + 1.1 + sw) * 1.4 * amp * uCross;
+          float suL = sin(warpPhase(sPh + 0.35, 0.8)) * 1.8 * amp;
+          reg = mix(reg, suX + suZ + suL, uSlosh);
         }
 
         // Large primary swell (chaotic sum of sines)
@@ -5964,6 +6027,9 @@ export function Aquafulness() {
         ((dyingRef.current ? 1 : 0) - uniforms.uDying.value) * Math.min(1, dt * 4);
       uniforms.uStanding.value +=
         ((standingRef.current ? 1 : 0) - uniforms.uStanding.value) * Math.min(1, dt * 4);
+      uniforms.uSlosh.value +=
+        ((sloshRef.current && !standingRef.current ? 1 : 0) - uniforms.uSlosh.value) *
+        Math.min(1, dt * 4);
       uniforms.uCross.value +=
         ((regularCrossRef.current ? 1 : 0) - uniforms.uCross.value) * Math.min(1, dt * 4);
       uniforms.uPeriod.value +=
@@ -6285,6 +6351,7 @@ export function Aquafulness() {
           freqRef.current,
           heaveSkewRef.current,
           standingRef.current,
+          sloshRef.current,
         );
       // TORNADO manual radial control + optional TORNADO SEQUENCE — shared by
       // all three tornado-applicable branches below, each of which only
@@ -6747,6 +6814,7 @@ export function Aquafulness() {
         freqRef.current,
         heaveSkewRef.current,
         standingRef.current,
+        sloshRef.current,
       );
       // Blend the whirlpool's own radial surface in on top of the normal
       // wave as vortexBlendRef eases in/out, so the water gradually deepens
@@ -6799,6 +6867,7 @@ export function Aquafulness() {
             freqRef.current,
             heaveSkewRef.current,
             standingRef.current,
+            sloshRef.current,
           );
           watercraftRig.setBob(
             raftSurfaceY - 0.3,
@@ -6937,6 +7006,7 @@ export function Aquafulness() {
           freqRef.current,
           heaveSkewRef.current,
           standingRef.current,
+          sloshRef.current,
         );
         // Mirror surfaceY's own vortexBlendRef blend here too (using the same
         // current-frame blend value, since it eases too slowly over ~1.4s for
@@ -6994,6 +7064,18 @@ export function Aquafulness() {
         const b = buoyRef.current;
         const sub = submergeRef.current;
         const lift = floatLiftRef.current;
+        // VÅGFORM = SKVALPANDE: the camera floats by real, lagging buoyancy
+        // rather than anticipating the wave — no feed-forward here, and a much
+        // softer spring while the water is rising past it (below) — so when
+        // the surge lifts the surface quickly the camera is briefly swallowed
+        // and then bobs back up, instead of riding perfectly on top.
+        const sloshing =
+          vortexBlendRef.current <= 0.0008 &&
+          regularRef.current &&
+          sloshRef.current &&
+          !standingRef.current &&
+          !realisticRef.current &&
+          !dyingRef.current;
         // Feed-forward the future surface height into the target so the camera
         // starts moving in sync with the incoming wave instead of chasing it.
         // Weighted toward the future sample (see `lead`/ANTICIPATION above)
@@ -7002,7 +7084,7 @@ export function Aquafulness() {
         // visibly catch up after the crest has already passed under it.
         // Scales with the same ANTICIPATION dial as `lead`, clamped below 1
         // so the target never extrapolates past the future sample itself.
-        const futureBias = Math.min(0.95, 0.75 * anticipation);
+        const futureBias = sloshing ? 0 : Math.min(0.95, 0.75 * anticipation);
         const anticipSurf = surfaceY * (1 - futureBias) + futureSurf * futureBias;
         const cap = amp * 1.4;
         // Smooth ramp instead of Math.max(0, anticipVel): the hard clamp has
@@ -7035,8 +7117,16 @@ export function Aquafulness() {
         // after a fast snap, not the fast snap itself; near-critical damping
         // keeps the same fast, well-synced tracking but removes the overshoot
         // so it settles smoothly instead of bouncing.
-        const k = (10 + 26 * bobSpeedRef.current) * (1 + peakK * 0.2);
-        const zeta = 0.85 + peakK * 0.1;
+        const kBase = (10 + 26 * bobSpeedRef.current) * (1 + peakK * 0.2);
+        // SKVALPANDE: while the surface is above the camera's float line the
+        // upward pull is a fifth as stiff and less damped, so a fast surge
+        // rise outruns it (≈1-2 m under at the default WAVE AMP) and the
+        // camera then floats back up; above the line it falls back at the
+        // usual rate so it never hangs in the air. GUNGA-hastighet still
+        // scales both.
+        const rising = sloshing && camYRef.current < targetY;
+        const k = rising ? kBase * 0.2 : kBase;
+        const zeta = rising ? 0.6 : 0.85 + peakK * 0.1;
         const c = 2 * zeta * Math.sqrt(k);
         const gravity = (1.2 + 3 * amp) * b * sub - (1.0 + 2 * amp) * b * lift;
         const ay = k * (targetY - camYRef.current) - c * camVYRef.current - gravity;
@@ -7070,6 +7160,15 @@ export function Aquafulness() {
           const biasEnv = Math.sin(st * 0.09) * 0.5 + 0.5; // 0..1
           swayTargetX = swAmp * (heaveNorm * dx + bias * dx * biasEnv * 1.2);
           swayTargetZ = swAmp * (heaveNorm * dz + bias * dz * biasEnv * 1.2);
+        }
+        // SKVALPANDE carries the camera back and forth with the sloshing
+        // water, along the direction the wave dial points (the same
+        // compass-bearing convention as waveHeight(): x=sin, z=cos), riding
+        // the same sway spring so it keeps a floating body's inertia.
+        if (sloshing) {
+          const drift = SLOSH_DRIFT * amp * sloshShift(t, heaveSkewRef.current);
+          swayTargetX += drift * Math.sin(dirRad);
+          swayTargetZ += drift * Math.cos(dirRad);
         }
 
         // Directional sway from the sticky SVAJ pad — the pad was set relative
@@ -7568,6 +7667,7 @@ export function Aquafulness() {
             freqRef.current,
             heaveSkewRef.current,
             standingRef.current,
+            sloshRef.current,
           );
           const s =
             vortexBlendRef.current > 0.0008
@@ -8056,6 +8156,8 @@ export function Aquafulness() {
     setRegularCross,
     standingWaves,
     setStandingWaves,
+    sloshWaves,
+    setSloshWaves,
     regularPeriod,
     setRegularPeriod,
     wavePeak,
