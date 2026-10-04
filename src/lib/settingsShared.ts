@@ -367,6 +367,11 @@ export type Persisted = {
   // crests rise while their neighbours sink) instead of travelling crests.
   // Only takes effect together with regularWaves.
   standingWaves: boolean;
+  // VÅGFORM = SKVALPANDE: the regular waveform's crests slosh back and forth
+  // along the wave direction while the mean level rises and falls, and the
+  // camera floats on it with lagging buoyancy. Only takes effect together
+  // with regularWaves (and with standingWaves off).
+  sloshWaves: boolean;
   regularPeriod: number;
   wavePeak: number;
   waveHighQuality: boolean;
@@ -637,6 +642,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "randomizeWaves",
     "regularCross",
     "standingWaves",
+    "sloshWaves",
     "regularPeriod",
     "wavePeak",
     "trochoid",
