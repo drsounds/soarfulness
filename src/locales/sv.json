@@ -223,7 +223,8 @@
       "worldBoundary": "VÄRLDSGRÄNS",
       "worldBoundaryHeight": "GRÄNSHÖJD (Y)",
       "worldBoundarySize": "GRÄNSSTORLEK (XZ)",
-      "worldBoundaryYExtend": "OÄNDLIGA MOLNLAGER"
+      "worldBoundaryYExtend": "OÄNDLIGA MOLNLAGER",
+      "torusVerticalDensity": "TÄTHET VERTIKALT"
     },
     "water": {
       "bottom": "BOTTEN",
@@ -668,7 +669,11 @@
       "tornado": "TORNADO",
       "whirlpool": "VIRVEL"
     },
-    "totalLabel": " · Totalt "
+    "totalLabel": " · Totalt ",
+    "drawerTab": {
+      "sky": "HIMMEL"
+    },
+    "torusToggleAria": "Slå på/av badringar"
   },
   "interval": {
     "type": {

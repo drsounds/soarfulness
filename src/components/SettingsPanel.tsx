@@ -3585,12 +3585,12 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${torusScale.toFixed(2)}x`}
                       rawValue={torusScale}
-                      onSet={(v) => setTorusScale(Math.max(0.1, Math.min(10, v)))}
+                      onSet={(v) => setTorusScale(Math.max(0.1, Math.min(20, v)))}
                       min={0.1}
-                      max={10}
+                      max={20}
                       step={0.1}
                       onDec={() => setTorusScale((v) => Math.max(0.1, +(v - 0.1).toFixed(2)))}
-                      onInc={() => setTorusScale((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
+                      onInc={() => setTorusScale((v) => Math.min(20, +(v + 0.1).toFixed(2)))}
                     />
                     <SettingRow
                       label={t("common.opacity")}
