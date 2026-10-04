@@ -48,6 +48,8 @@ import {
   type TornadoDirection,
   type TornadoSequenceExitMode,
   type SurgeRotationMode,
+  SKY_CLOUDS_ALTITUDE_MIN,
+  SKY_CLOUDS_ALTITUDE_MAX,
 } from "@/lib/settingsShared";
 import { pickJsonFile, type PresetScope, type SavedPreset, type SavedState } from "@/lib/presets";
 import { changeLanguage, SUPPORTED_LANGUAGES, LANGUAGE_NAMES, type LanguageCode } from "@/lib/i18n";
@@ -722,8 +724,14 @@ export type SettingsPanelProps = {
   setMidCloudsHeight: Dispatch<SetStateAction<number>>;
   skyCloudsOn: boolean;
   setSkyCloudsOn: Dispatch<SetStateAction<boolean>>;
-  skyCloudsHeight: number;
-  setSkyCloudsHeight: Dispatch<SetStateAction<number>>;
+  skyCloudsAltitude: number;
+  setSkyCloudsAltitude: Dispatch<SetStateAction<number>>;
+  bottomClouds3d: boolean;
+  setBottomClouds3d: Dispatch<SetStateAction<boolean>>;
+  midClouds3d: boolean;
+  setMidClouds3d: Dispatch<SetStateAction<boolean>>;
+  skyClouds3d: boolean;
+  setSkyClouds3d: Dispatch<SetStateAction<boolean>>;
   cloudFadeSpeed: number;
   setCloudFadeSpeed: Dispatch<SetStateAction<number>>;
   skyPuffsOn: boolean;
@@ -1432,8 +1440,14 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setMidCloudsHeight,
     skyCloudsOn,
     setSkyCloudsOn,
-    skyCloudsHeight,
-    setSkyCloudsHeight,
+    skyCloudsAltitude,
+    setSkyCloudsAltitude,
+    bottomClouds3d,
+    setBottomClouds3d,
+    midClouds3d,
+    setMidClouds3d,
+    skyClouds3d,
+    setSkyClouds3d,
     cloudFadeSpeed,
     setCloudFadeSpeed,
     skyPuffsOn,
@@ -1660,456 +1674,442 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   loadSavedPreset={loadSavedPreset}
                   deleteSavedPreset={deleteSavedPreset}
                 />
-                    <SettingRow
-                      label={t("dial.wave.amp")}
-                      mode="number"
-                      value={`${waveAmp.toFixed(2)}m`}
-                      rawValue={waveAmp}
-                      onSet={setWaveAmp}
-                      min={0}
-                      max={100}
-                      step={0.5}
-                      onDec={() => setWaveAmp((v) => Math.max(0, +(v - 0.5).toFixed(2)))}
-                      onInc={() => setWaveAmp((v) => Math.min(100, +(v + 0.5).toFixed(2)))}
-                    />
-                    <SettingRow
-                      label={t("dial.wave.speed")}
-                      mode="number"
-                      value={`${waveSpeed.toFixed(2)}×`}
-                      rawValue={waveSpeed}
-                      onSet={setWaveSpeed}
-                      min={0}
-                      max={10}
-                      step={0.1}
-                      onDec={() => setWaveSpeed((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
-                      onInc={() => setWaveSpeed((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
-                    />
-                    <SettingRow
-                      label={t("dial.wave.freq")}
-                      mode="number"
-                      value={`${waveFreq.toFixed(2)}×`}
-                      rawValue={waveFreq}
-                      onSet={(v) =>
-                        setWaveFreq(Math.max(WAVE_FREQ_MIN, Math.min(WAVE_FREQ_MAX, v)))
-                      }
-                      min={WAVE_FREQ_MIN}
-                      max={WAVE_FREQ_MAX}
-                      step={0.05}
-                      onDec={() =>
-                        setWaveFreq((v) => Math.max(WAVE_FREQ_MIN, +(v - 0.05).toFixed(2)))
-                      }
-                      onInc={() =>
-                        setWaveFreq((v) => Math.min(WAVE_FREQ_MAX, +(v + 0.05).toFixed(2)))
-                      }
-                    />
-                    <SettingRow
-                      label={t("dial.wave.height")}
-                      mode="number"
-                      value={`${heightOffset >= 0 ? "+" : ""}${heightOffset.toFixed(2)}m`}
-                      rawValue={heightOffset}
-                      onSet={setHeightOffset}
-                      min={-5}
-                      max={5}
-                      step={0.2}
-                      onDec={() => setHeightOffset((v) => Math.max(-5, +(v - 0.2).toFixed(2)))}
-                      onInc={() => setHeightOffset((v) => Math.min(5, +(v + 0.2).toFixed(2)))}
-                    />
-                    <SettingRow
-                      label={t("dial.wave.dive")}
-                      mode="number"
-                      value={`${submergeAmp.toFixed(2)}×`}
-                      rawValue={submergeAmp}
-                      onSet={setSubmergeAmp}
-                      min={0}
-                      max={4}
-                      step={0.1}
-                      onDec={() => setSubmergeAmp((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
-                      onInc={() => setSubmergeAmp((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
-                    />
-                    <SettingRow
-                      label={t("dial.wave.floatLift")}
-                      mode="number"
-                      value={`${floatLift.toFixed(2)}×`}
-                      rawValue={floatLift}
-                      onSet={setFloatLift}
-                      min={0}
-                      max={4}
-                      step={0.1}
-                      onDec={() => setFloatLift((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
-                      onInc={() => setFloatLift((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
-                    />
-                    <SettingRow
-                      label={t("dial.wave.anticipation")}
-                      mode="number"
-                      value={`${waveAnticipation.toFixed(2)}×`}
-                      rawValue={waveAnticipation}
-                      onSet={setWaveAnticipation}
-                      min={0}
-                      max={2}
-                      step={0.1}
-                      onDec={() => setWaveAnticipation((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
-                      onInc={() => setWaveAnticipation((v) => Math.min(2, +(v + 0.1).toFixed(2)))}
-                    />
-                    <SettingRow
-                      label={t("dial.wave.currentDirection")}
-                      mode="number"
-                      value={`${Math.round(worldXZBearing(driftWorldRef.current.x, driftWorldRef.current.z))}°`}
-                      rawValue={worldXZBearing(driftWorldRef.current.x, driftWorldRef.current.z)}
-                      onSet={(v) =>
-                        setStickBearing(driftWorldRef, driftDisplayRef, setDriftStick, v)
-                      }
-                      min={0}
-                      max={360}
-                      step={5}
-                      onDec={() =>
-                        setStickBearing(
-                          driftWorldRef,
-                          driftDisplayRef,
-                          setDriftStick,
-                          worldXZBearing(driftWorldRef.current.x, driftWorldRef.current.z) - 15,
-                        )
-                      }
-                      onInc={() =>
-                        setStickBearing(
-                          driftWorldRef,
-                          driftDisplayRef,
-                          setDriftStick,
-                          worldXZBearing(driftWorldRef.current.x, driftWorldRef.current.z) + 15,
-                        )
-                      }
-                    />
-                    <SettingRow
-                      label={t("dial.wave.sway")}
-                      mode="number"
-                      value={`${swayAmp.toFixed(1)}m`}
-                      rawValue={swayAmp}
-                      onSet={setSwayAmp}
-                      min={0}
-                      max={60}
-                      step={0.5}
-                      onDec={() => setSwayAmp((v) => Math.max(0, +(v - 0.5).toFixed(2)))}
-                      onInc={() => setSwayAmp((v) => Math.min(60, +(v + 0.5).toFixed(2)))}
-                    />
-                    <SettingRow
-                      label={t("dial.wave.swaySpeed")}
-                      mode="number"
-                      value={`${swaySpeed.toFixed(2)}×`}
-                      rawValue={swaySpeed}
-                      onSet={setSwaySpeed}
-                      min={0.01}
-                      max={10}
-                      step={0.01}
-                      onDec={() => setSwaySpeed((v) => Math.max(0.01, +(v - 0.01).toFixed(2)))}
-                      onInc={() => setSwaySpeed((v) => Math.min(1, +(v + 0.01).toFixed(2)))}
-                    />
-                    <SettingRow
-                      label={t("dial.wave.swayDrift")}
-                      mode="number"
-                      value={
-                        swayBias === 0
-                          ? t("common.neutral")
-                          : swayBias > 0
-                            ? `${t("common.with")} ${swayBias.toFixed(2)}`
-                            : `${t("common.against")} ${Math.abs(swayBias).toFixed(2)}`
-                      }
-                      rawValue={swayBias}
-                      onSet={setSwayBias}
-                      min={-10}
-                      max={10}
-                      step={0.05}
-                      onDec={() => setSwayBias((v) => Math.max(-1, +(v - 0.05).toFixed(2)))}
-                      onInc={() => setSwayBias((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
-                    />
-                    <SettingRow
-                      label={t("dial.wave.swayDirection")}
-                      mode="number"
-                      value={`${Math.round(worldXZBearing(swayWorldRef.current.x, swayWorldRef.current.z))}°`}
-                      rawValue={worldXZBearing(swayWorldRef.current.x, swayWorldRef.current.z)}
-                      onSet={(v) => setStickBearing(swayWorldRef, swayDisplayRef, setSwayStick, v)}
-                      min={0}
-                      max={360}
-                      step={5}
-                      onDec={() =>
-                        setStickBearing(
-                          swayWorldRef,
-                          swayDisplayRef,
-                          setSwayStick,
-                          worldXZBearing(swayWorldRef.current.x, swayWorldRef.current.z) - 15,
-                        )
-                      }
-                      onInc={() =>
-                        setStickBearing(
-                          swayWorldRef,
-                          swayDisplayRef,
-                          setSwayStick,
-                          worldXZBearing(swayWorldRef.current.x, swayWorldRef.current.z) + 15,
-                        )
-                      }
-                    />
-                    <SettingRow
-                      label={t("dial.wave.surge")}
-                      mode="number"
-                      value={`${surgeAmp.toFixed(1)}m`}
-                      rawValue={surgeAmp}
-                      onSet={setSurgeAmp}
-                      min={0}
-                      max={60}
-                      step={0.5}
-                      onDec={() => setSurgeAmp((v) => Math.max(0, +(v - 0.5).toFixed(2)))}
-                      onInc={() => setSurgeAmp((v) => Math.min(60, +(v + 0.5).toFixed(2)))}
-                    />
-                    <SettingRow
-                      label={t("dial.wave.surgeSpeed")}
-                      mode="number"
-                      value={`${surgeSpeed.toFixed(2)}×`}
-                      rawValue={surgeSpeed}
-                      onSet={setSurgeSpeed}
-                      min={0.01}
-                      max={10}
-                      step={0.01}
-                      onDec={() => setSurgeSpeed((v) => Math.max(0.01, +(v - 0.01).toFixed(2)))}
-                      onInc={() => setSurgeSpeed((v) => Math.min(1, +(v + 0.01).toFixed(2)))}
-                    />
-                    <SettingRow
-                      label={t("dial.wave.surgeDirection")}
-                      mode="number"
-                      value={`${Math.round(worldXZBearing(surgeWorldRef.current.x, surgeWorldRef.current.z))}°`}
-                      rawValue={worldXZBearing(surgeWorldRef.current.x, surgeWorldRef.current.z)}
-                      onSet={setSurgeBearing}
-                      min={0}
-                      max={360}
-                      step={5}
-                      onDec={() =>
-                        setSurgeBearing(
-                          worldXZBearing(surgeWorldRef.current.x, surgeWorldRef.current.z) - 15,
-                        )
-                      }
-                      onInc={() =>
-                        setSurgeBearing(
-                          worldXZBearing(surgeWorldRef.current.x, surgeWorldRef.current.z) + 15,
-                        )
-                      }
-                    />
-                    <SettingRow
-                      label={t("dial.wave.surgeRotationMode")}
-                      value={t(SURGE_ROTATION_MODE_LABEL_KEYS[surgeRotationMode])}
-                      options={SURGE_ROTATION_MODES.map((m) =>
-                        t(SURGE_ROTATION_MODE_LABEL_KEYS[m]),
-                      )}
-                      selectedIndex={SURGE_ROTATION_MODES.indexOf(surgeRotationMode)}
-                      onSelectIndex={(i) => setSurgeRotationMode(SURGE_ROTATION_MODES[i])}
-                      onDec={() =>
-                        setSurgeRotationMode(
-                          SURGE_ROTATION_MODES[
-                            (SURGE_ROTATION_MODES.indexOf(surgeRotationMode) -
-                              1 +
-                              SURGE_ROTATION_MODES.length) %
-                              SURGE_ROTATION_MODES.length
-                          ],
-                        )
-                      }
-                      onInc={() =>
-                        setSurgeRotationMode(
-                          SURGE_ROTATION_MODES[
-                            (SURGE_ROTATION_MODES.indexOf(surgeRotationMode) + 1) %
-                              SURGE_ROTATION_MODES.length
-                          ],
-                        )
-                      }
-                    />
-                    <SettingRow
-                      label={t("dial.wave.surgeRotationSpeed")}
-                      mode="number"
-                      value={`${surgeRotationSpeed.toFixed(1)}°/s`}
-                      rawValue={surgeRotationSpeed}
-                      onSet={setSurgeRotationSpeed}
-                      min={0}
-                      max={30}
-                      step={0.5}
-                      onDec={() => setSurgeRotationSpeed((v) => Math.max(0, +(v - 0.5).toFixed(2)))}
-                      onInc={() =>
-                        setSurgeRotationSpeed((v) => Math.min(30, +(v + 0.5).toFixed(2)))
-                      }
-                    />
-                    <SettingRow
-                      label={t("dial.wave.bob")}
-                      mode="number"
-                      value={`${buoyAmp.toFixed(2)}×`}
-                      rawValue={buoyAmp}
-                      onSet={setBuoyAmp}
-                      min={0}
-                      max={4}
-                      step={0.1}
-                      onDec={() => setBuoyAmp((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
-                      onInc={() => setBuoyAmp((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
-                    />
-                    <SettingRow
-                      label={t("dial.wave.bobSpeed")}
-                      mode="number"
-                      value={`${bobSpeed.toFixed(2)}×`}
-                      rawValue={bobSpeed}
-                      onSet={setBobSpeed}
-                      min={0}
-                      max={5}
-                      step={0.1}
-                      onDec={() => setBobSpeed((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
-                      onInc={() => setBobSpeed((v) => Math.min(5, +(v + 0.1).toFixed(2)))}
-                    />
-                    <SettingRow
-                      label={t("dial.wave.waveform")}
-                      value={
-                        !regularWaves
-                          ? t("dial.wave.waveformValue.spread")
-                          : standingWaves
-                            ? t("dial.wave.waveformValue.standing")
-                            : sloshWaves
-                              ? t("dial.wave.waveformValue.slosh")
-                              : t("dial.wave.waveformValue.regular")
-                      }
-                      // SPRIDD → REGELBUNDEN → STÅENDE → SKVALPANDE
-                      onDec={() => {
-                        if (regularWaves && sloshWaves && !standingWaves) {
-                          setSloshWaves(false);
-                          setStandingWaves(true);
-                        } else if (regularWaves && (standingWaves || sloshWaves)) {
-                          setStandingWaves(false);
-                          setSloshWaves(false);
-                        } else {
-                          setRegularWaves(false);
-                          setStandingWaves(false);
-                          setSloshWaves(false);
-                        }
-                      }}
-                      onInc={() => {
-                        if (!regularWaves) setRegularWaves(true);
-                        else if (standingWaves) {
-                          setStandingWaves(false);
-                          setSloshWaves(true);
-                        } else if (!sloshWaves) setStandingWaves(true);
-                      }}
-                    />
-                    <SettingRow
-                      label={t("dial.wave.realistic")}
-                      value={realisticWaves ? t("dial.wave.realisticValue.on") : t("common.off")}
-                      onDec={() => setRealisticWaves(false)}
-                      onInc={() => setRealisticWaves(true)}
-                    />
-                    <SettingRow
-                      label={t("dial.wave.preset")}
-                      value={t(WAVE_PRESET_LABEL_KEYS[wavePreset])}
-                      onDec={() => applyWavePreset("legacy")}
-                      onInc={() => applyWavePreset("standard")}
-                    />
-                    <SettingRow
-                      label={t("dial.wave.dyingWave")}
-                      value={onOff(dyingWave)}
-                      onDec={() => setDyingWave(false)}
-                      onInc={() => setDyingWave(true)}
-                    />
-                    <SettingRow
-                      label={t("dial.wave.dyingWaveHeight")}
-                      mode="number"
-                      value={`${dyingWaveAmp.toFixed(2)}m`}
-                      rawValue={dyingWaveAmp}
-                      onSet={setDyingWaveAmp}
-                      min={0}
-                      max={20}
-                      step={0.1}
-                      onDec={() => setDyingWaveAmp((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
-                      onInc={() => setDyingWaveAmp((v) => Math.min(20, +(v + 0.1).toFixed(2)))}
-                    />
-                    <SettingRow
-                      label={t("dial.wave.dyingWaveSpeed")}
-                      mode="number"
-                      value={`${dyingWaveSpeed.toFixed(2)}×`}
-                      rawValue={dyingWaveSpeed}
-                      onSet={setDyingWaveSpeed}
-                      min={0}
-                      max={5}
-                      step={0.05}
-                      onDec={() => setDyingWaveSpeed((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
-                      onInc={() => setDyingWaveSpeed((v) => Math.min(5, +(v + 0.05).toFixed(2)))}
-                    />
-                    <SettingRow
-                      label={t("dial.wave.randomize")}
-                      value={onOff(randomizeWaves)}
-                      onDec={() => setRandomizeWaves(false)}
-                      onInc={() => setRandomizeWaves(true)}
-                    />
-                    <SettingRow
-                      label={t("dial.wave.crossWave")}
-                      value={onOff(regularCross)}
-                      onDec={() => setRegularCross(false)}
-                      onInc={() => setRegularCross(true)}
-                    />
-                    <SettingRow
-                      label={t("dial.wave.wavePeriod")}
-                      mode="number"
-                      value={`${regularPeriod.toFixed(2)}x`}
-                      rawValue={regularPeriod}
-                      onSet={setRegularPeriod}
-                      min={0.3}
-                      max={4}
-                      step={0.1}
-                      onDec={() => setRegularPeriod((v) => Math.max(0.3, +(v - 0.1).toFixed(2)))}
-                      onInc={() => setRegularPeriod((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
-                    />
-                    <SettingRow
-                      label={t("dial.wave.peak")}
-                      mode="number"
-                      value={`${wavePeak.toFixed(2)}`}
-                      rawValue={wavePeak}
-                      onSet={setWavePeak}
-                      min={1}
-                      max={6}
-                      step={0.25}
-                      onDec={() => setWavePeak((v) => Math.max(1, +(v - 0.25).toFixed(2)))}
-                      onInc={() => setWavePeak((v) => Math.min(6, +(v + 0.25).toFixed(2)))}
-                    />
-                    <SettingRow
-                      label={t("dial.wave.trochoid")}
-                      mode="number"
-                      value={trochoid <= 0.001 ? t("common.off") : `${Math.round(trochoid * 100)}%`}
-                      rawValue={trochoid}
-                      onSet={(v) => setTrochoid(Math.max(0, Math.min(1, v)))}
-                      min={0}
-                      max={1}
-                      step={0.05}
-                      onDec={() => setTrochoid((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
-                      onInc={() => setTrochoid((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
-                    />
-                    <SettingRow
-                      label={t("dial.wave.heaveSkew")}
-                      mode="number"
-                      value={
-                        heaveSkew <= 0.001 ? t("common.off") : `${Math.round(heaveSkew * 100)}%`
-                      }
-                      rawValue={heaveSkew}
-                      onSet={(v) => setHeaveSkew(Math.max(0, Math.min(0.9, v)))}
-                      min={0}
-                      max={0.9}
-                      step={0.05}
-                      onDec={() => setHeaveSkew((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
-                      onInc={() => setHeaveSkew((v) => Math.min(0.9, +(v + 0.05).toFixed(2)))}
-                    />
-                    <SettingRow
-                      label={t("dial.wave.quality")}
-                      value={waveHighQuality ? t("common.high") : t("common.low")}
-                      onDec={() => setWaveHighQuality(false)}
-                      onInc={() => setWaveHighQuality(true)}
-                    />
-                    <SettingRow
-                      label={t("dial.wave.waveDirection")}
-                      mode="number"
-                      value={`${Math.round(((waveDir % 360) + 360) % 360)}°`}
-                      rawValue={waveDir}
-                      onSet={(v) => setWaveDir(((v % 360) + 360) % 360)}
-                      min={0}
-                      max={360}
-                      step={5}
-                      onDec={() => setWaveDir((v) => (((v - 15) % 360) + 360) % 360)}
-                      onInc={() => setWaveDir((v) => (((v + 15) % 360) + 360) % 360)}
-                    />
+                <SettingRow
+                  label={t("dial.wave.amp")}
+                  mode="number"
+                  value={`${waveAmp.toFixed(2)}m`}
+                  rawValue={waveAmp}
+                  onSet={setWaveAmp}
+                  min={0}
+                  max={100}
+                  step={0.5}
+                  onDec={() => setWaveAmp((v) => Math.max(0, +(v - 0.5).toFixed(2)))}
+                  onInc={() => setWaveAmp((v) => Math.min(100, +(v + 0.5).toFixed(2)))}
+                />
+                <SettingRow
+                  label={t("dial.wave.speed")}
+                  mode="number"
+                  value={`${waveSpeed.toFixed(2)}×`}
+                  rawValue={waveSpeed}
+                  onSet={setWaveSpeed}
+                  min={0}
+                  max={10}
+                  step={0.1}
+                  onDec={() => setWaveSpeed((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
+                  onInc={() => setWaveSpeed((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
+                />
+                <SettingRow
+                  label={t("dial.wave.freq")}
+                  mode="number"
+                  value={`${waveFreq.toFixed(2)}×`}
+                  rawValue={waveFreq}
+                  onSet={(v) => setWaveFreq(Math.max(WAVE_FREQ_MIN, Math.min(WAVE_FREQ_MAX, v)))}
+                  min={WAVE_FREQ_MIN}
+                  max={WAVE_FREQ_MAX}
+                  step={0.05}
+                  onDec={() => setWaveFreq((v) => Math.max(WAVE_FREQ_MIN, +(v - 0.05).toFixed(2)))}
+                  onInc={() => setWaveFreq((v) => Math.min(WAVE_FREQ_MAX, +(v + 0.05).toFixed(2)))}
+                />
+                <SettingRow
+                  label={t("dial.wave.height")}
+                  mode="number"
+                  value={`${heightOffset >= 0 ? "+" : ""}${heightOffset.toFixed(2)}m`}
+                  rawValue={heightOffset}
+                  onSet={setHeightOffset}
+                  min={-5}
+                  max={5}
+                  step={0.2}
+                  onDec={() => setHeightOffset((v) => Math.max(-5, +(v - 0.2).toFixed(2)))}
+                  onInc={() => setHeightOffset((v) => Math.min(5, +(v + 0.2).toFixed(2)))}
+                />
+                <SettingRow
+                  label={t("dial.wave.dive")}
+                  mode="number"
+                  value={`${submergeAmp.toFixed(2)}×`}
+                  rawValue={submergeAmp}
+                  onSet={setSubmergeAmp}
+                  min={0}
+                  max={4}
+                  step={0.1}
+                  onDec={() => setSubmergeAmp((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
+                  onInc={() => setSubmergeAmp((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
+                />
+                <SettingRow
+                  label={t("dial.wave.floatLift")}
+                  mode="number"
+                  value={`${floatLift.toFixed(2)}×`}
+                  rawValue={floatLift}
+                  onSet={setFloatLift}
+                  min={0}
+                  max={4}
+                  step={0.1}
+                  onDec={() => setFloatLift((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
+                  onInc={() => setFloatLift((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
+                />
+                <SettingRow
+                  label={t("dial.wave.anticipation")}
+                  mode="number"
+                  value={`${waveAnticipation.toFixed(2)}×`}
+                  rawValue={waveAnticipation}
+                  onSet={setWaveAnticipation}
+                  min={0}
+                  max={2}
+                  step={0.1}
+                  onDec={() => setWaveAnticipation((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
+                  onInc={() => setWaveAnticipation((v) => Math.min(2, +(v + 0.1).toFixed(2)))}
+                />
+                <SettingRow
+                  label={t("dial.wave.currentDirection")}
+                  mode="number"
+                  value={`${Math.round(worldXZBearing(driftWorldRef.current.x, driftWorldRef.current.z))}°`}
+                  rawValue={worldXZBearing(driftWorldRef.current.x, driftWorldRef.current.z)}
+                  onSet={(v) => setStickBearing(driftWorldRef, driftDisplayRef, setDriftStick, v)}
+                  min={0}
+                  max={360}
+                  step={5}
+                  onDec={() =>
+                    setStickBearing(
+                      driftWorldRef,
+                      driftDisplayRef,
+                      setDriftStick,
+                      worldXZBearing(driftWorldRef.current.x, driftWorldRef.current.z) - 15,
+                    )
+                  }
+                  onInc={() =>
+                    setStickBearing(
+                      driftWorldRef,
+                      driftDisplayRef,
+                      setDriftStick,
+                      worldXZBearing(driftWorldRef.current.x, driftWorldRef.current.z) + 15,
+                    )
+                  }
+                />
+                <SettingRow
+                  label={t("dial.wave.sway")}
+                  mode="number"
+                  value={`${swayAmp.toFixed(1)}m`}
+                  rawValue={swayAmp}
+                  onSet={setSwayAmp}
+                  min={0}
+                  max={60}
+                  step={0.5}
+                  onDec={() => setSwayAmp((v) => Math.max(0, +(v - 0.5).toFixed(2)))}
+                  onInc={() => setSwayAmp((v) => Math.min(60, +(v + 0.5).toFixed(2)))}
+                />
+                <SettingRow
+                  label={t("dial.wave.swaySpeed")}
+                  mode="number"
+                  value={`${swaySpeed.toFixed(2)}×`}
+                  rawValue={swaySpeed}
+                  onSet={setSwaySpeed}
+                  min={0.01}
+                  max={10}
+                  step={0.01}
+                  onDec={() => setSwaySpeed((v) => Math.max(0.01, +(v - 0.01).toFixed(2)))}
+                  onInc={() => setSwaySpeed((v) => Math.min(1, +(v + 0.01).toFixed(2)))}
+                />
+                <SettingRow
+                  label={t("dial.wave.swayDrift")}
+                  mode="number"
+                  value={
+                    swayBias === 0
+                      ? t("common.neutral")
+                      : swayBias > 0
+                        ? `${t("common.with")} ${swayBias.toFixed(2)}`
+                        : `${t("common.against")} ${Math.abs(swayBias).toFixed(2)}`
+                  }
+                  rawValue={swayBias}
+                  onSet={setSwayBias}
+                  min={-10}
+                  max={10}
+                  step={0.05}
+                  onDec={() => setSwayBias((v) => Math.max(-1, +(v - 0.05).toFixed(2)))}
+                  onInc={() => setSwayBias((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+                />
+                <SettingRow
+                  label={t("dial.wave.swayDirection")}
+                  mode="number"
+                  value={`${Math.round(worldXZBearing(swayWorldRef.current.x, swayWorldRef.current.z))}°`}
+                  rawValue={worldXZBearing(swayWorldRef.current.x, swayWorldRef.current.z)}
+                  onSet={(v) => setStickBearing(swayWorldRef, swayDisplayRef, setSwayStick, v)}
+                  min={0}
+                  max={360}
+                  step={5}
+                  onDec={() =>
+                    setStickBearing(
+                      swayWorldRef,
+                      swayDisplayRef,
+                      setSwayStick,
+                      worldXZBearing(swayWorldRef.current.x, swayWorldRef.current.z) - 15,
+                    )
+                  }
+                  onInc={() =>
+                    setStickBearing(
+                      swayWorldRef,
+                      swayDisplayRef,
+                      setSwayStick,
+                      worldXZBearing(swayWorldRef.current.x, swayWorldRef.current.z) + 15,
+                    )
+                  }
+                />
+                <SettingRow
+                  label={t("dial.wave.surge")}
+                  mode="number"
+                  value={`${surgeAmp.toFixed(1)}m`}
+                  rawValue={surgeAmp}
+                  onSet={setSurgeAmp}
+                  min={0}
+                  max={60}
+                  step={0.5}
+                  onDec={() => setSurgeAmp((v) => Math.max(0, +(v - 0.5).toFixed(2)))}
+                  onInc={() => setSurgeAmp((v) => Math.min(60, +(v + 0.5).toFixed(2)))}
+                />
+                <SettingRow
+                  label={t("dial.wave.surgeSpeed")}
+                  mode="number"
+                  value={`${surgeSpeed.toFixed(2)}×`}
+                  rawValue={surgeSpeed}
+                  onSet={setSurgeSpeed}
+                  min={0.01}
+                  max={10}
+                  step={0.01}
+                  onDec={() => setSurgeSpeed((v) => Math.max(0.01, +(v - 0.01).toFixed(2)))}
+                  onInc={() => setSurgeSpeed((v) => Math.min(1, +(v + 0.01).toFixed(2)))}
+                />
+                <SettingRow
+                  label={t("dial.wave.surgeDirection")}
+                  mode="number"
+                  value={`${Math.round(worldXZBearing(surgeWorldRef.current.x, surgeWorldRef.current.z))}°`}
+                  rawValue={worldXZBearing(surgeWorldRef.current.x, surgeWorldRef.current.z)}
+                  onSet={setSurgeBearing}
+                  min={0}
+                  max={360}
+                  step={5}
+                  onDec={() =>
+                    setSurgeBearing(
+                      worldXZBearing(surgeWorldRef.current.x, surgeWorldRef.current.z) - 15,
+                    )
+                  }
+                  onInc={() =>
+                    setSurgeBearing(
+                      worldXZBearing(surgeWorldRef.current.x, surgeWorldRef.current.z) + 15,
+                    )
+                  }
+                />
+                <SettingRow
+                  label={t("dial.wave.surgeRotationMode")}
+                  value={t(SURGE_ROTATION_MODE_LABEL_KEYS[surgeRotationMode])}
+                  options={SURGE_ROTATION_MODES.map((m) => t(SURGE_ROTATION_MODE_LABEL_KEYS[m]))}
+                  selectedIndex={SURGE_ROTATION_MODES.indexOf(surgeRotationMode)}
+                  onSelectIndex={(i) => setSurgeRotationMode(SURGE_ROTATION_MODES[i])}
+                  onDec={() =>
+                    setSurgeRotationMode(
+                      SURGE_ROTATION_MODES[
+                        (SURGE_ROTATION_MODES.indexOf(surgeRotationMode) -
+                          1 +
+                          SURGE_ROTATION_MODES.length) %
+                          SURGE_ROTATION_MODES.length
+                      ],
+                    )
+                  }
+                  onInc={() =>
+                    setSurgeRotationMode(
+                      SURGE_ROTATION_MODES[
+                        (SURGE_ROTATION_MODES.indexOf(surgeRotationMode) + 1) %
+                          SURGE_ROTATION_MODES.length
+                      ],
+                    )
+                  }
+                />
+                <SettingRow
+                  label={t("dial.wave.surgeRotationSpeed")}
+                  mode="number"
+                  value={`${surgeRotationSpeed.toFixed(1)}°/s`}
+                  rawValue={surgeRotationSpeed}
+                  onSet={setSurgeRotationSpeed}
+                  min={0}
+                  max={30}
+                  step={0.5}
+                  onDec={() => setSurgeRotationSpeed((v) => Math.max(0, +(v - 0.5).toFixed(2)))}
+                  onInc={() => setSurgeRotationSpeed((v) => Math.min(30, +(v + 0.5).toFixed(2)))}
+                />
+                <SettingRow
+                  label={t("dial.wave.bob")}
+                  mode="number"
+                  value={`${buoyAmp.toFixed(2)}×`}
+                  rawValue={buoyAmp}
+                  onSet={setBuoyAmp}
+                  min={0}
+                  max={4}
+                  step={0.1}
+                  onDec={() => setBuoyAmp((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
+                  onInc={() => setBuoyAmp((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
+                />
+                <SettingRow
+                  label={t("dial.wave.bobSpeed")}
+                  mode="number"
+                  value={`${bobSpeed.toFixed(2)}×`}
+                  rawValue={bobSpeed}
+                  onSet={setBobSpeed}
+                  min={0}
+                  max={5}
+                  step={0.1}
+                  onDec={() => setBobSpeed((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
+                  onInc={() => setBobSpeed((v) => Math.min(5, +(v + 0.1).toFixed(2)))}
+                />
+                <SettingRow
+                  label={t("dial.wave.waveform")}
+                  value={
+                    !regularWaves
+                      ? t("dial.wave.waveformValue.spread")
+                      : standingWaves
+                        ? t("dial.wave.waveformValue.standing")
+                        : sloshWaves
+                          ? t("dial.wave.waveformValue.slosh")
+                          : t("dial.wave.waveformValue.regular")
+                  }
+                  // SPRIDD → REGELBUNDEN → STÅENDE → SKVALPANDE
+                  onDec={() => {
+                    if (regularWaves && sloshWaves && !standingWaves) {
+                      setSloshWaves(false);
+                      setStandingWaves(true);
+                    } else if (regularWaves && (standingWaves || sloshWaves)) {
+                      setStandingWaves(false);
+                      setSloshWaves(false);
+                    } else {
+                      setRegularWaves(false);
+                      setStandingWaves(false);
+                      setSloshWaves(false);
+                    }
+                  }}
+                  onInc={() => {
+                    if (!regularWaves) setRegularWaves(true);
+                    else if (standingWaves) {
+                      setStandingWaves(false);
+                      setSloshWaves(true);
+                    } else if (!sloshWaves) setStandingWaves(true);
+                  }}
+                />
+                <SettingRow
+                  label={t("dial.wave.realistic")}
+                  value={realisticWaves ? t("dial.wave.realisticValue.on") : t("common.off")}
+                  onDec={() => setRealisticWaves(false)}
+                  onInc={() => setRealisticWaves(true)}
+                />
+                <SettingRow
+                  label={t("dial.wave.preset")}
+                  value={t(WAVE_PRESET_LABEL_KEYS[wavePreset])}
+                  onDec={() => applyWavePreset("legacy")}
+                  onInc={() => applyWavePreset("standard")}
+                />
+                <SettingRow
+                  label={t("dial.wave.dyingWave")}
+                  value={onOff(dyingWave)}
+                  onDec={() => setDyingWave(false)}
+                  onInc={() => setDyingWave(true)}
+                />
+                <SettingRow
+                  label={t("dial.wave.dyingWaveHeight")}
+                  mode="number"
+                  value={`${dyingWaveAmp.toFixed(2)}m`}
+                  rawValue={dyingWaveAmp}
+                  onSet={setDyingWaveAmp}
+                  min={0}
+                  max={20}
+                  step={0.1}
+                  onDec={() => setDyingWaveAmp((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
+                  onInc={() => setDyingWaveAmp((v) => Math.min(20, +(v + 0.1).toFixed(2)))}
+                />
+                <SettingRow
+                  label={t("dial.wave.dyingWaveSpeed")}
+                  mode="number"
+                  value={`${dyingWaveSpeed.toFixed(2)}×`}
+                  rawValue={dyingWaveSpeed}
+                  onSet={setDyingWaveSpeed}
+                  min={0}
+                  max={5}
+                  step={0.05}
+                  onDec={() => setDyingWaveSpeed((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                  onInc={() => setDyingWaveSpeed((v) => Math.min(5, +(v + 0.05).toFixed(2)))}
+                />
+                <SettingRow
+                  label={t("dial.wave.randomize")}
+                  value={onOff(randomizeWaves)}
+                  onDec={() => setRandomizeWaves(false)}
+                  onInc={() => setRandomizeWaves(true)}
+                />
+                <SettingRow
+                  label={t("dial.wave.crossWave")}
+                  value={onOff(regularCross)}
+                  onDec={() => setRegularCross(false)}
+                  onInc={() => setRegularCross(true)}
+                />
+                <SettingRow
+                  label={t("dial.wave.wavePeriod")}
+                  mode="number"
+                  value={`${regularPeriod.toFixed(2)}x`}
+                  rawValue={regularPeriod}
+                  onSet={setRegularPeriod}
+                  min={0.3}
+                  max={4}
+                  step={0.1}
+                  onDec={() => setRegularPeriod((v) => Math.max(0.3, +(v - 0.1).toFixed(2)))}
+                  onInc={() => setRegularPeriod((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
+                />
+                <SettingRow
+                  label={t("dial.wave.peak")}
+                  mode="number"
+                  value={`${wavePeak.toFixed(2)}`}
+                  rawValue={wavePeak}
+                  onSet={setWavePeak}
+                  min={1}
+                  max={6}
+                  step={0.25}
+                  onDec={() => setWavePeak((v) => Math.max(1, +(v - 0.25).toFixed(2)))}
+                  onInc={() => setWavePeak((v) => Math.min(6, +(v + 0.25).toFixed(2)))}
+                />
+                <SettingRow
+                  label={t("dial.wave.trochoid")}
+                  mode="number"
+                  value={trochoid <= 0.001 ? t("common.off") : `${Math.round(trochoid * 100)}%`}
+                  rawValue={trochoid}
+                  onSet={(v) => setTrochoid(Math.max(0, Math.min(1, v)))}
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  onDec={() => setTrochoid((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                  onInc={() => setTrochoid((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+                />
+                <SettingRow
+                  label={t("dial.wave.heaveSkew")}
+                  mode="number"
+                  value={heaveSkew <= 0.001 ? t("common.off") : `${Math.round(heaveSkew * 100)}%`}
+                  rawValue={heaveSkew}
+                  onSet={(v) => setHeaveSkew(Math.max(0, Math.min(0.9, v)))}
+                  min={0}
+                  max={0.9}
+                  step={0.05}
+                  onDec={() => setHeaveSkew((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                  onInc={() => setHeaveSkew((v) => Math.min(0.9, +(v + 0.05).toFixed(2)))}
+                />
+                <SettingRow
+                  label={t("dial.wave.quality")}
+                  value={waveHighQuality ? t("common.high") : t("common.low")}
+                  onDec={() => setWaveHighQuality(false)}
+                  onInc={() => setWaveHighQuality(true)}
+                />
+                <SettingRow
+                  label={t("dial.wave.waveDirection")}
+                  mode="number"
+                  value={`${Math.round(((waveDir % 360) + 360) % 360)}°`}
+                  rawValue={waveDir}
+                  onSet={(v) => setWaveDir(((v % 360) + 360) % 360)}
+                  min={0}
+                  max={360}
+                  step={5}
+                  onDec={() => setWaveDir((v) => (((v - 15) % 360) + 360) % 360)}
+                  onInc={() => setWaveDir((v) => (((v + 15) % 360) + 360) % 360)}
+                />
               </>
             )}
             {settingsTab === "kamera" && (
@@ -2263,9 +2263,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       <SettingRow
                         label={t("dial.camera.tornadoDirection")}
                         value={t(TORNADO_DIRECTION_LABEL_KEYS[tornadoDirection])}
-                        options={TORNADO_DIRECTIONS.map((d) =>
-                          t(TORNADO_DIRECTION_LABEL_KEYS[d]),
-                        )}
+                        options={TORNADO_DIRECTIONS.map((d) => t(TORNADO_DIRECTION_LABEL_KEYS[d]))}
                         selectedIndex={TORNADO_DIRECTIONS.indexOf(tornadoDirection)}
                         onSelectIndex={(i) => setTornadoDirection(TORNADO_DIRECTIONS[i])}
                         onDec={() => setTornadoDirection("cw")}
@@ -2281,9 +2279,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                           min={3}
                           max={60}
                           step={0.5}
-                          onDec={() =>
-                            setTornadoOpening((v) => Math.max(3, +(v - 0.5).toFixed(2)))
-                          }
+                          onDec={() => setTornadoOpening((v) => Math.max(3, +(v - 0.5).toFixed(2)))}
                           onInc={() =>
                             setTornadoOpening((v) => Math.min(60, +(v + 0.5).toFixed(2)))
                           }
@@ -2952,41 +2948,41 @@ export function SettingsPanel(props: SettingsPanelProps) {
                 />
                 {foamAmount > 0 && (
                   <>
-                <SettingRow
-                  label={t("dial.water.foamCoverage")}
-                  mode="number"
-                  value={`${Math.round(foamCoverage * 100)}%`}
-                  rawValue={foamCoverage}
-                  onSet={(v) => setFoamCoverage(Math.max(0, Math.min(1, v)))}
-                  min={0}
-                  max={1}
-                  step={0.05}
-                  onDec={() => setFoamCoverage((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
-                  onInc={() => setFoamCoverage((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
-                />
-                <SettingRow
-                  label={t("dial.water.foamSize")}
-                  mode="number"
-                  value={`${foamScale.toFixed(2)}x`}
-                  rawValue={foamScale}
-                  onSet={(v) => setFoamScale(Math.max(0.25, Math.min(4, v)))}
-                  min={0.25}
-                  max={4}
-                  step={0.05}
-                  onDec={() => setFoamScale((v) => Math.max(0.25, +(v - 0.05).toFixed(2)))}
-                  onInc={() => setFoamScale((v) => Math.min(4, +(v + 0.05).toFixed(2)))}
-                />
-                <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
-                  <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
-                    {t("dial.water.foamColor")}
-                  </span>
-                  <input
-                    type="color"
-                    value={foamColor}
-                    onChange={(e) => setFoamColor(e.target.value)}
-                    className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
-                  />
-                </label>
+                    <SettingRow
+                      label={t("dial.water.foamCoverage")}
+                      mode="number"
+                      value={`${Math.round(foamCoverage * 100)}%`}
+                      rawValue={foamCoverage}
+                      onSet={(v) => setFoamCoverage(Math.max(0, Math.min(1, v)))}
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      onDec={() => setFoamCoverage((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                      onInc={() => setFoamCoverage((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+                    />
+                    <SettingRow
+                      label={t("dial.water.foamSize")}
+                      mode="number"
+                      value={`${foamScale.toFixed(2)}x`}
+                      rawValue={foamScale}
+                      onSet={(v) => setFoamScale(Math.max(0.25, Math.min(4, v)))}
+                      min={0.25}
+                      max={4}
+                      step={0.05}
+                      onDec={() => setFoamScale((v) => Math.max(0.25, +(v - 0.05).toFixed(2)))}
+                      onInc={() => setFoamScale((v) => Math.min(4, +(v + 0.05).toFixed(2)))}
+                    />
+                    <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
+                      <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
+                        {t("dial.water.foamColor")}
+                      </span>
+                      <input
+                        type="color"
+                        value={foamColor}
+                        onChange={(e) => setFoamColor(e.target.value)}
+                        className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
+                      />
+                    </label>
                   </>
                 )}
                 <SettingRow
@@ -3002,18 +2998,18 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   onInc={() => setDetailWaves((v) => Math.min(1.5, +(v + 0.05).toFixed(2)))}
                 />
                 {detailWaves > 0 && (
-                <SettingRow
-                  label={t("dial.water.detailSize")}
-                  mode="number"
-                  value={`${detailScale.toFixed(2)}x`}
-                  rawValue={detailScale}
-                  onSet={(v) => setDetailScale(Math.max(0.25, Math.min(4, v)))}
-                  min={0.25}
-                  max={4}
-                  step={0.05}
-                  onDec={() => setDetailScale((v) => Math.max(0.25, +(v - 0.05).toFixed(2)))}
-                  onInc={() => setDetailScale((v) => Math.min(4, +(v + 0.05).toFixed(2)))}
-                />
+                  <SettingRow
+                    label={t("dial.water.detailSize")}
+                    mode="number"
+                    value={`${detailScale.toFixed(2)}x`}
+                    rawValue={detailScale}
+                    onSet={(v) => setDetailScale(Math.max(0.25, Math.min(4, v)))}
+                    min={0.25}
+                    max={4}
+                    step={0.05}
+                    onDec={() => setDetailScale((v) => Math.max(0.25, +(v - 0.05).toFixed(2)))}
+                    onInc={() => setDetailScale((v) => Math.min(4, +(v + 0.05).toFixed(2)))}
+                  />
                 )}
                 <WaterColorPicker
                   pickColorLabel={t("dial.water.pickColor")}
@@ -3288,16 +3284,45 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   onInc={() => setSkyCloudsOn(true)}
                 />
                 <SettingRow
-                  label={t("dial.env.skyCloudsHeight")}
+                  label={t("dial.env.skyCloudsAltitude")}
                   mode="number"
-                  value={`${Math.round(skyCloudsHeight * 100)}%`}
-                  rawValue={skyCloudsHeight}
-                  onSet={(v) => setSkyCloudsHeight(Math.max(0, Math.min(1, v)))}
-                  min={0}
-                  max={1}
-                  step={0.05}
-                  onDec={() => setSkyCloudsHeight((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
-                  onInc={() => setSkyCloudsHeight((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+                  value={`${Math.round(skyCloudsAltitude)} m`}
+                  rawValue={skyCloudsAltitude}
+                  onSet={(v) =>
+                    setSkyCloudsAltitude(
+                      Math.max(
+                        SKY_CLOUDS_ALTITUDE_MIN,
+                        Math.min(SKY_CLOUDS_ALTITUDE_MAX, Math.round(v)),
+                      ),
+                    )
+                  }
+                  min={SKY_CLOUDS_ALTITUDE_MIN}
+                  max={SKY_CLOUDS_ALTITUDE_MAX}
+                  step={50}
+                  onDec={() =>
+                    setSkyCloudsAltitude((v) => Math.max(SKY_CLOUDS_ALTITUDE_MIN, v - 50))
+                  }
+                  onInc={() =>
+                    setSkyCloudsAltitude((v) => Math.min(SKY_CLOUDS_ALTITUDE_MAX, v + 50))
+                  }
+                />
+                <SettingRow
+                  label={t("dial.env.bottomClouds3d")}
+                  value={onOff(bottomClouds3d)}
+                  onDec={() => setBottomClouds3d(false)}
+                  onInc={() => setBottomClouds3d(true)}
+                />
+                <SettingRow
+                  label={t("dial.env.midClouds3d")}
+                  value={onOff(midClouds3d)}
+                  onDec={() => setMidClouds3d(false)}
+                  onInc={() => setMidClouds3d(true)}
+                />
+                <SettingRow
+                  label={t("dial.env.skyClouds3d")}
+                  value={onOff(skyClouds3d)}
+                  onDec={() => setSkyClouds3d(false)}
+                  onInc={() => setSkyClouds3d(true)}
                 />
                 <SettingRow
                   label={t("dial.env.cloudFadeSpeed")}

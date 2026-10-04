@@ -68,7 +68,10 @@ import {
   type TornadoSequenceExitMode,
   type SurgeRotationMode,
   type Persisted,
+  SKY_CLOUDS_ALTITUDE_MIN,
+  SKY_CLOUDS_ALTITUDE_MAX,
 } from "@/lib/settingsShared";
+import { createCloud3DLayer } from "@/lib/clouds3d";
 import {
   type PresetScope,
   type SavedPreset,
@@ -453,6 +456,10 @@ function swingYWaveformValue(
 const OCEAN_BASE_SIZE = 1200;
 const OCEAN_FAR_INNER_RADIUS = OCEAN_BASE_SIZE / 2;
 const CLOUD_BASE_SIZE = 200000;
+// The seafloor plane's fixed extent (see floorGeo). The sky cloud deck and
+// every VÄRLDSGRÄNS extend layer are built at exactly this size too, so the
+// top layer always covers the same area as the bottom regardless of YTA.
+const FLOOR_SIZE = 900000;
 
 // TORNADO CLOUD's shape, relative to whichever tornado mode's own radius is
 // currently active (tornadoCloudX/Y/Z/Radius/Angle in the physics loop):
@@ -913,7 +920,10 @@ const DEFAULTS: Persisted = {
   midCloudsOn: false,
   midCloudsHeight: 0.5,
   skyCloudsOn: true,
-  skyCloudsHeight: 0.4,
+  skyCloudsAltitude: 1000,
+  bottomClouds3d: false,
+  midClouds3d: false,
+  skyClouds3d: false,
   cloudFadeSpeed: 3,
   skyPuffsOn: false,
   skyPuffsCount: 6,
@@ -1371,7 +1381,16 @@ export function Aquafulness() {
   const [midCloudsOn, setMidCloudsOn] = useState(initial.midCloudsOn);
   const [midCloudsHeight, setMidCloudsHeight] = useState(initial.midCloudsHeight);
   const [skyCloudsOn, setSkyCloudsOn] = useState(initial.skyCloudsOn);
-  const [skyCloudsHeight, setSkyCloudsHeight] = useState(initial.skyCloudsHeight);
+  // Meters above the surface; clamped so a hand-edited preset can't park
+  // the deck underwater or beyond the far plane.
+  const [skyCloudsAltitude, setSkyCloudsAltitude] = useState(() => {
+    const v = initial.skyCloudsAltitude;
+    if (!Number.isFinite(v)) return DEFAULTS.skyCloudsAltitude;
+    return Math.max(SKY_CLOUDS_ALTITUDE_MIN, Math.min(SKY_CLOUDS_ALTITUDE_MAX, v));
+  });
+  const [bottomClouds3d, setBottomClouds3d] = useState(initial.bottomClouds3d);
+  const [midClouds3d, setMidClouds3d] = useState(initial.midClouds3d);
+  const [skyClouds3d, setSkyClouds3d] = useState(initial.skyClouds3d);
   const [cloudFadeSpeed, setCloudFadeSpeed] = useState(initial.cloudFadeSpeed);
   const [skyPuffsOn, setSkyPuffsOn] = useState(initial.skyPuffsOn);
   const [skyPuffsCount, setSkyPuffsCount] = useState(initial.skyPuffsCount);
@@ -1906,7 +1925,10 @@ export function Aquafulness() {
     midCloudsOn,
     midCloudsHeight,
     skyCloudsOn,
-    skyCloudsHeight,
+    skyCloudsAltitude,
+    bottomClouds3d,
+    midClouds3d,
+    skyClouds3d,
     cloudFadeSpeed,
     skyPuffsOn,
     skyPuffsCount,
@@ -2080,7 +2102,10 @@ export function Aquafulness() {
     midCloudsOn,
     midCloudsHeight,
     skyCloudsOn,
-    skyCloudsHeight,
+    skyCloudsAltitude,
+    bottomClouds3d,
+    midClouds3d,
+    skyClouds3d,
     cloudFadeSpeed,
     skyPuffsOn,
     skyPuffsCount,
@@ -2431,7 +2456,10 @@ export function Aquafulness() {
   const midCloudsOnRef = useRef(midCloudsOn);
   const midCloudsHeightRef = useRef(midCloudsHeight);
   const skyCloudsOnRef = useRef(skyCloudsOn);
-  const skyCloudsHeightRef = useRef(skyCloudsHeight);
+  const skyCloudsAltitudeRef = useRef(skyCloudsAltitude);
+  const bottomClouds3dRef = useRef(bottomClouds3d);
+  const midClouds3dRef = useRef(midClouds3d);
+  const skyClouds3dRef = useRef(skyClouds3d);
   const cloudFadeSpeedRef = useRef(cloudFadeSpeed);
   const skyPuffsOnRef = useRef(skyPuffsOn);
   const skyPuffsCountRef = useRef(skyPuffsCount);
@@ -2755,8 +2783,17 @@ export function Aquafulness() {
     skyCloudsOnRef.current = skyCloudsOn;
   }, [skyCloudsOn]);
   useEffect(() => {
-    skyCloudsHeightRef.current = skyCloudsHeight;
-  }, [skyCloudsHeight]);
+    skyCloudsAltitudeRef.current = skyCloudsAltitude;
+  }, [skyCloudsAltitude]);
+  useEffect(() => {
+    bottomClouds3dRef.current = bottomClouds3d;
+  }, [bottomClouds3d]);
+  useEffect(() => {
+    midClouds3dRef.current = midClouds3d;
+  }, [midClouds3d]);
+  useEffect(() => {
+    skyClouds3dRef.current = skyClouds3d;
+  }, [skyClouds3d]);
   useEffect(() => {
     cloudFadeSpeedRef.current = cloudFadeSpeed;
   }, [cloudFadeSpeed]);
@@ -2921,21 +2958,9 @@ export function Aquafulness() {
     }
     const cloudScale = surfaceArea / CLOUD_BASE_SIZE;
     midCloudsMeshRef.current?.scale.set(cloudScale, 1, cloudScale);
-    skyCloudsMeshRef.current?.scale.set(cloudScale, 1, cloudScale);
-    // VÄRLDSGRÄNS's extend cloud layers (see EXTEND_CLOUD_LAYER_* above)
-    // are the same skyClouds geometry as separate Mesh instances, each with
-    // its own independent scale — missing here, they'd stay stuck at
-    // whatever surfaceArea was in effect when they were created (or last
-    // refreshed by the render loop's own scale update, which only runs
-    // while WORLD BOUNDARY + INFINITE CLOUD LAYERS + SKY CLOUDS are all on
-    // and no skybox/backdrop is active), silently drifting out of sync with
-    // the base skyClouds mesh above the instant this dial changes under any
-    // other configuration — read as freshly-generated layers appearing at
-    // the wrong (typically much smaller, since surfaceArea's default is
-    // small) size compared to the "standard" cloud.
-    for (const layer of extendCloudLayersRef.current) {
-      layer.scale.set(cloudScale, 1, cloudScale);
-    }
+    // The sky deck and its VÄRLDSGRÄNS extend layers are built at
+    // FLOOR_SIZE and stay at scale 1, so they always span the same area as
+    // the seafloor instead of shrinking with this dial.
   }, [surfaceArea]);
   // Live torus-ring settings → the field manager (a no-op via `?.` until the
   // WebGL mount effect below has run and constructed it; that effect builds
@@ -3247,7 +3272,10 @@ export function Aquafulness() {
     setMidCloudsOn(DEFAULTS.midCloudsOn);
     setMidCloudsHeight(DEFAULTS.midCloudsHeight);
     setSkyCloudsOn(DEFAULTS.skyCloudsOn);
-    setSkyCloudsHeight(DEFAULTS.skyCloudsHeight);
+    setSkyCloudsAltitude(DEFAULTS.skyCloudsAltitude);
+    setBottomClouds3d(DEFAULTS.bottomClouds3d);
+    setMidClouds3d(DEFAULTS.midClouds3d);
+    setSkyClouds3d(DEFAULTS.skyClouds3d);
     setCloudFadeSpeed(DEFAULTS.cloudFadeSpeed);
     setSkyPuffsOn(DEFAULTS.skyPuffsOn);
     setSkyPuffsCount(DEFAULTS.skyPuffsCount);
@@ -3410,7 +3438,16 @@ export function Aquafulness() {
     if (patch.midCloudsOn !== undefined) setMidCloudsOn(patch.midCloudsOn);
     if (patch.midCloudsHeight !== undefined) setMidCloudsHeight(patch.midCloudsHeight);
     if (patch.skyCloudsOn !== undefined) setSkyCloudsOn(patch.skyCloudsOn);
-    if (patch.skyCloudsHeight !== undefined) setSkyCloudsHeight(patch.skyCloudsHeight);
+    if (patch.skyCloudsAltitude !== undefined)
+      setSkyCloudsAltitude(
+        Math.max(
+          SKY_CLOUDS_ALTITUDE_MIN,
+          Math.min(SKY_CLOUDS_ALTITUDE_MAX, patch.skyCloudsAltitude),
+        ),
+      );
+    if (patch.bottomClouds3d !== undefined) setBottomClouds3d(patch.bottomClouds3d);
+    if (patch.midClouds3d !== undefined) setMidClouds3d(patch.midClouds3d);
+    if (patch.skyClouds3d !== undefined) setSkyClouds3d(patch.skyClouds3d);
     if (patch.cloudFadeSpeed !== undefined) setCloudFadeSpeed(patch.cloudFadeSpeed);
     if (patch.skyPuffsOn !== undefined) setSkyPuffsOn(patch.skyPuffsOn);
     if (patch.skyPuffsCount !== undefined) setSkyPuffsCount(patch.skyPuffsCount);
@@ -3791,7 +3828,7 @@ export function Aquafulness() {
   const applySwingPreset = (preset: SwingPreset) => {
     setSwingPreset(preset);
     if (preset === "water") setSwingPositionY(12);
-    else if (preset === "clouds") setSwingPositionY(Math.round(60 + skyCloudsHeight * 440));
+    else if (preset === "clouds") setSwingPositionY(Math.round(skyCloudsAltitude));
   };
   const cycleSwingPreset = (dir: number) => {
     const idx = SWING_PRESETS.indexOf(swingPreset);
@@ -5310,7 +5347,7 @@ export function Aquafulness() {
     // ofarligt prestandamässigt eftersom golvet är platt (ingen vertex-
     // förskjutning, bara fragment-shadad färg), så färre segment räcker på
     // den enorma ytan.
-    const floorGeo = new THREE.PlaneGeometry(900000, 900000, 32, 32);
+    const floorGeo = new THREE.PlaneGeometry(FLOOR_SIZE, FLOOR_SIZE, 32, 32);
     floorGeo.rotateX(-Math.PI / 2);
     // Real CC0 sand photo (ambientCG Ground054, 512px) – loaded lazily so the
     // scene renders even if the CDN request is slow.
@@ -5606,7 +5643,9 @@ export function Aquafulness() {
     // Sky clouds — same drifting fbm layer as the mid-water clouds, but
     // parked high overhead instead of underwater, so the procedural sky
     // gets a proper cloud deck. Reuses the floor cloud shader verbatim.
-    const skyCloudGeo = new THREE.PlaneGeometry(200000, 200000, 8, 8);
+    // Same extent as the seafloor (FLOOR_SIZE), not YTA-scaled — the top
+    // layer covers exactly as much as the bottom.
+    const skyCloudGeo = new THREE.PlaneGeometry(FLOOR_SIZE, FLOOR_SIZE, 8, 8);
     skyCloudGeo.rotateX(-Math.PI / 2);
     const skyCloudUniforms = {
       uColor: { value: new THREE.Color(0xffffff) },
@@ -5636,7 +5675,6 @@ export function Aquafulness() {
     skyClouds.position.y = 150;
     skyClouds.visible = false;
     skyClouds.renderOrder = -1;
-    skyClouds.scale.set(cloudScale0, 1, cloudScale0);
     skyCloudsMeshRef.current = skyClouds;
     scene.add(skyClouds);
 
@@ -5696,7 +5734,6 @@ export function Aquafulness() {
       const layer = new THREE.Mesh(skyCloudGeo, layerMat);
       layer.visible = false;
       layer.renderOrder = -1;
-      layer.scale.set(cloudScale0, 1, cloudScale0);
       extendCloudLayers.push(layer);
       scene.add(layer);
     }
@@ -5705,6 +5742,47 @@ export function Aquafulness() {
       layerIdx: Number.NaN,
       opacity: 0,
     }));
+
+    // 3D-MOLN (see lib/clouds3d.ts): volumetric puff layers drawn on top of
+    // the flat decks. The two underwater layers are meter-scale (the water
+    // column is only tens of meters deep); the sky layer is kilometer-scale.
+    const bottomClouds3dLayer = createCloud3DLayer(
+      {
+        tileSize: 600,
+        clusterCount: 260,
+        puffsPerCluster: 9,
+        clusterRadius: [2, 7],
+        puffRadius: [1.2, 3.5],
+        seed: 11,
+      },
+      uniforms.uSunDir.value,
+    );
+    const midClouds3dLayer = createCloud3DLayer(
+      {
+        tileSize: 600,
+        clusterCount: 220,
+        puffsPerCluster: 9,
+        clusterRadius: [2, 6],
+        puffRadius: [1, 3],
+        seed: 23,
+      },
+      uniforms.uSunDir.value,
+    );
+    const skyClouds3dLayer = createCloud3DLayer(
+      {
+        tileSize: 16000,
+        clusterCount: 260,
+        puffsPerCluster: 10,
+        clusterRadius: [120, 420],
+        puffRadius: [45, 150],
+        seed: 37,
+      },
+      uniforms.uSunDir.value,
+    );
+    skyClouds3dLayer.uniforms.uThickness.value = 260;
+    const clouds3dLayers = [bottomClouds3dLayer, midClouds3dLayer, skyClouds3dLayer];
+    const clouds3dFade = [0, 0, 0];
+    for (const layer of clouds3dLayers) scene.add(layer.mesh);
 
     // SKY PUFFS: optional individual, randomly-placed puffy clouds — see
     // MAX_SKY_PUFFS/randomSkyPuffSpot above. A dedicated shader (rather than
@@ -6277,8 +6355,7 @@ export function Aquafulness() {
       // actually gates visibility/opacity — this block just needs to stop
       // scrolling the now-invisible layer's uCloudScroll).
       if (skyCloudsOnRef.current && !lowEnd) {
-        const frac = Math.max(0, Math.min(1, skyCloudsHeightRef.current));
-        skyClouds.position.y = 60 + frac * 440 + levelY;
+        skyClouds.position.y = skyCloudsAltitudeRef.current + levelY;
         skyCloudUniforms.uTime.value = t;
         skyCloudUniforms.uCloudScroll.value.x = t * 0.02;
         skyCloudUniforms.uCloudScroll.value.y = t * 0.013;
@@ -7504,7 +7581,6 @@ export function Aquafulness() {
         const camYNow = camYRef.current ?? 0;
         const baseIdx = Math.floor(camYNow / spacing);
         const half = Math.floor(extendLayers.length / 2);
-        const cloudScaleNow = surfaceAreaRef.current / CLOUD_BASE_SIZE;
         for (let i = 0; i < extendLayers.length; i++) {
           const layerIdx = baseIdx + (i - half);
           const jitter = cloudLayerJitter(layerIdx);
@@ -7517,7 +7593,6 @@ export function Aquafulness() {
           state.opacity += (1 - state.opacity) * extendFadeStep;
           layer.visible = true;
           layer.position.set(camX + jitter.x, layerIdx * spacing + levelY, camZ + jitter.z);
-          layer.scale.set(cloudScaleNow, 1, cloudScaleNow);
           const lu = (layer.material as THREE.ShaderMaterial).uniforms;
           lu.uOpacity.value = state.opacity;
           lu.uTime.value = t;
@@ -7595,6 +7670,46 @@ export function Aquafulness() {
         Math.min(1, dt * cloudFadeSpeedRef.current);
       skyCloudUniforms.uOpacity.value = skyCloudFadeRef.current;
       skyClouds.visible = skyCloudFadeRef.current > 0.003;
+
+      // 3D-MOLN: each puff layer follows its flat deck's altitude and
+      // on/off state (bottom only while BOTTEN is MOLN), fading with the
+      // same MOLN TONING speed.
+      {
+        const bottomIsClouds = bot.id === "clouds";
+        const targets = [
+          bottomIsClouds && bottomClouds3dRef.current,
+          midCloudsOnRef.current && midClouds3dRef.current,
+          skyCloudsTargetOn && skyClouds3dRef.current,
+        ];
+        const fadeStep = Math.min(1, dt * cloudFadeSpeedRef.current);
+        // Underwater puffs: base on the floor / mid deck, height a fraction
+        // of the water column so they never poke through the surface.
+        const midFrac = Math.max(0.05, Math.min(0.95, midCloudsHeightRef.current));
+        bottomClouds3dLayer.uniforms.uCenter.value.set(camX, -effectiveDepth + levelY, camZ);
+        bottomClouds3dLayer.uniforms.uThickness.value = effectiveDepth * 0.25;
+        bottomClouds3dLayer.uniforms.uRadiusScale.value = Math.min(1, effectiveDepth / 20);
+        midClouds3dLayer.uniforms.uCenter.value.set(
+          camX,
+          -effectiveDepth + effectiveDepth * midFrac - effectiveDepth * 0.06 + levelY,
+          camZ,
+        );
+        midClouds3dLayer.uniforms.uThickness.value = effectiveDepth * 0.12;
+        midClouds3dLayer.uniforms.uRadiusScale.value = Math.min(1, effectiveDepth / 20);
+        skyClouds3dLayer.uniforms.uCenter.value.set(camX, skyClouds.position.y - 60, camZ);
+        bottomClouds3dLayer.uniforms.uScroll.value.set(t * 0.6, t * 0.4);
+        midClouds3dLayer.uniforms.uScroll.value.set(t * 1.6, t * 1.0);
+        skyClouds3dLayer.uniforms.uScroll.value.set(t * 0.8, t * 0.52);
+        for (let i = 0; i < clouds3dLayers.length; i++) {
+          const layer = clouds3dLayers[i];
+          clouds3dFade[i] += ((targets[i] ? 1 : 0) - clouds3dFade[i]) * fadeStep;
+          const lu = layer.uniforms;
+          lu.uOpacity.value = clouds3dFade[i];
+          lu.uTurbidity.value = floorUniforms.uTurbidity.value;
+          lu.uUnderwater.value = uniforms.uUnderwater.value;
+          lu.uFogColor.value.copy(uniforms.uWaterDeep.value);
+          layer.mesh.visible = clouds3dFade[i] > 0.003;
+        }
+      }
       renderer.setClearColor(0x032033, envActive ? 1 : 0);
 
       // SKY PUFFS: each active puff runs its own fade-in/hold/fade-out timer
@@ -7756,6 +7871,10 @@ export function Aquafulness() {
       }
       extendCloudLayersRef.current = [];
       extendCloudLayerStateRef.current = [];
+      for (const layer of clouds3dLayers) {
+        scene.remove(layer.mesh);
+        layer.dispose();
+      }
       for (const puffMesh of skyPuffMeshesRef.current) {
         (puffMesh.material as THREE.Material).dispose();
       }
@@ -8364,8 +8483,14 @@ export function Aquafulness() {
     setMidCloudsHeight,
     skyCloudsOn,
     setSkyCloudsOn,
-    skyCloudsHeight,
-    setSkyCloudsHeight,
+    skyCloudsAltitude,
+    setSkyCloudsAltitude,
+    bottomClouds3d,
+    setBottomClouds3d,
+    midClouds3d,
+    setMidClouds3d,
+    skyClouds3d,
+    setSkyClouds3d,
     cloudFadeSpeed,
     setCloudFadeSpeed,
     skyPuffsOn,

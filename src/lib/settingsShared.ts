@@ -186,6 +186,9 @@ export const SURGE_ROTATION_MODES: SurgeRotationMode[] = ["off", "cw", "ccw", "r
 // meaning the GUNGA POSITION Y dial is left exactly as the user set it.
 export type SwingPreset = "water" | "clouds" | "custom";
 export const SWING_PRESETS: SwingPreset[] = ["water", "clouds", "custom"];
+// HIMMEL-MOLNHÖJD range (meters above the water surface).
+export const SKY_CLOUDS_ALTITUDE_MIN = 100;
+export const SKY_CLOUDS_ALTITUDE_MAX = 5000;
 
 // Shape of the pendulum's vertical (y) motion over one swing cycle.
 // "pendulum" (default) is the physically-inspired shape: y rises at both
@@ -475,7 +478,13 @@ export type Persisted = {
   midCloudsOn: boolean;
   midCloudsHeight: number;
   skyCloudsOn: boolean;
-  skyCloudsHeight: number;
+  // Sky cloud deck altitude in meters above the water surface.
+  skyCloudsAltitude: number;
+  // 3D-MOLN: volumetric puff clouds on top of each flat layer — bottom
+  // (only when BOTTEN is MOLN), mid-water and sky. See lib/clouds3d.ts.
+  bottomClouds3d: boolean;
+  midClouds3d: boolean;
+  skyClouds3d: boolean;
   // MOLN TONING: how fast cloud layers (mid/sky decks and VÄRLDSGRÄNS's
   // y-extension layers) ease their opacity in/out as they're toggled or
   // recycled to a new altitude band, instead of popping visible/invisible —
@@ -746,7 +755,10 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "midCloudsOn",
     "midCloudsHeight",
     "skyCloudsOn",
-    "skyCloudsHeight",
+    "skyCloudsAltitude",
+    "bottomClouds3d",
+    "midClouds3d",
+    "skyClouds3d",
     "cloudFadeSpeed",
     "skyPuffsOn",
     "skyPuffsCount",
