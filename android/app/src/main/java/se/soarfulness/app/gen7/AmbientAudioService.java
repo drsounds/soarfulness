@@ -21,6 +21,7 @@ import android.os.Build;
 import android.os.IBinder;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.ServiceCompat;
+import java.io.File;
 import java.io.IOException;
 
 /**
@@ -110,8 +111,15 @@ public class AmbientAudioService extends Service {
                 // Assets are copied from webDir into android/app/src/main/assets/public
                 // at build time (see CAPACITOR_APP.md) — the plugin passes a path
                 // relative to that "public" root (leading slash already stripped).
-                try (AssetFileDescriptor afd = getAssets().openFd("public/" + source)) {
-                    player.setDataSource(afd.getFileDescriptor(), afd.getStartOffset(), afd.getLength());
+                // When a live update is being served (see LiveUpdateStore), the same path
+                // inside its bundle directory wins — it may be a track the APK doesn't have.
+                File liveFile = LiveUpdateStore.resolveCurrentFile(this, source);
+                if (liveFile != null) {
+                    player.setDataSource(liveFile.getAbsolutePath());
+                } else {
+                    try (AssetFileDescriptor afd = getAssets().openFd("public/" + source)) {
+                        player.setDataSource(afd.getFileDescriptor(), afd.getStartOffset(), afd.getLength());
+                    }
                 }
             } else {
                 player.setDataSource(this, Uri.parse(source));

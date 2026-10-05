@@ -6,6 +6,7 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import { VitePWA } from "vite-plugin-pwa";
+import { liveUpdateManifest } from "./scripts/vite-plugin-live-update-manifest";
 
 export default defineConfig({
   tanstackStart: {
@@ -56,6 +57,10 @@ export default defineConfig({
           ],
         },
       }),
+      // Lists every built file (with its hash) at /capacitor-live-update.json
+      // so the Capacitor Android app can update its bundled copy of the web
+      // app from the deployed site — see CAPACITOR_APP.md's "Live updates".
+      liveUpdateManifest(),
     ],
   },
 });
