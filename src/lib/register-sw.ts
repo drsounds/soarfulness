@@ -2,6 +2,8 @@
 // Registers /sw.js only in production browsers outside Lovable preview/iframe/dev
 // and supports ?sw=off as a kill switch that unregisters the app SW.
 
+import { Capacitor } from "@capacitor/core";
+
 function computeEligibility(): { supported: boolean; disabled: boolean } {
   if (typeof window === "undefined" || !("serviceWorker" in navigator)) {
     return { supported: false, disabled: true };
@@ -27,7 +29,13 @@ function computeEligibility(): { supported: boolean; disabled: boolean } {
   })();
 
   const killSwitch = new URLSearchParams(window.location.search).get("sw") === "off";
-  const disabled = !import.meta.env.PROD || inIframe || isPreviewHost || killSwitch;
+  // The Capacitor app already serves every file from the device, and its
+  // live updates (see src/lib/liveUpdate.ts) swap the whole bundle under the
+  // same origin — a service worker's precache would keep serving the old
+  // version's index.html/assets instead. Disabling it here also unregisters
+  // one an earlier app version installed.
+  const isNativeApp = Capacitor.isNativePlatform();
+  const disabled = !import.meta.env.PROD || inIframe || isPreviewHost || killSwitch || isNativeApp;
 
   return { supported: true, disabled };
 }

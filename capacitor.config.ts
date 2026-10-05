@@ -24,6 +24,17 @@ const config: CapacitorConfig = {
   android: {
     allowMixedContent: false,
   },
+  plugins: {
+    // Native LiveUpdatePlugin (android/.../LiveUpdatePlugin.java): pulls the
+    // web app currently deployed here into the app in the background and
+    // switches to it on the next launch, so web-only changes reach installed
+    // apps without a new Play Store release — and stay usable offline. The
+    // bundled copy above stays the fallback. See CAPACITOR_APP.md's
+    // "Live updates".
+    LiveUpdate: {
+      url: "https://soarfulness.lovable.app",
+    },
+  },
 };
 
 export default config;

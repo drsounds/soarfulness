@@ -146,6 +146,80 @@ Two workflows call it:
   (republished in place, not versioned per-change) for anyone who wants it
   outside a single run. The Android build doesn't depend on it.
 
+## Live updates: newer web app without a new APK
+
+The APK's bundled web app is only the starting point. Once installed, the
+app keeps itself in sync with the version deployed at
+`https://soarfulness.lovable.app` (`plugins.LiveUpdate.url` in
+`capacitor.config.ts`), so web-only changes reach installed apps without a
+Play Store release, and the updated version works offline just like the
+bundled one. No third-party update service is involved: the deployed site
+itself is the update server.
+
+**How a bundle gets published.** Every build (the Lovable/Cloudflare
+deploy included) writes `/capacitor-live-update.json` next to the built
+files (`scripts/vite-plugin-live-update-manifest.ts`, wired into
+`vite.config.ts`): every file of the build with its size and SHA-256, a
+`version` derived from those hashes, and the handful of `/__l5e/...`
+assets from `src/assets/*.asset.json` (see the known limitation below).
+Deploying the site is publishing the update; there's nothing else to run.
+The APK carries the same file for its own bundle, which is how the app
+knows what it already has.
+
+**How the app picks it up** (`android/.../LiveUpdatePlugin.java`,
+`LiveUpdater.java`, `LiveUpdateStore.java`):
+
+1. On launch, and on resume at most every 30 minutes, a background thread
+   fetches the manifest. If its `version` differs from what the app is
+   serving, it snapshots `/` from the site as `index.html` (the site
+   renders it per request, exactly what `capacitor-snapshot-shell.mjs` does
+   for the APK) and checks that every `/assets/...` file the HTML references
+   is in the manifest, which catches a deploy caught halfway.
+2. It builds the new bundle in `files/live-update/bundles/<version>.partial`:
+   files whose hash the device already has are hard-linked from the bundle
+   being served or copied out of the APK, and only the rest are downloaded.
+   Every file is verified against its SHA-256. An interrupted download
+   resumes where it stopped on the next attempt.
+3. Once complete, the directory is renamed to `<version>` and marked
+   pending. On the **next launch** `MainActivity` switches Capacitor to it
+   (Capacitor's own `serverBasePath` mechanism) before the WebView starts,
+   so a session in progress is never reloaded under the user.
+4. The web app calls `LiveUpdate.notifyReady()` once it has booted
+   (`src/lib/liveUpdate.ts`, from `__root.tsx`). A bundle that doesn't
+   within 30 seconds, or across two launches, is rolled back to the last
+   good one (ultimately the APK's own) and that version is never tried
+   again.
+
+Offline, on a failed or partial download, or if the device is short on
+space, nothing changes: the app keeps serving what it has, which is always
+a complete, verified bundle or the APK's own. Installing a new APK discards
+every downloaded bundle, since the APK ships its own newer copy.
+
+Inside the app the service worker is now disabled (`src/lib/register-sw.ts`):
+every file is already on the device, and its precache would otherwise keep
+serving the previous version's files after a switch. The native ambient
+audio player reads tracks from the served bundle first, so audio added in an
+update plays too.
+
+The plugin also exposes `check()`, `apply()` (switch right away, reloading
+the app), `reset()` (back to the APK's bundle), `getState()` and an
+`updateReady` event to JS, should the app ever want a "restart to update"
+prompt. `plugins.LiveUpdate.autoCheck: false` turns the background checks
+off.
+
+**Things to know:**
+
+- Native code doesn't update this way, only the web app. A change that
+  needs a new native plugin or permission still needs an APK, and web code
+  must keep working on the oldest APK still in use (it can check
+  `Capacitor.isPluginAvailable`).
+- The first update after installing copies the unchanged files out of the
+  APK, so the app's storage grows by about one bundle's size; later
+  updates hard-link unchanged files and cost only what changed.
+- Only APKs built with this change update themselves, and only once the
+  site has been deployed with it (before that, the manifest URL 404s and
+  the app just keeps its bundled copy).
+
 ## Play Store signing
 
 **This app needs its own upload keystore, separate from `native/`'s.**
@@ -217,6 +291,10 @@ gracefully: missing assets degrade silently, and the overlay's own
 download flow retries them once the device is online). Everything else —
 the entire app shell, all scenes/environments/skyboxes/audio under
 `public/` — ships inside the APK and needs no network, ever.
+
+A live-updated bundle (see "Live updates" above) doesn't have this gap:
+the updater downloads those five files from the deployed site, where the
+proxy exists, into the bundle itself, so they work offline from then on.
 
 If you want those five assets to always be available offline from a cold
 install too, download them once (their permanent URLs are the `url` field

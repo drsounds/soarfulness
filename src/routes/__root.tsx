@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { registerAppServiceWorker } from "../lib/register-sw";
+import { notifyLiveUpdateReady } from "../lib/liveUpdate";
 import { loadStoredLanguage, detectBrowserLanguage, changeLanguage } from "../lib/i18n";
 import { UI_THEME_INIT_SCRIPT } from "../lib/uiTheme";
 import { CookieConsent } from "../components/CookieConsent";
@@ -166,6 +167,7 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   useEffect(() => {
+    notifyLiveUpdateReady();
     registerAppServiceWorker();
   }, []);
 
