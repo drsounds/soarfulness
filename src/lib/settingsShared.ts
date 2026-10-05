@@ -601,6 +601,7 @@ export type Persisted = {
   noclipVertEaseTime: number;
   swingPositionY: number;
   swingIntensity: number;
+  swingSpeed: number;
   swingXFactor: number;
   swingHeight: number;
   swingPreset: SwingPreset;
@@ -674,6 +675,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "swingPreset",
     "swingPositionY",
     "swingIntensity",
+    "swingSpeed",
     "swingXFactor",
     "swingHeight",
     "swingYWaveform",
