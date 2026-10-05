@@ -89,6 +89,7 @@ function createOceanUniforms() {
     uVortex: uniform(0),
     uVortexOpening: uniform(14),
     uVortexCenter: uniform(new THREE.Vector2(0, 0)),
+    uVortexSpin: uniform(1),
     uReflMix: uniform(0),
     uSphereMix: uniform(0),
     uTrochoid: uniform(0),
@@ -294,11 +295,13 @@ export function createOceanMaterial(reflectionTexture?: THREE.Texture) {
     If(u.uTrochoid.greaterThan(0.001), () => {
       const dhdx = h.sub(hx).div(e);
       const dhdz = h.sub(hz).div(e);
-      const steepness = min(ampF, 3.0).mul(0.7).mul(u.uTrochoid);
+      const steepness = min(ampF, 3.0).mul(0.7).mul(u.uTrochoid).mul(float(1.0).sub(u.uVortex));
       p.x.addAssign(dhdx.mul(steepness));
       p.z.addAssign(dhdz.mul(steepness));
     });
 
+    // Spiral whirlpool: crests wrap around the funnel and circulate around
+    // the center instead of radiating out of it (see the web shader).
     If(u.uVortex.greaterThan(0.001), () => {
       const rvec = wpBase.xz.sub(u.uVortexCenter);
       const r = length(rvec);
@@ -306,16 +309,34 @@ export function createOceanMaterial(reflectionTexture?: THREE.Texture) {
       const g = r.mul(r).div(op.mul(op)).negate().exp();
       const pit = op.mul(-1.6).mul(g);
       const kR = float(0.12).mul(u.uFreq).div(u.uPeriod);
-      const phase = r.mul(kR).sub(u.uTime.mul(0.9));
-      const hR = sin(phase).mul(2.6).mul(ampF);
-      const dHr = cos(phase).mul(kR).mul(2.6).mul(ampF);
-      const pyRad = pit.add(hR.mul(float(1.0).sub(g.mul(0.85))));
+      const arms = max(1.0, floor(kR.mul(op).mul(0.6).add(0.5)));
+      const theta = atan(rvec.y, rvec.x);
+      const phase = r
+        .mul(kR)
+        .add(u.uTime.mul(0.9))
+        .sub(u.uVortexSpin.mul(arms).mul(theta.sub(u.uVortexSpin.mul(0.35).mul(u.uTime))));
+      const a0 = min(ampF.mul(2.6), op.mul(0.35));
+      const A = a0.mul(float(1.0).sub(g));
+      const pyRad = pit.add(sin(phase).mul(A));
       p.y.assign(mix(p.y, pyRad, u.uVortex));
 
       const dg = g.mul(-2.0).div(op.mul(op));
       const rn = select(r.greaterThan(0.0001), rvec.div(r), vec2(0.0, 0.0));
-      const slopeR = dHr.mul(float(1.0).sub(g.mul(0.85))).add(op.mul(-1.6).mul(dg).mul(r));
-      const nv = normalize(vec3(rn.x.negate().mul(slopeR), 1.0, rn.y.negate().mul(slopeR)));
+      const tn = vec2(rn.y.negate(), rn.x);
+      const dA = a0.negate().mul(dg).mul(r);
+      const slopeR = op
+        .mul(-1.6)
+        .mul(dg)
+        .mul(r)
+        .add(dA.mul(sin(phase)))
+        .add(A.mul(cos(phase)).mul(kR));
+      const slopeT = select(
+        r.greaterThan(0.0001),
+        A.mul(cos(phase)).mul(u.uVortexSpin.negate().mul(arms)).div(max(r, 0.0001)),
+        float(0.0),
+      );
+      const grad = rn.mul(slopeR).add(tn.mul(slopeT));
+      const nv = normalize(vec3(grad.x.negate(), 1.0, grad.y.negate()));
       n.assign(normalize(mix(n, nv, u.uVortex)));
     });
 
