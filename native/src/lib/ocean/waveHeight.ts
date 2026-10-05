@@ -75,6 +75,7 @@ export function vortexSurfaceHeight(
   period: number,
   opening: number,
   freq: number = 1,
+  spin: number = 1,
 ): number {
   const op = Math.max(1, opening);
   const r = Math.hypot(x, z);
@@ -82,7 +83,10 @@ export function vortexSurfaceHeight(
   const pit = -op * 1.6 * g;
   const stableFade = 1 - smoothstep(220, 520, r);
   const kR = (0.12 * freq) / period;
-  const phase = r * kR - t * 0.9;
-  const ring = Math.sin(phase) * 2.6 * amp * stableFade * (1 - g * 0.85);
+  const arms = Math.max(1, Math.floor(kR * op * 0.6 + 0.5));
+  const theta = Math.atan2(z, x);
+  const phase = r * kR + t * 0.9 - spin * arms * (theta - spin * 0.35 * t);
+  const a0 = Math.min(2.6 * amp, op * 0.35);
+  const ring = Math.sin(phase) * a0 * stableFade * (1 - g);
   return pit + ring;
 }

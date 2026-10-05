@@ -362,7 +362,7 @@ function smoothstep(edge0: number, edge1: number, x: number) {
   return v * v * (3 - 2 * v);
 }
 
-// Pure radial sine surface used for the water whirlpool that opens up while
+// Spiral whirlpool surface used for the water whirlpool that opens up while
 // swinging with TORNADO on. Keep in sync with the shader's vortex block so
 // the camera rides the same even wave that is rendered. x/z are relative to
 // the tornado/whirlpool's own center (the swing anchor — see the
@@ -375,6 +375,7 @@ function whirlpoolSurfaceHeight(
   period: number,
   opening: number,
   freq: number = 1,
+  spin: number = 1,
 ) {
   const op = Math.max(1, opening);
   const r = Math.hypot(x, z);
@@ -382,8 +383,11 @@ function whirlpoolSurfaceHeight(
   const pit = -op * 1.6 * g;
   const stableFade = 1 - smoothstep(220, 520, r);
   const kR = (0.12 * freq) / period;
-  const phase = r * kR - t * 0.9;
-  const ring = Math.sin(phase) * 2.6 * amp * stableFade * (1 - g * 0.85);
+  const arms = Math.max(1, Math.floor(kR * op * 0.6 + 0.5));
+  const theta = Math.atan2(z, x);
+  const phase = r * kR + t * 0.9 - spin * arms * (theta - spin * 0.35 * t);
+  const a0 = Math.min(2.6 * amp, op * 0.35);
+  const ring = Math.sin(phase) * a0 * stableFade * (1 - g);
   return pit + ring;
 }
 
@@ -4626,6 +4630,9 @@ export function Aquafulness() {
       uVortex: { value: 0 },
       uVortexOpening: { value: 14 },
       uVortexCenter: { value: new THREE.Vector2(0, 0) },
+      // +1 = the whirlpool's water circulates "cw" (same sense as the camera's
+      // cw orbit), -1 = "ccw".
+      uVortexSpin: { value: 1 },
       // Selectable photo reflection: sampled along the reflection vector.
       uReflTex: { value: whiteTex },
       uReflMix: { value: 0 },
@@ -4678,6 +4685,7 @@ export function Aquafulness() {
       uniform float uVortex;
       uniform float uVortexOpening;
       uniform vec2 uVortexCenter;
+      uniform float uVortexSpin;
       // Realistic (JONSWAP/FFT-ocean) waveform, ported from
       // https://github.com/drsounds/OceanDemo (MIT, Popov / evpopov.com) —
       // see src/lib/ocean/fftOceanSpectrum.ts for the full derivation. Each
@@ -4881,7 +4889,9 @@ export function Aquafulness() {
         if (uTrochoid > 0.001) {
           float dhdx = (h - hx) / e;
           float dhdz = (h - hz) / e;
-          float steepness = min(ampF, 3.0) * 0.7 * uTrochoid;
+          // Off inside the whirlpool: shoving vertices along the swell's
+          // slope on top of the funnel folds its walls into tentacles.
+          float steepness = min(ampF, 3.0) * 0.7 * uTrochoid * (1.0 - uVortex);
           p.x += dhdx * steepness;
           p.z += dhdz * steepness;
         }
@@ -4889,30 +4899,41 @@ export function Aquafulness() {
         // Vortex funnel: sink the mesh toward the center with a Gaussian well.
         // Depth of the pit scales with the opening so the walls stay steep but
         // proportional. Inside the vortex we swap the directional swell for a
-        // concentric radial wave — from an orbiting camera that reads as even,
-        // uniform ripples rolling around the funnel instead of a directional
-        // chop that appears to change direction as you circle.
+        // spiral wave whose crests wrap around the funnel and circulate around
+        // the center (drifting inward), instead of rings radiating out of it.
+        // See whirlpoolSurfaceHeight() in the JS above for the same formula.
         if (uVortex > 0.001) {
           vec2 rvec = wpBase.xz - uVortexCenter;
           float r = length(rvec);
           float op = max(1.0, uVortexOpening);
           float g = exp(-(r*r) / (op*op));
           float pit = -op * 1.6 * g;
-          // Radial wave — analytic so the normal stays clean.
           float kR = 0.12 * uFreq / uPeriod;
-          float phase = r * kR - uTime * 0.9;
+          // Integer arm count keeps the spiral seamless across atan's branch
+          // cut; few arms keep the crests nearly tangential (wrapping around
+          // the center) rather than radial spokes.
+          float arms = max(1.0, floor(kR * op * 0.6 + 0.5));
+          float theta = atan(rvec.y, rvec.x);
+          float phase = r * kR + uTime * 0.9 - uVortexSpin * arms * (theta - uVortexSpin * 0.35 * uTime);
           // Vortex waves must be an even sine wave: ignore SPETS/chaos/cross-wave
-          // shaping here so the orbit never produces uneven jumps.
-          float hR = sin(phase) * 2.6 * ampF;
-          // dHr/dr for the radial normal
-          float dHr = cos(phase) * kR * 2.6 * ampF;
-          float pyRad = pit + hR * (1.0 - g * 0.85);
+          // shaping here so the orbit never produces uneven jumps. Capped
+          // against the throat size so high waves can't outgrow the funnel,
+          // and faded to zero at the center so the arms never pinch into a star.
+          float a0 = min(2.6 * ampF, op * 0.35);
+          float A = a0 * (1.0 - g);
+          float hR = sin(phase) * A;
+          float pyRad = pit + hR;
           p.y = mix(p.y, pyRad, uVortex);
-          // Combined normal: funnel wall + radial ripple slope along rvec.
+          // Analytic normal: gradient of pyRad split into radial and
+          // tangential (around-the-center) parts.
           float dg = -2.0 * g / (op * op);
           vec2 rn = r > 0.0001 ? rvec / r : vec2(0.0);
-          float slopeR = dHr * (1.0 - g * 0.85) + (-op * 1.6) * dg * r; // d(pyRad)/dr
-          vec3 nv = normalize(vec3(-rn.x * slopeR, 1.0, -rn.y * slopeR));
+          vec2 tn = vec2(-rn.y, rn.x);
+          float dA = -a0 * dg * r;
+          float slopeR = (-op * 1.6) * dg * r + dA * sin(phase) + A * cos(phase) * kR;
+          float slopeT = r > 0.0001 ? A * cos(phase) * (-uVortexSpin * arms) / r : 0.0;
+          vec2 grad = rn * slopeR + tn * slopeT;
+          vec3 nv = normalize(vec3(-grad.x, 1.0, -grad.y));
           n = normalize(mix(n, nv, uVortex));
         }
 
@@ -6221,6 +6242,7 @@ export function Aquafulness() {
       uniforms.uVortexOpening.value +=
         (tornadoOpeningRef.current - uniforms.uVortexOpening.value) * Math.min(1, dt * 4);
       uniforms.uVortexCenter.value.set(posRef.current.x, posRef.current.z);
+      uniforms.uVortexSpin.value = tornadoDirectionRef.current === "ccw" ? -1 : 1;
 
       const p = palette(todRef.current);
       // Keep the real scene lights (see their creation above) in sync with
@@ -6977,6 +6999,7 @@ export function Aquafulness() {
               regularPeriodRef.current,
               tornadoOpeningRef.current,
               freqRef.current,
+              tornadoDirectionRef.current === "ccw" ? -1 : 1,
             ) -
               normalSurfaceY) *
               vortexBlendRef.current
@@ -7172,6 +7195,7 @@ export function Aquafulness() {
                 regularPeriodRef.current,
                 tornadoOpeningRef.current,
                 freqRef.current,
+                tornadoDirectionRef.current === "ccw" ? -1 : 1,
               ) -
                 futureNormalSurf) *
                 vortexBlendRef.current
@@ -7863,6 +7887,7 @@ export function Aquafulness() {
                   regularPeriodRef.current,
                   tornadoOpeningRef.current,
                   freqRef.current,
+                  tornadoDirectionRef.current === "ccw" ? -1 : 1,
                 ) -
                   normalS) *
                   vortexBlendRef.current
