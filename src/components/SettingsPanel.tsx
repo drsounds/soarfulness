@@ -515,6 +515,8 @@ export type SettingsPanelProps = {
   setSwingPositionY: Dispatch<SetStateAction<number>>;
   swingIntensity: number;
   setSwingIntensity: Dispatch<SetStateAction<number>>;
+  swingSpeed: number;
+  setSwingSpeed: Dispatch<SetStateAction<number>>;
   swingXFactor: number;
   setSwingXFactor: Dispatch<SetStateAction<number>>;
   // Vertical excursion of the swing (formerly "swingYAmplitude").
@@ -1269,6 +1271,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setSwingPositionY,
     swingIntensity,
     setSwingIntensity,
+    swingSpeed,
+    setSwingSpeed,
     swingXFactor,
     setSwingXFactor,
     swingHeight,
@@ -2520,6 +2524,18 @@ export function SettingsPanel(props: SettingsPanelProps) {
                         setSwingIntensity((v) => Math.max(0.0001, +(v - 0.05).toFixed(4)))
                       }
                       onInc={() => setSwingIntensity((v) => Math.min(2.5, +(v + 0.05).toFixed(4)))}
+                    />
+                    <SettingRow
+                      label={t("dial.camera.swingSpeed")}
+                      mode="number"
+                      value={`${swingSpeed.toFixed(2)}x`}
+                      rawValue={swingSpeed}
+                      onSet={(v) => setSwingSpeed(Math.max(0.1, Math.min(5, v)))}
+                      min={0.1}
+                      max={5}
+                      step={0.1}
+                      onDec={() => setSwingSpeed((v) => Math.max(0.1, +(v - 0.1).toFixed(2)))}
+                      onInc={() => setSwingSpeed((v) => Math.min(5, +(v + 0.1).toFixed(2)))}
                     />
                     <SettingRow
                       label={t("dial.camera.swingXFactor")}

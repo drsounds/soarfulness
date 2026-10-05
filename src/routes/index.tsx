@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Capacitor } from "@capacitor/core";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import * as THREE from "three";
 import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
@@ -1003,6 +1003,10 @@ const DEFAULTS: Persisted = {
   noclipVertEaseTime: 0.7,
   swingPositionY: 25,
   swingIntensity: 0.3,
+  // GUNGA HASTIGHET: multiplies the pendulum's tempo on top of GUNGA
+  // INTENSITET, so it can cross the water surface faster without also
+  // widening the arc.
+  swingSpeed: 1,
   swingXFactor: 0,
   swingHeight: 20000,
   swingPreset: "water",
@@ -1528,6 +1532,7 @@ export function Aquafulness() {
   // the actual up/down excursion, now called GUNGA HÖJD below).
   const [swingPositionY, setSwingPositionY] = useState(initial.swingPositionY);
   const [swingIntensity, setSwingIntensity] = useState(initial.swingIntensity);
+  const [swingSpeed, setSwingSpeed] = useState(initial.swingSpeed);
   // Horizontal (side-to-side) swing multiplier — defaults to 0 so the
   // pendulum bobs vertically in place until explicitly dialed up.
   const [swingXFactor, setSwingXFactor] = useState(initial.swingXFactor);
@@ -2021,6 +2026,7 @@ export function Aquafulness() {
     noclipVertEaseTime,
     swingPositionY,
     swingIntensity,
+    swingSpeed,
     swingXFactor,
     swingHeight,
     swingPreset,
@@ -2200,6 +2206,7 @@ export function Aquafulness() {
     noclipVertEaseTime,
     swingPositionY,
     swingIntensity,
+    swingSpeed,
     swingXFactor,
     swingHeight,
     swingPreset,
@@ -2302,6 +2309,11 @@ export function Aquafulness() {
   const noclipHeaveOffsetRef = useRef(0);
   const swingPositionYRef = useRef(swingPositionY);
   const swingIntensityRef = useRef(swingIntensity);
+  const swingSpeedRef = useRef(swingSpeed);
+  // Accumulated pendulum phase (radians): integrated from omega each frame
+  // instead of t * omega, so changing GUNGA HASTIGHET/INTENSITET mid-swing
+  // never makes the pendulum jump.
+  const swingPhaseRef = useRef(0);
   const swingXFactorRef = useRef(swingXFactor);
   const swingHeightRef = useRef(swingHeight);
   const swingYWaveformRef = useRef(swingYWaveform);
@@ -2441,6 +2453,11 @@ export function Aquafulness() {
   // cameraMode switches into swing or noclip/watercraft (see that effect
   // below) so every entry starts the spin fresh.
   const tornadoAngleRef = useRef(0);
+  // Look yaw captured the moment the whirlpool/tornado was seeded (see
+  // seedTornadoFacing): FÖLJ CENTRUM turns the view by how far the
+  // direction to the center has moved since then, so the center starts dead
+  // ahead and LOOK still pans relative to it.
+  const tornadoYawBaseRef = useRef(0);
   // Live orbit radius the camera actually uses this frame, in place of the
   // static tornadoRadius dial — pushed in/out by NAV+current (manual, always
   // available whenever tornadoOn) and by the TORNADO SEQUENCE state machine
@@ -2732,8 +2749,20 @@ export function Aquafulness() {
   useEffect(() => {
     floorCloudsAnimatedRef.current = floorCloudsAnimated;
   }, [floorCloudsAnimated]);
+  // Start the orbit on the far side of the center from where the camera is
+  // looking, so the whirlpool opens up in front of you instead of behind or
+  // beside you. Camera offset is (cos a, sin a) * r and forward is
+  // (-sin yaw, -cos yaw), so a = PI/2 - yaw puts the center straight ahead.
+  // Skipped while a previous activation is still fading out, so a quick
+  // off/on doesn't jump the camera.
+  const seedTornadoFacing = useCallback(() => {
+    if (tornadoBlendRef.current > 0.01) return;
+    tornadoAngleRef.current = Math.PI / 2 - yawRef.current;
+    tornadoYawBaseRef.current = yawRef.current;
+  }, []);
   useEffect(() => {
     tornadoOnRef.current = tornadoOn;
+    if (tornadoOn) seedTornadoFacing();
     // Fresh start every time TORNADO itself is (re)activated — same reset as
     // a camera-mode change (see that effect above), so neither the manual
     // radial control nor the sequence carries over a stale live
@@ -2741,7 +2770,7 @@ export function Aquafulness() {
     tornadoLiveRadiusRef.current = tornadoRadiusRef.current;
     tornadoLiftOffsetRef.current = 0;
     tornadoSeqPhaseRef.current = null;
-  }, [tornadoOn]);
+  }, [tornadoOn, seedTornadoFacing]);
   useEffect(() => {
     tornadoRadiusRef.current = tornadoRadius;
   }, [tornadoRadius]);
@@ -2993,6 +3022,9 @@ export function Aquafulness() {
     swingIntensityRef.current = swingIntensity;
   }, [swingIntensity]);
   useEffect(() => {
+    swingSpeedRef.current = swingSpeed;
+  }, [swingSpeed]);
+  useEffect(() => {
     swingXFactorRef.current = swingXFactor;
   }, [swingXFactor]);
   useEffect(() => {
@@ -3072,7 +3104,7 @@ export function Aquafulness() {
       posRef.current.y = camYRef.current ?? swingPositionYRef.current;
       noclipVertVelRef.current = 0;
       noclipHeaveOffsetRef.current = 0;
-      tornadoAngleRef.current = 0;
+      seedTornadoFacing();
       tornadoLiveRadiusRef.current = tornadoRadiusRef.current;
       tornadoLiftOffsetRef.current = 0;
       tornadoSeqPhaseRef.current = null;
@@ -3090,7 +3122,7 @@ export function Aquafulness() {
       }
     } else if (cameraMode === "swing") {
       swingYawRef.current = yawRef.current;
-      tornadoAngleRef.current = 0;
+      seedTornadoFacing();
       tornadoLiveRadiusRef.current = tornadoRadiusRef.current;
       tornadoLiftOffsetRef.current = 0;
       tornadoSeqPhaseRef.current = null;
@@ -3099,12 +3131,12 @@ export function Aquafulness() {
         startMs: performance.now(),
       };
     } else if (cameraMode === "float") {
-      tornadoAngleRef.current = 0;
+      seedTornadoFacing();
       tornadoLiveRadiusRef.current = tornadoRadiusRef.current;
       tornadoLiftOffsetRef.current = 0;
       tornadoSeqPhaseRef.current = null;
     }
-  }, [cameraMode]);
+  }, [cameraMode, seedTornadoFacing]);
 
   // Keep the bottom camera-settings drawer's active tab in sync with whatever
   // mode the camera actually switches to (top toggle, settings dial, or the
@@ -3370,6 +3402,7 @@ export function Aquafulness() {
     setNoclipVertEaseTime(DEFAULTS.noclipVertEaseTime);
     setSwingPositionY(DEFAULTS.swingPositionY);
     setSwingIntensity(DEFAULTS.swingIntensity);
+    setSwingSpeed(DEFAULTS.swingSpeed);
     setSwingXFactor(DEFAULTS.swingXFactor);
     setSwingHeight(DEFAULTS.swingHeight);
     setSwingYWaveform(DEFAULTS.swingYWaveform);
@@ -3558,6 +3591,7 @@ export function Aquafulness() {
     if (patch.noclipVertEaseTime !== undefined) setNoclipVertEaseTime(patch.noclipVertEaseTime);
     if (patch.swingPositionY !== undefined) setSwingPositionY(patch.swingPositionY);
     if (patch.swingIntensity !== undefined) setSwingIntensity(patch.swingIntensity);
+    if (patch.swingSpeed !== undefined) setSwingSpeed(patch.swingSpeed);
     if (patch.swingXFactor !== undefined) setSwingXFactor(patch.swingXFactor);
     if (patch.swingHeight !== undefined) setSwingHeight(patch.swingHeight);
     if (patch.swingPreset !== undefined) setSwingPreset(patch.swingPreset);
@@ -6461,9 +6495,12 @@ export function Aquafulness() {
       // bottom-of-the-arc crossing (theta === 0, nearest the water) even
       // during a "float" interval, ahead of switching into "swing".
       const swingIntensityNow = Math.max(0.0001, swingIntensityRef.current);
-      const swingOmegaNow = 0.55 * swingIntensityNow;
+      const swingOmegaNow =
+        0.55 * swingIntensityNow * Math.max(0.1, Math.min(5, swingSpeedRef.current));
+      swingPhaseRef.current += swingOmegaNow * physDt * speedRef.current;
+      const swingPhaseNow = swingPhaseRef.current;
       const swingAmpRadNow = THREE.MathUtils.degToRad(Math.min(75, 40 * swingIntensityNow));
-      const swingThetaNow = swingAmpRadNow * Math.sin(t * swingOmegaNow);
+      const swingThetaNow = swingAmpRadNow * Math.sin(swingPhaseNow);
       swingThetaRef.current = swingThetaNow;
 
       // Apply joystick velocity (game-pad style): stick.y up = forward (-z), x = strafe.
@@ -6771,12 +6808,11 @@ export function Aquafulness() {
         // truly settles toward a motionless hover instead of bottoming out
         // at a fixed minimum swing; intensity 1 still matches the
         // original tuning (40° arc, omega 0.55).
-        const omega = swingOmegaNow;
         const theta = swingThetaNow;
         const rawSwingY =
           swingPositionYRef.current +
           swingHeightRef.current *
-            swingYWaveformValue(swingYWaveformRef.current, theta, t * omega, swingAmpRadNow);
+            swingYWaveformValue(swingYWaveformRef.current, theta, swingPhaseNow, swingAmpRadNow);
 
         // TORNADO: crossfades the pendulum arc into a circular orbit around
         // the anchor at swing altitude instead of replacing it outright — a
@@ -7486,10 +7522,23 @@ export function Aquafulness() {
       // anchor the orbit itself is centered on ("at the same xz spot") —
       // level with the camera so the throat is visible without the horizon
       // tilting.
+      // Done as an extra yaw rather than by lerping the lookAt target toward
+      // the center: the heading to the center follows the orbit angle
+      // (PI/2 - angle, flipped when the signed radius carries the camera
+      // through the middle), and turning by its change since
+      // seedTornadoFacing keeps the center ahead without the lerped target
+      // collapsing onto the camera when the center sits behind the old
+      // look direction.
       const followBlend = tornadoFollowCenterRef.current ? tornadoBlendRef.current : 0;
-      const lookX = normalLookX + (posRef.current.x - normalLookX) * followBlend;
-      const lookZ = normalLookZ + (posRef.current.z - normalLookZ) * followBlend;
-      camera.lookAt(lookX, lookY, lookZ);
+      let followYaw = 0;
+      if (followBlend > 0) {
+        const headingToCenter =
+          Math.PI / 2 - tornadoAngleRef.current + (tornadoLiveRadiusRef.current < 0 ? Math.PI : 0);
+        let d = headingToCenter - tornadoYawBaseRef.current;
+        d = ((((d + Math.PI) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI)) - Math.PI;
+        followYaw = d * followBlend;
+      }
+      camera.lookAt(normalLookX, lookY, normalLookZ);
 
       // Rotation stick: yaw (x) + pitch (y). Integrate stick as angular velocity.
       const rotSpeed = 1.6; // rad/s at full deflection
@@ -7501,7 +7550,7 @@ export function Aquafulness() {
       const maxPitch = camMode === "noclip" || camMode === "watercraft" ? 1.5 : 1.2;
       if (pitchRef.current > maxPitch) pitchRef.current = maxPitch;
       if (pitchRef.current < -maxPitch) pitchRef.current = -maxPitch;
-      camera.rotateY(yawRef.current);
+      camera.rotateY(yawRef.current + followYaw);
       camera.rotateX(pitchRef.current);
 
       // STRÖM/SVAJ represent a real direction fixed in world space
@@ -8399,6 +8448,8 @@ export function Aquafulness() {
     setSwingPositionY,
     swingIntensity,
     setSwingIntensity,
+    swingSpeed,
+    setSwingSpeed,
     swingXFactor,
     setSwingXFactor,
     swingHeight,
@@ -9519,6 +9570,16 @@ export function Aquafulness() {
                       curve={2}
                       format={(v) => `${v.toFixed(2)}×`}
                       onChange={setSwingIntensity}
+                    />
+                    <PadSlider
+                      label={t("dial.camera.swingSpeed")}
+                      value={swingSpeed}
+                      min={0.1}
+                      max={5}
+                      step={0.1}
+                      curve={2}
+                      format={(v) => `${v.toFixed(2)}×`}
+                      onChange={setSwingSpeed}
                     />
                     <PadSlider
                       label={t("dial.camera.swingPositionY")}
