@@ -4932,7 +4932,7 @@ export function Aquafulness() {
 
         // Vortex funnel: sink the mesh toward the center with a Gaussian well.
         // Depth of the pit scales with the opening so the walls stay steep but
-        // proportional. Inside the vortex we swap the directional swell for a
+        // proportional. On top of the regular swell we add a
         // spiral wave whose crests wrap around the funnel and circulate around
         // the center (drifting inward), instead of rings radiating out of it.
         // See whirlpoolSurfaceHeight() in the JS above for the same formula.
@@ -4957,7 +4957,9 @@ export function Aquafulness() {
           float A = a0 * (1.0 - g);
           float hR = sin(phase) * A;
           float pyRad = pit + hR;
-          p.y = mix(p.y, pyRad, uVortex);
+          // Added on top of the swell rather than replacing it, so the water
+          // in the whirlpool keeps rising and falling with the waves around it.
+          p.y += pyRad * uVortex;
           // Analytic normal: gradient of pyRad split into radial and
           // tangential (around-the-center) parts.
           float dg = -2.0 * g / (op * op);
@@ -4967,8 +4969,9 @@ export function Aquafulness() {
           float slopeR = (-op * 1.6) * dg * r + dA * sin(phase) + A * cos(phase) * kR;
           float slopeT = r > 0.0001 ? A * cos(phase) * (-uVortexSpin * arms) / r : 0.0;
           vec2 grad = rn * slopeR + tn * slopeT;
-          vec3 nv = normalize(vec3(-grad.x, 1.0, -grad.y));
-          n = normalize(mix(n, nv, uVortex));
+          vec2 gradSwell = vec2(hx - h, hz - h) / e;
+          vec2 gradAll = gradSwell + grad * uVortex;
+          n = normalize(vec3(-gradAll.x, 1.0, -gradAll.y));
         }
 
         vec4 wp = modelMatrix * vec4(p, 1.0);
@@ -7027,7 +7030,7 @@ export function Aquafulness() {
       const surfaceY =
         vortexBlendRef.current > 0.0008
           ? normalSurfaceY +
-            (whirlpoolSurfaceHeight(
+            whirlpoolSurfaceHeight(
               camX - posRef.current.x,
               camZ - posRef.current.z,
               t,
@@ -7036,8 +7039,7 @@ export function Aquafulness() {
               tornadoOpeningRef.current,
               freqRef.current,
               tornadoDirectionRef.current === "ccw" ? -1 : 1,
-            ) -
-              normalSurfaceY) *
+            ) *
               vortexBlendRef.current
           : normalSurfaceY;
 
@@ -7223,7 +7225,7 @@ export function Aquafulness() {
         const futureSurf =
           vortexBlendRef.current > 0.0008
             ? futureNormalSurf +
-              (whirlpoolSurfaceHeight(
+              whirlpoolSurfaceHeight(
                 camX - posRef.current.x,
                 camZ - posRef.current.z,
                 t + lead,
@@ -7232,8 +7234,7 @@ export function Aquafulness() {
                 tornadoOpeningRef.current,
                 freqRef.current,
                 tornadoDirectionRef.current === "ccw" ? -1 : 1,
-              ) -
-                futureNormalSurf) *
+              ) *
                 vortexBlendRef.current
             : futureNormalSurf;
         const maxSlope = ampRef.current * 6.0;
@@ -7928,7 +7929,7 @@ export function Aquafulness() {
           const s =
             vortexBlendRef.current > 0.0008
               ? normalS +
-                (whirlpoolSurfaceHeight(
+                whirlpoolSurfaceHeight(
                   mb.base.x - posRef.current.x,
                   mb.base.z - posRef.current.z,
                   t,
@@ -7937,8 +7938,7 @@ export function Aquafulness() {
                   tornadoOpeningRef.current,
                   freqRef.current,
                   tornadoDirectionRef.current === "ccw" ? -1 : 1,
-                ) -
-                  normalS) *
+                ) *
                   vortexBlendRef.current
               : normalS;
           h = s * mb.bob.amp;
