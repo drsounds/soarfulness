@@ -318,7 +318,8 @@ export function createOceanMaterial(reflectionTexture?: THREE.Texture) {
       const a0 = min(ampF.mul(2.6), op.mul(0.35));
       const A = a0.mul(float(1.0).sub(g));
       const pyRad = pit.add(sin(phase).mul(A));
-      p.y.assign(mix(p.y, pyRad, u.uVortex));
+      // Added on top of the swell so the whirlpool still heaves with the waves.
+      p.y.addAssign(pyRad.mul(u.uVortex));
 
       const dg = g.mul(-2.0).div(op.mul(op));
       const rn = select(r.greaterThan(0.0001), rvec.div(r), vec2(0.0, 0.0));
@@ -336,8 +337,9 @@ export function createOceanMaterial(reflectionTexture?: THREE.Texture) {
         float(0.0),
       );
       const grad = rn.mul(slopeR).add(tn.mul(slopeT));
-      const nv = normalize(vec3(grad.x.negate(), 1.0, grad.y.negate()));
-      n.assign(normalize(mix(n, nv, u.uVortex)));
+      const gradSwell = vec2(hx.sub(h), hz.sub(h)).div(e);
+      const gradAll = gradSwell.add(grad.mul(u.uVortex));
+      n.assign(normalize(vec3(gradAll.x.negate(), 1.0, gradAll.y.negate())));
     });
 
     const wp = modelWorldMatrix.mul(vec4(p, 1.0));
