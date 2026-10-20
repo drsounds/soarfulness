@@ -5492,7 +5492,10 @@ export function Aquafulness() {
         // hideWater) but rises to ~1 almost immediately after, so neither
         // layer fades proportionally with the body — they stay visible
         // through fairly transparent water instead of thinning out with it.
-        float bodyAlpha = clamp(uOpacity, 0.0, 1.0);
+        // RAYTRACED: the body is opaque — its refraction already shows what's
+        // behind the water, and OPACITY sets clarity instead (see rtAbsorb).
+        // 0 still hides the water entirely.
+        float bodyAlpha = clamp(mix(uOpacity, step(0.001, uOpacity), uRtMix), 0.0, 1.0);
         float visGate = pow(bodyAlpha, 0.35);
 
         float bodyA = bodyAlpha * fillAlpha;
@@ -5540,6 +5543,11 @@ export function Aquafulness() {
     // renders flat water, so it needs no more tessellation than the
     // equally-flat seafloor below.
     const farOcean = new THREE.Mesh(buildFarOceanGeometry(surfaceAreaRef.current), mat);
+    // RAYTRACED refraction: copy the frame drawn so far (everything behind
+    // the water) just before whichever ocean tier draws first.
+    const captureRtBackground = () => raytracedWater.captureBackground();
+    ocean.onBeforeRender = captureRtBackground;
+    farOcean.onBeforeRender = captureRtBackground;
     farOceanRef.current = farOcean;
     scene.add(farOcean);
 
@@ -6526,7 +6534,8 @@ export function Aquafulness() {
         // pattern it draws is itself a live-noise effect) — falls back to
         // the same solid uColor every other flat bottom option renders.
         const isClouds = bot.id === "clouds" && !lowEnd;
-        raytracedWater.uniforms.uRtFloorOn.value = isClouds ? 0 : 1;
+        // Cloud floor: the plane still sets the refraction path length.
+        raytracedWater.uniforms.uRtFloorOn.value = isClouds ? 0.5 : 1;
         raytracedWater.uniforms.uRtFloorTextured.value = floorUniforms.uTextured.value;
         // Cloud mode blends independently of the sand-texture toggle.
         const cloudTarget = isClouds ? 1 : 0;
@@ -8090,6 +8099,9 @@ export function Aquafulness() {
             surfaceY: camera.position.y - (camY - surfaceY),
             swimmerOn: Math.abs(camY - surfaceY) < 1.5,
           });
+          // Depth of the solid scene behind the water (models, seafloor), for
+          // depth-correct refraction of submerged items.
+          raytracedWater.captureDepth(scene, camera, [floor]);
         } else {
           raytracedWater.sleep();
         }
