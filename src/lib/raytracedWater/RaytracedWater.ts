@@ -17,6 +17,10 @@
  *    rays traced analytically against the sky (with the sun disc) and the
  *    seafloor plane, Fresnel-mixed as in renderer.js — including the
  *    underwater view with Snell's window and total internal reflection.
+ *    The pool's walls were the only thing behind Evan's water; here the
+ *    refracted rays also look up whatever the scene has already drawn
+ *    behind the surface (backdrop, models, cloud floor, sky) in a copy of
+ *    the frame taken just before the ocean draws — see captureBackground().
  *  - Analytic ambient occlusion: Evan's closed-form sphere-occlusion term
  *    (the swimmer, a sphere at the camera) plus a heightfield-curvature term
  *    that darkens wave troughs, standing in for the pool-wall term.
@@ -76,6 +80,9 @@ export type RaytracedWaterUniforms = {
   uRtFloorOn: THREE.IUniform<number>;
   uRtFloorTextured: THREE.IUniform<number>;
   uRtSandTex: THREE.IUniform<THREE.Texture | null>;
+  uRtScene: THREE.IUniform<THREE.Texture | null>;
+  uRtSceneOn: THREE.IUniform<number>;
+  uRtProjection: THREE.IUniform<THREE.Matrix4>;
 };
 
 /** Heightfield sample: vec4(height, velocity, dh/dx, dh/dz) in world metres,
@@ -142,14 +149,19 @@ export const RT_FLOOR_GLSL = /* glsl */ `
 /**
  * Raytraced surface shading for the ocean fragment shader. Expects the host
  * shader to already declare uSunDir, uSunColor, uSkyColor, uHorizonColor,
- * uReflTex, uReflMix, uFloorColor, uFloorDepth and uTurbidity, and to
- * include RT_SIM_GLSL + RT_FLOOR_GLSL before it.
+ * uReflTex, uReflMix, uFloorColor, uFloorDepth, uTurbidity and uOpacity,
+ * and to include RT_SIM_GLSL + RT_FLOOR_GLSL before it.
  */
 export const RT_WATER_GLSL = /* glsl */ `
   uniform float uRtLevel;
   uniform float uRtFloorOn;
   uniform float uRtFloorTextured;
   uniform sampler2D uRtSandTex;
+  // Copy of the frame drawn so far (everything behind the water), and the
+  // camera projection to find where a ray's point lands on it.
+  uniform sampler2D uRtScene;
+  uniform float uRtSceneOn;
+  uniform mat4 uRtProjection;
 
   const float RT_IOR_AIR = 1.0;
   const float RT_IOR_WATER = 1.333;
@@ -186,6 +198,20 @@ export const RT_WATER_GLSL = /* glsl */ `
     return col;
   }
 
+  // Screen-space lookup of what the scene drew dist metres along a ray:
+  // rgb = colour, a = confidence (0 off-screen / behind the camera, fading
+  // in from the screen edge so the analytic fallback takes over smoothly).
+  vec4 rtSceneAlong(vec3 origin, vec3 ray, float dist) {
+    if (uRtSceneOn < 0.5) return vec4(0.0);
+    vec4 clip = uRtProjection * viewMatrix * vec4(origin + ray * dist, 1.0);
+    if (clip.w <= 0.0) return vec4(0.0);
+    vec2 uv = clip.xy / clip.w * 0.5 + 0.5;
+    vec2 e = min(uv, 1.0 - uv);
+    float w = smoothstep(0.0, 0.04, min(e.x, e.y));
+    if (w <= 0.0) return vec4(0.0);
+    return vec4(texture2D(uRtScene, uv).rgb, w);
+  }
+
   vec3 rtFloorAlbedo(vec2 xz) {
     vec3 base = uFloorColor;
     if (uRtFloorTextured > 0.001) {
@@ -204,25 +230,37 @@ export const RT_WATER_GLSL = /* glsl */ `
 
   // Beer-Lambert absorption over a path of length dist, in-scattering
   // toward the water body's own colour — red dies first, as in real water.
+  // The raytraced body is always opaque (the refraction already shows
+  // what's behind it), so the OPACITY dial sets the water's clarity instead.
   vec3 rtAbsorb(vec3 col, float dist, vec3 scatter) {
-    vec3 sigma = vec3(0.22, 0.065, 0.045) * (1.0 + uTurbidity * 4.0);
+    vec3 sigma = vec3(0.22, 0.065, 0.045) * (1.0 + uTurbidity * 4.0)
+               * mix(0.12, 1.6, clamp(uOpacity, 0.0, 1.0));
     vec3 trans = exp(-sigma * dist);
     return col * trans + scatter * (1.0 - trans);
   }
 
-  // Trace a ray travelling through the water body: it either hits the
-  // seafloor plane (lit by the caustics) or fades into the deep.
+  // Trace a ray travelling through the water body to whatever is behind
+  // the surface: the seafloor plane gives the path length (uRtFloorOn 1 =
+  // solid floor, 0.5 = cloud floor: plane only, 0 = none: open water), and
+  // the colour comes from the frame copy where the ray lands on screen, or
+  // from the analytic caustic-lit floor where it doesn't.
   vec3 rtTraceWater(vec3 origin, vec3 ray, vec3 scatter) {
-    if (uRtFloorOn > 0.5 && ray.y < -0.001) {
+    float t = 30.0;
+    vec3 behind = scatter;
+    if (uRtFloorOn > 0.25 && ray.y < -0.001) {
       float floorY = uRtLevel - uFloorDepth;
-      float t = (floorY - origin.y) / ray.y;
-      if (t > 0.0) {
-        vec3 hit = origin + ray * t;
-        vec3 floorCol = rtFloorAlbedo(hit.xz) * rtFloorLight(hit, uSunDir, uSunColor);
-        return rtAbsorb(floorCol, t, scatter);
+      float tf = (floorY - origin.y) / ray.y;
+      if (tf > 0.0) {
+        t = tf;
+        if (uRtFloorOn > 0.75) {
+          vec3 hit = origin + ray * t;
+          behind = rtFloorAlbedo(hit.xz) * rtFloorLight(hit, uSunDir, uSunColor);
+        }
       }
     }
-    return scatter;
+    vec4 seen = rtSceneAlong(origin, ray, min(t, 80.0));
+    behind = mix(behind, seen.rgb, seen.a);
+    return rtAbsorb(behind, t, scatter);
   }
 
   // The raytraced surface colour (renderer.js's waterShaders[0/1]).
@@ -254,7 +292,10 @@ export const RT_WATER_GLSL = /* glsl */ `
     vec3 reflectedColor = rtTraceWater(pos, reflectedRay, scatter) * ao;
     // refract() returns 0 past the critical angle: total internal reflection
     // everywhere outside Snell's window.
-    vec3 refractedColor = rtSky(refractedRay) * vec3(0.8, 1.0, 1.1);
+    // Through Snell's window: whatever is above the water (sky, backdrop,
+    // models), from the frame copy, else the analytic sky.
+    vec4 seenAbove = rtSceneAlong(pos, refractedRay, 200.0);
+    vec3 refractedColor = mix(rtSky(refractedRay), seenAbove.rgb, seenAbove.a) * vec3(0.8, 1.0, 1.1);
     vec3 col = mix(reflectedColor, refractedColor, (1.0 - fresnel) * length(refractedRay));
     return rtAbsorb(col, length(pos - eye), scatter);
   }
@@ -463,6 +504,12 @@ export class RaytracedWater {
   private dropTimer = 0;
   private oldSwimmer: THREE.Vector3 | null = null;
   private readonly tmpColor = new THREE.Color();
+  private readonly tmpSize = new THREE.Vector2();
+  // Frame copies for captureBackground(): one per framebuffer pixel type
+  // (the canvas is 8-bit; EffectComposer's targets are half-float).
+  private bgByte: THREE.FramebufferTexture | null = null;
+  private bgHalf: THREE.FramebufferTexture | null = null;
+  private captured = false;
 
   constructor(renderer: THREE.WebGLRenderer) {
     this.renderer = renderer;
@@ -486,6 +533,9 @@ export class RaytracedWater {
       uRtFloorOn: { value: 0 },
       uRtFloorTextured: { value: 0 },
       uRtSandTex: { value: null },
+      uRtScene: { value: null },
+      uRtSceneOn: { value: 0 },
+      uRtProjection: { value: new THREE.Matrix4() },
     };
 
     const delta = new THREE.Vector2(1 / RT_SIM_RES, 1 / RT_SIM_RES);
@@ -603,6 +653,8 @@ export class RaytracedWater {
   update(f: RaytracedWaterFrame) {
     const u = this.uniforms;
     u.uRtLevel.value = f.level;
+    u.uRtProjection.value.copy(f.camera.projectionMatrix);
+    this.captured = false;
     const cam = f.camera.position;
     u.uRtSwimmer.value.set(cam.x, cam.y, cam.z, f.swimmerOn ? RT_SWIMMER_RADIUS : 0);
     if (!this.supported || !this.simA) return;
@@ -733,11 +785,52 @@ export class RaytracedWater {
     this.renderer.setRenderTarget(prev);
   }
 
+  /**
+   * Copies the frame drawn so far — everything behind the water — for the
+   * refracted rays. Hook it to the ocean meshes' onBeforeRender: the
+   * transparent ocean draws after the opaque scene, so the copy holds the
+   * backdrop, floor, models and sky exactly as they reach the screen. Runs
+   * at most once per update(), and only while the material is visible.
+   */
+  captureBackground() {
+    const u = this.uniforms;
+    if (this.captured || u.uRtMix.value <= 0.001) return;
+    this.captured = true;
+    const r = this.renderer;
+    const target = r.getRenderTarget();
+    let w: number;
+    let h: number;
+    let half = false;
+    if (target) {
+      w = target.width;
+      h = target.height;
+      half = target.texture.type !== THREE.UnsignedByteType;
+    } else {
+      r.getDrawingBufferSize(this.tmpSize);
+      w = this.tmpSize.x;
+      h = this.tmpSize.y;
+    }
+    let tex = half ? this.bgHalf : this.bgByte;
+    if (!tex || tex.image.width !== w || tex.image.height !== h) {
+      tex?.dispose();
+      tex = new THREE.FramebufferTexture(w, h);
+      if (half) tex.type = THREE.HalfFloatType;
+      tex.minFilter = THREE.LinearFilter;
+      tex.magFilter = THREE.LinearFilter;
+      if (half) this.bgHalf = tex;
+      else this.bgByte = tex;
+    }
+    r.copyFramebufferToTexture(tex);
+    u.uRtScene.value = tex;
+    u.uRtSceneOn.value = 1;
+  }
+
   /** Drops the sim/caustic state when the material is switched off, so it
    *  starts from calm water next time instead of a stale window. */
   sleep() {
     this.uniforms.uRtSimOn.value = 0;
     this.uniforms.uRtCausticOn.value = 0;
+    this.uniforms.uRtSceneOn.value = 0;
     this.simCenter = null;
     this.oldSwimmer = null;
     this.accum = 0;
@@ -747,6 +840,8 @@ export class RaytracedWater {
     this.simA?.dispose();
     this.simB?.dispose();
     this.caustic?.dispose();
+    this.bgByte?.dispose();
+    this.bgHalf?.dispose();
     this.causticGeo?.dispose();
     this.causticMat?.dispose();
     this.quad.geometry.dispose();
