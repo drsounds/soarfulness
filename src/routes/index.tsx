@@ -8099,6 +8099,9 @@ export function Aquafulness() {
             surfaceY: camera.position.y - (camY - surfaceY),
             swimmerOn: Math.abs(camY - surfaceY) < 1.5,
           });
+          // Depth of the solid scene behind the water (models, seafloor), for
+          // depth-correct refraction of submerged items.
+          raytracedWater.captureDepth(scene, camera, [floor]);
         } else {
           raytracedWater.sleep();
         }

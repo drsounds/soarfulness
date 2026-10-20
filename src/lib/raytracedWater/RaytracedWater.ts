@@ -20,7 +20,9 @@
  *    The pool's walls were the only thing behind Evan's water; here the
  *    refracted rays also look up whatever the scene has already drawn
  *    behind the surface (backdrop, models, cloud floor, sky) in a copy of
- *    the frame taken just before the ocean draws — see captureBackground().
+ *    the frame taken just before the ocean draws — see captureBackground() —
+ *    marching against a depth pre-pass (captureDepth()) so each item bends
+ *    by its own depth below the surface, like a stick in water.
  *  - Analytic ambient occlusion: Evan's closed-form sphere-occlusion term
  *    (the swimmer, a sphere at the camera) plus a heightfield-curvature term
  *    that darkens wave troughs, standing in for the pool-wall term.
@@ -83,6 +85,9 @@ export type RaytracedWaterUniforms = {
   uRtScene: THREE.IUniform<THREE.Texture | null>;
   uRtSceneOn: THREE.IUniform<number>;
   uRtProjection: THREE.IUniform<THREE.Matrix4>;
+  uRtProjectionInv: THREE.IUniform<THREE.Matrix4>;
+  uRtDepth: THREE.IUniform<THREE.Texture | null>;
+  uRtDepthOn: THREE.IUniform<number>;
 };
 
 /** Heightfield sample: vec4(height, velocity, dh/dx, dh/dz) in world metres,
@@ -157,11 +162,15 @@ export const RT_WATER_GLSL = /* glsl */ `
   uniform float uRtFloorOn;
   uniform float uRtFloorTextured;
   uniform sampler2D uRtSandTex;
-  // Copy of the frame drawn so far (everything behind the water), and the
-  // camera projection to find where a ray's point lands on it.
+  // Copy of the frame drawn so far (everything behind the water), the
+  // scene's depth without the water, and the camera projection (and its
+  // inverse) to go between view space and those screen-space textures.
   uniform sampler2D uRtScene;
   uniform float uRtSceneOn;
   uniform mat4 uRtProjection;
+  uniform mat4 uRtProjectionInv;
+  uniform sampler2D uRtDepth;
+  uniform float uRtDepthOn;
 
   const float RT_IOR_AIR = 1.0;
   const float RT_IOR_WATER = 1.333;
@@ -198,18 +207,78 @@ export const RT_WATER_GLSL = /* glsl */ `
     return col;
   }
 
-  // Screen-space lookup of what the scene drew dist metres along a ray:
-  // rgb = colour, a = confidence (0 off-screen / behind the camera, fading
-  // in from the screen edge so the analytic fallback takes over smoothly).
-  vec4 rtSceneAlong(vec3 origin, vec3 ray, float dist) {
-    if (uRtSceneOn < 0.5) return vec4(0.0);
-    vec4 clip = uRtProjection * viewMatrix * vec4(origin + ray * dist, 1.0);
-    if (clip.w <= 0.0) return vec4(0.0);
+  // View-space point -> (screen uv, confidence): 0 behind the camera or
+  // off-screen, fading in from the edge so the analytic fallback takes over.
+  vec3 rtProjectUv(vec3 viewPos) {
+    vec4 clip = uRtProjection * vec4(viewPos, 1.0);
+    if (clip.w <= 0.0) return vec3(0.0);
     vec2 uv = clip.xy / clip.w * 0.5 + 0.5;
     vec2 e = min(uv, 1.0 - uv);
-    float w = smoothstep(0.0, 0.04, min(e.x, e.y));
-    if (w <= 0.0) return vec4(0.0);
-    return vec4(texture2D(uRtScene, uv).rgb, w);
+    return vec3(uv, smoothstep(0.0, 0.04, min(e.x, e.y)));
+  }
+
+  // View-space position of whatever the depth pre-pass saw at uv.
+  vec3 rtSceneViewPos(vec2 uv) {
+    float d = texture2D(uRtDepth, uv).r;
+    vec4 v = uRtProjectionInv * vec4(uv * 2.0 - 1.0, d * 2.0 - 1.0, 1.0);
+    return v.xyz / v.w;
+  }
+
+  // Screen-space refraction: what the scene drew where the ray from origin
+  // meets it. rgb = colour, a = confidence; dist = path length to the hit.
+  // With depth, the ray is marched (steps growing toward maxDist) until it
+  // passes behind the depth pre-pass, then the crossing is binary-refined —
+  // so an item 0.5 m under the surface shifts a little and one at 5 m
+  // shifts a lot, the progressive bend of a stick in water. Without depth
+  // (or with no hit), everything is assumed fallbackDist away.
+  vec4 rtRefractScene(vec3 origin, vec3 ray, float fallbackDist, float maxDist, out float dist) {
+    dist = fallbackDist;
+    if (uRtSceneOn < 0.5) return vec4(0.0);
+    vec3 o = (viewMatrix * vec4(origin, 1.0)).xyz;
+    vec3 r = normalize((viewMatrix * vec4(ray, 0.0)).xyz);
+    vec3 p = rtProjectUv(o + r * fallbackDist);
+    if (uRtDepthOn > 0.5) {
+      float tPrev = 0.0;
+      float tHit = -1.0;
+      for (int i = 1; i <= 16; i++) {
+        float f = float(i) / 16.0;
+        float t = maxDist * f * f;
+        vec3 q = rtProjectUv(o + r * t);
+        if (q.z <= 0.0) break;
+        vec3 s = rtSceneViewPos(q.xy);
+        float behind = s.z - (o.z + r.z * t);
+        // Crossed behind a surface — unless that surface is far in front of
+        // the ray (it's merely occluding the ray on screen; keep going).
+        if (behind >= 0.0 && behind < 1.5 + 0.15 * t) {
+          tHit = t;
+          break;
+        }
+        tPrev = t;
+      }
+      if (tHit > 0.0) {
+        for (int i = 0; i < 5; i++) {
+          float tm = 0.5 * (tPrev + tHit);
+          vec3 q = rtProjectUv(o + r * tm);
+          if (rtSceneViewPos(q.xy).z >= o.z + r.z * tm) tHit = tm;
+          else tPrev = tm;
+        }
+        p = rtProjectUv(o + r * tHit);
+        dist = tHit;
+      }
+      // A ray refracted down can only reach things below the surface (and
+      // one refracted up, from underwater, only things above it). If the
+      // copy at the landing spot shows something on the wrong side — the
+      // dry part of an item sticking out of the water, hiding what's behind
+      // it — the copy can't answer: let the analytic floor/sky take over.
+      vec3 upV = (viewMatrix * vec4(0.0, 1.0, 0.0, 0.0)).xyz;
+      float side = dot(r, upV) < 0.0 ? -1.0 : 1.0;
+      if (dot(rtSceneViewPos(p.xy) - o, upV) * side < -0.02) {
+        dist = fallbackDist;
+        return vec4(0.0);
+      }
+    }
+    if (p.z <= 0.0) return vec4(0.0);
+    return vec4(texture2D(uRtScene, p.xy).rgb, p.z);
   }
 
   vec3 rtFloorAlbedo(vec2 xz) {
@@ -258,9 +327,15 @@ export const RT_WATER_GLSL = /* glsl */ `
         }
       }
     }
-    vec4 seen = rtSceneAlong(origin, ray, min(t, 80.0));
+    float seenDist;
+    // A floor bounds the search; open water looks up to 80 m deep.
+    float fallback = min(t, 80.0);
+    vec4 seen = rtRefractScene(origin, ray, fallback, fallback * 1.25 + 1.0, seenDist);
     behind = mix(behind, seen.rgb, seen.a);
-    return rtAbsorb(behind, t, scatter);
+    // With depth, absorb over the real path to whatever was hit, so items
+    // just under the surface stay clear and deep ones fade into the blue.
+    if (uRtDepthOn > 0.5) t = mix(t, seenDist, seen.a);
+    return rtAbsorb(behind, min(t, 500.0), scatter);
   }
 
   // The raytraced surface colour (renderer.js's waterShaders[0/1]).
@@ -294,7 +369,8 @@ export const RT_WATER_GLSL = /* glsl */ `
     // everywhere outside Snell's window.
     // Through Snell's window: whatever is above the water (sky, backdrop,
     // models), from the frame copy, else the analytic sky.
-    vec4 seenAbove = rtSceneAlong(pos, refractedRay, 200.0);
+    float aboveDist;
+    vec4 seenAbove = rtRefractScene(pos, refractedRay, 200.0, 200.0, aboveDist);
     vec3 refractedColor = mix(rtSky(refractedRay), seenAbove.rgb, seenAbove.a) * vec3(0.8, 1.0, 1.1);
     vec3 col = mix(reflectedColor, refractedColor, (1.0 - fresnel) * length(refractedRay));
     return rtAbsorb(col, length(pos - eye), scatter);
@@ -510,6 +586,12 @@ export class RaytracedWater {
   private bgByte: THREE.FramebufferTexture | null = null;
   private bgHalf: THREE.FramebufferTexture | null = null;
   private captured = false;
+  // Depth-only pre-pass of the scene without the water (captureDepth()).
+  private depthTarget: THREE.WebGLRenderTarget | null = null;
+  private readonly depthMat = new THREE.MeshBasicMaterial({
+    colorWrite: false,
+    side: THREE.DoubleSide,
+  });
 
   constructor(renderer: THREE.WebGLRenderer) {
     this.renderer = renderer;
@@ -536,6 +618,9 @@ export class RaytracedWater {
       uRtScene: { value: null },
       uRtSceneOn: { value: 0 },
       uRtProjection: { value: new THREE.Matrix4() },
+      uRtProjectionInv: { value: new THREE.Matrix4() },
+      uRtDepth: { value: null },
+      uRtDepthOn: { value: 0 },
     };
 
     const delta = new THREE.Vector2(1 / RT_SIM_RES, 1 / RT_SIM_RES);
@@ -654,6 +739,7 @@ export class RaytracedWater {
     const u = this.uniforms;
     u.uRtLevel.value = f.level;
     u.uRtProjection.value.copy(f.camera.projectionMatrix);
+    u.uRtProjectionInv.value.copy(f.camera.projectionMatrixInverse);
     this.captured = false;
     const cam = f.camera.position;
     u.uRtSwimmer.value.set(cam.x, cam.y, cam.z, f.swimmerOn ? RT_SWIMMER_RADIUS : 0);
@@ -825,12 +911,64 @@ export class RaytracedWater {
     u.uRtSceneOn.value = 1;
   }
 
+  /**
+   * Renders the depth of the solid scene so the refracted rays know how far
+   * below the surface each item really is (full resolution, so item edges
+   * don't stair-step in the refraction).
+   * Custom-shader meshes are left out — the ocean itself, and layers like
+   * clouds that discard most of their pixels and would otherwise show up as
+   * solid invisible planes — except those in `keep` (the seafloor).
+   * Call once per rendered frame, before the main render.
+   */
+  captureDepth(scene: THREE.Scene, camera: THREE.Camera, keep: THREE.Object3D[]) {
+    const r = this.renderer;
+    r.getDrawingBufferSize(this.tmpSize);
+    const w = Math.max(1, this.tmpSize.x);
+    const h = Math.max(1, this.tmpSize.y);
+    if (!this.depthTarget || this.depthTarget.width !== w || this.depthTarget.height !== h) {
+      this.depthTarget?.dispose();
+      this.depthTarget = new THREE.WebGLRenderTarget(w, h, {
+        depthBuffer: true,
+        stencilBuffer: false,
+        depthTexture: new THREE.DepthTexture(w, h),
+      });
+      this.depthTarget.depthTexture!.minFilter = THREE.NearestFilter;
+      this.depthTarget.depthTexture!.magFilter = THREE.NearestFilter;
+    }
+    const hidden: THREE.Object3D[] = [];
+    scene.traverseVisible((o) => {
+      const mat = (o as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined;
+      const custom = Array.isArray(mat)
+        ? mat.some((m) => (m as THREE.ShaderMaterial).isShaderMaterial)
+        : !!(mat as THREE.ShaderMaterial | undefined)?.isShaderMaterial;
+      if (custom && !keep.includes(o)) hidden.push(o);
+    });
+    hidden.forEach((o) => (o.visible = false));
+    const prevBackground = scene.background;
+    const prevOverride = scene.overrideMaterial;
+    const prevTarget = r.getRenderTarget();
+    const prevAutoClear = r.autoClear;
+    scene.background = null;
+    scene.overrideMaterial = this.depthMat;
+    r.autoClear = true;
+    r.setRenderTarget(this.depthTarget);
+    r.render(scene, camera);
+    r.setRenderTarget(prevTarget);
+    r.autoClear = prevAutoClear;
+    scene.overrideMaterial = prevOverride;
+    scene.background = prevBackground;
+    hidden.forEach((o) => (o.visible = true));
+    this.uniforms.uRtDepth.value = this.depthTarget.depthTexture;
+    this.uniforms.uRtDepthOn.value = 1;
+  }
+
   /** Drops the sim/caustic state when the material is switched off, so it
    *  starts from calm water next time instead of a stale window. */
   sleep() {
     this.uniforms.uRtSimOn.value = 0;
     this.uniforms.uRtCausticOn.value = 0;
     this.uniforms.uRtSceneOn.value = 0;
+    this.uniforms.uRtDepthOn.value = 0;
     this.simCenter = null;
     this.oldSwimmer = null;
     this.accum = 0;
@@ -842,6 +980,8 @@ export class RaytracedWater {
     this.caustic?.dispose();
     this.bgByte?.dispose();
     this.bgHalf?.dispose();
+    this.depthTarget?.dispose();
+    this.depthMat.dispose();
     this.causticGeo?.dispose();
     this.causticMat?.dispose();
     this.quad.geometry.dispose();
