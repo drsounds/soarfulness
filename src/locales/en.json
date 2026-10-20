@@ -257,6 +257,7 @@
       "sinePeak": "SINE PEAK",
       "sineSpeed": "SINE TEMPO",
       "sineWaveform": "SINE WAVEFORM",
+      "raytracedStrength": "RAYTRACE STRENGTH",
       "sphereStrength": "SPHERE STRENGTH",
       "surface": "WATER SURFACE",
       "surfaceValue": {
@@ -271,6 +272,7 @@
       "waveBgCustomColor": "WAVE BACKGROUND",
       "waveMaterial": "WAVE MATERIAL",
       "waveMaterialValue": {
+        "raytraced": "RAYTRACED",
         "sphereMap": "SPHERE MAP",
         "standard": "STANDARD"
       }

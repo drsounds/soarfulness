@@ -257,6 +257,7 @@
       "sinePeak": "SININ HUIPPU",
       "sineSpeed": "SININ TEMPO",
       "sineWaveform": "SININ AALTOMUOTO",
+      "raytracedStrength": "SÄTEENSEURANNAN VOIMAKKUUS",
       "sphereStrength": "PALLON VOIMAKKUUS",
       "surface": "VEDENPINTA",
       "surfaceValue": {
@@ -271,6 +272,7 @@
       "waveBgCustomColor": "AALLON TAUSTA",
       "waveMaterial": "AALLON MATERIAALI",
       "waveMaterialValue": {
+        "raytraced": "SÄTEENSEURATTU",
         "sphereMap": "PALLOKARTTA",
         "standard": "STANDARDI"
       }

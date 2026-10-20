@@ -133,6 +133,12 @@ import {
   type OceanWaveComponent,
 } from "@/lib/ocean/fftOceanSpectrum";
 import sandTextureAsset from "@/assets/sand_cc0_512.jpg.asset.json";
+import {
+  RaytracedWater,
+  RT_FLOOR_GLSL,
+  RT_SIM_GLSL,
+  RT_WATER_GLSL,
+} from "@/lib/raytracedWater/RaytracedWater";
 import appIconAsset from "@/assets/AppIconBlack.png.asset.json";
 
 export const Route = createFileRoute("/")({
@@ -982,6 +988,8 @@ const DEFAULTS: Persisted = {
   bottomColor: "#8a7550",
   sphereMaterial: false,
   sphereStrength: 0.7,
+  raytracedMaterial: false,
+  raytracedStrength: 1,
   trochoid: 0,
   heaveSkew: 0,
   // Off by default: swaps the flat sine-noise "fake" caustic for a real
@@ -1516,6 +1524,8 @@ export function Aquafulness() {
   const [bottomColor, setBottomColor] = useState(initial.bottomColor);
   const [sphereMaterial, setSphereMaterial] = useState(initial.sphereMaterial);
   const [sphereStrength, setSphereStrength] = useState(initial.sphereStrength);
+  const [raytracedMaterial, setRaytracedMaterial] = useState(initial.raytracedMaterial);
+  const [raytracedStrength, setRaytracedStrength] = useState(initial.raytracedStrength);
   const [trochoid, setTrochoid] = useState(initial.trochoid);
   const [heaveSkew, setHeaveSkew] = useState(initial.heaveSkew);
   const [causticsOn, setCausticsOn] = useState(initial.causticsOn);
@@ -1886,6 +1896,8 @@ export function Aquafulness() {
   const bottomColorRef = useRef(bottomColor);
   const sphereMaterialRef = useRef(sphereMaterial);
   const sphereStrengthRef = useRef(sphereStrength);
+  const raytracedMaterialRef = useRef(raytracedMaterial);
+  const raytracedStrengthRef = useRef(raytracedStrength);
   const trochoidRef = useRef(trochoid);
   const heaveSkewRef = useRef(heaveSkew);
   const causticsOnRef = useRef(causticsOn);
@@ -2015,6 +2027,8 @@ export function Aquafulness() {
     bottomColor,
     sphereMaterial,
     sphereStrength,
+    raytracedMaterial,
+    raytracedStrength,
     trochoid,
     heaveSkew,
     causticsOn,
@@ -2195,6 +2209,8 @@ export function Aquafulness() {
     bottomColor,
     sphereMaterial,
     sphereStrength,
+    raytracedMaterial,
+    raytracedStrength,
     trochoid,
     heaveSkew,
     causticsOn,
@@ -2983,6 +2999,12 @@ export function Aquafulness() {
     sphereMaterialRef.current = sphereMaterial;
   }, [sphereMaterial]);
   useEffect(() => {
+    raytracedMaterialRef.current = raytracedMaterial;
+  }, [raytracedMaterial]);
+  useEffect(() => {
+    raytracedStrengthRef.current = raytracedStrength;
+  }, [raytracedStrength]);
+  useEffect(() => {
     causticsOnRef.current = causticsOn;
   }, [causticsOn]);
   useEffect(() => {
@@ -3391,6 +3413,8 @@ export function Aquafulness() {
     setBottomColor(DEFAULTS.bottomColor);
     setSphereMaterial(DEFAULTS.sphereMaterial);
     setSphereStrength(DEFAULTS.sphereStrength);
+    setRaytracedMaterial(DEFAULTS.raytracedMaterial);
+    setRaytracedStrength(DEFAULTS.raytracedStrength);
     setTrochoid(DEFAULTS.trochoid);
     setHeaveSkew(DEFAULTS.heaveSkew);
     setCausticsOn(DEFAULTS.causticsOn);
@@ -3578,6 +3602,8 @@ export function Aquafulness() {
     if (patch.bottomColor !== undefined) setBottomColor(patch.bottomColor);
     if (patch.sphereMaterial !== undefined) setSphereMaterial(patch.sphereMaterial);
     if (patch.sphereStrength !== undefined) setSphereStrength(patch.sphereStrength);
+    if (patch.raytracedMaterial !== undefined) setRaytracedMaterial(patch.raytracedMaterial);
+    if (patch.raytracedStrength !== undefined) setRaytracedStrength(patch.raytracedStrength);
     if (patch.trochoid !== undefined) setTrochoid(patch.trochoid);
     if (patch.heaveSkew !== undefined) setHeaveSkew(patch.heaveSkew);
     if (patch.causticsOn !== undefined) setCausticsOn(patch.causticsOn);
@@ -4599,6 +4625,11 @@ export function Aquafulness() {
     const { wave: fftWaveData, phase: fftPhaseData } = packOceanWaveComponents(fftWaveComponents);
     const { wave: dyingWaveData, phase: dyingPhaseData } =
       packOceanWaveComponents(dyingWaveComponents);
+    // VÅGMATERIAL = RAYTRACED — Evan Wallace's WebGL Water techniques
+    // (raytraced reflection/refraction, heightfield ripple sim, caustics,
+    // soft shadows, analytic AO) layered over the waves below. See
+    // src/lib/raytracedWater/RaytracedWater.ts.
+    const raytracedWater = new RaytracedWater(renderer);
     const uniforms = {
       uTime: { value: 0 },
       uAmp: { value: waveAmp },
@@ -4694,11 +4725,15 @@ export function Aquafulness() {
       uRefraction: { value: 0 },
       uFloorColor: { value: new THREE.Color(0xd8c078) },
       uFloorDepth: { value: 14 },
+      ...raytracedWater.uniforms,
     };
     // Expose the uniforms so the surface-selector effect can feed in a photo.
     waterUniformsRef.current = uniforms as unknown as Record<string, { value: unknown }>;
 
-    const vertexShader = /* glsl */ `
+    // The ocean's wave displacement, shared by the mesh below and by the
+    // RAYTRACED material's caustics pass (so caustics focus through exactly
+    // the waves on screen, whichever waveform is active).
+    const waveGlsl = /* glsl */ `
       uniform float uTime;
       uniform float uAmp;
       uniform float uRegular;
@@ -4739,8 +4774,8 @@ export function Aquafulness() {
       uniform float uDyingTime;
       uniform vec4 uDyingWave[${DYING_WAVE_COUNT}];
       uniform float uDyingPhase[${DYING_WAVE_COUNT}];
-      varying vec3 vWorldPos;
-      varying vec3 vNormal;
+      // RAYTRACED material blend — gates the extra trough-AO samples below.
+      uniform float uRtMix;
 
       // FREKVENS scales each component's wave vector, which can push it past
       // the mesh's Nyquist limit into aliasing noise — fade those out. Mirror
@@ -4880,9 +4915,13 @@ export function Aquafulness() {
         return base;
       }
 
-      void main() {
-        vec3 p = position;
-        vec4 wpBase = modelMatrix * vec4(p, 1.0);
+      // Displacement of the still-water point wpBaseIn (world space; the
+      // ocean mesh is only ever translated, so this is also the local offset),
+      // its surface normal n, and — for the RAYTRACED material's analytic
+      // trough occlusion — the height field's Laplacian lap.
+      vec3 oceanOffset(vec3 wpBaseIn, out vec3 n, out float lap) {
+        vec3 p = vec3(0.0);
+        vec4 wpBase = vec4(wpBaseIn, 1.0);
 
         // Distance-based amplitude falloff — far triangles get very thin at
         // grazing angles and alias into jagged spikes on the horizon. Fade
@@ -4910,7 +4949,20 @@ export function Aquafulness() {
         float e = 0.22;
         float hx = wave(wpBase.xyz + vec3(e, 0.0, 0.0), uTime, ampF, rippleFade, dyingAmpF);
         float hz = wave(wpBase.xyz + vec3(0.0, 0.0, e), uTime, ampF, rippleFade, dyingAmpF);
-        vec3 n = normalize(vec3(h - hx, e, h - hz));
+        n = normalize(vec3(h - hx, e, h - hz));
+
+        // RAYTRACED analytic AO: wave troughs (positive curvature) see less
+        // sky. A wider stencil than the normal's so it follows the swell
+        // rather than the ripples.
+        lap = 0.0;
+        if (uRtMix > 0.001) {
+          float E = 1.5;
+          float hpx = wave(wpBase.xyz + vec3(E, 0.0, 0.0), uTime, ampF, rippleFade, dyingAmpF);
+          float hmx = wave(wpBase.xyz - vec3(E, 0.0, 0.0), uTime, ampF, rippleFade, dyingAmpF);
+          float hpz = wave(wpBase.xyz + vec3(0.0, 0.0, E), uTime, ampF, rippleFade, dyingAmpF);
+          float hmz = wave(wpBase.xyz - vec3(0.0, 0.0, E), uTime, ampF, rippleFade, dyingAmpF);
+          lap = (hpx + hmx + hpz + hmz - 4.0 * h) / (E * E);
+        }
 
         // Trochoidal (Gerstner-like) horizontal displacement: shifts each
         // vertex sideways along the local wave slope, which bunches vertices
@@ -4971,12 +5023,27 @@ export function Aquafulness() {
           n = normalize(mix(n, nv, uVortex));
         }
 
+        return p;
+      }
+    `;
+
+    const vertexShader = /* glsl */ `
+      ${waveGlsl}
+      varying vec3 vWorldPos;
+      varying vec3 vNormal;
+      varying float vRtAo;
+
+      void main() {
+        vec4 wpBase = modelMatrix * vec4(position, 1.0);
+        vec3 n;
+        float lap;
+        vec3 p = position + oceanOffset(wpBase.xyz, n, lap);
+        vRtAo = 1.0 / (1.0 + max(lap, 0.0) * 6.0);
         vec4 wp = modelMatrix * vec4(p, 1.0);
         vWorldPos = wp.xyz;
         vNormal = n;
         gl_Position = projectionMatrix * viewMatrix * wp;
       }
-
     `;
 
     const fragmentShader = /* glsl */ `
@@ -5032,6 +5099,10 @@ export function Aquafulness() {
       uniform float uFloorDepth;
       varying vec3 vWorldPos;
       varying vec3 vNormal;
+      varying float vRtAo;
+      ${RT_SIM_GLSL}
+      ${RT_FLOOR_GLSL}
+      ${RT_WATER_GLSL}
 
       // Hue rotation in RGB space (angle in radians).
       mat3 hueRotate(float angle) {
@@ -5340,6 +5411,21 @@ export function Aquafulness() {
         float fillAlpha = mix(texAlpha, 1.0, bgOp);
         vec3 col = bodyPremult / max(fillAlpha, 1e-4);
 
+        // VÅGMATERIAL = RAYTRACED: Evan Wallace's raytraced surface (see
+        // RT_WATER_GLSL) — real reflected/refracted rays against the sky,
+        // sun and caustic-lit seafloor, on top of the same wave normal.
+        // gl_FrontFacing tells the air side (mesh faces up) from below.
+        if (uRtMix > 0.001) {
+          vec3 rtScatter = mix(deepT, shalT, 0.35);
+          vec3 rtCol = rtShadeWater(N, vWorldPos, cameraPosition, gl_FrontFacing, rtScatter, vRtAo);
+          // A single ray only finds the sun's tiny disc; keep half the
+          // Blinn-Phong glitter for the sub-pixel facets it can't resolve.
+          rtCol += sun * 0.5;
+          col = mix(col, rtCol, uRtMix);
+          // Raytraced refraction is a full water body: no see-through fill.
+          fillAlpha = mix(fillAlpha, 1.0, uRtMix);
+        }
+
         // Selectable sphere-map ("matcap") material — a distinct, glossier
         // look the user opts into per VÅGMATERIAL, blended on top of the
         // regular Fresnel/sky shading rather than replacing it outright.
@@ -5362,7 +5448,9 @@ export function Aquafulness() {
         if (uUnderwater > 0.0) {
           float g = dot(col, vec3(0.299, 0.587, 0.114));
           vec3 muted = mix(vec3(g), deepT * 1.1, 0.55) * (1.0 - 0.35 * uUnderwater);
-          col = mix(col, muted, clamp(uUnderwater, 0.0, 1.0));
+          // The RAYTRACED material already absorbs along the view ray and
+          // shows Snell's window, so it mostly skips this flat tone-down.
+          col = mix(col, muted, clamp(uUnderwater, 0.0, 1.0) * (1.0 - 0.8 * uRtMix));
         }
 
         // Grumlighet (turbidity): once submerged, real depth-based fog on
@@ -5502,7 +5590,10 @@ export function Aquafulness() {
       uCausticFreq: { value: waveFreq },
       uCausticDepth: { value: 14 },
       uOpacity: { value: 1 },
+      ...raytracedWater.uniforms,
     };
+    raytracedWater.uniforms.uRtSandTex.value = sandTex;
+    raytracedWater.initCaustics(waveGlsl, uniforms);
     const floorMat = new THREE.ShaderMaterial({
       uniforms: floorUniforms,
       side: THREE.DoubleSide,
@@ -5555,6 +5646,9 @@ export function Aquafulness() {
         // each with its own material instance) ease in/out independently
         // instead of popping visible/invisible, at MOLN TONING's rate.
         uniform float uOpacity;
+        // RAYTRACED material: caustics, soft shadow and AO from
+        // RaytracedWater (uRtMix = 0 leaves the floor untouched).
+        ${RT_FLOOR_GLSL}
 
         float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453123); }
         float vnoise(vec2 p){
@@ -5696,8 +5790,10 @@ export function Aquafulness() {
             caustic += sin(p.x*0.9 + uTime*0.7 + vnoise(p*0.4)*4.0);
             caustic += sin(p.y*0.85 - uTime*0.55 + vnoise(p*0.35 + 3.1)*4.0);
             caustic = pow(max(0.0, caustic*0.5 + 0.5), 3.0);
+            // RAYTRACED supplies its own caustics (rtFloorLight below).
+            caustic *= 1.0 - uRtMix;
             if (uCausticsOn > 0.001) {
-              float realCaustic = causticIntensity(p) * clamp(uSunDir.y + 0.15, 0.0, 1.0);
+              float realCaustic = causticIntensity(p) * clamp(uSunDir.y + 0.15, 0.0, 1.0) * (1.0 - uRtMix);
               caustic = mix(caustic, realCaustic, uCausticsOn);
               sand += uSunColor * caustic * 0.22 * uCausticsOn;
               sand += vec3(0.95, 0.88, 0.7) * caustic * 0.22 * (1.0 - uCausticsOn);
@@ -5705,6 +5801,9 @@ export function Aquafulness() {
               sand += vec3(0.95, 0.88, 0.7) * caustic * 0.22;
             }
             base = mix(uColor, sand, clamp(uTextured, 0.0, 1.0));
+          }
+          if (uRtMix > 0.001) {
+            base *= mix(vec3(1.0), rtFloorLight(vWorld, uSunDir, uSunColor), uRtMix);
           }
           base = applyTurbidity(base);
           gl_FragColor = vec4(base, 1.0);
@@ -6125,6 +6224,8 @@ export function Aquafulness() {
     // "has enough wall-clock time passed" — see rafIntervalEstimate below
     // for why.
     let renderTickCount = 0;
+    // Sim time owed to the RAYTRACED ripple sim across skipped (fps-capped) ticks.
+    let rtPendingDt = 0;
     // A rolling estimate of the display's actual vsync interval (ms), so the
     // render cap can skip a *fixed number of ticks* between renders instead
     // of comparing elapsed wall-clock time against 1000/fpsCap. The wall-
@@ -6425,6 +6526,8 @@ export function Aquafulness() {
         // pattern it draws is itself a live-noise effect) — falls back to
         // the same solid uColor every other flat bottom option renders.
         const isClouds = bot.id === "clouds" && !lowEnd;
+        raytracedWater.uniforms.uRtFloorOn.value = isClouds ? 0 : 1;
+        raytracedWater.uniforms.uRtFloorTextured.value = floorUniforms.uTextured.value;
         // Cloud mode blends independently of the sand-texture toggle.
         const cloudTarget = isClouds ? 1 : 0;
         floorUniforms.uClouds.value +=
@@ -6449,6 +6552,7 @@ export function Aquafulness() {
         floorMat.depthWrite = !wantTransparent;
       } else {
         floor.visible = false;
+        raytracedWater.uniforms.uRtFloorOn.value = 0;
       }
 
       // Mellan-moln (drivande lager mellan botten och yta). LOW GRAPHICS
@@ -7780,6 +7884,11 @@ export function Aquafulness() {
         ((sphereMaterialRef.current && !lowEnd ? sphereStrengthRef.current : 0) -
           uniforms.uSphereMix.value) *
         Math.min(1, dt * 6);
+      // LOW GRAPHICS MODE skips the RAYTRACED material's offscreen passes.
+      uniforms.uRtMix.value +=
+        ((raytracedMaterialRef.current && !lowEnd ? raytracedStrengthRef.current : 0) -
+          uniforms.uRtMix.value) *
+        Math.min(1, dt * 6);
       uniforms.uTrochoid.value +=
         (trochoidRef.current - uniforms.uTrochoid.value) * Math.min(1, dt * 6);
 
@@ -7967,7 +8076,24 @@ export function Aquafulness() {
       const ticksPerRender =
         fpsCap <= 0 ? 1 : Math.max(1, Math.round(1000 / fpsCap / rafIntervalMsEstimate));
       const renderDue = fpsCap <= 0 || renderTickCount % ticksPerRender === 0;
+      rtPendingDt += dt;
       if (renderDue) {
+        // RAYTRACED material: step the ripple sim and re-render caustics
+        // (offscreen passes) only while it's visible.
+        if (uniforms.uRtMix.value > 0.001) {
+          raytracedWater.update({
+            dt: rtPendingDt,
+            camera,
+            sunDir: uniforms.uSunDir.value,
+            level: ocean.position.y,
+            depth: uniforms.uFloorDepth.value,
+            surfaceY: camera.position.y - (camY - surfaceY),
+            swimmerOn: Math.abs(camY - surfaceY) < 1.5,
+          });
+        } else {
+          raytracedWater.sleep();
+        }
+        rtPendingDt = 0;
         // Must run before renderer.render() below — it syncs each TV
         // panel's invisible occluder mesh (added to `scene`) to the
         // panel's current transform, so the depth test that lets other 3D
@@ -8002,6 +8128,7 @@ export function Aquafulness() {
       mat.dispose();
       floorGeo.dispose();
       floorMat.dispose();
+      raytracedWater.dispose();
       midCloudGeo.dispose();
       midCloudMat.dispose();
       skyCloudGeo.dispose();
@@ -8572,6 +8699,10 @@ export function Aquafulness() {
     setSphereMaterial,
     sphereStrength,
     setSphereStrength,
+    raytracedMaterial,
+    setRaytracedMaterial,
+    raytracedStrength,
+    setRaytracedStrength,
     waterOpacity,
     setWaterOpacity,
     waterHue,
