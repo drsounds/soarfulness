@@ -257,6 +257,7 @@
       "sinePeak": "SINUS TOPP",
       "sineSpeed": "SINUS TEMPO",
       "sineWaveform": "SINUS BØLGEFORM",
+      "raytracedStrength": "STRÅLESPORINGSSTYRKE",
       "sphereStrength": "SFÆRE-STYRKE",
       "surface": "VANNOVERFLATE",
       "surfaceValue": {
@@ -271,6 +272,7 @@
       "waveBgCustomColor": "BØLGEBAKGRUNN",
       "waveMaterial": "BØLGEMATERIALE",
       "waveMaterialValue": {
+        "raytraced": "STRÅLESPORET",
         "sphereMap": "SFÆREKART",
         "standard": "STANDARD"
       }

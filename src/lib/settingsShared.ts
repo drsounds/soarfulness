@@ -575,6 +575,11 @@ export type Persisted = {
   bottomColor: string;
   sphereMaterial: boolean;
   sphereStrength: number;
+  // VÅGMATERIAL = RAYTRACED: the port of Evan Wallace's WebGL Water (see
+  // src/lib/raytracedWater/RaytracedWater.ts). Mutually exclusive with
+  // sphereMaterial in the UI, layered over whichever waveform is active.
+  raytracedMaterial: boolean;
+  raytracedStrength: number;
   trochoid: number;
   // HEAVE SKEW: a phase-warp (0 = untouched sine, up to ~0.9 before phase
   // folding) applied to every sine term behind REGELBUNDEN/SPRIDD — see
@@ -727,6 +732,8 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "reflStrength",
     "sphereMaterial",
     "sphereStrength",
+    "raytracedMaterial",
+    "raytracedStrength",
     "waterOpacity",
     "waterColorAlpha",
     "waveBgCustomColor",

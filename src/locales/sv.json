@@ -257,6 +257,7 @@
       "sinePeak": "SINUS SPETS",
       "sineSpeed": "SINUS TEMPO",
       "sineWaveform": "SINUS VÅGFORM",
+      "raytracedStrength": "STRÅLSPÅRNINGSSTYRKA",
       "sphereStrength": "SFÄR-STYRKA",
       "surface": "VATTENYTA",
       "surfaceValue": {
@@ -271,6 +272,7 @@
       "waveBgCustomColor": "VÅGBAKGRUND",
       "waveMaterial": "VÅGMATERIAL",
       "waveMaterialValue": {
+        "raytraced": "STRÅLSPÅRAD",
         "sphereMap": "SFÄRKARTA",
         "standard": "STANDARD"
       }

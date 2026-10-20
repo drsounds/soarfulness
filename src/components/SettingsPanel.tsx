@@ -653,6 +653,10 @@ export type SettingsPanelProps = {
   setSphereMaterial: Dispatch<SetStateAction<boolean>>;
   sphereStrength: number;
   setSphereStrength: Dispatch<SetStateAction<number>>;
+  raytracedMaterial: boolean;
+  setRaytracedMaterial: Dispatch<SetStateAction<boolean>>;
+  raytracedStrength: number;
+  setRaytracedStrength: Dispatch<SetStateAction<number>>;
   waterOpacity: number;
   setWaterOpacity: Dispatch<SetStateAction<number>>;
   waterColorAlpha: number;
@@ -1395,6 +1399,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setSphereMaterial,
     sphereStrength,
     setSphereStrength,
+    raytracedMaterial,
+    setRaytracedMaterial,
+    raytracedStrength,
+    setRaytracedStrength,
     waterOpacity,
     setWaterOpacity,
     waterHue,
@@ -2888,13 +2896,41 @@ export function SettingsPanel(props: SettingsPanelProps) {
                 <SettingRow
                   label={t("dial.water.waveMaterial")}
                   value={
-                    sphereMaterial
-                      ? t("dial.water.waveMaterialValue.sphereMap")
-                      : t("dial.water.waveMaterialValue.standard")
+                    raytracedMaterial
+                      ? t("dial.water.waveMaterialValue.raytraced")
+                      : sphereMaterial
+                        ? t("dial.water.waveMaterialValue.sphereMap")
+                        : t("dial.water.waveMaterialValue.standard")
                   }
-                  onDec={() => setSphereMaterial(false)}
-                  onInc={() => setSphereMaterial(true)}
+                  // STANDARD -> SPHERE MAP -> RAYTRACED; the two non-standard
+                  // materials are exclusive, so one index drives both flags.
+                  onDec={() => {
+                    const i = raytracedMaterial ? 2 : sphereMaterial ? 1 : 0;
+                    const next = Math.max(0, i - 1);
+                    setSphereMaterial(next === 1);
+                    setRaytracedMaterial(next === 2);
+                  }}
+                  onInc={() => {
+                    const i = raytracedMaterial ? 2 : sphereMaterial ? 1 : 0;
+                    const next = Math.min(2, i + 1);
+                    setSphereMaterial(next === 1);
+                    setRaytracedMaterial(next === 2);
+                  }}
                 />
+                {raytracedMaterial && (
+                  <SettingRow
+                    label={t("dial.water.raytracedStrength")}
+                    mode="number"
+                    value={`${Math.round(raytracedStrength * 100)}%`}
+                    rawValue={raytracedStrength}
+                    onSet={(v) => setRaytracedStrength(Math.max(0, Math.min(1, v)))}
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    onDec={() => setRaytracedStrength((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                    onInc={() => setRaytracedStrength((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+                  />
+                )}
                 {sphereMaterial && (
                   <SettingRow
                     label={t("dial.water.sphereStrength")}
