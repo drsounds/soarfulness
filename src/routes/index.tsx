@@ -1,6 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Capacitor } from "@capacitor/core";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import { useTranslation } from "react-i18next";
 import * as THREE from "three";
 import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
@@ -2697,7 +2705,6 @@ export function Aquafulness() {
   const depthSinePeakRef = useRef(depthSinePeak);
   const depthSineWaveformRef = useRef(depthSineWaveform);
   const depthDriftSpeedRef = useRef(depthDriftSpeed);
-  const depthDriftSineOnRef = useRef(depthDriftSineOn);
   const depthDriftSineAmpRef = useRef(depthDriftSineAmp);
   const depthDriftSineSpeedRef = useRef(depthDriftSineSpeed);
   const depthDriftSinePhaseRef = useRef(depthDriftSinePhase);
@@ -2705,6 +2712,11 @@ export function Aquafulness() {
   // from t, so turning DRIFT SINUS TEMPO mid-cycle changes the rate
   // smoothly instead of jumping to a different point on the curve.
   const depthDriftSineAccRef = useRef(0);
+  // DRIFT SINUS drives the NIVÅ DRIFT value itself (see its effect below);
+  // this is the value the user set, which it swings around. Every non-sine
+  // write keeps it in step, so while DRIFT SINUS is off it equals NIVÅ
+  // DRIFT itself.
+  const depthDriftSineBaseRef = useRef(initial.depthDriftSpeed);
   // Infinite water-level drift, much like noclip's FRITT FALL/OMVÄND
   // STIGNING: depthDriftVelRef eases toward depthDriftSpeedRef's target rate
   // and depthDriftRef accumulates that velocity into an unbounded offset —
@@ -3044,9 +3056,6 @@ export function Aquafulness() {
     depthDriftSpeedRef.current = depthDriftSpeed;
   }, [depthDriftSpeed]);
   useEffect(() => {
-    depthDriftSineOnRef.current = depthDriftSineOn;
-  }, [depthDriftSineOn]);
-  useEffect(() => {
     depthDriftSineAmpRef.current = depthDriftSineAmp;
   }, [depthDriftSineAmp]);
   useEffect(() => {
@@ -3055,6 +3064,42 @@ export function Aquafulness() {
   useEffect(() => {
     depthDriftSinePhaseRef.current = depthDriftSinePhase;
   }, [depthDriftSinePhase]);
+  // DRIFT SINUS: while on, rewrites NIVÅ DRIFT ~10×/s as base + AMP·sin(2π·
+  // TEMPO·t + FAS), so there's only one drift rate and the dial (HUD, phone
+  // and settings) visibly swings with it. Turning it off puts the dial back
+  // on its base value.
+  useEffect(() => {
+    if (!depthDriftSineOn) return;
+    let last = performance.now();
+    const id = window.setInterval(() => {
+      const now = performance.now();
+      const dt = Math.min(0.5, (now - last) / 1000);
+      last = now;
+      depthDriftSineAccRef.current =
+        (depthDriftSineAccRef.current + dt * depthDriftSineSpeedRef.current * Math.PI * 2) %
+        (Math.PI * 2);
+      const offset =
+        Math.sin(depthDriftSineAccRef.current + (depthDriftSinePhaseRef.current * Math.PI) / 180) *
+        depthDriftSineAmpRef.current;
+      const v = +Math.max(-20, Math.min(20, depthDriftSineBaseRef.current + offset)).toFixed(2);
+      setDepthDriftSpeed(v);
+    }, 100);
+    return () => {
+      window.clearInterval(id);
+      setDepthDriftSpeed(+depthDriftSineBaseRef.current.toFixed(2));
+    };
+  }, [depthDriftSineOn]);
+  // What every NIVÅ DRIFT control (HUD dial, phone, settings, drawer) calls:
+  // the value the user sets becomes the centre DRIFT SINUS swings around
+  // (and what the dial returns to when it's turned off) instead of being
+  // overwritten by the next sine step.
+  const setDepthDriftSpeedUser: Dispatch<SetStateAction<number>> = (action) => {
+    // ± steps apply to the base, not to wherever the swing currently is.
+    const prev = depthDriftSineBaseRef.current;
+    const next = typeof action === "function" ? action(prev) : action;
+    depthDriftSineBaseRef.current = next;
+    setDepthDriftSpeed(next);
+  };
   useEffect(() => {
     hideWaterRef.current = hideWater;
   }, [hideWater]);
@@ -3617,6 +3662,7 @@ export function Aquafulness() {
     setDepthSinePeak(DEFAULTS.depthSinePeak);
     setDepthSineWaveform(DEFAULTS.depthSineWaveform);
     setDepthDriftSpeed(DEFAULTS.depthDriftSpeed);
+    depthDriftSineBaseRef.current = DEFAULTS.depthDriftSpeed;
     setDepthDriftSineOn(DEFAULTS.depthDriftSineOn);
     setDepthDriftSineAmp(DEFAULTS.depthDriftSineAmp);
     setDepthDriftSineSpeed(DEFAULTS.depthDriftSineSpeed);
@@ -3808,7 +3854,11 @@ export function Aquafulness() {
     if (patch.depthSineInterval !== undefined) setDepthSineInterval(patch.depthSineInterval);
     if (patch.depthSinePeak !== undefined) setDepthSinePeak(patch.depthSinePeak);
     if (patch.depthSineWaveform !== undefined) setDepthSineWaveform(patch.depthSineWaveform);
-    if (patch.depthDriftSpeed !== undefined) setDepthDriftSpeed(patch.depthDriftSpeed);
+    if (patch.depthDriftSpeed !== undefined) {
+      // Re-centre DRIFT SINUS on the loaded value.
+      depthDriftSineBaseRef.current = patch.depthDriftSpeed;
+      setDepthDriftSpeed(patch.depthDriftSpeed);
+    }
     if (patch.depthDriftSineOn !== undefined) setDepthDriftSineOn(patch.depthDriftSineOn);
     if (patch.depthDriftSineAmp !== undefined) setDepthDriftSineAmp(patch.depthDriftSineAmp);
     if (patch.depthDriftSineSpeed !== undefined) setDepthDriftSineSpeed(patch.depthDriftSineSpeed);
@@ -6790,23 +6840,10 @@ export function Aquafulness() {
       // target rate instead of snapping to it, then depthDriftRef integrates
       // that velocity into a running offset that never resets on its own —
       // 0 just holds the level wherever it last drifted to.
-      // DRIFT SINUS optionally swings that target rate back and forth
-      // around the dial's value: rate = NIVÅ DRIFT + AMP·sin(2π·TEMPO·t +
-      // FAS). With NIVÅ DRIFT at 0 the level rises and sinks in turn
-      // (peak-to-peak AMP/(π·TEMPO) metres); with it non-zero the level
-      // keeps drifting but surges and eases along the way.
-      depthDriftSineAccRef.current =
-        (depthDriftSineAccRef.current + dt * depthDriftSineSpeedRef.current * Math.PI * 2) %
-        (Math.PI * 2);
-      const depthDriftTarget =
-        depthDriftSpeedRef.current +
-        (depthDriftSineOnRef.current
-          ? Math.sin(
-              depthDriftSineAccRef.current + (depthDriftSinePhaseRef.current * Math.PI) / 180,
-            ) * depthDriftSineAmpRef.current
-          : 0);
+      // DRIFT SINUS swings the NIVÅ DRIFT value itself (see its effect), so
+      // the rate here is just the dial's current value.
       depthDriftVelRef.current +=
-        (depthDriftTarget - depthDriftVelRef.current) * Math.min(1, dt * 2);
+        (depthDriftSpeedRef.current - depthDriftVelRef.current) * Math.min(1, dt * 2);
       depthDriftRef.current += depthDriftVelRef.current * dt;
       const effectiveDepth = Math.max(0.5, floorDepthRef.current);
       const levelY = depthMod + depthDriftRef.current;
@@ -9208,7 +9245,7 @@ export function Aquafulness() {
     setDepthSineWaveform,
     cycleDepthSineWaveform,
     depthDriftSpeed,
-    setDepthDriftSpeed,
+    setDepthDriftSpeed: setDepthDriftSpeedUser,
     depthDriftSineOn,
     setDepthDriftSineOn,
     depthDriftSineAmp,
@@ -9390,7 +9427,7 @@ export function Aquafulness() {
       }
     },
     depthDriftSpeed,
-    setDepthDriftSpeed,
+    setDepthDriftSpeed: setDepthDriftSpeedUser,
     resetDepthLevel,
     syncWaveWithSway,
     setSyncWaveWithSway,
@@ -10030,7 +10067,7 @@ export function Aquafulness() {
           <div className="flex flex-col items-center gap-1">
             <VerticalDial
               value={depthDriftSpeed}
-              onChange={setDepthDriftSpeed}
+              onChange={setDepthDriftSpeedUser}
               label={t("hud.joystick.levelDrift")}
               min={-20}
               max={20}
@@ -10441,7 +10478,7 @@ export function Aquafulness() {
                       max={20}
                       step={0.1}
                       format={(v) => `${v.toFixed(1)}m/s`}
-                      onChange={setDepthDriftSpeed}
+                      onChange={setDepthDriftSpeedUser}
                     />
                     <button
                       type="button"
@@ -10488,7 +10525,7 @@ export function Aquafulness() {
                     <div className="flex gap-2">
                       <button
                         type="button"
-                        onClick={() => setDepthDriftSpeed(0)}
+                        onClick={() => setDepthDriftSpeedUser(0)}
                         className="ui-line-2 ui-surface ui-ink-muted rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95"
                       >
                         {t("hud.driftStop")}
