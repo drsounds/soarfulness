@@ -678,6 +678,14 @@ export type Persisted = {
   freakOutSeatsOn: boolean;
   freakOutSeatCount: number;
   freakOutCameraSeat: number;
+  // How long each seat's post is, from the seat ring down to the suit (the
+  // ring rises with it, since the view stays in the seat), and the colors
+  // of the seats, the rings/hub/spokes, the seat posts and the swing arm.
+  freakOutSeatPostLength: number;
+  freakOutSeatColor: string;
+  freakOutRingColor: string;
+  freakOutPostColor: string;
+  freakOutArmColor: string;
   freakOutRotationDirection: TornadoDirection;
   // GUNGA BEHÅLL TEMPO: when on, the swing's cycle rate is scaled by
   // swingKeepSpeedRefHeight / swingHeight so changing GUNGA HÖJD doesn't
@@ -778,6 +786,11 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "freakOutSeatsOn",
     "freakOutSeatCount",
     "freakOutCameraSeat",
+    "freakOutSeatPostLength",
+    "freakOutSeatColor",
+    "freakOutRingColor",
+    "freakOutPostColor",
+    "freakOutArmColor",
     "swingKeepSpeed",
     "swingKeepSpeedRefHeight",
     "tornadoOn",

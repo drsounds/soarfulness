@@ -206,7 +206,12 @@
       "freakOutRingLevel": "FREAK OUT PLAN RING (UTAN LUTNING)",
       "freakOutSeatsOn": "FREAK OUT SÄTEN",
       "freakOutSeatCount": "FREAK OUT ANTAL SÄTEN",
-      "freakOutCameraSeat": "FREAK OUT KAMERANS SÄTE"
+      "freakOutCameraSeat": "FREAK OUT KAMERANS SÄTE",
+      "freakOutSeatPostLength": "FREAK OUT SÄTESCYLINDER HÖJD",
+      "freakOutSeatColor": "FREAK OUT SÄTESFÄRG",
+      "freakOutRingColor": "FREAK OUT RINGFÄRG",
+      "freakOutPostColor": "FREAK OUT CYLINDERFÄRG",
+      "freakOutArmColor": "FREAK OUT ARMFÄRG"
     },
     "env": {
       "backdrop": "BAKGRUND",

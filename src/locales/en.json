@@ -206,7 +206,12 @@
       "freakOutRingLevel": "FREAK OUT LEVEL RING",
       "freakOutSeatsOn": "FREAK OUT SEATS",
       "freakOutSeatCount": "FREAK OUT SEAT COUNT",
-      "freakOutCameraSeat": "FREAK OUT CAMERA SEAT"
+      "freakOutCameraSeat": "FREAK OUT CAMERA SEAT",
+      "freakOutSeatPostLength": "FREAK OUT SEAT POST HEIGHT",
+      "freakOutSeatColor": "FREAK OUT SEAT COLOR",
+      "freakOutRingColor": "FREAK OUT RING COLOR",
+      "freakOutPostColor": "FREAK OUT POST COLOR",
+      "freakOutArmColor": "FREAK OUT ARM COLOR"
     },
     "env": {
       "backdrop": "BACKDROP",

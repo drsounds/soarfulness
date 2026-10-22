@@ -206,7 +206,12 @@
       "freakOutRingLevel": "FREAK OUT PLAN RING (UDEN HÆLDNING)",
       "freakOutSeatsOn": "FREAK OUT SÆDER",
       "freakOutSeatCount": "FREAK OUT ANTAL SÆDER",
-      "freakOutCameraSeat": "FREAK OUT KAMERAETS SÆDE"
+      "freakOutCameraSeat": "FREAK OUT KAMERAETS SÆDE",
+      "freakOutSeatPostLength": "FREAK OUT SÆDECYLINDER HØJDE",
+      "freakOutSeatColor": "FREAK OUT SÆDEFARVE",
+      "freakOutRingColor": "FREAK OUT RINGFARVE",
+      "freakOutPostColor": "FREAK OUT CYLINDERFARVE",
+      "freakOutArmColor": "FREAK OUT ARMFARVE"
     },
     "env": {
       "backdrop": "BAGGRUND",

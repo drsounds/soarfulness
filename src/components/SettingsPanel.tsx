@@ -573,6 +573,16 @@ export type SettingsPanelProps = {
   setFreakOutSeatCount: Dispatch<SetStateAction<number>>;
   freakOutCameraSeat: number;
   setFreakOutCameraSeat: Dispatch<SetStateAction<number>>;
+  freakOutSeatPostLength: number;
+  setFreakOutSeatPostLength: Dispatch<SetStateAction<number>>;
+  freakOutSeatColor: string;
+  setFreakOutSeatColor: Dispatch<SetStateAction<string>>;
+  freakOutRingColor: string;
+  setFreakOutRingColor: Dispatch<SetStateAction<string>>;
+  freakOutPostColor: string;
+  setFreakOutPostColor: Dispatch<SetStateAction<string>>;
+  freakOutArmColor: string;
+  setFreakOutArmColor: Dispatch<SetStateAction<string>>;
   setFreakOutRotationDirection: Dispatch<SetStateAction<TornadoDirection>>;
   // TORNADO: one unified toggle shared by GUNGA (swing) and flying (noclip/
   // watercraft) alike — a circular orbit instead of GUNGA's default
@@ -1383,6 +1393,16 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setFreakOutSeatCount,
     freakOutCameraSeat,
     setFreakOutCameraSeat,
+    freakOutSeatPostLength,
+    setFreakOutSeatPostLength,
+    freakOutSeatColor,
+    setFreakOutSeatColor,
+    freakOutRingColor,
+    setFreakOutRingColor,
+    freakOutPostColor,
+    setFreakOutPostColor,
+    freakOutArmColor,
+    setFreakOutArmColor,
     tornadoOn,
     setTornadoOn,
     tornadoRadius,
@@ -2581,6 +2601,66 @@ export function SettingsPanel(props: SettingsPanelProps) {
                             )
                           }
                         />
+                        <SettingRow
+                          label={t("dial.camera.freakOutSeatPostLength")}
+                          mode="number"
+                          value={`${freakOutSeatPostLength.toFixed(1)}m`}
+                          rawValue={freakOutSeatPostLength}
+                          onSet={(v) => setFreakOutSeatPostLength(Math.max(0.5, Math.min(30, v)))}
+                          min={0.5}
+                          max={30}
+                          step={0.1}
+                          onDec={() =>
+                            setFreakOutSeatPostLength((v) => Math.max(0.5, +(v - 0.1).toFixed(1)))
+                          }
+                          onInc={() =>
+                            setFreakOutSeatPostLength((v) => Math.min(30, +(v + 0.1).toFixed(1)))
+                          }
+                        />
+                        <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
+                          <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
+                            {t("dial.camera.freakOutSeatColor")}
+                          </span>
+                          <input
+                            type="color"
+                            value={freakOutSeatColor}
+                            onChange={(e) => setFreakOutSeatColor(e.target.value)}
+                            className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
+                          />
+                        </label>
+                        <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
+                          <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
+                            {t("dial.camera.freakOutRingColor")}
+                          </span>
+                          <input
+                            type="color"
+                            value={freakOutRingColor}
+                            onChange={(e) => setFreakOutRingColor(e.target.value)}
+                            className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
+                          />
+                        </label>
+                        <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
+                          <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
+                            {t("dial.camera.freakOutPostColor")}
+                          </span>
+                          <input
+                            type="color"
+                            value={freakOutPostColor}
+                            onChange={(e) => setFreakOutPostColor(e.target.value)}
+                            className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
+                          />
+                        </label>
+                        <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
+                          <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
+                            {t("dial.camera.freakOutArmColor")}
+                          </span>
+                          <input
+                            type="color"
+                            value={freakOutArmColor}
+                            onChange={(e) => setFreakOutArmColor(e.target.value)}
+                            className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
+                          />
+                        </label>
                       </>
                     )}
                   </>

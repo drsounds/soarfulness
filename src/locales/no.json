@@ -206,7 +206,12 @@
       "freakOutRingLevel": "FREAK OUT PLAN RING (UTEN HELNING)",
       "freakOutSeatsOn": "FREAK OUT SETER",
       "freakOutSeatCount": "FREAK OUT ANTALL SETER",
-      "freakOutCameraSeat": "FREAK OUT KAMERAETS SETE"
+      "freakOutCameraSeat": "FREAK OUT KAMERAETS SETE",
+      "freakOutSeatPostLength": "FREAK OUT SETESYLINDER HØYDE",
+      "freakOutSeatColor": "FREAK OUT SETEFARGE",
+      "freakOutRingColor": "FREAK OUT RINGFARGE",
+      "freakOutPostColor": "FREAK OUT SYLINDERFARGE",
+      "freakOutArmColor": "FREAK OUT ARMFARGE"
     },
     "env": {
       "backdrop": "BAKGRUNN",

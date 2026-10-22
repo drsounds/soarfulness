@@ -206,7 +206,12 @@
       "freakOutRingLevel": "FREAK OUT VAAKATASOINEN RENGAS",
       "freakOutSeatsOn": "FREAK OUT ISTUIMET",
       "freakOutSeatCount": "FREAK OUT ISTUINTEN MÄÄRÄ",
-      "freakOutCameraSeat": "FREAK OUT KAMERAN ISTUIN"
+      "freakOutCameraSeat": "FREAK OUT KAMERAN ISTUIN",
+      "freakOutSeatPostLength": "FREAK OUT ISTUINSYLINTERIN KORKEUS",
+      "freakOutSeatColor": "FREAK OUT ISTUINTEN VÄRI",
+      "freakOutRingColor": "FREAK OUT RENKAAN VÄRI",
+      "freakOutPostColor": "FREAK OUT SYLINTERIEN VÄRI",
+      "freakOutArmColor": "FREAK OUT VARREN VÄRI"
     },
     "env": {
       "backdrop": "TAUSTA",
