@@ -203,7 +203,10 @@
       "freakOutShowArm": "FREAK OUT VARSI",
       "freakOutShowTopRing": "FREAK OUT YLÄRENGAS",
       "freakOutShowHub": "FREAK OUT NAPA & ISTUINRENGAS",
-      "freakOutRingLevel": "FREAK OUT VAAKATASOINEN RENGAS"
+      "freakOutRingLevel": "FREAK OUT VAAKATASOINEN RENGAS",
+      "freakOutSeatsOn": "FREAK OUT ISTUIMET",
+      "freakOutSeatCount": "FREAK OUT ISTUINTEN MÄÄRÄ",
+      "freakOutCameraSeat": "FREAK OUT KAMERAN ISTUIN"
     },
     "env": {
       "backdrop": "TAUSTA",

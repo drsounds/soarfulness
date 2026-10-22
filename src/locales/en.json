@@ -203,7 +203,10 @@
       "freakOutShowArm": "FREAK OUT ARM",
       "freakOutShowTopRing": "FREAK OUT TOP RING",
       "freakOutShowHub": "FREAK OUT HUB & SEAT RING",
-      "freakOutRingLevel": "FREAK OUT LEVEL RING"
+      "freakOutRingLevel": "FREAK OUT LEVEL RING",
+      "freakOutSeatsOn": "FREAK OUT SEATS",
+      "freakOutSeatCount": "FREAK OUT SEAT COUNT",
+      "freakOutCameraSeat": "FREAK OUT CAMERA SEAT"
     },
     "env": {
       "backdrop": "BACKDROP",
