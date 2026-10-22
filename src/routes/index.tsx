@@ -1219,11 +1219,11 @@ const DEFAULTS: Persisted = {
   freakOutRotationOscillate: false,
   freakOutRotationOscillateSpeed: 1,
   freakOutRotationDirection: "cw",
-  freakOutViewFollowsRing: false,
+  freakOutViewFixedHeading: false,
   freakOutShowArm: true,
   freakOutShowTopRing: true,
   freakOutShowHub: true,
-  freakOutRingRigid: false,
+  freakOutRingLevel: false,
   swingKeepSpeed: false,
   swingKeepSpeedRefHeight: 20000,
   // Unified TORNADO toggle for GUNGA (swing) and flying (noclip/watercraft):
@@ -1789,13 +1789,13 @@ export function Aquafulness() {
   const [freakOutRotationDirection, setFreakOutRotationDirection] = useState<TornadoDirection>(
     initial.freakOutRotationDirection,
   );
-  const [freakOutViewFollowsRing, setFreakOutViewFollowsRing] = useState(
-    initial.freakOutViewFollowsRing,
+  const [freakOutViewFixedHeading, setFreakOutViewFixedHeading] = useState(
+    initial.freakOutViewFixedHeading,
   );
   const [freakOutShowArm, setFreakOutShowArm] = useState(initial.freakOutShowArm);
   const [freakOutShowTopRing, setFreakOutShowTopRing] = useState(initial.freakOutShowTopRing);
   const [freakOutShowHub, setFreakOutShowHub] = useState(initial.freakOutShowHub);
-  const [freakOutRingRigid, setFreakOutRingRigid] = useState(initial.freakOutRingRigid);
+  const [freakOutRingLevel, setFreakOutRingLevel] = useState(initial.freakOutRingLevel);
   // Unified TORNADO toggle, shared by GUNGA (swing) and flying (noclip/
   // watercraft) alike: instead of a back-and-forth pendulum arc / plain
   // manual flight, the camera orbits a circle around the anchor (posRef) —
@@ -2305,11 +2305,11 @@ export function Aquafulness() {
     freakOutRotationOscillate,
     freakOutRotationOscillateSpeed,
     freakOutRotationDirection,
-    freakOutViewFollowsRing,
+    freakOutViewFixedHeading,
     freakOutShowArm,
     freakOutShowTopRing,
     freakOutShowHub,
-    freakOutRingRigid,
+    freakOutRingLevel,
     swingKeepSpeed,
     swingKeepSpeedRefHeight,
     tornadoOn,
@@ -2510,11 +2510,11 @@ export function Aquafulness() {
     freakOutRotationOscillate,
     freakOutRotationOscillateSpeed,
     freakOutRotationDirection,
-    freakOutViewFollowsRing,
+    freakOutViewFixedHeading,
     freakOutShowArm,
     freakOutShowTopRing,
     freakOutShowHub,
-    freakOutRingRigid,
+    freakOutRingLevel,
     swingKeepSpeed,
     swingKeepSpeedRefHeight,
     tornadoOn,
@@ -2635,11 +2635,11 @@ export function Aquafulness() {
   const freakOutRotationOscillateRef = useRef(freakOutRotationOscillate);
   const freakOutRotationOscillateSpeedRef = useRef(freakOutRotationOscillateSpeed);
   const freakOutRotationDirectionRef = useRef(freakOutRotationDirection);
-  const freakOutViewFollowsRingRef = useRef(freakOutViewFollowsRing);
+  const freakOutViewFixedHeadingRef = useRef(freakOutViewFixedHeading);
   const freakOutShowArmRef = useRef(freakOutShowArm);
   const freakOutShowTopRingRef = useRef(freakOutShowTopRing);
   const freakOutShowHubRef = useRef(freakOutShowHub);
-  const freakOutRingRigidRef = useRef(freakOutRingRigid);
+  const freakOutRingLevelRef = useRef(freakOutRingLevel);
   // FREAK OUT's own clocks (swing phase, ring spin angle, direction-
   // reversal phase) and 0..1 ease-in/out blends for the whole effect and
   // for the ring's spin, so toggling either never snaps the camera.
@@ -3438,8 +3438,8 @@ export function Aquafulness() {
     freakOutRotationDirectionRef.current = freakOutRotationDirection;
   }, [freakOutRotationDirection]);
   useEffect(() => {
-    freakOutViewFollowsRingRef.current = freakOutViewFollowsRing;
-  }, [freakOutViewFollowsRing]);
+    freakOutViewFixedHeadingRef.current = freakOutViewFixedHeading;
+  }, [freakOutViewFixedHeading]);
   useEffect(() => {
     freakOutShowArmRef.current = freakOutShowArm;
   }, [freakOutShowArm]);
@@ -3450,8 +3450,8 @@ export function Aquafulness() {
     freakOutShowHubRef.current = freakOutShowHub;
   }, [freakOutShowHub]);
   useEffect(() => {
-    freakOutRingRigidRef.current = freakOutRingRigid;
-  }, [freakOutRingRigid]);
+    freakOutRingLevelRef.current = freakOutRingLevel;
+  }, [freakOutRingLevel]);
   useEffect(() => {
     swingKeepSpeedRef.current = swingKeepSpeed;
   }, [swingKeepSpeed]);
@@ -3859,11 +3859,11 @@ export function Aquafulness() {
     setFreakOutRotationOscillate(DEFAULTS.freakOutRotationOscillate);
     setFreakOutRotationOscillateSpeed(DEFAULTS.freakOutRotationOscillateSpeed);
     setFreakOutRotationDirection(DEFAULTS.freakOutRotationDirection);
-    setFreakOutViewFollowsRing(DEFAULTS.freakOutViewFollowsRing);
+    setFreakOutViewFixedHeading(DEFAULTS.freakOutViewFixedHeading);
     setFreakOutShowArm(DEFAULTS.freakOutShowArm);
     setFreakOutShowTopRing(DEFAULTS.freakOutShowTopRing);
     setFreakOutShowHub(DEFAULTS.freakOutShowHub);
-    setFreakOutRingRigid(DEFAULTS.freakOutRingRigid);
+    setFreakOutRingLevel(DEFAULTS.freakOutRingLevel);
     setSwingKeepSpeed(DEFAULTS.swingKeepSpeed);
     setSwingKeepSpeedRefHeight(DEFAULTS.swingKeepSpeedRefHeight);
     setTornadoOn(DEFAULTS.tornadoOn);
@@ -4079,12 +4079,12 @@ export function Aquafulness() {
       setFreakOutRotationOscillateSpeed(patch.freakOutRotationOscillateSpeed);
     if (patch.freakOutRotationDirection !== undefined)
       setFreakOutRotationDirection(patch.freakOutRotationDirection);
-    if (patch.freakOutViewFollowsRing !== undefined)
-      setFreakOutViewFollowsRing(patch.freakOutViewFollowsRing);
+    if (patch.freakOutViewFixedHeading !== undefined)
+      setFreakOutViewFixedHeading(patch.freakOutViewFixedHeading);
     if (patch.freakOutShowArm !== undefined) setFreakOutShowArm(patch.freakOutShowArm);
     if (patch.freakOutShowTopRing !== undefined) setFreakOutShowTopRing(patch.freakOutShowTopRing);
     if (patch.freakOutShowHub !== undefined) setFreakOutShowHub(patch.freakOutShowHub);
-    if (patch.freakOutRingRigid !== undefined) setFreakOutRingRigid(patch.freakOutRingRigid);
+    if (patch.freakOutRingLevel !== undefined) setFreakOutRingLevel(patch.freakOutRingLevel);
     if (patch.swingKeepSpeed !== undefined) setSwingKeepSpeed(patch.swingKeepSpeed);
     if (patch.swingKeepSpeedRefHeight !== undefined)
       setSwingKeepSpeedRefHeight(patch.swingKeepSpeedRefHeight);
@@ -8210,8 +8210,8 @@ export function Aquafulness() {
             Math.max(0, freakOutRingRadiusRef.current),
             freakOutRotationAxisRef.current,
             freakOutRingAngleRef.current,
-            freakOutViewFollowsRingRef.current,
-            freakOutRingRigidRef.current,
+            !freakOutViewFixedHeadingRef.current,
+            !freakOutRingLevelRef.current,
           );
           if (foBlend < 0.9995) {
             _foOffset.multiplyScalar(foBlend);
@@ -9280,16 +9280,16 @@ export function Aquafulness() {
     setFreakOutRotationOscillateSpeed,
     freakOutRotationDirection,
     setFreakOutRotationDirection,
-    freakOutViewFollowsRing,
-    setFreakOutViewFollowsRing,
+    freakOutViewFixedHeading,
+    setFreakOutViewFixedHeading,
     freakOutShowArm,
     setFreakOutShowArm,
     freakOutShowTopRing,
     setFreakOutShowTopRing,
     freakOutShowHub,
     setFreakOutShowHub,
-    freakOutRingRigid,
-    setFreakOutRingRigid,
+    freakOutRingLevel,
+    setFreakOutRingLevel,
     tornadoOn,
     setTornadoOn,
     tornadoRadius,
@@ -10834,29 +10834,29 @@ export function Aquafulness() {
                     />
                     <button
                       type="button"
-                      onClick={() => setFreakOutViewFollowsRing((v) => !v)}
-                      aria-pressed={freakOutViewFollowsRing}
+                      onClick={() => setFreakOutViewFixedHeading((v) => !v)}
+                      aria-pressed={freakOutViewFixedHeading}
                       className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
-                        freakOutViewFollowsRing
+                        freakOutViewFixedHeading
                           ? "ui-line-3 ui-tint-2 ui-ink"
                           : "ui-line-2 ui-surface ui-ink-muted"
                       }`}
                     >
-                      {t("dial.camera.freakOutViewFollowsRing")}:{" "}
-                      {t(freakOutViewFollowsRing ? "common.on" : "common.off")}
+                      {t("dial.camera.freakOutViewFixedHeading")}:{" "}
+                      {t(freakOutViewFixedHeading ? "common.on" : "common.off")}
                     </button>
                     <button
                       type="button"
-                      onClick={() => setFreakOutRingRigid((v) => !v)}
-                      aria-pressed={freakOutRingRigid}
+                      onClick={() => setFreakOutRingLevel((v) => !v)}
+                      aria-pressed={freakOutRingLevel}
                       className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
-                        freakOutRingRigid
+                        freakOutRingLevel
                           ? "ui-line-3 ui-tint-2 ui-ink"
                           : "ui-line-2 ui-surface ui-ink-muted"
                       }`}
                     >
-                      {t("dial.camera.freakOutRingRigid")}:{" "}
-                      {t(freakOutRingRigid ? "common.on" : "common.off")}
+                      {t("dial.camera.freakOutRingLevel")}:{" "}
+                      {t(freakOutRingLevel ? "common.on" : "common.off")}
                     </button>
                     <button
                       type="button"

@@ -199,11 +199,11 @@
       "freakOutOn": "FREAK OUT",
       "freakOutRotationOn": "FREAK OUT PYÖRIMINEN",
       "freakOutRotationDirection": "FREAK OUT PYÖRIMISSUUNTA",
-      "freakOutViewFollowsRing": "FREAK OUT NÄKYMÄ PYÖRII MUKANA",
+      "freakOutViewFixedHeading": "FREAK OUT KIINTEÄ KATSESUUNTA",
       "freakOutShowArm": "FREAK OUT VARSI",
       "freakOutShowTopRing": "FREAK OUT YLÄRENGAS",
       "freakOutShowHub": "FREAK OUT NAPA & ISTUINRENGAS",
-      "freakOutRingRigid": "FREAK OUT JÄYKKÄ RENGAS (KALLISTUU VARREN MUKANA)"
+      "freakOutRingLevel": "FREAK OUT VAAKATASOINEN RENGAS"
     },
     "env": {
       "backdrop": "TAUSTA",

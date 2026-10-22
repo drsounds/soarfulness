@@ -199,11 +199,11 @@
       "freakOutOn": "FREAK OUT",
       "freakOutRotationOn": "FREAK OUT ROTASJON",
       "freakOutRotationDirection": "FREAK OUT ROTASJONSRETNING",
-      "freakOutViewFollowsRing": "FREAK OUT VISNINGEN SNURRER MED",
+      "freakOutViewFixedHeading": "FREAK OUT FAST BLIKKRETNING",
       "freakOutShowArm": "FREAK OUT ARM",
       "freakOutShowTopRing": "FREAK OUT ØVRE RING",
       "freakOutShowHub": "FREAK OUT NAV & SETERING",
-      "freakOutRingRigid": "FREAK OUT STIV RING (HELLER MED ARMEN)"
+      "freakOutRingLevel": "FREAK OUT PLAN RING (UTEN HELNING)"
     },
     "env": {
       "backdrop": "BAKGRUNN",

@@ -199,11 +199,11 @@
       "freakOutOn": "FREAK OUT",
       "freakOutRotationOn": "FREAK OUT ROTATION",
       "freakOutRotationDirection": "FREAK OUT ROTATIONSRIKTNING",
-      "freakOutViewFollowsRing": "FREAK OUT VYN SNURRAR MED",
+      "freakOutViewFixedHeading": "FREAK OUT FAST BLICKRIKTNING",
       "freakOutShowArm": "FREAK OUT ARM",
       "freakOutShowTopRing": "FREAK OUT ÖVRE RING",
       "freakOutShowHub": "FREAK OUT NAV & SÄTESRING",
-      "freakOutRingRigid": "FREAK OUT STEL RING (LUTAR MED ARMEN)"
+      "freakOutRingLevel": "FREAK OUT PLAN RING (UTAN LUTNING)"
     },
     "env": {
       "backdrop": "BAKGRUND",

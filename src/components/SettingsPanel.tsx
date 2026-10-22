@@ -557,16 +557,16 @@ export type SettingsPanelProps = {
   freakOutRotationOscillateSpeed: number;
   setFreakOutRotationOscillateSpeed: Dispatch<SetStateAction<number>>;
   freakOutRotationDirection: TornadoDirection;
-  freakOutViewFollowsRing: boolean;
-  setFreakOutViewFollowsRing: Dispatch<SetStateAction<boolean>>;
+  freakOutViewFixedHeading: boolean;
+  setFreakOutViewFixedHeading: Dispatch<SetStateAction<boolean>>;
   freakOutShowArm: boolean;
   setFreakOutShowArm: Dispatch<SetStateAction<boolean>>;
   freakOutShowTopRing: boolean;
   setFreakOutShowTopRing: Dispatch<SetStateAction<boolean>>;
   freakOutShowHub: boolean;
   setFreakOutShowHub: Dispatch<SetStateAction<boolean>>;
-  freakOutRingRigid: boolean;
-  setFreakOutRingRigid: Dispatch<SetStateAction<boolean>>;
+  freakOutRingLevel: boolean;
+  setFreakOutRingLevel: Dispatch<SetStateAction<boolean>>;
   setFreakOutRotationDirection: Dispatch<SetStateAction<TornadoDirection>>;
   // TORNADO: one unified toggle shared by GUNGA (swing) and flying (noclip/
   // watercraft) alike — a circular orbit instead of GUNGA's default
@@ -1361,16 +1361,16 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setFreakOutRotationOscillateSpeed,
     freakOutRotationDirection,
     setFreakOutRotationDirection,
-    freakOutViewFollowsRing,
-    setFreakOutViewFollowsRing,
+    freakOutViewFixedHeading,
+    setFreakOutViewFixedHeading,
     freakOutShowArm,
     setFreakOutShowArm,
     freakOutShowTopRing,
     setFreakOutShowTopRing,
     freakOutShowHub,
     setFreakOutShowHub,
-    freakOutRingRigid,
-    setFreakOutRingRigid,
+    freakOutRingLevel,
+    setFreakOutRingLevel,
     tornadoOn,
     setTornadoOn,
     tornadoRadius,
@@ -2410,10 +2410,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       }
                     />
                     <SettingRow
-                      label={t("dial.camera.freakOutRingRigid")}
-                      value={onOff(freakOutRingRigid)}
-                      onDec={() => setFreakOutRingRigid(false)}
-                      onInc={() => setFreakOutRingRigid(true)}
+                      label={t("dial.camera.freakOutRingLevel")}
+                      value={onOff(freakOutRingLevel)}
+                      onDec={() => setFreakOutRingLevel(false)}
+                      onInc={() => setFreakOutRingLevel(true)}
                     />
                     <SettingRow
                       label={t("dial.camera.freakOutRotationOn")}
@@ -2468,10 +2468,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
                           onInc={() => setFreakOutRotationDirection("ccw")}
                         />
                         <SettingRow
-                          label={t("dial.camera.freakOutViewFollowsRing")}
-                          value={onOff(freakOutViewFollowsRing)}
-                          onDec={() => setFreakOutViewFollowsRing(false)}
-                          onInc={() => setFreakOutViewFollowsRing(true)}
+                          label={t("dial.camera.freakOutViewFixedHeading")}
+                          value={onOff(freakOutViewFixedHeading)}
+                          onDec={() => setFreakOutViewFixedHeading(false)}
+                          onInc={() => setFreakOutViewFixedHeading(true)}
                         />
                         <SettingRow
                           label={t("dial.camera.freakOutRotationOscillate")}

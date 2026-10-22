@@ -651,11 +651,11 @@ export type Persisted = {
   freakOutRotationOscillateSpeed: number;
   // Spin direction of the gondola ring (before any back-and-forth
   // alternation from freakOutRotationOscillate).
-  // Whether the view turns along with the ring's spin (the real ride's
-  // outward-facing seat) or keeps its heading while the seat travels
-  // around the ring's center — off by default, since spinning the view
-  // reads as turning in place and is far more dizzying.
-  freakOutViewFollowsRing: boolean;
+  // By default the view rides the ring like the real ride's seat: it turns
+  // with the ring's spin, so the arm and hub stay put relative to the rider.
+  // FIXED HEADING instead keeps the heading while the seat travels around
+  // the ring's center.
+  freakOutViewFixedHeading: boolean;
   // FREAK OUT's visible ride structure (see freakOutRigRef in
   // routes/index.tsx), each part toggleable: the swing ARM from the pivot
   // down to the gondola, the TOP RING where the arm meets the gondola, and
@@ -664,14 +664,12 @@ export type Persisted = {
   freakOutShowArm: boolean;
   freakOutShowTopRing: boolean;
   freakOutShowHub: boolean;
-  // By default the swing is a pure pendulum about the top of the arm: the
-  // gondola's center rides the arm's arc and the view tilts with the arm,
-  // while the ring's spin only carries the seat around a level circle, so
-  // the spin never changes which way the seat swings. RIGID RING instead
-  // tilts the whole ring with the arm (the real ride's geometry), which
-  // makes a seat in front of/behind the arm seesaw about the hub as it
-  // swings.
-  freakOutRingRigid: boolean;
+  // By default the gondola ring is rigid with the swinging arm: it tilts
+  // with the arm and only spins about the arm's own (local) axis, so the
+  // ring always stays in line with the arm and the spin never changes the
+  // arm's swing. LEVEL RING instead keeps the ring level and only carries
+  // its center along the arm's arc (the view still tilts with the arm).
+  freakOutRingLevel: boolean;
   freakOutRotationDirection: TornadoDirection;
   // GUNGA BEHÅLL TEMPO: when on, the swing's cycle rate is scaled by
   // swingKeepSpeedRefHeight / swingHeight so changing GUNGA HÖJD doesn't
@@ -764,11 +762,11 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "freakOutRotationOscillate",
     "freakOutRotationOscillateSpeed",
     "freakOutRotationDirection",
-    "freakOutViewFollowsRing",
+    "freakOutViewFixedHeading",
     "freakOutShowArm",
     "freakOutShowTopRing",
     "freakOutShowHub",
-    "freakOutRingRigid",
+    "freakOutRingLevel",
     "swingKeepSpeed",
     "swingKeepSpeedRefHeight",
     "tornadoOn",
