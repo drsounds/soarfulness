@@ -675,6 +675,7 @@
       "jump": "HYPPY",
       "levelDrift": "TASON AJAUTUMA",
       "look": "LOOK",
+      "tornadoCenter": "KESKELLE",
       "nav": "NAV",
       "noclipDriftXZ": "AJAUTUS XZ",
       "noclipDriftY": "AJAUTUS Y",
