@@ -565,8 +565,8 @@ export type SettingsPanelProps = {
   setFreakOutShowTopRing: Dispatch<SetStateAction<boolean>>;
   freakOutShowHub: boolean;
   setFreakOutShowHub: Dispatch<SetStateAction<boolean>>;
-  freakOutRingTilts: boolean;
-  setFreakOutRingTilts: Dispatch<SetStateAction<boolean>>;
+  freakOutRingLevel: boolean;
+  setFreakOutRingLevel: Dispatch<SetStateAction<boolean>>;
   setFreakOutRotationDirection: Dispatch<SetStateAction<TornadoDirection>>;
   // TORNADO: one unified toggle shared by GUNGA (swing) and flying (noclip/
   // watercraft) alike — a circular orbit instead of GUNGA's default
@@ -1369,8 +1369,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setFreakOutShowTopRing,
     freakOutShowHub,
     setFreakOutShowHub,
-    freakOutRingTilts,
-    setFreakOutRingTilts,
+    freakOutRingLevel,
+    setFreakOutRingLevel,
     tornadoOn,
     setTornadoOn,
     tornadoRadius,
@@ -2410,10 +2410,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       }
                     />
                     <SettingRow
-                      label={t("dial.camera.freakOutRingTilts")}
-                      value={onOff(freakOutRingTilts)}
-                      onDec={() => setFreakOutRingTilts(false)}
-                      onInc={() => setFreakOutRingTilts(true)}
+                      label={t("dial.camera.freakOutRingLevel")}
+                      value={onOff(freakOutRingLevel)}
+                      onDec={() => setFreakOutRingLevel(false)}
+                      onInc={() => setFreakOutRingLevel(true)}
                     />
                     <SettingRow
                       label={t("dial.camera.freakOutRotationOn")}

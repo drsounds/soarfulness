@@ -1224,7 +1224,7 @@ const DEFAULTS: Persisted = {
   freakOutShowArm: true,
   freakOutShowTopRing: true,
   freakOutShowHub: true,
-  freakOutRingTilts: false,
+  freakOutRingLevel: false,
   swingKeepSpeed: false,
   swingKeepSpeedRefHeight: 20000,
   // Unified TORNADO toggle for GUNGA (swing) and flying (noclip/watercraft):
@@ -1796,7 +1796,7 @@ export function Aquafulness() {
   const [freakOutShowArm, setFreakOutShowArm] = useState(initial.freakOutShowArm);
   const [freakOutShowTopRing, setFreakOutShowTopRing] = useState(initial.freakOutShowTopRing);
   const [freakOutShowHub, setFreakOutShowHub] = useState(initial.freakOutShowHub);
-  const [freakOutRingTilts, setFreakOutRingTilts] = useState(initial.freakOutRingTilts);
+  const [freakOutRingLevel, setFreakOutRingLevel] = useState(initial.freakOutRingLevel);
   // Unified TORNADO toggle, shared by GUNGA (swing) and flying (noclip/
   // watercraft) alike: instead of a back-and-forth pendulum arc / plain
   // manual flight, the camera orbits a circle around the anchor (posRef) —
@@ -2310,7 +2310,7 @@ export function Aquafulness() {
     freakOutShowArm,
     freakOutShowTopRing,
     freakOutShowHub,
-    freakOutRingTilts,
+    freakOutRingLevel,
     swingKeepSpeed,
     swingKeepSpeedRefHeight,
     tornadoOn,
@@ -2515,7 +2515,7 @@ export function Aquafulness() {
     freakOutShowArm,
     freakOutShowTopRing,
     freakOutShowHub,
-    freakOutRingTilts,
+    freakOutRingLevel,
     swingKeepSpeed,
     swingKeepSpeedRefHeight,
     tornadoOn,
@@ -2640,7 +2640,7 @@ export function Aquafulness() {
   const freakOutShowArmRef = useRef(freakOutShowArm);
   const freakOutShowTopRingRef = useRef(freakOutShowTopRing);
   const freakOutShowHubRef = useRef(freakOutShowHub);
-  const freakOutRingTiltsRef = useRef(freakOutRingTilts);
+  const freakOutRingLevelRef = useRef(freakOutRingLevel);
   // FREAK OUT's own clocks (swing phase, ring spin angle, direction-
   // reversal phase) and 0..1 ease-in/out blends for the whole effect and
   // for the ring's spin, so toggling either never snaps the camera.
@@ -3451,8 +3451,8 @@ export function Aquafulness() {
     freakOutShowHubRef.current = freakOutShowHub;
   }, [freakOutShowHub]);
   useEffect(() => {
-    freakOutRingTiltsRef.current = freakOutRingTilts;
-  }, [freakOutRingTilts]);
+    freakOutRingLevelRef.current = freakOutRingLevel;
+  }, [freakOutRingLevel]);
   useEffect(() => {
     swingKeepSpeedRef.current = swingKeepSpeed;
   }, [swingKeepSpeed]);
@@ -3864,7 +3864,7 @@ export function Aquafulness() {
     setFreakOutShowArm(DEFAULTS.freakOutShowArm);
     setFreakOutShowTopRing(DEFAULTS.freakOutShowTopRing);
     setFreakOutShowHub(DEFAULTS.freakOutShowHub);
-    setFreakOutRingTilts(DEFAULTS.freakOutRingTilts);
+    setFreakOutRingLevel(DEFAULTS.freakOutRingLevel);
     setSwingKeepSpeed(DEFAULTS.swingKeepSpeed);
     setSwingKeepSpeedRefHeight(DEFAULTS.swingKeepSpeedRefHeight);
     setTornadoOn(DEFAULTS.tornadoOn);
@@ -4085,7 +4085,7 @@ export function Aquafulness() {
     if (patch.freakOutShowArm !== undefined) setFreakOutShowArm(patch.freakOutShowArm);
     if (patch.freakOutShowTopRing !== undefined) setFreakOutShowTopRing(patch.freakOutShowTopRing);
     if (patch.freakOutShowHub !== undefined) setFreakOutShowHub(patch.freakOutShowHub);
-    if (patch.freakOutRingTilts !== undefined) setFreakOutRingTilts(patch.freakOutRingTilts);
+    if (patch.freakOutRingLevel !== undefined) setFreakOutRingLevel(patch.freakOutRingLevel);
     if (patch.swingKeepSpeed !== undefined) setSwingKeepSpeed(patch.swingKeepSpeed);
     if (patch.swingKeepSpeedRefHeight !== undefined)
       setSwingKeepSpeedRefHeight(patch.swingKeepSpeedRefHeight);
@@ -8212,7 +8212,7 @@ export function Aquafulness() {
             freakOutRotationAxisRef.current,
             freakOutRingAngleRef.current,
             freakOutViewFollowsRingRef.current,
-            freakOutRingTiltsRef.current,
+            !freakOutRingLevelRef.current,
           );
           if (foBlend < 0.9995) {
             _foOffset.multiplyScalar(foBlend);
@@ -9289,8 +9289,8 @@ export function Aquafulness() {
     setFreakOutShowTopRing,
     freakOutShowHub,
     setFreakOutShowHub,
-    freakOutRingTilts,
-    setFreakOutRingTilts,
+    freakOutRingLevel,
+    setFreakOutRingLevel,
     tornadoOn,
     setTornadoOn,
     tornadoRadius,
@@ -10848,16 +10848,16 @@ export function Aquafulness() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setFreakOutRingTilts((v) => !v)}
-                      aria-pressed={freakOutRingTilts}
+                      onClick={() => setFreakOutRingLevel((v) => !v)}
+                      aria-pressed={freakOutRingLevel}
                       className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
-                        freakOutRingTilts
+                        freakOutRingLevel
                           ? "ui-line-3 ui-tint-2 ui-ink"
                           : "ui-line-2 ui-surface ui-ink-muted"
                       }`}
                     >
-                      {t("dial.camera.freakOutRingTilts")}:{" "}
-                      {t(freakOutRingTilts ? "common.on" : "common.off")}
+                      {t("dial.camera.freakOutRingLevel")}:{" "}
+                      {t(freakOutRingLevel ? "common.on" : "common.off")}
                     </button>
                     <button
                       type="button"
