@@ -184,7 +184,19 @@
       "tornadoSequencePauseDuration": "SEKVENS PAUSTID",
       "tornadoSequenceStayDuration": "SEKVENS STANNATID",
       "tornadoSpeed": "TORNADO TEMPO",
-      "wakeLock": "VAKEN"
+      "wakeLock": "VAKEN",
+      "freakOut": "FREAK OUT",
+      "freakOutSwingAxis": "FREAK OUT GUNGAXEL",
+      "freakOutSwingAngle": "FREAK OUT GUNGVINKEL",
+      "freakOutSwingSpeed": "FREAK OUT GUNGHASTIGHET",
+      "freakOutSwingLength": "FREAK OUT ARMLÄNGD",
+      "freakOutRingRadius": "FREAK OUT RINGRADIE",
+      "freakOutRotationAxis": "FREAK OUT ROTATIONSAXEL",
+      "freakOutRotationSpeed": "FREAK OUT ROTATIONSHASTIGHET",
+      "freakOutRotationOscillate": "FREAK OUT PENDLA RIKTNING",
+      "freakOutRotationOscillateSpeed": "FREAK OUT SKIFTHASTIGHET",
+      "freakOutOn": "FREAK OUT",
+      "freakOutRotationOn": "FREAK OUT ROTATION"
     },
     "env": {
       "backdrop": "BAKGRUND",

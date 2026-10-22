@@ -32,6 +32,7 @@ import {
   SURGE_ROTATION_MODE_LABEL_KEYS,
   SWING_PRESETS,
   SWING_Y_WAVEFORMS,
+  FREAK_OUT_AXES,
   DEPTH_SINE_WAVEFORMS,
   INTERVAL_SESSION_TYPES,
   WAVE_FREQ_MIN,
@@ -42,6 +43,7 @@ import {
   type CameraMode,
   type SwingPreset,
   type SwingYWaveform,
+  type FreakOutAxis,
   type DepthSineWaveform,
   type IntervalSessionType,
   type WavePresetName,
@@ -528,6 +530,29 @@ export type SettingsPanelProps = {
   swingYWaveform: SwingYWaveform;
   setSwingYWaveform: Dispatch<SetStateAction<SwingYWaveform>>;
   cycleSwingYWaveform: (dir: number) => void;
+  // FREAK OUT carousel layered on GUNGA — see settingsShared.ts.
+  freakOutOn: boolean;
+  setFreakOutOn: Dispatch<SetStateAction<boolean>>;
+  freakOutSwingAxis: number;
+  setFreakOutSwingAxis: Dispatch<SetStateAction<number>>;
+  freakOutSwingAngle: number;
+  setFreakOutSwingAngle: Dispatch<SetStateAction<number>>;
+  freakOutSwingSpeed: number;
+  setFreakOutSwingSpeed: Dispatch<SetStateAction<number>>;
+  freakOutSwingLength: number;
+  setFreakOutSwingLength: Dispatch<SetStateAction<number>>;
+  freakOutRingRadius: number;
+  setFreakOutRingRadius: Dispatch<SetStateAction<number>>;
+  freakOutRotationOn: boolean;
+  setFreakOutRotationOn: Dispatch<SetStateAction<boolean>>;
+  freakOutRotationAxis: FreakOutAxis;
+  setFreakOutRotationAxis: Dispatch<SetStateAction<FreakOutAxis>>;
+  freakOutRotationSpeed: number;
+  setFreakOutRotationSpeed: Dispatch<SetStateAction<number>>;
+  freakOutRotationOscillate: boolean;
+  setFreakOutRotationOscillate: Dispatch<SetStateAction<boolean>>;
+  freakOutRotationOscillateSpeed: number;
+  setFreakOutRotationOscillateSpeed: Dispatch<SetStateAction<number>>;
   // TORNADO: one unified toggle shared by GUNGA (swing) and flying (noclip/
   // watercraft) alike — a circular orbit instead of GUNGA's default
   // back-and-forth pendulum arc / NOCLIP's plain free flight. While
@@ -1295,6 +1320,28 @@ export function SettingsPanel(props: SettingsPanelProps) {
     swingYWaveform,
     setSwingYWaveform,
     cycleSwingYWaveform,
+    freakOutOn,
+    setFreakOutOn,
+    freakOutSwingAxis,
+    setFreakOutSwingAxis,
+    freakOutSwingAngle,
+    setFreakOutSwingAngle,
+    freakOutSwingSpeed,
+    setFreakOutSwingSpeed,
+    freakOutSwingLength,
+    setFreakOutSwingLength,
+    freakOutRingRadius,
+    setFreakOutRingRadius,
+    freakOutRotationOn,
+    setFreakOutRotationOn,
+    freakOutRotationAxis,
+    setFreakOutRotationAxis,
+    freakOutRotationSpeed,
+    setFreakOutRotationSpeed,
+    freakOutRotationOscillate,
+    setFreakOutRotationOscillate,
+    freakOutRotationOscillateSpeed,
+    setFreakOutRotationOscillateSpeed,
     tornadoOn,
     setTornadoOn,
     tornadoRadius,
@@ -2596,6 +2643,177 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       onDec={() => cycleSwingYWaveform(-1)}
                       onInc={() => cycleSwingYWaveform(1)}
                     />
+                    {/* FREAK OUT: carousel ride layered on top of the
+                        pendulum above — both run together. */}
+                    <SettingRow
+                      label={t("dial.camera.freakOutOn")}
+                      value={onOff(freakOutOn)}
+                      onDec={() => setFreakOutOn(false)}
+                      onInc={() => setFreakOutOn(true)}
+                    />
+                    {freakOutOn && (
+                      <>
+                        <SettingRow
+                          label={t("dial.camera.freakOutSwingAxis")}
+                          mode="number"
+                          value={`${freakOutSwingAxis.toFixed(0)}°`}
+                          rawValue={freakOutSwingAxis}
+                          onSet={(v) => setFreakOutSwingAxis(Math.max(0, Math.min(180, v)))}
+                          min={0}
+                          max={180}
+                          step={5}
+                          onDec={() =>
+                            setFreakOutSwingAxis((v) => Math.max(0, +(v - 5).toFixed(0)))
+                          }
+                          onInc={() =>
+                            setFreakOutSwingAxis((v) => Math.min(180, +(v + 5).toFixed(0)))
+                          }
+                        />
+                        <SettingRow
+                          label={t("dial.camera.freakOutSwingAngle")}
+                          mode="number"
+                          value={`${freakOutSwingAngle.toFixed(0)}°`}
+                          rawValue={freakOutSwingAngle}
+                          onSet={(v) => setFreakOutSwingAngle(Math.max(0, Math.min(180, v)))}
+                          min={0}
+                          max={180}
+                          step={5}
+                          onDec={() =>
+                            setFreakOutSwingAngle((v) => Math.max(0, +(v - 5).toFixed(0)))
+                          }
+                          onInc={() =>
+                            setFreakOutSwingAngle((v) => Math.min(180, +(v + 5).toFixed(0)))
+                          }
+                        />
+                        <SettingRow
+                          label={t("dial.camera.freakOutSwingSpeed")}
+                          mode="number"
+                          value={`${freakOutSwingSpeed.toFixed(2)}x`}
+                          rawValue={freakOutSwingSpeed}
+                          onSet={(v) => setFreakOutSwingSpeed(Math.max(0, Math.min(5, v)))}
+                          min={0}
+                          max={5}
+                          step={0.05}
+                          onDec={() =>
+                            setFreakOutSwingSpeed((v) => Math.max(0, +(v - 0.05).toFixed(2)))
+                          }
+                          onInc={() =>
+                            setFreakOutSwingSpeed((v) => Math.min(5, +(v + 0.05).toFixed(2)))
+                          }
+                        />
+                        <SettingRow
+                          label={t("dial.camera.freakOutSwingLength")}
+                          mode="number"
+                          value={`${freakOutSwingLength.toFixed(1)}m`}
+                          rawValue={freakOutSwingLength}
+                          onSet={(v) => setFreakOutSwingLength(Math.max(0, Math.min(200, v)))}
+                          min={0}
+                          max={200}
+                          step={0.5}
+                          onDec={() =>
+                            setFreakOutSwingLength((v) => Math.max(0, +(v - 0.5).toFixed(1)))
+                          }
+                          onInc={() =>
+                            setFreakOutSwingLength((v) => Math.min(200, +(v + 0.5).toFixed(1)))
+                          }
+                        />
+                        <SettingRow
+                          label={t("dial.camera.freakOutRingRadius")}
+                          mode="number"
+                          value={`${freakOutRingRadius.toFixed(1)}m`}
+                          rawValue={freakOutRingRadius}
+                          onSet={(v) => setFreakOutRingRadius(Math.max(0, Math.min(50, v)))}
+                          min={0}
+                          max={50}
+                          step={0.5}
+                          onDec={() =>
+                            setFreakOutRingRadius((v) => Math.max(0, +(v - 0.5).toFixed(1)))
+                          }
+                          onInc={() =>
+                            setFreakOutRingRadius((v) => Math.min(50, +(v + 0.5).toFixed(1)))
+                          }
+                        />
+                        <SettingRow
+                          label={t("dial.camera.freakOutRotationOn")}
+                          value={onOff(freakOutRotationOn)}
+                          onDec={() => setFreakOutRotationOn(false)}
+                          onInc={() => setFreakOutRotationOn(true)}
+                        />
+                        {freakOutRotationOn && (
+                          <>
+                            <SettingRow
+                              label={t("dial.camera.freakOutRotationAxis")}
+                              value={freakOutRotationAxis.toUpperCase()}
+                              options={FREAK_OUT_AXES.map((a) => a.toUpperCase())}
+                              selectedIndex={FREAK_OUT_AXES.indexOf(freakOutRotationAxis)}
+                              onSelectIndex={(i) => setFreakOutRotationAxis(FREAK_OUT_AXES[i])}
+                              onDec={() =>
+                                setFreakOutRotationAxis(
+                                  (a) => FREAK_OUT_AXES[(FREAK_OUT_AXES.indexOf(a) + 2) % 3],
+                                )
+                              }
+                              onInc={() =>
+                                setFreakOutRotationAxis(
+                                  (a) => FREAK_OUT_AXES[(FREAK_OUT_AXES.indexOf(a) + 1) % 3],
+                                )
+                              }
+                            />
+                            <SettingRow
+                              label={t("dial.camera.freakOutRotationSpeed")}
+                              mode="number"
+                              value={`${freakOutRotationSpeed.toFixed(2)}x`}
+                              rawValue={freakOutRotationSpeed}
+                              onSet={(v) =>
+                                setFreakOutRotationSpeed(Math.max(-10, Math.min(10, v)))
+                              }
+                              min={-10}
+                              max={10}
+                              step={0.05}
+                              onDec={() =>
+                                setFreakOutRotationSpeed((v) =>
+                                  Math.max(-10, +(v - 0.05).toFixed(2)),
+                                )
+                              }
+                              onInc={() =>
+                                setFreakOutRotationSpeed((v) =>
+                                  Math.min(10, +(v + 0.05).toFixed(2)),
+                                )
+                              }
+                            />
+                            <SettingRow
+                              label={t("dial.camera.freakOutRotationOscillate")}
+                              value={onOff(freakOutRotationOscillate)}
+                              onDec={() => setFreakOutRotationOscillate(false)}
+                              onInc={() => setFreakOutRotationOscillate(true)}
+                            />
+                            {freakOutRotationOscillate && (
+                              <SettingRow
+                                label={t("dial.camera.freakOutRotationOscillateSpeed")}
+                                mode="number"
+                                value={`${freakOutRotationOscillateSpeed.toFixed(2)}x`}
+                                rawValue={freakOutRotationOscillateSpeed}
+                                onSet={(v) =>
+                                  setFreakOutRotationOscillateSpeed(Math.max(0.05, Math.min(5, v)))
+                                }
+                                min={0.05}
+                                max={5}
+                                step={0.05}
+                                onDec={() =>
+                                  setFreakOutRotationOscillateSpeed((v) =>
+                                    Math.max(0.05, +(v - 0.05).toFixed(2)),
+                                  )
+                                }
+                                onInc={() =>
+                                  setFreakOutRotationOscillateSpeed((v) =>
+                                    Math.min(5, +(v + 0.05).toFixed(2)),
+                                  )
+                                }
+                              />
+                            )}
+                          </>
+                        )}
+                      </>
+                    )}
                   </>
                 )}
                 <SettingRow

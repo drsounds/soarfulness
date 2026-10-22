@@ -201,6 +201,14 @@ export const CLOUD_SCALE_MAX = 8;
 export type SwingYWaveform = "pendulum" | "sine" | "triangle" | "square";
 export const SWING_Y_WAVEFORMS: SwingYWaveform[] = ["pendulum", "sine", "triangle", "square"];
 
+// FREAK OUT: which of the gondola ring's own local axes it spins about —
+// relative to the direction the camera faced when GUNGA was entered
+// (swingYawRef): "x" = side axis (the ring loops up/down like a ferris
+// wheel), "y" = vertical / along the arm (the real ride: a flat ring of
+// outward-facing seats spinning around), "z" = forward axis (a barrel roll).
+export type FreakOutAxis = "x" | "y" | "z";
+export const FREAK_OUT_AXES: FreakOutAxis[] = ["x", "y", "z"];
+
 // Shape of the DEPTH SINE water-level oscillation (routes/index.tsx's
 // depthMod). "sine" (default) is the existing symmetric shapedWave() curve.
 // "sawtooth" instead climbs for most of the cycle and then drops steeply
@@ -618,6 +626,28 @@ export type Persisted = {
   swingHeight: number;
   swingPreset: SwingPreset;
   swingYWaveform: SwingYWaveform;
+  // FREAK OUT: an optional carousel layered on top of GUNGA's own pendulum
+  // (both run together, their offsets add up) — the camera rides one seat
+  // of a ring of sofas hanging freakOutSwingLength meters below a pivot,
+  // swinging up to ±freakOutSwingAngle degrees about a horizontal axis whose
+  // bearing is freakOutSwingAxis (0° = sideways axis, so the arm swings
+  // forward/back; 90° = forward axis, so it swings side to side). With
+  // freakOutRotationOn the ring itself also spins about freakOutRotationAxis
+  // at freakOutRotationSpeed, and with freakOutRotationOscillate that spin
+  // smoothly reverses back and forth at freakOutRotationOscillateSpeed. The
+  // view tilts/turns with the seat. See freakOutPose() and the swing branch
+  // of the physics loop in routes/index.tsx. Off by default.
+  freakOutOn: boolean;
+  freakOutSwingAxis: number;
+  freakOutSwingAngle: number;
+  freakOutSwingSpeed: number;
+  freakOutSwingLength: number;
+  freakOutRingRadius: number;
+  freakOutRotationOn: boolean;
+  freakOutRotationAxis: FreakOutAxis;
+  freakOutRotationSpeed: number;
+  freakOutRotationOscillate: boolean;
+  freakOutRotationOscillateSpeed: number;
   intervalSessionOn: boolean;
   intervalDuration: number;
   intervalSessionType: IntervalSessionType;
@@ -691,6 +721,17 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "swingXFactor",
     "swingHeight",
     "swingYWaveform",
+    "freakOutOn",
+    "freakOutSwingAxis",
+    "freakOutSwingAngle",
+    "freakOutSwingSpeed",
+    "freakOutSwingLength",
+    "freakOutRingRadius",
+    "freakOutRotationOn",
+    "freakOutRotationAxis",
+    "freakOutRotationSpeed",
+    "freakOutRotationOscillate",
+    "freakOutRotationOscillateSpeed",
     "tornadoOn",
     "tornadoRadius",
     "tornadoSpeed",
