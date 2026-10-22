@@ -6606,12 +6606,6 @@ export function Aquafulness() {
       depthDriftRef.current += depthDriftVelRef.current * dt;
       const effectiveDepth = Math.max(0.5, floorDepthRef.current);
       const levelY = depthMod + depthDriftRef.current;
-      // The camera rides DEPTH SINE's rigid scene shift but *not* LEVEL
-      // DRIFT: carrying it along with the drifting level kept it locked to
-      // the water, so the drift (and DRIFT SINUS) was invisible from the
-      // camera's point of view. The water now actually rises past / sinks
-      // away from the camera; NIVÅ RESET brings it back.
-      const camLevelY = depthMod;
       ocean.position.y = levelY;
       farOcean.position.y = levelY;
       if (bot.rgb) {
@@ -7761,7 +7755,7 @@ export function Aquafulness() {
       const camY = (camYRef.current ?? 0) + tornadoLiftOffsetRef.current * tornadoBlendRef.current;
       camera.position.set(
         camX + camOffXRef.current + swayX + surgeX,
-        camY + camOffYRef.current + camLevelY,
+        camY + camOffYRef.current + levelY,
         camZ + camOffZRef.current + swayZ + surgeZ,
       );
       // Look direction: normally level forward; with TORNADO FOLLOW CENTER
