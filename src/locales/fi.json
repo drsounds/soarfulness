@@ -161,6 +161,7 @@
       "sessionType": "HARJOITUSTYYPPI",
       "showStats": "NÄYTÄ AIKA",
       "swingHeight": "KEINUN KORKEUS",
+      "swingKeepSpeed": "KEINU PIDÄ NOPEUS",
       "swingIntensity": "KEINUN INTENSITEETTI",
       "swingSpeed": "KEINUN NOPEUS",
       "swingPositionY": "KEINUN Y-SIJAINTI",
@@ -678,8 +679,11 @@
       "whirlpool": "PYÖRRE"
     },
     "totalLabel": " · Yhteensä ",
+    "driftStop": "PYSÄYTÄ AJAUTUMA",
+    "levelReset": "NOLLAA TASO",
     "drawerTab": {
-      "sky": "TAIVAS"
+      "sky": "TAIVAS",
+      "level": "TASO"
     },
     "torusToggleAria": "Uimarenkaat päälle/pois"
   },

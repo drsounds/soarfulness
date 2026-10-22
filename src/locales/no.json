@@ -161,6 +161,7 @@
       "sessionType": "ØKTTYPE",
       "showStats": "VIS TID",
       "swingHeight": "HUSKE HØYDE",
+      "swingKeepSpeed": "HUSKE BEHOLD TEMPO",
       "swingIntensity": "HUSKE INTENSITET",
       "swingSpeed": "HUSKE HASTIGHET",
       "swingPositionY": "HUSKE POSISJON Y",
@@ -678,8 +679,11 @@
       "whirlpool": "VIRVEL"
     },
     "totalLabel": " · Totalt ",
+    "driftStop": "STOPP DRIFT",
+    "levelReset": "NIVÅ RESET",
     "drawerTab": {
-      "sky": "HIMMEL"
+      "sky": "HIMMEL",
+      "level": "NIVÅ"
     },
     "torusToggleAria": "Slå baderinger av/på"
   },

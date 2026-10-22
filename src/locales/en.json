@@ -161,6 +161,7 @@
       "sessionType": "SESSION TYPE",
       "showStats": "SHOW TIME",
       "swingHeight": "SWING HEIGHT",
+      "swingKeepSpeed": "SWING KEEP SPEED",
       "swingIntensity": "SWING INTENSITY",
       "swingSpeed": "SWING SPEED",
       "swingPositionY": "SWING POSITION Y",
@@ -678,8 +679,11 @@
       "whirlpool": "WHIRLPOOL"
     },
     "totalLabel": " · Total ",
+    "driftStop": "STOP DRIFT",
+    "levelReset": "RESET LEVEL",
     "drawerTab": {
-      "sky": "SKY"
+      "sky": "SKY",
+      "level": "LEVEL"
     },
     "torusToggleAria": "Toggle pool rings"
   },
