@@ -626,8 +626,9 @@ export type Persisted = {
   swingHeight: number;
   swingPreset: SwingPreset;
   swingYWaveform: SwingYWaveform;
-  // FREAK OUT: an optional carousel layered on top of GUNGA's own pendulum
-  // (both run together, their offsets add up) — the camera rides one seat
+  // FREAK OUT: an optional carousel ride, its own toggle like TORNADO —
+  // available in every camera mode and layered on top of whatever that
+  // mode does (with GUNGA both swings combine) — the camera rides one seat
   // of a ring of sofas hanging freakOutSwingLength meters below a pivot,
   // swinging up to ±freakOutSwingAngle degrees about a horizontal axis whose
   // bearing is freakOutSwingAxis (0° = sideways axis, so the arm swings
@@ -648,6 +649,9 @@ export type Persisted = {
   freakOutRotationSpeed: number;
   freakOutRotationOscillate: boolean;
   freakOutRotationOscillateSpeed: number;
+  // Spin direction of the gondola ring (before any back-and-forth
+  // alternation from freakOutRotationOscillate).
+  freakOutRotationDirection: TornadoDirection;
   // GUNGA BEHÅLL TEMPO: when on, the swing's cycle rate is scaled by
   // swingKeepSpeedRefHeight / swingHeight so changing GUNGA HÖJD doesn't
   // also change how fast the camera moves. The reference height is captured
@@ -738,6 +742,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "freakOutRotationSpeed",
     "freakOutRotationOscillate",
     "freakOutRotationOscillateSpeed",
+    "freakOutRotationDirection",
     "swingKeepSpeed",
     "swingKeepSpeedRefHeight",
     "tornadoOn",
