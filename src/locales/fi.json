@@ -202,7 +202,8 @@
       "freakOutViewFollowsRing": "FREAK OUT NÄKYMÄ PYÖRII MUKANA",
       "freakOutShowArm": "FREAK OUT VARSI",
       "freakOutShowTopRing": "FREAK OUT YLÄRENGAS",
-      "freakOutShowHub": "FREAK OUT NAPA & ISTUINRENGAS"
+      "freakOutShowHub": "FREAK OUT NAPA & ISTUINRENGAS",
+      "freakOutRingTilts": "FREAK OUT RENGAS KALLISTUU VARREN MUKANA"
     },
     "env": {
       "backdrop": "TAUSTA",

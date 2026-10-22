@@ -202,7 +202,8 @@
       "freakOutViewFollowsRing": "FREAK OUT VISNINGEN SNURRER MED",
       "freakOutShowArm": "FREAK OUT ARM",
       "freakOutShowTopRing": "FREAK OUT ØVRE RING",
-      "freakOutShowHub": "FREAK OUT NAV & SETERING"
+      "freakOutShowHub": "FREAK OUT NAV & SETERING",
+      "freakOutRingTilts": "FREAK OUT RINGEN HELLER MED ARMEN"
     },
     "env": {
       "backdrop": "BAKGRUNN",

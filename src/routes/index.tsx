@@ -453,6 +453,9 @@ const _foSeat = new THREE.Vector3();
 const _foArm = new THREE.Vector3();
 const _foQSwing = new THREE.Quaternion();
 const _foQRing = new THREE.Quaternion();
+// The gondola's rotation relative to the arm (see FreakOutRig.gondola).
+const _foQGondola = new THREE.Quaternion();
+const _foTmp = new THREE.Vector3();
 function freakOutPose(
   outOffset: THREE.Vector3,
   outQuat: THREE.Quaternion,
@@ -464,6 +467,7 @@ function freakOutPose(
   ringAxis: FreakOutAxis,
   ringAngle: number,
   viewFollowsRing: boolean,
+  ringTilts: boolean,
 ): void {
   const rightX = Math.cos(yaw),
     rightZ = -Math.sin(yaw);
@@ -482,15 +486,30 @@ function freakOutPose(
   else _foSeat.set(fwdX * ringRadius, 0, fwdZ * ringRadius);
   _foQSwing.setFromAxisAngle(_foAxisSwing, swingAngle);
   _foQRing.setFromAxisAngle(_foAxisRing, ringAngle);
-  // offset = Rswing·(arm + Rring·seat) − (arm + seat)
   _foArm.set(0, -armLen, 0);
-  outOffset.copy(_foSeat).applyQuaternion(_foQRing).add(_foArm).applyQuaternion(_foQSwing);
-  outOffset.sub(_foArm).sub(_foSeat);
+  if (ringTilts) {
+    // Rigid ride: the ring tilts with the arm.
+    // offset = Rswing·(arm + Rring·seat) − (arm + seat)
+    outOffset.copy(_foSeat).applyQuaternion(_foQRing).add(_foArm).applyQuaternion(_foQSwing);
+    outOffset.sub(_foArm).sub(_foSeat);
+    _foQGondola.copy(_foQRing);
+  } else {
+    // Level ring: the swing only carries the ring's center along the arm's
+    // arc, so every seat swings the same way wherever the spin has put it.
+    // offset = (Rswing·arm − arm) + (Rring·seat − seat)
+    outOffset.copy(_foArm).applyQuaternion(_foQSwing).sub(_foArm);
+    _foTmp.copy(_foSeat).applyQuaternion(_foQRing).sub(_foSeat);
+    outOffset.add(_foTmp);
+    // Gondola orientation relative to the (swung) arm, so the rig's
+    // root→gondola hierarchy still lands on a level, spinning ring.
+    _foQGondola.copy(_foQSwing).invert().multiply(_foQRing);
+  }
   // The seat's position always travels around the ring's center; the view
   // only turns with the ring's spin when viewFollowsRing is on, otherwise
-  // it keeps its heading (tilted only by the arm's swing) so the ride
-  // reads as orbiting a center instead of spinning in place.
-  outQuat.copy(_foQSwing);
+  // it keeps its heading, and it only tilts with the arm's swing when the
+  // ring itself tilts.
+  if (ringTilts) outQuat.copy(_foQSwing);
+  else outQuat.identity();
   if (viewFollowsRing) outQuat.multiply(_foQRing);
 }
 const _foOffset = new THREE.Vector3();
@@ -1205,6 +1224,7 @@ const DEFAULTS: Persisted = {
   freakOutShowArm: true,
   freakOutShowTopRing: true,
   freakOutShowHub: true,
+  freakOutRingTilts: false,
   swingKeepSpeed: false,
   swingKeepSpeedRefHeight: 20000,
   // Unified TORNADO toggle for GUNGA (swing) and flying (noclip/watercraft):
@@ -1776,6 +1796,7 @@ export function Aquafulness() {
   const [freakOutShowArm, setFreakOutShowArm] = useState(initial.freakOutShowArm);
   const [freakOutShowTopRing, setFreakOutShowTopRing] = useState(initial.freakOutShowTopRing);
   const [freakOutShowHub, setFreakOutShowHub] = useState(initial.freakOutShowHub);
+  const [freakOutRingTilts, setFreakOutRingTilts] = useState(initial.freakOutRingTilts);
   // Unified TORNADO toggle, shared by GUNGA (swing) and flying (noclip/
   // watercraft) alike: instead of a back-and-forth pendulum arc / plain
   // manual flight, the camera orbits a circle around the anchor (posRef) —
@@ -2289,6 +2310,7 @@ export function Aquafulness() {
     freakOutShowArm,
     freakOutShowTopRing,
     freakOutShowHub,
+    freakOutRingTilts,
     swingKeepSpeed,
     swingKeepSpeedRefHeight,
     tornadoOn,
@@ -2493,6 +2515,7 @@ export function Aquafulness() {
     freakOutShowArm,
     freakOutShowTopRing,
     freakOutShowHub,
+    freakOutRingTilts,
     swingKeepSpeed,
     swingKeepSpeedRefHeight,
     tornadoOn,
@@ -2617,6 +2640,7 @@ export function Aquafulness() {
   const freakOutShowArmRef = useRef(freakOutShowArm);
   const freakOutShowTopRingRef = useRef(freakOutShowTopRing);
   const freakOutShowHubRef = useRef(freakOutShowHub);
+  const freakOutRingTiltsRef = useRef(freakOutRingTilts);
   // FREAK OUT's own clocks (swing phase, ring spin angle, direction-
   // reversal phase) and 0..1 ease-in/out blends for the whole effect and
   // for the ring's spin, so toggling either never snaps the camera.
@@ -3427,6 +3451,9 @@ export function Aquafulness() {
     freakOutShowHubRef.current = freakOutShowHub;
   }, [freakOutShowHub]);
   useEffect(() => {
+    freakOutRingTiltsRef.current = freakOutRingTilts;
+  }, [freakOutRingTilts]);
+  useEffect(() => {
     swingKeepSpeedRef.current = swingKeepSpeed;
   }, [swingKeepSpeed]);
   useEffect(() => {
@@ -3837,6 +3864,7 @@ export function Aquafulness() {
     setFreakOutShowArm(DEFAULTS.freakOutShowArm);
     setFreakOutShowTopRing(DEFAULTS.freakOutShowTopRing);
     setFreakOutShowHub(DEFAULTS.freakOutShowHub);
+    setFreakOutRingTilts(DEFAULTS.freakOutRingTilts);
     setSwingKeepSpeed(DEFAULTS.swingKeepSpeed);
     setSwingKeepSpeedRefHeight(DEFAULTS.swingKeepSpeedRefHeight);
     setTornadoOn(DEFAULTS.tornadoOn);
@@ -4057,6 +4085,7 @@ export function Aquafulness() {
     if (patch.freakOutShowArm !== undefined) setFreakOutShowArm(patch.freakOutShowArm);
     if (patch.freakOutShowTopRing !== undefined) setFreakOutShowTopRing(patch.freakOutShowTopRing);
     if (patch.freakOutShowHub !== undefined) setFreakOutShowHub(patch.freakOutShowHub);
+    if (patch.freakOutRingTilts !== undefined) setFreakOutRingTilts(patch.freakOutRingTilts);
     if (patch.swingKeepSpeed !== undefined) setSwingKeepSpeed(patch.swingKeepSpeed);
     if (patch.swingKeepSpeedRefHeight !== undefined)
       setSwingKeepSpeedRefHeight(patch.swingKeepSpeedRefHeight);
@@ -8183,6 +8212,7 @@ export function Aquafulness() {
             freakOutRotationAxisRef.current,
             freakOutRingAngleRef.current,
             freakOutViewFollowsRingRef.current,
+            freakOutRingTiltsRef.current,
           );
           if (foBlend < 0.9995) {
             _foOffset.multiplyScalar(foBlend);
@@ -8276,7 +8306,7 @@ export function Aquafulness() {
               .sub(_foSeat)
               .add(_foArm.set(0, armLen, 0));
             rig.root.quaternion.copy(_foQSwing);
-            rig.gondola.quaternion.copy(_foQRing);
+            rig.gondola.quaternion.copy(_foQGondola);
             rig.align.quaternion.setFromUnitVectors(_foUp, _foAxisRing);
             rig.arm.visible = freakOutShowArmRef.current;
             rig.topRing.visible = freakOutShowTopRingRef.current;
@@ -9259,6 +9289,8 @@ export function Aquafulness() {
     setFreakOutShowTopRing,
     freakOutShowHub,
     setFreakOutShowHub,
+    freakOutRingTilts,
+    setFreakOutRingTilts,
     tornadoOn,
     setTornadoOn,
     tornadoRadius,
@@ -10813,6 +10845,19 @@ export function Aquafulness() {
                     >
                       {t("dial.camera.freakOutViewFollowsRing")}:{" "}
                       {t(freakOutViewFollowsRing ? "common.on" : "common.off")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFreakOutRingTilts((v) => !v)}
+                      aria-pressed={freakOutRingTilts}
+                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                        freakOutRingTilts
+                          ? "ui-line-3 ui-tint-2 ui-ink"
+                          : "ui-line-2 ui-surface ui-ink-muted"
+                      }`}
+                    >
+                      {t("dial.camera.freakOutRingTilts")}:{" "}
+                      {t(freakOutRingTilts ? "common.on" : "common.off")}
                     </button>
                     <button
                       type="button"
