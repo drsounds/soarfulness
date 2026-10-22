@@ -656,6 +656,14 @@ export type Persisted = {
   // around the ring's center — off by default, since spinning the view
   // reads as turning in place and is far more dizzying.
   freakOutViewFollowsRing: boolean;
+  // FREAK OUT's visible ride structure (see freakOutRigRef in
+  // routes/index.tsx), each part toggleable: the swing ARM from the pivot
+  // down to the gondola, the TOP RING where the arm meets the gondola, and
+  // the HUB in the middle with spokes out to the seat ring under the
+  // camera. All on by default; only shown while FREAK OUT is.
+  freakOutShowArm: boolean;
+  freakOutShowTopRing: boolean;
+  freakOutShowHub: boolean;
   freakOutRotationDirection: TornadoDirection;
   // GUNGA BEHÅLL TEMPO: when on, the swing's cycle rate is scaled by
   // swingKeepSpeedRefHeight / swingHeight so changing GUNGA HÖJD doesn't
@@ -749,6 +757,9 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "freakOutRotationOscillateSpeed",
     "freakOutRotationDirection",
     "freakOutViewFollowsRing",
+    "freakOutShowArm",
+    "freakOutShowTopRing",
+    "freakOutShowHub",
     "swingKeepSpeed",
     "swingKeepSpeedRefHeight",
     "tornadoOn",

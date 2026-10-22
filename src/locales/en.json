@@ -199,7 +199,10 @@
       "freakOutOn": "FREAK OUT",
       "freakOutRotationOn": "FREAK OUT ROTATION",
       "freakOutRotationDirection": "FREAK OUT ROTATION DIRECTION",
-      "freakOutViewFollowsRing": "FREAK OUT VIEW FOLLOWS SPIN"
+      "freakOutViewFollowsRing": "FREAK OUT VIEW FOLLOWS SPIN",
+      "freakOutShowArm": "FREAK OUT ARM",
+      "freakOutShowTopRing": "FREAK OUT TOP RING",
+      "freakOutShowHub": "FREAK OUT HUB & SEAT RING"
     },
     "env": {
       "backdrop": "BACKDROP",
