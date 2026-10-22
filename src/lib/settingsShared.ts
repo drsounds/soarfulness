@@ -670,6 +670,14 @@ export type Persisted = {
   // arm's swing. LEVEL RING instead keeps the ring level and only carries
   // its center along the arm's arc (the view still tilts with the arm).
   freakOutRingLevel: boolean;
+  // SEATS on the gondola ring: freakOutSeatCount seats spread evenly round
+  // the ring, each a post standing up from it with the Bathing Suit model
+  // (public/apps/suit) as the seat. freakOutCameraSeat (1-based) picks which
+  // of them the view rides in. Off by default; while off, the view rides
+  // where it always has (seat 1).
+  freakOutSeatsOn: boolean;
+  freakOutSeatCount: number;
+  freakOutCameraSeat: number;
   freakOutRotationDirection: TornadoDirection;
   // GUNGA BEHÅLL TEMPO: when on, the swing's cycle rate is scaled by
   // swingKeepSpeedRefHeight / swingHeight so changing GUNGA HÖJD doesn't
@@ -767,6 +775,9 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "freakOutShowTopRing",
     "freakOutShowHub",
     "freakOutRingLevel",
+    "freakOutSeatsOn",
+    "freakOutSeatCount",
+    "freakOutCameraSeat",
     "swingKeepSpeed",
     "swingKeepSpeedRefHeight",
     "tornadoOn",

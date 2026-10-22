@@ -113,6 +113,7 @@ import {
   sceneDir,
   environmentDir,
   surfaceDir,
+  appDir,
 } from "@/lib/appCatalog";
 import {
   type SavedSceneryPreset,
@@ -541,6 +542,13 @@ type FreakOutRig = {
   spokes: THREE.Mesh[];
   material: THREE.MeshStandardMaterial;
   ringRadius: number;
+  // SEATS: one group per seat (post + suit) under align, rebuilt when the
+  // count changes or the suit model finishes loading.
+  seats: THREE.Group;
+  seatCount: number;
+  suit: THREE.Object3D | null;
+  suitMaterials: THREE.Material[];
+  seatPostGeo: THREE.BufferGeometry;
   dispose: () => void;
 };
 const FREAK_OUT_SEAT_RING_DROP = 1.4; // seat ring/spokes sit this far below eye level
@@ -577,8 +585,17 @@ function buildFreakOutRig(): FreakOutRig {
     align.add(spoke);
     spokes.push(spoke);
   }
+  const seats = new THREE.Group();
+  align.add(seats);
+  const seatPostGeo = new THREE.CylinderGeometry(
+    FREAK_OUT_SEAT_POST_RADIUS,
+    FREAK_OUT_SEAT_POST_RADIUS,
+    FREAK_OUT_SEAT_POST,
+    16,
+  );
+  let disposed = false;
   root.visible = false;
-  return {
+  const rig: FreakOutRig = {
     root,
     gondola,
     align,
@@ -589,15 +606,103 @@ function buildFreakOutRig(): FreakOutRig {
     spokes,
     material,
     ringRadius: -1,
+    seats,
+    seatCount: -1,
+    suit: null,
+    suitMaterials: [],
+    seatPostGeo,
     dispose: () => {
+      disposed = true;
       unitCyl.dispose();
+      seatPostGeo.dispose();
+      rig.suit?.traverse((o) => {
+        if ((o as THREE.Mesh).isMesh) (o as THREE.Mesh).geometry.dispose();
+      });
+      for (const m of rig.suitMaterials) m.dispose();
       (topRing.geometry as THREE.BufferGeometry).dispose();
       (seatRing.geometry as THREE.BufferGeometry).dispose();
       material.dispose();
     },
   };
+  // The suit is normalized once (centered, scaled to FREAK_OUT_SEAT_HEIGHT,
+  // standing on the post) and given fadeable copies of its materials that
+  // every seat's clone shares.
+  new GLTFLoader().load(
+    FREAK_OUT_SUIT_URL,
+    (gltf) => {
+      if (disposed) return;
+      const model = gltf.scene;
+      model.traverse((o) => {
+        const mesh = o as THREE.Mesh;
+        if (!mesh.isMesh) return;
+        const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+        const faded = mats.map((m) => {
+          const c = m.clone();
+          c.transparent = true;
+          c.opacity = 0;
+          rig.suitMaterials.push(c);
+          return c;
+        });
+        mesh.material = Array.isArray(mesh.material) ? faded : faded[0];
+      });
+      const box = new THREE.Box3().setFromObject(model);
+      const size = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
+      const k = FREAK_OUT_SEAT_HEIGHT / Math.max(1e-6, size.y);
+      model.position.set(-center.x * k, -box.min.y * k, -center.z * k);
+      model.scale.setScalar(k);
+      const suit = new THREE.Group();
+      suit.add(model);
+      suit.position.y = FREAK_OUT_SEAT_POST;
+      rig.suit = suit;
+      rig.seatCount = -1;
+    },
+    undefined,
+    (err) => console.warn("FREAK OUT: could not load the seat model", err),
+  );
+  return rig;
+}
+const FREAK_OUT_SUIT_URL = `${appDir("suit")}/${encodeURIComponent("Bathing Suit")}.glb`;
+const FREAK_OUT_SEAT_POST = 0.35; // post from the seat ring up to the suit
+const FREAK_OUT_SEAT_POST_RADIUS = 0.1;
+const FREAK_OUT_SEAT_HEIGHT = 0.85; // the suit is scaled to this height
+const _foSeatBase = new THREE.Vector3();
+const _foSeatPos = new THREE.Vector3();
+const _foAlignInv = new THREE.Quaternion();
+// Spreads count seats evenly round the seat ring. viewSeatAngle is how far
+// round the ring (about the spin axis) the view's seat sits from seat 1;
+// the view itself is always at _foSeat in the gondola's frame, so seat i
+// sits (i·2π/count − viewSeatAngle) further round from there.
+function layoutFreakOutSeats(rig: FreakOutRig, count: number, viewSeatAngle: number): void {
+  if (rig.seatCount !== count) {
+    rig.seatCount = count;
+    rig.seats.clear();
+    for (let i = 0; i < count; i++) {
+      const seat = new THREE.Group();
+      const post = new THREE.Mesh(rig.seatPostGeo, rig.material);
+      post.position.y = FREAK_OUT_SEAT_POST / 2;
+      seat.add(post);
+      if (rig.suit) seat.add(rig.suit.clone());
+      rig.seats.add(seat);
+    }
+  }
+  // The view's seat in align's frame (whose +Y is the spin axis).
+  _foAlignInv.copy(rig.align.quaternion).invert();
+  _foSeatBase.copy(_foSeat).applyQuaternion(_foAlignInv).setY(0);
+  if (_foSeatBase.lengthSq() < 1e-9) _foSeatBase.set(0, 0, -1);
+  _foSeatBase.setLength(rig.ringRadius);
+  rig.seats.children.forEach((seat, i) => {
+    _foSeatPos.copy(_foSeatBase).applyAxisAngle(_foUp, (i / count) * Math.PI * 2 - viewSeatAngle);
+    seat.position.set(_foSeatPos.x, -FREAK_OUT_SEAT_RING_DROP, _foSeatPos.z);
+    // Face the seat (and the suit's front, +Z) outward, like the view.
+    seat.rotation.set(0, Math.atan2(_foSeatPos.x, _foSeatPos.z), 0);
+  });
 }
 const _foUp = new THREE.Vector3(0, 1, 0);
+const FREAK_OUT_MAX_SEATS = 32;
+function freakOutSeatCountClamp(n: number): number {
+  return Math.min(FREAK_OUT_MAX_SEATS, Math.max(1, Math.round(n) || 1));
+}
 const _foSpokeAxis = new THREE.Vector3(1, 0, 0);
 function layoutFreakOutRig(rig: FreakOutRig, armLen: number, ringRadius: number): void {
   rig.arm.scale.set(0.35, Math.max(0.001, armLen), 0.35);
@@ -1232,6 +1337,9 @@ const DEFAULTS: Persisted = {
   freakOutShowTopRing: true,
   freakOutShowHub: true,
   freakOutRingLevel: false,
+  freakOutSeatsOn: false,
+  freakOutSeatCount: 8,
+  freakOutCameraSeat: 1,
   swingKeepSpeed: false,
   swingKeepSpeedRefHeight: 20000,
   // Unified TORNADO toggle for GUNGA (swing) and flying (noclip/watercraft):
@@ -1804,6 +1912,9 @@ export function Aquafulness() {
   const [freakOutShowTopRing, setFreakOutShowTopRing] = useState(initial.freakOutShowTopRing);
   const [freakOutShowHub, setFreakOutShowHub] = useState(initial.freakOutShowHub);
   const [freakOutRingLevel, setFreakOutRingLevel] = useState(initial.freakOutRingLevel);
+  const [freakOutSeatsOn, setFreakOutSeatsOn] = useState(initial.freakOutSeatsOn);
+  const [freakOutSeatCount, setFreakOutSeatCount] = useState(initial.freakOutSeatCount);
+  const [freakOutCameraSeat, setFreakOutCameraSeat] = useState(initial.freakOutCameraSeat);
   // Unified TORNADO toggle, shared by GUNGA (swing) and flying (noclip/
   // watercraft) alike: instead of a back-and-forth pendulum arc / plain
   // manual flight, the camera orbits a circle around the anchor (posRef) —
@@ -2318,6 +2429,9 @@ export function Aquafulness() {
     freakOutShowTopRing,
     freakOutShowHub,
     freakOutRingLevel,
+    freakOutSeatsOn,
+    freakOutSeatCount,
+    freakOutCameraSeat,
     swingKeepSpeed,
     swingKeepSpeedRefHeight,
     tornadoOn,
@@ -2523,6 +2637,9 @@ export function Aquafulness() {
     freakOutShowTopRing,
     freakOutShowHub,
     freakOutRingLevel,
+    freakOutSeatsOn,
+    freakOutSeatCount,
+    freakOutCameraSeat,
     swingKeepSpeed,
     swingKeepSpeedRefHeight,
     tornadoOn,
@@ -2648,6 +2765,12 @@ export function Aquafulness() {
   const freakOutShowTopRingRef = useRef(freakOutShowTopRing);
   const freakOutShowHubRef = useRef(freakOutShowHub);
   const freakOutRingLevelRef = useRef(freakOutRingLevel);
+  const freakOutSeatsOnRef = useRef(freakOutSeatsOn);
+  const freakOutSeatCountRef = useRef(freakOutSeatCount);
+  const freakOutCameraSeatRef = useRef(freakOutCameraSeat);
+  // The angle round the ring of the seat the view currently rides in,
+  // eased toward the chosen seat so switching seats glides along the ring.
+  const freakOutSeatAngleRef = useRef(0);
   // FREAK OUT's own clocks (swing phase, ring spin angle, direction-
   // reversal phase) and 0..1 ease-in/out blends for the whole effect and
   // for the ring's spin, so toggling either never snaps the camera.
@@ -3498,6 +3621,15 @@ export function Aquafulness() {
     freakOutRingLevelRef.current = freakOutRingLevel;
   }, [freakOutRingLevel]);
   useEffect(() => {
+    freakOutSeatsOnRef.current = freakOutSeatsOn;
+  }, [freakOutSeatsOn]);
+  useEffect(() => {
+    freakOutSeatCountRef.current = freakOutSeatCount;
+  }, [freakOutSeatCount]);
+  useEffect(() => {
+    freakOutCameraSeatRef.current = freakOutCameraSeat;
+  }, [freakOutCameraSeat]);
+  useEffect(() => {
     swingKeepSpeedRef.current = swingKeepSpeed;
   }, [swingKeepSpeed]);
   useEffect(() => {
@@ -3910,6 +4042,9 @@ export function Aquafulness() {
     setFreakOutShowTopRing(DEFAULTS.freakOutShowTopRing);
     setFreakOutShowHub(DEFAULTS.freakOutShowHub);
     setFreakOutRingLevel(DEFAULTS.freakOutRingLevel);
+    setFreakOutSeatsOn(DEFAULTS.freakOutSeatsOn);
+    setFreakOutSeatCount(DEFAULTS.freakOutSeatCount);
+    setFreakOutCameraSeat(DEFAULTS.freakOutCameraSeat);
     setSwingKeepSpeed(DEFAULTS.swingKeepSpeed);
     setSwingKeepSpeedRefHeight(DEFAULTS.swingKeepSpeedRefHeight);
     setTornadoOn(DEFAULTS.tornadoOn);
@@ -4135,6 +4270,9 @@ export function Aquafulness() {
     if (patch.freakOutShowTopRing !== undefined) setFreakOutShowTopRing(patch.freakOutShowTopRing);
     if (patch.freakOutShowHub !== undefined) setFreakOutShowHub(patch.freakOutShowHub);
     if (patch.freakOutRingLevel !== undefined) setFreakOutRingLevel(patch.freakOutRingLevel);
+    if (patch.freakOutSeatsOn !== undefined) setFreakOutSeatsOn(patch.freakOutSeatsOn);
+    if (patch.freakOutSeatCount !== undefined) setFreakOutSeatCount(patch.freakOutSeatCount);
+    if (patch.freakOutCameraSeat !== undefined) setFreakOutCameraSeat(patch.freakOutCameraSeat);
     if (patch.swingKeepSpeed !== undefined) setSwingKeepSpeed(patch.swingKeepSpeed);
     if (patch.swingKeepSpeedRefHeight !== undefined)
       setSwingKeepSpeedRefHeight(patch.swingKeepSpeedRefHeight);
@@ -8201,12 +8339,19 @@ export function Aquafulness() {
       // ALTERNATE, cos() of its own clock smoothly reverses the spin.
       {
         const FREAK_OUT_EASE_S = 1.6;
+        const freakOutSeatTargetAngle = () => {
+          if (!freakOutSeatsOnRef.current) return 0;
+          const n = freakOutSeatCountClamp(freakOutSeatCountRef.current);
+          const k = Math.min(n, Math.max(1, Math.round(freakOutCameraSeatRef.current)));
+          return ((k - 1) / n) * Math.PI * 2;
+        };
         const foTarget = freakOutOnRef.current ? 1 : 0;
         if (foTarget > 0 && freakOutRampRef.current <= 0) {
           freakOutYawRef.current = yawRef.current;
           freakOutSwingPhaseRef.current = 0;
           freakOutOscPhaseRef.current = 0;
           freakOutRotBlendRef.current = freakOutRotationOnRef.current ? 1 : 0;
+          freakOutSeatAngleRef.current = freakOutSeatTargetAngle();
         }
         const foStep = physDt / FREAK_OUT_EASE_S;
         freakOutRampRef.current =
@@ -8237,6 +8382,13 @@ export function Aquafulness() {
             foDir *
             freakOutRotBlendRef.current *
             physDt;
+          // SEATS: ride in the chosen seat by sitting that much further
+          // round the ring, gliding the short way round when it changes.
+          {
+            let d = freakOutSeatTargetAngle() - freakOutSeatAngleRef.current;
+            d = ((((d + Math.PI) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI)) - Math.PI;
+            freakOutSeatAngleRef.current += d * (1 - Math.exp(-physDt / 0.5));
+          }
           freakOutPose(
             _foOffset,
             _foQuat,
@@ -8246,7 +8398,7 @@ export function Aquafulness() {
             Math.max(0, freakOutSwingLengthRef.current),
             Math.max(0, freakOutRingRadiusRef.current),
             freakOutRotationAxisRef.current,
-            freakOutRingAngleRef.current,
+            freakOutRingAngleRef.current + freakOutSeatAngleRef.current,
             !freakOutViewFixedHeadingRef.current,
             !freakOutRingLevelRef.current,
           );
@@ -8330,7 +8482,8 @@ export function Aquafulness() {
           const showAny =
             freakOutShowArmRef.current ||
             freakOutShowTopRingRef.current ||
-            freakOutShowHubRef.current;
+            freakOutShowHubRef.current ||
+            freakOutSeatsOnRef.current;
           rig.root.visible = freakOutViewActive && showAny;
           if (rig.root.visible) {
             const armLen = Math.max(0, freakOutSwingLengthRef.current);
@@ -8350,6 +8503,18 @@ export function Aquafulness() {
             rig.hub.visible = hubOn;
             rig.seatRing.visible = hubOn;
             for (const spoke of rig.spokes) spoke.visible = hubOn;
+            rig.seats.visible = freakOutSeatsOnRef.current;
+            if (rig.seats.visible) {
+              layoutFreakOutSeats(
+                rig,
+                freakOutSeatCountClamp(freakOutSeatCountRef.current),
+                freakOutSeatAngleRef.current,
+              );
+              for (const m of rig.suitMaterials) {
+                m.opacity = freakOutBlendRef.current;
+                m.depthWrite = freakOutBlendRef.current > 0.99;
+              }
+            }
             rig.material.opacity = freakOutBlendRef.current;
             rig.material.depthWrite = freakOutBlendRef.current > 0.99;
           }
@@ -9327,6 +9492,12 @@ export function Aquafulness() {
     setFreakOutShowHub,
     freakOutRingLevel,
     setFreakOutRingLevel,
+    freakOutSeatsOn,
+    setFreakOutSeatsOn,
+    freakOutSeatCount,
+    setFreakOutSeatCount,
+    freakOutCameraSeat,
+    setFreakOutCameraSeat,
     tornadoOn,
     setTornadoOn,
     tornadoRadius,
@@ -10934,6 +11105,43 @@ export function Aquafulness() {
                       {t("dial.camera.freakOutShowHub")}:{" "}
                       {t(freakOutShowHub ? "common.on" : "common.off")}
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => setFreakOutSeatsOn((v) => !v)}
+                      aria-pressed={freakOutSeatsOn}
+                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                        freakOutSeatsOn
+                          ? "ui-line-3 ui-tint-2 ui-ink"
+                          : "ui-line-2 ui-surface ui-ink-muted"
+                      }`}
+                    >
+                      {t("dial.camera.freakOutSeatsOn")}:{" "}
+                      {t(freakOutSeatsOn ? "common.on" : "common.off")}
+                    </button>
+                    {freakOutSeatsOn && (
+                      <>
+                        <PadSlider
+                          label={t("dial.camera.freakOutSeatCount")}
+                          value={freakOutSeatCount}
+                          min={1}
+                          max={FREAK_OUT_MAX_SEATS}
+                          step={1}
+                          format={(v) => `${Math.round(v)}`}
+                          onChange={(v) => setFreakOutSeatCount(Math.round(v))}
+                        />
+                        <PadSlider
+                          label={t("dial.camera.freakOutCameraSeat")}
+                          value={Math.min(freakOutCameraSeat, freakOutSeatCount)}
+                          min={1}
+                          max={Math.max(2, freakOutSeatCount)}
+                          step={1}
+                          format={(v) => `${Math.round(v)} / ${freakOutSeatCount}`}
+                          onChange={(v) =>
+                            setFreakOutCameraSeat(Math.min(freakOutSeatCount, Math.round(v)))
+                          }
+                        />
+                      </>
+                    )}
                     <button
                       type="button"
                       onClick={() =>

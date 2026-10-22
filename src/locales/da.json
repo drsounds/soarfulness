@@ -203,7 +203,10 @@
       "freakOutShowArm": "FREAK OUT ARM",
       "freakOutShowTopRing": "FREAK OUT ØVRE RING",
       "freakOutShowHub": "FREAK OUT NAV & SÆDERING",
-      "freakOutRingLevel": "FREAK OUT PLAN RING (UDEN HÆLDNING)"
+      "freakOutRingLevel": "FREAK OUT PLAN RING (UDEN HÆLDNING)",
+      "freakOutSeatsOn": "FREAK OUT SÆDER",
+      "freakOutSeatCount": "FREAK OUT ANTAL SÆDER",
+      "freakOutCameraSeat": "FREAK OUT KAMERAETS SÆDE"
     },
     "env": {
       "backdrop": "BAGGRUND",

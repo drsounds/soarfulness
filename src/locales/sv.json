@@ -203,7 +203,10 @@
       "freakOutShowArm": "FREAK OUT ARM",
       "freakOutShowTopRing": "FREAK OUT ÖVRE RING",
       "freakOutShowHub": "FREAK OUT NAV & SÄTESRING",
-      "freakOutRingLevel": "FREAK OUT PLAN RING (UTAN LUTNING)"
+      "freakOutRingLevel": "FREAK OUT PLAN RING (UTAN LUTNING)",
+      "freakOutSeatsOn": "FREAK OUT SÄTEN",
+      "freakOutSeatCount": "FREAK OUT ANTAL SÄTEN",
+      "freakOutCameraSeat": "FREAK OUT KAMERANS SÄTE"
     },
     "env": {
       "backdrop": "BAKGRUND",

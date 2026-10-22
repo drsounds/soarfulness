@@ -567,6 +567,12 @@ export type SettingsPanelProps = {
   setFreakOutShowHub: Dispatch<SetStateAction<boolean>>;
   freakOutRingLevel: boolean;
   setFreakOutRingLevel: Dispatch<SetStateAction<boolean>>;
+  freakOutSeatsOn: boolean;
+  setFreakOutSeatsOn: Dispatch<SetStateAction<boolean>>;
+  freakOutSeatCount: number;
+  setFreakOutSeatCount: Dispatch<SetStateAction<number>>;
+  freakOutCameraSeat: number;
+  setFreakOutCameraSeat: Dispatch<SetStateAction<number>>;
   setFreakOutRotationDirection: Dispatch<SetStateAction<TornadoDirection>>;
   // TORNADO: one unified toggle shared by GUNGA (swing) and flying (noclip/
   // watercraft) alike — a circular orbit instead of GUNGA's default
@@ -1371,6 +1377,12 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setFreakOutShowHub,
     freakOutRingLevel,
     setFreakOutRingLevel,
+    freakOutSeatsOn,
+    setFreakOutSeatsOn,
+    freakOutSeatCount,
+    setFreakOutSeatCount,
+    freakOutCameraSeat,
+    setFreakOutCameraSeat,
     tornadoOn,
     setTornadoOn,
     tornadoRadius,
@@ -2523,6 +2535,54 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       onDec={() => setFreakOutShowHub(false)}
                       onInc={() => setFreakOutShowHub(true)}
                     />
+                    <SettingRow
+                      label={t("dial.camera.freakOutSeatsOn")}
+                      value={onOff(freakOutSeatsOn)}
+                      onDec={() => setFreakOutSeatsOn(false)}
+                      onInc={() => setFreakOutSeatsOn(true)}
+                    />
+                    {freakOutSeatsOn && (
+                      <>
+                        <SettingRow
+                          label={t("dial.camera.freakOutSeatCount")}
+                          mode="number"
+                          value={`${freakOutSeatCount}`}
+                          rawValue={freakOutSeatCount}
+                          onSet={(v) =>
+                            setFreakOutSeatCount(Math.max(1, Math.min(32, Math.round(v))))
+                          }
+                          min={1}
+                          max={32}
+                          step={1}
+                          onDec={() => setFreakOutSeatCount((v) => Math.max(1, v - 1))}
+                          onInc={() => setFreakOutSeatCount((v) => Math.min(32, v + 1))}
+                        />
+                        <SettingRow
+                          label={t("dial.camera.freakOutCameraSeat")}
+                          mode="number"
+                          value={`${Math.min(freakOutCameraSeat, freakOutSeatCount)} / ${freakOutSeatCount}`}
+                          rawValue={Math.min(freakOutCameraSeat, freakOutSeatCount)}
+                          onSet={(v) =>
+                            setFreakOutCameraSeat(
+                              Math.max(1, Math.min(freakOutSeatCount, Math.round(v))),
+                            )
+                          }
+                          min={1}
+                          max={freakOutSeatCount}
+                          step={1}
+                          onDec={() =>
+                            setFreakOutCameraSeat((v) =>
+                              Math.max(1, Math.min(freakOutSeatCount, v) - 1),
+                            )
+                          }
+                          onInc={() =>
+                            setFreakOutCameraSeat((v) =>
+                              Math.min(freakOutSeatCount, Math.min(freakOutSeatCount, v) + 1),
+                            )
+                          }
+                        />
+                      </>
+                    )}
                   </>
                 )}
                 {/* TORNADO: one unified toggle+dial block for FRI (float/
