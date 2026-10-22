@@ -651,6 +651,11 @@ export type Persisted = {
   freakOutRotationOscillateSpeed: number;
   // Spin direction of the gondola ring (before any back-and-forth
   // alternation from freakOutRotationOscillate).
+  // Whether the view turns along with the ring's spin (the real ride's
+  // outward-facing seat) or keeps its heading while the seat travels
+  // around the ring's center — off by default, since spinning the view
+  // reads as turning in place and is far more dizzying.
+  freakOutViewFollowsRing: boolean;
   freakOutRotationDirection: TornadoDirection;
   // GUNGA BEHÅLL TEMPO: when on, the swing's cycle rate is scaled by
   // swingKeepSpeedRefHeight / swingHeight so changing GUNGA HÖJD doesn't
@@ -743,6 +748,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "freakOutRotationOscillate",
     "freakOutRotationOscillateSpeed",
     "freakOutRotationDirection",
+    "freakOutViewFollowsRing",
     "swingKeepSpeed",
     "swingKeepSpeedRefHeight",
     "tornadoOn",

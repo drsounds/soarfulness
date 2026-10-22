@@ -198,7 +198,8 @@
       "freakOutRotationOscillateSpeed": "FREAK OUT VEKSLINGSHASTIGHET",
       "freakOutOn": "FREAK OUT",
       "freakOutRotationOn": "FREAK OUT ROTASJON",
-      "freakOutRotationDirection": "FREAK OUT ROTASJONSRETNING"
+      "freakOutRotationDirection": "FREAK OUT ROTASJONSRETNING",
+      "freakOutViewFollowsRing": "FREAK OUT VISNINGEN SNURRER MED"
     },
     "env": {
       "backdrop": "BAKGRUNN",

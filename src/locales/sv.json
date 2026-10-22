@@ -198,7 +198,8 @@
       "freakOutRotationOscillateSpeed": "FREAK OUT ALTERNERINGSHASTIGHET",
       "freakOutOn": "FREAK OUT",
       "freakOutRotationOn": "FREAK OUT ROTATION",
-      "freakOutRotationDirection": "FREAK OUT ROTATIONSRIKTNING"
+      "freakOutRotationDirection": "FREAK OUT ROTATIONSRIKTNING",
+      "freakOutViewFollowsRing": "FREAK OUT VYN SNURRAR MED"
     },
     "env": {
       "backdrop": "BAKGRUND",

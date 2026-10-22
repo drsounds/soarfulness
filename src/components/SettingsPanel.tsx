@@ -557,6 +557,8 @@ export type SettingsPanelProps = {
   freakOutRotationOscillateSpeed: number;
   setFreakOutRotationOscillateSpeed: Dispatch<SetStateAction<number>>;
   freakOutRotationDirection: TornadoDirection;
+  freakOutViewFollowsRing: boolean;
+  setFreakOutViewFollowsRing: Dispatch<SetStateAction<boolean>>;
   setFreakOutRotationDirection: Dispatch<SetStateAction<TornadoDirection>>;
   // TORNADO: one unified toggle shared by GUNGA (swing) and flying (noclip/
   // watercraft) alike — a circular orbit instead of GUNGA's default
@@ -1351,6 +1353,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setFreakOutRotationOscillateSpeed,
     freakOutRotationDirection,
     setFreakOutRotationDirection,
+    freakOutViewFollowsRing,
+    setFreakOutViewFollowsRing,
     tornadoOn,
     setTornadoOn,
     tornadoRadius,
@@ -2380,13 +2384,13 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${freakOutRingRadius.toFixed(1)}m`}
                       rawValue={freakOutRingRadius}
-                      onSet={(v) => setFreakOutRingRadius(Math.max(0, Math.min(50, v)))}
+                      onSet={(v) => setFreakOutRingRadius(Math.max(0, Math.min(200, v)))}
                       min={0}
-                      max={50}
+                      max={200}
                       step={0.5}
                       onDec={() => setFreakOutRingRadius((v) => Math.max(0, +(v - 0.5).toFixed(1)))}
                       onInc={() =>
-                        setFreakOutRingRadius((v) => Math.min(50, +(v + 0.5).toFixed(1)))
+                        setFreakOutRingRadius((v) => Math.min(200, +(v + 0.5).toFixed(1)))
                       }
                     />
                     <SettingRow
@@ -2440,6 +2444,12 @@ export function SettingsPanel(props: SettingsPanelProps) {
                           onSelectIndex={(i) => setFreakOutRotationDirection(TORNADO_DIRECTIONS[i])}
                           onDec={() => setFreakOutRotationDirection("cw")}
                           onInc={() => setFreakOutRotationDirection("ccw")}
+                        />
+                        <SettingRow
+                          label={t("dial.camera.freakOutViewFollowsRing")}
+                          value={onOff(freakOutViewFollowsRing)}
+                          onDec={() => setFreakOutViewFollowsRing(false)}
+                          onInc={() => setFreakOutViewFollowsRing(true)}
                         />
                         <SettingRow
                           label={t("dial.camera.freakOutRotationOscillate")}

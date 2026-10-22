@@ -198,7 +198,8 @@
       "freakOutRotationOscillateSpeed": "FREAK OUT SKIFTEHASTIGHED",
       "freakOutOn": "FREAK OUT",
       "freakOutRotationOn": "FREAK OUT ROTATION",
-      "freakOutRotationDirection": "FREAK OUT ROTATIONSRETNING"
+      "freakOutRotationDirection": "FREAK OUT ROTATIONSRETNING",
+      "freakOutViewFollowsRing": "FREAK OUT VISNINGEN DREJER MED"
     },
     "env": {
       "backdrop": "BAGGRUND",
