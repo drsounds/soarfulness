@@ -477,6 +477,13 @@ export type Persisted = {
   // STIGNING, but for the water level instead of the camera: positive keeps
   // the surface rising forever, negative keeps it sinking forever, 0 is off.
   depthDriftSpeed: number;
+  // DRIFT SINUS: optionally swings LEVEL DRIFT's rate as a sine around
+  // depthDriftSpeed — amp in m/s, speed in cycles/s (Hz), phase in degrees.
+  // Off by default so the plain constant drift is unchanged.
+  depthDriftSineOn: boolean;
+  depthDriftSineAmp: number;
+  depthDriftSineSpeed: number;
+  depthDriftSinePhase: number;
   hideWater: boolean;
   midCloudsOn: boolean;
   midCloudsHeight: number;
@@ -763,6 +770,10 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "depthSinePeak",
     "depthSineWaveform",
     "depthDriftSpeed",
+    "depthDriftSineOn",
+    "depthDriftSineAmp",
+    "depthDriftSineSpeed",
+    "depthDriftSinePhase",
     "hideWater",
     "causticsOn",
   ],

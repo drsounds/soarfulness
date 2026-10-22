@@ -935,6 +935,10 @@ const DEFAULTS: Persisted = {
   depthSinePeak: 1,
   depthSineWaveform: "sine",
   depthDriftSpeed: 0,
+  depthDriftSineOn: false,
+  depthDriftSineAmp: 1,
+  depthDriftSineSpeed: 0.1,
+  depthDriftSinePhase: 0,
   hideWater: false,
   midCloudsOn: false,
   midCloudsHeight: 0.5,
@@ -1426,6 +1430,10 @@ export function Aquafulness() {
     initial.depthSineWaveform,
   );
   const [depthDriftSpeed, setDepthDriftSpeed] = useState(initial.depthDriftSpeed);
+  const [depthDriftSineOn, setDepthDriftSineOn] = useState(initial.depthDriftSineOn);
+  const [depthDriftSineAmp, setDepthDriftSineAmp] = useState(initial.depthDriftSineAmp);
+  const [depthDriftSineSpeed, setDepthDriftSineSpeed] = useState(initial.depthDriftSineSpeed);
+  const [depthDriftSinePhase, setDepthDriftSinePhase] = useState(initial.depthDriftSinePhase);
   const [hideWater, setHideWater] = useState(initial.hideWater);
   const [midCloudsOn, setMidCloudsOn] = useState(initial.midCloudsOn);
   const [midCloudsHeight, setMidCloudsHeight] = useState(initial.midCloudsHeight);
@@ -1984,6 +1992,10 @@ export function Aquafulness() {
     depthSinePeak,
     depthSineWaveform,
     depthDriftSpeed,
+    depthDriftSineOn,
+    depthDriftSineAmp,
+    depthDriftSineSpeed,
+    depthDriftSinePhase,
     hideWater,
     midCloudsOn,
     midCloudsHeight,
@@ -2166,6 +2178,10 @@ export function Aquafulness() {
     depthSinePeak,
     depthSineWaveform,
     depthDriftSpeed,
+    depthDriftSineOn,
+    depthDriftSineAmp,
+    depthDriftSineSpeed,
+    depthDriftSinePhase,
     hideWater,
     midCloudsOn,
     midCloudsHeight,
@@ -2529,6 +2545,14 @@ export function Aquafulness() {
   const depthSinePeakRef = useRef(depthSinePeak);
   const depthSineWaveformRef = useRef(depthSineWaveform);
   const depthDriftSpeedRef = useRef(depthDriftSpeed);
+  const depthDriftSineOnRef = useRef(depthDriftSineOn);
+  const depthDriftSineAmpRef = useRef(depthDriftSineAmp);
+  const depthDriftSineSpeedRef = useRef(depthDriftSineSpeed);
+  const depthDriftSinePhaseRef = useRef(depthDriftSinePhase);
+  // LEVEL DRIFT's sine phase is integrated (radians) rather than derived
+  // from t, so turning DRIFT SINUS TEMPO mid-cycle changes the rate
+  // smoothly instead of jumping to a different point on the curve.
+  const depthDriftSineAccRef = useRef(0);
   // Infinite water-level drift, much like noclip's FRITT FALL/OMVÄND
   // STIGNING: depthDriftVelRef eases toward depthDriftSpeedRef's target rate
   // and depthDriftRef accumulates that velocity into an unbounded offset —
@@ -2867,6 +2891,18 @@ export function Aquafulness() {
   useEffect(() => {
     depthDriftSpeedRef.current = depthDriftSpeed;
   }, [depthDriftSpeed]);
+  useEffect(() => {
+    depthDriftSineOnRef.current = depthDriftSineOn;
+  }, [depthDriftSineOn]);
+  useEffect(() => {
+    depthDriftSineAmpRef.current = depthDriftSineAmp;
+  }, [depthDriftSineAmp]);
+  useEffect(() => {
+    depthDriftSineSpeedRef.current = depthDriftSineSpeed;
+  }, [depthDriftSineSpeed]);
+  useEffect(() => {
+    depthDriftSinePhaseRef.current = depthDriftSinePhase;
+  }, [depthDriftSinePhase]);
   useEffect(() => {
     hideWaterRef.current = hideWater;
   }, [hideWater]);
@@ -3378,8 +3414,13 @@ export function Aquafulness() {
     setDepthSinePeak(DEFAULTS.depthSinePeak);
     setDepthSineWaveform(DEFAULTS.depthSineWaveform);
     setDepthDriftSpeed(DEFAULTS.depthDriftSpeed);
+    setDepthDriftSineOn(DEFAULTS.depthDriftSineOn);
+    setDepthDriftSineAmp(DEFAULTS.depthDriftSineAmp);
+    setDepthDriftSineSpeed(DEFAULTS.depthDriftSineSpeed);
+    setDepthDriftSinePhase(DEFAULTS.depthDriftSinePhase);
     depthDriftRef.current = 0;
     depthDriftVelRef.current = 0;
+    depthDriftSineAccRef.current = 0;
     setHideWater(DEFAULTS.hideWater);
     setMidCloudsOn(DEFAULTS.midCloudsOn);
     setMidCloudsHeight(DEFAULTS.midCloudsHeight);
@@ -3551,6 +3592,10 @@ export function Aquafulness() {
     if (patch.depthSinePeak !== undefined) setDepthSinePeak(patch.depthSinePeak);
     if (patch.depthSineWaveform !== undefined) setDepthSineWaveform(patch.depthSineWaveform);
     if (patch.depthDriftSpeed !== undefined) setDepthDriftSpeed(patch.depthDriftSpeed);
+    if (patch.depthDriftSineOn !== undefined) setDepthDriftSineOn(patch.depthDriftSineOn);
+    if (patch.depthDriftSineAmp !== undefined) setDepthDriftSineAmp(patch.depthDriftSineAmp);
+    if (patch.depthDriftSineSpeed !== undefined) setDepthDriftSineSpeed(patch.depthDriftSineSpeed);
+    if (patch.depthDriftSinePhase !== undefined) setDepthDriftSinePhase(patch.depthDriftSinePhase);
     if (patch.hideWater !== undefined) setHideWater(patch.hideWater);
     if (patch.midCloudsOn !== undefined) setMidCloudsOn(patch.midCloudsOn);
     if (patch.midCloudsHeight !== undefined) setMidCloudsHeight(patch.midCloudsHeight);
@@ -3945,6 +3990,7 @@ export function Aquafulness() {
     setDepthDriftSpeed(0);
     depthDriftVelRef.current = 0;
     depthDriftRef.current = 0;
+    depthDriftSineAccRef.current = 0;
   };
 
   // Sky-swing's starting height: a fixed preset snaps GUNGA POSITION Y to a
@@ -6502,8 +6548,23 @@ export function Aquafulness() {
       // target rate instead of snapping to it, then depthDriftRef integrates
       // that velocity into a running offset that never resets on its own —
       // 0 just holds the level wherever it last drifted to.
+      // DRIFT SINUS optionally swings that target rate back and forth
+      // around the dial's value: rate = NIVÅ DRIFT + AMP·sin(2π·TEMPO·t +
+      // FAS). With NIVÅ DRIFT at 0 the level rises and sinks in turn
+      // (peak-to-peak AMP/(π·TEMPO) metres); with it non-zero the level
+      // keeps drifting but surges and eases along the way.
+      depthDriftSineAccRef.current =
+        (depthDriftSineAccRef.current + dt * depthDriftSineSpeedRef.current * Math.PI * 2) %
+        (Math.PI * 2);
+      const depthDriftTarget =
+        depthDriftSpeedRef.current +
+        (depthDriftSineOnRef.current
+          ? Math.sin(
+              depthDriftSineAccRef.current + (depthDriftSinePhaseRef.current * Math.PI) / 180,
+            ) * depthDriftSineAmpRef.current
+          : 0);
       depthDriftVelRef.current +=
-        (depthDriftSpeedRef.current - depthDriftVelRef.current) * Math.min(1, dt * 2);
+        (depthDriftTarget - depthDriftVelRef.current) * Math.min(1, dt * 2);
       depthDriftRef.current += depthDriftVelRef.current * dt;
       const effectiveDepth = Math.max(0.5, floorDepthRef.current);
       const levelY = depthMod + depthDriftRef.current;
@@ -8756,6 +8817,14 @@ export function Aquafulness() {
     cycleDepthSineWaveform,
     depthDriftSpeed,
     setDepthDriftSpeed,
+    depthDriftSineOn,
+    setDepthDriftSineOn,
+    depthDriftSineAmp,
+    setDepthDriftSineAmp,
+    depthDriftSineSpeed,
+    setDepthDriftSineSpeed,
+    depthDriftSinePhase,
+    setDepthDriftSinePhase,
     hideWater,
     setHideWater,
     causticsOn,
