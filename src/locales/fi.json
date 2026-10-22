@@ -678,8 +678,11 @@
       "whirlpool": "PYÖRRE"
     },
     "totalLabel": " · Yhteensä ",
+    "driftStop": "PYSÄYTÄ AJAUTUMA",
+    "levelReset": "NOLLAA TASO",
     "drawerTab": {
-      "sky": "TAIVAS"
+      "sky": "TAIVAS",
+      "level": "TASO"
     },
     "torusToggleAria": "Uimarenkaat päälle/pois"
   },

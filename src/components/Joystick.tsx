@@ -206,10 +206,8 @@ export function VerticalDial({
   value: number;
   onChange: (v: number) => void;
   // Reset-button handler — defaults to onChange(0). Override this when 0 on
-  // the dial isn't the whole story: LEVEL DRIFT, for instance, also has to
-  // stop its own eased velocity and snap the water level it already drifted
-  // back to baseline, neither of which onChange(0) alone can reach (both
-  // live in refs outside this component's props).
+  // the dial isn't the whole story and other state outside this component's
+  // props has to be reset along with it.
   onReset?: () => void;
   label?: string;
   min?: number;

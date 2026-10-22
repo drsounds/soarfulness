@@ -678,8 +678,11 @@
       "whirlpool": "VIRVEL"
     },
     "totalLabel": " · Totalt ",
+    "driftStop": "STOPP DRIFT",
+    "levelReset": "NIVÅ RESET",
     "drawerTab": {
-      "sky": "HIMMEL"
+      "sky": "HIMMEL",
+      "level": "NIVÅ"
     },
     "torusToggleAria": "Slå baderinger av/på"
   },

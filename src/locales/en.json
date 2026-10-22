@@ -678,8 +678,11 @@
       "whirlpool": "WHIRLPOOL"
     },
     "totalLabel": " · Total ",
+    "driftStop": "STOP DRIFT",
+    "levelReset": "RESET LEVEL",
     "drawerTab": {
-      "sky": "SKY"
+      "sky": "SKY",
+      "level": "LEVEL"
     },
     "torusToggleAria": "Toggle pool rings"
   },

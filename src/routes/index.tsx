@@ -600,6 +600,7 @@ export const STORAGE_KEY = "aquafulness:settings:v1";
 const DRAWER_EXTRA_TAB_LABEL_KEYS = {
   torus: "dial.env.torusRings",
   sky: "hud.drawerTab.sky",
+  level: "hud.drawerTab.level",
 } as const;
 // Parse a "#rrggbb" hex string into normalized [0,1] RGB. Falls back to a
 // neutral sand tone on malformed input rather than throwing.
@@ -1713,7 +1714,7 @@ export function Aquafulness() {
   // just a settings category always available regardless of which mode is
   // active (mirrors the old standalone VIRVEL tab this drawer used to have),
   // and likewise a "torus" (BADRINGAR) and a "sky" (HIMMEL: sky & clouds) tab.
-  type CameraDrawerTab = CameraMode | "tornado" | "torus" | "sky";
+  type CameraDrawerTab = CameraMode | "tornado" | "torus" | "sky" | "level";
   const [cameraDrawerTab, setCameraDrawerTab] = useState<CameraDrawerTab>(cameraMode);
   // Named settings presets (save/load, in addition to file export/import
   // below) — kept in their own localStorage list, separate from the
@@ -3203,6 +3204,15 @@ export function Aquafulness() {
   useEffect(() => {
     setCameraDrawerTab(cameraMode);
   }, [cameraMode]);
+  // The drawer's tab row scrolls sideways rather than wrapping, so keep the
+  // active tab scrolled into view whenever it changes or the drawer opens.
+  const drawerTabRowRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!cameraDrawerOpen) return;
+    drawerTabRowRef.current
+      ?.querySelector<HTMLElement>('[aria-pressed="true"]')
+      ?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [cameraDrawerOpen, cameraDrawerTab]);
 
   // Interval session driver: while on, cycles cameraMode through whichever of
   // "float" (FRI/default) and "swing" (GUNGA, optionally TORNADO) are
@@ -3980,14 +3990,12 @@ export function Aquafulness() {
     setCameraMode(CAMERA_MODES[(idx + dir + CAMERA_MODES.length) % CAMERA_MODES.length]);
   };
 
-  // LEVEL DRIFT's dedicated reset button: setting depthDriftSpeed to 0 alone
-  // only stops *further* drift — depthDriftVelRef would still ease its
-  // existing velocity down over about half a second, and whatever offset
-  // depthDriftRef already accumulated would stay right where it was instead
-  // of the water level actually coming back to normal. A real reset needs
-  // all three snapped to 0 at once.
-  const resetDepthDrift = () => {
-    setDepthDriftSpeed(0);
+  // NIVÅ RESET: brings the water level itself back to baseline, separate
+  // from the LEVEL DRIFT dial's own reset (which only zeroes the rate, so
+  // the level stays wherever it drifted to). Snaps the accumulated offset,
+  // its eased velocity and DRIFT SINUS's phase back to 0 together — leaving
+  // the velocity alone would just carry the level straight off again.
+  const resetDepthLevel = () => {
     depthDriftVelRef.current = 0;
     depthDriftRef.current = 0;
     depthDriftSineAccRef.current = 0;
@@ -6568,6 +6576,12 @@ export function Aquafulness() {
       depthDriftRef.current += depthDriftVelRef.current * dt;
       const effectiveDepth = Math.max(0.5, floorDepthRef.current);
       const levelY = depthMod + depthDriftRef.current;
+      // The camera rides DEPTH SINE's rigid scene shift but *not* LEVEL
+      // DRIFT: carrying it along with the drifting level kept it locked to
+      // the water, so the drift (and DRIFT SINUS) was invisible from the
+      // camera's point of view. The water now actually rises past / sinks
+      // away from the camera; NIVÅ RESET brings it back.
+      const camLevelY = depthMod;
       ocean.position.y = levelY;
       farOcean.position.y = levelY;
       if (bot.rgb) {
@@ -7671,7 +7685,7 @@ export function Aquafulness() {
       const camY = (camYRef.current ?? 0) + tornadoLiftOffsetRef.current * tornadoBlendRef.current;
       camera.position.set(
         camX + camOffXRef.current + swayX + surgeX,
-        camY + camOffYRef.current + levelY,
+        camY + camOffYRef.current + camLevelY,
         camZ + camOffZRef.current + swayZ + surgeZ,
       );
       // Look direction: normally level forward; with TORNADO FOLLOW CENTER
@@ -8999,7 +9013,7 @@ export function Aquafulness() {
     },
     depthDriftSpeed,
     setDepthDriftSpeed,
-    resetDepthDrift,
+    resetDepthLevel,
     syncWaveWithSway,
     setSyncWaveWithSway,
   };
@@ -9625,14 +9639,22 @@ export function Aquafulness() {
             gated behind a cameraMode check — the water level drifts the same
             way regardless of how the camera is currently moving. */}
         <div className="pointer-events-none absolute bottom-[calc(env(safe-area-inset-bottom,0px)+19.5rem)] right-[calc(env(safe-area-inset-right,0px)+2rem)] z-10 select-none">
-          <VerticalDial
-            value={depthDriftSpeed}
-            onChange={setDepthDriftSpeed}
-            onReset={resetDepthDrift}
-            label={t("hud.joystick.levelDrift")}
-            min={-20}
-            max={20}
-          />
+          <div className="flex flex-col items-center gap-1">
+            <VerticalDial
+              value={depthDriftSpeed}
+              onChange={setDepthDriftSpeed}
+              label={t("hud.joystick.levelDrift")}
+              min={-20}
+              max={20}
+            />
+            <button
+              type="button"
+              onClick={resetDepthLevel}
+              className="ui-line-2 ui-surface ui-ink-muted pointer-events-auto rounded-full border px-2 py-0.5 text-[8px] font-light tracking-[0.2em] backdrop-blur-md transition active:scale-95"
+            >
+              {t("hud.levelReset")}
+            </button>
+          </div>
         </div>
         {/* JUMP: a single tri-state slider (RISE/STILL/FALL) replacing the
             left column's separate FRITT FALL/OMVÄND STIGNING pill buttons for
@@ -9672,7 +9694,12 @@ export function Aquafulness() {
           <div className="pointer-events-auto absolute bottom-[calc(env(safe-area-inset-bottom,0px)+2rem)] left-1/2 z-20 flex -translate-x-1/2 flex-col items-center gap-2">
             {cameraDrawerOpen && (
               <div className="flex flex-col items-center gap-2 rounded-3xl border ui-line-1 ui-surface-strong p-4 shadow-2xl backdrop-blur-xl">
-                <div className="flex max-w-[calc(100vw-3rem)] flex-wrap justify-center gap-1 rounded-2xl border ui-line-1 ui-surface p-1">
+                {/* One row that swipes sideways when the tabs don't fit,
+                    instead of wrapping onto extra rows. */}
+                <div
+                  ref={drawerTabRowRef}
+                  className="flex max-w-[calc(100vw-5rem)] touch-pan-x flex-nowrap gap-1 overflow-x-auto overscroll-x-contain rounded-2xl border ui-line-1 ui-surface p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>button]:shrink-0"
+                >
                   {CAMERA_MODES.map((m) => (
                     <button
                       key={m}
@@ -9696,7 +9723,7 @@ export function Aquafulness() {
                   >
                     {t("dial.camera.tornado")}
                   </button>
-                  {(["torus", "sky"] as const).map((tab) => (
+                  {(["torus", "sky", "level"] as const).map((tab) => (
                     <button
                       key={tab}
                       type="button"
@@ -9992,6 +10019,79 @@ export function Aquafulness() {
                     </button>
                   </>
                 )}
+                {/* NIVÅ: every LEVEL DRIFT setting in one place — the rate,
+                    DRIFT SINUS on top of it, and NIVÅ RESET. */}
+                {cameraDrawerTab === "level" && (
+                  <>
+                    <PadSlider
+                      label={t("dial.water.driftSpeed")}
+                      value={depthDriftSpeed}
+                      min={-20}
+                      max={20}
+                      step={0.1}
+                      format={(v) => `${v.toFixed(1)}m/s`}
+                      onChange={setDepthDriftSpeed}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setDepthDriftSineOn((v) => !v)}
+                      aria-pressed={depthDriftSineOn}
+                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                        depthDriftSineOn
+                          ? "ui-line-3 ui-tint-2 ui-ink"
+                          : "ui-line-2 ui-surface ui-ink-muted"
+                      }`}
+                    >
+                      {t("dial.water.driftSine")}:{" "}
+                      {t(depthDriftSineOn ? "common.on" : "common.off")}
+                    </button>
+                    <PadSlider
+                      label={t("dial.water.driftSineAmp")}
+                      value={depthDriftSineAmp}
+                      min={0}
+                      max={20}
+                      step={0.1}
+                      curve={2}
+                      format={(v) => `${v.toFixed(2)}m/s`}
+                      onChange={setDepthDriftSineAmp}
+                    />
+                    <PadSlider
+                      label={t("dial.water.driftSineSpeed")}
+                      value={depthDriftSineSpeed}
+                      min={0.01}
+                      max={2}
+                      step={0.01}
+                      curve={2}
+                      format={(v) => `${v.toFixed(2)}Hz`}
+                      onChange={setDepthDriftSineSpeed}
+                    />
+                    <PadSlider
+                      label={t("dial.water.driftSinePhase")}
+                      value={depthDriftSinePhase}
+                      min={0}
+                      max={359}
+                      step={1}
+                      format={(v) => `${Math.round(v)}°`}
+                      onChange={setDepthDriftSinePhase}
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setDepthDriftSpeed(0)}
+                        className="ui-line-2 ui-surface ui-ink-muted rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95"
+                      >
+                        {t("hud.driftStop")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={resetDepthLevel}
+                        className="ui-line-2 ui-surface ui-ink-muted rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95"
+                      >
+                        {t("hud.levelReset")}
+                      </button>
+                    </div>
+                  </>
+                )}
                 {/* TORNADO: a fixed tab (not tied to any one camera mode)
                     exposing every tornado* setting at once — mirrors the old
                     standalone VIRVEL tab this drawer used to have. */}
@@ -10189,7 +10289,9 @@ export function Aquafulness() {
                 ? t("hud.cameraDrawer.closeLabel")
                 : cameraDrawerTab === "tornado"
                   ? t("dial.camera.tornado")
-                  : cameraDrawerTab === "torus" || cameraDrawerTab === "sky"
+                  : cameraDrawerTab === "torus" ||
+                      cameraDrawerTab === "sky" ||
+                      cameraDrawerTab === "level"
                     ? t(DRAWER_EXTRA_TAB_LABEL_KEYS[cameraDrawerTab])
                     : t(CAMERA_MODE_LABEL_KEYS[cameraDrawerTab])}
             </button>

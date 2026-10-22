@@ -45,10 +45,9 @@ export type RemoteControllerProps = {
   // cameraMode check the way STRÖM/SVAJ/VÅGRIKT/HÖJD are.
   depthDriftSpeed: number;
   setDepthDriftSpeed: Dispatch<SetStateAction<number>>;
-  // Resets depthDriftSpeed to 0 *and* zeroes the accumulated drift/velocity
-  // refs index.tsx tracks internally — setDepthDriftSpeed(0) alone would
-  // only stop further drift, not undo what already accumulated.
-  resetDepthDrift: () => void;
+  // NIVÅ RESET: brings the drifted water level itself back to baseline
+  // (the dial's own reset only zeroes the rate) — see index.tsx.
+  resetDepthLevel: () => void;
   syncWaveWithSway: boolean;
   setSyncWaveWithSway: Dispatch<SetStateAction<boolean>>;
 };
@@ -1024,14 +1023,22 @@ export function VirtualPhone({
                         sticky
                       />
                     )}
-                    <VerticalDial
-                      label={t("remote.levelDrift")}
-                      value={remoteControllerProps.depthDriftSpeed}
-                      onChange={remoteControllerProps.setDepthDriftSpeed}
-                      onReset={remoteControllerProps.resetDepthDrift}
-                      min={-20}
-                      max={20}
-                    />
+                    <div className="flex flex-col items-center gap-1">
+                      <VerticalDial
+                        label={t("remote.levelDrift")}
+                        value={remoteControllerProps.depthDriftSpeed}
+                        onChange={remoteControllerProps.setDepthDriftSpeed}
+                        min={-20}
+                        max={20}
+                      />
+                      <button
+                        type="button"
+                        onClick={remoteControllerProps.resetDepthLevel}
+                        className="ui-line-2 ui-surface ui-ink-muted rounded-full border px-2 py-0.5 text-[8px] font-light tracking-[0.2em] transition active:scale-95"
+                      >
+                        {t("hud.levelReset")}
+                      </button>
+                    </div>
                   </div>
                   {remoteControllerProps.cameraMode === "noclip" && (
                     <div className="flex justify-center gap-3">
