@@ -203,7 +203,7 @@
       "freakOutShowArm": "FREAK OUT ARM",
       "freakOutShowTopRing": "FREAK OUT ØVRE RING",
       "freakOutShowHub": "FREAK OUT NAV & SETERING",
-      "freakOutRingLevel": "FREAK OUT PLAN RING (UTEN HELNING)"
+      "freakOutRingRigid": "FREAK OUT STIV RING (HELLER MED ARMEN)"
     },
     "env": {
       "backdrop": "BAKGRUNN",
