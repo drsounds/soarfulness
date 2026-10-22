@@ -185,7 +185,19 @@
       "tornadoSequencePauseDuration": "SEKVENSSIN TAUON KESTO",
       "tornadoSequenceStayDuration": "SEKVENSSIN VIIPYMÄKESTO",
       "tornadoSpeed": "TORNADON TEMPO",
-      "wakeLock": "VALVEILLA"
+      "wakeLock": "VALVEILLA",
+      "freakOut": "FREAK OUT",
+      "freakOutSwingAxis": "FREAK OUT KEINUAKSELI",
+      "freakOutSwingAngle": "FREAK OUT KEINUKULMA",
+      "freakOutSwingSpeed": "FREAK OUT KEINUNOPEUS",
+      "freakOutSwingLength": "FREAK OUT VARREN PITUUS",
+      "freakOutRingRadius": "FREAK OUT RENKAAN SÄDE",
+      "freakOutRotationAxis": "FREAK OUT PYÖRIMISAKSELI",
+      "freakOutRotationSpeed": "FREAK OUT PYÖRIMISNOPEUS",
+      "freakOutRotationOscillate": "FREAK OUT SUUNNAN HEILURI",
+      "freakOutRotationOscillateSpeed": "FREAK OUT VAIHTONOPEUS",
+      "freakOutOn": "FREAK OUT",
+      "freakOutRotationOn": "FREAK OUT PYÖRIMINEN"
     },
     "env": {
       "backdrop": "TAUSTA",
