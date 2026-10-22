@@ -716,6 +716,14 @@ export type SettingsPanelProps = {
   cycleDepthSineWaveform: (dir: number) => void;
   depthDriftSpeed: number;
   setDepthDriftSpeed: Dispatch<SetStateAction<number>>;
+  depthDriftSineOn: boolean;
+  setDepthDriftSineOn: Dispatch<SetStateAction<boolean>>;
+  depthDriftSineAmp: number;
+  setDepthDriftSineAmp: Dispatch<SetStateAction<number>>;
+  depthDriftSineSpeed: number;
+  setDepthDriftSineSpeed: Dispatch<SetStateAction<number>>;
+  depthDriftSinePhase: number;
+  setDepthDriftSinePhase: Dispatch<SetStateAction<number>>;
   hideWater: boolean;
   setHideWater: Dispatch<SetStateAction<boolean>>;
   causticsOn: boolean;
@@ -1444,6 +1452,14 @@ export function SettingsPanel(props: SettingsPanelProps) {
     cycleDepthSineWaveform,
     depthDriftSpeed,
     setDepthDriftSpeed,
+    depthDriftSineOn,
+    setDepthDriftSineOn,
+    depthDriftSineAmp,
+    setDepthDriftSineAmp,
+    depthDriftSineSpeed,
+    setDepthDriftSineSpeed,
+    depthDriftSinePhase,
+    setDepthDriftSinePhase,
     hideWater,
     setHideWater,
     causticsOn,
@@ -3279,6 +3295,56 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   onDec={() => setDepthDriftSpeed((v) => Math.max(-20, +(v - 0.1).toFixed(2)))}
                   onInc={() => setDepthDriftSpeed((v) => Math.min(20, +(v + 0.1).toFixed(2)))}
                 />
+                <SettingRow
+                  label={t("dial.water.driftSine")}
+                  value={onOff(depthDriftSineOn)}
+                  onDec={() => setDepthDriftSineOn(false)}
+                  onInc={() => setDepthDriftSineOn(true)}
+                />
+                {depthDriftSineOn && (
+                  <>
+                    <SettingRow
+                      label={t("dial.water.driftSineAmp")}
+                      mode="number"
+                      value={`${depthDriftSineAmp.toFixed(2)}m/s`}
+                      rawValue={depthDriftSineAmp}
+                      onSet={(v) => setDepthDriftSineAmp(Math.max(0, Math.min(20, v)))}
+                      min={0}
+                      max={20}
+                      step={0.1}
+                      onDec={() => setDepthDriftSineAmp((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
+                      onInc={() => setDepthDriftSineAmp((v) => Math.min(20, +(v + 0.1).toFixed(2)))}
+                    />
+                    <SettingRow
+                      label={t("dial.water.driftSineSpeed")}
+                      mode="number"
+                      value={`${depthDriftSineSpeed.toFixed(2)}Hz`}
+                      rawValue={depthDriftSineSpeed}
+                      onSet={(v) => setDepthDriftSineSpeed(Math.max(0.01, Math.min(2, v)))}
+                      min={0.01}
+                      max={2}
+                      step={0.01}
+                      onDec={() =>
+                        setDepthDriftSineSpeed((v) => Math.max(0.01, +(v - 0.01).toFixed(2)))
+                      }
+                      onInc={() =>
+                        setDepthDriftSineSpeed((v) => Math.min(2, +(v + 0.01).toFixed(2)))
+                      }
+                    />
+                    <SettingRow
+                      label={t("dial.water.driftSinePhase")}
+                      mode="number"
+                      value={`${Math.round(depthDriftSinePhase)}°`}
+                      rawValue={depthDriftSinePhase}
+                      onSet={(v) => setDepthDriftSinePhase(((v % 360) + 360) % 360)}
+                      min={0}
+                      max={359}
+                      step={1}
+                      onDec={() => setDepthDriftSinePhase((v) => (v + 345) % 360)}
+                      onInc={() => setDepthDriftSinePhase((v) => (v + 15) % 360)}
+                    />
+                  </>
+                )}
                 <SettingRow
                   label={t("dial.water.surface")}
                   value={
