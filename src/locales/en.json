@@ -203,7 +203,7 @@
       "freakOutShowArm": "FREAK OUT ARM",
       "freakOutShowTopRing": "FREAK OUT TOP RING",
       "freakOutShowHub": "FREAK OUT HUB & SEAT RING",
-      "freakOutRingTilts": "FREAK OUT RING TILTS WITH ARM"
+      "freakOutRingLevel": "FREAK OUT LEVEL RING"
     },
     "env": {
       "backdrop": "BACKDROP",

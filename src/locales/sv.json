@@ -203,7 +203,7 @@
       "freakOutShowArm": "FREAK OUT ARM",
       "freakOutShowTopRing": "FREAK OUT ÖVRE RING",
       "freakOutShowHub": "FREAK OUT NAV & SÄTESRING",
-      "freakOutRingTilts": "FREAK OUT RINGEN LUTAR MED ARMEN"
+      "freakOutRingLevel": "FREAK OUT PLAN RING (UTAN LUTNING)"
     },
     "env": {
       "backdrop": "BAKGRUND",

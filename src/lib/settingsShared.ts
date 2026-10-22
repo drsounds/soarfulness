@@ -664,13 +664,12 @@ export type Persisted = {
   freakOutShowArm: boolean;
   freakOutShowTopRing: boolean;
   freakOutShowHub: boolean;
-  // Whether the gondola ring tilts rigidly with the swinging arm (the real
-  // ride) or hangs level and only translates with the swing. Off by
-  // default: when tilting, a seat's swing direction depends on where the
-  // ring's spin has carried it (in front of the arm it rises one way,
-  // behind it the other), so the spin appears to change the swing's
-  // direction; a level ring gives every seat the same swing.
-  freakOutRingTilts: boolean;
+  // By default the gondola ring is rigid with the swinging arm: it tilts
+  // with the arm and spins about the arm's own (local) axis, like the real
+  // ride. LEVEL RING instead keeps the ring level and only carries its
+  // center along the arm's arc (no view tilt), so every seat swings the
+  // same way wherever the spin has put it.
+  freakOutRingLevel: boolean;
   freakOutRotationDirection: TornadoDirection;
   // GUNGA BEHÅLL TEMPO: when on, the swing's cycle rate is scaled by
   // swingKeepSpeedRefHeight / swingHeight so changing GUNGA HÖJD doesn't
@@ -767,7 +766,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "freakOutShowArm",
     "freakOutShowTopRing",
     "freakOutShowHub",
-    "freakOutRingTilts",
+    "freakOutRingLevel",
     "swingKeepSpeed",
     "swingKeepSpeedRefHeight",
     "tornadoOn",
