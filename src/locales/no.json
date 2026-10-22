@@ -194,10 +194,11 @@
       "freakOutRingRadius": "FREAK OUT RINGRADIUS",
       "freakOutRotationAxis": "FREAK OUT ROTASJONSAKSE",
       "freakOutRotationSpeed": "FREAK OUT ROTASJONSHASTIGHET",
-      "freakOutRotationOscillate": "FREAK OUT PENDLE RETNING",
-      "freakOutRotationOscillateSpeed": "FREAK OUT SKIFTEHASTIGHET",
+      "freakOutRotationOscillate": "FREAK OUT VEKSLE RETNING",
+      "freakOutRotationOscillateSpeed": "FREAK OUT VEKSLINGSHASTIGHET",
       "freakOutOn": "FREAK OUT",
-      "freakOutRotationOn": "FREAK OUT ROTASJON"
+      "freakOutRotationOn": "FREAK OUT ROTASJON",
+      "freakOutRotationDirection": "FREAK OUT ROTASJONSRETNING"
     },
     "env": {
       "backdrop": "BAKGRUNN",

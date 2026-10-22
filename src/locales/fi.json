@@ -194,10 +194,11 @@
       "freakOutRingRadius": "FREAK OUT RENKAAN SÄDE",
       "freakOutRotationAxis": "FREAK OUT PYÖRIMISAKSELI",
       "freakOutRotationSpeed": "FREAK OUT PYÖRIMISNOPEUS",
-      "freakOutRotationOscillate": "FREAK OUT SUUNNAN HEILURI",
+      "freakOutRotationOscillate": "FREAK OUT VAIHDA SUUNTAA",
       "freakOutRotationOscillateSpeed": "FREAK OUT VAIHTONOPEUS",
       "freakOutOn": "FREAK OUT",
-      "freakOutRotationOn": "FREAK OUT PYÖRIMINEN"
+      "freakOutRotationOn": "FREAK OUT PYÖRIMINEN",
+      "freakOutRotationDirection": "FREAK OUT PYÖRIMISSUUNTA"
     },
     "env": {
       "backdrop": "TAUSTA",

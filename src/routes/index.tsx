@@ -440,10 +440,10 @@ function swingYWaveformValue(
 // FREAK OUT pose for one seat of the gondola ring, as an offset from where
 // the camera would sit with the ride at rest (arm hanging straight down,
 // ring unrotated) plus the rotation the seat has turned through — both in
-// world space, ready to add onto GUNGA's own position and premultiply onto
-// the camera's look rotation. yaw is the swing's facing (swingYawRef), so
-// every axis below is relative to the direction you faced on entering
-// GUNGA. The pivot hangs armLen meters above the ring's center; the seat
+// world space, ready to add onto the active camera mode's own position and
+// premultiply onto the camera's look rotation. yaw is the heading captured
+// when the ride started (freakOutYawRef), so every axis below is relative
+// to the direction you faced then. The pivot hangs armLen meters above the ring's center; the seat
 // sits ringRadius out from that center (in front for an "x"/"y" spin axis,
 // to the right for "z", i.e. always perpendicular to the spin axis), facing
 // outward like the real ride's sofas.
@@ -1091,6 +1091,7 @@ const DEFAULTS: Persisted = {
   freakOutRotationSpeed: 1,
   freakOutRotationOscillate: false,
   freakOutRotationOscillateSpeed: 1,
+  freakOutRotationDirection: "cw",
   swingKeepSpeed: false,
   swingKeepSpeedRefHeight: 20000,
   // Unified TORNADO toggle for GUNGA (swing) and flying (noclip/watercraft):
@@ -1653,6 +1654,9 @@ export function Aquafulness() {
   const [freakOutRotationOscillateSpeed, setFreakOutRotationOscillateSpeed] = useState(
     initial.freakOutRotationOscillateSpeed,
   );
+  const [freakOutRotationDirection, setFreakOutRotationDirection] = useState<TornadoDirection>(
+    initial.freakOutRotationDirection,
+  );
   // Unified TORNADO toggle, shared by GUNGA (swing) and flying (noclip/
   // watercraft) alike: instead of a back-and-forth pendulum arc / plain
   // manual flight, the camera orbits a circle around the anchor (posRef) —
@@ -1806,7 +1810,7 @@ export function Aquafulness() {
   // just a settings category always available regardless of which mode is
   // active (mirrors the old standalone VIRVEL tab this drawer used to have),
   // and likewise a "torus" (BADRINGAR) and a "sky" (HIMMEL: sky & clouds) tab.
-  type CameraDrawerTab = CameraMode | "tornado" | "torus" | "sky" | "level";
+  type CameraDrawerTab = CameraMode | "tornado" | "freakout" | "torus" | "sky" | "level";
   const [cameraDrawerTab, setCameraDrawerTab] = useState<CameraDrawerTab>(cameraMode);
   // Named settings presets (save/load, in addition to file export/import
   // below) — kept in their own localStorage list, separate from the
@@ -2161,6 +2165,7 @@ export function Aquafulness() {
     freakOutRotationSpeed,
     freakOutRotationOscillate,
     freakOutRotationOscillateSpeed,
+    freakOutRotationDirection,
     swingKeepSpeed,
     swingKeepSpeedRefHeight,
     tornadoOn,
@@ -2360,6 +2365,7 @@ export function Aquafulness() {
     freakOutRotationSpeed,
     freakOutRotationOscillate,
     freakOutRotationOscillateSpeed,
+    freakOutRotationDirection,
     swingKeepSpeed,
     swingKeepSpeedRefHeight,
     tornadoOn,
@@ -2479,6 +2485,7 @@ export function Aquafulness() {
   const freakOutRotationSpeedRef = useRef(freakOutRotationSpeed);
   const freakOutRotationOscillateRef = useRef(freakOutRotationOscillate);
   const freakOutRotationOscillateSpeedRef = useRef(freakOutRotationOscillateSpeed);
+  const freakOutRotationDirectionRef = useRef(freakOutRotationDirection);
   // FREAK OUT's own clocks (swing phase, ring spin angle, direction-
   // reversal phase) and 0..1 ease-in/out blends for the whole effect and
   // for the ring's spin, so toggling either never snaps the camera.
@@ -2487,6 +2494,11 @@ export function Aquafulness() {
   const freakOutOscPhaseRef = useRef(0);
   const freakOutBlendRef = useRef(0);
   const freakOutRotBlendRef = useRef(0);
+  // Linear 0..1 progress of the ride's ease in/out (freakOutBlendRef is
+  // its smoothstep), and the camera heading captured the moment the ride
+  // starts from rest, which every ride axis is relative to.
+  const freakOutRampRef = useRef(0);
+  const freakOutYawRef = useRef(0);
   const swingKeepSpeedRef = useRef(swingKeepSpeed);
   const swingKeepSpeedRefHeightRef = useRef(swingKeepSpeedRefHeight);
   // Set the instant swing mode is entered: captures where the camera actually
@@ -3265,6 +3277,9 @@ export function Aquafulness() {
     freakOutRotationOscillateSpeedRef.current = freakOutRotationOscillateSpeed;
   }, [freakOutRotationOscillateSpeed]);
   useEffect(() => {
+    freakOutRotationDirectionRef.current = freakOutRotationDirection;
+  }, [freakOutRotationDirection]);
+  useEffect(() => {
     swingKeepSpeedRef.current = swingKeepSpeed;
   }, [swingKeepSpeed]);
   useEffect(() => {
@@ -3670,6 +3685,7 @@ export function Aquafulness() {
     setFreakOutRotationSpeed(DEFAULTS.freakOutRotationSpeed);
     setFreakOutRotationOscillate(DEFAULTS.freakOutRotationOscillate);
     setFreakOutRotationOscillateSpeed(DEFAULTS.freakOutRotationOscillateSpeed);
+    setFreakOutRotationDirection(DEFAULTS.freakOutRotationDirection);
     setSwingKeepSpeed(DEFAULTS.swingKeepSpeed);
     setSwingKeepSpeedRefHeight(DEFAULTS.swingKeepSpeedRefHeight);
     setTornadoOn(DEFAULTS.tornadoOn);
@@ -3883,6 +3899,8 @@ export function Aquafulness() {
       setFreakOutRotationOscillate(patch.freakOutRotationOscillate);
     if (patch.freakOutRotationOscillateSpeed !== undefined)
       setFreakOutRotationOscillateSpeed(patch.freakOutRotationOscillateSpeed);
+    if (patch.freakOutRotationDirection !== undefined)
+      setFreakOutRotationDirection(patch.freakOutRotationDirection);
     if (patch.swingKeepSpeed !== undefined) setSwingKeepSpeed(patch.swingKeepSpeed);
     if (patch.swingKeepSpeedRefHeight !== undefined)
       setSwingKeepSpeedRefHeight(patch.swingKeepSpeedRefHeight);
@@ -6925,7 +6943,6 @@ export function Aquafulness() {
       // I VIRVEL-läge tolkas NAV om: stick.y = närmare/längre bort från
       // virvelns centrum, stick.x = vridriktning kring virveln.
       const camMode = cameraModeRef.current;
-      if (camMode !== "swing") freakOutBlendRef.current = 0;
       // Computed early (not just before normalSurfaceY below) so the TORNADO
       // CLOUD block further down — which runs before that point in the frame
       // — can also sample the real wave height (see tornadoWaterHeightAt
@@ -6949,7 +6966,7 @@ export function Aquafulness() {
       // camYRef settle below, without either branch needing to know the
       // mesh exists.
       let tornadoCloudActive = false;
-      // FREAK OUT: set in the swing branch below while the carousel is
+      // FREAK OUT: set further below while the carousel is
       // (even partly) blended in, so the look rotation further down can
       // tilt/turn the view along with the seat (_foQuat).
       let freakOutViewActive = false;
@@ -7331,57 +7348,6 @@ export function Aquafulness() {
           ? activeBlend.fromY + (rawSwingY - activeBlend.fromY) * blend
           : rawSwingY;
 
-        // FREAK OUT: the carousel ride layered on top of everything above —
-        // its seat offset is simply added to GUNGA's own (pendulum/TORNADO)
-        // position so both motions combine. Its clocks only run while
-        // swinging. freakOutBlendRef eases the whole ride in/out on toggle
-        // (offset scaled, view rotation slerped from identity), and
-        // freakOutRotBlendRef spins the ring up/down smoothly instead of
-        // jumping to full speed. With FREAK OUT PENDLA, cos() of its own
-        // clock smoothly reverses the spin direction back and forth.
-        {
-          const foEase = 1 - Math.exp(-physDt / 0.8);
-          freakOutBlendRef.current +=
-            ((freakOutOnRef.current ? 1 : 0) - freakOutBlendRef.current) * foEase;
-          const foBlend = freakOutBlendRef.current;
-          if (foBlend > 0.0005) {
-            const simDt = physDt * speedRef.current;
-            freakOutSwingPhaseRef.current +=
-              0.6 * Math.max(0, Math.min(5, freakOutSwingSpeedRef.current)) * simDt;
-            const foSwingAngle =
-              THREE.MathUtils.degToRad(freakOutSwingAngleRef.current) *
-              Math.sin(freakOutSwingPhaseRef.current);
-            freakOutRotBlendRef.current +=
-              ((freakOutRotationOnRef.current ? 1 : 0) - freakOutRotBlendRef.current) * foEase;
-            let foDir = 1;
-            if (freakOutRotationOscillateRef.current) {
-              freakOutOscPhaseRef.current +=
-                0.5 * Math.max(0.01, freakOutRotationOscillateSpeedRef.current) * simDt;
-              foDir = Math.cos(freakOutOscPhaseRef.current);
-            }
-            freakOutRingAngleRef.current +=
-              0.8 * freakOutRotationSpeedRef.current * foDir * freakOutRotBlendRef.current * simDt;
-            freakOutPose(
-              _foOffset,
-              _foQuat,
-              swingYawRef.current,
-              freakOutSwingAxisRef.current,
-              foSwingAngle,
-              Math.max(0, freakOutSwingLengthRef.current),
-              Math.max(0, freakOutRingRadiusRef.current),
-              freakOutRotationAxisRef.current,
-              freakOutRingAngleRef.current,
-            );
-            if (foBlend < 0.9995) {
-              _foOffset.multiplyScalar(foBlend);
-              _foQuat.slerpQuaternions(_foIdentity, _foQuat, foBlend);
-            }
-            camX += _foOffset.x;
-            camYRef.current = (camYRef.current ?? 0) + _foOffset.y;
-            camZ += _foOffset.z;
-            freakOutViewActive = true;
-          }
-        }
         camVYRef.current = 0;
       } else {
         // NAV-spaken är kamera-relativ: stick.y "framåt" ska alltid röra sig
@@ -7995,11 +7961,83 @@ export function Aquafulness() {
       // baking it into camYRef.current would feed back into next frame's
       // buoyancy spring (which targets the real wave surface) and just get
       // sprung back down instead of actually lifting the view.
+      // FREAK OUT: the carousel ride, a mode of its own like TORNADO — it runs
+      // on top of whichever camera mode is active (with GUNGA both swings
+      // simply add up) as a purely rendered offset + view rotation, never fed
+      // back into posRef/camYRef, so floating's buoyancy spring and the other
+      // modes' physics carry on untouched underneath. Turning it on (or
+      // switching modes while it's on) eases in along a smoothstep over
+      // FREAK_OUT_EASE_S seconds — zero velocity at both ends, so neither the
+      // seat offset nor the view tilt ever jerks — and every ride axis is
+      // relative to the heading captured when the ride starts from rest.
+      // The ring spins at full speed from the very first frame (the whole
+      // ride's blend already eases it in); freakOutRotBlendRef only ramps
+      // the spin when ROTATION is toggled while the ride is running. With
+      // ALTERNATE, cos() of its own clock smoothly reverses the spin.
+      {
+        const FREAK_OUT_EASE_S = 1.6;
+        const foTarget = freakOutOnRef.current ? 1 : 0;
+        if (foTarget > 0 && freakOutRampRef.current <= 0) {
+          freakOutYawRef.current = yawRef.current;
+          freakOutSwingPhaseRef.current = 0;
+          freakOutOscPhaseRef.current = 0;
+          freakOutRotBlendRef.current = freakOutRotationOnRef.current ? 1 : 0;
+        }
+        const foStep = physDt / FREAK_OUT_EASE_S;
+        freakOutRampRef.current =
+          foTarget > freakOutRampRef.current
+            ? Math.min(foTarget, freakOutRampRef.current + foStep)
+            : Math.max(foTarget, freakOutRampRef.current - foStep);
+        const foLin = freakOutRampRef.current;
+        const foBlend = foLin * foLin * (3 - 2 * foLin);
+        freakOutBlendRef.current = foBlend;
+        if (foBlend > 0.0005) {
+          freakOutSwingPhaseRef.current +=
+            0.6 * Math.max(0, Math.min(5, freakOutSwingSpeedRef.current)) * physDt;
+          const foSwingAngle =
+            THREE.MathUtils.degToRad(freakOutSwingAngleRef.current) *
+            Math.sin(freakOutSwingPhaseRef.current);
+          freakOutRotBlendRef.current +=
+            ((freakOutRotationOnRef.current ? 1 : 0) - freakOutRotBlendRef.current) *
+            (1 - Math.exp(-physDt / 0.4));
+          let foDir = freakOutRotationDirectionRef.current === "ccw" ? -1 : 1;
+          if (freakOutRotationOscillateRef.current) {
+            freakOutOscPhaseRef.current +=
+              0.5 * Math.max(0.01, freakOutRotationOscillateSpeedRef.current) * physDt;
+            foDir *= Math.cos(freakOutOscPhaseRef.current);
+          }
+          freakOutRingAngleRef.current +=
+            0.8 *
+            Math.max(0, freakOutRotationSpeedRef.current) *
+            foDir *
+            freakOutRotBlendRef.current *
+            physDt;
+          freakOutPose(
+            _foOffset,
+            _foQuat,
+            freakOutYawRef.current,
+            freakOutSwingAxisRef.current,
+            foSwingAngle,
+            Math.max(0, freakOutSwingLengthRef.current),
+            Math.max(0, freakOutRingRadiusRef.current),
+            freakOutRotationAxisRef.current,
+            freakOutRingAngleRef.current,
+          );
+          if (foBlend < 0.9995) {
+            _foOffset.multiplyScalar(foBlend);
+            _foQuat.slerpQuaternions(_foIdentity, _foQuat, foBlend);
+          }
+          freakOutViewActive = true;
+        } else {
+          _foOffset.set(0, 0, 0);
+        }
+      }
+
       const camY = (camYRef.current ?? 0) + tornadoLiftOffsetRef.current * tornadoBlendRef.current;
       camera.position.set(
-        camX + camOffXRef.current + swayX + surgeX,
-        camY + camOffYRef.current + levelY,
-        camZ + camOffZRef.current + swayZ + surgeZ,
+        camX + camOffXRef.current + swayX + surgeX + _foOffset.x,
+        camY + camOffYRef.current + levelY + _foOffset.y,
+        camZ + camOffZRef.current + swayZ + surgeZ + _foOffset.z,
       );
       // Look direction: normally level forward; with TORNADO FOLLOW CENTER
       // on, eases toward facing the tornado/whirlpool's own center instead
@@ -8017,8 +8055,8 @@ export function Aquafulness() {
       // keeps SURGE a pure translation: it shifts camera.position and this
       // look target by the exact same amount, so the view direction itself
       // never turns.
-      const normalLookX = camX + camOffXRef.current + swayX + surgeX;
-      const normalLookZ = camZ + camOffZRef.current + swayZ + surgeZ - 20;
+      const normalLookX = camX + camOffXRef.current + swayX + surgeX + _foOffset.x;
+      const normalLookZ = camZ + camOffZRef.current + swayZ + surgeZ + _foOffset.z - 20;
       // Aim at the tornado/whirlpool's own center — posRef.current, the same
       // anchor the orbit itself is centered on ("at the same xz spot") —
       // level with the camera so the throat is visible without the horizon
@@ -9012,6 +9050,8 @@ export function Aquafulness() {
     setFreakOutRotationOscillate,
     freakOutRotationOscillateSpeed,
     setFreakOutRotationOscillateSpeed,
+    freakOutRotationDirection,
+    setFreakOutRotationDirection,
     tornadoOn,
     setTornadoOn,
     tornadoRadius,
@@ -9738,6 +9778,18 @@ export function Aquafulness() {
               )}
             </button>
           )}
+          {!intervalSessionOn && (
+            <button
+              type="button"
+              onClick={() => setFreakOutOn((v) => !v)}
+              aria-pressed={freakOutOn}
+              className={`pointer-events-auto rounded-full border px-3 py-1.5 text-[10px] font-light tracking-[0.2em] backdrop-blur-md transition active:scale-95 ${
+                freakOutOn ? "ui-line-3 ui-tint-2 ui-ink" : "ui-line-2 ui-surface ui-ink-muted"
+              }`}
+            >
+              {t("dial.camera.freakOut")}
+            </button>
+          )}
           {intervalSessionOn ? (
             <div className="pointer-events-auto rounded-full border ui-line-1 ui-surface px-4 py-1.5 text-[10px] font-light tracking-[0.3em] ui-ink-muted backdrop-blur-md">
               {t(CAMERA_MODE_LABEL_KEYS[cameraMode])} {t("camera.mode.autoSuffix")}
@@ -10059,6 +10111,16 @@ export function Aquafulness() {
                   >
                     {t("dial.camera.tornado")}
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setCameraDrawerTab("freakout")}
+                    aria-pressed={cameraDrawerTab === "freakout"}
+                    className={`whitespace-nowrap rounded-full px-3 py-1 text-[9px] font-light tracking-[0.2em] transition active:scale-95 ${
+                      cameraDrawerTab === "freakout" ? "ui-tint-2 ui-ink" : "ui-ink-muted"
+                    }`}
+                  >
+                    {t("dial.camera.freakOut")}
+                  </button>
                   {(["torus", "sky", "level"] as const).map((tab) => (
                     <button
                       key={tab}
@@ -10189,64 +10251,6 @@ export function Aquafulness() {
                       {t("dial.camera.swingKeepSpeed")}:{" "}
                       {t(swingKeepSpeed ? "common.on" : "common.off")}
                     </button>
-                    {/* FREAK OUT: quick toggle + the main ride dials; the
-                        axes and spin-reversal settings live in the full
-                        settings panel under GUNGA. */}
-                    <button
-                      type="button"
-                      onClick={() => setFreakOutOn((v) => !v)}
-                      aria-pressed={freakOutOn}
-                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
-                        freakOutOn
-                          ? "ui-line-3 ui-tint-2 ui-ink"
-                          : "ui-line-2 ui-surface ui-ink-muted"
-                      }`}
-                    >
-                      {t("dial.camera.freakOut")}: {t(freakOutOn ? "common.on" : "common.off")}
-                    </button>
-                    {freakOutOn && (
-                      <>
-                        <PadSlider
-                          label={t("dial.camera.freakOutSwingAngle")}
-                          value={freakOutSwingAngle}
-                          min={0}
-                          max={180}
-                          step={1}
-                          format={(v) => `${v.toFixed(0)}°`}
-                          onChange={setFreakOutSwingAngle}
-                        />
-                        <PadSlider
-                          label={t("dial.camera.freakOutSwingSpeed")}
-                          value={freakOutSwingSpeed}
-                          min={0}
-                          max={5}
-                          step={0.05}
-                          curve={2}
-                          format={(v) => `${v.toFixed(2)}×`}
-                          onChange={setFreakOutSwingSpeed}
-                        />
-                        <PadSlider
-                          label={t("dial.camera.freakOutSwingLength")}
-                          value={freakOutSwingLength}
-                          min={0}
-                          max={200}
-                          step={0.5}
-                          curve={2}
-                          format={(v) => `${v.toFixed(1)}m`}
-                          onChange={setFreakOutSwingLength}
-                        />
-                        <PadSlider
-                          label={t("dial.camera.freakOutRotationSpeed")}
-                          value={freakOutRotationSpeed}
-                          min={0}
-                          max={10}
-                          step={0.05}
-                          curve={2}
-                          format={(v) => `${v.toFixed(2)}×`}
-                          onChange={setFreakOutRotationSpeed}
-                        />
-                      </>
-                    )}
                   </>
                 )}
                 {/* BADRINGAR: the bath-ring field's main dials (the rest —
@@ -10502,6 +10506,121 @@ export function Aquafulness() {
                 {/* TORNADO: a fixed tab (not tied to any one camera mode)
                     exposing every tornado* setting at once — mirrors the old
                     standalone VIRVEL tab this drawer used to have. */}
+                {/* FREAK OUT: the carousel ride's own tab — it runs on
+                    top of whichever camera mode is active, like TORNADO. Ring
+                    axes live in the full settings panel. */}
+                {cameraDrawerTab === "freakout" && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setFreakOutOn((v) => !v)}
+                      aria-pressed={freakOutOn}
+                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                        freakOutOn
+                          ? "ui-line-3 ui-tint-2 ui-ink"
+                          : "ui-line-2 ui-surface ui-ink-muted"
+                      }`}
+                    >
+                      {t("dial.camera.freakOut")}: {t(freakOutOn ? "common.on" : "common.off")}
+                    </button>
+                    <PadSlider
+                      label={t("dial.camera.freakOutSwingAngle")}
+                      value={freakOutSwingAngle}
+                      min={0}
+                      max={180}
+                      step={1}
+                      format={(v) => `${v.toFixed(0)}°`}
+                      onChange={setFreakOutSwingAngle}
+                    />
+                    <PadSlider
+                      label={t("dial.camera.freakOutSwingAxis")}
+                      value={freakOutSwingAxis}
+                      min={0}
+                      max={180}
+                      step={1}
+                      format={(v) => `${v.toFixed(0)}°`}
+                      onChange={setFreakOutSwingAxis}
+                    />
+                    <PadSlider
+                      label={t("dial.camera.freakOutSwingSpeed")}
+                      value={freakOutSwingSpeed}
+                      min={0}
+                      max={5}
+                      step={0.05}
+                      curve={2}
+                      format={(v) => `${v.toFixed(2)}×`}
+                      onChange={setFreakOutSwingSpeed}
+                    />
+                    <PadSlider
+                      label={t("dial.camera.freakOutSwingLength")}
+                      value={freakOutSwingLength}
+                      min={0}
+                      max={200}
+                      step={0.5}
+                      curve={2}
+                      format={(v) => `${v.toFixed(1)}m`}
+                      onChange={setFreakOutSwingLength}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setFreakOutRotationOn((v) => !v)}
+                      aria-pressed={freakOutRotationOn}
+                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                        freakOutRotationOn
+                          ? "ui-line-3 ui-tint-2 ui-ink"
+                          : "ui-line-2 ui-surface ui-ink-muted"
+                      }`}
+                    >
+                      {t("dial.camera.freakOutRotationOn")}:{" "}
+                      {t(freakOutRotationOn ? "common.on" : "common.off")}
+                    </button>
+                    <PadSlider
+                      label={t("dial.camera.freakOutRotationSpeed")}
+                      value={freakOutRotationSpeed}
+                      min={0}
+                      max={10}
+                      step={0.05}
+                      curve={2}
+                      format={(v) => `${v.toFixed(2)}×`}
+                      onChange={setFreakOutRotationSpeed}
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setFreakOutRotationDirection((d) => (d === "cw" ? "ccw" : "cw"))
+                      }
+                      className="rounded-full border ui-line-2 ui-surface px-4 py-1.5 text-[10px] font-light tracking-[0.2em] ui-ink-muted transition active:scale-95"
+                    >
+                      {t("dial.camera.freakOutRotationDirection")}:{" "}
+                      {t(TORNADO_DIRECTION_LABEL_KEYS[freakOutRotationDirection])}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFreakOutRotationOscillate((v) => !v)}
+                      aria-pressed={freakOutRotationOscillate}
+                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                        freakOutRotationOscillate
+                          ? "ui-line-3 ui-tint-2 ui-ink"
+                          : "ui-line-2 ui-surface ui-ink-muted"
+                      }`}
+                    >
+                      {t("dial.camera.freakOutRotationOscillate")}:{" "}
+                      {t(freakOutRotationOscillate ? "common.on" : "common.off")}
+                    </button>
+                    {freakOutRotationOscillate && (
+                      <PadSlider
+                        label={t("dial.camera.freakOutRotationOscillateSpeed")}
+                        value={freakOutRotationOscillateSpeed}
+                        min={0.05}
+                        max={5}
+                        step={0.05}
+                        curve={2}
+                        format={(v) => `${v.toFixed(2)}×`}
+                        onChange={setFreakOutRotationOscillateSpeed}
+                      />
+                    )}
+                  </>
+                )}
                 {cameraDrawerTab === "tornado" && (
                   <>
                     <button
@@ -10696,11 +10815,13 @@ export function Aquafulness() {
                 ? t("hud.cameraDrawer.closeLabel")
                 : cameraDrawerTab === "tornado"
                   ? t("dial.camera.tornado")
-                  : cameraDrawerTab === "torus" ||
-                      cameraDrawerTab === "sky" ||
-                      cameraDrawerTab === "level"
-                    ? t(DRAWER_EXTRA_TAB_LABEL_KEYS[cameraDrawerTab])
-                    : t(CAMERA_MODE_LABEL_KEYS[cameraDrawerTab])}
+                  : cameraDrawerTab === "freakout"
+                    ? t("dial.camera.freakOut")
+                    : cameraDrawerTab === "torus" ||
+                        cameraDrawerTab === "sky" ||
+                        cameraDrawerTab === "level"
+                      ? t(DRAWER_EXTRA_TAB_LABEL_KEYS[cameraDrawerTab])
+                      : t(CAMERA_MODE_LABEL_KEYS[cameraDrawerTab])}
             </button>
           </div>
         )}
