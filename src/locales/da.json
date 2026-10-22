@@ -202,7 +202,8 @@
       "freakOutViewFollowsRing": "FREAK OUT VISNINGEN DREJER MED",
       "freakOutShowArm": "FREAK OUT ARM",
       "freakOutShowTopRing": "FREAK OUT ØVRE RING",
-      "freakOutShowHub": "FREAK OUT NAV & SÆDERING"
+      "freakOutShowHub": "FREAK OUT NAV & SÆDERING",
+      "freakOutRingTilts": "FREAK OUT RINGEN HÆLDER MED ARMEN"
     },
     "env": {
       "backdrop": "BAGGRUND",

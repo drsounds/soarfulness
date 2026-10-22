@@ -202,7 +202,8 @@
       "freakOutViewFollowsRing": "FREAK OUT VYN SNURRAR MED",
       "freakOutShowArm": "FREAK OUT ARM",
       "freakOutShowTopRing": "FREAK OUT ÖVRE RING",
-      "freakOutShowHub": "FREAK OUT NAV & SÄTESRING"
+      "freakOutShowHub": "FREAK OUT NAV & SÄTESRING",
+      "freakOutRingTilts": "FREAK OUT RINGEN LUTAR MED ARMEN"
     },
     "env": {
       "backdrop": "BAKGRUND",
