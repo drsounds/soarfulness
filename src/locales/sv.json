@@ -861,7 +861,6 @@
     "levelDrift": "NIVÅ DRIFT",
     "strom": "STRÖM",
     "svaj": "SVAJ",
-    "swingHint": "I GUNGA-läge styrs kamerans position helt av gungans fysik — inga spakar att styra här.",
     "syncButton": "SYNKA VÅG MED SVAJ: {{state}}",
     "syncTitle": "Låt VÅGRIKTNING följa SVAJ RIKTNING automatiskt (standard: på)",
     "title": "FJÄRRKONTROLL",

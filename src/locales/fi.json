@@ -861,7 +861,6 @@
     "levelDrift": "TASON AJAUTUMA",
     "strom": "VIRTAUS",
     "svaj": "HEILUNTA",
-    "swingHint": "KEINU-tilassa kameran sijainti määräytyy kokonaan keinun fysiikasta — ei ohjaimia täällä.",
     "syncButton": "SYNKRONOI AALTO HEILUNNAN KANSSA: {{state}}",
     "syncTitle": "Anna AALLON SUUNNAN seurata HEILUNNAN SUUNTAA automaattisesti (oletus: päällä)",
     "title": "KAUKOSÄÄDIN",

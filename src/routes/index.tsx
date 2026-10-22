@@ -6996,6 +6996,26 @@ export function Aquafulness() {
         // truly settles toward a motionless hover instead of bottoming out
         // at a fixed minimum swing; intensity 1 still matches the
         // original tuning (40° arc, omega 0.55).
+        //
+        // STRÖM (fixed world direction) always carries the anchor along, just
+        // like it carries the camera in FRI, and NAV (camera-relative) moves
+        // it too unless TORNADO is on — then NAV keeps its in/out radius role
+        // below instead.
+        {
+          let walkX = 0,
+            walkZ = 0;
+          if (!tornadoOnRef.current) {
+            const yaw = yawRef.current;
+            const fwdX = -Math.sin(yaw),
+              fwdZ = -Math.cos(yaw);
+            const rightX = Math.cos(yaw),
+              rightZ = -Math.sin(yaw);
+            walkX = stickRef.current.x * rightX + stickRef.current.y * fwdX;
+            walkZ = stickRef.current.x * rightZ + stickRef.current.y * fwdZ;
+          }
+          posRef.current.x += (walkX * walkSpeed + driftWorldRef.current.x * driftSpeed) * physDt;
+          posRef.current.z += (walkZ * walkSpeed + driftWorldRef.current.z * driftSpeed) * physDt;
+        }
         const theta = swingThetaNow;
         const rawSwingY =
           swingPositionYRef.current +
@@ -7016,10 +7036,9 @@ export function Aquafulness() {
         const rawSwingOff = Math.sin(theta) * horizArmLen * swingXFactorRef.current;
         const pendOffX = rightX * rawSwingOff;
         const pendOffZ = rightZ * rawSwingOff;
-        // Manual radial control: swing has no "current" dial of its own, so
-        // only NAV's y-axis (shown alongside the pendulum controls whenever
-        // TORNADO is on — see the Joystick's visibility condition) pulls the
-        // orbit in/out — see updateTornadoLiveRadius above.
+        // Manual radial control: STRÖM moves the whole anchor here (see
+        // above), so only NAV's y-axis pulls the orbit in/out while TORNADO
+        // is on — see updateTornadoLiveRadius above.
         if (tornadoOnRef.current) {
           updateTornadoLiveRadius(-stickRef.current.y * walkSpeed);
         }
@@ -9489,19 +9508,17 @@ export function Aquafulness() {
             STRÖM/DRIFT XZ:s kolumn, ovanför den.
             STRÖM/HÖJD/SVAJ/VÅGRIKT finns även i "Fjärrkontroll"-appen i
             bathOS-telefonen (se VirtualPhone.tsx) — samma state/handlers,
-            bara ett andra sätt att nå dem. I GUNGA-läget styrs positionen
-            helt av gungans fysik, så bara LOOK visas — utom när TORNADO är
-            på, då NAV:s y-axel även får styra avståndet in mot/ut från
-            virvelns centrum (se updateTornadoLiveRadius). */}
-        {(cameraMode !== "swing" || tornadoOn) && (
-          <Joystick
-            onChange={setStick}
-            value={stick}
-            label={t("hud.joystick.nav")}
-            positionClass="bottom-[calc(env(safe-area-inset-bottom,0px)+2rem)] left-[calc(env(safe-area-inset-left,0px)+2rem)]"
-          />
-        )}
-        {cameraMode === "float" && (
+            bara ett andra sätt att nå dem. I GUNGA-läget flyttar NAV/STRÖM
+            gungans ankarpunkt — utom när TORNADO är på, då NAV:s y-axel i
+            stället styr avståndet in mot/ut från virvelns centrum (se
+            updateTornadoLiveRadius). */}
+        <Joystick
+          onChange={setStick}
+          value={stick}
+          label={t("hud.joystick.nav")}
+          positionClass="bottom-[calc(env(safe-area-inset-bottom,0px)+2rem)] left-[calc(env(safe-area-inset-left,0px)+2rem)]"
+        />
+        {(cameraMode === "float" || cameraMode === "swing") && (
           <Joystick
             onChange={remoteControllerProps.onDriftChange}
             value={remoteControllerProps.driftStick}

@@ -117,12 +117,14 @@ function loadPhoneState(): PhoneState {
     const apps = Array.isArray(p.apps)
       ? (p.apps as unknown[])
           .filter((a): a is Record<string, unknown> => !!a && typeof a === "object")
-          .map((a): BathApp => ({
-            id: typeof a.id === "string" ? a.id : Math.random().toString(36).slice(2),
-            name: typeof a.name === "string" ? a.name : "App",
-            url: typeof a.url === "string" ? a.url : "",
-            icon: a.icon === "youtube" || a.icon === "browser" ? a.icon : "link",
-          }))
+          .map(
+            (a): BathApp => ({
+              id: typeof a.id === "string" ? a.id : Math.random().toString(36).slice(2),
+              name: typeof a.name === "string" ? a.name : "App",
+              url: typeof a.url === "string" ? a.url : "",
+              icon: a.icon === "youtube" || a.icon === "browser" ? a.icon : "link",
+            }),
+          )
       : fallback.apps;
     return {
       x: num(p.x, fallback.x),
@@ -976,133 +978,128 @@ export function VirtualPhone({
               <div className="ui-ink-muted text-center text-[10px] font-light tracking-[0.4em]">
                 {t("remote.title")}
               </div>
-              {remoteControllerProps.cameraMode === "swing" ? (
-                <div className="ui-ink-faint mt-6 text-center text-[10px] leading-relaxed">
-                  {t("remote.swingHint")}
-                </div>
-              ) : (
-                <>
-                  <div className="flex flex-wrap items-start justify-center gap-3">
-                    {remoteControllerProps.cameraMode === "float" && (
-                      <JoystickPad
-                        label={t("remote.strom")}
-                        value={remoteControllerProps.driftStick}
-                        onChange={remoteControllerProps.onDriftChange}
-                        sticky
-                      />
-                    )}
-                    {remoteControllerProps.cameraMode === "noclip" && (
-                      <JoystickPad
-                        label={t("hud.joystick.noclipDriftXZ")}
-                        value={remoteControllerProps.noclipDriftStick}
-                        onChange={remoteControllerProps.onNoclipDriftChange}
-                        sticky
-                      />
-                    )}
-                    {remoteControllerProps.cameraMode === "noclip" && (
-                      <JoystickPad
-                        label={t("remote.hojd")}
-                        value={remoteControllerProps.vertStick}
-                        onChange={remoteControllerProps.onVertChange}
-                        sticky
-                      />
-                    )}
-                    {remoteControllerProps.cameraMode === "float" && (
-                      <JoystickPad
-                        label={t("remote.svaj")}
-                        value={remoteControllerProps.swayStick}
-                        onChange={remoteControllerProps.onSwayChange}
-                        sticky
-                      />
-                    )}
-                    {remoteControllerProps.cameraMode === "float" && (
-                      <JoystickPad
-                        label={t("remote.vagrikt")}
-                        value={remoteControllerProps.waveDirStick}
-                        onChange={remoteControllerProps.onWaveDirChange}
-                        sticky
-                      />
-                    )}
-                    <div className="flex flex-col items-center gap-1">
-                      <VerticalDial
-                        label={t("remote.levelDrift")}
-                        value={remoteControllerProps.depthDriftSpeed}
-                        onChange={remoteControllerProps.setDepthDriftSpeed}
-                        min={-20}
-                        max={20}
-                      />
-                      <button
-                        type="button"
-                        onClick={remoteControllerProps.resetDepthLevel}
-                        className="ui-line-2 ui-surface ui-ink-muted rounded-full border px-2 py-0.5 text-[8px] font-light tracking-[0.2em] transition active:scale-95"
-                      >
-                        {t("hud.levelReset")}
-                      </button>
-                    </div>
-                  </div>
+              <>
+                <div className="flex flex-wrap items-start justify-center gap-3">
+                  {(remoteControllerProps.cameraMode === "float" ||
+                    remoteControllerProps.cameraMode === "swing") && (
+                    <JoystickPad
+                      label={t("remote.strom")}
+                      value={remoteControllerProps.driftStick}
+                      onChange={remoteControllerProps.onDriftChange}
+                      sticky
+                    />
+                  )}
                   {remoteControllerProps.cameraMode === "noclip" && (
-                    <div className="flex justify-center gap-3">
-                      <button
-                        onClick={() => {
-                          remoteControllerProps.setNoclipAutoAlternateOn(false);
-                          remoteControllerProps.setNoclipReverseRiseOn((v) => !v);
-                        }}
-                        className={`rounded-full border px-3 py-1.5 text-center text-[9px] font-light tracking-wider transition active:scale-95 ${
-                          remoteControllerProps.noclipReverseRiseOn
-                            ? "ui-line-3 ui-tint-2 ui-ink"
-                            : "ui-line-1 ui-tint-1 ui-ink-muted"
-                        }`}
-                        aria-pressed={remoteControllerProps.noclipReverseRiseOn}
-                      >
-                        {t("hud.joystick.reverseRise")}
-                      </button>
-                      <button
-                        onClick={() => {
-                          remoteControllerProps.setNoclipAutoAlternateOn(false);
-                          remoteControllerProps.setNoclipFreeFallOn((v) => !v);
-                        }}
-                        className={`rounded-full border px-3 py-1.5 text-center text-[9px] font-light tracking-wider transition active:scale-95 ${
-                          remoteControllerProps.noclipFreeFallOn
-                            ? "ui-line-3 ui-tint-2 ui-ink"
-                            : "ui-line-1 ui-tint-1 ui-ink-muted"
-                        }`}
-                        aria-pressed={remoteControllerProps.noclipFreeFallOn}
-                      >
-                        {t("hud.joystick.freeFall")}
-                      </button>
-                      <button
-                        onClick={() => remoteControllerProps.setNoclipAutoAlternateOn((v) => !v)}
-                        className={`rounded-full border px-3 py-1.5 text-center text-[9px] font-light tracking-wider transition active:scale-95 ${
-                          remoteControllerProps.noclipAutoAlternateOn
-                            ? "ui-line-3 ui-tint-2 ui-ink"
-                            : "ui-line-1 ui-tint-1 ui-ink-muted"
-                        }`}
-                        aria-pressed={remoteControllerProps.noclipAutoAlternateOn}
-                      >
-                        {t("hud.joystick.autoAlternate")}
-                      </button>
-                    </div>
+                    <JoystickPad
+                      label={t("hud.joystick.noclipDriftXZ")}
+                      value={remoteControllerProps.noclipDriftStick}
+                      onChange={remoteControllerProps.onNoclipDriftChange}
+                      sticky
+                    />
+                  )}
+                  {remoteControllerProps.cameraMode === "noclip" && (
+                    <JoystickPad
+                      label={t("remote.hojd")}
+                      value={remoteControllerProps.vertStick}
+                      onChange={remoteControllerProps.onVertChange}
+                      sticky
+                    />
                   )}
                   {remoteControllerProps.cameraMode === "float" && (
+                    <JoystickPad
+                      label={t("remote.svaj")}
+                      value={remoteControllerProps.swayStick}
+                      onChange={remoteControllerProps.onSwayChange}
+                      sticky
+                    />
+                  )}
+                  {remoteControllerProps.cameraMode === "float" && (
+                    <JoystickPad
+                      label={t("remote.vagrikt")}
+                      value={remoteControllerProps.waveDirStick}
+                      onChange={remoteControllerProps.onWaveDirChange}
+                      sticky
+                    />
+                  )}
+                  <div className="flex flex-col items-center gap-1">
+                    <VerticalDial
+                      label={t("remote.levelDrift")}
+                      value={remoteControllerProps.depthDriftSpeed}
+                      onChange={remoteControllerProps.setDepthDriftSpeed}
+                      min={-20}
+                      max={20}
+                    />
                     <button
-                      onClick={() => remoteControllerProps.setSyncWaveWithSway((v) => !v)}
+                      type="button"
+                      onClick={remoteControllerProps.resetDepthLevel}
+                      className="ui-line-2 ui-surface ui-ink-muted rounded-full border px-2 py-0.5 text-[8px] font-light tracking-[0.2em] transition active:scale-95"
+                    >
+                      {t("hud.levelReset")}
+                    </button>
+                  </div>
+                </div>
+                {remoteControllerProps.cameraMode === "noclip" && (
+                  <div className="flex justify-center gap-3">
+                    <button
+                      onClick={() => {
+                        remoteControllerProps.setNoclipAutoAlternateOn(false);
+                        remoteControllerProps.setNoclipReverseRiseOn((v) => !v);
+                      }}
                       className={`rounded-full border px-3 py-1.5 text-center text-[9px] font-light tracking-wider transition active:scale-95 ${
-                        remoteControllerProps.syncWaveWithSway
+                        remoteControllerProps.noclipReverseRiseOn
                           ? "ui-line-3 ui-tint-2 ui-ink"
                           : "ui-line-1 ui-tint-1 ui-ink-muted"
                       }`}
-                      aria-pressed={remoteControllerProps.syncWaveWithSway}
-                      title={t("remote.syncTitle")}
+                      aria-pressed={remoteControllerProps.noclipReverseRiseOn}
                     >
-                      {t("remote.syncButton", {
-                        state: remoteControllerProps.syncWaveWithSway
-                          ? t("common.on")
-                          : t("common.off"),
-                      })}
+                      {t("hud.joystick.reverseRise")}
                     </button>
-                  )}
-                </>
-              )}
+                    <button
+                      onClick={() => {
+                        remoteControllerProps.setNoclipAutoAlternateOn(false);
+                        remoteControllerProps.setNoclipFreeFallOn((v) => !v);
+                      }}
+                      className={`rounded-full border px-3 py-1.5 text-center text-[9px] font-light tracking-wider transition active:scale-95 ${
+                        remoteControllerProps.noclipFreeFallOn
+                          ? "ui-line-3 ui-tint-2 ui-ink"
+                          : "ui-line-1 ui-tint-1 ui-ink-muted"
+                      }`}
+                      aria-pressed={remoteControllerProps.noclipFreeFallOn}
+                    >
+                      {t("hud.joystick.freeFall")}
+                    </button>
+                    <button
+                      onClick={() => remoteControllerProps.setNoclipAutoAlternateOn((v) => !v)}
+                      className={`rounded-full border px-3 py-1.5 text-center text-[9px] font-light tracking-wider transition active:scale-95 ${
+                        remoteControllerProps.noclipAutoAlternateOn
+                          ? "ui-line-3 ui-tint-2 ui-ink"
+                          : "ui-line-1 ui-tint-1 ui-ink-muted"
+                      }`}
+                      aria-pressed={remoteControllerProps.noclipAutoAlternateOn}
+                    >
+                      {t("hud.joystick.autoAlternate")}
+                    </button>
+                  </div>
+                )}
+                {remoteControllerProps.cameraMode === "float" && (
+                  <button
+                    onClick={() => remoteControllerProps.setSyncWaveWithSway((v) => !v)}
+                    className={`rounded-full border px-3 py-1.5 text-center text-[9px] font-light tracking-wider transition active:scale-95 ${
+                      remoteControllerProps.syncWaveWithSway
+                        ? "ui-line-3 ui-tint-2 ui-ink"
+                        : "ui-line-1 ui-tint-1 ui-ink-muted"
+                    }`}
+                    aria-pressed={remoteControllerProps.syncWaveWithSway}
+                    title={t("remote.syncTitle")}
+                  >
+                    {t("remote.syncButton", {
+                      state: remoteControllerProps.syncWaveWithSway
+                        ? t("common.on")
+                        : t("common.off"),
+                    })}
+                  </button>
+                )}
+              </>
             </div>
           ) : (
             // "Skärmar" — screen management: the edit-mode ("pencil") toggle

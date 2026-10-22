@@ -861,7 +861,6 @@
     "levelDrift": "NIVEAU DRIFT",
     "strom": "STRØM",
     "svaj": "SVAJ",
-    "swingHint": "I GYNGE-tilstand styres kameraets position helt af gyngens fysik — ingen styrepinde her.",
     "syncButton": "SYNK BØLGE MED SVAJ: {{state}}",
     "syncTitle": "Lad BØLGERETNING automatisk følge SVAJ RETNING (standard: til)",
     "title": "FJERNBETJENING",
