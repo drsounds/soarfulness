@@ -858,7 +858,6 @@
     "levelDrift": "NIVÅ DRIFT",
     "strom": "STRØM",
     "svaj": "SVAI",
-    "swingHint": "I HUSKE-modus styres kameraets posisjon helt av huskens fysikk — ingen spaker å styre her.",
     "syncButton": "SYNK BØLGE MED SVAI: {{state}}",
     "syncTitle": "La BØLGERETNING automatisk følge SVAI RETNING (standard: på)",
     "title": "FJERNKONTROLL",

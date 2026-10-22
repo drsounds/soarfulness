@@ -858,7 +858,6 @@
     "levelDrift": "LEVEL DRIFT",
     "strom": "CURRENT",
     "svaj": "SWAY",
-    "swingHint": "In SWING mode the camera's position is fully driven by the swing's physics — no sticks to control here.",
     "syncButton": "SYNC WAVE WITH SWAY: {{state}}",
     "syncTitle": "Let WAVE DIRECTION automatically follow SWAY DIRECTION (default: on)",
     "title": "REMOTE",
