@@ -1,6 +1,12 @@
 import { createFileRoute, useLoaderData } from "@tanstack/react-router";
 import { useRef } from "react";
-import { Aquafulness, STORAGE_KEY, CAMERA_STORAGE_KEY, type CameraPose } from "@/routes/index";
+import {
+  Aquafulness,
+  STORAGE_KEY,
+  CAMERA_STORAGE_KEY,
+  SEEDED_PAYLOAD_KEY,
+  type CameraPose,
+} from "@/routes/index";
 import { InvalidBathLink } from "@/components/InvalidBathLink";
 
 // The actual immersive experience behind a "bathing" link — as opposed to
@@ -13,6 +19,7 @@ export const Route = createFileRoute("/bathing/$payload/bathe")({
 
 function BatheRoute() {
   const { payload } = useLoaderData({ from: "/bathing/$payload" });
+  const { payload: encoded } = Route.useParams();
   // Seeds the same localStorage keys the "/" route's own Aquafulness
   // component reads once at mount (see routes/index.tsx's loadSettings/
   // loadCameraPose), so by the time it renders below it boots straight into
@@ -25,10 +32,23 @@ function BatheRoute() {
   if (!seeded.current && typeof window !== "undefined" && payload) {
     seeded.current = true;
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload.s));
-      if (payload.c) {
-        const pose: CameraPose = payload.c;
-        window.localStorage.setItem(CAMERA_STORAGE_KEY, JSON.stringify(pose));
+      let alreadySeeded = false;
+      try {
+        alreadySeeded = window.sessionStorage.getItem(SEEDED_PAYLOAD_KEY) === encoded;
+      } catch {
+        /* sessionStorage unavailable — seed as before */
+      }
+      if (!alreadySeeded) {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload.s));
+        if (payload.c) {
+          const pose: CameraPose = payload.c;
+          window.localStorage.setItem(CAMERA_STORAGE_KEY, JSON.stringify(pose));
+        }
+        try {
+          window.sessionStorage.setItem(SEEDED_PAYLOAD_KEY, encoded);
+        } catch {
+          /* ignore */
+        }
       }
     } catch {
       /* quota or privacy mode — the bath still opens, just with whatever
