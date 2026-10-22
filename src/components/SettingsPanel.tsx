@@ -522,6 +522,9 @@ export type SettingsPanelProps = {
   // Vertical excursion of the swing (formerly "swingYAmplitude").
   swingHeight: number;
   setSwingHeight: Dispatch<SetStateAction<number>>;
+  // Holds the swing's actual speed when GUNGA HÖJD changes (see index.tsx).
+  swingKeepSpeed: boolean;
+  setSwingKeepSpeedOn: (on: boolean) => void;
   swingPreset: SwingPreset;
   applySwingPreset: (preset: SwingPreset) => void;
   cycleSwingPreset: (dir: number) => void;
@@ -1289,6 +1292,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setSwingXFactor,
     swingHeight,
     setSwingHeight,
+    swingKeepSpeed,
+    setSwingKeepSpeedOn,
     swingPreset,
     applySwingPreset,
     cycleSwingPreset,
@@ -2586,6 +2591,12 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       step={100}
                       onDec={() => setSwingHeight((v) => Math.max(0, +(v - 100).toFixed(0)))}
                       onInc={() => setSwingHeight((v) => Math.min(100000, +(v + 100).toFixed(0)))}
+                    />
+                    <SettingRow
+                      label={t("dial.camera.swingKeepSpeed")}
+                      value={onOff(swingKeepSpeed)}
+                      onDec={() => setSwingKeepSpeedOn(false)}
+                      onInc={() => setSwingKeepSpeedOn(true)}
                     />
                     <SettingRow
                       label={t("dial.camera.swingYWaveform")}

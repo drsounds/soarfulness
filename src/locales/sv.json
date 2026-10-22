@@ -161,6 +161,7 @@
       "sessionType": "PASSTYP",
       "showStats": "VISA TID",
       "swingHeight": "GUNGA HÖJD",
+      "swingKeepSpeed": "GUNGA BEHÅLL TEMPO",
       "swingIntensity": "GUNGA INTENSITET",
       "swingSpeed": "GUNGA HASTIGHET",
       "swingPositionY": "GUNGA POSITION Y",

@@ -618,6 +618,12 @@ export type Persisted = {
   swingHeight: number;
   swingPreset: SwingPreset;
   swingYWaveform: SwingYWaveform;
+  // GUNGA BEHÅLL TEMPO: when on, the swing's cycle rate is scaled by
+  // swingKeepSpeedRefHeight / swingHeight so changing GUNGA HÖJD doesn't
+  // also change how fast the camera moves. The reference height is captured
+  // when the option is turned on.
+  swingKeepSpeed: boolean;
+  swingKeepSpeedRefHeight: number;
   intervalSessionOn: boolean;
   intervalDuration: number;
   intervalSessionType: IntervalSessionType;
@@ -691,6 +697,8 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "swingXFactor",
     "swingHeight",
     "swingYWaveform",
+    "swingKeepSpeed",
+    "swingKeepSpeedRefHeight",
     "tornadoOn",
     "tornadoRadius",
     "tornadoSpeed",

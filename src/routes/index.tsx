@@ -1024,6 +1024,8 @@ const DEFAULTS: Persisted = {
   swingHeight: 20000,
   swingPreset: "water",
   swingYWaveform: "pendulum",
+  swingKeepSpeed: false,
+  swingKeepSpeedRefHeight: 20000,
   // Unified TORNADO toggle for GUNGA (swing) and flying (noclip/watercraft):
   // off by default (plain pendulum arc / plain free flight).
   tornadoOn: false,
@@ -1560,6 +1562,10 @@ export function Aquafulness() {
   // thousands of meters up/down from wherever it rests.
   const [swingHeight, setSwingHeight] = useState(initial.swingHeight);
   const [swingYWaveform, setSwingYWaveform] = useState<SwingYWaveform>(initial.swingYWaveform);
+  const [swingKeepSpeed, setSwingKeepSpeed] = useState(initial.swingKeepSpeed);
+  const [swingKeepSpeedRefHeight, setSwingKeepSpeedRefHeight] = useState(
+    initial.swingKeepSpeedRefHeight,
+  );
   const [swingPreset, setSwingPreset] = useState<SwingPreset>(initial.swingPreset);
   // Unified TORNADO toggle, shared by GUNGA (swing) and flying (noclip/
   // watercraft) alike: instead of a back-and-forth pendulum arc / plain
@@ -2058,6 +2064,8 @@ export function Aquafulness() {
     swingHeight,
     swingPreset,
     swingYWaveform,
+    swingKeepSpeed,
+    swingKeepSpeedRefHeight,
     tornadoOn,
     tornadoRadius,
     tornadoSpeed,
@@ -2244,6 +2252,8 @@ export function Aquafulness() {
     swingHeight,
     swingPreset,
     swingYWaveform,
+    swingKeepSpeed,
+    swingKeepSpeedRefHeight,
     tornadoOn,
     tornadoRadius,
     tornadoSpeed,
@@ -2350,6 +2360,8 @@ export function Aquafulness() {
   const swingXFactorRef = useRef(swingXFactor);
   const swingHeightRef = useRef(swingHeight);
   const swingYWaveformRef = useRef(swingYWaveform);
+  const swingKeepSpeedRef = useRef(swingKeepSpeed);
+  const swingKeepSpeedRefHeightRef = useRef(swingKeepSpeedRefHeight);
   // Set the instant swing mode is entered: captures where the camera actually
   // was (continuous with whatever mode came before) so the pendulum's y and
   // its horizontal arc offset can ease in from there instead of snapping
@@ -3092,6 +3104,12 @@ export function Aquafulness() {
   useEffect(() => {
     swingYWaveformRef.current = swingYWaveform;
   }, [swingYWaveform]);
+  useEffect(() => {
+    swingKeepSpeedRef.current = swingKeepSpeed;
+  }, [swingKeepSpeed]);
+  useEffect(() => {
+    swingKeepSpeedRefHeightRef.current = swingKeepSpeedRefHeight;
+  }, [swingKeepSpeedRefHeight]);
   // Live YTA dial → rescale the already-created water/cloud meshes (a no-op
   // until the WebGL mount effect below has run and populated the refs; that
   // effect applies the same scale itself when first creating them).
@@ -3481,6 +3499,8 @@ export function Aquafulness() {
     setSwingXFactor(DEFAULTS.swingXFactor);
     setSwingHeight(DEFAULTS.swingHeight);
     setSwingYWaveform(DEFAULTS.swingYWaveform);
+    setSwingKeepSpeed(DEFAULTS.swingKeepSpeed);
+    setSwingKeepSpeedRefHeight(DEFAULTS.swingKeepSpeedRefHeight);
     setTornadoOn(DEFAULTS.tornadoOn);
     setTornadoRadius(DEFAULTS.tornadoRadius);
     setTornadoSpeed(DEFAULTS.tornadoSpeed);
@@ -3677,6 +3697,9 @@ export function Aquafulness() {
     if (patch.swingHeight !== undefined) setSwingHeight(patch.swingHeight);
     if (patch.swingPreset !== undefined) setSwingPreset(patch.swingPreset);
     if (patch.swingYWaveform !== undefined) setSwingYWaveform(patch.swingYWaveform);
+    if (patch.swingKeepSpeed !== undefined) setSwingKeepSpeed(patch.swingKeepSpeed);
+    if (patch.swingKeepSpeedRefHeight !== undefined)
+      setSwingKeepSpeedRefHeight(patch.swingKeepSpeedRefHeight);
     if (patch.tornadoOn !== undefined) setTornadoOn(patch.tornadoOn);
     if (patch.tornadoRadius !== undefined) setTornadoRadius(patch.tornadoRadius);
     if (patch.tornadoSpeed !== undefined) setTornadoSpeed(patch.tornadoSpeed);
@@ -3988,6 +4011,13 @@ export function Aquafulness() {
   const cycleCameraMode = (dir: number) => {
     const idx = CAMERA_MODES.indexOf(cameraMode);
     setCameraMode(CAMERA_MODES[(idx + dir + CAMERA_MODES.length) % CAMERA_MODES.length]);
+  };
+
+  // GUNGA BEHÅLL TEMPO: turning it on remembers the current GUNGA HÖJD as
+  // the reference the swing's tempo is held at — see swingOmegaNow below.
+  const setSwingKeepSpeedOn = (on: boolean) => {
+    if (on) setSwingKeepSpeedRefHeight(swingHeightRef.current);
+    setSwingKeepSpeed(on);
   };
 
   // NIVÅ RESET: brings the water level itself back to baseline, separate
@@ -6683,8 +6713,26 @@ export function Aquafulness() {
       // bottom-of-the-arc crossing (theta === 0, nearest the water) even
       // during a "float" interval, ahead of switching into "swing".
       const swingIntensityNow = Math.max(0.0001, swingIntensityRef.current);
+      // GUNGA BEHÅLL TEMPO: GUNGA HÖJD scales the vertical excursion while
+      // the cycle rate stays put, so a taller swing also moves faster. With
+      // it on, the rate is scaled by refHeight/height instead, so the
+      // camera's actual speed stays where it was when the option was turned
+      // on however GUNGA HÖJD is changed afterwards. The phase is integrated,
+      // so the rate change never jumps the swing to another point on its arc.
+      const swingKeepSpeedScale = swingKeepSpeedRef.current
+        ? Math.max(
+            0.01,
+            Math.min(
+              100,
+              Math.max(1, swingKeepSpeedRefHeightRef.current) / Math.max(1, swingHeightRef.current),
+            ),
+          )
+        : 1;
       const swingOmegaNow =
-        0.55 * swingIntensityNow * Math.max(0.1, Math.min(5, swingSpeedRef.current));
+        0.55 *
+        swingIntensityNow *
+        Math.max(0.1, Math.min(5, swingSpeedRef.current)) *
+        swingKeepSpeedScale;
       swingPhaseRef.current += swingOmegaNow * physDt * speedRef.current;
       const swingPhaseNow = swingPhaseRef.current;
       const swingAmpRadNow = THREE.MathUtils.degToRad(Math.min(75, 40 * swingIntensityNow));
@@ -6703,7 +6751,15 @@ export function Aquafulness() {
       // there).
       const dirRad = (waveDirRef.current * Math.PI) / 180;
       const walkSpeed = 16; // m/s at full deflection
-      const driftSpeed = 13.2; // m/s at full deflection — mjukare än aktiv rörelse
+      // STRÖM / DRIFT XZ speed (m/s per unit of stick). Full deflection
+      // reaches 10× the old 13.2 m/s cap, but on a cubic ramp so small
+      // deflections still drift about as gently as before instead of every
+      // touch of the pad becoming ten times faster.
+      const currentSpeedFor = (v: { x: number; z: number }) => {
+        const m = Math.min(1, Math.hypot(v.x, v.z));
+        return 13.2 * (1 + 9 * m * m * m);
+      };
+      const driftSpeed = currentSpeedFor(driftWorldRef.current);
       let camX: number, camZ: number;
       // TORNADO CLOUD: whichever of GUNGA's or NAV/HÖJD's own tornado spin
       // (if any) is active this frame stashes its live center/radius/angle
@@ -6896,7 +6952,8 @@ export function Aquafulness() {
         // DRIFT XZ (noclipDriftWorldRef, a sticky world-space dial — same
         // idea as float mode's STRÖM) keeps carrying the camera even with
         // NAV at rest, just like STRÖM does in FRI.
-        const driftSpeedNoclip = driftSpeed * Math.max(0.1, noclipSpeedRef.current);
+        const driftSpeedNoclip =
+          currentSpeedFor(noclipDriftWorldRef.current) * Math.max(0.1, noclipSpeedRef.current);
         const moveX = stickRef.current.x * rightX + stickRef.current.y * fwdX;
         const moveZ = stickRef.current.x * rightZ + stickRef.current.y * fwdZ;
         // FRITT FALL / OMVÄND STIGNING pin the vertical rate to a strong,
@@ -8687,6 +8744,8 @@ export function Aquafulness() {
     setSwingXFactor,
     swingHeight,
     setSwingHeight,
+    swingKeepSpeed,
+    setSwingKeepSpeedOn,
     swingPreset,
     applySwingPreset,
     cycleSwingPreset,
@@ -9857,6 +9916,19 @@ export function Aquafulness() {
                       format={(v) => `${v.toFixed(0)}m`}
                       onChange={setSwingHeight}
                     />
+                    <button
+                      type="button"
+                      onClick={() => setSwingKeepSpeedOn(!swingKeepSpeed)}
+                      aria-pressed={swingKeepSpeed}
+                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                        swingKeepSpeed
+                          ? "ui-line-3 ui-tint-2 ui-ink"
+                          : "ui-line-2 ui-surface ui-ink-muted"
+                      }`}
+                    >
+                      {t("dial.camera.swingKeepSpeed")}:{" "}
+                      {t(swingKeepSpeed ? "common.on" : "common.off")}
+                    </button>
                   </>
                 )}
                 {/* BADRINGAR: the bath-ring field's main dials (the rest —

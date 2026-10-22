@@ -161,6 +161,7 @@
       "sessionType": "HARJOITUSTYYPPI",
       "showStats": "NÄYTÄ AIKA",
       "swingHeight": "KEINUN KORKEUS",
+      "swingKeepSpeed": "KEINU PIDÄ NOPEUS",
       "swingIntensity": "KEINUN INTENSITEETTI",
       "swingSpeed": "KEINUN NOPEUS",
       "swingPositionY": "KEINUN Y-SIJAINTI",
