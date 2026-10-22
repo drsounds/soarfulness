@@ -527,6 +527,12 @@ function freakOutPose(
 const _foOffset = new THREE.Vector3();
 const _foQuat = new THREE.Quaternion();
 const _foIdentity = new THREE.Quaternion();
+// FREAK OUT + TORNADO chair swing: the horizontal vector from the
+// whirlpool's center out to the view's (unswung) seat, and the rider's
+// "down" once the seat has swung out.
+const _foChairDir = new THREE.Vector3();
+const _foChairDown = new THREE.Vector3();
+const _foDown = new THREE.Vector3(0, -1, 0);
 
 // FREAK OUT's ride structure, built once per WebGL mount and re-posed every
 // frame (see the FREAK OUT rig block in the physics loop). The hierarchy
@@ -701,6 +707,8 @@ function layoutFreakOutSeats(
   count: number,
   viewSeatAngle: number,
   postLength: number,
+  // FREAK OUT + TORNADO chair swing: how far every seat swings out (rad).
+  swingOut = 0,
 ): void {
   if (rig.seatCount !== count) {
     rig.seatCount = count;
@@ -724,7 +732,9 @@ function layoutFreakOutSeats(
     seat.position.set(_foSeatPos.x, ringY, _foSeatPos.z);
     // Face the seat (and the suit's front, +Z) in toward the ring's
     // center, like the view.
-    seat.rotation.set(0, Math.atan2(-_foSeatPos.x, -_foSeatPos.z), 0);
+    // Swinging out about the ring tips the seat's bottom away from the
+    // center (local −Z).
+    seat.rotation.set(swingOut, Math.atan2(-_foSeatPos.x, -_foSeatPos.z), 0, "YXZ");
     const [post, suit] = seat.children;
     post.scale.set(1, postLength, 1);
     post.position.set(0, -postLength / 2, -FREAK_OUT_SEAT_POST_INSET);
@@ -1813,6 +1823,11 @@ export function Aquafulness() {
     initial.depthSineWaveform,
   );
   const [depthDriftSpeed, setDepthDriftSpeed] = useState(initial.depthDriftSpeed);
+  // TORNADO TO CENTER: the HUD dial that carries the bather in toward
+  // (positive) or out from (negative) the whirlpool's center while TORNADO
+  // is on, as a fraction of NAV's full speed. NAV and STRÖM move the whole
+  // whirlpool instead. A live control like the sticks, so not persisted.
+  const [tornadoRadialSpeed, setTornadoRadialSpeed] = useState(0);
   const [depthDriftSineOn, setDepthDriftSineOn] = useState(initial.depthDriftSineOn);
   const [depthDriftSineAmp, setDepthDriftSineAmp] = useState(initial.depthDriftSineAmp);
   const [depthDriftSineSpeed, setDepthDriftSineSpeed] = useState(initial.depthDriftSineSpeed);
@@ -2857,6 +2872,8 @@ export function Aquafulness() {
   // The angle round the ring of the seat the view currently rides in,
   // eased toward the chosen seat so switching seats glides along the ring.
   const freakOutSeatAngleRef = useRef(0);
+  // FREAK OUT + TORNADO chair swing: how far the seats have swung out.
+  const freakOutChairTiltRef = useRef(0);
   // FREAK OUT's own clocks (swing phase, ring spin angle, direction-
   // reversal phase) and 0..1 ease-in/out blends for the whole effect and
   // for the ring's spin, so toggling either never snaps the camera.
@@ -2989,6 +3006,7 @@ export function Aquafulness() {
   const floorTextureRef = useRef(floorTexture);
   const floorCloudsAnimatedRef = useRef(floorCloudsAnimated);
   const tornadoOnRef = useRef(tornadoOn);
+  const tornadoRadialSpeedRef = useRef(tornadoRadialSpeed);
   const tornadoRadiusRef = useRef(tornadoRadius);
   const tornadoSpeedRef = useRef(tornadoSpeed);
   const tornadoDirectionRef = useRef(tornadoDirection);
@@ -3331,6 +3349,12 @@ export function Aquafulness() {
     tornadoAngleRef.current = Math.PI / 2 - yawRef.current;
     tornadoYawBaseRef.current = yawRef.current;
   }, []);
+  useEffect(() => {
+    tornadoRadialSpeedRef.current = tornadoRadialSpeed;
+  }, [tornadoRadialSpeed]);
+  useEffect(() => {
+    if (!tornadoOn) setTornadoRadialSpeed(0);
+  }, [tornadoOn]);
   useEffect(() => {
     tornadoOnRef.current = tornadoOn;
     if (tornadoOn) seedTornadoFacing();
@@ -7445,6 +7469,9 @@ export function Aquafulness() {
       // (even partly) blended in, so the look rotation further down can
       // tilt/turn the view along with the seat (_foQuat).
       let freakOutViewActive = false;
+      // FREAK OUT + TORNADO: the ride turns into a chair swing round the
+      // whirlpool (see the FREAK OUT block below).
+      let freakOutChairSwing = false;
       let tornadoCloudX = 0;
       let tornadoCloudY = 0;
       let tornadoCloudZ = 0;
@@ -7674,14 +7701,11 @@ export function Aquafulness() {
         // reaches, so toggling TORNADO on/off eases the swirl in/out instead
         // of popping.
         {
-          // Manual radial control: NAV's y-axis (already driving forward/
-          // back flight above) also pulls the orbit in/out while TORNADO is
-          // active, plus DRIFT XZ's own z-component carrying it the same way
-          // STRÖM does for float — see updateTornadoLiveRadius above.
+          // Manual radial control: NAV and DRIFT XZ fly the whole swirl
+          // (its center) above, and only the TO CENTER dial pulls the orbit
+          // in/out — see updateTornadoLiveRadius above.
           if (tornadoOnRef.current) {
-            const radialVel =
-              -stickRef.current.y * speed + noclipDriftWorldRef.current.z * driftSpeedNoclip;
-            updateTornadoLiveRadius(radialVel);
+            updateTornadoLiveRadius(tornadoRadialSpeedRef.current * speed);
           }
           const tornadoDirSign = tornadoDirectionRef.current === "ccw" ? -1 : 1;
           const tornadoOmega =
@@ -7733,20 +7757,17 @@ export function Aquafulness() {
         //
         // STRÖM (fixed world direction) always carries the anchor along, just
         // like it carries the camera in FRI, and NAV (camera-relative) moves
-        // it too unless TORNADO is on — then NAV keeps its in/out radius role
-        // below instead.
+        // it too. With TORNADO on the anchor is the whirlpool's center, so
+        // both sticks move the whole whirlpool; the TO CENTER dial does the
+        // in/out radius below.
         {
-          let walkX = 0,
-            walkZ = 0;
-          if (!tornadoOnRef.current) {
-            const yaw = yawRef.current;
-            const fwdX = -Math.sin(yaw),
-              fwdZ = -Math.cos(yaw);
-            const rightX = Math.cos(yaw),
-              rightZ = -Math.sin(yaw);
-            walkX = stickRef.current.x * rightX + stickRef.current.y * fwdX;
-            walkZ = stickRef.current.x * rightZ + stickRef.current.y * fwdZ;
-          }
+          const yaw = yawRef.current;
+          const fwdX = -Math.sin(yaw),
+            fwdZ = -Math.cos(yaw);
+          const rightX = Math.cos(yaw),
+            rightZ = -Math.sin(yaw);
+          const walkX = stickRef.current.x * rightX + stickRef.current.y * fwdX;
+          const walkZ = stickRef.current.x * rightZ + stickRef.current.y * fwdZ;
           posRef.current.x += (walkX * walkSpeed + driftWorldRef.current.x * driftSpeed) * physDt;
           posRef.current.z += (walkZ * walkSpeed + driftWorldRef.current.z * driftSpeed) * physDt;
         }
@@ -7770,11 +7791,11 @@ export function Aquafulness() {
         const rawSwingOff = Math.sin(theta) * horizArmLen * swingXFactorRef.current;
         const pendOffX = rightX * rawSwingOff;
         const pendOffZ = rightZ * rawSwingOff;
-        // Manual radial control: STRÖM moves the whole anchor here (see
-        // above), so only NAV's y-axis pulls the orbit in/out while TORNADO
-        // is on — see updateTornadoLiveRadius above.
+        // Manual radial control: NAV and STRÖM move the whole anchor here
+        // (see above), so only the TO CENTER dial pulls the orbit in/out
+        // while TORNADO is on — see updateTornadoLiveRadius above.
         if (tornadoOnRef.current) {
-          updateTornadoLiveRadius(-stickRef.current.y * walkSpeed);
+          updateTornadoLiveRadius(tornadoRadialSpeedRef.current * walkSpeed);
         }
         const tornadoDirSign = tornadoDirectionRef.current === "ccw" ? -1 : 1;
         const tornadoOmega =
@@ -7850,15 +7871,11 @@ export function Aquafulness() {
         // written back into posRef.current), so it never feeds back into the
         // drift/current physics above.
         {
-          // Manual radial control: NAV's y-axis (already driving forward/
-          // back swimming above) also pulls the orbit in/out while TORNADO is
-          // active, plus STRÖM's own z-component carrying it the same way it
-          // already carries the swim position — see updateTornadoLiveRadius
-          // above.
+          // Manual radial control: NAV and STRÖM move the whole whirlpool
+          // (its center, posRef) above, and only the TO CENTER dial pulls
+          // the orbit in/out — see updateTornadoLiveRadius above.
           if (tornadoOnRef.current) {
-            const radialVel =
-              -stickRef.current.y * walkSpeed + driftWorldRef.current.z * driftSpeed;
-            updateTornadoLiveRadius(radialVel);
+            updateTornadoLiveRadius(tornadoRadialSpeedRef.current * walkSpeed);
           }
           const tornadoDirSign = tornadoDirectionRef.current === "ccw" ? -1 : 1;
           const tornadoOmega =
@@ -8473,7 +8490,46 @@ export function Aquafulness() {
         const foLin = freakOutRampRef.current;
         const foBlend = foLin * foLin * (3 - 2 * foLin);
         freakOutBlendRef.current = foBlend;
-        if (foBlend > 0.0005) {
+        if (foBlend > 0.0005 && tornadoOnRef.current) {
+          // FREAK OUT + TORNADO = a chair swing (slänggunga): the arm stands
+          // straight up at the whirlpool's center and the ring turns with
+          // the whirlpool, so the view's seat is wherever TORNADO's orbit
+          // already carries the camera (camX/camZ round posRef). The ride's
+          // own swing and spin step aside; instead the seat hangs from the
+          // ring and swings out with the spin, tan φ = ω²r/g.
+          freakOutChairSwing = true;
+          {
+            let d = freakOutSeatTargetAngle() - freakOutSeatAngleRef.current;
+            d = ((((d + Math.PI) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI)) - Math.PI;
+            freakOutSeatAngleRef.current += d * (1 - Math.exp(-physDt / 0.5));
+          }
+          _foChairDir.set(camX - posRef.current.x, 0, camZ - posRef.current.z);
+          const r = _foChairDir.length();
+          if (r > 1e-4) _foChairDir.multiplyScalar(1 / r);
+          else _foChairDir.set(1, 0, 0);
+          const omega = 0.35 * tornadoSpeedRef.current * tornadoBlendRef.current;
+          const tiltTarget = Math.atan2(omega * omega * r, 9.81);
+          freakOutChairTiltRef.current +=
+            (tiltTarget - freakOutChairTiltRef.current) * (1 - Math.exp(-physDt / 0.8));
+          const tilt = freakOutChairTiltRef.current;
+          // The view hangs this far below where its seat meets the ring.
+          const hang = Math.max(
+            0.3,
+            freakOutSeatRingY(freakOutSeatPostLengthClamp(freakOutSeatPostLengthRef.current)),
+          );
+          _foOffset
+            .copy(_foChairDir)
+            .multiplyScalar(hang * Math.sin(tilt))
+            .setY(hang * (1 - Math.cos(tilt)));
+          _foChairDown.copy(_foChairDir).multiplyScalar(Math.sin(tilt)).setY(-Math.cos(tilt));
+          _foQuat.setFromUnitVectors(_foDown, _foChairDown);
+          _foChairDir.multiplyScalar(r);
+          if (foBlend < 0.9995) {
+            _foOffset.multiplyScalar(foBlend);
+            _foQuat.slerpQuaternions(_foIdentity, _foQuat, foBlend);
+          }
+          freakOutViewActive = true;
+        } else if (foBlend > 0.0005) {
           freakOutSwingPhaseRef.current +=
             0.6 * Math.max(0, Math.min(5, freakOutSwingSpeedRef.current)) * physDt;
           const foSwingAngle =
@@ -8603,20 +8659,40 @@ export function Aquafulness() {
             layoutFreakOutRig(
               rig,
               armLen,
-              Math.max(0, freakOutRingRadiusRef.current),
+              freakOutChairSwing
+                ? _foChairDir.length()
+                : Math.max(0, freakOutRingRadiusRef.current),
               freakOutSeatsOnRef.current
                 ? freakOutSeatRingY(freakOutSeatPostLengthClamp(freakOutSeatPostLengthRef.current))
                 : -FREAK_OUT_SEAT_RING_DROP,
             );
-            // pivot = rest − seat + armLen·up, rest = camera.position − offset
-            rig.root.position
-              .copy(camera.position)
-              .sub(_foOffset)
-              .sub(_foSeat)
-              .add(_foArm.set(0, armLen, 0));
-            rig.root.quaternion.copy(_foQSwing);
-            rig.gondola.quaternion.copy(_foQGondola);
-            rig.align.quaternion.setFromUnitVectors(_foUp, _foAxisRing);
+            if (freakOutChairSwing) {
+              // Upright arm over the whirlpool's center; the gondola turns
+              // so its local +X points at the view's seat, which makes the
+              // ring, spokes and seats turn in step with the whirlpool.
+              rig.root.position
+                .copy(camera.position)
+                .sub(_foOffset)
+                .sub(_foChairDir)
+                .add(_foArm.set(0, armLen, 0));
+              rig.root.quaternion.identity();
+              rig.gondola.quaternion.setFromAxisAngle(
+                _foUp,
+                Math.atan2(-_foChairDir.z, _foChairDir.x),
+              );
+              rig.align.quaternion.identity();
+              _foSeat.set(_foChairDir.length(), 0, 0);
+            } else {
+              // pivot = rest − seat + armLen·up, rest = camera.position − offset
+              rig.root.position
+                .copy(camera.position)
+                .sub(_foOffset)
+                .sub(_foSeat)
+                .add(_foArm.set(0, armLen, 0));
+              rig.root.quaternion.copy(_foQSwing);
+              rig.gondola.quaternion.copy(_foQGondola);
+              rig.align.quaternion.setFromUnitVectors(_foUp, _foAxisRing);
+            }
             rig.arm.visible = freakOutShowArmRef.current;
             rig.topRing.visible = freakOutShowTopRingRef.current;
             const hubOn = freakOutShowHubRef.current;
@@ -8631,6 +8707,7 @@ export function Aquafulness() {
                 freakOutSeatCountClamp(freakOutSeatCountRef.current),
                 freakOutSeatAngleRef.current,
                 freakOutSeatPostLengthClamp(freakOutSeatPostLengthRef.current),
+                freakOutChairSwing ? freakOutChairTiltRef.current : 0,
               );
               for (const m of rig.suitMaterials) {
                 m.opacity = freakOutBlendRef.current;
@@ -10628,6 +10705,21 @@ export function Aquafulness() {
             </button>
           </div>
         </div>
+        {/* TORNADO TO CENTER: carries the bather in toward (up) or out
+            from (down) the whirlpool's center, now that NAV and STRÖM move
+            the whole whirlpool. Left of LEVEL DRIFT, clear of its RESET LEVEL
+            pill. */}
+        {tornadoOn && cameraMode !== "watercraft" && (
+          <div className="pointer-events-none absolute bottom-[calc(env(safe-area-inset-bottom,0px)+19.5rem)] right-[calc(env(safe-area-inset-right,0px)+8.75rem)] z-10 select-none">
+            <VerticalDial
+              value={tornadoRadialSpeed}
+              onChange={setTornadoRadialSpeed}
+              label={t("hud.joystick.tornadoCenter")}
+              min={-1}
+              max={1}
+            />
+          </div>
+        )}
         {/* JUMP: a single tri-state slider (RISE/STILL/FALL) replacing the
             left column's separate FRITT FALL/OMVÄND STIGNING pill buttons for
             anyone who'd rather drag one control than tap two — both drive the

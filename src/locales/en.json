@@ -675,6 +675,7 @@
       "jump": "JUMP",
       "levelDrift": "LEVEL DRIFT",
       "look": "LOOK",
+      "tornadoCenter": "TO CENTER",
       "nav": "NAV",
       "noclipDriftXZ": "DRIFT XZ",
       "noclipDriftY": "DRIFT Y",
