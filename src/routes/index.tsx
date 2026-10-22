@@ -9954,7 +9954,7 @@ export function Aquafulness() {
                       label={t("dial.camera.tornadoSpeed")}
                       value={tornadoSpeed}
                       min={0}
-                      max={10}
+                      max={20}
                       step={0.1}
                       curve={2}
                       format={(v) => `${v.toFixed(2)}×`}
