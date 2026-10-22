@@ -199,7 +199,10 @@
       "freakOutOn": "FREAK OUT",
       "freakOutRotationOn": "FREAK OUT ROTATION",
       "freakOutRotationDirection": "FREAK OUT ROTATIONSRIKTNING",
-      "freakOutViewFollowsRing": "FREAK OUT VYN SNURRAR MED"
+      "freakOutViewFollowsRing": "FREAK OUT VYN SNURRAR MED",
+      "freakOutShowArm": "FREAK OUT ARM",
+      "freakOutShowTopRing": "FREAK OUT ÖVRE RING",
+      "freakOutShowHub": "FREAK OUT NAV & SÄTESRING"
     },
     "env": {
       "backdrop": "BAKGRUND",

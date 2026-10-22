@@ -199,7 +199,10 @@
       "freakOutOn": "FREAK OUT",
       "freakOutRotationOn": "FREAK OUT PYÖRIMINEN",
       "freakOutRotationDirection": "FREAK OUT PYÖRIMISSUUNTA",
-      "freakOutViewFollowsRing": "FREAK OUT NÄKYMÄ PYÖRII MUKANA"
+      "freakOutViewFollowsRing": "FREAK OUT NÄKYMÄ PYÖRII MUKANA",
+      "freakOutShowArm": "FREAK OUT VARSI",
+      "freakOutShowTopRing": "FREAK OUT YLÄRENGAS",
+      "freakOutShowHub": "FREAK OUT NAPA & ISTUINRENGAS"
     },
     "env": {
       "backdrop": "TAUSTA",

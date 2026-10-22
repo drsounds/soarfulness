@@ -497,6 +497,109 @@ const _foOffset = new THREE.Vector3();
 const _foQuat = new THREE.Quaternion();
 const _foIdentity = new THREE.Quaternion();
 
+// FREAK OUT's ride structure, built once per WebGL mount and re-posed every
+// frame (see the FREAK OUT rig block in the physics loop). The hierarchy
+// mirrors freakOutPose(): root sits at the pivot and carries the arm's swing
+// rotation; gondola hangs armLen below it and carries the ring's spin; align
+// turns the gondola's local +Y onto the chosen spin axis, so the hub, the
+// TOP RING above the seats and the seat ring with its spokes always lie
+// around that axis — i.e. around the arm itself for the default "y" axis.
+type FreakOutRig = {
+  root: THREE.Group;
+  gondola: THREE.Group;
+  align: THREE.Group;
+  arm: THREE.Mesh;
+  hub: THREE.Mesh;
+  topRing: THREE.Mesh;
+  seatRing: THREE.Mesh;
+  spokes: THREE.Mesh[];
+  material: THREE.MeshStandardMaterial;
+  ringRadius: number;
+  dispose: () => void;
+};
+const FREAK_OUT_SEAT_RING_DROP = 1.4; // seat ring/spokes sit this far below eye level
+const FREAK_OUT_TOP_RING_RISE = 3; // TOP RING sits this far above eye level
+const FREAK_OUT_SPOKES = 8;
+const FREAK_OUT_TUBE = 0.22;
+function buildFreakOutRig(): FreakOutRig {
+  const material = new THREE.MeshStandardMaterial({
+    color: 0xd8dde3,
+    metalness: 0.6,
+    roughness: 0.35,
+    transparent: true,
+    opacity: 0,
+  });
+  const root = new THREE.Group();
+  const gondola = new THREE.Group();
+  const align = new THREE.Group();
+  root.add(gondola);
+  gondola.add(align);
+  const unitCyl = new THREE.CylinderGeometry(1, 1, 1, 20);
+  const arm = new THREE.Mesh(unitCyl, material);
+  root.add(arm);
+  const hub = new THREE.Mesh(unitCyl, material);
+  align.add(hub);
+  const topRing = new THREE.Mesh(new THREE.TorusGeometry(1, FREAK_OUT_TUBE, 12, 64), material);
+  topRing.rotation.x = Math.PI / 2;
+  align.add(topRing);
+  const seatRing = new THREE.Mesh(new THREE.TorusGeometry(1, FREAK_OUT_TUBE, 12, 96), material);
+  seatRing.rotation.x = Math.PI / 2;
+  align.add(seatRing);
+  const spokes: THREE.Mesh[] = [];
+  for (let i = 0; i < FREAK_OUT_SPOKES; i++) {
+    const spoke = new THREE.Mesh(unitCyl, material);
+    align.add(spoke);
+    spokes.push(spoke);
+  }
+  root.visible = false;
+  return {
+    root,
+    gondola,
+    align,
+    arm,
+    hub,
+    topRing,
+    seatRing,
+    spokes,
+    material,
+    ringRadius: -1,
+    dispose: () => {
+      unitCyl.dispose();
+      (topRing.geometry as THREE.BufferGeometry).dispose();
+      (seatRing.geometry as THREE.BufferGeometry).dispose();
+      material.dispose();
+    },
+  };
+}
+const _foUp = new THREE.Vector3(0, 1, 0);
+const _foSpokeAxis = new THREE.Vector3(1, 0, 0);
+function layoutFreakOutRig(rig: FreakOutRig, armLen: number, ringRadius: number): void {
+  rig.arm.scale.set(0.35, Math.max(0.001, armLen), 0.35);
+  rig.arm.position.set(0, -armLen / 2, 0);
+  rig.gondola.position.set(0, -armLen, 0);
+  const hubLen = FREAK_OUT_SEAT_RING_DROP + FREAK_OUT_TOP_RING_RISE;
+  rig.hub.scale.set(0.45, hubLen, 0.45);
+  rig.hub.position.set(0, (FREAK_OUT_TOP_RING_RISE - FREAK_OUT_SEAT_RING_DROP) / 2, 0);
+  const r = Math.max(0.5, ringRadius);
+  if (Math.abs(rig.ringRadius - r) > 1e-3) {
+    rig.ringRadius = r;
+    // Rebuilt rather than scaled so the tube keeps its thickness.
+    rig.seatRing.geometry.dispose();
+    rig.seatRing.geometry = new THREE.TorusGeometry(r, FREAK_OUT_TUBE, 12, 96);
+    rig.topRing.geometry.dispose();
+    rig.topRing.geometry = new THREE.TorusGeometry(Math.max(1, r * 0.5), FREAK_OUT_TUBE, 12, 64);
+  }
+  rig.seatRing.position.set(0, -FREAK_OUT_SEAT_RING_DROP, 0);
+  rig.topRing.position.set(0, FREAK_OUT_TOP_RING_RISE, 0);
+  rig.spokes.forEach((spoke, i) => {
+    const a = (i / rig.spokes.length) * Math.PI * 2;
+    spoke.scale.set(0.12, r, 0.12);
+    spoke.position.set((Math.cos(a) * r) / 2, -FREAK_OUT_SEAT_RING_DROP, (Math.sin(a) * r) / 2);
+    _foSpokeAxis.set(Math.cos(a), 0, Math.sin(a));
+    spoke.quaternion.setFromUnitVectors(_foUp, _foSpokeAxis);
+  });
+}
+
 // Original PlaneGeometry extents the water/cloud meshes are built at; the
 // live YTA (surface area) setting rescales each mesh by surfaceArea/base so
 // the *resulting* on-screen size matches the dial regardless of how finely
@@ -1099,6 +1202,9 @@ const DEFAULTS: Persisted = {
   freakOutRotationOscillateSpeed: 1,
   freakOutRotationDirection: "cw",
   freakOutViewFollowsRing: false,
+  freakOutShowArm: true,
+  freakOutShowTopRing: true,
+  freakOutShowHub: true,
   swingKeepSpeed: false,
   swingKeepSpeedRefHeight: 20000,
   // Unified TORNADO toggle for GUNGA (swing) and flying (noclip/watercraft):
@@ -1667,6 +1773,9 @@ export function Aquafulness() {
   const [freakOutViewFollowsRing, setFreakOutViewFollowsRing] = useState(
     initial.freakOutViewFollowsRing,
   );
+  const [freakOutShowArm, setFreakOutShowArm] = useState(initial.freakOutShowArm);
+  const [freakOutShowTopRing, setFreakOutShowTopRing] = useState(initial.freakOutShowTopRing);
+  const [freakOutShowHub, setFreakOutShowHub] = useState(initial.freakOutShowHub);
   // Unified TORNADO toggle, shared by GUNGA (swing) and flying (noclip/
   // watercraft) alike: instead of a back-and-forth pendulum arc / plain
   // manual flight, the camera orbits a circle around the anchor (posRef) —
@@ -2177,6 +2286,9 @@ export function Aquafulness() {
     freakOutRotationOscillateSpeed,
     freakOutRotationDirection,
     freakOutViewFollowsRing,
+    freakOutShowArm,
+    freakOutShowTopRing,
+    freakOutShowHub,
     swingKeepSpeed,
     swingKeepSpeedRefHeight,
     tornadoOn,
@@ -2378,6 +2490,9 @@ export function Aquafulness() {
     freakOutRotationOscillateSpeed,
     freakOutRotationDirection,
     freakOutViewFollowsRing,
+    freakOutShowArm,
+    freakOutShowTopRing,
+    freakOutShowHub,
     swingKeepSpeed,
     swingKeepSpeedRefHeight,
     tornadoOn,
@@ -2499,6 +2614,9 @@ export function Aquafulness() {
   const freakOutRotationOscillateSpeedRef = useRef(freakOutRotationOscillateSpeed);
   const freakOutRotationDirectionRef = useRef(freakOutRotationDirection);
   const freakOutViewFollowsRingRef = useRef(freakOutViewFollowsRing);
+  const freakOutShowArmRef = useRef(freakOutShowArm);
+  const freakOutShowTopRingRef = useRef(freakOutShowTopRing);
+  const freakOutShowHubRef = useRef(freakOutShowHub);
   // FREAK OUT's own clocks (swing phase, ring spin angle, direction-
   // reversal phase) and 0..1 ease-in/out blends for the whole effect and
   // for the ring's spin, so toggling either never snaps the camera.
@@ -2699,6 +2817,10 @@ export function Aquafulness() {
   // position/scale/rotate the shared funnel-cloud mesh (tornadoCloudMeshRef,
   // created in the scene-setup effect below) — see tornadoCloudFadeRef too.
   const tornadoCloudMeshRef = useRef<THREE.Mesh | null>(null);
+  // FREAK OUT's visible ride structure — built in the WebGL mount effect
+  // (see buildFreakOutRig) and posed every frame from the same swing/ring
+  // transforms freakOutPose() computes for the camera's seat.
+  const freakOutRigRef = useRef<FreakOutRig | null>(null);
   const tornadoCloudFadeRef = useRef(0);
   const intervalIncludeFloatRef = useRef(intervalIncludeFloat);
   const intervalIncludeSwingRef = useRef(intervalIncludeSwing);
@@ -3296,6 +3418,15 @@ export function Aquafulness() {
     freakOutViewFollowsRingRef.current = freakOutViewFollowsRing;
   }, [freakOutViewFollowsRing]);
   useEffect(() => {
+    freakOutShowArmRef.current = freakOutShowArm;
+  }, [freakOutShowArm]);
+  useEffect(() => {
+    freakOutShowTopRingRef.current = freakOutShowTopRing;
+  }, [freakOutShowTopRing]);
+  useEffect(() => {
+    freakOutShowHubRef.current = freakOutShowHub;
+  }, [freakOutShowHub]);
+  useEffect(() => {
     swingKeepSpeedRef.current = swingKeepSpeed;
   }, [swingKeepSpeed]);
   useEffect(() => {
@@ -3703,6 +3834,9 @@ export function Aquafulness() {
     setFreakOutRotationOscillateSpeed(DEFAULTS.freakOutRotationOscillateSpeed);
     setFreakOutRotationDirection(DEFAULTS.freakOutRotationDirection);
     setFreakOutViewFollowsRing(DEFAULTS.freakOutViewFollowsRing);
+    setFreakOutShowArm(DEFAULTS.freakOutShowArm);
+    setFreakOutShowTopRing(DEFAULTS.freakOutShowTopRing);
+    setFreakOutShowHub(DEFAULTS.freakOutShowHub);
     setSwingKeepSpeed(DEFAULTS.swingKeepSpeed);
     setSwingKeepSpeedRefHeight(DEFAULTS.swingKeepSpeedRefHeight);
     setTornadoOn(DEFAULTS.tornadoOn);
@@ -3920,6 +4054,9 @@ export function Aquafulness() {
       setFreakOutRotationDirection(patch.freakOutRotationDirection);
     if (patch.freakOutViewFollowsRing !== undefined)
       setFreakOutViewFollowsRing(patch.freakOutViewFollowsRing);
+    if (patch.freakOutShowArm !== undefined) setFreakOutShowArm(patch.freakOutShowArm);
+    if (patch.freakOutShowTopRing !== undefined) setFreakOutShowTopRing(patch.freakOutShowTopRing);
+    if (patch.freakOutShowHub !== undefined) setFreakOutShowHub(patch.freakOutShowHub);
     if (patch.swingKeepSpeed !== undefined) setSwingKeepSpeed(patch.swingKeepSpeed);
     if (patch.swingKeepSpeedRefHeight !== undefined)
       setSwingKeepSpeedRefHeight(patch.swingKeepSpeedRefHeight);
@@ -6253,6 +6390,10 @@ export function Aquafulness() {
     tornadoCloudMeshRef.current = tornadoCloud;
     scene.add(tornadoCloud);
 
+    const freakOutRig = buildFreakOutRig();
+    freakOutRigRef.current = freakOutRig;
+    scene.add(freakOutRig.root);
+
     // VÄRLDSGRÄNS's extra sky-cloud layers (see EXTEND_CLOUD_LAYER_* and
     // wrapAxis above) — same geometry as skyClouds (cheap: not duplicated,
     // just referenced by more Mesh objects), each repositioned every frame
@@ -8113,6 +8254,42 @@ export function Aquafulness() {
       camera.rotateX(pitchRef.current);
       if (freakOutViewActive) camera.quaternion.premultiply(_foQuat);
 
+      // FREAK OUT rig: posed from the same swing/ring rotations the camera's
+      // seat just used (freakOutPose leaves them in _foQSwing/_foQRing/
+      // _foAxisRing/_foSeat), anchored so the seat lands where the camera's
+      // un-ridden rest position is, and faded in with the ride's blend.
+      {
+        const rig = freakOutRigRef.current;
+        if (rig) {
+          const showAny =
+            freakOutShowArmRef.current ||
+            freakOutShowTopRingRef.current ||
+            freakOutShowHubRef.current;
+          rig.root.visible = freakOutViewActive && showAny;
+          if (rig.root.visible) {
+            const armLen = Math.max(0, freakOutSwingLengthRef.current);
+            layoutFreakOutRig(rig, armLen, Math.max(0, freakOutRingRadiusRef.current));
+            // pivot = rest − seat + armLen·up, rest = camera.position − offset
+            rig.root.position
+              .copy(camera.position)
+              .sub(_foOffset)
+              .sub(_foSeat)
+              .add(_foArm.set(0, armLen, 0));
+            rig.root.quaternion.copy(_foQSwing);
+            rig.gondola.quaternion.copy(_foQRing);
+            rig.align.quaternion.setFromUnitVectors(_foUp, _foAxisRing);
+            rig.arm.visible = freakOutShowArmRef.current;
+            rig.topRing.visible = freakOutShowTopRingRef.current;
+            const hubOn = freakOutShowHubRef.current;
+            rig.hub.visible = hubOn;
+            rig.seatRing.visible = hubOn;
+            for (const spoke of rig.spokes) spoke.visible = hubOn;
+            rig.material.opacity = freakOutBlendRef.current;
+            rig.material.depthWrite = freakOutBlendRef.current > 0.99;
+          }
+        }
+      }
+
       // STRÖM/SVAJ represent a real direction fixed in world space
       // (driftWorldRef/swayWorldRef); re-derive what that looks like relative
       // to the *current* look angle so the knobs visually rotate in place as
@@ -8631,6 +8808,8 @@ export function Aquafulness() {
       whiteTex.dispose();
       reflWhiteTexRef.current = null;
       waterUniformsRef.current = null;
+      freakOutRig.dispose();
+      freakOutRigRef.current = null;
       sceneRef.current = null;
       oceanRef.current = null;
       farOceanRef.current = null;
@@ -9074,6 +9253,12 @@ export function Aquafulness() {
     setFreakOutRotationDirection,
     freakOutViewFollowsRing,
     setFreakOutViewFollowsRing,
+    freakOutShowArm,
+    setFreakOutShowArm,
+    freakOutShowTopRing,
+    setFreakOutShowTopRing,
+    freakOutShowHub,
+    setFreakOutShowHub,
     tornadoOn,
     setTornadoOn,
     tornadoRadius,
@@ -10628,6 +10813,45 @@ export function Aquafulness() {
                     >
                       {t("dial.camera.freakOutViewFollowsRing")}:{" "}
                       {t(freakOutViewFollowsRing ? "common.on" : "common.off")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFreakOutShowArm((v) => !v)}
+                      aria-pressed={freakOutShowArm}
+                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                        freakOutShowArm
+                          ? "ui-line-3 ui-tint-2 ui-ink"
+                          : "ui-line-2 ui-surface ui-ink-muted"
+                      }`}
+                    >
+                      {t("dial.camera.freakOutShowArm")}:{" "}
+                      {t(freakOutShowArm ? "common.on" : "common.off")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFreakOutShowTopRing((v) => !v)}
+                      aria-pressed={freakOutShowTopRing}
+                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                        freakOutShowTopRing
+                          ? "ui-line-3 ui-tint-2 ui-ink"
+                          : "ui-line-2 ui-surface ui-ink-muted"
+                      }`}
+                    >
+                      {t("dial.camera.freakOutShowTopRing")}:{" "}
+                      {t(freakOutShowTopRing ? "common.on" : "common.off")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFreakOutShowHub((v) => !v)}
+                      aria-pressed={freakOutShowHub}
+                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                        freakOutShowHub
+                          ? "ui-line-3 ui-tint-2 ui-ink"
+                          : "ui-line-2 ui-surface ui-ink-muted"
+                      }`}
+                    >
+                      {t("dial.camera.freakOutShowHub")}:{" "}
+                      {t(freakOutShowHub ? "common.on" : "common.off")}
                     </button>
                     <button
                       type="button"

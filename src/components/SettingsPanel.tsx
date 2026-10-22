@@ -559,6 +559,12 @@ export type SettingsPanelProps = {
   freakOutRotationDirection: TornadoDirection;
   freakOutViewFollowsRing: boolean;
   setFreakOutViewFollowsRing: Dispatch<SetStateAction<boolean>>;
+  freakOutShowArm: boolean;
+  setFreakOutShowArm: Dispatch<SetStateAction<boolean>>;
+  freakOutShowTopRing: boolean;
+  setFreakOutShowTopRing: Dispatch<SetStateAction<boolean>>;
+  freakOutShowHub: boolean;
+  setFreakOutShowHub: Dispatch<SetStateAction<boolean>>;
   setFreakOutRotationDirection: Dispatch<SetStateAction<TornadoDirection>>;
   // TORNADO: one unified toggle shared by GUNGA (swing) and flying (noclip/
   // watercraft) alike — a circular orbit instead of GUNGA's default
@@ -1355,6 +1361,12 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setFreakOutRotationDirection,
     freakOutViewFollowsRing,
     setFreakOutViewFollowsRing,
+    freakOutShowArm,
+    setFreakOutShowArm,
+    freakOutShowTopRing,
+    setFreakOutShowTopRing,
+    freakOutShowHub,
+    setFreakOutShowHub,
     tornadoOn,
     setTornadoOn,
     tornadoRadius,
@@ -2483,6 +2495,24 @@ export function SettingsPanel(props: SettingsPanelProps) {
                         )}
                       </>
                     )}
+                    <SettingRow
+                      label={t("dial.camera.freakOutShowArm")}
+                      value={onOff(freakOutShowArm)}
+                      onDec={() => setFreakOutShowArm(false)}
+                      onInc={() => setFreakOutShowArm(true)}
+                    />
+                    <SettingRow
+                      label={t("dial.camera.freakOutShowTopRing")}
+                      value={onOff(freakOutShowTopRing)}
+                      onDec={() => setFreakOutShowTopRing(false)}
+                      onInc={() => setFreakOutShowTopRing(true)}
+                    />
+                    <SettingRow
+                      label={t("dial.camera.freakOutShowHub")}
+                      value={onOff(freakOutShowHub)}
+                      onDec={() => setFreakOutShowHub(false)}
+                      onInc={() => setFreakOutShowHub(true)}
+                    />
                   </>
                 )}
                 {/* TORNADO: one unified toggle+dial block for FRI (float/
