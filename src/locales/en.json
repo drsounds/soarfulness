@@ -198,7 +198,8 @@
       "freakOutRotationOscillateSpeed": "FREAK OUT ALTERNATE SPEED",
       "freakOutOn": "FREAK OUT",
       "freakOutRotationOn": "FREAK OUT ROTATION",
-      "freakOutRotationDirection": "FREAK OUT ROTATION DIRECTION"
+      "freakOutRotationDirection": "FREAK OUT ROTATION DIRECTION",
+      "freakOutViewFollowsRing": "FREAK OUT VIEW FOLLOWS SPIN"
     },
     "env": {
       "backdrop": "BACKDROP",

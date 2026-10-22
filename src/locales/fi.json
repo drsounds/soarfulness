@@ -198,7 +198,8 @@
       "freakOutRotationOscillateSpeed": "FREAK OUT VAIHTONOPEUS",
       "freakOutOn": "FREAK OUT",
       "freakOutRotationOn": "FREAK OUT PYÖRIMINEN",
-      "freakOutRotationDirection": "FREAK OUT PYÖRIMISSUUNTA"
+      "freakOutRotationDirection": "FREAK OUT PYÖRIMISSUUNTA",
+      "freakOutViewFollowsRing": "FREAK OUT NÄKYMÄ PYÖRII MUKANA"
     },
     "env": {
       "backdrop": "TAUSTA",
