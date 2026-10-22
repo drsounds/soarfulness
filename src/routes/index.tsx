@@ -653,7 +653,7 @@ function buildFreakOutRig(): FreakOutRig {
       model.scale.setScalar(k);
       const suit = new THREE.Group();
       suit.add(model);
-      suit.position.y = FREAK_OUT_SEAT_POST;
+      suit.position.y = FREAK_OUT_SEAT_TOP - FREAK_OUT_SEAT_HEIGHT - FREAK_OUT_SEAT_RING_RISE;
       rig.suit = suit;
       rig.seatCount = -1;
     },
@@ -663,9 +663,17 @@ function buildFreakOutRig(): FreakOutRig {
   return rig;
 }
 const FREAK_OUT_SUIT_URL = `${appDir("suit")}/${encodeURIComponent("Bathing Suit")}.glb`;
-const FREAK_OUT_SEAT_POST = 0.35; // post from the seat ring up to the suit
-const FREAK_OUT_SEAT_POST_RADIUS = 0.1;
+// With SEATS on, the seat ring is lifted above the riders and each seat
+// hangs from it on a post, like a chair swing: the post drops from the
+// ring, just behind the rider, to the suit's back, and the suit sits
+// under the view.
+const FREAK_OUT_SEAT_RING_RISE = 1.2; // seat ring sits this far above eye level
+const FREAK_OUT_SEAT_TOP = -0.25; // the suit's top sits this far below eye level
 const FREAK_OUT_SEAT_HEIGHT = 0.85; // the suit is scaled to this height
+const FREAK_OUT_SEAT_POST =
+  FREAK_OUT_SEAT_RING_RISE - FREAK_OUT_SEAT_TOP + FREAK_OUT_SEAT_HEIGHT / 2;
+const FREAK_OUT_SEAT_POST_RADIUS = 0.1;
+const FREAK_OUT_SEAT_POST_INSET = 0.2; // post hangs this far inward, at the suit's back
 const _foSeatBase = new THREE.Vector3();
 const _foSeatPos = new THREE.Vector3();
 const _foAlignInv = new THREE.Quaternion();
@@ -680,7 +688,7 @@ function layoutFreakOutSeats(rig: FreakOutRig, count: number, viewSeatAngle: num
     for (let i = 0; i < count; i++) {
       const seat = new THREE.Group();
       const post = new THREE.Mesh(rig.seatPostGeo, rig.material);
-      post.position.y = FREAK_OUT_SEAT_POST / 2;
+      post.position.set(0, -FREAK_OUT_SEAT_POST / 2, -FREAK_OUT_SEAT_POST_INSET);
       seat.add(post);
       if (rig.suit) seat.add(rig.suit.clone());
       rig.seats.add(seat);
@@ -693,7 +701,7 @@ function layoutFreakOutSeats(rig: FreakOutRig, count: number, viewSeatAngle: num
   _foSeatBase.setLength(rig.ringRadius);
   rig.seats.children.forEach((seat, i) => {
     _foSeatPos.copy(_foSeatBase).applyAxisAngle(_foUp, (i / count) * Math.PI * 2 - viewSeatAngle);
-    seat.position.set(_foSeatPos.x, -FREAK_OUT_SEAT_RING_DROP, _foSeatPos.z);
+    seat.position.set(_foSeatPos.x, FREAK_OUT_SEAT_RING_RISE, _foSeatPos.z);
     // Face the seat (and the suit's front, +Z) outward, like the view.
     seat.rotation.set(0, Math.atan2(_foSeatPos.x, _foSeatPos.z), 0);
   });
@@ -704,7 +712,14 @@ function freakOutSeatCountClamp(n: number): number {
   return Math.min(FREAK_OUT_MAX_SEATS, Math.max(1, Math.round(n) || 1));
 }
 const _foSpokeAxis = new THREE.Vector3(1, 0, 0);
-function layoutFreakOutRig(rig: FreakOutRig, armLen: number, ringRadius: number): void {
+// seatRingY is the seat ring's height relative to eye level: below the
+// riders normally, above them with SEATS on (see FREAK_OUT_SEAT_RING_RISE).
+function layoutFreakOutRig(
+  rig: FreakOutRig,
+  armLen: number,
+  ringRadius: number,
+  seatRingY: number,
+): void {
   rig.arm.scale.set(0.35, Math.max(0.001, armLen), 0.35);
   rig.arm.position.set(0, -armLen / 2, 0);
   rig.gondola.position.set(0, -armLen, 0);
@@ -720,12 +735,12 @@ function layoutFreakOutRig(rig: FreakOutRig, armLen: number, ringRadius: number)
     rig.topRing.geometry.dispose();
     rig.topRing.geometry = new THREE.TorusGeometry(Math.max(1, r * 0.5), FREAK_OUT_TUBE, 12, 64);
   }
-  rig.seatRing.position.set(0, -FREAK_OUT_SEAT_RING_DROP, 0);
+  rig.seatRing.position.set(0, seatRingY, 0);
   rig.topRing.position.set(0, FREAK_OUT_TOP_RING_RISE, 0);
   rig.spokes.forEach((spoke, i) => {
     const a = (i / rig.spokes.length) * Math.PI * 2;
     spoke.scale.set(0.12, r, 0.12);
-    spoke.position.set((Math.cos(a) * r) / 2, -FREAK_OUT_SEAT_RING_DROP, (Math.sin(a) * r) / 2);
+    spoke.position.set((Math.cos(a) * r) / 2, seatRingY, (Math.sin(a) * r) / 2);
     _foSpokeAxis.set(Math.cos(a), 0, Math.sin(a));
     spoke.quaternion.setFromUnitVectors(_foUp, _foSpokeAxis);
   });
@@ -8494,7 +8509,12 @@ export function Aquafulness() {
           rig.root.visible = freakOutViewActive && showAny;
           if (rig.root.visible) {
             const armLen = Math.max(0, freakOutSwingLengthRef.current);
-            layoutFreakOutRig(rig, armLen, Math.max(0, freakOutRingRadiusRef.current));
+            layoutFreakOutRig(
+              rig,
+              armLen,
+              Math.max(0, freakOutRingRadiusRef.current),
+              freakOutSeatsOnRef.current ? FREAK_OUT_SEAT_RING_RISE : -FREAK_OUT_SEAT_RING_DROP,
+            );
             // pivot = rest − seat + armLen·up, rest = camera.position − offset
             rig.root.position
               .copy(camera.position)
