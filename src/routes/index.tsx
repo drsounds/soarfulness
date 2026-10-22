@@ -776,6 +776,13 @@ const DYING_WAVE_SEED = 19700101;
 // (which reads them once at mount via loadSettings/loadCameraPose below)
 // ever renders.
 export const STORAGE_KEY = "aquafulness:settings:v1";
+// sessionStorage: the bath-link payload this tab last seeded STORAGE_KEY from
+// (routes/bathing.$payload.bathe.tsx). The address bar keeps pointing at the
+// bath link after entering it (e.g. from the splash's "Start bath"), so
+// without this every reload would seed the link's snapshot again and throw
+// away whatever was autosaved since. sessionStorage survives a reload but
+// not a new tab, so opening a link fresh still boots into its state.
+export const SEEDED_PAYLOAD_KEY = "aquafulness:seededBathPayload";
 
 // Labels for the bottom drawer's two non-camera-mode settings tabs (see
 // CameraDrawerTab) besides TORNADO.
