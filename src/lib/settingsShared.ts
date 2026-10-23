@@ -665,6 +665,9 @@ export type Persisted = {
   // the HUB in the middle with spokes out to the seat ring under the
   // camera. All on by default; only shown while FREAK OUT is.
   freakOutShowArm: boolean;
+  // SWING FRAME: the swing set the arm hangs from (a beam on two A-shaped
+  // legs), sized from the arm's length. Off by default.
+  freakOutShowFrame: boolean;
   freakOutShowTopRing: boolean;
   freakOutShowHub: boolean;
   // By default the gondola ring is rigid with the swinging arm: it tilts
@@ -689,6 +692,7 @@ export type Persisted = {
   freakOutRingColor: string;
   freakOutPostColor: string;
   freakOutArmColor: string;
+  freakOutFrameColor: string;
   freakOutRotationDirection: TornadoDirection;
   // GUNGA BEHÅLL TEMPO: when on, the swing's cycle rate is scaled by
   // swingKeepSpeedRefHeight / swingHeight so changing GUNGA HÖJD doesn't
@@ -784,6 +788,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "freakOutRotationDirection",
     "freakOutViewFixedHeading",
     "freakOutShowArm",
+    "freakOutShowFrame",
     "freakOutShowTopRing",
     "freakOutShowHub",
     "freakOutRingLevel",
@@ -795,6 +800,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "freakOutRingColor",
     "freakOutPostColor",
     "freakOutArmColor",
+    "freakOutFrameColor",
     "swingKeepSpeed",
     "swingKeepSpeedRefHeight",
     "tornadoOn",

@@ -564,6 +564,13 @@ type FreakOutRig = {
   suit: THREE.Object3D | null;
   suitMaterials: THREE.Material[];
   seatPostGeo: THREE.BufferGeometry;
+  // SWING FRAME: added to the scene beside root rather than under it, since
+  // it stands still while the arm swings; see layoutFreakOutFrame.
+  frame: THREE.Group;
+  frameBeam: THREE.Mesh;
+  frameLegs: THREE.Mesh[];
+  frameMaterial: THREE.MeshStandardMaterial;
+  frameSize: string;
   dispose: () => void;
 };
 const FREAK_OUT_SEAT_RING_DROP = 1.4; // seat ring/spokes sit this far below eye level
@@ -611,6 +618,17 @@ function buildFreakOutRig(): FreakOutRig {
     1,
     16,
   );
+  const frameMaterial = material.clone();
+  const frame = new THREE.Group();
+  const frameBeam = new THREE.Mesh(unitCyl, frameMaterial);
+  frame.add(frameBeam);
+  const frameLegs: THREE.Mesh[] = [];
+  for (let i = 0; i < 4; i++) {
+    const leg = new THREE.Mesh(unitCyl, frameMaterial);
+    frame.add(leg);
+    frameLegs.push(leg);
+  }
+  frame.visible = false;
   let disposed = false;
   root.visible = false;
   const rig: FreakOutRig = {
@@ -631,6 +649,11 @@ function buildFreakOutRig(): FreakOutRig {
     suit: null,
     suitMaterials: [],
     seatPostGeo,
+    frame,
+    frameBeam,
+    frameLegs,
+    frameMaterial,
+    frameSize: "",
     dispose: () => {
       disposed = true;
       unitCyl.dispose();
@@ -644,6 +667,7 @@ function buildFreakOutRig(): FreakOutRig {
       material.dispose();
       armMaterial.dispose();
       postMaterial.dispose();
+      frameMaterial.dispose();
     },
   };
   // The suit is normalized once (centered, scaled to FREAK_OUT_SEAT_HEIGHT,
@@ -745,6 +769,7 @@ function layoutFreakOutSeats(
 }
 const _foUp = new THREE.Vector3(0, 1, 0);
 const FREAK_OUT_MAX_SEATS = 32;
+const FREAK_OUT_MAX_ARM = 800; // longest arm (ARM LENGTH) the dials offer
 const FREAK_OUT_MAX_SEAT_POST = 30;
 function freakOutSeatPostLengthClamp(n: number): number {
   return Math.min(FREAK_OUT_MAX_SEAT_POST, Math.max(0.5, Number.isFinite(n) ? n : 1.9));
@@ -760,6 +785,44 @@ function freakOutSeatCountClamp(n: number): number {
   return Math.min(FREAK_OUT_MAX_SEATS, Math.max(1, Math.round(n) || 1));
 }
 const _foSpokeAxis = new THREE.Vector3(1, 0, 0);
+// SWING FRAME, in its own frame: the beam runs along local X (turned onto
+// the swing's axis when posed) at the pivot, the arm's top. It's sized
+// from the arm so it always clears the ride: the legs reach
+// FREAK_OUT_FRAME_BELOW below the gondola, the beam is wide enough for the
+// ring to swing between the two ends, and each end's pair of legs splays
+// out along the swing into an A.
+const FREAK_OUT_FRAME_BELOW = 3;
+const _foFrameA = new THREE.Vector3();
+const _foFrameB = new THREE.Vector3();
+const _foFrameDir = new THREE.Vector3();
+// Stretches a unit cylinder into a strut from a to b.
+function freakOutStrut(mesh: THREE.Mesh, a: THREE.Vector3, b: THREE.Vector3, radius: number): void {
+  _foFrameDir.subVectors(b, a);
+  const len = Math.max(1e-6, _foFrameDir.length());
+  mesh.position.addVectors(a, b).multiplyScalar(0.5);
+  mesh.scale.set(radius, len, radius);
+  mesh.quaternion.setFromUnitVectors(_foUp, _foFrameDir.multiplyScalar(1 / len));
+}
+function layoutFreakOutFrame(rig: FreakOutRig, armLen: number, ringRadius: number): void {
+  const height = armLen + FREAK_OUT_FRAME_BELOW;
+  const halfWidth = Math.max(0.5, ringRadius) + 1.5 + 0.1 * armLen;
+  const halfLength = 0.35 * height;
+  const key = `${height.toFixed(3)}|${halfWidth.toFixed(3)}`;
+  if (rig.frameSize === key) return;
+  rig.frameSize = key;
+  const r = Math.min(1.5, 0.2 + 0.01 * armLen);
+  freakOutStrut(
+    rig.frameBeam,
+    _foFrameA.set(-halfWidth - r, 0, 0),
+    _foFrameB.set(halfWidth + r, 0, 0),
+    r * 1.25,
+  );
+  rig.frameLegs.forEach((leg, i) => {
+    const x = i < 2 ? -halfWidth : halfWidth;
+    const z = i % 2 ? halfLength : -halfLength;
+    freakOutStrut(leg, _foFrameA.set(x, 0, 0), _foFrameB.set(x, -height, z), r);
+  });
+}
 // seatRingY is the seat ring's height relative to eye level: below the
 // riders normally, above them with SEATS on (see freakOutSeatRingY).
 function layoutFreakOutRig(
@@ -1406,6 +1469,7 @@ const DEFAULTS: Persisted = {
   freakOutRotationDirection: "cw",
   freakOutViewFixedHeading: false,
   freakOutShowArm: true,
+  freakOutShowFrame: false,
   freakOutShowTopRing: true,
   freakOutShowHub: true,
   freakOutRingLevel: false,
@@ -1417,6 +1481,7 @@ const DEFAULTS: Persisted = {
   freakOutRingColor: "#d8dde3",
   freakOutPostColor: "#d8dde3",
   freakOutArmColor: "#d8dde3",
+  freakOutFrameColor: "#8b5a2b",
   swingKeepSpeed: false,
   swingKeepSpeedRefHeight: 20000,
   // Unified TORNADO toggle for GUNGA (swing) and flying (noclip/watercraft):
@@ -1994,6 +2059,7 @@ export function Aquafulness() {
     initial.freakOutViewFixedHeading,
   );
   const [freakOutShowArm, setFreakOutShowArm] = useState(initial.freakOutShowArm);
+  const [freakOutShowFrame, setFreakOutShowFrame] = useState(initial.freakOutShowFrame);
   const [freakOutShowTopRing, setFreakOutShowTopRing] = useState(initial.freakOutShowTopRing);
   const [freakOutShowHub, setFreakOutShowHub] = useState(initial.freakOutShowHub);
   const [freakOutRingLevel, setFreakOutRingLevel] = useState(initial.freakOutRingLevel);
@@ -2007,6 +2073,7 @@ export function Aquafulness() {
   const [freakOutRingColor, setFreakOutRingColor] = useState(initial.freakOutRingColor);
   const [freakOutPostColor, setFreakOutPostColor] = useState(initial.freakOutPostColor);
   const [freakOutArmColor, setFreakOutArmColor] = useState(initial.freakOutArmColor);
+  const [freakOutFrameColor, setFreakOutFrameColor] = useState(initial.freakOutFrameColor);
   // Unified TORNADO toggle, shared by GUNGA (swing) and flying (noclip/
   // watercraft) alike: instead of a back-and-forth pendulum arc / plain
   // manual flight, the camera orbits a circle around the anchor (posRef) —
@@ -2519,6 +2586,7 @@ export function Aquafulness() {
     freakOutRotationDirection,
     freakOutViewFixedHeading,
     freakOutShowArm,
+    freakOutShowFrame,
     freakOutShowTopRing,
     freakOutShowHub,
     freakOutRingLevel,
@@ -2530,6 +2598,7 @@ export function Aquafulness() {
     freakOutRingColor,
     freakOutPostColor,
     freakOutArmColor,
+    freakOutFrameColor,
     swingKeepSpeed,
     swingKeepSpeedRefHeight,
     tornadoOn,
@@ -2733,6 +2802,7 @@ export function Aquafulness() {
     freakOutRotationDirection,
     freakOutViewFixedHeading,
     freakOutShowArm,
+    freakOutShowFrame,
     freakOutShowTopRing,
     freakOutShowHub,
     freakOutRingLevel,
@@ -2744,6 +2814,7 @@ export function Aquafulness() {
     freakOutRingColor,
     freakOutPostColor,
     freakOutArmColor,
+    freakOutFrameColor,
     swingKeepSpeed,
     swingKeepSpeedRefHeight,
     tornadoOn,
@@ -2867,6 +2938,7 @@ export function Aquafulness() {
   const freakOutRotationDirectionRef = useRef(freakOutRotationDirection);
   const freakOutViewFixedHeadingRef = useRef(freakOutViewFixedHeading);
   const freakOutShowArmRef = useRef(freakOutShowArm);
+  const freakOutShowFrameRef = useRef(freakOutShowFrame);
   const freakOutShowTopRingRef = useRef(freakOutShowTopRing);
   const freakOutShowHubRef = useRef(freakOutShowHub);
   const freakOutRingLevelRef = useRef(freakOutRingLevel);
@@ -2878,6 +2950,7 @@ export function Aquafulness() {
   const freakOutRingColorRef = useRef(freakOutRingColor);
   const freakOutPostColorRef = useRef(freakOutPostColor);
   const freakOutArmColorRef = useRef(freakOutArmColor);
+  const freakOutFrameColorRef = useRef(freakOutFrameColor);
   // The angle round the ring of the seat the view currently rides in,
   // eased toward the chosen seat so switching seats glides along the ring.
   const freakOutSeatAngleRef = useRef(0);
@@ -3737,6 +3810,9 @@ export function Aquafulness() {
     freakOutShowArmRef.current = freakOutShowArm;
   }, [freakOutShowArm]);
   useEffect(() => {
+    freakOutShowFrameRef.current = freakOutShowFrame;
+  }, [freakOutShowFrame]);
+  useEffect(() => {
     freakOutShowTopRingRef.current = freakOutShowTopRing;
   }, [freakOutShowTopRing]);
   useEffect(() => {
@@ -3769,6 +3845,9 @@ export function Aquafulness() {
   useEffect(() => {
     freakOutArmColorRef.current = freakOutArmColor;
   }, [freakOutArmColor]);
+  useEffect(() => {
+    freakOutFrameColorRef.current = freakOutFrameColor;
+  }, [freakOutFrameColor]);
   useEffect(() => {
     swingKeepSpeedRef.current = swingKeepSpeed;
   }, [swingKeepSpeed]);
@@ -4180,6 +4259,7 @@ export function Aquafulness() {
     setFreakOutRotationDirection(DEFAULTS.freakOutRotationDirection);
     setFreakOutViewFixedHeading(DEFAULTS.freakOutViewFixedHeading);
     setFreakOutShowArm(DEFAULTS.freakOutShowArm);
+    setFreakOutShowFrame(DEFAULTS.freakOutShowFrame);
     setFreakOutShowTopRing(DEFAULTS.freakOutShowTopRing);
     setFreakOutShowHub(DEFAULTS.freakOutShowHub);
     setFreakOutRingLevel(DEFAULTS.freakOutRingLevel);
@@ -4191,6 +4271,7 @@ export function Aquafulness() {
     setFreakOutRingColor(DEFAULTS.freakOutRingColor);
     setFreakOutPostColor(DEFAULTS.freakOutPostColor);
     setFreakOutArmColor(DEFAULTS.freakOutArmColor);
+    setFreakOutFrameColor(DEFAULTS.freakOutFrameColor);
     setSwingKeepSpeed(DEFAULTS.swingKeepSpeed);
     setSwingKeepSpeedRefHeight(DEFAULTS.swingKeepSpeedRefHeight);
     setTornadoOn(DEFAULTS.tornadoOn);
@@ -4415,6 +4496,7 @@ export function Aquafulness() {
     if (patch.freakOutViewFixedHeading !== undefined)
       setFreakOutViewFixedHeading(patch.freakOutViewFixedHeading);
     if (patch.freakOutShowArm !== undefined) setFreakOutShowArm(patch.freakOutShowArm);
+    if (patch.freakOutShowFrame !== undefined) setFreakOutShowFrame(patch.freakOutShowFrame);
     if (patch.freakOutShowTopRing !== undefined) setFreakOutShowTopRing(patch.freakOutShowTopRing);
     if (patch.freakOutShowHub !== undefined) setFreakOutShowHub(patch.freakOutShowHub);
     if (patch.freakOutRingLevel !== undefined) setFreakOutRingLevel(patch.freakOutRingLevel);
@@ -4427,6 +4509,7 @@ export function Aquafulness() {
     if (patch.freakOutRingColor !== undefined) setFreakOutRingColor(patch.freakOutRingColor);
     if (patch.freakOutPostColor !== undefined) setFreakOutPostColor(patch.freakOutPostColor);
     if (patch.freakOutArmColor !== undefined) setFreakOutArmColor(patch.freakOutArmColor);
+    if (patch.freakOutFrameColor !== undefined) setFreakOutFrameColor(patch.freakOutFrameColor);
     if (patch.swingKeepSpeed !== undefined) setSwingKeepSpeed(patch.swingKeepSpeed);
     if (patch.swingKeepSpeedRefHeight !== undefined)
       setSwingKeepSpeedRefHeight(patch.swingKeepSpeedRefHeight);
@@ -6763,6 +6846,7 @@ export function Aquafulness() {
     const freakOutRig = buildFreakOutRig();
     freakOutRigRef.current = freakOutRig;
     scene.add(freakOutRig.root);
+    scene.add(freakOutRig.frame);
 
     // VÄRLDSGRÄNS's extra sky-cloud layers (see EXTEND_CLOUD_LAYER_* and
     // wrapAxis above) — same geometry as skyClouds (cheap: not duplicated,
@@ -8711,8 +8795,10 @@ export function Aquafulness() {
             freakOutShowArmRef.current ||
             freakOutShowTopRingRef.current ||
             freakOutShowHubRef.current ||
-            freakOutSeatsOnRef.current;
+            freakOutSeatsOnRef.current ||
+            freakOutShowFrameRef.current;
           rig.root.visible = freakOutViewActive && showAny;
+          rig.frame.visible = rig.root.visible && freakOutShowFrameRef.current;
           if (rig.root.visible) {
             const armLen = Math.max(0, freakOutSwingLengthRef.current);
             layoutFreakOutRig(
@@ -8752,6 +8838,15 @@ export function Aquafulness() {
               rig.gondola.quaternion.copy(_foQGondola);
               rig.align.quaternion.setFromUnitVectors(_foUp, _foAxisRing);
             }
+            if (rig.frame.visible) {
+              // Standing over the pivot, with the beam along the swing's
+              // axis so the arm swings between the two ends. (In the chair
+              // swing the arm stands still, so the frame keeps its heading.)
+              layoutFreakOutFrame(rig, armLen, rig.ringRadius);
+              rig.frame.position.copy(rig.root.position);
+              if (!freakOutChairSwing)
+                rig.frame.rotation.set(0, Math.atan2(-_foAxisSwing.z, _foAxisSwing.x), 0);
+            }
             rig.arm.visible = freakOutShowArmRef.current;
             rig.topRing.visible = freakOutShowTopRingRef.current;
             const hubOn = freakOutShowHubRef.current;
@@ -8776,8 +8871,9 @@ export function Aquafulness() {
             freakOutTint(rig.material, freakOutRingColorRef.current);
             freakOutTint(rig.armMaterial, freakOutArmColorRef.current);
             freakOutTint(rig.postMaterial, freakOutPostColorRef.current);
+            freakOutTint(rig.frameMaterial, freakOutFrameColorRef.current);
             for (const m of rig.suitMaterials) freakOutTint(m, freakOutSeatColorRef.current);
-            for (const m of [rig.material, rig.armMaterial, rig.postMaterial]) {
+            for (const m of [rig.material, rig.armMaterial, rig.postMaterial, rig.frameMaterial]) {
               m.opacity = freakOutBlendRef.current;
               m.depthWrite = freakOutBlendRef.current > 0.99;
             }
@@ -9752,6 +9848,8 @@ export function Aquafulness() {
     setFreakOutViewFixedHeading,
     freakOutShowArm,
     setFreakOutShowArm,
+    freakOutShowFrame,
+    setFreakOutShowFrame,
     freakOutShowTopRing,
     setFreakOutShowTopRing,
     freakOutShowHub,
@@ -9774,6 +9872,8 @@ export function Aquafulness() {
     setFreakOutPostColor,
     freakOutArmColor,
     setFreakOutArmColor,
+    freakOutFrameColor,
+    setFreakOutFrameColor,
     tornadoOn,
     setTornadoOn,
     tornadoRadius,
@@ -11297,7 +11397,7 @@ export function Aquafulness() {
                         label={t("dial.camera.freakOutSwingLength")}
                         value={freakOutSwingLength}
                         min={0}
-                        max={200}
+                        max={FREAK_OUT_MAX_ARM}
                         step={0.5}
                         curve={2}
                         format={(v) => `${v.toFixed(1)}m`}
@@ -11375,6 +11475,32 @@ export function Aquafulness() {
                         {t("dial.camera.freakOutShowArm")}:{" "}
                         {t(freakOutShowArm ? "common.on" : "common.off")}
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => setFreakOutShowFrame((v) => !v)}
+                        aria-pressed={freakOutShowFrame}
+                        className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                          freakOutShowFrame
+                            ? "ui-line-3 ui-tint-2 ui-ink"
+                            : "ui-line-2 ui-surface ui-ink-muted"
+                        }`}
+                      >
+                        {t("dial.camera.freakOutShowFrame")}:{" "}
+                        {t(freakOutShowFrame ? "common.on" : "common.off")}
+                      </button>
+                      {freakOutShowFrame && (
+                        <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
+                          <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
+                            {t("dial.camera.freakOutFrameColor")}
+                          </span>
+                          <input
+                            type="color"
+                            value={freakOutFrameColor}
+                            onChange={(e) => setFreakOutFrameColor(e.target.value)}
+                            className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
+                          />
+                        </label>
+                      )}
                       <button
                         type="button"
                         onClick={() => setFreakOutShowTopRing((v) => !v)}

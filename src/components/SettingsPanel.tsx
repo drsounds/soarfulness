@@ -563,6 +563,8 @@ export type SettingsPanelProps = {
   setFreakOutViewFixedHeading: Dispatch<SetStateAction<boolean>>;
   freakOutShowArm: boolean;
   setFreakOutShowArm: Dispatch<SetStateAction<boolean>>;
+  freakOutShowFrame: boolean;
+  setFreakOutShowFrame: Dispatch<SetStateAction<boolean>>;
   freakOutShowTopRing: boolean;
   setFreakOutShowTopRing: Dispatch<SetStateAction<boolean>>;
   freakOutShowHub: boolean;
@@ -585,6 +587,8 @@ export type SettingsPanelProps = {
   setFreakOutPostColor: Dispatch<SetStateAction<string>>;
   freakOutArmColor: string;
   setFreakOutArmColor: Dispatch<SetStateAction<string>>;
+  freakOutFrameColor: string;
+  setFreakOutFrameColor: Dispatch<SetStateAction<string>>;
   setFreakOutRotationDirection: Dispatch<SetStateAction<TornadoDirection>>;
   // TORNADO: one unified toggle shared by GUNGA (swing) and flying (noclip/
   // watercraft) alike — a circular orbit instead of GUNGA's default
@@ -1385,6 +1389,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setFreakOutViewFixedHeading,
     freakOutShowArm,
     setFreakOutShowArm,
+    freakOutShowFrame,
+    setFreakOutShowFrame,
     freakOutShowTopRing,
     setFreakOutShowTopRing,
     freakOutShowHub,
@@ -1407,6 +1413,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setFreakOutPostColor,
     freakOutArmColor,
     setFreakOutArmColor,
+    freakOutFrameColor,
+    setFreakOutFrameColor,
     tornadoOn,
     setTornadoOn,
     tornadoRadius,
@@ -2420,15 +2428,15 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${freakOutSwingLength.toFixed(1)}m`}
                       rawValue={freakOutSwingLength}
-                      onSet={(v) => setFreakOutSwingLength(Math.max(0, Math.min(200, v)))}
+                      onSet={(v) => setFreakOutSwingLength(Math.max(0, Math.min(800, v)))}
                       min={0}
-                      max={200}
+                      max={800}
                       step={0.5}
                       onDec={() =>
                         setFreakOutSwingLength((v) => Math.max(0, +(v - 0.5).toFixed(1)))
                       }
                       onInc={() =>
-                        setFreakOutSwingLength((v) => Math.min(200, +(v + 0.5).toFixed(1)))
+                        setFreakOutSwingLength((v) => Math.min(800, +(v + 0.5).toFixed(1)))
                       }
                     />
                     <SettingRow
@@ -2555,6 +2563,25 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       onDec={() => setFreakOutShowArm(false)}
                       onInc={() => setFreakOutShowArm(true)}
                     />
+                    <SettingRow
+                      label={t("dial.camera.freakOutShowFrame")}
+                      value={onOff(freakOutShowFrame)}
+                      onDec={() => setFreakOutShowFrame(false)}
+                      onInc={() => setFreakOutShowFrame(true)}
+                    />
+                    {freakOutShowFrame && (
+                      <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
+                        <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
+                          {t("dial.camera.freakOutFrameColor")}
+                        </span>
+                        <input
+                          type="color"
+                          value={freakOutFrameColor}
+                          onChange={(e) => setFreakOutFrameColor(e.target.value)}
+                          className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
+                        />
+                      </label>
+                    )}
                     <SettingRow
                       label={t("dial.camera.freakOutShowTopRing")}
                       value={onOff(freakOutShowTopRing)}

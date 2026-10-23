@@ -212,7 +212,9 @@
       "freakOutSeatColor": "FREAK OUT ISTUINTEN VÄRI",
       "freakOutRingColor": "FREAK OUT RENKAAN VÄRI",
       "freakOutPostColor": "FREAK OUT SYLINTERIEN VÄRI",
-      "freakOutArmColor": "FREAK OUT VARREN VÄRI"
+      "freakOutArmColor": "FREAK OUT VARREN VÄRI",
+      "freakOutShowFrame": "FREAK OUT TELINE",
+      "freakOutFrameColor": "FREAK OUT TELINEEN VÄRI"
     },
     "env": {
       "backdrop": "TAUSTA",
