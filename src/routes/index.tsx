@@ -6945,9 +6945,25 @@ export function Aquafulness() {
     const bodyflightParticleGeo = new THREE.BufferGeometry();
     bodyflightParticleGeo.setAttribute("position", bodyflightParticleAttr);
     bodyflightParticleGeo.setDrawRange(0, 0);
+    // Soft round dot instead of PointsMaterial's default hard square.
+    const bodyflightDotCanvas = document.createElement("canvas");
+    bodyflightDotCanvas.width = bodyflightDotCanvas.height = 32;
+    {
+      const ctx = bodyflightDotCanvas.getContext("2d");
+      if (ctx) {
+        const grad = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+        grad.addColorStop(0, "rgba(255,255,255,1)");
+        grad.addColorStop(0.4, "rgba(255,255,255,0.6)");
+        grad.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 32, 32);
+      }
+    }
+    const bodyflightDotTex = new THREE.CanvasTexture(bodyflightDotCanvas);
     const bodyflightParticleMat = new THREE.PointsMaterial({
+      map: bodyflightDotTex,
       color: 0xf2f8ff,
-      size: 0.3,
+      size: 0.6,
       sizeAttenuation: true,
       transparent: true,
       opacity: 0,
@@ -9679,6 +9695,7 @@ export function Aquafulness() {
       tornadoCloudMat.dispose();
       bodyflightParticleGeo.dispose();
       bodyflightParticleMat.dispose();
+      bodyflightDotTex.dispose();
       for (const layer of extendCloudLayersRef.current) {
         (layer.material as THREE.Material).dispose();
       }
