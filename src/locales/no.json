@@ -71,7 +71,8 @@
       "float": "SVØMMER",
       "noclip": "FLY",
       "swing": "HUSKE",
-      "watercraft": "FARKOST"
+      "watercraft": "FARKOST",
+      "bodyflight": "BODYFLIGHT"
     },
     "rotationValue": {
       "fixed": "FAST",
@@ -214,7 +215,10 @@
       "freakOutPostColor": "FREAK OUT SYLINDERFARGE",
       "freakOutArmColor": "FREAK OUT ARMFARGE",
       "freakOutShowFrame": "FREAK OUT STATIV",
-      "freakOutFrameColor": "FREAK OUT STATIVFARGE"
+      "freakOutFrameColor": "FREAK OUT STATIVFARGE",
+      "bodyflightAirflow": "LUFTSTRØM",
+      "bodyflightGravity": "TYNGDEKRAFT",
+      "bodyflightHoverHeight": "SVEVEHØYDE"
     },
     "env": {
       "backdrop": "BAKGRUNN",
@@ -684,7 +688,9 @@
       "noclipDriftY": "DRIV Y",
       "reverseRise": "OMVENDT STIGNING",
       "sway": "SVAI",
-      "waveDirection": "BØLGERETN"
+      "waveDirection": "BØLGERETN",
+      "airflow": "LUFTSTRØM",
+      "body": "KROPP"
     },
     "loading": "LASTER…",
     "offline": "OFFLINE",

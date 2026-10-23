@@ -154,9 +154,25 @@ export const SETTINGS_TABS: { id: SettingsTab; labelKey: string }[] = [
 //                 ocean with a Minecraft-like block grid and a brush-
 //                 sculptable clay pad — see WatercraftRig in
 //                 src/lib/watercraft/. The one optional "build a world"
-//                 mode among these four.
-export type CameraMode = "float" | "noclip" | "swing" | "watercraft";
-export const CAMERA_MODES: CameraMode[] = ["float", "noclip", "swing", "watercraft"];
+//                 mode among these.
+//  - "bodyflight" indoor-skydiving style: an updraft blows up from the
+//                 ground (the water surface) and the body falls through it
+//                 under gravity. A flat, belly-down body catches the air and
+//                 floats; the more upright the BODY stick holds it, the less
+//                 air it catches and the faster it falls. Close to the
+//                 ground a cushion of air catches it so it hovers instead of
+//                 landing. NAV/STRÖM move it sideways, and TORNADO spins it
+//                 round a whirlwind exactly like FLYG.
+export type CameraMode = "float" | "noclip" | "swing" | "watercraft" | "bodyflight";
+export const CAMERA_MODES: CameraMode[] = ["float", "noclip", "swing", "watercraft", "bodyflight"];
+
+// BODYFLIGHT dial ranges: the updraft's speed at the ground (m/s), the
+// gravity multiplier (1 = Earth) and the height (m) the air cushion holds
+// the body at above the ground.
+export const BODYFLIGHT_AIRFLOW_MAX = 120;
+export const BODYFLIGHT_GRAVITY_MAX = 3;
+export const BODYFLIGHT_HOVER_MIN = 0.5;
+export const BODYFLIGHT_HOVER_MAX = 30;
 
 // Angular direction of the unified TORNADO orbit (see tornado* fields
 // below): "cw"/"ccw" as seen from above (+y looking down).
@@ -225,6 +241,7 @@ export const CAMERA_MODE_LABEL_KEYS: Record<CameraMode, string> = {
   noclip: "camera.mode.noclip",
   swing: "camera.mode.swing",
   watercraft: "camera.mode.watercraft",
+  bodyflight: "camera.mode.bodyflight",
 };
 
 export const TORNADO_DIRECTION_LABEL_KEYS: Record<TornadoDirection, string> = {
@@ -619,6 +636,13 @@ export type Persisted = {
   // routes/index.tsx for the exact math.
   noclipFallRiseSpeed: number;
   noclipVertEaseTime: number;
+  // BODYFLIGHT: the updraft's speed at the ground (m/s, thinning out with
+  // height), the gravity multiplier, and the hover height the ground cushion
+  // holds the body at — see the bodyflight branch of the physics loop in
+  // routes/index.tsx.
+  bodyflightAirflow: number;
+  bodyflightGravity: number;
+  bodyflightHoverHeight: number;
   swingPositionY: number;
   swingIntensity: number;
   swingSpeed: number;
@@ -766,6 +790,9 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "noclipSpeed",
     "noclipFallRiseSpeed",
     "noclipVertEaseTime",
+    "bodyflightAirflow",
+    "bodyflightGravity",
+    "bodyflightHoverHeight",
     "swingPreset",
     "swingPositionY",
     "swingIntensity",
