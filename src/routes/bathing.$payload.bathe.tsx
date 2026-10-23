@@ -5,6 +5,7 @@ import {
   STORAGE_KEY,
   CAMERA_STORAGE_KEY,
   SEEDED_PAYLOAD_KEY,
+  SEEDED_PAYLOAD_MAX,
   type CameraPose,
 } from "@/routes/index";
 import { InvalidBathLink } from "@/components/InvalidBathLink";
@@ -32,20 +33,24 @@ function BatheRoute() {
   if (!seeded.current && typeof window !== "undefined" && payload) {
     seeded.current = true;
     try {
-      let alreadySeeded = false;
+      let seededList: string[] = [];
       try {
-        alreadySeeded = window.sessionStorage.getItem(SEEDED_PAYLOAD_KEY) === encoded;
+        const parsed: unknown = JSON.parse(window.localStorage.getItem(SEEDED_PAYLOAD_KEY) ?? "[]");
+        if (Array.isArray(parsed)) seededList = parsed.filter((e) => typeof e === "string");
       } catch {
-        /* sessionStorage unavailable — seed as before */
+        /* unreadable — seed as before */
       }
-      if (!alreadySeeded) {
+      if (!seededList.includes(encoded)) {
         window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload.s));
         if (payload.c) {
           const pose: CameraPose = payload.c;
           window.localStorage.setItem(CAMERA_STORAGE_KEY, JSON.stringify(pose));
         }
         try {
-          window.sessionStorage.setItem(SEEDED_PAYLOAD_KEY, encoded);
+          window.localStorage.setItem(
+            SEEDED_PAYLOAD_KEY,
+            JSON.stringify([encoded, ...seededList].slice(0, SEEDED_PAYLOAD_MAX)),
+          );
         } catch {
           /* ignore */
         }
