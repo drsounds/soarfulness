@@ -556,6 +556,8 @@ export type SettingsPanelProps = {
   setFreakOutRotationOscillate: Dispatch<SetStateAction<boolean>>;
   freakOutRotationOscillateSpeed: number;
   setFreakOutRotationOscillateSpeed: Dispatch<SetStateAction<number>>;
+  freakOutRotationOscillateEveryOther: boolean;
+  setFreakOutRotationOscillateEveryOther: Dispatch<SetStateAction<boolean>>;
   freakOutRotationDirection: TornadoDirection;
   freakOutViewFixedHeading: boolean;
   setFreakOutViewFixedHeading: Dispatch<SetStateAction<boolean>>;
@@ -1375,6 +1377,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setFreakOutRotationOscillate,
     freakOutRotationOscillateSpeed,
     setFreakOutRotationOscillateSpeed,
+    freakOutRotationOscillateEveryOther,
+    setFreakOutRotationOscillateEveryOther,
     freakOutRotationDirection,
     setFreakOutRotationDirection,
     freakOutViewFixedHeading,
@@ -2533,6 +2537,14 @@ export function SettingsPanel(props: SettingsPanelProps) {
                                 Math.min(5, +(v + 0.05).toFixed(2)),
                               )
                             }
+                          />
+                        )}
+                        {freakOutRotationOscillate && (
+                          <SettingRow
+                            label={t("dial.camera.freakOutRotationOscillateEveryOther")}
+                            value={onOff(freakOutRotationOscillateEveryOther)}
+                            onDec={() => setFreakOutRotationOscillateEveryOther(false)}
+                            onInc={() => setFreakOutRotationOscillateEveryOther(true)}
                           />
                         )}
                       </>

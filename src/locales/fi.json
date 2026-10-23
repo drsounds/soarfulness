@@ -196,6 +196,7 @@
       "freakOutRotationSpeed": "FREAK OUT PYÖRIMISNOPEUS",
       "freakOutRotationOscillate": "FREAK OUT VAIHDA SUUNTAA",
       "freakOutRotationOscillateSpeed": "FREAK OUT VAIHTONOPEUS",
+      "freakOutRotationOscillateEveryOther": "FREAK OUT JOKA TOISESSA KÄÄNTEESSÄ",
       "freakOutOn": "FREAK OUT",
       "freakOutRotationOn": "FREAK OUT PYÖRIMINEN",
       "freakOutRotationDirection": "FREAK OUT PYÖRIMISSUUNTA",

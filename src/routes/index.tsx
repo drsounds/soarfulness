@@ -1402,6 +1402,7 @@ const DEFAULTS: Persisted = {
   freakOutRotationSpeed: 1,
   freakOutRotationOscillate: false,
   freakOutRotationOscillateSpeed: 1,
+  freakOutRotationOscillateEveryOther: false,
   freakOutRotationDirection: "cw",
   freakOutViewFixedHeading: false,
   freakOutShowArm: true,
@@ -1983,6 +1984,9 @@ export function Aquafulness() {
   const [freakOutRotationOscillateSpeed, setFreakOutRotationOscillateSpeed] = useState(
     initial.freakOutRotationOscillateSpeed,
   );
+  const [freakOutRotationOscillateEveryOther, setFreakOutRotationOscillateEveryOther] = useState(
+    initial.freakOutRotationOscillateEveryOther,
+  );
   const [freakOutRotationDirection, setFreakOutRotationDirection] = useState<TornadoDirection>(
     initial.freakOutRotationDirection,
   );
@@ -2511,6 +2515,7 @@ export function Aquafulness() {
     freakOutRotationSpeed,
     freakOutRotationOscillate,
     freakOutRotationOscillateSpeed,
+    freakOutRotationOscillateEveryOther,
     freakOutRotationDirection,
     freakOutViewFixedHeading,
     freakOutShowArm,
@@ -2724,6 +2729,7 @@ export function Aquafulness() {
     freakOutRotationSpeed,
     freakOutRotationOscillate,
     freakOutRotationOscillateSpeed,
+    freakOutRotationOscillateEveryOther,
     freakOutRotationDirection,
     freakOutViewFixedHeading,
     freakOutShowArm,
@@ -2857,6 +2863,7 @@ export function Aquafulness() {
   const freakOutRotationSpeedRef = useRef(freakOutRotationSpeed);
   const freakOutRotationOscillateRef = useRef(freakOutRotationOscillate);
   const freakOutRotationOscillateSpeedRef = useRef(freakOutRotationOscillateSpeed);
+  const freakOutRotationOscillateEveryOtherRef = useRef(freakOutRotationOscillateEveryOther);
   const freakOutRotationDirectionRef = useRef(freakOutRotationDirection);
   const freakOutViewFixedHeadingRef = useRef(freakOutViewFixedHeading);
   const freakOutShowArmRef = useRef(freakOutShowArm);
@@ -2881,6 +2888,9 @@ export function Aquafulness() {
   // for the ring's spin, so toggling either never snaps the camera.
   const freakOutSwingPhaseRef = useRef(0);
   const freakOutRingAngleRef = useRef(0);
+  // The ring's current spin rate (rad/s), which carries on under its own
+  // momentum while the drive is let go at each turnaround.
+  const freakOutRingSpinRef = useRef(0);
   const freakOutOscPhaseRef = useRef(0);
   const freakOutBlendRef = useRef(0);
   const freakOutRotBlendRef = useRef(0);
@@ -3715,6 +3725,9 @@ export function Aquafulness() {
     freakOutRotationOscillateSpeedRef.current = freakOutRotationOscillateSpeed;
   }, [freakOutRotationOscillateSpeed]);
   useEffect(() => {
+    freakOutRotationOscillateEveryOtherRef.current = freakOutRotationOscillateEveryOther;
+  }, [freakOutRotationOscillateEveryOther]);
+  useEffect(() => {
     freakOutRotationDirectionRef.current = freakOutRotationDirection;
   }, [freakOutRotationDirection]);
   useEffect(() => {
@@ -4163,6 +4176,7 @@ export function Aquafulness() {
     setFreakOutRotationSpeed(DEFAULTS.freakOutRotationSpeed);
     setFreakOutRotationOscillate(DEFAULTS.freakOutRotationOscillate);
     setFreakOutRotationOscillateSpeed(DEFAULTS.freakOutRotationOscillateSpeed);
+    setFreakOutRotationOscillateEveryOther(DEFAULTS.freakOutRotationOscillateEveryOther);
     setFreakOutRotationDirection(DEFAULTS.freakOutRotationDirection);
     setFreakOutViewFixedHeading(DEFAULTS.freakOutViewFixedHeading);
     setFreakOutShowArm(DEFAULTS.freakOutShowArm);
@@ -4394,6 +4408,8 @@ export function Aquafulness() {
       setFreakOutRotationOscillate(patch.freakOutRotationOscillate);
     if (patch.freakOutRotationOscillateSpeed !== undefined)
       setFreakOutRotationOscillateSpeed(patch.freakOutRotationOscillateSpeed);
+    if (patch.freakOutRotationOscillateEveryOther !== undefined)
+      setFreakOutRotationOscillateEveryOther(patch.freakOutRotationOscillateEveryOther);
     if (patch.freakOutRotationDirection !== undefined)
       setFreakOutRotationDirection(patch.freakOutRotationDirection);
     if (patch.freakOutViewFixedHeading !== undefined)
@@ -8547,29 +8563,52 @@ export function Aquafulness() {
           freakOutRotBlendRef.current +=
             ((freakOutRotationOnRef.current ? 1 : 0) - freakOutRotBlendRef.current) *
             (1 - Math.exp(-physDt / 0.4));
+          // How much the arm is really swinging (0 with next to no swing
+          // angle or speed), which ties the ring's spin to the swing below.
+          const foSwingSync =
+            Math.min(1, Math.abs(freakOutSwingAngleRef.current) / 15) *
+            Math.min(1, Math.max(0, freakOutSwingSpeedRef.current) / 0.1);
           let foDir = freakOutRotationDirectionRef.current === "ccw" ? -1 : 1;
           if (freakOutRotationOscillateRef.current) {
             freakOutOscPhaseRef.current +=
               0.5 * Math.max(0.01, freakOutRotationOscillateSpeedRef.current) * physDt;
-            foDir *= Math.cos(freakOutOscPhaseRef.current);
+            // Alternating: while the arm swings, the ring turns one way on
+            // each pass and reverses at the swing's turnarounds (the
+            // swing's angle is A·sin(phase), so cos(phase) changes sign
+            // there); without a swing it alternates on its own timer.
+            // EVERY OTHER: √2·cos((phase − π/2)/2) only changes sign at
+            // every other turnaround (phase = 3π/2 + 2kπ) and is ±1 at the
+            // bottom of each pass, where the drive takes hold.
+            const foSwingAlt = freakOutRotationOscillateEveryOtherRef.current
+              ? Math.max(
+                  -1,
+                  Math.min(
+                    1,
+                    Math.SQRT2 * Math.cos((freakOutSwingPhaseRef.current - Math.PI / 2) / 2),
+                  ),
+                )
+              : Math.cos(freakOutSwingPhaseRef.current);
+            foDir *=
+              foSwingSync * foSwingAlt + (1 - foSwingSync) * Math.cos(freakOutOscPhaseRef.current);
           }
-          // The ring's spin follows the arm's swing: full speed through the
-          // bottom of each pass, easing to a stop as the arm slows into each
-          // turnaround and picking up again as it swings back
-          // (|cos(phase)| is the swing's own speed, 0..1). With next to no
-          // swing (angle or speed near 0) it spins steadily as before.
-          const foSwingSync =
-            Math.min(1, Math.abs(freakOutSwingAngleRef.current) / 15) *
-            Math.min(1, Math.max(0, freakOutSwingSpeedRef.current) / 0.1);
-          const foSpinScale =
-            1 - foSwingSync * (1 - Math.abs(Math.cos(freakOutSwingPhaseRef.current)));
+          // The ring's spin follows the arm's swing: the drive pushes it up
+          // to speed through the bottom of each pass and lets go as the arm
+          // slows into each turnaround, where the ring coasts on its own
+          // momentum (slowing, but never quite stopping) until the drive
+          // takes hold again on the way back. |cos(phase)| is the swing's
+          // own speed, 0..1; with next to no swing the drive never lets go
+          // and it spins steadily as before.
+          const foDrive = 1 - foSwingSync * (1 - Math.abs(Math.cos(freakOutSwingPhaseRef.current)));
+          const foSpinTarget = 0.8 * Math.max(0, freakOutRotationSpeedRef.current) * foDir;
+          // Driven: catch up with the set speed (τ ≈ 0.6 s). Let go: only
+          // bearing friction, a slow coast-down (τ ≈ 4 s).
+          // dv/dt = drive·(target − v)/0.6 − (1 − drive)·v/4, stepped exactly.
+          const foSpinRate = foDrive / 0.6 + (1 - foDrive) / 4;
+          const foSpinGoal = (foSpinTarget * foDrive) / 0.6 / foSpinRate;
+          freakOutRingSpinRef.current +=
+            (foSpinGoal - freakOutRingSpinRef.current) * (1 - Math.exp(-physDt * foSpinRate));
           freakOutRingAngleRef.current +=
-            0.8 *
-            Math.max(0, freakOutRotationSpeedRef.current) *
-            foDir *
-            foSpinScale *
-            freakOutRotBlendRef.current *
-            physDt;
+            freakOutRingSpinRef.current * freakOutRotBlendRef.current * physDt;
           // SEATS: ride in the chosen seat by sitting that much further
           // round the ring, gliding the short way round when it changes.
           {
@@ -9705,6 +9744,8 @@ export function Aquafulness() {
     setFreakOutRotationOscillate,
     freakOutRotationOscillateSpeed,
     setFreakOutRotationOscillateSpeed,
+    freakOutRotationOscillateEveryOther,
+    setFreakOutRotationOscillateEveryOther,
     freakOutRotationDirection,
     setFreakOutRotationDirection,
     freakOutViewFixedHeading,
@@ -11485,6 +11526,21 @@ export function Aquafulness() {
                           format={(v) => `${v.toFixed(2)}×`}
                           onChange={setFreakOutRotationOscillateSpeed}
                         />
+                      )}
+                      {freakOutRotationOscillate && (
+                        <button
+                          type="button"
+                          onClick={() => setFreakOutRotationOscillateEveryOther((v) => !v)}
+                          aria-pressed={freakOutRotationOscillateEveryOther}
+                          className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                            freakOutRotationOscillateEveryOther
+                              ? "ui-line-3 ui-tint-2 ui-ink"
+                              : "ui-line-2 ui-surface ui-ink-muted"
+                          }`}
+                        >
+                          {t("dial.camera.freakOutRotationOscillateEveryOther")}:{" "}
+                          {t(freakOutRotationOscillateEveryOther ? "common.on" : "common.off")}
+                        </button>
                       )}
                     </>
                   )}
