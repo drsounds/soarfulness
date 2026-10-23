@@ -8014,12 +8014,9 @@ export function Aquafulness() {
           swingPositionYRef.current +
           swingHeightRef.current *
             swingYWaveformValue(swingYWaveformRef.current, theta, swingPhaseNow, swingAmpRadNow);
-        // FREAK OUT takes over from GUNGA's own swing (height bob here, the
-        // side-to-side arc below) as it eases in, so the ride's pivot at the
-        // top of its arm stays put and the arm swings about it, instead of the
-        // whole ride riding GUNGA's motion. freakOutBlendRef is last frame's.
-        const rawSwingY =
-          gungaSwingY + (swingPositionYRef.current - gungaSwingY) * freakOutBlendRef.current;
+        // GUNGA's swing carries the whole FREAK OUT ride and camera, while
+        // the ride's own arm swing is layered on top.
+        const rawSwingY = gungaSwingY;
 
         // TORNADO: crossfades the pendulum arc into a circular orbit around
         // the anchor at swing altitude instead of replacing it outright — a
@@ -8032,8 +8029,7 @@ export function Aquafulness() {
         const rightX = Math.cos(swingYawRef.current),
           rightZ = -Math.sin(swingYawRef.current);
         const horizArmLen = Math.max(8, Math.min(60, swingPositionYRef.current * 0.6));
-        const rawSwingOff =
-          Math.sin(theta) * horizArmLen * swingXFactorRef.current * (1 - freakOutBlendRef.current);
+        const rawSwingOff = Math.sin(theta) * horizArmLen * swingXFactorRef.current;
         const pendOffX = rightX * rawSwingOff;
         const pendOffZ = rightZ * rawSwingOff;
         // Manual radial control: NAV and STRÖM move the whole anchor here
