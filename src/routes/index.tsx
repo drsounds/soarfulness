@@ -8371,6 +8371,9 @@ export function Aquafulness() {
         bodyflightParticles.visible = bodyflightParticleFade > 0 && count > 0;
         if (bodyflightParticles.visible) {
           bodyflightParticleMat.opacity = 0.8 * bodyflightParticleFade;
+          // Particles live in the same space as the physics (water level
+          // 0); NIVÅ/DJUP lift the rendered water by levelY, so lift them too.
+          bodyflightParticles.position.y = levelY;
           bodyflightParticleGeo.setDrawRange(0, count);
           const half = BODYFLIGHT_PARTICLE_HALF;
           const groundY = normalSurfaceY;
