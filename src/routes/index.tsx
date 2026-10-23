@@ -686,12 +686,14 @@ function buildFreakOutRig(): FreakOutRig {
 const FREAK_OUT_SUIT_URL = `${appDir("suit")}/${encodeURIComponent("Bathing Suit")}.glb`;
 // With SEATS on, the seat ring is lifted above the riders and each seat
 // hangs from it on a post, like a chair swing: the post drops from the
-// ring, just behind the rider, to halfway down the suit's back, and the
-// suit sits under the view. The ring's height follows the post's length.
+// ring, just behind the rider, and stops FREAK_OUT_SEAT_POST_GAP above the
+// suit, which sits under the view. The ring's height follows the post's
+// length.
 const FREAK_OUT_SEAT_TOP = -0.25; // the suit's top sits this far below eye level
 const FREAK_OUT_SEAT_HEIGHT = 0.85; // the suit is scaled to this height
+const FREAK_OUT_SEAT_POST_GAP = 0.3; // the post ends this far above the suit's top
 function freakOutSeatRingY(postLength: number): number {
-  return FREAK_OUT_SEAT_TOP - FREAK_OUT_SEAT_HEIGHT / 2 + postLength;
+  return FREAK_OUT_SEAT_TOP + FREAK_OUT_SEAT_POST_GAP + postLength;
 }
 const FREAK_OUT_SEAT_POST_RADIUS = 0.1;
 const FREAK_OUT_SEAT_POST_INSET = 0.2; // post hangs this far inward, at the suit's back
@@ -7772,10 +7774,16 @@ export function Aquafulness() {
           posRef.current.z += (walkZ * walkSpeed + driftWorldRef.current.z * driftSpeed) * physDt;
         }
         const theta = swingThetaNow;
-        const rawSwingY =
+        const gungaSwingY =
           swingPositionYRef.current +
           swingHeightRef.current *
             swingYWaveformValue(swingYWaveformRef.current, theta, swingPhaseNow, swingAmpRadNow);
+        // FREAK OUT takes over from GUNGA's own swing (height bob here, the
+        // side-to-side arc below) as it eases in, so the ride's pivot at the
+        // top of its arm stays put and the arm swings about it, instead of the
+        // whole ride riding GUNGA's motion. freakOutBlendRef is last frame's.
+        const rawSwingY =
+          gungaSwingY + (swingPositionYRef.current - gungaSwingY) * freakOutBlendRef.current;
 
         // TORNADO: crossfades the pendulum arc into a circular orbit around
         // the anchor at swing altitude instead of replacing it outright — a
@@ -7788,7 +7796,8 @@ export function Aquafulness() {
         const rightX = Math.cos(swingYawRef.current),
           rightZ = -Math.sin(swingYawRef.current);
         const horizArmLen = Math.max(8, Math.min(60, swingPositionYRef.current * 0.6));
-        const rawSwingOff = Math.sin(theta) * horizArmLen * swingXFactorRef.current;
+        const rawSwingOff =
+          Math.sin(theta) * horizArmLen * swingXFactorRef.current * (1 - freakOutBlendRef.current);
         const pendOffX = rightX * rawSwingOff;
         const pendOffZ = rightZ * rawSwingOff;
         // Manual radial control: NAV and STRÖM move the whole anchor here
@@ -10811,838 +10820,844 @@ export function Aquafulness() {
                     </button>
                   ))}
                 </div>
-                {cameraDrawerTab === "float" && (
-                  <>
-                    <PadSlider
-                      label={t("hud.slider.wave")}
-                      value={waveAmp}
-                      min={0}
-                      max={100}
-                      step={0.5}
-                      curve={4}
-                      format={(v) => `${v.toFixed(2)}m`}
-                      onChange={setWaveAmp}
-                    />
-                    <PadSlider
-                      label={t("hud.slider.tempo")}
-                      value={waveSpeed}
-                      min={0}
-                      max={10}
-                      step={0.1}
-                      curve={2}
-                      format={(v) => `${v.toFixed(2)}×`}
-                      onChange={setWaveSpeed}
-                    />
-                    {/* Geometric, not power-curved: FREKVENS is a multiplier,
+                {/* The tab's own controls scroll inside a capped height
+                    (the tab row above stays put), so a long tab like
+                    FREAK OUT never pushes the drawer off the top of the
+                    screen. */}
+                <div className="flex max-h-[55vh] w-full flex-col items-center gap-2 overflow-y-auto overscroll-contain">
+                  {cameraDrawerTab === "float" && (
+                    <>
+                      <PadSlider
+                        label={t("hud.slider.wave")}
+                        value={waveAmp}
+                        min={0}
+                        max={100}
+                        step={0.5}
+                        curve={4}
+                        format={(v) => `${v.toFixed(2)}m`}
+                        onChange={setWaveAmp}
+                      />
+                      <PadSlider
+                        label={t("hud.slider.tempo")}
+                        value={waveSpeed}
+                        min={0}
+                        max={10}
+                        step={0.1}
+                        curve={2}
+                        format={(v) => `${v.toFixed(2)}×`}
+                        onChange={setWaveSpeed}
+                      />
+                      {/* Geometric, not power-curved: FREKVENS is a multiplier,
                       so half speed (0.5×) and double (2×) should sit equally
                       far from 1×. */}
-                    <PadSlider
-                      label={t("hud.slider.frequency")}
-                      value={waveFreq}
-                      min={WAVE_FREQ_MIN}
-                      max={WAVE_FREQ_MAX}
-                      step={0.05}
-                      curve="log"
-                      format={(v) => `${v.toFixed(2)}×`}
-                      onChange={setWaveFreq}
-                    />
-                  </>
-                )}
-                {cameraDrawerTab === "noclip" && (
-                  <>
-                    <PadSlider
-                      label={t("dial.camera.noclipSpeed")}
-                      value={noclipSpeed}
-                      min={0.2}
-                      max={6}
-                      step={0.1}
-                      curve={2}
-                      format={(v) => `${v.toFixed(1)}×`}
-                      onChange={setNoclipSpeed}
-                    />
-                    <PadSlider
-                      label={t("dial.camera.noclipFallRiseSpeed")}
-                      value={noclipFallRiseSpeed}
-                      min={2}
-                      max={300}
-                      step={2}
-                      curve={2}
-                      format={(v) => `${v.toFixed(0)}m/s`}
-                      onChange={setNoclipFallRiseSpeed}
-                    />
-                  </>
-                )}
-                {cameraDrawerTab === "swing" && (
-                  <>
-                    <PadSlider
-                      label={t("dial.camera.swingIntensity")}
-                      value={swingIntensity}
-                      min={0.0001}
-                      max={2.5}
-                      step={0.05}
-                      curve={2}
-                      format={(v) => `${v.toFixed(2)}×`}
-                      onChange={setSwingIntensity}
-                    />
-                    <PadSlider
-                      label={t("dial.camera.swingSpeed")}
-                      value={swingSpeed}
-                      min={0.1}
-                      max={5}
-                      step={0.1}
-                      curve={2}
-                      format={(v) => `${v.toFixed(2)}×`}
-                      onChange={setSwingSpeed}
-                    />
-                    <PadSlider
-                      label={t("dial.camera.swingPositionY")}
-                      value={swingPositionY}
-                      min={0}
-                      max={100000}
-                      step={100}
-                      curve={2}
-                      format={(v) => `${v.toFixed(0)}m`}
-                      onChange={setSwingPositionY}
-                    />
-                    <PadSlider
-                      label={t("dial.camera.swingHeight")}
-                      value={swingHeight}
-                      min={0}
-                      max={100000}
-                      step={100}
-                      curve={2}
-                      format={(v) => `${v.toFixed(0)}m`}
-                      onChange={setSwingHeight}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setSwingKeepSpeedOn(!swingKeepSpeed)}
-                      aria-pressed={swingKeepSpeed}
-                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
-                        swingKeepSpeed
-                          ? "ui-line-3 ui-tint-2 ui-ink"
-                          : "ui-line-2 ui-surface ui-ink-muted"
-                      }`}
-                    >
-                      {t("dial.camera.swingKeepSpeed")}:{" "}
-                      {t(swingKeepSpeed ? "common.on" : "common.off")}
-                    </button>
-                  </>
-                )}
-                {/* BADRINGAR: the bath-ring field's main dials (the rest —
+                      <PadSlider
+                        label={t("hud.slider.frequency")}
+                        value={waveFreq}
+                        min={WAVE_FREQ_MIN}
+                        max={WAVE_FREQ_MAX}
+                        step={0.05}
+                        curve="log"
+                        format={(v) => `${v.toFixed(2)}×`}
+                        onChange={setWaveFreq}
+                      />
+                    </>
+                  )}
+                  {cameraDrawerTab === "noclip" && (
+                    <>
+                      <PadSlider
+                        label={t("dial.camera.noclipSpeed")}
+                        value={noclipSpeed}
+                        min={0.2}
+                        max={6}
+                        step={0.1}
+                        curve={2}
+                        format={(v) => `${v.toFixed(1)}×`}
+                        onChange={setNoclipSpeed}
+                      />
+                      <PadSlider
+                        label={t("dial.camera.noclipFallRiseSpeed")}
+                        value={noclipFallRiseSpeed}
+                        min={2}
+                        max={300}
+                        step={2}
+                        curve={2}
+                        format={(v) => `${v.toFixed(0)}m/s`}
+                        onChange={setNoclipFallRiseSpeed}
+                      />
+                    </>
+                  )}
+                  {cameraDrawerTab === "swing" && (
+                    <>
+                      <PadSlider
+                        label={t("dial.camera.swingIntensity")}
+                        value={swingIntensity}
+                        min={0.0001}
+                        max={2.5}
+                        step={0.05}
+                        curve={2}
+                        format={(v) => `${v.toFixed(2)}×`}
+                        onChange={setSwingIntensity}
+                      />
+                      <PadSlider
+                        label={t("dial.camera.swingSpeed")}
+                        value={swingSpeed}
+                        min={0.1}
+                        max={5}
+                        step={0.1}
+                        curve={2}
+                        format={(v) => `${v.toFixed(2)}×`}
+                        onChange={setSwingSpeed}
+                      />
+                      <PadSlider
+                        label={t("dial.camera.swingPositionY")}
+                        value={swingPositionY}
+                        min={0}
+                        max={100000}
+                        step={100}
+                        curve={2}
+                        format={(v) => `${v.toFixed(0)}m`}
+                        onChange={setSwingPositionY}
+                      />
+                      <PadSlider
+                        label={t("dial.camera.swingHeight")}
+                        value={swingHeight}
+                        min={0}
+                        max={100000}
+                        step={100}
+                        curve={2}
+                        format={(v) => `${v.toFixed(0)}m`}
+                        onChange={setSwingHeight}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setSwingKeepSpeedOn(!swingKeepSpeed)}
+                        aria-pressed={swingKeepSpeed}
+                        className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                          swingKeepSpeed
+                            ? "ui-line-3 ui-tint-2 ui-ink"
+                            : "ui-line-2 ui-surface ui-ink-muted"
+                        }`}
+                      >
+                        {t("dial.camera.swingKeepSpeed")}:{" "}
+                        {t(swingKeepSpeed ? "common.on" : "common.off")}
+                      </button>
+                    </>
+                  )}
+                  {/* BADRINGAR: the bath-ring field's main dials (the rest —
                     opacity, texture, grid size, reach, fade — stay under
                     MILJÖ in the full settings panel). TÄTHET VERTIKALT is the
                     inverse of torusVerticalSpacing (rings per meter), so
                     dragging right packs the rings closer together. */}
-                {cameraDrawerTab === "torus" && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => setTorusRingsOn((v) => !v)}
-                      aria-pressed={torusRingsOn}
-                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
-                        torusRingsOn
-                          ? "ui-line-3 ui-tint-2 ui-ink"
-                          : "ui-line-2 ui-surface ui-ink-muted"
-                      }`}
-                    >
-                      {t("dial.env.torusRings")}: {t(torusRingsOn ? "common.on" : "common.off")}
-                    </button>
-                    <PadSlider
-                      label={t("dial.env.torusScale")}
-                      value={torusScale}
-                      min={0.1}
-                      max={20}
-                      step={0.1}
-                      curve="log"
-                      format={(v) => `${v.toFixed(1)}×`}
-                      onChange={setTorusScale}
-                    />
-                    <PadSlider
-                      label={t("dial.env.torusTube")}
-                      value={torusTube}
-                      min={0.01}
-                      max={1}
-                      step={0.01}
-                      curve="log"
-                      format={(v) => `${v.toFixed(2)}m`}
-                      onChange={setTorusTube}
-                    />
-                    <PadSlider
-                      label={t("common.opacity")}
-                      value={torusOpacity}
-                      min={0}
-                      max={1}
-                      step={0.05}
-                      format={(v) => `${Math.round(v * 100)}%`}
-                      onChange={setTorusOpacity}
-                    />
-                    <PadSlider
-                      label={t("dial.env.torusCellSize")}
-                      value={torusCellSize}
-                      min={0}
-                      max={30}
-                      step={0.5}
-                      curve={2}
-                      format={(v) => `${v.toFixed(1)}m`}
-                      onChange={setTorusCellSize}
-                    />
-                    <PadSlider
-                      label={t("dial.env.torusVerticalSpacing")}
-                      value={torusVerticalSpacing}
-                      min={0}
-                      max={20}
-                      step={0.1}
-                      curve={2}
-                      format={(v) => `${v.toFixed(1)}m`}
-                      onChange={setTorusVerticalSpacing}
-                    />
-                    <PadSlider
-                      label={t("dial.env.torusVerticalCount")}
-                      value={torusVerticalCount}
-                      min={1}
-                      max={21}
-                      step={2}
-                      format={(v) => `${v.toFixed(0)}`}
-                      onChange={(v) =>
-                        setTorusVerticalCount(Math.max(1, Math.min(21, Math.round(v))))
-                      }
-                    />
-                  </>
-                )}
-                {/* HIMMEL: quick sky & cloud layer dials, mirrored from MILJÖ. */}
-                {cameraDrawerTab === "sky" && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => setMidCloudsOn((v) => !v)}
-                      aria-pressed={midCloudsOn}
-                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
-                        midCloudsOn
-                          ? "ui-line-3 ui-tint-2 ui-ink"
-                          : "ui-line-2 ui-surface ui-ink-muted"
-                      }`}
-                    >
-                      {t("dial.env.midClouds")}: {t(midCloudsOn ? "common.on" : "common.off")}
-                    </button>
-                    <PadSlider
-                      label={t("dial.env.midCloudsHeight")}
-                      value={midCloudsHeight}
-                      min={0.05}
-                      max={0.95}
-                      step={0.05}
-                      format={(v) => `${Math.round(v * 100)}%`}
-                      onChange={setMidCloudsHeight}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setSkyCloudsOn((v) => !v)}
-                      aria-pressed={skyCloudsOn}
-                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
-                        skyCloudsOn
-                          ? "ui-line-3 ui-tint-2 ui-ink"
-                          : "ui-line-2 ui-surface ui-ink-muted"
-                      }`}
-                    >
-                      {t("dial.env.skyClouds")}: {t(skyCloudsOn ? "common.on" : "common.off")}
-                    </button>
-                    <PadSlider
-                      label={t("dial.env.skyCloudsAltitude")}
-                      value={skyCloudsAltitude}
-                      min={SKY_CLOUDS_ALTITUDE_MIN}
-                      max={SKY_CLOUDS_ALTITUDE_MAX}
-                      step={50}
-                      format={(v) => `${Math.round(v)} m`}
-                      onChange={setSkyCloudsAltitude}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setBottomClouds3d((v) => !v)}
-                      aria-pressed={bottomClouds3d}
-                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
-                        bottomClouds3d
-                          ? "ui-line-3 ui-tint-2 ui-ink"
-                          : "ui-line-2 ui-surface ui-ink-muted"
-                      }`}
-                    >
-                      {t("dial.env.bottomClouds3d")}:{" "}
-                      {t(bottomClouds3d ? "common.on" : "common.off")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setMidClouds3d((v) => !v)}
-                      aria-pressed={midClouds3d}
-                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
-                        midClouds3d
-                          ? "ui-line-3 ui-tint-2 ui-ink"
-                          : "ui-line-2 ui-surface ui-ink-muted"
-                      }`}
-                    >
-                      {t("dial.env.midClouds3d")}: {t(midClouds3d ? "common.on" : "common.off")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSkyClouds3d((v) => !v)}
-                      aria-pressed={skyClouds3d}
-                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
-                        skyClouds3d
-                          ? "ui-line-3 ui-tint-2 ui-ink"
-                          : "ui-line-2 ui-surface ui-ink-muted"
-                      }`}
-                    >
-                      {t("dial.env.skyClouds3d")}: {t(skyClouds3d ? "common.on" : "common.off")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSkyPuffsOn((v) => !v)}
-                      aria-pressed={skyPuffsOn}
-                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
-                        skyPuffsOn
-                          ? "ui-line-3 ui-tint-2 ui-ink"
-                          : "ui-line-2 ui-surface ui-ink-muted"
-                      }`}
-                    >
-                      {t("dial.env.skyPuffs")}: {t(skyPuffsOn ? "common.on" : "common.off")}
-                    </button>
-                  </>
-                )}
-                {/* NIVÅ: every LEVEL DRIFT setting in one place — the rate,
+                  {cameraDrawerTab === "torus" && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setTorusRingsOn((v) => !v)}
+                        aria-pressed={torusRingsOn}
+                        className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                          torusRingsOn
+                            ? "ui-line-3 ui-tint-2 ui-ink"
+                            : "ui-line-2 ui-surface ui-ink-muted"
+                        }`}
+                      >
+                        {t("dial.env.torusRings")}: {t(torusRingsOn ? "common.on" : "common.off")}
+                      </button>
+                      <PadSlider
+                        label={t("dial.env.torusScale")}
+                        value={torusScale}
+                        min={0.1}
+                        max={20}
+                        step={0.1}
+                        curve="log"
+                        format={(v) => `${v.toFixed(1)}×`}
+                        onChange={setTorusScale}
+                      />
+                      <PadSlider
+                        label={t("dial.env.torusTube")}
+                        value={torusTube}
+                        min={0.01}
+                        max={1}
+                        step={0.01}
+                        curve="log"
+                        format={(v) => `${v.toFixed(2)}m`}
+                        onChange={setTorusTube}
+                      />
+                      <PadSlider
+                        label={t("common.opacity")}
+                        value={torusOpacity}
+                        min={0}
+                        max={1}
+                        step={0.05}
+                        format={(v) => `${Math.round(v * 100)}%`}
+                        onChange={setTorusOpacity}
+                      />
+                      <PadSlider
+                        label={t("dial.env.torusCellSize")}
+                        value={torusCellSize}
+                        min={0}
+                        max={30}
+                        step={0.5}
+                        curve={2}
+                        format={(v) => `${v.toFixed(1)}m`}
+                        onChange={setTorusCellSize}
+                      />
+                      <PadSlider
+                        label={t("dial.env.torusVerticalSpacing")}
+                        value={torusVerticalSpacing}
+                        min={0}
+                        max={20}
+                        step={0.1}
+                        curve={2}
+                        format={(v) => `${v.toFixed(1)}m`}
+                        onChange={setTorusVerticalSpacing}
+                      />
+                      <PadSlider
+                        label={t("dial.env.torusVerticalCount")}
+                        value={torusVerticalCount}
+                        min={1}
+                        max={21}
+                        step={2}
+                        format={(v) => `${v.toFixed(0)}`}
+                        onChange={(v) =>
+                          setTorusVerticalCount(Math.max(1, Math.min(21, Math.round(v))))
+                        }
+                      />
+                    </>
+                  )}
+                  {/* HIMMEL: quick sky & cloud layer dials, mirrored from MILJÖ. */}
+                  {cameraDrawerTab === "sky" && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setMidCloudsOn((v) => !v)}
+                        aria-pressed={midCloudsOn}
+                        className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                          midCloudsOn
+                            ? "ui-line-3 ui-tint-2 ui-ink"
+                            : "ui-line-2 ui-surface ui-ink-muted"
+                        }`}
+                      >
+                        {t("dial.env.midClouds")}: {t(midCloudsOn ? "common.on" : "common.off")}
+                      </button>
+                      <PadSlider
+                        label={t("dial.env.midCloudsHeight")}
+                        value={midCloudsHeight}
+                        min={0.05}
+                        max={0.95}
+                        step={0.05}
+                        format={(v) => `${Math.round(v * 100)}%`}
+                        onChange={setMidCloudsHeight}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setSkyCloudsOn((v) => !v)}
+                        aria-pressed={skyCloudsOn}
+                        className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                          skyCloudsOn
+                            ? "ui-line-3 ui-tint-2 ui-ink"
+                            : "ui-line-2 ui-surface ui-ink-muted"
+                        }`}
+                      >
+                        {t("dial.env.skyClouds")}: {t(skyCloudsOn ? "common.on" : "common.off")}
+                      </button>
+                      <PadSlider
+                        label={t("dial.env.skyCloudsAltitude")}
+                        value={skyCloudsAltitude}
+                        min={SKY_CLOUDS_ALTITUDE_MIN}
+                        max={SKY_CLOUDS_ALTITUDE_MAX}
+                        step={50}
+                        format={(v) => `${Math.round(v)} m`}
+                        onChange={setSkyCloudsAltitude}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setBottomClouds3d((v) => !v)}
+                        aria-pressed={bottomClouds3d}
+                        className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                          bottomClouds3d
+                            ? "ui-line-3 ui-tint-2 ui-ink"
+                            : "ui-line-2 ui-surface ui-ink-muted"
+                        }`}
+                      >
+                        {t("dial.env.bottomClouds3d")}:{" "}
+                        {t(bottomClouds3d ? "common.on" : "common.off")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMidClouds3d((v) => !v)}
+                        aria-pressed={midClouds3d}
+                        className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                          midClouds3d
+                            ? "ui-line-3 ui-tint-2 ui-ink"
+                            : "ui-line-2 ui-surface ui-ink-muted"
+                        }`}
+                      >
+                        {t("dial.env.midClouds3d")}: {t(midClouds3d ? "common.on" : "common.off")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSkyClouds3d((v) => !v)}
+                        aria-pressed={skyClouds3d}
+                        className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                          skyClouds3d
+                            ? "ui-line-3 ui-tint-2 ui-ink"
+                            : "ui-line-2 ui-surface ui-ink-muted"
+                        }`}
+                      >
+                        {t("dial.env.skyClouds3d")}: {t(skyClouds3d ? "common.on" : "common.off")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSkyPuffsOn((v) => !v)}
+                        aria-pressed={skyPuffsOn}
+                        className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                          skyPuffsOn
+                            ? "ui-line-3 ui-tint-2 ui-ink"
+                            : "ui-line-2 ui-surface ui-ink-muted"
+                        }`}
+                      >
+                        {t("dial.env.skyPuffs")}: {t(skyPuffsOn ? "common.on" : "common.off")}
+                      </button>
+                    </>
+                  )}
+                  {/* NIVÅ: every LEVEL DRIFT setting in one place — the rate,
                     DRIFT SINUS on top of it, and NIVÅ RESET. */}
-                {cameraDrawerTab === "level" && (
-                  <>
-                    <PadSlider
-                      label={t("dial.water.driftSpeed")}
-                      value={depthDriftSpeed}
-                      min={-20}
-                      max={20}
-                      step={0.1}
-                      format={(v) => `${v.toFixed(1)}m/s`}
-                      onChange={setDepthDriftSpeedUser}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setDepthDriftSineOn((v) => !v)}
-                      aria-pressed={depthDriftSineOn}
-                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
-                        depthDriftSineOn
-                          ? "ui-line-3 ui-tint-2 ui-ink"
-                          : "ui-line-2 ui-surface ui-ink-muted"
-                      }`}
-                    >
-                      {t("dial.water.driftSine")}:{" "}
-                      {t(depthDriftSineOn ? "common.on" : "common.off")}
-                    </button>
-                    <PadSlider
-                      label={t("dial.water.driftSineAmp")}
-                      value={depthDriftSineAmp}
-                      min={0}
-                      max={20}
-                      step={0.1}
-                      curve={2}
-                      format={(v) => `${v.toFixed(2)}m/s`}
-                      onChange={setDepthDriftSineAmp}
-                    />
-                    <PadSlider
-                      label={t("dial.water.driftSineSpeed")}
-                      value={depthDriftSineSpeed}
-                      min={0.01}
-                      max={2}
-                      step={0.01}
-                      curve={2}
-                      format={(v) => `${v.toFixed(2)}Hz`}
-                      onChange={setDepthDriftSineSpeed}
-                    />
-                    <PadSlider
-                      label={t("dial.water.driftSinePhase")}
-                      value={depthDriftSinePhase}
-                      min={0}
-                      max={359}
-                      step={1}
-                      format={(v) => `${Math.round(v)}°`}
-                      onChange={setDepthDriftSinePhase}
-                    />
-                    <div className="flex gap-2">
+                  {cameraDrawerTab === "level" && (
+                    <>
+                      <PadSlider
+                        label={t("dial.water.driftSpeed")}
+                        value={depthDriftSpeed}
+                        min={-20}
+                        max={20}
+                        step={0.1}
+                        format={(v) => `${v.toFixed(1)}m/s`}
+                        onChange={setDepthDriftSpeedUser}
+                      />
                       <button
                         type="button"
-                        onClick={() => setDepthDriftSpeedUser(0)}
-                        className="ui-line-2 ui-surface ui-ink-muted rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95"
+                        onClick={() => setDepthDriftSineOn((v) => !v)}
+                        aria-pressed={depthDriftSineOn}
+                        className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                          depthDriftSineOn
+                            ? "ui-line-3 ui-tint-2 ui-ink"
+                            : "ui-line-2 ui-surface ui-ink-muted"
+                        }`}
                       >
-                        {t("hud.driftStop")}
+                        {t("dial.water.driftSine")}:{" "}
+                        {t(depthDriftSineOn ? "common.on" : "common.off")}
                       </button>
-                      <button
-                        type="button"
-                        onClick={resetDepthLevel}
-                        className="ui-line-2 ui-surface ui-ink-muted rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95"
-                      >
-                        {t("hud.levelReset")}
-                      </button>
-                    </div>
-                  </>
-                )}
-                {/* TORNADO: a fixed tab (not tied to any one camera mode)
+                      <PadSlider
+                        label={t("dial.water.driftSineAmp")}
+                        value={depthDriftSineAmp}
+                        min={0}
+                        max={20}
+                        step={0.1}
+                        curve={2}
+                        format={(v) => `${v.toFixed(2)}m/s`}
+                        onChange={setDepthDriftSineAmp}
+                      />
+                      <PadSlider
+                        label={t("dial.water.driftSineSpeed")}
+                        value={depthDriftSineSpeed}
+                        min={0.01}
+                        max={2}
+                        step={0.01}
+                        curve={2}
+                        format={(v) => `${v.toFixed(2)}Hz`}
+                        onChange={setDepthDriftSineSpeed}
+                      />
+                      <PadSlider
+                        label={t("dial.water.driftSinePhase")}
+                        value={depthDriftSinePhase}
+                        min={0}
+                        max={359}
+                        step={1}
+                        format={(v) => `${Math.round(v)}°`}
+                        onChange={setDepthDriftSinePhase}
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setDepthDriftSpeedUser(0)}
+                          className="ui-line-2 ui-surface ui-ink-muted rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95"
+                        >
+                          {t("hud.driftStop")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={resetDepthLevel}
+                          className="ui-line-2 ui-surface ui-ink-muted rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95"
+                        >
+                          {t("hud.levelReset")}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                  {/* TORNADO: a fixed tab (not tied to any one camera mode)
                     exposing every tornado* setting at once — mirrors the old
                     standalone VIRVEL tab this drawer used to have. */}
-                {/* FREAK OUT: the carousel ride's own tab — it runs on
+                  {/* FREAK OUT: the carousel ride's own tab — it runs on
                     top of whichever camera mode is active, like TORNADO. Ring
                     axes live in the full settings panel. */}
-                {cameraDrawerTab === "freakout" && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => setFreakOutOn((v) => !v)}
-                      aria-pressed={freakOutOn}
-                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
-                        freakOutOn
-                          ? "ui-line-3 ui-tint-2 ui-ink"
-                          : "ui-line-2 ui-surface ui-ink-muted"
-                      }`}
-                    >
-                      {t("dial.camera.freakOut")}: {t(freakOutOn ? "common.on" : "common.off")}
-                    </button>
-                    <PadSlider
-                      label={t("dial.camera.freakOutSwingAngle")}
-                      value={freakOutSwingAngle}
-                      min={0}
-                      max={180}
-                      step={1}
-                      format={(v) => `${v.toFixed(0)}°`}
-                      onChange={setFreakOutSwingAngle}
-                    />
-                    <PadSlider
-                      label={t("dial.camera.freakOutSwingAxis")}
-                      value={freakOutSwingAxis}
-                      min={0}
-                      max={180}
-                      step={1}
-                      format={(v) => `${v.toFixed(0)}°`}
-                      onChange={setFreakOutSwingAxis}
-                    />
-                    <PadSlider
-                      label={t("dial.camera.freakOutSwingSpeed")}
-                      value={freakOutSwingSpeed}
-                      min={0}
-                      max={5}
-                      step={0.05}
-                      curve={2}
-                      format={(v) => `${v.toFixed(2)}×`}
-                      onChange={setFreakOutSwingSpeed}
-                    />
-                    <PadSlider
-                      label={t("dial.camera.freakOutSwingLength")}
-                      value={freakOutSwingLength}
-                      min={0}
-                      max={200}
-                      step={0.5}
-                      curve={2}
-                      format={(v) => `${v.toFixed(1)}m`}
-                      onChange={setFreakOutSwingLength}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setFreakOutRotationOn((v) => !v)}
-                      aria-pressed={freakOutRotationOn}
-                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
-                        freakOutRotationOn
-                          ? "ui-line-3 ui-tint-2 ui-ink"
-                          : "ui-line-2 ui-surface ui-ink-muted"
-                      }`}
-                    >
-                      {t("dial.camera.freakOutRotationOn")}:{" "}
-                      {t(freakOutRotationOn ? "common.on" : "common.off")}
-                    </button>
-                    <PadSlider
-                      label={t("dial.camera.freakOutRotationSpeed")}
-                      value={freakOutRotationSpeed}
-                      min={0}
-                      max={10}
-                      step={0.05}
-                      curve={2}
-                      format={(v) => `${v.toFixed(2)}×`}
-                      onChange={setFreakOutRotationSpeed}
-                    />
-                    <PadSlider
-                      label={t("dial.camera.freakOutRingRadius")}
-                      value={freakOutRingRadius}
-                      min={0}
-                      max={200}
-                      step={0.5}
-                      curve={2}
-                      format={(v) => `${v.toFixed(1)}m`}
-                      onChange={setFreakOutRingRadius}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setFreakOutViewFixedHeading((v) => !v)}
-                      aria-pressed={freakOutViewFixedHeading}
-                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
-                        freakOutViewFixedHeading
-                          ? "ui-line-3 ui-tint-2 ui-ink"
-                          : "ui-line-2 ui-surface ui-ink-muted"
-                      }`}
-                    >
-                      {t("dial.camera.freakOutViewFixedHeading")}:{" "}
-                      {t(freakOutViewFixedHeading ? "common.on" : "common.off")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setFreakOutRingLevel((v) => !v)}
-                      aria-pressed={freakOutRingLevel}
-                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
-                        freakOutRingLevel
-                          ? "ui-line-3 ui-tint-2 ui-ink"
-                          : "ui-line-2 ui-surface ui-ink-muted"
-                      }`}
-                    >
-                      {t("dial.camera.freakOutRingLevel")}:{" "}
-                      {t(freakOutRingLevel ? "common.on" : "common.off")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setFreakOutShowArm((v) => !v)}
-                      aria-pressed={freakOutShowArm}
-                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
-                        freakOutShowArm
-                          ? "ui-line-3 ui-tint-2 ui-ink"
-                          : "ui-line-2 ui-surface ui-ink-muted"
-                      }`}
-                    >
-                      {t("dial.camera.freakOutShowArm")}:{" "}
-                      {t(freakOutShowArm ? "common.on" : "common.off")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setFreakOutShowTopRing((v) => !v)}
-                      aria-pressed={freakOutShowTopRing}
-                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
-                        freakOutShowTopRing
-                          ? "ui-line-3 ui-tint-2 ui-ink"
-                          : "ui-line-2 ui-surface ui-ink-muted"
-                      }`}
-                    >
-                      {t("dial.camera.freakOutShowTopRing")}:{" "}
-                      {t(freakOutShowTopRing ? "common.on" : "common.off")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setFreakOutShowHub((v) => !v)}
-                      aria-pressed={freakOutShowHub}
-                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
-                        freakOutShowHub
-                          ? "ui-line-3 ui-tint-2 ui-ink"
-                          : "ui-line-2 ui-surface ui-ink-muted"
-                      }`}
-                    >
-                      {t("dial.camera.freakOutShowHub")}:{" "}
-                      {t(freakOutShowHub ? "common.on" : "common.off")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setFreakOutSeatsOn((v) => !v)}
-                      aria-pressed={freakOutSeatsOn}
-                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
-                        freakOutSeatsOn
-                          ? "ui-line-3 ui-tint-2 ui-ink"
-                          : "ui-line-2 ui-surface ui-ink-muted"
-                      }`}
-                    >
-                      {t("dial.camera.freakOutSeatsOn")}:{" "}
-                      {t(freakOutSeatsOn ? "common.on" : "common.off")}
-                    </button>
-                    {freakOutSeatsOn && (
-                      <>
-                        <PadSlider
-                          label={t("dial.camera.freakOutSeatCount")}
-                          value={freakOutSeatCount}
-                          min={1}
-                          max={FREAK_OUT_MAX_SEATS}
-                          step={1}
-                          format={(v) => `${Math.round(v)}`}
-                          onChange={(v) => setFreakOutSeatCount(Math.round(v))}
-                        />
-                        <PadSlider
-                          label={t("dial.camera.freakOutCameraSeat")}
-                          value={Math.min(freakOutCameraSeat, freakOutSeatCount)}
-                          min={1}
-                          max={Math.max(2, freakOutSeatCount)}
-                          step={1}
-                          format={(v) => `${Math.round(v)} / ${freakOutSeatCount}`}
-                          onChange={(v) =>
-                            setFreakOutCameraSeat(Math.min(freakOutSeatCount, Math.round(v)))
-                          }
-                        />
-                        <PadSlider
-                          label={t("dial.camera.freakOutSeatPostLength")}
-                          value={freakOutSeatPostLength}
-                          min={0.5}
-                          max={FREAK_OUT_MAX_SEAT_POST}
-                          step={0.1}
-                          curve={2}
-                          format={(v) => `${v.toFixed(1)}m`}
-                          onChange={setFreakOutSeatPostLength}
-                        />
-                        <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
-                          <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
-                            {t("dial.camera.freakOutSeatColor")}
-                          </span>
-                          <input
-                            type="color"
-                            value={freakOutSeatColor}
-                            onChange={(e) => setFreakOutSeatColor(e.target.value)}
-                            className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
-                          />
-                        </label>
-                        <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
-                          <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
-                            {t("dial.camera.freakOutRingColor")}
-                          </span>
-                          <input
-                            type="color"
-                            value={freakOutRingColor}
-                            onChange={(e) => setFreakOutRingColor(e.target.value)}
-                            className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
-                          />
-                        </label>
-                        <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
-                          <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
-                            {t("dial.camera.freakOutPostColor")}
-                          </span>
-                          <input
-                            type="color"
-                            value={freakOutPostColor}
-                            onChange={(e) => setFreakOutPostColor(e.target.value)}
-                            className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
-                          />
-                        </label>
-                        <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
-                          <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
-                            {t("dial.camera.freakOutArmColor")}
-                          </span>
-                          <input
-                            type="color"
-                            value={freakOutArmColor}
-                            onChange={(e) => setFreakOutArmColor(e.target.value)}
-                            className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
-                          />
-                        </label>
-                      </>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setFreakOutRotationDirection((d) => (d === "cw" ? "ccw" : "cw"))
-                      }
-                      className="rounded-full border ui-line-2 ui-surface px-4 py-1.5 text-[10px] font-light tracking-[0.2em] ui-ink-muted transition active:scale-95"
-                    >
-                      {t("dial.camera.freakOutRotationDirection")}:{" "}
-                      {t(TORNADO_DIRECTION_LABEL_KEYS[freakOutRotationDirection])}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setFreakOutRotationOscillate((v) => !v)}
-                      aria-pressed={freakOutRotationOscillate}
-                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
-                        freakOutRotationOscillate
-                          ? "ui-line-3 ui-tint-2 ui-ink"
-                          : "ui-line-2 ui-surface ui-ink-muted"
-                      }`}
-                    >
-                      {t("dial.camera.freakOutRotationOscillate")}:{" "}
-                      {t(freakOutRotationOscillate ? "common.on" : "common.off")}
-                    </button>
-                    {freakOutRotationOscillate && (
+                  {cameraDrawerTab === "freakout" && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setFreakOutOn((v) => !v)}
+                        aria-pressed={freakOutOn}
+                        className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                          freakOutOn
+                            ? "ui-line-3 ui-tint-2 ui-ink"
+                            : "ui-line-2 ui-surface ui-ink-muted"
+                        }`}
+                      >
+                        {t("dial.camera.freakOut")}: {t(freakOutOn ? "common.on" : "common.off")}
+                      </button>
                       <PadSlider
-                        label={t("dial.camera.freakOutRotationOscillateSpeed")}
-                        value={freakOutRotationOscillateSpeed}
-                        min={0.05}
+                        label={t("dial.camera.freakOutSwingAngle")}
+                        value={freakOutSwingAngle}
+                        min={0}
+                        max={180}
+                        step={1}
+                        format={(v) => `${v.toFixed(0)}°`}
+                        onChange={setFreakOutSwingAngle}
+                      />
+                      <PadSlider
+                        label={t("dial.camera.freakOutSwingAxis")}
+                        value={freakOutSwingAxis}
+                        min={0}
+                        max={180}
+                        step={1}
+                        format={(v) => `${v.toFixed(0)}°`}
+                        onChange={setFreakOutSwingAxis}
+                      />
+                      <PadSlider
+                        label={t("dial.camera.freakOutSwingSpeed")}
+                        value={freakOutSwingSpeed}
+                        min={0}
                         max={5}
                         step={0.05}
                         curve={2}
                         format={(v) => `${v.toFixed(2)}×`}
-                        onChange={setFreakOutRotationOscillateSpeed}
+                        onChange={setFreakOutSwingSpeed}
                       />
-                    )}
-                  </>
-                )}
-                {cameraDrawerTab === "tornado" && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => setTornadoOn((v) => !v)}
-                      aria-pressed={tornadoOn}
-                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
-                        tornadoOn
-                          ? "ui-line-3 ui-tint-2 ui-ink"
-                          : "ui-line-2 ui-surface ui-ink-muted"
-                      }`}
-                    >
-                      {t("dial.camera.tornado")}: {t(tornadoOn ? "common.on" : "common.off")}
-                    </button>
-                    <PadSlider
-                      label={t("dial.camera.tornadoRadius")}
-                      value={tornadoRadius}
-                      min={0}
-                      max={2000}
-                      step={5}
-                      curve={2}
-                      format={(v) => `${v.toFixed(0)}m`}
-                      onChange={setTornadoRadius}
-                    />
-                    <PadSlider
-                      label={t("dial.camera.tornadoSpeed")}
-                      value={tornadoSpeed}
-                      min={0}
-                      max={20}
-                      step={0.1}
-                      curve={2}
-                      format={(v) => `${v.toFixed(2)}×`}
-                      onChange={setTornadoSpeed}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setTornadoDirection((d) => (d === "cw" ? "ccw" : "cw"))}
-                      className="rounded-full border ui-line-2 ui-surface px-4 py-1.5 text-[10px] font-light tracking-[0.2em] ui-ink-muted transition active:scale-95"
-                    >
-                      {t("dial.camera.tornadoDirection")}:{" "}
-                      {t(TORNADO_DIRECTION_LABEL_KEYS[tornadoDirection])}
-                    </button>
-                    {(cameraMode === "float" || cameraMode === "swing") && (
                       <PadSlider
-                        label={t("dial.camera.tornadoOpening")}
-                        value={tornadoOpening}
-                        min={3}
-                        max={60}
-                        step={0.5}
-                        format={(v) => `${v.toFixed(1)}m`}
-                        onChange={setTornadoOpening}
-                      />
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => setTornadoFollowCenter((v) => !v)}
-                      aria-pressed={tornadoFollowCenter}
-                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
-                        tornadoFollowCenter
-                          ? "ui-line-3 ui-tint-2 ui-ink"
-                          : "ui-line-2 ui-surface ui-ink-muted"
-                      }`}
-                    >
-                      {t("dial.camera.tornadoFollowCenter")}:{" "}
-                      {t(tornadoFollowCenter ? "common.on" : "common.off")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setTornadoCloudOn((v) => !v)}
-                      aria-pressed={tornadoCloudOn}
-                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
-                        tornadoCloudOn
-                          ? "ui-line-3 ui-tint-2 ui-ink"
-                          : "ui-line-2 ui-surface ui-ink-muted"
-                      }`}
-                    >
-                      {t("dial.camera.tornadoCloud")}:{" "}
-                      {t(tornadoCloudOn ? "common.on" : "common.off")}
-                    </button>
-                    {tornadoCloudOn && cameraMode !== "float" && (
-                      <PadSlider
-                        label={t("dial.camera.tornadoCloudYOffset")}
-                        value={tornadoCloudYOffset}
-                        min={-200}
+                        label={t("dial.camera.freakOutSwingLength")}
+                        value={freakOutSwingLength}
+                        min={0}
                         max={200}
-                        step={5}
-                        format={(v) => `${v.toFixed(0)}m`}
-                        onChange={setTornadoCloudYOffset}
+                        step={0.5}
+                        curve={2}
+                        format={(v) => `${v.toFixed(1)}m`}
+                        onChange={setFreakOutSwingLength}
                       />
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => setTornadoSequenceOn((v) => !v)}
-                      aria-pressed={tornadoSequenceOn}
-                      className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
-                        tornadoSequenceOn
-                          ? "ui-line-3 ui-tint-2 ui-ink"
-                          : "ui-line-2 ui-surface ui-ink-muted"
-                      }`}
-                    >
-                      {t("dial.camera.tornadoSequence")}:{" "}
-                      {t(tornadoSequenceOn ? "common.on" : "common.off")}
-                    </button>
-                    {tornadoSequenceOn && (
-                      <>
+                      <button
+                        type="button"
+                        onClick={() => setFreakOutRotationOn((v) => !v)}
+                        aria-pressed={freakOutRotationOn}
+                        className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                          freakOutRotationOn
+                            ? "ui-line-3 ui-tint-2 ui-ink"
+                            : "ui-line-2 ui-surface ui-ink-muted"
+                        }`}
+                      >
+                        {t("dial.camera.freakOutRotationOn")}:{" "}
+                        {t(freakOutRotationOn ? "common.on" : "common.off")}
+                      </button>
+                      <PadSlider
+                        label={t("dial.camera.freakOutRotationSpeed")}
+                        value={freakOutRotationSpeed}
+                        min={0}
+                        max={10}
+                        step={0.05}
+                        curve={2}
+                        format={(v) => `${v.toFixed(2)}×`}
+                        onChange={setFreakOutRotationSpeed}
+                      />
+                      <PadSlider
+                        label={t("dial.camera.freakOutRingRadius")}
+                        value={freakOutRingRadius}
+                        min={0}
+                        max={200}
+                        step={0.5}
+                        curve={2}
+                        format={(v) => `${v.toFixed(1)}m`}
+                        onChange={setFreakOutRingRadius}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setFreakOutViewFixedHeading((v) => !v)}
+                        aria-pressed={freakOutViewFixedHeading}
+                        className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                          freakOutViewFixedHeading
+                            ? "ui-line-3 ui-tint-2 ui-ink"
+                            : "ui-line-2 ui-surface ui-ink-muted"
+                        }`}
+                      >
+                        {t("dial.camera.freakOutViewFixedHeading")}:{" "}
+                        {t(freakOutViewFixedHeading ? "common.on" : "common.off")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFreakOutRingLevel((v) => !v)}
+                        aria-pressed={freakOutRingLevel}
+                        className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                          freakOutRingLevel
+                            ? "ui-line-3 ui-tint-2 ui-ink"
+                            : "ui-line-2 ui-surface ui-ink-muted"
+                        }`}
+                      >
+                        {t("dial.camera.freakOutRingLevel")}:{" "}
+                        {t(freakOutRingLevel ? "common.on" : "common.off")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFreakOutShowArm((v) => !v)}
+                        aria-pressed={freakOutShowArm}
+                        className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                          freakOutShowArm
+                            ? "ui-line-3 ui-tint-2 ui-ink"
+                            : "ui-line-2 ui-surface ui-ink-muted"
+                        }`}
+                      >
+                        {t("dial.camera.freakOutShowArm")}:{" "}
+                        {t(freakOutShowArm ? "common.on" : "common.off")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFreakOutShowTopRing((v) => !v)}
+                        aria-pressed={freakOutShowTopRing}
+                        className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                          freakOutShowTopRing
+                            ? "ui-line-3 ui-tint-2 ui-ink"
+                            : "ui-line-2 ui-surface ui-ink-muted"
+                        }`}
+                      >
+                        {t("dial.camera.freakOutShowTopRing")}:{" "}
+                        {t(freakOutShowTopRing ? "common.on" : "common.off")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFreakOutShowHub((v) => !v)}
+                        aria-pressed={freakOutShowHub}
+                        className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                          freakOutShowHub
+                            ? "ui-line-3 ui-tint-2 ui-ink"
+                            : "ui-line-2 ui-surface ui-ink-muted"
+                        }`}
+                      >
+                        {t("dial.camera.freakOutShowHub")}:{" "}
+                        {t(freakOutShowHub ? "common.on" : "common.off")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFreakOutSeatsOn((v) => !v)}
+                        aria-pressed={freakOutSeatsOn}
+                        className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                          freakOutSeatsOn
+                            ? "ui-line-3 ui-tint-2 ui-ink"
+                            : "ui-line-2 ui-surface ui-ink-muted"
+                        }`}
+                      >
+                        {t("dial.camera.freakOutSeatsOn")}:{" "}
+                        {t(freakOutSeatsOn ? "common.on" : "common.off")}
+                      </button>
+                      {freakOutSeatsOn && (
+                        <>
+                          <PadSlider
+                            label={t("dial.camera.freakOutSeatCount")}
+                            value={freakOutSeatCount}
+                            min={1}
+                            max={FREAK_OUT_MAX_SEATS}
+                            step={1}
+                            format={(v) => `${Math.round(v)}`}
+                            onChange={(v) => setFreakOutSeatCount(Math.round(v))}
+                          />
+                          <PadSlider
+                            label={t("dial.camera.freakOutCameraSeat")}
+                            value={Math.min(freakOutCameraSeat, freakOutSeatCount)}
+                            min={1}
+                            max={Math.max(2, freakOutSeatCount)}
+                            step={1}
+                            format={(v) => `${Math.round(v)} / ${freakOutSeatCount}`}
+                            onChange={(v) =>
+                              setFreakOutCameraSeat(Math.min(freakOutSeatCount, Math.round(v)))
+                            }
+                          />
+                          <PadSlider
+                            label={t("dial.camera.freakOutSeatPostLength")}
+                            value={freakOutSeatPostLength}
+                            min={0.5}
+                            max={FREAK_OUT_MAX_SEAT_POST}
+                            step={0.1}
+                            curve={2}
+                            format={(v) => `${v.toFixed(1)}m`}
+                            onChange={setFreakOutSeatPostLength}
+                          />
+                          <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
+                            <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
+                              {t("dial.camera.freakOutSeatColor")}
+                            </span>
+                            <input
+                              type="color"
+                              value={freakOutSeatColor}
+                              onChange={(e) => setFreakOutSeatColor(e.target.value)}
+                              className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
+                            />
+                          </label>
+                          <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
+                            <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
+                              {t("dial.camera.freakOutRingColor")}
+                            </span>
+                            <input
+                              type="color"
+                              value={freakOutRingColor}
+                              onChange={(e) => setFreakOutRingColor(e.target.value)}
+                              className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
+                            />
+                          </label>
+                          <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
+                            <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
+                              {t("dial.camera.freakOutPostColor")}
+                            </span>
+                            <input
+                              type="color"
+                              value={freakOutPostColor}
+                              onChange={(e) => setFreakOutPostColor(e.target.value)}
+                              className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
+                            />
+                          </label>
+                          <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
+                            <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
+                              {t("dial.camera.freakOutArmColor")}
+                            </span>
+                            <input
+                              type="color"
+                              value={freakOutArmColor}
+                              onChange={(e) => setFreakOutArmColor(e.target.value)}
+                              className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
+                            />
+                          </label>
+                        </>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setFreakOutRotationDirection((d) => (d === "cw" ? "ccw" : "cw"))
+                        }
+                        className="rounded-full border ui-line-2 ui-surface px-4 py-1.5 text-[10px] font-light tracking-[0.2em] ui-ink-muted transition active:scale-95"
+                      >
+                        {t("dial.camera.freakOutRotationDirection")}:{" "}
+                        {t(TORNADO_DIRECTION_LABEL_KEYS[freakOutRotationDirection])}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFreakOutRotationOscillate((v) => !v)}
+                        aria-pressed={freakOutRotationOscillate}
+                        className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                          freakOutRotationOscillate
+                            ? "ui-line-3 ui-tint-2 ui-ink"
+                            : "ui-line-2 ui-surface ui-ink-muted"
+                        }`}
+                      >
+                        {t("dial.camera.freakOutRotationOscillate")}:{" "}
+                        {t(freakOutRotationOscillate ? "common.on" : "common.off")}
+                      </button>
+                      {freakOutRotationOscillate && (
                         <PadSlider
-                          label={t("dial.camera.tornadoSequenceDragSpeed")}
-                          value={tornadoSequenceDragSpeed}
-                          min={1}
-                          max={100}
-                          step={1}
+                          label={t("dial.camera.freakOutRotationOscillateSpeed")}
+                          value={freakOutRotationOscillateSpeed}
+                          min={0.05}
+                          max={5}
+                          step={0.05}
                           curve={2}
-                          format={(v) => `${v.toFixed(0)}m/s`}
-                          onChange={setTornadoSequenceDragSpeed}
+                          format={(v) => `${v.toFixed(2)}×`}
+                          onChange={setFreakOutRotationOscillateSpeed}
                         />
+                      )}
+                    </>
+                  )}
+                  {cameraDrawerTab === "tornado" && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setTornadoOn((v) => !v)}
+                        aria-pressed={tornadoOn}
+                        className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                          tornadoOn
+                            ? "ui-line-3 ui-tint-2 ui-ink"
+                            : "ui-line-2 ui-surface ui-ink-muted"
+                        }`}
+                      >
+                        {t("dial.camera.tornado")}: {t(tornadoOn ? "common.on" : "common.off")}
+                      </button>
+                      <PadSlider
+                        label={t("dial.camera.tornadoRadius")}
+                        value={tornadoRadius}
+                        min={0}
+                        max={2000}
+                        step={5}
+                        curve={2}
+                        format={(v) => `${v.toFixed(0)}m`}
+                        onChange={setTornadoRadius}
+                      />
+                      <PadSlider
+                        label={t("dial.camera.tornadoSpeed")}
+                        value={tornadoSpeed}
+                        min={0}
+                        max={20}
+                        step={0.1}
+                        curve={2}
+                        format={(v) => `${v.toFixed(2)}×`}
+                        onChange={setTornadoSpeed}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setTornadoDirection((d) => (d === "cw" ? "ccw" : "cw"))}
+                        className="rounded-full border ui-line-2 ui-surface px-4 py-1.5 text-[10px] font-light tracking-[0.2em] ui-ink-muted transition active:scale-95"
+                      >
+                        {t("dial.camera.tornadoDirection")}:{" "}
+                        {t(TORNADO_DIRECTION_LABEL_KEYS[tornadoDirection])}
+                      </button>
+                      {(cameraMode === "float" || cameraMode === "swing") && (
                         <PadSlider
-                          label={t("dial.camera.tornadoSequenceDragDuration")}
-                          value={tornadoSequenceDragDuration}
-                          min={0.5}
-                          max={30}
-                          step={0.5}
-                          format={(v) => `${v.toFixed(1)}s`}
-                          onChange={setTornadoSequenceDragDuration}
-                        />
-                        <PadSlider
-                          label={t("dial.camera.tornadoSequenceStayDuration")}
-                          value={tornadoSequenceStayDuration}
-                          min={0}
+                          label={t("dial.camera.tornadoOpening")}
+                          value={tornadoOpening}
+                          min={3}
                           max={60}
                           step={0.5}
-                          format={(v) => `${v.toFixed(1)}s`}
-                          onChange={setTornadoSequenceStayDuration}
+                          format={(v) => `${v.toFixed(1)}m`}
+                          onChange={setTornadoOpening}
                         />
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setTornadoSequenceExitMode((m) => (m === "outer" ? "lift" : "outer"))
-                          }
-                          className="rounded-full border ui-line-2 ui-surface px-4 py-1.5 text-[10px] font-light tracking-[0.2em] ui-ink-muted transition active:scale-95"
-                        >
-                          {t("dial.camera.tornadoSequenceExitMode")}:{" "}
-                          {t(TORNADO_SEQUENCE_EXIT_MODE_LABEL_KEYS[tornadoSequenceExitMode])}
-                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setTornadoFollowCenter((v) => !v)}
+                        aria-pressed={tornadoFollowCenter}
+                        className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                          tornadoFollowCenter
+                            ? "ui-line-3 ui-tint-2 ui-ink"
+                            : "ui-line-2 ui-surface ui-ink-muted"
+                        }`}
+                      >
+                        {t("dial.camera.tornadoFollowCenter")}:{" "}
+                        {t(tornadoFollowCenter ? "common.on" : "common.off")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTornadoCloudOn((v) => !v)}
+                        aria-pressed={tornadoCloudOn}
+                        className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                          tornadoCloudOn
+                            ? "ui-line-3 ui-tint-2 ui-ink"
+                            : "ui-line-2 ui-surface ui-ink-muted"
+                        }`}
+                      >
+                        {t("dial.camera.tornadoCloud")}:{" "}
+                        {t(tornadoCloudOn ? "common.on" : "common.off")}
+                      </button>
+                      {tornadoCloudOn && cameraMode !== "float" && (
                         <PadSlider
-                          label={t("dial.camera.tornadoSequenceExitSpeed")}
-                          value={tornadoSequenceExitSpeed}
-                          min={1}
-                          max={100}
-                          step={1}
-                          curve={2}
-                          format={(v) => `${v.toFixed(0)}m/s`}
-                          onChange={setTornadoSequenceExitSpeed}
+                          label={t("dial.camera.tornadoCloudYOffset")}
+                          value={tornadoCloudYOffset}
+                          min={-200}
+                          max={200}
+                          step={5}
+                          format={(v) => `${v.toFixed(0)}m`}
+                          onChange={setTornadoCloudYOffset}
                         />
-                        {tornadoSequenceExitMode === "lift" && (
-                          <>
-                            <PadSlider
-                              label={t("dial.camera.tornadoSequenceLiftHeight")}
-                              value={tornadoSequenceLiftHeight}
-                              min={5}
-                              max={500}
-                              step={5}
-                              curve={2}
-                              format={(v) => `${v.toFixed(0)}m`}
-                              onChange={setTornadoSequenceLiftHeight}
-                            />
-                            <PadSlider
-                              label={t("dial.camera.tornadoSequencePauseDuration")}
-                              value={tornadoSequencePauseDuration}
-                              min={0}
-                              max={30}
-                              step={0.5}
-                              format={(v) => `${v.toFixed(1)}s`}
-                              onChange={setTornadoSequencePauseDuration}
-                            />
-                          </>
-                        )}
-                      </>
-                    )}
-                  </>
-                )}
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setTornadoSequenceOn((v) => !v)}
+                        aria-pressed={tornadoSequenceOn}
+                        className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                          tornadoSequenceOn
+                            ? "ui-line-3 ui-tint-2 ui-ink"
+                            : "ui-line-2 ui-surface ui-ink-muted"
+                        }`}
+                      >
+                        {t("dial.camera.tornadoSequence")}:{" "}
+                        {t(tornadoSequenceOn ? "common.on" : "common.off")}
+                      </button>
+                      {tornadoSequenceOn && (
+                        <>
+                          <PadSlider
+                            label={t("dial.camera.tornadoSequenceDragSpeed")}
+                            value={tornadoSequenceDragSpeed}
+                            min={1}
+                            max={100}
+                            step={1}
+                            curve={2}
+                            format={(v) => `${v.toFixed(0)}m/s`}
+                            onChange={setTornadoSequenceDragSpeed}
+                          />
+                          <PadSlider
+                            label={t("dial.camera.tornadoSequenceDragDuration")}
+                            value={tornadoSequenceDragDuration}
+                            min={0.5}
+                            max={30}
+                            step={0.5}
+                            format={(v) => `${v.toFixed(1)}s`}
+                            onChange={setTornadoSequenceDragDuration}
+                          />
+                          <PadSlider
+                            label={t("dial.camera.tornadoSequenceStayDuration")}
+                            value={tornadoSequenceStayDuration}
+                            min={0}
+                            max={60}
+                            step={0.5}
+                            format={(v) => `${v.toFixed(1)}s`}
+                            onChange={setTornadoSequenceStayDuration}
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setTornadoSequenceExitMode((m) => (m === "outer" ? "lift" : "outer"))
+                            }
+                            className="rounded-full border ui-line-2 ui-surface px-4 py-1.5 text-[10px] font-light tracking-[0.2em] ui-ink-muted transition active:scale-95"
+                          >
+                            {t("dial.camera.tornadoSequenceExitMode")}:{" "}
+                            {t(TORNADO_SEQUENCE_EXIT_MODE_LABEL_KEYS[tornadoSequenceExitMode])}
+                          </button>
+                          <PadSlider
+                            label={t("dial.camera.tornadoSequenceExitSpeed")}
+                            value={tornadoSequenceExitSpeed}
+                            min={1}
+                            max={100}
+                            step={1}
+                            curve={2}
+                            format={(v) => `${v.toFixed(0)}m/s`}
+                            onChange={setTornadoSequenceExitSpeed}
+                          />
+                          {tornadoSequenceExitMode === "lift" && (
+                            <>
+                              <PadSlider
+                                label={t("dial.camera.tornadoSequenceLiftHeight")}
+                                value={tornadoSequenceLiftHeight}
+                                min={5}
+                                max={500}
+                                step={5}
+                                curve={2}
+                                format={(v) => `${v.toFixed(0)}m`}
+                                onChange={setTornadoSequenceLiftHeight}
+                              />
+                              <PadSlider
+                                label={t("dial.camera.tornadoSequencePauseDuration")}
+                                value={tornadoSequencePauseDuration}
+                                min={0}
+                                max={30}
+                                step={0.5}
+                                format={(v) => `${v.toFixed(1)}s`}
+                                onChange={setTornadoSequencePauseDuration}
+                              />
+                            </>
+                          )}
+                        </>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
             )}
             <button
