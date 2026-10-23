@@ -71,7 +71,8 @@
       "float": "SWIMMER",
       "noclip": "FLY",
       "swing": "SWING",
-      "watercraft": "WATERCRAFT"
+      "watercraft": "WATERCRAFT",
+      "bodyflight": "BODYFLIGHT"
     },
     "rotationValue": {
       "fixed": "FIXED",
@@ -214,7 +215,10 @@
       "freakOutPostColor": "FREAK OUT POST COLOR",
       "freakOutArmColor": "FREAK OUT ARM COLOR",
       "freakOutShowFrame": "FREAK OUT FRAME",
-      "freakOutFrameColor": "FREAK OUT FRAME COLOR"
+      "freakOutFrameColor": "FREAK OUT FRAME COLOR",
+      "bodyflightAirflow": "AIRFLOW",
+      "bodyflightGravity": "GRAVITY",
+      "bodyflightHoverHeight": "HOVER HEIGHT"
     },
     "env": {
       "backdrop": "BACKDROP",
@@ -684,7 +688,9 @@
       "noclipDriftY": "DRIFT Y",
       "reverseRise": "REVERSE RISE",
       "sway": "SWAY",
-      "waveDirection": "WAVE DIR"
+      "waveDirection": "WAVE DIR",
+      "airflow": "AIRFLOW",
+      "body": "BODY"
     },
     "loading": "LOADING…",
     "offline": "OFFLINE",

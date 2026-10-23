@@ -71,7 +71,8 @@
       "float": "SIMMARE",
       "noclip": "FLYG",
       "swing": "GUNGA",
-      "watercraft": "FARKOST"
+      "watercraft": "FARKOST",
+      "bodyflight": "BODYFLIGHT"
     },
     "rotationValue": {
       "fixed": "FIXERAD",
@@ -214,7 +215,10 @@
       "freakOutPostColor": "FREAK OUT CYLINDERFÄRG",
       "freakOutArmColor": "FREAK OUT ARMFÄRG",
       "freakOutShowFrame": "FREAK OUT STÄLLNING",
-      "freakOutFrameColor": "FREAK OUT STÄLLNINGSFÄRG"
+      "freakOutFrameColor": "FREAK OUT STÄLLNINGSFÄRG",
+      "bodyflightAirflow": "LUFTSTRÖM",
+      "bodyflightGravity": "GRAVITATION",
+      "bodyflightHoverHeight": "SVÄVHÖJD"
     },
     "env": {
       "backdrop": "BAKGRUND",
@@ -684,7 +688,9 @@
       "noclipDriftY": "DRIVA Y",
       "reverseRise": "OMVÄND STIGNING",
       "sway": "SVAJ",
-      "waveDirection": "VÅGRIKT"
+      "waveDirection": "VÅGRIKT",
+      "airflow": "LUFTSTRÖM",
+      "body": "KROPP"
     },
     "loading": "LADDAR…",
     "offline": "OFFLINE",

@@ -54,6 +54,10 @@ import {
   SKY_CLOUDS_ALTITUDE_MAX,
   CLOUD_SCALE_MIN,
   CLOUD_SCALE_MAX,
+  BODYFLIGHT_AIRFLOW_MAX,
+  BODYFLIGHT_GRAVITY_MAX,
+  BODYFLIGHT_HOVER_MIN,
+  BODYFLIGHT_HOVER_MAX,
 } from "@/lib/settingsShared";
 import { pickJsonFile, type PresetScope, type SavedPreset, type SavedState } from "@/lib/presets";
 import { changeLanguage, SUPPORTED_LANGUAGES, LANGUAGE_NAMES, type LanguageCode } from "@/lib/i18n";
@@ -507,6 +511,12 @@ export type SettingsPanelProps = {
   setNoclipFallRiseSpeed: Dispatch<SetStateAction<number>>;
   noclipVertEaseTime: number;
   setNoclipVertEaseTime: Dispatch<SetStateAction<number>>;
+  bodyflightAirflow: number;
+  setBodyflightAirflow: Dispatch<SetStateAction<number>>;
+  bodyflightGravity: number;
+  setBodyflightGravity: Dispatch<SetStateAction<number>>;
+  bodyflightHoverHeight: number;
+  setBodyflightHoverHeight: Dispatch<SetStateAction<number>>;
   noclipAutoAlternateOn: boolean;
   setNoclipAutoAlternateOn: Dispatch<SetStateAction<boolean>>;
   noclipAutoAlternateInterval: number;
@@ -1337,6 +1347,12 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setNoclipFallRiseSpeed,
     noclipVertEaseTime,
     setNoclipVertEaseTime,
+    bodyflightAirflow,
+    setBodyflightAirflow,
+    bodyflightGravity,
+    setBodyflightGravity,
+    bodyflightHoverHeight,
+    setBodyflightHoverHeight,
     noclipAutoAlternateOn,
     setNoclipAutoAlternateOn,
     noclipAutoAlternateInterval,
@@ -2316,6 +2332,70 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     onInc={() => setNoclipSpeed((v) => Math.min(6, +(v + 0.1).toFixed(2)))}
                   />
                 )}
+                {cameraMode === "bodyflight" && (
+                  <>
+                    <SettingRow
+                      label={t("dial.camera.bodyflightAirflow")}
+                      mode="number"
+                      value={`${bodyflightAirflow.toFixed(0)}m/s`}
+                      rawValue={bodyflightAirflow}
+                      onSet={(v) =>
+                        setBodyflightAirflow(Math.max(0, Math.min(BODYFLIGHT_AIRFLOW_MAX, v)))
+                      }
+                      min={0}
+                      max={BODYFLIGHT_AIRFLOW_MAX}
+                      step={1}
+                      onDec={() => setBodyflightAirflow((v) => Math.max(0, Math.round(v - 1)))}
+                      onInc={() =>
+                        setBodyflightAirflow((v) =>
+                          Math.min(BODYFLIGHT_AIRFLOW_MAX, Math.round(v + 1)),
+                        )
+                      }
+                    />
+                    <SettingRow
+                      label={t("dial.camera.bodyflightGravity")}
+                      mode="number"
+                      value={`${bodyflightGravity.toFixed(2)}g`}
+                      rawValue={bodyflightGravity}
+                      onSet={(v) =>
+                        setBodyflightGravity(Math.max(0, Math.min(BODYFLIGHT_GRAVITY_MAX, v)))
+                      }
+                      min={0}
+                      max={BODYFLIGHT_GRAVITY_MAX}
+                      step={0.05}
+                      onDec={() => setBodyflightGravity((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                      onInc={() =>
+                        setBodyflightGravity((v) =>
+                          Math.min(BODYFLIGHT_GRAVITY_MAX, +(v + 0.05).toFixed(2)),
+                        )
+                      }
+                    />
+                    <SettingRow
+                      label={t("dial.camera.bodyflightHoverHeight")}
+                      mode="number"
+                      value={`${bodyflightHoverHeight.toFixed(1)}m`}
+                      rawValue={bodyflightHoverHeight}
+                      onSet={(v) =>
+                        setBodyflightHoverHeight(
+                          Math.max(BODYFLIGHT_HOVER_MIN, Math.min(BODYFLIGHT_HOVER_MAX, v)),
+                        )
+                      }
+                      min={BODYFLIGHT_HOVER_MIN}
+                      max={BODYFLIGHT_HOVER_MAX}
+                      step={0.5}
+                      onDec={() =>
+                        setBodyflightHoverHeight((v) =>
+                          Math.max(BODYFLIGHT_HOVER_MIN, +(v - 0.5).toFixed(1)),
+                        )
+                      }
+                      onInc={() =>
+                        setBodyflightHoverHeight((v) =>
+                          Math.min(BODYFLIGHT_HOVER_MAX, +(v + 0.5).toFixed(1)),
+                        )
+                      }
+                    />
+                  </>
+                )}
                 {cameraMode === "noclip" && (
                   <SettingRow
                     label={t("dial.camera.noclipFallRiseSpeed")}
@@ -2712,7 +2792,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
                 {(cameraMode === "float" ||
                   cameraMode === "noclip" ||
                   cameraMode === "watercraft" ||
-                  cameraMode === "swing") && (
+                  cameraMode === "swing" ||
+                  cameraMode === "bodyflight") && (
                   <SettingRow
                     label={t("dial.camera.tornado")}
                     value={onOff(tornadoOn)}
@@ -2723,7 +2804,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
                 {(cameraMode === "float" ||
                   cameraMode === "noclip" ||
                   cameraMode === "watercraft" ||
-                  cameraMode === "swing") &&
+                  cameraMode === "swing" ||
+                  cameraMode === "bodyflight") &&
                   tornadoOn && (
                     <>
                       <SettingRow
@@ -2759,7 +2841,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
                         onDec={() => setTornadoDirection("cw")}
                         onInc={() => setTornadoDirection("ccw")}
                       />
-                      {(cameraMode === "float" || cameraMode === "swing") && (
+                      {(cameraMode === "float" ||
+                        cameraMode === "swing" ||
+                        cameraMode === "bodyflight") && (
                         <SettingRow
                           label={t("dial.camera.tornadoOpening")}
                           mode="number"

@@ -51,6 +51,10 @@ import {
   SETTINGS_TABS,
   CAMERA_MODES,
   CAMERA_MODE_LABEL_KEYS,
+  BODYFLIGHT_AIRFLOW_MAX,
+  BODYFLIGHT_GRAVITY_MAX,
+  BODYFLIGHT_HOVER_MIN,
+  BODYFLIGHT_HOVER_MAX,
   TORNADO_DIRECTION_LABEL_KEYS,
   TORNADO_SEQUENCE_EXIT_MODES,
   TORNADO_SEQUENCE_EXIT_MODE_LABEL_KEYS,
@@ -955,11 +959,32 @@ function stepToward(value: number, target: number, rate: number, dt: number): nu
 // above, just used to pick a *position* instead of a value.
 const EXTEND_CLOUD_LAYER_SPACING = 500;
 const EXTEND_CLOUD_LAYER_COUNT = 5;
-// Display order for the top camera mode toggle's tab buttons — independent
-// of CAMERA_MODES' own order (which cycleCameraMode/the KAMERA settings
-// dial still cycle through), so the three tabs can read left-to-right as
-// SIMMARE/GUNGA/FLYG regardless of how CAMERA_MODES itself is ordered.
-const CAMERA_MODE_TAB_ORDER: CameraMode[] = ["float", "swing", "noclip"];
+// Display order for the top camera mode dropdown — independent of
+// CAMERA_MODES' own order (which cycleCameraMode/the KAMERA settings dial
+// still cycle through), so it reads top to bottom as
+// SIMMARE/GUNGA/FLYG/BODYFLIGHT regardless of how CAMERA_MODES itself is
+// ordered.
+const CAMERA_MODE_TAB_ORDER: CameraMode[] = ["float", "swing", "noclip", "bodyflight"];
+// BODYFLIGHT updraft particles: a fixed pool of this many points is always
+// allocated; LUFTSTRÖM only sets how many of them are drawn, so a stronger
+// updraft shows more particles without ever adding scene objects.
+const BODYFLIGHT_MAX_PARTICLES = 2400;
+// Half-width (m) of the square column of air around the body the particles
+// live in; ones that drift out wrap round to the opposite side.
+const BODYFLIGHT_PARTICLE_HALF = 28;
+// BODYFLIGHT updraft physics. Drag is k·Cd·v² with k chosen so a flat body
+// (Cd 1) hangs still in a 50 m/s updraft at 1 g — about what a real wind
+// tunnel blows. Standing up (Cd 0.3) or diving head down (Cd 0.2) catches
+// far less air, so the same updraft no longer holds the body up. The
+// updraft thins out with height above the ground over AIR_FALLOFF meters, so
+// a flat body settles at the height where the air just holds it.
+const BODYFLIGHT_DRAG = 9.81 / (50 * 50);
+const BODYFLIGHT_CD_FLAT = 1;
+const BODYFLIGHT_CD_UPRIGHT = 0.3;
+const BODYFLIGHT_CD_HEAD_DOWN = 0.2;
+const BODYFLIGHT_AIR_FALLOFF = 150;
+// Sideways glide (m/s) at full KROPP bank.
+const BODYFLIGHT_BANK_SPEED = 10;
 // SKY PUFFS: a pool of this many puff meshes is always created (cheap —
 // shared geometry, one small cloned material each); SKY PUFFS COUNT just
 // controls how many of them animate() keeps active, so raising/lowering the
@@ -1446,6 +1471,9 @@ const DEFAULTS: Persisted = {
   noclipSpeed: 1,
   noclipFallRiseSpeed: 48,
   noclipVertEaseTime: 0.7,
+  bodyflightAirflow: 60,
+  bodyflightGravity: 1,
+  bodyflightHoverHeight: 2,
   swingPositionY: 25,
   swingIntensity: 0.3,
   // GUNGA HASTIGHET: multiplies the pendulum's tempo on top of GUNGA
@@ -2014,6 +2042,9 @@ export function Aquafulness() {
   const [noclipSpeed, setNoclipSpeed] = useState(initial.noclipSpeed);
   const [noclipFallRiseSpeed, setNoclipFallRiseSpeed] = useState(initial.noclipFallRiseSpeed);
   const [noclipVertEaseTime, setNoclipVertEaseTime] = useState(initial.noclipVertEaseTime);
+  const [bodyflightAirflow, setBodyflightAirflow] = useState(initial.bodyflightAirflow);
+  const [bodyflightGravity, setBodyflightGravity] = useState(initial.bodyflightGravity);
+  const [bodyflightHoverHeight, setBodyflightHoverHeight] = useState(initial.bodyflightHoverHeight);
   // Resting altitude the pendulum hangs from — GUNGA POSITION Y. Renamed from
   // the old "swingHeight" (which was confusingly close to swingYAmplitude,
   // the actual up/down excursion, now called GUNGA HÖJD below).
@@ -2195,6 +2226,12 @@ export function Aquafulness() {
   // state since the two modes' drift directions are independent) that
   // replaces STRÖM/SVAJ's spot in the main HUD while in noclip.
   const [noclipDriftStick, setNoclipDriftStick] = useState({ x: 0, y: 0 });
+  // BODYFLIGHT's KROPP stick (right side, above LOOK): the body's posture,
+  // sticky so it holds a position once let go. |y| is how upright the body
+  // is (0 = flat, belly to the ground; up = head up, down = head down) and x
+  // banks it to slide sideways — see the bodyflight branch of the physics
+  // loop.
+  const [bodyStick, setBodyStick] = useState({ x: 0, y: 0 });
   // FRITT FALL / OMVÄND STIGNING: two small toggle dials flanking the y
   // drift pad in noclip, each pinning the vertical rate to a strong constant
   // dive/climb (overriding vertStick) while active — a quick way to commit to
@@ -2567,6 +2604,9 @@ export function Aquafulness() {
     noclipSpeed,
     noclipFallRiseSpeed,
     noclipVertEaseTime,
+    bodyflightAirflow,
+    bodyflightGravity,
+    bodyflightHoverHeight,
     swingPositionY,
     swingIntensity,
     swingSpeed,
@@ -2783,6 +2823,9 @@ export function Aquafulness() {
     noclipSpeed,
     noclipFallRiseSpeed,
     noclipVertEaseTime,
+    bodyflightAirflow,
+    bodyflightGravity,
+    bodyflightHoverHeight,
     swingPositionY,
     swingIntensity,
     swingSpeed,
@@ -2910,6 +2953,17 @@ export function Aquafulness() {
   const noclipSpeedRef = useRef(noclipSpeed);
   const noclipFallRiseSpeedRef = useRef(noclipFallRiseSpeed);
   const noclipVertEaseTimeRef = useRef(noclipVertEaseTime);
+  const bodyflightAirflowRef = useRef(bodyflightAirflow);
+  const bodyflightGravityRef = useRef(bodyflightGravity);
+  const bodyflightHoverHeightRef = useRef(bodyflightHoverHeight);
+  const bodyStickRef = useRef(bodyStick);
+  // BODYFLIGHT's live state: vertical velocity (m/s), horizontal velocity
+  // (eased toward NAV/STRÖM/bank so the body glides rather than snaps), the
+  // eased posture (0 flat .. 1 upright) and the view's bank angle (rad).
+  const bodyflightVelYRef = useRef(0);
+  const bodyflightVelXZRef = useRef({ x: 0, z: 0 });
+  const bodyflightPostureRef = useRef(0);
+  const bodyflightRollRef = useRef(0);
   const noclipHeaveOnRef = useRef(noclipHeaveOn);
   const noclipSwayOnRef = useRef(noclipSwayOn);
   // Ambient noclip heave's own eased vertical offset (m), additive on top of
@@ -3744,6 +3798,18 @@ export function Aquafulness() {
     noclipVertEaseTimeRef.current = noclipVertEaseTime;
   }, [noclipVertEaseTime]);
   useEffect(() => {
+    bodyflightAirflowRef.current = bodyflightAirflow;
+  }, [bodyflightAirflow]);
+  useEffect(() => {
+    bodyflightGravityRef.current = bodyflightGravity;
+  }, [bodyflightGravity]);
+  useEffect(() => {
+    bodyflightHoverHeightRef.current = bodyflightHoverHeight;
+  }, [bodyflightHoverHeight]);
+  useEffect(() => {
+    bodyStickRef.current = bodyStick;
+  }, [bodyStick]);
+  useEffect(() => {
     noclipHeaveOnRef.current = noclipHeaveOn;
   }, [noclipHeaveOn]);
   useEffect(() => {
@@ -3955,6 +4021,16 @@ export function Aquafulness() {
         startMs: performance.now(),
       };
     } else if (cameraMode === "float") {
+      seedTornadoFacing();
+      tornadoLiveRadiusRef.current = tornadoRadiusRef.current;
+      tornadoLiftOffsetRef.current = 0;
+      tornadoSeqPhaseRef.current = null;
+    } else if (cameraMode === "bodyflight") {
+      // Like FLYG, never teleports: the body starts falling (or floating)
+      // from wherever the camera already was.
+      posRef.current.y = camYRef.current ?? swingPositionYRef.current;
+      bodyflightVelYRef.current = 0;
+      bodyflightVelXZRef.current = { x: 0, z: 0 };
       seedTornadoFacing();
       tornadoLiveRadiusRef.current = tornadoRadiusRef.current;
       tornadoLiftOffsetRef.current = 0;
@@ -4241,6 +4317,9 @@ export function Aquafulness() {
     setNoclipSpeed(DEFAULTS.noclipSpeed);
     setNoclipFallRiseSpeed(DEFAULTS.noclipFallRiseSpeed);
     setNoclipVertEaseTime(DEFAULTS.noclipVertEaseTime);
+    setBodyflightAirflow(DEFAULTS.bodyflightAirflow);
+    setBodyflightGravity(DEFAULTS.bodyflightGravity);
+    setBodyflightHoverHeight(DEFAULTS.bodyflightHoverHeight);
     setSwingPositionY(DEFAULTS.swingPositionY);
     setSwingIntensity(DEFAULTS.swingIntensity);
     setSwingSpeed(DEFAULTS.swingSpeed);
@@ -4470,6 +4549,10 @@ export function Aquafulness() {
     if (patch.noclipSpeed !== undefined) setNoclipSpeed(patch.noclipSpeed);
     if (patch.noclipFallRiseSpeed !== undefined) setNoclipFallRiseSpeed(patch.noclipFallRiseSpeed);
     if (patch.noclipVertEaseTime !== undefined) setNoclipVertEaseTime(patch.noclipVertEaseTime);
+    if (patch.bodyflightAirflow !== undefined) setBodyflightAirflow(patch.bodyflightAirflow);
+    if (patch.bodyflightGravity !== undefined) setBodyflightGravity(patch.bodyflightGravity);
+    if (patch.bodyflightHoverHeight !== undefined)
+      setBodyflightHoverHeight(patch.bodyflightHoverHeight);
     if (patch.swingPositionY !== undefined) setSwingPositionY(patch.swingPositionY);
     if (patch.swingIntensity !== undefined) setSwingIntensity(patch.swingIntensity);
     if (patch.swingSpeed !== undefined) setSwingSpeed(patch.swingSpeed);
@@ -6846,6 +6929,53 @@ export function Aquafulness() {
     tornadoCloudMeshRef.current = tornadoCloud;
     scene.add(tornadoCloud);
 
+    // BODYFLIGHT updraft: specks of spray/dust blown up from the ground in a
+    // column round the body, rising at the updraft's own speed. Positions
+    // are world space and updated in animate(); only the first n (scaled by
+    // LUFTSTRÖM) are drawn, so a stronger updraft shows more of them.
+    const bodyflightParticlePos = new Float32Array(BODYFLIGHT_MAX_PARTICLES * 3);
+    // Each particle's share (0.45..1) of the updraft's speed, so they don't
+    // all rise in lockstep.
+    const bodyflightParticleSpeed = new Float32Array(BODYFLIGHT_MAX_PARTICLES);
+    for (let i = 0; i < BODYFLIGHT_MAX_PARTICLES; i++) {
+      bodyflightParticleSpeed[i] = 0.45 + Math.random() * 0.55;
+    }
+    const bodyflightParticleAttr = new THREE.BufferAttribute(bodyflightParticlePos, 3);
+    bodyflightParticleAttr.setUsage(THREE.DynamicDrawUsage);
+    const bodyflightParticleGeo = new THREE.BufferGeometry();
+    bodyflightParticleGeo.setAttribute("position", bodyflightParticleAttr);
+    bodyflightParticleGeo.setDrawRange(0, 0);
+    // Soft round dot instead of PointsMaterial's default hard square.
+    const bodyflightDotCanvas = document.createElement("canvas");
+    bodyflightDotCanvas.width = bodyflightDotCanvas.height = 32;
+    {
+      const ctx = bodyflightDotCanvas.getContext("2d");
+      if (ctx) {
+        const grad = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+        grad.addColorStop(0, "rgba(255,255,255,1)");
+        grad.addColorStop(0.4, "rgba(255,255,255,0.6)");
+        grad.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 32, 32);
+      }
+    }
+    const bodyflightDotTex = new THREE.CanvasTexture(bodyflightDotCanvas);
+    const bodyflightParticleMat = new THREE.PointsMaterial({
+      map: bodyflightDotTex,
+      color: 0xf2f8ff,
+      size: 0.6,
+      sizeAttenuation: true,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+    });
+    const bodyflightParticles = new THREE.Points(bodyflightParticleGeo, bodyflightParticleMat);
+    bodyflightParticles.frustumCulled = false;
+    bodyflightParticles.visible = false;
+    scene.add(bodyflightParticles);
+    let bodyflightParticleFade = 0;
+    let bodyflightParticlesSeeded = false;
+
     const freakOutRig = buildFreakOutRig();
     freakOutRigRef.current = freakOutRig;
     scene.add(freakOutRig.root);
@@ -7268,19 +7398,22 @@ export function Aquafulness() {
       // (swimming — the WHIRLPOOL/VIRVEL feel), swing and noclip/watercraft
       // alike (see the camMode branch below); vortexBlendRef drives the real
       // water whirlpool visual (uVortex below), which only ever applies
-      // while floating or swinging — flying never shows it.
+      // while floating, swinging or bodyflying — flying never shows it.
       const tornadoApplicableMode =
         cameraModeRef.current === "float" ||
         cameraModeRef.current === "swing" ||
         cameraModeRef.current === "noclip" ||
-        cameraModeRef.current === "watercraft";
+        cameraModeRef.current === "watercraft" ||
+        cameraModeRef.current === "bodyflight";
       const tornadoTarget = tornadoOnRef.current && tornadoApplicableMode ? 1 : 0;
       tornadoBlendRef.current += (tornadoTarget - tornadoBlendRef.current) * Math.min(1, dt * 0.7);
       if (tornadoBlendRef.current < 0.0008) tornadoBlendRef.current = 0;
       else if (tornadoBlendRef.current > 0.9992) tornadoBlendRef.current = 1;
       const vortexTarget =
         tornadoOnRef.current &&
-        (cameraModeRef.current === "float" || cameraModeRef.current === "swing")
+        (cameraModeRef.current === "float" ||
+          cameraModeRef.current === "swing" ||
+          cameraModeRef.current === "bodyflight")
           ? 1
           : 0;
       vortexBlendRef.current += (vortexTarget - vortexBlendRef.current) * Math.min(1, dt * 0.7);
@@ -7957,6 +8090,115 @@ export function Aquafulness() {
           : rawSwingY;
 
         camVYRef.current = 0;
+      } else if (camMode === "bodyflight") {
+        // BODYFLIGHT: the body falls under gravity through an updraft blowing
+        // up from the ground (the water surface right below it). How much of
+        // that air it catches depends on its posture (KROPP stick): flat it
+        // floats, the more upright (or head down) the faster it falls. Close
+        // to the ground an air cushion catches it so it hovers at
+        // bodyflightHoverHeight instead of landing. NAV (camera-relative) and
+        // STRÖM (world-fixed) glide it sideways, as does banking KROPP.
+        const yaw = yawRef.current;
+        const fwdX = -Math.sin(yaw),
+          fwdZ = -Math.cos(yaw);
+        const rightX = Math.cos(yaw),
+          rightZ = -Math.sin(yaw);
+        const body = bodyStickRef.current;
+        bodyflightPostureRef.current +=
+          (Math.min(1, Math.abs(body.y)) - bodyflightPostureRef.current) *
+          (1 - Math.exp(-physDt / 0.35));
+        const posture = bodyflightPostureRef.current;
+
+        const walkX = stickRef.current.x * rightX + stickRef.current.y * fwdX;
+        const walkZ = stickRef.current.x * rightZ + stickRef.current.y * fwdZ;
+        const targetVX =
+          walkX * walkSpeed +
+          driftWorldRef.current.x * driftSpeed +
+          body.x * rightX * BODYFLIGHT_BANK_SPEED;
+        const targetVZ =
+          walkZ * walkSpeed +
+          driftWorldRef.current.z * driftSpeed +
+          body.x * rightZ * BODYFLIGHT_BANK_SPEED;
+        const velXZ = bodyflightVelXZRef.current;
+        const hBlend = 1 - Math.exp(-physDt / 0.6);
+        velXZ.x += (targetVX - velXZ.x) * hBlend;
+        velXZ.z += (targetVZ - velXZ.z) * hBlend;
+        posRef.current.x += velXZ.x * physDt;
+        posRef.current.z += velXZ.z * physDt;
+
+        const g = 9.81 * Math.max(0, bodyflightGravityRef.current);
+        const groundY = tornadoWaterHeightAt(posRef.current.x, posRef.current.z);
+        const hover = Math.max(BODYFLIGHT_HOVER_MIN, bodyflightHoverHeightRef.current);
+        const heightAboveGround = Math.max(0, posRef.current.y - groundY);
+        const aboveHover = posRef.current.y - groundY - hover;
+        const air =
+          Math.max(0, bodyflightAirflowRef.current) *
+          Math.exp(-heightAboveGround / BODYFLIGHT_AIR_FALLOFF);
+        const cd =
+          BODYFLIGHT_CD_FLAT +
+          ((body.y < 0 ? BODYFLIGHT_CD_HEAD_DOWN : BODYFLIGHT_CD_UPRIGHT) - BODYFLIGHT_CD_FLAT) *
+            posture;
+        let vy = bodyflightVelYRef.current;
+        const rel = air - vy;
+        let ay = -g + BODYFLIGHT_DRAG * cd * rel * Math.abs(rel);
+        // Air cushion: once falling fast enough that it couldn't stop at the
+        // hover line by itself, brake at exactly the rate that does (v²/2d),
+        // so even a head-down dive eases to a stop instead of hitting the
+        // water.
+        if (vy < 0 && aboveHover > 0) {
+          const brake = (vy * vy) / (2 * Math.max(0.5, aboveHover));
+          if (brake > 8) ay = Math.max(ay, brake);
+        }
+        // Within a few meters of the hover line a damped spring takes over
+        // from gravity and holds the body there with a slow bob. It only
+        // ever pushes up, so a strong updraft can still lift a flat body
+        // away from the ground.
+        const cushionZone = 4 + hover;
+        if (aboveHover < cushionZone) {
+          const w0 = 1 - Math.max(0, aboveHover) / cushionZone;
+          const w = w0 * w0 * (3 - 2 * w0);
+          const k = 6;
+          const spring = k * (0.25 * Math.sin(t * 0.9) - aboveHover) - 2 * 0.7 * Math.sqrt(k) * vy;
+          ay += Math.max(0, spring - ay) * w;
+        }
+        vy = Math.max(-150, Math.min(150, vy + ay * physDt));
+        posRef.current.y += vy * physDt;
+        if (posRef.current.y < groundY + 0.3) {
+          posRef.current.y = groundY + 0.3;
+          vy = Math.max(0, vy);
+        }
+        bodyflightVelYRef.current = vy;
+
+        // TORNADO/VIRVEL: the same swirl round posRef as FLYG's — NAV/STRÖM
+        // carry the whole whirlwind and only TO CENTER pulls the orbit in/out
+        // (see updateTornadoLiveRadius above). The updraft particles swirl
+        // round the same center, and vortexBlendRef opens a real whirlpool
+        // in the water below.
+        {
+          if (tornadoOnRef.current) {
+            updateTornadoLiveRadius(tornadoRadialSpeedRef.current * walkSpeed);
+          }
+          const tornadoDirSign = tornadoDirectionRef.current === "ccw" ? -1 : 1;
+          const tornadoOmega =
+            0.35 * tornadoSpeedRef.current * tornadoDirSign * tornadoBlendRef.current;
+          tornadoAngleRef.current += tornadoOmega * physDt;
+          const ang = tornadoAngleRef.current;
+          const liveRadius = tornadoLiveRadiusRef.current;
+          camX = posRef.current.x + Math.cos(ang) * liveRadius * tornadoBlendRef.current;
+          camZ = posRef.current.z + Math.sin(ang) * liveRadius * tornadoBlendRef.current;
+          tornadoCloudActive = tornadoBlendRef.current > 0.003;
+          tornadoCloudX = posRef.current.x;
+          tornadoCloudZ = posRef.current.z;
+          tornadoCloudRadius = tornadoRadiusRef.current;
+          tornadoCloudHeight = swingHeightRef.current;
+          tornadoCloudY =
+            tornadoWaterHeightAt(tornadoCloudX, tornadoCloudZ) +
+            tornadoCloudYOffsetRef.current +
+            tornadoCloudHeight / 2;
+          tornadoCloudAngle = ang;
+        }
+        camYRef.current = posRef.current.y;
+        camVYRef.current = 0;
       } else {
         // NAV-spaken är kamera-relativ: stick.y "framåt" ska alltid röra sig
         // dit kameran för tillfället tittar (yaw), inte fast världs -z, annars
@@ -8111,6 +8353,86 @@ export function Aquafulness() {
               normalSurfaceY) *
               vortexBlendRef.current
           : normalSurfaceY;
+
+      // BODYFLIGHT updraft particles: fade in with the mode, rise from the
+      // ground at each one's share of the updraft (which thins out with
+      // height, like the physics above), respawn at the ground once past the
+      // top of the column, and wrap round the square column so the body
+      // never flies out of them. With TORNADO on they also swirl round the
+      // whirlwind's center.
+      {
+        const want = camMode === "bodyflight" ? 1 : 0;
+        bodyflightParticleFade += (want - bodyflightParticleFade) * Math.min(1, dt * 2);
+        if (bodyflightParticleFade < 0.003) bodyflightParticleFade = 0;
+        const air = Math.max(0, bodyflightAirflowRef.current);
+        const count = Math.round(
+          BODYFLIGHT_MAX_PARTICLES * Math.min(1, air / BODYFLIGHT_AIRFLOW_MAX),
+        );
+        bodyflightParticles.visible = bodyflightParticleFade > 0 && count > 0;
+        if (bodyflightParticles.visible) {
+          bodyflightParticleMat.opacity = 0.8 * bodyflightParticleFade;
+          // Particles live in the same space as the physics (water level
+          // 0); NIVÅ/DJUP lift the rendered water by levelY, so lift them too.
+          bodyflightParticles.position.y = levelY;
+          bodyflightParticleGeo.setDrawRange(0, count);
+          const half = BODYFLIGHT_PARTICLE_HALF;
+          const groundY = normalSurfaceY;
+          const camHeight = Math.max(0, (camYRef.current ?? groundY) - groundY);
+          const columnTop = Math.max(60, camHeight + 40);
+          const pos = bodyflightParticlePos;
+          if (!bodyflightParticlesSeeded) {
+            bodyflightParticlesSeeded = true;
+            for (let i = 0; i < BODYFLIGHT_MAX_PARTICLES; i++) {
+              pos[i * 3] = camX + (Math.random() * 2 - 1) * half;
+              pos[i * 3 + 1] = groundY + Math.random() * columnTop;
+              pos[i * 3 + 2] = camZ + (Math.random() * 2 - 1) * half;
+            }
+          }
+          const swirl =
+            tornadoBlendRef.current > 0.003
+              ? 0.35 *
+                1.6 *
+                tornadoSpeedRef.current *
+                (tornadoDirectionRef.current === "ccw" ? -1 : 1) *
+                tornadoBlendRef.current *
+                dt
+              : 0;
+          const cs = Math.cos(swirl),
+            sn = Math.sin(swirl);
+          const cx = posRef.current.x,
+            cz = posRef.current.z;
+          for (let i = 0; i < count; i++) {
+            const ix = i * 3;
+            let x = pos[ix],
+              y = pos[ix + 1],
+              z = pos[ix + 2];
+            const h = Math.max(0, y - groundY);
+            y +=
+              Math.max(1.5, air * Math.exp(-h / BODYFLIGHT_AIR_FALLOFF)) *
+              bodyflightParticleSpeed[i] *
+              dt;
+            if (swirl !== 0) {
+              const dx = x - cx,
+                dz = z - cz;
+              x = cx + dx * cs - dz * sn;
+              z = cz + dx * sn + dz * cs;
+            }
+            if (y > groundY + columnTop || y < groundY - 2) {
+              y = groundY + Math.random() * 2;
+              x = camX + (Math.random() * 2 - 1) * half;
+              z = camZ + (Math.random() * 2 - 1) * half;
+            }
+            if (x - camX > half) x -= 2 * half;
+            else if (x - camX < -half) x += 2 * half;
+            if (z - camZ > half) z -= 2 * half;
+            else if (z - camZ < -half) z += 2 * half;
+            pos[ix] = x;
+            pos[ix + 1] = y;
+            pos[ix + 2] = z;
+          }
+          bodyflightParticleAttr.needsUpdate = true;
+        }
+      }
 
       // "Watercraft" camera mode: the raft (see WatercraftRig) floats on the
       // real rendered ocean by sampling the exact same waveHeight() the
@@ -8780,11 +9102,20 @@ export function Aquafulness() {
       // Noclip allows a steeper look-up/down range since it drives full 3D
       // flight direction (see the forward vector above); other modes keep
       // the original, more conservative range.
-      const maxPitch = camMode === "noclip" || camMode === "watercraft" ? 1.5 : 1.2;
+      const maxPitch =
+        camMode === "noclip" || camMode === "watercraft" || camMode === "bodyflight" ? 1.5 : 1.2;
       if (pitchRef.current > maxPitch) pitchRef.current = maxPitch;
       if (pitchRef.current < -maxPitch) pitchRef.current = -maxPitch;
       camera.rotateY(yawRef.current + followYaw);
       camera.rotateX(pitchRef.current);
+      // BODYFLIGHT: banking the KROPP stick tilts the view with the body,
+      // easing back level when let go or when leaving the mode.
+      {
+        const rollTarget = camMode === "bodyflight" ? -bodyStickRef.current.x * 0.35 : 0;
+        bodyflightRollRef.current +=
+          (rollTarget - bodyflightRollRef.current) * (1 - Math.exp(-dt / 0.3));
+        if (Math.abs(bodyflightRollRef.current) > 1e-4) camera.rotateZ(bodyflightRollRef.current);
+      }
       if (freakOutViewActive) camera.quaternion.premultiply(_foQuat);
 
       // FREAK OUT rig: posed from the same swing/ring rotations the camera's
@@ -9365,6 +9696,9 @@ export function Aquafulness() {
       skyCloudMat.dispose();
       tornadoCloudGeo.dispose();
       tornadoCloudMat.dispose();
+      bodyflightParticleGeo.dispose();
+      bodyflightParticleMat.dispose();
+      bodyflightDotTex.dispose();
       for (const layer of extendCloudLayersRef.current) {
         (layer.material as THREE.Material).dispose();
       }
@@ -9799,6 +10133,12 @@ export function Aquafulness() {
     setNoclipFallRiseSpeed,
     noclipVertEaseTime,
     setNoclipVertEaseTime,
+    bodyflightAirflow,
+    setBodyflightAirflow,
+    bodyflightGravity,
+    setBodyflightGravity,
+    bodyflightHoverHeight,
+    setBodyflightHoverHeight,
     noclipAutoAlternateOn,
     setNoclipAutoAlternateOn,
     noclipAutoAlternateInterval,
@@ -10597,7 +10937,7 @@ export function Aquafulness() {
               }`}
             >
               {t(
-                cameraMode === "float"
+                cameraMode === "float" || cameraMode === "bodyflight"
                   ? "hud.tornadoToggle.whirlpool"
                   : "hud.tornadoToggle.tornado",
               )}
@@ -10620,21 +10960,38 @@ export function Aquafulness() {
               {t(CAMERA_MODE_LABEL_KEYS[cameraMode])} {t("camera.mode.autoSuffix")}
             </div>
           ) : (
-            <div className="pointer-events-auto flex items-center gap-1 rounded-full border ui-line-2 ui-surface p-1.5 backdrop-blur-md">
-              {CAMERA_MODE_TAB_ORDER.map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setCameraMode(m)}
-                  aria-pressed={cameraMode === m}
-                  className={`rounded-full px-3 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
-                    cameraMode === m ? "ui-tint-2 ui-ink" : "ui-ink-muted"
-                  }`}
-                >
-                  {t(CAMERA_MODE_LABEL_KEYS[m])}
-                </button>
-              ))}
-            </div>
+            <label className="pointer-events-auto relative flex items-center rounded-full border ui-line-2 ui-surface backdrop-blur-md">
+              <span className="sr-only">{t("dial.camera.mode")}</span>
+              <select
+                value={cameraMode}
+                onChange={(e) => setCameraMode(e.target.value as CameraMode)}
+                className="cursor-pointer appearance-none rounded-full bg-transparent py-1.5 pl-4 pr-8 text-[10px] font-light tracking-[0.2em] ui-ink outline-none"
+              >
+                {/* A mode reached some other way (FARKOST via the app
+                    catalog) stays selectable here so the dropdown never
+                    shows the wrong mode. */}
+                {(CAMERA_MODE_TAB_ORDER.includes(cameraMode)
+                  ? CAMERA_MODE_TAB_ORDER
+                  : [...CAMERA_MODE_TAB_ORDER, cameraMode]
+                ).map((m) => (
+                  <option key={m} value={m} className="bg-neutral-900 text-white">
+                    {t(CAMERA_MODE_LABEL_KEYS[m])}
+                  </option>
+                ))}
+              </select>
+              <svg
+                viewBox="0 0 12 12"
+                width="10"
+                height="10"
+                className="pointer-events-none absolute right-3 ui-ink-muted"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                aria-hidden="true"
+              >
+                <path d="M2.5 4.5 6 8l3.5-3.5" />
+              </svg>
+            </label>
           )}
           {/* BADRINGAR: the bath-ring counterpart of the WHIRLPOOL/TORNADO
               toggle on the left — one tap flips torusRingsOn without opening
@@ -10714,7 +11071,7 @@ export function Aquafulness() {
           label={t("hud.joystick.nav")}
           positionClass="bottom-[calc(env(safe-area-inset-bottom,0px)+2rem)] left-[calc(env(safe-area-inset-left,0px)+2rem)]"
         />
-        {(cameraMode === "float" || cameraMode === "swing") && (
+        {(cameraMode === "float" || cameraMode === "swing" || cameraMode === "bodyflight") && (
           <Joystick
             onChange={remoteControllerProps.onDriftChange}
             value={remoteControllerProps.driftStick}
@@ -10839,6 +11196,32 @@ export function Aquafulness() {
           // corner of the viewport.
           positionClass="bottom-[calc(env(safe-area-inset-bottom,0px)+5.5rem)] right-[calc(env(safe-area-inset-right,0px)+2rem)]"
         />
+        {/* BODYFLIGHT: LUFTSTRÖM, the updraft's strength from the ground,
+            in SVAJ's spot (bodyflight has no sway). */}
+        {cameraMode === "bodyflight" && (
+          <div className="pointer-events-none absolute bottom-[calc(env(safe-area-inset-bottom,0px)+16rem)] left-[calc(env(safe-area-inset-left,0px)+2rem)] z-10 select-none">
+            <VerticalDial
+              value={bodyflightAirflow}
+              onChange={(v) => setBodyflightAirflow(Math.round(v))}
+              onReset={() => setBodyflightAirflow(DEFAULTS.bodyflightAirflow)}
+              label={t("hud.joystick.airflow")}
+              min={0}
+              max={BODYFLIGHT_AIRFLOW_MAX}
+            />
+          </div>
+        )}
+        {/* BODYFLIGHT: KROPP, the body's posture, in VÅGRIKT's spot above
+            LOOK — up/down stands the body up head first/feet first (falls
+            faster), centered lies flat (floats), sideways banks it. */}
+        {cameraMode === "bodyflight" && (
+          <Joystick
+            onChange={setBodyStick}
+            value={bodyStick}
+            label={t("hud.joystick.body")}
+            positionClass="bottom-[calc(env(safe-area-inset-bottom,0px)+12.5rem)] right-[calc(env(safe-area-inset-right,0px)+2rem)]"
+            sticky
+          />
+        )}
         {cameraMode === "float" && (
           <Joystick
             onChange={remoteControllerProps.onWaveDirChange}
@@ -11038,6 +11421,38 @@ export function Aquafulness() {
                         curve={2}
                         format={(v) => `${v.toFixed(0)}m/s`}
                         onChange={setNoclipFallRiseSpeed}
+                      />
+                    </>
+                  )}
+                  {cameraDrawerTab === "bodyflight" && (
+                    <>
+                      <PadSlider
+                        label={t("dial.camera.bodyflightAirflow")}
+                        value={bodyflightAirflow}
+                        min={0}
+                        max={BODYFLIGHT_AIRFLOW_MAX}
+                        step={1}
+                        format={(v) => `${v.toFixed(0)}m/s`}
+                        onChange={setBodyflightAirflow}
+                      />
+                      <PadSlider
+                        label={t("dial.camera.bodyflightGravity")}
+                        value={bodyflightGravity}
+                        min={0}
+                        max={BODYFLIGHT_GRAVITY_MAX}
+                        step={0.05}
+                        format={(v) => `${v.toFixed(2)}g`}
+                        onChange={setBodyflightGravity}
+                      />
+                      <PadSlider
+                        label={t("dial.camera.bodyflightHoverHeight")}
+                        value={bodyflightHoverHeight}
+                        min={BODYFLIGHT_HOVER_MIN}
+                        max={BODYFLIGHT_HOVER_MAX}
+                        step={0.5}
+                        curve={2}
+                        format={(v) => `${v.toFixed(1)}m`}
+                        onChange={setBodyflightHoverHeight}
                       />
                     </>
                   )}
@@ -11715,7 +12130,9 @@ export function Aquafulness() {
                         {t("dial.camera.tornadoDirection")}:{" "}
                         {t(TORNADO_DIRECTION_LABEL_KEYS[tornadoDirection])}
                       </button>
-                      {(cameraMode === "float" || cameraMode === "swing") && (
+                      {(cameraMode === "float" ||
+                        cameraMode === "swing" ||
+                        cameraMode === "bodyflight") && (
                         <PadSlider
                           label={t("dial.camera.tornadoOpening")}
                           value={tornadoOpening}
