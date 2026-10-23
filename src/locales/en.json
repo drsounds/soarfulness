@@ -212,7 +212,9 @@
       "freakOutSeatColor": "FREAK OUT SEAT COLOR",
       "freakOutRingColor": "FREAK OUT RING COLOR",
       "freakOutPostColor": "FREAK OUT POST COLOR",
-      "freakOutArmColor": "FREAK OUT ARM COLOR"
+      "freakOutArmColor": "FREAK OUT ARM COLOR",
+      "freakOutShowFrame": "FREAK OUT FRAME",
+      "freakOutFrameColor": "FREAK OUT FRAME COLOR"
     },
     "env": {
       "backdrop": "BACKDROP",
