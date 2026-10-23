@@ -8553,10 +8553,21 @@ export function Aquafulness() {
               0.5 * Math.max(0.01, freakOutRotationOscillateSpeedRef.current) * physDt;
             foDir *= Math.cos(freakOutOscPhaseRef.current);
           }
+          // The ring's spin follows the arm's swing: full speed through the
+          // bottom of each pass, easing to a stop as the arm slows into each
+          // turnaround and picking up again as it swings back
+          // (|cos(phase)| is the swing's own speed, 0..1). With next to no
+          // swing (angle or speed near 0) it spins steadily as before.
+          const foSwingSync =
+            Math.min(1, Math.abs(freakOutSwingAngleRef.current) / 15) *
+            Math.min(1, Math.max(0, freakOutSwingSpeedRef.current) / 0.1);
+          const foSpinScale =
+            1 - foSwingSync * (1 - Math.abs(Math.cos(freakOutSwingPhaseRef.current)));
           freakOutRingAngleRef.current +=
             0.8 *
             Math.max(0, freakOutRotationSpeedRef.current) *
             foDir *
+            foSpinScale *
             freakOutRotBlendRef.current *
             physDt;
           // SEATS: ride in the chosen seat by sitting that much further
