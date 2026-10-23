@@ -649,6 +649,9 @@ export type Persisted = {
   freakOutRotationSpeed: number;
   freakOutRotationOscillate: boolean;
   freakOutRotationOscillateSpeed: number;
+  // While the arm swings, alternate at every other turnaround instead of
+  // at every one.
+  freakOutRotationOscillateEveryOther: boolean;
   // Spin direction of the gondola ring (before any back-and-forth
   // alternation from freakOutRotationOscillate).
   // By default the view rides the ring like the real ride's seat: it turns
@@ -777,6 +780,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "freakOutRotationSpeed",
     "freakOutRotationOscillate",
     "freakOutRotationOscillateSpeed",
+    "freakOutRotationOscillateEveryOther",
     "freakOutRotationDirection",
     "freakOutViewFixedHeading",
     "freakOutShowArm",
