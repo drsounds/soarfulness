@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as LicensesRouteImport } from './routes/licenses'
 import { Route as DocsRouteImport } from './routes/docs'
 import { Route as AboutRouteImport } from './routes/about'
@@ -21,6 +22,11 @@ import { Route as BathingPayloadRouteImport } from './routes/bathing.$payload'
 import { Route as BathingPayloadIndexRouteImport } from './routes/bathing.$payload.index'
 import { Route as BathingPayloadBatheRouteImport } from './routes/bathing.$payload.bathe'
 
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LicensesRoute = LicensesRouteImport.update({
   id: '/licenses',
   path: '/licenses',
@@ -82,6 +88,7 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/docs': typeof DocsRouteWithChildren
   '/licenses': typeof LicensesRoute
+  '/login': typeof LoginRoute
   '/bathing/$payload': typeof BathingPayloadRouteWithChildren
   '/docs/background': typeof DocsBackgroundRoute
   '/docs/optic-flow': typeof DocsOpticFlowRoute
@@ -94,6 +101,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/licenses': typeof LicensesRoute
+  '/login': typeof LoginRoute
   '/docs/background': typeof DocsBackgroundRoute
   '/docs/optic-flow': typeof DocsOpticFlowRoute
   '/docs/references': typeof DocsReferencesRoute
@@ -107,6 +115,7 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/docs': typeof DocsRouteWithChildren
   '/licenses': typeof LicensesRoute
+  '/login': typeof LoginRoute
   '/bathing/$payload': typeof BathingPayloadRouteWithChildren
   '/docs/background': typeof DocsBackgroundRoute
   '/docs/optic-flow': typeof DocsOpticFlowRoute
@@ -122,6 +131,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/docs'
     | '/licenses'
+    | '/login'
     | '/bathing/$payload'
     | '/docs/background'
     | '/docs/optic-flow'
@@ -134,6 +144,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/licenses'
+    | '/login'
     | '/docs/background'
     | '/docs/optic-flow'
     | '/docs/references'
@@ -146,6 +157,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/docs'
     | '/licenses'
+    | '/login'
     | '/bathing/$payload'
     | '/docs/background'
     | '/docs/optic-flow'
@@ -160,11 +172,19 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   DocsRoute: typeof DocsRouteWithChildren
   LicensesRoute: typeof LicensesRoute
+  LoginRoute: typeof LoginRoute
   BathingPayloadRoute: typeof BathingPayloadRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/licenses': {
       id: '/licenses'
       path: '/licenses'
@@ -280,6 +300,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   DocsRoute: DocsRouteWithChildren,
   LicensesRoute: LicensesRoute,
+  LoginRoute: LoginRoute,
   BathingPayloadRoute: BathingPayloadRouteWithChildren,
 }
 export const routeTree = rootRouteImport
