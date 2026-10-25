@@ -19,6 +19,7 @@ import { Route as DocsReferencesRouteImport } from './routes/docs.references'
 import { Route as DocsOpticFlowRouteImport } from './routes/docs.optic-flow'
 import { Route as DocsBackgroundRouteImport } from './routes/docs.background'
 import { Route as BathingPayloadRouteImport } from './routes/bathing.$payload'
+import { Route as AuthSpacifyRouteImport } from './routes/auth.spacify'
 import { Route as BathingPayloadIndexRouteImport } from './routes/bathing.$payload.index'
 import { Route as BathingPayloadBatheRouteImport } from './routes/bathing.$payload.bathe'
 
@@ -72,6 +73,11 @@ const BathingPayloadRoute = BathingPayloadRouteImport.update({
   path: '/bathing/$payload',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthSpacifyRoute = AuthSpacifyRouteImport.update({
+  id: '/auth/spacify',
+  path: '/auth/spacify',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BathingPayloadIndexRoute = BathingPayloadIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -89,6 +95,7 @@ export interface FileRoutesByFullPath {
   '/docs': typeof DocsRouteWithChildren
   '/licenses': typeof LicensesRoute
   '/login': typeof LoginRoute
+  '/auth/spacify': typeof AuthSpacifyRoute
   '/bathing/$payload': typeof BathingPayloadRouteWithChildren
   '/docs/background': typeof DocsBackgroundRoute
   '/docs/optic-flow': typeof DocsOpticFlowRoute
@@ -102,6 +109,7 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/licenses': typeof LicensesRoute
   '/login': typeof LoginRoute
+  '/auth/spacify': typeof AuthSpacifyRoute
   '/docs/background': typeof DocsBackgroundRoute
   '/docs/optic-flow': typeof DocsOpticFlowRoute
   '/docs/references': typeof DocsReferencesRoute
@@ -116,6 +124,7 @@ export interface FileRoutesById {
   '/docs': typeof DocsRouteWithChildren
   '/licenses': typeof LicensesRoute
   '/login': typeof LoginRoute
+  '/auth/spacify': typeof AuthSpacifyRoute
   '/bathing/$payload': typeof BathingPayloadRouteWithChildren
   '/docs/background': typeof DocsBackgroundRoute
   '/docs/optic-flow': typeof DocsOpticFlowRoute
@@ -132,6 +141,7 @@ export interface FileRouteTypes {
     | '/docs'
     | '/licenses'
     | '/login'
+    | '/auth/spacify'
     | '/bathing/$payload'
     | '/docs/background'
     | '/docs/optic-flow'
@@ -145,6 +155,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/licenses'
     | '/login'
+    | '/auth/spacify'
     | '/docs/background'
     | '/docs/optic-flow'
     | '/docs/references'
@@ -158,6 +169,7 @@ export interface FileRouteTypes {
     | '/docs'
     | '/licenses'
     | '/login'
+    | '/auth/spacify'
     | '/bathing/$payload'
     | '/docs/background'
     | '/docs/optic-flow'
@@ -173,6 +185,7 @@ export interface RootRouteChildren {
   DocsRoute: typeof DocsRouteWithChildren
   LicensesRoute: typeof LicensesRoute
   LoginRoute: typeof LoginRoute
+  AuthSpacifyRoute: typeof AuthSpacifyRoute
   BathingPayloadRoute: typeof BathingPayloadRouteWithChildren
 }
 
@@ -248,6 +261,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BathingPayloadRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth/spacify': {
+      id: '/auth/spacify'
+      path: '/auth/spacify'
+      fullPath: '/auth/spacify'
+      preLoaderRoute: typeof AuthSpacifyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/bathing/$payload/': {
       id: '/bathing/$payload/'
       path: '/'
@@ -301,6 +321,7 @@ const rootRouteChildren: RootRouteChildren = {
   DocsRoute: DocsRouteWithChildren,
   LicensesRoute: LicensesRoute,
   LoginRoute: LoginRoute,
+  AuthSpacifyRoute: AuthSpacifyRoute,
   BathingPayloadRoute: BathingPayloadRouteWithChildren,
 }
 export const routeTree = rootRouteImport

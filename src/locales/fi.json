@@ -956,6 +956,20 @@
     "tabsAriaLabel": "Asetusvälilehdet",
     "title": "ASETUKSET"
   },
+  "spacify": {
+    "hint": "Valinnainen: kirjaudu Spacify-tililläsi, niin tallennetut tilasi, esiasetuksesi ja maisemasi ovat kaikilla laitteillasi.",
+    "label": "SPACIFY",
+    "signIn": "KIRJAUDU",
+    "signInFailed": "Spacifylla kirjautuminen epäonnistui.",
+    "signOut": "KIRJAUDU ULOS",
+    "signOutConfirm": "Kirjaudutaanko ulos Spacifysta? Kaikki tallennettu säilyy tällä laitteella, synkronointi vain loppuu.",
+    "signedIn": "KIRJAUTUNUT",
+    "signingIn": "Kirjaudutaan Spacifylla…",
+    "syncFailed": "SYNKRONOINTI EPÄONNISTUI",
+    "syncNow": "SYNKRONOI NYT",
+    "synced": "SYNKRONOITU",
+    "syncing": "SYNKRONOIDAAN…"
+  },
   "splash": {
     "copyright": "© {{year}} {{name}}. Kaikki oikeudet pidätetään.",
     "logoAlt": "Aquafulness",

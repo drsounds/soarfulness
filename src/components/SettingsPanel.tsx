@@ -5,6 +5,13 @@ import {
   type MutableRefObject,
   type SetStateAction,
 } from "react";
+import {
+  isSpacifyAvailable,
+  requestSpacifySync,
+  signInWithSpacify,
+  signOutOfSpacify,
+  useSpacify,
+} from "@/lib/spacify";
 import { useTranslation } from "react-i18next";
 import { Link } from "@tanstack/react-router";
 import { Save } from "lucide-react";
@@ -1158,6 +1165,76 @@ function LibraryControls({
   );
 }
 
+// Optional "Sign in with Spacify" (src/lib/spacify.ts): once signed in, the
+// saved presets, states and scenery presets sync to the user's Spacify
+// account (use-spacify-sync.ts). Hidden when no OAuth client is configured
+// and in the Capacitor app.
+function SpacifyControls() {
+  const { t } = useTranslation();
+  const { session, status, error } = useSpacify();
+  const [busy, setBusy] = useState(false);
+  if (!isSpacifyAvailable()) return null;
+  const btnClass =
+    "rounded-full border ui-line-1 ui-tint-1 px-2.5 py-0.5 text-[9px] font-light tracking-wider ui-ink-muted transition active:scale-95 ui-press disabled:opacity-30";
+
+  return (
+    <div className="mb-2 flex w-full flex-col items-center gap-1">
+      <div className="flex w-full flex-wrap items-center justify-center gap-1.5">
+        <span className="text-[9px] font-light tracking-[0.28em] ui-ink-faint">
+          {t("spacify.label")}
+        </span>
+        {session ? (
+          <>
+            <span
+              className="text-[9px] font-light tracking-wider ui-ink-muted"
+              title={error ?? undefined}
+            >
+              {status === "syncing"
+                ? t("spacify.syncing")
+                : status === "error"
+                  ? t("spacify.syncFailed")
+                  : status === "synced"
+                    ? t("spacify.synced")
+                    : t("spacify.signedIn")}
+            </span>
+            <button
+              onClick={() => requestSpacifySync()}
+              disabled={status === "syncing"}
+              className={btnClass}
+            >
+              {t("spacify.syncNow")}
+            </button>
+            <button
+              onClick={() => {
+                if (window.confirm(t("spacify.signOutConfirm"))) void signOutOfSpacify();
+              }}
+              className={btnClass}
+            >
+              {t("spacify.signOut")}
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={() => {
+              setBusy(true);
+              signInWithSpacify().catch(() => setBusy(false));
+            }}
+            disabled={busy}
+            className={btnClass}
+          >
+            {t("spacify.signIn")}
+          </button>
+        )}
+      </div>
+      {!session && (
+        <p className="max-w-[16rem] text-[9px] font-light leading-snug ui-ink-faint">
+          {t("spacify.hint")}
+        </p>
+      )}
+    </div>
+  );
+}
+
 // Top-of-panel tool button: collapses the "all settings" PresetControls and
 // the full-state StateControls (both above) behind a single save-icon
 // button + modal, instead of always showing them inline. Per-tab scoped
@@ -1245,6 +1322,7 @@ function SaveLoadMenu({
               exportLibraryFile={exportLibraryFile}
               importLibraryFile={importLibraryFile}
             />
+            <SpacifyControls />
             <button
               onClick={() => setOpen(false)}
               className="ui-tint-1 ui-ink-muted ui-press mt-1 rounded-full border px-2.5 py-0.5 text-[9px] font-light tracking-wider transition active:scale-95"

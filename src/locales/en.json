@@ -956,6 +956,20 @@
     "tabsAriaLabel": "Settings tabs",
     "title": "SETTINGS"
   },
+  "spacify": {
+    "hint": "Optional: sign in with your Spacify account to keep your saved states, presets and scenery on all your devices.",
+    "label": "SPACIFY",
+    "signIn": "SIGN IN",
+    "signInFailed": "Couldn't sign in with Spacify.",
+    "signOut": "SIGN OUT",
+    "signOutConfirm": "Sign out of Spacify? Everything saved stays on this device; it just stops syncing.",
+    "signedIn": "SIGNED IN",
+    "signingIn": "Signing in with Spacify…",
+    "syncFailed": "SYNC FAILED",
+    "syncNow": "SYNC NOW",
+    "synced": "SYNCED",
+    "syncing": "SYNCING…"
+  },
   "splash": {
     "copyright": "© {{year}} {{name}}. All rights reserved.",
     "logoAlt": "Aquafulness",

@@ -113,6 +113,7 @@ import {
 } from "@/lib/presets";
 import { saveFileToDevice } from "@/lib/deviceFiles";
 import { PUBLIC_APP_URL } from "@/lib/appLinks";
+import { syncedList, useSpacifySync } from "@/hooks/use-spacify-sync";
 import {
   type AppEntry,
   type AppEnvEra,
@@ -2302,6 +2303,13 @@ export function Aquafulness() {
     loadSavedSceneryPresets(),
   );
   const [appSceneryPresets, setAppSceneryPresets] = useState<AppSceneryPreset[]>([]);
+  // Optional: with "Sign in with Spacify" (SaveLoadMenu), the three saved
+  // lists above also sync to the user's Spacify account. A no-op otherwise.
+  useSpacifySync({
+    state: syncedList(savedStates, setSavedStates, replaceSavedStates),
+    preset: syncedList(savedPresets, setSavedPresets, replaceSavedPresets),
+    scenery: syncedList(savedSceneryPresets, setSavedSceneryPresets, replaceSavedSceneryPresets),
+  });
   const [phoneOpen, setPhoneOpen] = useState(false);
   const [uiVisible, setUiVisible] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);

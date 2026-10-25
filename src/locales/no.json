@@ -956,6 +956,20 @@
     "tabsAriaLabel": "Innstillingsfaner",
     "title": "INNSTILLINGER"
   },
+  "spacify": {
+    "hint": "Valgfritt: logg inn med Spacify-kontoen din for å ha lagrede tilstander, forhåndsinnstillinger og omgivelser på alle enhetene dine.",
+    "label": "SPACIFY",
+    "signIn": "LOGG INN",
+    "signInFailed": "Kunne ikke logge inn med Spacify.",
+    "signOut": "LOGG UT",
+    "signOutConfirm": "Logge ut av Spacify? Alt som er lagret blir værende på denne enheten, det slutter bare å synkroniseres.",
+    "signedIn": "LOGGET INN",
+    "signingIn": "Logger inn med Spacify…",
+    "syncFailed": "SYNKRONISERING MISLYKTES",
+    "syncNow": "SYNKRONISER NÅ",
+    "synced": "SYNKRONISERT",
+    "syncing": "SYNKRONISERER…"
+  },
   "splash": {
     "copyright": "© {{year}} {{name}}. Alle rettigheter forbeholdt.",
     "logoAlt": "Aquafulness",
