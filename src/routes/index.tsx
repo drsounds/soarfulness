@@ -1129,6 +1129,10 @@ type SceneManifest = {
 const WATERCRAFT_RAFT_X = 0;
 const WATERCRAFT_RAFT_Z = -30;
 
+// Look yaw on a first start (no saved camera pose): turned 180° from world -z
+// so the player initially faces the opposite way.
+const DEFAULT_START_YAW = Math.PI;
+
 // Respawn falls back to this single "Spawn" point at world origin whenever a
 // scene has no manifest, or its manifest lists no locations/places.
 const DEFAULT_SPAWN_LOCATION: SpawnLocation = {
@@ -1137,7 +1141,7 @@ const DEFAULT_SPAWN_LOCATION: SpawnLocation = {
   x: 0,
   y: 0,
   z: 0,
-  yaw: 0,
+  yaw: DEFAULT_START_YAW,
 };
 
 function resolveSpawnLocations(manifest: SceneManifest | null | undefined): SpawnLocation[] {
@@ -3120,7 +3124,7 @@ export function Aquafulness() {
   const swayDisplayRef = useRef({ x: 0, y: 0 });
   const noclipDriftDisplayRef = useRef({ x: 0, y: 0 });
   const surgeDisplayRef = useRef({ x: 0, y: 0 });
-  const yawRef = useRef(initialCameraPose?.yaw ?? 0);
+  const yawRef = useRef(initialCameraPose?.yaw ?? DEFAULT_START_YAW);
   const pitchRef = useRef(initialCameraPose?.pitch ?? 0);
   const prevSurfaceRef = useRef<number | null>(null);
   // Low-pass state for the buoyancy spring's anticipatory velocity estimate
