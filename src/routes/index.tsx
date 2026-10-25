@@ -161,7 +161,10 @@ import {
   RT_SIM_GLSL,
   RT_WATER_GLSL,
 } from "@/lib/raytracedWater/RaytracedWater";
-import appIconAsset from "@/assets/AppIconBlack.png.asset.json";
+// Bundled into the build (not a /__l5e/ CDN pointer like the other
+// src/assets/*.asset.json files) so the logo also shows inside the offline
+// Capacitor app, where only files shipped in the APK resolve.
+import appIconUrl from "@/assets/AppIconBlack.png";
 
 export const Route = createFileRoute("/")({
   component: SplashScreen,
@@ -1737,7 +1740,7 @@ function SplashScreen() {
 
       <div className="relative z-10 flex flex-col items-center gap-6 px-6 pt-[calc(env(safe-area-inset-top,0px)+4rem)] text-center">
         <img
-          src={appIconAsset.url}
+          src={appIconUrl}
           alt={t("splash.logoAlt")}
           className="h-20 w-20 drop-shadow-[0_6px_20px_rgba(11,61,92,0.25)]"
         />
@@ -10673,7 +10676,7 @@ export function Aquafulness() {
           eats into it. Also kept clear of by the top button row below (see
           its pr-*) instead of the two fighting over the same corner. */}
       <img
-        src={appIconAsset.url}
+        src={appIconUrl}
         alt="Aquafulness"
         aria-hidden="true"
         className="pointer-events-none absolute z-30"
