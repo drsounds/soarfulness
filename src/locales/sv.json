@@ -956,6 +956,20 @@
     "tabsAriaLabel": "Inställningsflikar",
     "title": "INSTÄLLNINGAR"
   },
+  "spacify": {
+    "hint": "Valfritt: logga in med ditt Spacify-konto för att ha dina sparade lägen, förinställningar och miljöer på alla dina enheter.",
+    "label": "SPACIFY",
+    "signIn": "LOGGA IN",
+    "signInFailed": "Det gick inte att logga in med Spacify.",
+    "signOut": "LOGGA UT",
+    "signOutConfirm": "Logga ut från Spacify? Allt sparat finns kvar på den här enheten, det slutar bara synkas.",
+    "signedIn": "INLOGGAD",
+    "signingIn": "Loggar in med Spacify…",
+    "syncFailed": "SYNKNINGEN MISSLYCKADES",
+    "syncNow": "SYNKA NU",
+    "synced": "SYNKAT",
+    "syncing": "SYNKAR…"
+  },
   "splash": {
     "copyright": "© {{year}} {{name}}. Alla rättigheter förbehållna.",
     "logoAlt": "Aquafulness",
