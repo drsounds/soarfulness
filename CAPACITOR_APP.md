@@ -150,7 +150,7 @@ Two workflows call it:
 
 The APK's bundled web app is only the starting point. Once installed, the
 app keeps itself in sync with the version deployed at
-`https://soarfulness.lovable.app` (`plugins.LiveUpdate.url` in
+`https://soarfulness.app.spacify.se` (`plugins.LiveUpdate.url` in
 `capacitor.config.ts`), so web-only changes reach installed apps without a
 Play Store release, and the updated version works offline just like the
 bundled one. No third-party update service is involved: the deployed site
@@ -222,7 +222,7 @@ off.
 
 ## Deep links (Android App Links)
 
-Links to `https://soarfulness.lovable.app` (a shared badlänk, for example)
+Links to `https://soarfulness.app.spacify.se` (a shared badlänk, for example)
 open in the app instead of the browser, on the same page.
 `AndroidManifest.xml` has an `autoVerify` intent filter for that host, and
 `AppLinksPlugin.java` hands the tapped URL to the web app
@@ -239,7 +239,7 @@ with**: Play Console → the app → Test and release → App integrity → App
 signing → "App signing key certificate" → SHA-256. Replace the placeholder
 with it (add the upload key's fingerprint too to have sideloaded release
 builds verify), deploy the site, and check that
-`https://soarfulness.lovable.app/.well-known/assetlinks.json` serves it.
+`https://soarfulness.app.spacify.se/.well-known/assetlinks.json` serves it.
 Until then, links still open the app once it's enabled under the app's
 Android settings → Open by default → Add links.
 

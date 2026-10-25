@@ -20,13 +20,17 @@
             </intent-filter>
             <!-- Android App Links: links to the public site open here instead
                  of the browser (AppLinksPlugin routes them to the same page).
-                 autoVerify checks soarfulness.lovable.app/.well-known/assetlinks.json (public/
-                 in the web app) for this app's signing certificate. -->
+                 autoVerify checks <host>/.well-known/assetlinks.json (public/
+                 in the web app) for this app's signing certificate.
+                 soarfulness.app.spacify.se is the self-hosted site; the old
+                 soarfulness.lovable.app host stays so links shared before the
+                 move still open the app. -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" />
+                <data android:host="soarfulness.app.spacify.se" />
                 <data android:host="soarfulness.lovable.app" />
             </intent-filter>
         </activity>

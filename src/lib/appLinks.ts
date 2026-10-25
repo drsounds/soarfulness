@@ -5,7 +5,7 @@ import { Capacitor, registerPlugin, type PluginListenerHandle } from "@capacitor
 // appId). Inside the app window.location.origin is the WebView's own
 // https://localhost, so anything handed to other people (DELA BADLÄNK, the
 // bathing page's share icon) must be built from PUBLIC_APP_URL instead.
-export const PUBLIC_APP_URL = "https://soarfulness.lovable.app";
+export const PUBLIC_APP_URL = "https://soarfulness.app.spacify.se";
 export const ANDROID_APP_ID = "se.soarfulness.app.gen7";
 export const PLAY_STORE_URL = `https://play.google.com/store/apps/details?id=${ANDROID_APP_ID}`;
 

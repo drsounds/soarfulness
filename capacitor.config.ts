@@ -32,7 +32,7 @@ const config: CapacitorConfig = {
     // bundled copy above stays the fallback. See CAPACITOR_APP.md's
     // "Live updates".
     LiveUpdate: {
-      url: "https://soarfulness.lovable.app",
+      url: "https://soarfulness.app.spacify.se",
     },
   },
 };
