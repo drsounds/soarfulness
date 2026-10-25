@@ -1,0 +1,65 @@
+name: Deploy
+
+on:
+  # Every push to main (merged pull requests included) refreshes the
+  # self-hosted instance at soarfulness.app.spacify.se.
+  push:
+    branches: [main]
+  # GitHub occasionally doesn't start a push run for a merge; "Run workflow"
+  # from the Actions tab redeploys the current main without a new commit.
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to soarfulness.app.spacify.se
+    if: github.ref == 'refs/heads/main'
+    # A self-hosted runner on the server itself, registered to this
+    # repository with the `soarfulness` label.
+    runs-on: [self-hosted, soarfulness]
+    concurrency:
+      group: deploy-soarfulness
+      cancel-in-progress: false
+    # Deliberately does not use actions/checkout: the runner's own workspace
+    # is scratch space, but the app runs out of a persistent checkout at
+    # /www/docs/soarfulness (WorkingDirectory of the soarfulness.service
+    # systemd unit), so the deploy operates on that checkout directly.
+    env:
+      DEPLOY_DIR: /www/docs/soarfulness
+      SERVICE: soarfulness.service
+    steps:
+      - name: Pull latest main
+        run: |
+          cd "$DEPLOY_DIR"
+          git fetch origin main
+          git reset --hard origin/main
+
+      - name: Install dependencies
+        run: |
+          cd "$DEPLOY_DIR"
+          bun install --frozen-lockfile
+
+      # build:prod, not build: the default build targets Cloudflare Workers,
+      # which serve.mjs can't load (see serve.mjs's header comment).
+      - name: Build
+        run: |
+          cd "$DEPLOY_DIR"
+          bun run build:prod
+
+      - name: Restart app service
+        run: systemctl restart "$SERVICE"
+
+      - name: Verify app is responding
+        run: |
+          cd "$DEPLOY_DIR"
+          port="$(sed -n 's/^PORT=//p' .env.production | tail -n1)"
+          port="${port:-3000}"
+          for i in $(seq 1 15); do
+            if curl -fsS -o /dev/null "http://127.0.0.1:$port/"; then
+              echo "App is responding on port $port"
+              exit 0
+            fi
+            sleep 1
+          done
+          systemctl status "$SERVICE" --no-pager || true
+          echo "::error::The app didn't respond on port $port after the restart."
+          exit 1

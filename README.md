@@ -71,6 +71,26 @@ re-implemented in [`src/lib/ocean/fftOceanSpectrum.ts`](src/lib/ocean/fftOceanSp
 as an analytic sum-of-sinusoids sampled from that same spectrum, rather than
 an inverse FFT. See that file's header comment for the full derivation.
 
+## Self-hosting (soarfulness.app.spacify.se)
+
+The production instance runs `serve.mjs` under Bun on the server, behind
+nginx (`soarfulness.app.spacify.se`) and as a systemd unit
+(`soarfulness.service`):
+
+```sh
+bun install
+bun run build:prod   # Nitro's `standard` preset, which serve.mjs wraps
+bun run start        # listens on PORT (default 3000) and HOST (default 0.0.0.0)
+```
+
+Every push to `main` redeploys it:
+[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) runs on a
+self-hosted runner on the server (labelled `soarfulness`), resets the
+checkout at `/www/docs/soarfulness` to `origin/main`, rebuilds and restarts
+the service. Use "Run workflow" in the Actions tab to redeploy without a new
+commit. The Capacitor app pulls its live updates from this instance (see
+[CAPACITOR_APP.md](CAPACITOR_APP.md)).
+
 ## Running in a container
 
 The app builds to a plain Node.js server via Nitro's `node-server` preset

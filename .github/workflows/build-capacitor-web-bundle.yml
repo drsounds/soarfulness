@@ -56,6 +56,27 @@ jobs:
       - name: Sync into the Android project
         run: bunx cap sync android
 
+      # The APK pulls live updates from, and builds shared links to, the
+      # self-hosted site (capacitor.config.ts's plugins.LiveUpdate.url and
+      # src/lib/appLinks.ts's PUBLIC_APP_URL). Fail rather than ship an app
+      # that silently keeps updating from somewhere else.
+      - name: Check the bundle points at the self-hosted site
+        env:
+          EXPECTED_URL: https://soarfulness.app.spacify.se
+        run: |
+          set -eu
+          config=android/app/src/main/assets/capacitor.config.json
+          actual="$(jq -r '.plugins.LiveUpdate.url' "$config")"
+          if [ "$actual" != "$EXPECTED_URL" ]; then
+            echo "::error::$config has plugins.LiveUpdate.url=$actual, expected $EXPECTED_URL (see capacitor.config.ts)."
+            exit 1
+          fi
+          if ! grep -rqF "$EXPECTED_URL" android/app/src/main/assets/public/assets; then
+            echo "::error::The built web app doesn't reference $EXPECTED_URL (PUBLIC_APP_URL in src/lib/appLinks.ts)."
+            exit 1
+          fi
+          echo "Live updates and shared links point at $EXPECTED_URL"
+
       # One tarball rather than the raw directory: thousands of small files
       # upload/download far slower as an artifact than a single file.
       - name: Package assets
