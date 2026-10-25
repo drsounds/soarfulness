@@ -88,7 +88,7 @@ export class OceanScene {
   private camY = 0;
   private camVY = 0;
   private prevSurfaceY: number | null = null;
-  private yaw = 0;
+  private yaw = Math.PI; // start turned 180° from world -z
   private pitch = 0;
 
   // Live-tunable dials (subset of the web app's settings panel — see
