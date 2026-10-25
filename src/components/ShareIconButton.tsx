@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Forward } from "lucide-react";
+import { canShareNatively, shareLink, toPublicUrl } from "@/lib/appLinks";
 
 // Top-right icon button on the bathing preview page (bathing.$payload.index
 // .tsx): shares (or, lacking the Web Share API, copies) the *current* page
-// URL exactly as the visitor arrived at it. Deliberately simpler than DELA
+// URL exactly as the visitor arrived at it (on the public site's origin, so
+// it also works when shared from inside the app). Deliberately simpler than DELA
 // BADLÄNK in the settings panel — that one re-encodes a fresh link from
 // live state; this one just forwards the link already open.
 export function ShareIconButton({ title, description }: { title: string; description: string }) {
@@ -12,10 +14,12 @@ export function ShareIconButton({ title, description }: { title: string; descrip
   const [copied, setCopied] = useState(false);
 
   const share = async () => {
-    const url = window.location.href;
-    if (navigator.share) {
+    const url = toPublicUrl(
+      `${window.location.pathname}${window.location.search}${window.location.hash}`,
+    );
+    if (canShareNatively()) {
       try {
-        await navigator.share({ title, text: description, url });
+        await shareLink({ title, text: description, url });
       } catch {
         /* user dismissed the native share sheet — nothing to do */
       }

@@ -220,6 +220,45 @@ off.
   site has been deployed with it (before that, the manifest URL 404s and
   the app just keeps its bundled copy).
 
+## Deep links (Android App Links)
+
+Links to `https://soarfulness.lovable.app` (a shared badlänk, for example)
+open in the app instead of the browser, on the same page.
+`AndroidManifest.xml` has an `autoVerify` intent filter for that host, and
+`AppLinksPlugin.java` hands the tapped URL to the web app
+(`src/lib/appLinks.ts`, wired up in `__root.tsx`), which routes to it. Both the
+link the app was started from and links tapped while it's running are
+handled. Every shared link is built from `PUBLIC_APP_URL` in
+`src/lib/appLinks.ts`, never from `window.location.origin`, which inside the
+app is the WebView's own `https://localhost`.
+
+Android only opens verified links in the app without asking, and verifies
+them against `public/.well-known/assetlinks.json` on the deployed site. **That
+file needs the SHA-256 fingerprint of the key Google Play signs the app
+with**: Play Console → the app → Test and release → App integrity → App
+signing → "App signing key certificate" → SHA-256. Replace the placeholder
+with it (add the upload key's fingerprint too to have sideloaded release
+builds verify), deploy the site, and check that
+`https://soarfulness.lovable.app/.well-known/assetlinks.json` serves it.
+Until then, links still open the app once it's enabled under the app's
+Android settings → Open by default → Add links.
+
+The website shows a small "get the app" banner (`AppInstallBanner.tsx`)
+that's hidden inside the app and on iOS. On Android its button is an
+`intent://` link that opens the current page in the app when it's
+installed, and the Play Store listing when it isn't.
+
+## Saving and opening files
+
+The WebView can't save the web app's exports (it has no download handler,
+so a blob `<a download>` does nothing) and its file chooser greys out most
+`.json` files (it filters on MIME types those files usually aren't labelled
+with). `DeviceFilesPlugin.java` opens Android's own "save as" and "open"
+document pickers instead (no storage permission needed), and
+`src/lib/deviceFiles.ts` uses it in the app and the usual browser path
+everywhere else. Every export/import in the app (presets, states, the
+"export everything" file, the watercraft `.glb`) goes through it.
+
 ## Play Store signing
 
 **This app needs its own upload keystore, separate from `native/`'s.**

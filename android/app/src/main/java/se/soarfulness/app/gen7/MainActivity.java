@@ -12,6 +12,8 @@ public class MainActivity extends BridgeActivity {
         // before super.onCreate() so it's available as soon as the bridge is.
         registerPlugin(AmbientAudioPlugin.class);
         registerPlugin(LiveUpdatePlugin.class);
+        registerPlugin(AppLinksPlugin.class);
+        registerPlugin(DeviceFilesPlugin.class);
         // Picks which web bundle the Bridge is about to serve (a downloaded live update, or the
         // one inside the APK) — must run before super.onCreate() starts the Bridge. See
         // CAPACITOR_APP.md's "Live updates".

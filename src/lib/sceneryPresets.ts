@@ -75,6 +75,12 @@ export function removeSavedSceneryPreset(
   return next;
 }
 
+// Overwrites the whole saved list (e.g. after merging in an imported one).
+export function replaceSavedSceneryPresets(list: SavedSceneryPreset[]): SavedSceneryPreset[] {
+  persistSavedSceneryPresets(list);
+  return list;
+}
+
 // A single shipped preset entry from an app's scenary/manifest.json.
 export type AppSceneryPreset = {
   id: string;

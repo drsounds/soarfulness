@@ -56,6 +56,11 @@
     },
     "title": "Tietoja Aquafulnessista"
   },
+  "appBanner": {
+    "getOnPlay": "LATAA GOOGLE PLAYSTA",
+    "open": "AVAA SOVELLUKSESSA",
+    "title": "Aquafulness on saatavilla sovelluksena"
+  },
   "bathing": {
     "bathe": "KYLVE",
     "defaultDescription": "Astu suoraan tähän mereen juuri sellaisena kuin se jätettiin.",
@@ -838,11 +843,15 @@
     "deleteConfirm": "Poistetaanko tallennettu esiasetus?",
     "deleteStateConfirm": "Poistetaanko tallennettu tila?",
     "export": "VIE",
+    "exportAll": "VIE KAIKKI",
     "generateLink": "LUO LINKKI",
     "generating": "LUODAAN…",
     "import": "TUO",
+    "invalidLibraryFile": "Tiedostoa ei voitu lukea — tarkista, että se on kelvollinen Aquafulness-vientitiedosto.",
     "invalidPresetFile": "Esiasetustiedostoa ei voitu lukea — varmista, että se on kelvollinen JSON-tiedosto.",
     "invalidStateFile": "Tilatiedostoa ei voitu lukea — varmista, että se on kelvollinen JSON-tiedosto.",
+    "library": "KAIKKI TALLENNETUT",
+    "libraryImported": "{{count}} tallennettua tilaa tuotiin.",
     "load": "LATAA",
     "loadConfirm": "Tämä korvaa nykyiset asetuksesi tälle alueelle. Tallentamattomat muutokset menetetään.",
     "loadConfirmTitle": "Ladataanko tämä esiasetus?",

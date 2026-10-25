@@ -387,6 +387,12 @@ export type SettingsPanelProps = {
   loadSavedStateById: (id: string) => void;
   deleteSavedState: (id: string) => void;
 
+  // Every named preset/state saved on this device, exported to (and merged
+  // back in from) one combined file — see routes/index.tsx's
+  // exportLibraryFile/importLibraryFile.
+  exportLibraryFile: () => void;
+  importLibraryFile: (file: File) => void;
+
   // DELA BADLÄNK: encodes the full live state (settings + camera pose) plus
   // an optional title/description into a self-contained /bathing/<base62>
   // URL — no server storage, see src/lib/shareState.ts and
@@ -1124,6 +1130,34 @@ function StateControls({
   );
 }
 
+// Export/import row for everything saved above at once (every named preset
+// of every scope, every named state, every scenery preset) as one file.
+function LibraryControls({
+  exportLibraryFile,
+  importLibraryFile,
+}: {
+  exportLibraryFile: () => void;
+  importLibraryFile: (file: File) => void;
+}) {
+  const { t } = useTranslation();
+  const btnClass =
+    "rounded-full border ui-line-1 ui-tint-1 px-2.5 py-0.5 text-[9px] font-light tracking-wider ui-ink-muted transition active:scale-95 ui-press disabled:opacity-30";
+
+  return (
+    <div className="mb-2 flex w-full flex-wrap items-center justify-center gap-1.5">
+      <span className="text-[9px] font-light tracking-[0.28em] ui-ink-faint">
+        {t("presets.library")}
+      </span>
+      <button onClick={() => exportLibraryFile()} className={btnClass}>
+        {t("presets.exportAll")}
+      </button>
+      <button onClick={() => pickJsonFile((file) => importLibraryFile(file))} className={btnClass}>
+        {t("presets.import")}
+      </button>
+    </div>
+  );
+}
+
 // Top-of-panel tool button: collapses the "all settings" PresetControls and
 // the full-state StateControls (both above) behind a single save-icon
 // button + modal, instead of always showing them inline. Per-tab scoped
@@ -1141,6 +1175,8 @@ function SaveLoadMenu({
   saveStateAs,
   loadSavedStateById,
   deleteSavedState,
+  exportLibraryFile,
+  importLibraryFile,
 }: {
   savedPresets: SavedPreset[];
   exportSettingsFile: (scope: PresetScope) => void;
@@ -1154,6 +1190,8 @@ function SaveLoadMenu({
   saveStateAs: (name: string) => void;
   loadSavedStateById: (id: string) => void;
   deleteSavedState: (id: string) => void;
+  exportLibraryFile: () => void;
+  importLibraryFile: (file: File) => void;
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -1202,6 +1240,10 @@ function SaveLoadMenu({
               saveStateAs={saveStateAs}
               loadSavedStateById={loadSavedStateById}
               deleteSavedState={deleteSavedState}
+            />
+            <LibraryControls
+              exportLibraryFile={exportLibraryFile}
+              importLibraryFile={importLibraryFile}
             />
             <button
               onClick={() => setOpen(false)}
@@ -1258,6 +1300,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     saveStateAs,
     loadSavedStateById,
     deleteSavedState,
+    exportLibraryFile,
+    importLibraryFile,
     apps,
     savedSceneryPresets,
     appSceneryPresets,
@@ -1736,6 +1780,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
             saveStateAs={saveStateAs}
             loadSavedStateById={loadSavedStateById}
             deleteSavedState={deleteSavedState}
+            exportLibraryFile={exportLibraryFile}
+            importLibraryFile={importLibraryFile}
           />
           <ScenerySelectorButton
             apps={apps}

@@ -1,4 +1,5 @@
 import type { SettingsTab } from "@/lib/settingsShared";
+import { pickFileFromDevice, saveFileToDevice } from "@/lib/deviceFiles";
 
 // JSON-file (File API) and localStorage-backed preset management for the
 // Settings dialog's save/load/export/import feature — see SettingsPanel.tsx
@@ -44,36 +45,21 @@ export function extractPresetData(raw: unknown): Record<string, unknown> | null 
   return obj;
 }
 
-// Triggers a browser download of `obj` as a JSON file — the "export" half of
-// the File API preset feature.
-export function downloadJsonFile(filename: string, obj: unknown) {
+// Saves `obj` as a JSON file on the user's device — the "export" half of the
+// File API preset feature. See src/lib/deviceFiles.ts for why this isn't a
+// plain blob download inside the Android app.
+export function downloadJsonFile(filename: string, obj: unknown): Promise<boolean> {
   const blob = new Blob([JSON.stringify(obj, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
+  return saveFileToDevice(filename, blob).catch((err) => {
+    console.error("Saving file failed", err);
+    return false;
+  });
 }
 
-// Opens the native file picker (a throwaway <input type="file">) and hands
-// the chosen file to `onFile` — the "import" half of the File API preset
-// feature. Briefly attached to the DOM (hidden) since some browsers refuse
-// to show the picker for a detached element's click().
+// Opens the device's file picker and hands the chosen file to `onFile` — the
+// "import" half of the File API preset feature.
 export function pickJsonFile(onFile: (file: File) => void) {
-  const input = document.createElement("input");
-  input.type = "file";
-  input.accept = "application/json,.json";
-  input.style.display = "none";
-  input.onchange = () => {
-    const file = input.files?.[0];
-    if (file) onFile(file);
-    input.remove();
-  };
-  document.body.appendChild(input);
-  input.click();
+  pickFileFromDevice("application/json,.json", onFile);
 }
 
 export async function readJsonFile(file: File): Promise<unknown> {
@@ -281,4 +267,103 @@ export function removeSavedState(list: SavedState[], id: string): SavedState[] {
   const next = list.filter((s) => s.id !== id);
   persistSavedStates(next);
   return next;
+}
+
+// "Export everything": every named preset and every named full state saved
+// on this device, in one file — for moving them all to another device (or
+// back after clearing site data) in one go. Importing merges into what's
+// already saved instead of replacing it, skipping entries whose id is
+// already there, so importing the same file twice doesn't duplicate.
+const LIBRARY_FILE_APP = "aquafulness-library";
+const LIBRARY_FILE_VERSION = 1;
+
+export type LibraryFilePayload = {
+  app: typeof LIBRARY_FILE_APP;
+  version: typeof LIBRARY_FILE_VERSION;
+  savedAt: string;
+  presets: SavedPreset[];
+  states: SavedState[];
+  scenery?: SavedSceneryPresetLike[];
+};
+
+// Kept structural (rather than importing sceneryPresets.ts's type) so this
+// module doesn't depend on scenery presets, which only some builds have.
+export type SavedSceneryPresetLike = {
+  id: string;
+  name: string;
+  savedAt: string;
+  data: Record<string, unknown>;
+};
+
+export function buildLibraryFilePayload(library: {
+  presets: SavedPreset[];
+  states: SavedState[];
+  scenery?: SavedSceneryPresetLike[];
+}): LibraryFilePayload {
+  return {
+    app: LIBRARY_FILE_APP,
+    version: LIBRARY_FILE_VERSION,
+    savedAt: new Date().toISOString(),
+    ...library,
+  };
+}
+
+function isSavedEntry(v: unknown): v is SavedState {
+  if (!v || typeof v !== "object") return false;
+  const o = v as Record<string, unknown>;
+  return (
+    typeof o.id === "string" &&
+    typeof o.name === "string" &&
+    !!o.data &&
+    typeof o.data === "object" &&
+    !Array.isArray(o.data)
+  );
+}
+
+function entriesOf(v: unknown): SavedState[] {
+  return Array.isArray(v)
+    ? v.filter(isSavedEntry).map((e) => ({
+        id: e.id,
+        name: e.name,
+        savedAt: typeof e.savedAt === "string" ? e.savedAt : new Date().toISOString(),
+        data: e.data,
+      }))
+    : [];
+}
+
+// Returns null unless `raw` is a library file written by
+// buildLibraryFilePayload; invalid entries inside it are dropped.
+export function extractLibraryData(raw: unknown): {
+  presets: SavedPreset[];
+  states: SavedState[];
+  scenery: SavedSceneryPresetLike[];
+} | null {
+  if (!raw || typeof raw !== "object") return null;
+  const obj = raw as Record<string, unknown>;
+  if (obj.app !== LIBRARY_FILE_APP) return null;
+  const rawPresets = Array.isArray(obj.presets) ? obj.presets : [];
+  const presets: SavedPreset[] = [];
+  for (const p of rawPresets) {
+    const scope = (p as Record<string, unknown> | null)?.scope;
+    if (!isSavedEntry(p) || typeof scope !== "string") continue;
+    const [entry] = entriesOf([p]);
+    presets.push({ ...entry, scope: scope as PresetScope });
+  }
+  return { presets, states: entriesOf(obj.states), scenery: entriesOf(obj.scenery) };
+}
+
+// Appends the entries of `incoming` whose id isn't in `list` yet.
+export function mergeById<T extends { id: string }>(list: T[], incoming: T[]): T[] {
+  const ids = new Set(list.map((e) => e.id));
+  return [...list, ...incoming.filter((e) => !ids.has(e.id))];
+}
+
+export function replaceSavedPresets(list: SavedPreset[]): SavedPreset[] {
+  persistSavedPresets(list);
+  return list;
+}
+
+export function replaceSavedStates(list: SavedState[]): SavedState[] {
+  persistSavedStates(list);
+  return list;
 }
