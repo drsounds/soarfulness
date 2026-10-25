@@ -1,0 +1,16 @@
+[Unit]
+Description=soarfulness.app.spacify.se
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/www/docs/soarfulness
+EnvironmentFile=/www/docs/soarfulness/.env.production
+ExecStart=/usr/local/bin/bun run start
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
