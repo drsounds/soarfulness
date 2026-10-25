@@ -17,6 +17,8 @@ import { loadStoredLanguage, detectBrowserLanguage, changeLanguage } from "../li
 import { UI_THEME_INIT_SCRIPT } from "../lib/uiTheme";
 import { CookieConsent } from "../components/CookieConsent";
 import { OfflineDownloadOverlay } from "../components/OfflineDownloadOverlay";
+import { AppInstallBanner } from "../components/AppInstallBanner";
+import { listenForDeepLinks } from "../lib/appLinks";
 
 function NotFoundComponent() {
   return (
@@ -165,11 +167,16 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const router = useRouter();
 
   useEffect(() => {
     notifyLiveUpdateReady();
     registerAppServiceWorker();
   }, []);
+
+  // Inside the Android app: links to the public site (a shared badlänk, say)
+  // open the app instead of the browser, and land on the same page here.
+  useEffect(() => listenForDeepLinks((path) => router.history.push(path)), [router]);
 
   // Server and the first client render always use Swedish (see lib/i18n.ts)
   // so hydration never mismatches — but TanStack Router code-splits each
@@ -224,6 +231,7 @@ function RootComponent() {
       <Outlet />
       <CookieConsent measurementId={GA_MEASUREMENT_ID} />
       <OfflineDownloadOverlay />
+      <AppInstallBanner />
     </QueryClientProvider>
   );
 }

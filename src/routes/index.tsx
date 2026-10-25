@@ -105,7 +105,14 @@ import {
   loadSavedStates,
   addSavedState,
   removeSavedState,
+  buildLibraryFilePayload,
+  extractLibraryData,
+  mergeById,
+  replaceSavedPresets,
+  replaceSavedStates,
 } from "@/lib/presets";
+import { saveFileToDevice } from "@/lib/deviceFiles";
+import { PUBLIC_APP_URL } from "@/lib/appLinks";
 import {
   type AppEntry,
   type AppEnvEra,
@@ -126,6 +133,7 @@ import {
   loadSavedSceneryPresets,
   addSavedSceneryPreset,
   removeSavedSceneryPreset,
+  replaceSavedSceneryPresets,
   fetchAllAppSceneryPresets,
 } from "@/lib/sceneryPresets";
 import {
@@ -2379,8 +2387,8 @@ export function Aquafulness() {
   }, [watercraftStatus]);
 
   // Export/import/reset for the watercraft build — see WatercraftHud below.
-  // Entirely client-side: export triggers a normal browser download, import
-  // reads a local file from <input type="file">, exactly like the rest of
+  // Entirely client-side: export saves a file to the device and import reads
+  // one from it (src/lib/deviceFiles.ts), exactly like the rest of
   // this app's DELA BADLÄNK/save-state features never touch a server.
   const [watercraftConfirm, setWatercraftConfirm] = useState<{
     kind: "import" | "reset";
@@ -2395,15 +2403,8 @@ export function Aquafulness() {
       const blob = await rig.exportGlb();
       const stamp = new Date().toISOString().slice(0, 10);
       const filename = `watercraft-${stamp}.glb`;
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-      setWatercraftStatus(`Saved ${filename}`);
+      const saved = await saveFileToDevice(filename, blob);
+      setWatercraftStatus(saved ? `Saved ${filename}` : null);
     } catch (err) {
       console.error("Watercraft export failed", err);
       setWatercraftStatus("Export failed — see console");
@@ -4844,6 +4845,54 @@ export function Aquafulness() {
     setSavedStates((list) => removeSavedState(list, id));
   };
 
+  // EXPORTERA ALLA SPARADE: every named preset, full state and scenery
+  // preset saved on this device in one file (src/lib/presets.ts's library
+  // file kind).
+  const exportLibraryFile = () => {
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    void downloadJsonFile(
+      `aquafulness-saved-${stamp}.json`,
+      buildLibraryFilePayload({
+        presets: savedPresets,
+        states: savedStates,
+        scenery: savedSceneryPresets,
+      }),
+    );
+  };
+
+  // IMPORTERA ALLA SPARADE: adds the entries of a library file to the saved
+  // lists (without touching the live settings). Also accepts a single preset
+  // or state file, which is applied like its own IMPORTERA button would.
+  const importLibraryFile = async (file: File) => {
+    try {
+      const raw = await readJsonFile(file);
+      const library = extractLibraryData(raw);
+      if (!library) {
+        const kind = (raw as { app?: unknown } | null)?.app;
+        if (kind === "aquafulness-state") return importStateFile(file);
+        if (kind === "aquafulness-preset") {
+          const scope = (raw as { scope?: PresetScope }).scope ?? "all";
+          return importSettingsFile(scope, file);
+        }
+        throw new Error("invalid library file");
+      }
+      setSavedPresets((list) => replaceSavedPresets(mergeById(list, library.presets)));
+      setSavedStates((list) => replaceSavedStates(mergeById(list, library.states)));
+      setSavedSceneryPresets((list) =>
+        replaceSavedSceneryPresets(
+          mergeById(list, library.scenery as unknown as SavedSceneryPreset[]),
+        ),
+      );
+      window.alert(
+        t("presets.libraryImported", {
+          count: library.presets.length + library.states.length + library.scenery.length,
+        }),
+      );
+    } catch {
+      window.alert(t("presets.invalidLibraryFile"));
+    }
+  };
+
   // DELA BADLÄNK: encodes every setting (same field set as an "all"-scope
   // preset) plus the camera's live position/look, and an optional title/
   // description meant for the link's Open Graph preview, into a single
@@ -4868,7 +4917,11 @@ export function Aquafulness() {
     if (trimmedTitle) payload.t = trimmedTitle;
     if (trimmedDescription) payload.d = trimmedDescription;
     const encoded = await encodeStateToBase62(payload);
-    return buildBathUrl(window.location.origin, encoded);
+    // Always the public site, never window.location.origin: inside the app
+    // that's the WebView's https://localhost, which is useless to anyone
+    // else. The site's App Links open the link straight in the app for
+    // people who have it installed.
+    return buildBathUrl(PUBLIC_APP_URL, encoded);
   };
 
   // VÅGPRESET: applies a bundle of wave-only settings in one step (see
@@ -10046,6 +10099,8 @@ export function Aquafulness() {
     saveStateAs,
     loadSavedStateById,
     deleteSavedState,
+    exportLibraryFile,
+    importLibraryFile,
     buildBathLink,
     waveAmp,
     setWaveAmp,

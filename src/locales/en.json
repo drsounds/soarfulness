@@ -56,6 +56,11 @@
     },
     "title": "About Aquafulness"
   },
+  "appBanner": {
+    "getOnPlay": "GET IT ON GOOGLE PLAY",
+    "open": "OPEN IN APP",
+    "title": "Aquafulness is available as an app"
+  },
   "bathing": {
     "bathe": "BATHE",
     "defaultDescription": "Step into this ocean exactly as it was left.",
@@ -838,11 +843,15 @@
     "deleteConfirm": "Delete this saved preset?",
     "deleteStateConfirm": "Delete this saved state?",
     "export": "EXPORT",
+    "exportAll": "EXPORT ALL",
     "generateLink": "GENERATE LINK",
     "generating": "GENERATING…",
     "import": "IMPORT",
+    "invalidLibraryFile": "Couldn't read the file — check that it's a valid Aquafulness export file.",
     "invalidPresetFile": "Could not read the preset file — make sure it's a valid JSON file.",
     "invalidStateFile": "Could not read the state file — make sure it's a valid JSON file.",
+    "library": "EVERYTHING SAVED",
+    "libraryImported": "Imported {{count}} saved modes.",
     "load": "LOAD",
     "loadConfirm": "This replaces your current settings for this scope. Unsaved changes will be lost.",
     "loadConfirmTitle": "Load this preset?",

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BATH_TITLE_MAX_LENGTH, BATH_DESCRIPTION_MAX_LENGTH } from "@/lib/shareState";
+import { canShareNatively, shareLink } from "@/lib/appLinks";
 
 // The "share bath" dialog: turns the live state into a shareable
 // /bathing/<base62> URL (see src/lib/shareState.ts) — title/description are
@@ -59,7 +60,7 @@ export function ShareBathDialog({
 
   const shareNative = async () => {
     try {
-      await navigator.share({
+      await shareLink({
         title: title.trim() || undefined,
         text: description.trim() || undefined,
         url: link,
@@ -114,7 +115,7 @@ export function ShareBathDialog({
               <button onClick={copyLink} className={btnClass}>
                 {copied ? t("presets.copied") : t("presets.copyLink")}
               </button>
-              {typeof navigator !== "undefined" && !!navigator.share && (
+              {canShareNatively() && (
                 <button onClick={shareNative} className={btnClass}>
                   {t("presets.shareNative")}
                 </button>

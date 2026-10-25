@@ -56,6 +56,11 @@
     },
     "title": "Om Aquafulness"
   },
+  "appBanner": {
+    "getOnPlay": "HÄMTA PÅ GOOGLE PLAY",
+    "open": "ÖPPNA I APPEN",
+    "title": "Aquafulness finns som app"
+  },
   "bathing": {
     "bathe": "BADA",
     "defaultDescription": "Kliv rakt in i detta hav precis som det lämnades.",
@@ -838,11 +843,15 @@
     "deleteConfirm": "Ta bort sparad preset?",
     "deleteStateConfirm": "Ta bort sparat tillstånd?",
     "export": "EXPORTERA",
+    "exportAll": "EXPORTERA ALLT",
     "generateLink": "SKAPA LÄNK",
     "generating": "SKAPAR…",
     "import": "IMPORTERA",
+    "invalidLibraryFile": "Kunde inte läsa filen — kontrollera att den är en giltig Aquafulness-exportfil.",
     "invalidPresetFile": "Kunde inte läsa presetfilen — kontrollera att den är en giltig JSON-fil.",
     "invalidStateFile": "Kunde inte läsa tillståndsfilen — kontrollera att den är en giltig JSON-fil.",
+    "library": "ALLA SPARADE",
+    "libraryImported": "{{count}} sparade lägen lästes in.",
     "load": "LÄS IN",
     "loadConfirm": "Detta ersätter dina nuvarande inställningar för detta område. Osparade ändringar går förlorade.",
     "loadConfirmTitle": "Läsa in denna förinställning?",

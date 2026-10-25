@@ -9,7 +9,7 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import type { ChangeEvent } from "react";
+import { pickFileFromDevice } from "@/lib/deviceFiles";
 import { BLOCK_PALETTE } from "@/lib/watercraft/palette";
 import type { BuildAction, SculptAction, ToolMode } from "@/lib/watercraft/types";
 
@@ -67,12 +67,6 @@ export function WatercraftHud(props: WatercraftHudProps) {
     onReset,
     onDone,
   } = props;
-
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (file) onImportFile(file);
-  };
 
   return (
     <>
@@ -196,15 +190,15 @@ export function WatercraftHud(props: WatercraftHudProps) {
             <button type="button" onClick={onExport} className={`${pillBase} ${pillOff}`}>
               <Download className="h-3.5 w-3.5" /> Export .glb
             </button>
-            <label className={`${pillBase} ${pillOff} cursor-pointer`}>
+            <button
+              type="button"
+              onClick={() =>
+                pickFileFromDevice(".glb,model/gltf-binary", onImportFile, { binary: true })
+              }
+              className={`${pillBase} ${pillOff}`}
+            >
               <Upload className="h-3.5 w-3.5" /> Import .glb
-              <input
-                type="file"
-                accept=".glb,model/gltf-binary"
-                className="hidden"
-                onChange={handleFileChange}
-              />
-            </label>
+            </button>
             <button type="button" onClick={onReset} className={`${pillBase} ${pillOff} ml-auto`}>
               <RotateCcw className="h-3.5 w-3.5" /> Reset
             </button>
