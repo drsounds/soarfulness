@@ -1,4 +1,4 @@
-package se.soarfulness.app.gen7;
+package se.soarfulness.app.gen8;
 
 import android.os.Bundle;
 import com.getcapacitor.BridgeActivity;

@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "se.soarfulness.app.gen7"
+    namespace = "se.soarfulness.app.gen8"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "se.soarfulness.app.gen7"
+        applicationId "se.soarfulness.app.gen8"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         // GITHUB_RUN_NUMBER strictly increases on every Actions run, so a
