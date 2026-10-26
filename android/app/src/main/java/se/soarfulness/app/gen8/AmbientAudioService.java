@@ -1,4 +1,4 @@
-package se.soarfulness.app.gen7;
+package se.soarfulness.app.gen8;
 
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -52,7 +52,7 @@ public class AmbientAudioService extends Service {
 
     private static final String CHANNEL_ID = "ambient_audio";
     private static final int NOTIFICATION_ID = 8420;
-    public static final String ACTION_STOP = "se.soarfulness.app.gen7.AmbientAudioService.STOP";
+    public static final String ACTION_STOP = "se.soarfulness.app.gen8.AmbientAudioService.STOP";
 
     public class LocalBinder extends Binder {
         AmbientAudioService getService() {

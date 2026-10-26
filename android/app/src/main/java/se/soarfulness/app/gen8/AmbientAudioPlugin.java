@@ -1,4 +1,4 @@
-package se.soarfulness.app.gen7;
+package se.soarfulness.app.gen8;
 
 import android.content.ComponentName;
 import android.content.Context;

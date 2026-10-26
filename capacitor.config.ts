@@ -12,7 +12,7 @@ const config: CapacitorConfig = {
   // Soartify/soarfulness and drsounds/aqua-wave-dream ship as two separate
   // Play Store listings with their own package identity and signing key
   // (see CAPACITOR_APP.md's "Play Store signing").
-  appId: "se.soarfulness.app.gen7",
+  appId: "se.soarfulness.app.gen8",
   appName: "Aquafulness",
   webDir: ".output/public",
   server: {
