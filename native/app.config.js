@@ -21,7 +21,7 @@ module.exports = {
     newArchEnabled: true,
     assetBundlePatterns: ["assets/**/*"],
     ios: {
-      bundleIdentifier: "se.aquafulness.app.gen7",
+      bundleIdentifier: "se.aquafulness.app.gen8",
       supportsTablet: true,
       infoPlist: {
         UIRequiresFullScreen: true,
