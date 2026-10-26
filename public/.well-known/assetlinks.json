@@ -1,5 +1,21 @@
 [
   {
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "se.soarfulness.app.gen8",
+      "sha256_cert_fingerprints": [
+        "REPLACE_WITH_PLAY_APP_SIGNING_SHA256_FINGERPRINT",
+        "CF:58:58:D8:87:09:9C:47:AC:E5:2D:B1:FA:BB:81:1C:03:50:36:E0:8B:8F:A2:A7:B3:E8:F0:3C:A8:38:23:F2",
+        "28:DB:38:DC:BA:11:71:4A:D0:E0:75:7C:53:16:9E:8E:1F:60:BF:FE:23:85:18:EC:76:54:4B:7B:31:4D:33:94",
+        "8E:D1:16:FC:C0:48:E4:75:9E:24:90:A9:F2:36:ED:09:AD:F8:5B:13:EC:FF:CE:F8:AA:6A:C4:83:F4:E9:2B:07"
+      ]
+    }
+  },
+  {
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
