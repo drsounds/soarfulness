@@ -28,7 +28,7 @@ module.exports = {
       },
     },
     android: {
-      package: "se.aquafulness.app.gen7",
+      package: "se.aquafulness.app.gen8",
       versionCode: process.env.GITHUB_RUN_NUMBER
         ? Number(process.env.GITHUB_RUN_NUMBER)
         : 1,
