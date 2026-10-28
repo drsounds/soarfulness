@@ -200,6 +200,8 @@
       "freakOutRingRadius": "FREAK OUT RENKAAN SÄDE",
       "freakOutRotationAxis": "FREAK OUT PYÖRIMISAKSELI",
       "freakOutRotationSpeed": "FREAK OUT PYÖRIMISNOPEUS",
+      "freakOutRotationPeakSpeed": "PYÖRIMINEN HUIPUSSA",
+      "freakOutRotationRecovery": "PALUUKIIHDYTYS",
       "freakOutRotationOscillate": "FREAK OUT VAIHDA SUUNTAA",
       "freakOutRotationOscillateSpeed": "FREAK OUT VAIHTONOPEUS",
       "freakOutRotationOscillateEveryOther": "FREAK OUT JOKA TOISESSA KÄÄNTEESSÄ",

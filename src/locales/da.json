@@ -200,6 +200,8 @@
       "freakOutRingRadius": "FREAK OUT RINGRADIUS",
       "freakOutRotationAxis": "FREAK OUT ROTATIONSAKSE",
       "freakOutRotationSpeed": "FREAK OUT ROTATIONSHASTIGHED",
+      "freakOutRotationPeakSpeed": "ROTATION VED TOPPEN",
+      "freakOutRotationRecovery": "ACCELERATION PÅ TILBAGETUREN",
       "freakOutRotationOscillate": "FREAK OUT SKIFT RETNING",
       "freakOutRotationOscillateSpeed": "FREAK OUT SKIFTEHASTIGHED",
       "freakOutRotationOscillateEveryOther": "FREAK OUT HVER ANDEN VENDING",

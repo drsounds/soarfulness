@@ -575,6 +575,10 @@ export type SettingsPanelProps = {
   setFreakOutRotationAxis: Dispatch<SetStateAction<FreakOutAxis>>;
   freakOutRotationSpeed: number;
   setFreakOutRotationSpeed: Dispatch<SetStateAction<number>>;
+  freakOutRotationPeakSpeed: number;
+  setFreakOutRotationPeakSpeed: Dispatch<SetStateAction<number>>;
+  freakOutRotationRecovery: number;
+  setFreakOutRotationRecovery: Dispatch<SetStateAction<number>>;
   freakOutRotationOscillate: boolean;
   setFreakOutRotationOscillate: Dispatch<SetStateAction<boolean>>;
   freakOutRotationOscillateSpeed: number;
@@ -1515,6 +1519,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setFreakOutRotationAxis,
     freakOutRotationSpeed,
     setFreakOutRotationSpeed,
+    freakOutRotationPeakSpeed,
+    setFreakOutRotationPeakSpeed,
+    freakOutRotationRecovery,
+    setFreakOutRotationRecovery,
     freakOutRotationOscillate,
     setFreakOutRotationOscillate,
     freakOutRotationOscillateSpeed,
@@ -2702,6 +2710,48 @@ export function SettingsPanel(props: SettingsPanelProps) {
                           }
                           onInc={() =>
                             setFreakOutRotationSpeed((v) => Math.min(10, +(v + 0.05).toFixed(2)))
+                          }
+                        />
+<SettingRow
+                          label={t("dial.camera.freakOutRotationPeakSpeed")}
+                          mode="number"
+                          value={`${Math.round(freakOutRotationPeakSpeed * 100)}%`}
+                          rawValue={freakOutRotationPeakSpeed}
+                          onSet={(v) =>
+                            setFreakOutRotationPeakSpeed(Math.max(0, Math.min(1, v / 100)))
+                          }
+                          min={0}
+                          max={1}
+                          step={0.05}
+                          onDec={() =>
+                            setFreakOutRotationPeakSpeed((v) => Math.max(0, +(v - 0.05).toFixed(2)))
+                          }
+                          onInc={() =>
+                            setFreakOutRotationPeakSpeed((v) =>
+                              Math.min(1, +(v + 0.05).toFixed(2)),
+                            )
+                          }
+                        />
+                        <SettingRow
+                          label={t("dial.camera.freakOutRotationRecovery")}
+                          mode="number"
+                          value={`${freakOutRotationRecovery.toFixed(2)}×`}
+                          rawValue={freakOutRotationRecovery}
+                          onSet={(v) =>
+                            setFreakOutRotationRecovery(Math.max(0.25, Math.min(4, v)))
+                          }
+                          min={0.25}
+                          max={4}
+                          step={0.05}
+                          onDec={() =>
+                            setFreakOutRotationRecovery((v) =>
+                              Math.max(0.25, +(v - 0.05).toFixed(2)),
+                            )
+                          }
+                          onInc={() =>
+                            setFreakOutRotationRecovery((v) =>
+                              Math.min(4, +(v + 0.05).toFixed(2)),
+                            )
                           }
                         />
                         <SettingRow

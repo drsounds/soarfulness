@@ -671,6 +671,8 @@ export type Persisted = {
   freakOutRotationOn: boolean;
   freakOutRotationAxis: FreakOutAxis;
   freakOutRotationSpeed: number;
+  freakOutRotationPeakSpeed: number;
+  freakOutRotationRecovery: number;
   freakOutRotationOscillate: boolean;
   freakOutRotationOscillateSpeed: number;
   // While the arm swings, alternate at every other turnaround instead of
@@ -809,6 +811,8 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "freakOutRotationOn",
     "freakOutRotationAxis",
     "freakOutRotationSpeed",
+    "freakOutRotationPeakSpeed",
+    "freakOutRotationRecovery",
     "freakOutRotationOscillate",
     "freakOutRotationOscillateSpeed",
     "freakOutRotationOscillateEveryOther",

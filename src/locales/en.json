@@ -200,6 +200,8 @@
       "freakOutRingRadius": "FREAK OUT RING RADIUS",
       "freakOutRotationAxis": "FREAK OUT ROTATION AXIS",
       "freakOutRotationSpeed": "FREAK OUT ROTATION SPEED",
+      "freakOutRotationPeakSpeed": "ROTATION AT PEAK",
+      "freakOutRotationRecovery": "RETURN ACCELERATION",
       "freakOutRotationOscillate": "FREAK OUT ALTERNATE DIRECTION",
       "freakOutRotationOscillateSpeed": "FREAK OUT ALTERNATE SPEED",
       "freakOutRotationOscillateEveryOther": "FREAK OUT EVERY OTHER TURNAROUND",

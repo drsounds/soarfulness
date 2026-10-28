@@ -1510,6 +1510,8 @@ const DEFAULTS: Persisted = {
   freakOutRotationOn: true,
   freakOutRotationAxis: "y",
   freakOutRotationSpeed: 1,
+  freakOutRotationPeakSpeed: 0.25,
+  freakOutRotationRecovery: 1,
   freakOutRotationOscillate: false,
   freakOutRotationOscillateSpeed: 1,
   freakOutRotationOscillateEveryOther: false,
@@ -2093,6 +2095,12 @@ export function Aquafulness() {
     initial.freakOutRotationAxis,
   );
   const [freakOutRotationSpeed, setFreakOutRotationSpeed] = useState(initial.freakOutRotationSpeed);
+  const [freakOutRotationPeakSpeed, setFreakOutRotationPeakSpeed] = useState(
+    initial.freakOutRotationPeakSpeed,
+  );
+  const [freakOutRotationRecovery, setFreakOutRotationRecovery] = useState(
+    initial.freakOutRotationRecovery,
+  );
   const [freakOutRotationOscillate, setFreakOutRotationOscillate] = useState(
     initial.freakOutRotationOscillate,
   );
@@ -2639,6 +2647,8 @@ export function Aquafulness() {
     freakOutRotationOn,
     freakOutRotationAxis,
     freakOutRotationSpeed,
+    freakOutRotationPeakSpeed,
+    freakOutRotationRecovery,
     freakOutRotationOscillate,
     freakOutRotationOscillateSpeed,
     freakOutRotationOscillateEveryOther,
@@ -2858,6 +2868,8 @@ export function Aquafulness() {
     freakOutRotationOn,
     freakOutRotationAxis,
     freakOutRotationSpeed,
+    freakOutRotationPeakSpeed,
+    freakOutRotationRecovery,
     freakOutRotationOscillate,
     freakOutRotationOscillateSpeed,
     freakOutRotationOscillateEveryOther,
@@ -3005,6 +3017,8 @@ export function Aquafulness() {
   const freakOutRotationOnRef = useRef(freakOutRotationOn);
   const freakOutRotationAxisRef = useRef(freakOutRotationAxis);
   const freakOutRotationSpeedRef = useRef(freakOutRotationSpeed);
+  const freakOutRotationPeakSpeedRef = useRef(freakOutRotationPeakSpeed);
+  const freakOutRotationRecoveryRef = useRef(freakOutRotationRecovery);
   const freakOutRotationOscillateRef = useRef(freakOutRotationOscillate);
   const freakOutRotationOscillateSpeedRef = useRef(freakOutRotationOscillateSpeed);
   const freakOutRotationOscillateEveryOtherRef = useRef(freakOutRotationOscillateEveryOther);
@@ -3877,6 +3891,12 @@ export function Aquafulness() {
     freakOutRotationSpeedRef.current = freakOutRotationSpeed;
   }, [freakOutRotationSpeed]);
   useEffect(() => {
+    freakOutRotationPeakSpeedRef.current = freakOutRotationPeakSpeed;
+  }, [freakOutRotationPeakSpeed]);
+  useEffect(() => {
+    freakOutRotationRecoveryRef.current = freakOutRotationRecovery;
+  }, [freakOutRotationRecovery]);
+  useEffect(() => {
     freakOutRotationOscillateRef.current = freakOutRotationOscillate;
   }, [freakOutRotationOscillate]);
   useEffect(() => {
@@ -4351,6 +4371,8 @@ export function Aquafulness() {
     setFreakOutRotationOn(DEFAULTS.freakOutRotationOn);
     setFreakOutRotationAxis(DEFAULTS.freakOutRotationAxis);
     setFreakOutRotationSpeed(DEFAULTS.freakOutRotationSpeed);
+    setFreakOutRotationPeakSpeed(DEFAULTS.freakOutRotationPeakSpeed);
+    setFreakOutRotationRecovery(DEFAULTS.freakOutRotationRecovery);
     setFreakOutRotationOscillate(DEFAULTS.freakOutRotationOscillate);
     setFreakOutRotationOscillateSpeed(DEFAULTS.freakOutRotationOscillateSpeed);
     setFreakOutRotationOscillateEveryOther(DEFAULTS.freakOutRotationOscillateEveryOther);
@@ -4587,6 +4609,10 @@ export function Aquafulness() {
       setFreakOutRotationAxis(patch.freakOutRotationAxis);
     if (patch.freakOutRotationSpeed !== undefined)
       setFreakOutRotationSpeed(patch.freakOutRotationSpeed);
+    if (patch.freakOutRotationPeakSpeed !== undefined)
+      setFreakOutRotationPeakSpeed(patch.freakOutRotationPeakSpeed);
+    if (patch.freakOutRotationRecovery !== undefined)
+      setFreakOutRotationRecovery(patch.freakOutRotationRecovery);
     if (patch.freakOutRotationOscillate !== undefined)
       setFreakOutRotationOscillate(patch.freakOutRotationOscillate);
     if (patch.freakOutRotationOscillateSpeed !== undefined)
@@ -9064,22 +9090,23 @@ export function Aquafulness() {
             foDir *=
               foSwingSync * foSwingAlt + (1 - foSwingSync) * Math.cos(freakOutOscPhaseRef.current);
           }
-          // The ring's spin follows the arm's swing: the drive pushes it up
-          // to speed through the bottom of each pass and lets go as the arm
-          // slows into each turnaround, where the ring coasts on its own
-          // momentum (slowing, but never quite stopping) until the drive
-          // takes hold again on the way back. |cos(phase)| is the swing's
-          // own speed, 0..1; with next to no swing the drive never lets go
-          // and it spins steadily as before.
-          const foDrive = 1 - foSwingSync * (1 - Math.abs(Math.cos(freakOutSwingPhaseRef.current) * 2));
-          const foSpinTarget = 0.8 * Math.max(0, freakOutRotationSpeedRef.current) * foDir;
-          // Driven: catch up with the set speed (τ ≈ 0.6 s). Let go: only
-          // bearing friction, a slow coast-down (τ ≈ 4 s).
-          // dv/dt = drive·(target − v)/0.6 − (1 − drive)·v/4, stepped exactly.
-          const foSpinRate = foDrive / 0.4 + (1 - foDrive) / 4;
-          const foSpinGoal = (foSpinTarget * foDrive) / 0.6 / foSpinRate;
-          freakOutRingSpinRef.current +=
-            (foSpinGoal - freakOutRingSpinRef.current) * (1 - Math.exp(-physDt * foSpinRate));
+ // The ring slows at the swing's turnarounds. PEAK SPEED sets the
+          // remaining speed there (0 stops the ring); RECOVERY shapes how
+          // quickly it accelerates back toward full speed on the return.
+          const swingSpeed = Math.abs(Math.cos(freakOutSwingPhaseRef.current));
+          const recoveryIntensity = Math.max(
+            0.25,
+            Math.min(4, freakOutRotationRecoveryRef.current),
+          );
+          const recoveryProgress = 1 - Math.pow(1 - swingSpeed, recoveryIntensity);
+          const recoveryEase = recoveryProgress * recoveryProgress * (3 - 2 * recoveryProgress);
+          const peakSpeed = Math.max(0, Math.min(1, freakOutRotationPeakSpeedRef.current));
+          const foSpinScale =
+            1 -
+            foSwingSync *
+              (1 - peakSpeed - (1 - peakSpeed) * recoveryEase);
+          freakOutRingSpinRef.current =
+            0.8 * Math.max(0, freakOutRotationSpeedRef.current) * foDir * foSpinScale;
           freakOutRingAngleRef.current +=
             freakOutRingSpinRef.current * freakOutRotBlendRef.current * physDt;
           // SEATS: ride in the chosen seat by sitting that much further
@@ -10245,6 +10272,10 @@ export function Aquafulness() {
     setFreakOutRotationAxis,
     freakOutRotationSpeed,
     setFreakOutRotationSpeed,
+    freakOutRotationPeakSpeed,
+    setFreakOutRotationPeakSpeed,
+    freakOutRotationRecovery,
+    setFreakOutRotationRecovery,
     freakOutRotationOscillate,
     setFreakOutRotationOscillate,
     freakOutRotationOscillateSpeed,
@@ -11909,6 +11940,24 @@ export function Aquafulness() {
                         curve={2}
                         format={(v) => `${v.toFixed(2)}×`}
                         onChange={setFreakOutRotationSpeed}
+                      />
+                       <PadSlider
+                        label={t("dial.camera.freakOutRotationPeakSpeed")}
+                        value={freakOutRotationPeakSpeed}
+                        min={0}
+                        max={1}
+                        step={0.05}
+                        format={(v) => `${Math.round(v * 100)}%`}
+                        onChange={setFreakOutRotationPeakSpeed}
+                      />
+                      <PadSlider
+                        label={t("dial.camera.freakOutRotationRecovery")}
+                        value={freakOutRotationRecovery}
+                        min={0.25}
+                        max={4}
+                        step={0.05}
+                        format={(v) => `${v.toFixed(2)}×`}
+                        onChange={setFreakOutRotationRecovery}
                       />
                       <PadSlider
                         label={t("dial.camera.freakOutRingRadius")}
