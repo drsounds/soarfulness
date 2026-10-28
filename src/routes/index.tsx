@@ -9039,7 +9039,7 @@ export function Aquafulness() {
           // How much the arm is really swinging (0 with next to no swing
           // angle or speed), which ties the ring's spin to the swing below.
           const foSwingSync =
-            Math.min(1, Math.abs(freakOutSwingAngleRef.current) / 15) *
+            Math.min(1, Math.abs(freakOutSwingAngleRef.current) / 25) *
             Math.min(1, Math.max(0, freakOutSwingSpeedRef.current) / 0.1);
           let foDir = freakOutRotationDirectionRef.current === "ccw" ? -1 : 1;
           if (freakOutRotationOscillateRef.current) {
@@ -9071,12 +9071,12 @@ export function Aquafulness() {
           // takes hold again on the way back. |cos(phase)| is the swing's
           // own speed, 0..1; with next to no swing the drive never lets go
           // and it spins steadily as before.
-          const foDrive = 1 - foSwingSync * (1 - Math.abs(Math.cos(freakOutSwingPhaseRef.current)));
+          const foDrive = 1 - foSwingSync * (1 - Math.abs(Math.cos(freakOutSwingPhaseRef.current) * 2));
           const foSpinTarget = 0.8 * Math.max(0, freakOutRotationSpeedRef.current) * foDir;
           // Driven: catch up with the set speed (τ ≈ 0.6 s). Let go: only
           // bearing friction, a slow coast-down (τ ≈ 4 s).
           // dv/dt = drive·(target − v)/0.6 − (1 − drive)·v/4, stepped exactly.
-          const foSpinRate = foDrive / 0.6 + (1 - foDrive) / 4;
+          const foSpinRate = foDrive / 0.4 + (1 - foDrive) / 4;
           const foSpinGoal = (foSpinTarget * foDrive) / 0.6 / foSpinRate;
           freakOutRingSpinRef.current +=
             (foSpinGoal - freakOutRingSpinRef.current) * (1 - Math.exp(-physDt * foSpinRate));
