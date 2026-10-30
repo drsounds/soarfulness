@@ -166,6 +166,22 @@ export const SETTINGS_TABS: { id: SettingsTab; labelKey: string }[] = [
 export type CameraMode = "float" | "noclip" | "swing" | "watercraft" | "bodyflight";
 export const CAMERA_MODES: CameraMode[] = ["float", "noclip", "swing", "watercraft", "bodyflight"];
 
+// RETRO palettes: "rgb332" is the classic 256-color 3-3-2 bit cube (8 red ×
+// 8 green × 4 blue levels), "websafe" the 216-color 6×6×6 cube, "ega" the
+// 16-color EGA/VGA default palette, "gray" 16 shades of gray.
+export type RetroPalette = "rgb332" | "websafe" | "ega" | "gray";
+export const RETRO_PALETTES: RetroPalette[] = ["rgb332", "websafe", "ega", "gray"];
+
+// NEON color animation:
+//  - "solid"     always neonPrimary
+//  - "alternate" hard switch between neonPrimary and neonSecondary,
+//                neonFrequency times per second
+//  - "fade"      smooth back-and-forth blend between the two
+//  - "hue"       cycles the full hue wheel starting from neonPrimary's hue,
+//                neonFrequency turns per second
+export type NeonMode = "solid" | "alternate" | "fade" | "hue";
+export const NEON_MODES: NeonMode[] = ["solid", "alternate", "fade", "hue"];
+
 // BODYFLIGHT dial ranges: the updraft's speed at the ground (m/s), the
 // gravity multiplier (1 = Earth) and the height (m) the air cushion holds
 // the body at above the ground.
@@ -627,6 +643,47 @@ export type Persisted = {
   causticsOn: boolean;
   chromaticAberrationOn: boolean;
   chromaticAberrationAmount: number;
+  // BÄTTRE LJUS: image-based lighting for loaded scenes from the current
+  // sky/environment, plus the environment skybox reflected in the water.
+  // lightingReflStrength (0..2) scales both.
+  betterLightingOn: boolean;
+  lightingReflStrength: number;
+  // SKUGGOR: sun shadow maps on the loaded scene (and the RAYTRACED
+  // material's swimmer shadow). Off skips the shadow pass completely.
+  // LOW GRAPHICS MODE forces this off at runtime.
+  shadowsOn: boolean;
+  // RETRO: full-screen 1990s look — the frame is pixelated by
+  // retroPixelSize, quantized to retroPalette with a 4x4 Bayer dither of
+  // strength retroDither (0..1), with optional CRT scanlines (0..1).
+  retroOn: boolean;
+  retroPalette: RetroPalette;
+  retroPixelSize: number;
+  retroDither: number;
+  retroScanlines: number;
+  // VATTENGLÖD: emissive glow from the water body in waterGlowColor. With
+  // waterGlowEveningOnly it follows how dark the sky is instead of being
+  // constant.
+  waterGlowOn: boolean;
+  waterGlowColor: string;
+  waterGlowStrength: number;
+  waterGlowEveningOnly: boolean;
+  // DYGNSTONING: TIMEOFDAY tints the environment skybox (relative to the
+  // time the skybox was painted at, per its manifest), instead of the
+  // skybox snapping TIMEOFDAY to that time. Strength 0..1.
+  envDaylightTintOn: boolean;
+  envDaylightTintStrength: number;
+  // NEON: glowing lines along the loaded scene's mesh edges. neonMode picks
+  // how the color moves over time (see NeonMode); neonFrequency is in
+  // cycles per second. neonTint is mixed over the result by neonTintAmount.
+  neonOn: boolean;
+  neonMode: NeonMode;
+  neonPrimary: string;
+  neonSecondary: string;
+  neonTint: string;
+  neonTintAmount: number;
+  neonStrength: number;
+  neonWidth: number;
+  neonFrequency: number;
   cameraMode: CameraMode;
   noclipSpeed: number;
   // FRITT FALL/OMVÄND STIGNING's terminal vertical speed in m/s (at
@@ -875,6 +932,14 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "lowGraphicsMode",
     "chromaticAberrationOn",
     "chromaticAberrationAmount",
+    "betterLightingOn",
+    "lightingReflStrength",
+    "shadowsOn",
+    "retroOn",
+    "retroPalette",
+    "retroPixelSize",
+    "retroDither",
+    "retroScanlines",
   ],
   vatten: [
     "waterColorIdx",
@@ -919,6 +984,10 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "depthDriftSinePhase",
     "hideWater",
     "causticsOn",
+    "waterGlowOn",
+    "waterGlowColor",
+    "waterGlowStrength",
+    "waterGlowEveningOnly",
   ],
   miljo: [
     "timeOfDay",
@@ -964,6 +1033,17 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "torusVerticalCount",
     "torusViewDistance",
     "torusFadeDistance",
+    "envDaylightTintOn",
+    "envDaylightTintStrength",
+    "neonOn",
+    "neonMode",
+    "neonPrimary",
+    "neonSecondary",
+    "neonTint",
+    "neonTintAmount",
+    "neonStrength",
+    "neonWidth",
+    "neonFrequency",
   ],
   ljud: ["audioOn", "audioVol", "audioSyncSpeed", "audioSpatial", "waterSoundIdx"],
   // Tema (UI chrome theme) isn't part of the wave/camera/water/environment/

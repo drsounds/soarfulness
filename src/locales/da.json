@@ -225,7 +225,21 @@
       "freakOutFrameColor": "FREAK OUT STATIVFARVE",
       "bodyflightAirflow": "LUFTSTRØM",
       "bodyflightGravity": "TYNGDEKRAFT",
-      "bodyflightHoverHeight": "SVÆVEHØJDE"
+      "bodyflightHoverHeight": "SVÆVEHØJDE",
+      "betterLighting": "BEDRE LYS",
+      "lightingReflStrength": "REFLEKSIONSSTYRKE",
+      "shadows": "SKYGGER",
+      "retro": "RETRO 90'ER",
+      "retroPalette": "RETROPALET",
+      "retroPaletteValue": {
+        "rgb332": "256 FARVER",
+        "websafe": "216 WEBSIKRE",
+        "ega": "16 EGA",
+        "gray": "16 GRÅTONER"
+      },
+      "retroPixelSize": "RETRO PIXELSTØRRELSE",
+      "retroDither": "DITHERING",
+      "retroScanlines": "SCANLINJER"
     },
     "env": {
       "backdrop": "BAGGRUND",
@@ -267,7 +281,24 @@
       "worldBoundary": "VERDENSGRÆNSE",
       "worldBoundaryHeight": "GRÆNSEHØJDE (Y)",
       "worldBoundarySize": "GRÆNSESTØRRELSE (XZ)",
-      "worldBoundaryYExtend": "UENDELIGE SKYLAG"
+      "worldBoundaryYExtend": "UENDELIGE SKYLAG",
+      "daylightTint": "DØGNTONING",
+      "daylightTintStrength": "TONINGSSTYRKE",
+      "neon": "NEONKANTER",
+      "neonMode": "NEONTILSTAND",
+      "neonModeValue": {
+        "solid": "FAST",
+        "alternate": "SKIFT",
+        "fade": "TON",
+        "hue": "FARVECYKLUS"
+      },
+      "neonPrimary": "PRIMÆRFARVE",
+      "neonSecondary": "SEKUNDÆRFARVE",
+      "neonFrequency": "NEONFREKVENS",
+      "neonStrength": "NEONSTYRKE",
+      "neonWidth": "NEONBREDDE",
+      "neonTint": "NEONTONE",
+      "neonTintAmount": "TONEMÆNGDE"
     },
     "water": {
       "bottom": "BUND",
@@ -320,7 +351,11 @@
         "raytraced": "STRÅLESPORET",
         "sphereMap": "SFÆREKORT",
         "standard": "STANDARD"
-      }
+      },
+      "glow": "VANDGLØD",
+      "glowColor": "GLØDFARVE",
+      "glowStrength": "GLØDSTYRKE",
+      "glowEveningOnly": "KUN OM AFTENEN"
     },
     "wave": {
       "amp": "BØLGE",
