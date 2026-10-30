@@ -18,6 +18,9 @@ import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { CSS3DTVManager, type DeviceKind } from "@/lib/tv/CSS3DTVManager";
 import { TorusRingField } from "@/lib/torusRings/TorusRingField";
+import { RETRO_PALETTE_INDEX, RETRO_SHADER } from "@/lib/sceneFx/retroShader";
+import { NeonEdges } from "@/lib/sceneFx/NeonEdges";
+import { relativeDaylightTint } from "@/lib/sceneFx/daylightTint";
 import { WatercraftRig } from "@/lib/watercraft/WatercraftRig";
 import type { BuildAction, SculptAction, ToolMode } from "@/lib/watercraft/types";
 import { WatercraftHud } from "@/components/watercraft/WatercraftHud";
@@ -1483,6 +1486,48 @@ const DEFAULTS: Persisted = {
   // dial's 0..1 value (shown as a %), independent of whether the effect is on.
   chromaticAberrationOn: false,
   chromaticAberrationAmount: 0.3,
+  // BÄTTRE LJUS: on by default — loaded scenes get image-based lighting from
+  // the current sky/environment (so the sun and sky actually reflect in
+  // glTF materials) and the environment skybox reflects in the water. See
+  // the env-lighting block in the animate() loop. lightingReflStrength
+  // scales both reflections.
+  betterLightingOn: true,
+  lightingReflStrength: 1,
+  // SKUGGOR: real sun shadow maps on the loaded scene. On by default; turn
+  // off (or use LOW GRAPHICS MODE) to skip the shadow pass entirely on
+  // low-end devices — this also drops the RAYTRACED material's swimmer
+  // shadow.
+  shadowsOn: true,
+  // RETRO: an opt-in full-screen post-process that quantizes the frame to a
+  // 1990s-style palette with ordered dithering — see RETRO_SHADER in
+  // lib/sceneFx/retroShader.ts.
+  retroOn: false,
+  retroPalette: "rgb332",
+  retroPixelSize: 2,
+  retroDither: 1,
+  retroScanlines: 0.2,
+  // VATTENGLÖD: emissive glow from the water body. With
+  // waterGlowEveningOnly it fades in as the sun sets and is gone at noon.
+  waterGlowOn: false,
+  waterGlowColor: "#38d6ff",
+  waterGlowStrength: 0.6,
+  waterGlowEveningOnly: true,
+  // DYGNSTONING: lets TIMEOFDAY (and the clock's seasonal sync) tint an
+  // environment skybox instead of the skybox snapping TIMEOFDAY to its own
+  // manifest time.
+  envDaylightTintOn: false,
+  envDaylightTintStrength: 1,
+  // NEON: glowing lines along the loaded scene's mesh edges — see
+  // lib/sceneFx/NeonEdges.ts for how neonMode/neonFrequency animate color.
+  neonOn: false,
+  neonMode: "solid",
+  neonPrimary: "#ff2bd6",
+  neonSecondary: "#22e6ff",
+  neonTint: "#ffffff",
+  neonTintAmount: 0,
+  neonStrength: 1,
+  neonWidth: 3,
+  neonFrequency: 0.5,
   cameraMode: "float",
   noclipSpeed: 1,
   noclipFallRiseSpeed: 48,
@@ -1789,6 +1834,12 @@ function SplashScreen() {
   );
 }
 
+// SKUGGOR: largest half-width (scene units) the sun's shadow camera is
+// fitted to. A loaded scene smaller than this gets one shadow box around
+// the whole model; a bigger one gets a box this size following the camera,
+// so a single 2048² shadow map stays sharp where the player actually is.
+const SHADOW_MAX_HALF_SIZE = 150;
+
 // Full-screen post-process pass for KROMATISK ABERRATION: samples the red and
 // blue channels offset radially from frame center (green stays put), the
 // offset growing linearly with distance from center so it reads as a lens
@@ -2056,6 +2107,31 @@ export function Aquafulness() {
   const [chromaticAberrationAmount, setChromaticAberrationAmount] = useState(
     initial.chromaticAberrationAmount,
   );
+  const [betterLightingOn, setBetterLightingOn] = useState(initial.betterLightingOn);
+  const [lightingReflStrength, setLightingReflStrength] = useState(initial.lightingReflStrength);
+  const [shadowsOn, setShadowsOn] = useState(initial.shadowsOn);
+  const [retroOn, setRetroOn] = useState(initial.retroOn);
+  const [retroPalette, setRetroPalette] = useState(initial.retroPalette);
+  const [retroPixelSize, setRetroPixelSize] = useState(initial.retroPixelSize);
+  const [retroDither, setRetroDither] = useState(initial.retroDither);
+  const [retroScanlines, setRetroScanlines] = useState(initial.retroScanlines);
+  const [waterGlowOn, setWaterGlowOn] = useState(initial.waterGlowOn);
+  const [waterGlowColor, setWaterGlowColor] = useState(initial.waterGlowColor);
+  const [waterGlowStrength, setWaterGlowStrength] = useState(initial.waterGlowStrength);
+  const [waterGlowEveningOnly, setWaterGlowEveningOnly] = useState(initial.waterGlowEveningOnly);
+  const [envDaylightTintOn, setEnvDaylightTintOn] = useState(initial.envDaylightTintOn);
+  const [envDaylightTintStrength, setEnvDaylightTintStrength] = useState(
+    initial.envDaylightTintStrength,
+  );
+  const [neonOn, setNeonOn] = useState(initial.neonOn);
+  const [neonMode, setNeonMode] = useState(initial.neonMode);
+  const [neonPrimary, setNeonPrimary] = useState(initial.neonPrimary);
+  const [neonSecondary, setNeonSecondary] = useState(initial.neonSecondary);
+  const [neonTint, setNeonTint] = useState(initial.neonTint);
+  const [neonTintAmount, setNeonTintAmount] = useState(initial.neonTintAmount);
+  const [neonStrength, setNeonStrength] = useState(initial.neonStrength);
+  const [neonWidth, setNeonWidth] = useState(initial.neonWidth);
+  const [neonFrequency, setNeonFrequency] = useState(initial.neonFrequency);
   const [cameraMode, setCameraMode] = useState<CameraMode>(initial.cameraMode);
   const [noclipSpeed, setNoclipSpeed] = useState(initial.noclipSpeed);
   const [noclipFallRiseSpeed, setNoclipFallRiseSpeed] = useState(initial.noclipFallRiseSpeed);
@@ -2469,6 +2545,10 @@ export function Aquafulness() {
   // the animation loop can hide the procedural sky dome for a real equirect one.
   const envTextureRef = useRef<THREE.Texture | null>(null);
   const envActiveRef = useRef(false);
+  // The time of day the current environment skybox was painted at (its
+  // manifest's timeOfDay, noon if it doesn't say) — the reference
+  // DYGNSTONING tints relative to.
+  const envRefTodRef = useRef(0.5);
   // Water-shader uniforms + reflection-texture plumbing, so the surface-selector
   // effect can feed a photo into the shader without rebuilding the material.
   const waterUniformsRef = useRef<Record<string, { value: unknown }> | null>(null);
@@ -2489,6 +2569,29 @@ export function Aquafulness() {
   const causticsOnRef = useRef(causticsOn);
   const chromaticAberrationOnRef = useRef(chromaticAberrationOn);
   const chromaticAberrationAmountRef = useRef(chromaticAberrationAmount);
+  const betterLightingOnRef = useRef(betterLightingOn);
+  const lightingReflStrengthRef = useRef(lightingReflStrength);
+  const shadowsOnRef = useRef(shadowsOn);
+  const retroOnRef = useRef(retroOn);
+  const retroPaletteRef = useRef(retroPalette);
+  const retroPixelSizeRef = useRef(retroPixelSize);
+  const retroDitherRef = useRef(retroDither);
+  const retroScanlinesRef = useRef(retroScanlines);
+  const waterGlowOnRef = useRef(waterGlowOn);
+  const waterGlowColorRef = useRef(waterGlowColor);
+  const waterGlowStrengthRef = useRef(waterGlowStrength);
+  const waterGlowEveningOnlyRef = useRef(waterGlowEveningOnly);
+  const envDaylightTintOnRef = useRef(envDaylightTintOn);
+  const envDaylightTintStrengthRef = useRef(envDaylightTintStrength);
+  const neonOnRef = useRef(neonOn);
+  const neonModeRef = useRef(neonMode);
+  const neonPrimaryRef = useRef(neonPrimary);
+  const neonSecondaryRef = useRef(neonSecondary);
+  const neonTintRef = useRef(neonTint);
+  const neonTintAmountRef = useRef(neonTintAmount);
+  const neonStrengthRef = useRef(neonStrength);
+  const neonWidthRef = useRef(neonWidth);
+  const neonFrequencyRef = useRef(neonFrequency);
 
   // A full snapshot of every settings-dialog field, in the exact Persisted
   // shape saved to localStorage below — also reused by the preset save/
@@ -2624,6 +2727,29 @@ export function Aquafulness() {
     causticsOn,
     chromaticAberrationOn,
     chromaticAberrationAmount,
+    betterLightingOn,
+    lightingReflStrength,
+    shadowsOn,
+    retroOn,
+    retroPalette,
+    retroPixelSize,
+    retroDither,
+    retroScanlines,
+    waterGlowOn,
+    waterGlowColor,
+    waterGlowStrength,
+    waterGlowEveningOnly,
+    envDaylightTintOn,
+    envDaylightTintStrength,
+    neonOn,
+    neonMode,
+    neonPrimary,
+    neonSecondary,
+    neonTint,
+    neonTintAmount,
+    neonStrength,
+    neonWidth,
+    neonFrequency,
     cameraMode,
     noclipSpeed,
     noclipFallRiseSpeed,
@@ -2845,6 +2971,29 @@ export function Aquafulness() {
     causticsOn,
     chromaticAberrationOn,
     chromaticAberrationAmount,
+    betterLightingOn,
+    lightingReflStrength,
+    shadowsOn,
+    retroOn,
+    retroPalette,
+    retroPixelSize,
+    retroDither,
+    retroScanlines,
+    waterGlowOn,
+    waterGlowColor,
+    waterGlowStrength,
+    waterGlowEveningOnly,
+    envDaylightTintOn,
+    envDaylightTintStrength,
+    neonOn,
+    neonMode,
+    neonPrimary,
+    neonSecondary,
+    neonTint,
+    neonTintAmount,
+    neonStrength,
+    neonWidth,
+    neonFrequency,
     cameraMode,
     noclipSpeed,
     noclipFallRiseSpeed,
@@ -3810,6 +3959,75 @@ export function Aquafulness() {
     chromaticAberrationAmountRef.current = chromaticAberrationAmount;
   }, [chromaticAberrationAmount]);
   useEffect(() => {
+    betterLightingOnRef.current = betterLightingOn;
+  }, [betterLightingOn]);
+  useEffect(() => {
+    lightingReflStrengthRef.current = lightingReflStrength;
+  }, [lightingReflStrength]);
+  useEffect(() => {
+    shadowsOnRef.current = shadowsOn;
+  }, [shadowsOn]);
+  useEffect(() => {
+    retroOnRef.current = retroOn;
+  }, [retroOn]);
+  useEffect(() => {
+    retroPaletteRef.current = retroPalette;
+  }, [retroPalette]);
+  useEffect(() => {
+    retroPixelSizeRef.current = retroPixelSize;
+  }, [retroPixelSize]);
+  useEffect(() => {
+    retroDitherRef.current = retroDither;
+  }, [retroDither]);
+  useEffect(() => {
+    retroScanlinesRef.current = retroScanlines;
+  }, [retroScanlines]);
+  useEffect(() => {
+    waterGlowOnRef.current = waterGlowOn;
+  }, [waterGlowOn]);
+  useEffect(() => {
+    waterGlowColorRef.current = waterGlowColor;
+  }, [waterGlowColor]);
+  useEffect(() => {
+    waterGlowStrengthRef.current = waterGlowStrength;
+  }, [waterGlowStrength]);
+  useEffect(() => {
+    waterGlowEveningOnlyRef.current = waterGlowEveningOnly;
+  }, [waterGlowEveningOnly]);
+  useEffect(() => {
+    envDaylightTintOnRef.current = envDaylightTintOn;
+  }, [envDaylightTintOn]);
+  useEffect(() => {
+    envDaylightTintStrengthRef.current = envDaylightTintStrength;
+  }, [envDaylightTintStrength]);
+  useEffect(() => {
+    neonOnRef.current = neonOn;
+  }, [neonOn]);
+  useEffect(() => {
+    neonModeRef.current = neonMode;
+  }, [neonMode]);
+  useEffect(() => {
+    neonPrimaryRef.current = neonPrimary;
+  }, [neonPrimary]);
+  useEffect(() => {
+    neonSecondaryRef.current = neonSecondary;
+  }, [neonSecondary]);
+  useEffect(() => {
+    neonTintRef.current = neonTint;
+  }, [neonTint]);
+  useEffect(() => {
+    neonTintAmountRef.current = neonTintAmount;
+  }, [neonTintAmount]);
+  useEffect(() => {
+    neonStrengthRef.current = neonStrength;
+  }, [neonStrength]);
+  useEffect(() => {
+    neonWidthRef.current = neonWidth;
+  }, [neonWidth]);
+  useEffect(() => {
+    neonFrequencyRef.current = neonFrequency;
+  }, [neonFrequency]);
+  useEffect(() => {
     sphereStrengthRef.current = sphereStrength;
   }, [sphereStrength]);
   useEffect(() => {
@@ -4349,6 +4567,29 @@ export function Aquafulness() {
     setCausticsOn(DEFAULTS.causticsOn);
     setChromaticAberrationOn(DEFAULTS.chromaticAberrationOn);
     setChromaticAberrationAmount(DEFAULTS.chromaticAberrationAmount);
+    setBetterLightingOn(DEFAULTS.betterLightingOn);
+    setLightingReflStrength(DEFAULTS.lightingReflStrength);
+    setShadowsOn(DEFAULTS.shadowsOn);
+    setRetroOn(DEFAULTS.retroOn);
+    setRetroPalette(DEFAULTS.retroPalette);
+    setRetroPixelSize(DEFAULTS.retroPixelSize);
+    setRetroDither(DEFAULTS.retroDither);
+    setRetroScanlines(DEFAULTS.retroScanlines);
+    setWaterGlowOn(DEFAULTS.waterGlowOn);
+    setWaterGlowColor(DEFAULTS.waterGlowColor);
+    setWaterGlowStrength(DEFAULTS.waterGlowStrength);
+    setWaterGlowEveningOnly(DEFAULTS.waterGlowEveningOnly);
+    setEnvDaylightTintOn(DEFAULTS.envDaylightTintOn);
+    setEnvDaylightTintStrength(DEFAULTS.envDaylightTintStrength);
+    setNeonOn(DEFAULTS.neonOn);
+    setNeonMode(DEFAULTS.neonMode);
+    setNeonPrimary(DEFAULTS.neonPrimary);
+    setNeonSecondary(DEFAULTS.neonSecondary);
+    setNeonTint(DEFAULTS.neonTint);
+    setNeonTintAmount(DEFAULTS.neonTintAmount);
+    setNeonStrength(DEFAULTS.neonStrength);
+    setNeonWidth(DEFAULTS.neonWidth);
+    setNeonFrequency(DEFAULTS.neonFrequency);
     setCameraMode(DEFAULTS.cameraMode);
     setNoclipSpeed(DEFAULTS.noclipSpeed);
     setNoclipFallRiseSpeed(DEFAULTS.noclipFallRiseSpeed);
@@ -4583,6 +4824,32 @@ export function Aquafulness() {
       setChromaticAberrationOn(patch.chromaticAberrationOn);
     if (patch.chromaticAberrationAmount !== undefined)
       setChromaticAberrationAmount(patch.chromaticAberrationAmount);
+    if (patch.betterLightingOn !== undefined) setBetterLightingOn(patch.betterLightingOn);
+    if (patch.lightingReflStrength !== undefined)
+      setLightingReflStrength(patch.lightingReflStrength);
+    if (patch.shadowsOn !== undefined) setShadowsOn(patch.shadowsOn);
+    if (patch.retroOn !== undefined) setRetroOn(patch.retroOn);
+    if (patch.retroPalette !== undefined) setRetroPalette(patch.retroPalette);
+    if (patch.retroPixelSize !== undefined) setRetroPixelSize(patch.retroPixelSize);
+    if (patch.retroDither !== undefined) setRetroDither(patch.retroDither);
+    if (patch.retroScanlines !== undefined) setRetroScanlines(patch.retroScanlines);
+    if (patch.waterGlowOn !== undefined) setWaterGlowOn(patch.waterGlowOn);
+    if (patch.waterGlowColor !== undefined) setWaterGlowColor(patch.waterGlowColor);
+    if (patch.waterGlowStrength !== undefined) setWaterGlowStrength(patch.waterGlowStrength);
+    if (patch.waterGlowEveningOnly !== undefined)
+      setWaterGlowEveningOnly(patch.waterGlowEveningOnly);
+    if (patch.envDaylightTintOn !== undefined) setEnvDaylightTintOn(patch.envDaylightTintOn);
+    if (patch.envDaylightTintStrength !== undefined)
+      setEnvDaylightTintStrength(patch.envDaylightTintStrength);
+    if (patch.neonOn !== undefined) setNeonOn(patch.neonOn);
+    if (patch.neonMode !== undefined) setNeonMode(patch.neonMode);
+    if (patch.neonPrimary !== undefined) setNeonPrimary(patch.neonPrimary);
+    if (patch.neonSecondary !== undefined) setNeonSecondary(patch.neonSecondary);
+    if (patch.neonTint !== undefined) setNeonTint(patch.neonTint);
+    if (patch.neonTintAmount !== undefined) setNeonTintAmount(patch.neonTintAmount);
+    if (patch.neonStrength !== undefined) setNeonStrength(patch.neonStrength);
+    if (patch.neonWidth !== undefined) setNeonWidth(patch.neonWidth);
+    if (patch.neonFrequency !== undefined) setNeonFrequency(patch.neonFrequency);
     if (patch.cameraMode !== undefined) setCameraMode(patch.cameraMode);
     if (patch.noclipSpeed !== undefined) setNoclipSpeed(patch.noclipSpeed);
     if (patch.noclipFallRiseSpeed !== undefined) setNoclipFallRiseSpeed(patch.noclipFallRiseSpeed);
@@ -5628,6 +5895,20 @@ export function Aquafulness() {
     const chromaticAberrationPass = new ShaderPass(CHROMATIC_ABERRATION_SHADER);
     chromaticAberrationPass.renderToScreen = true;
     composer.addPass(chromaticAberrationPass);
+    // RETRO post-process, after the lens effect so its pixels stay crisp.
+    // Each pass is toggled via .enabled per frame; EffectComposer routes
+    // the last enabled one to the screen.
+    const retroPass = new ShaderPass(RETRO_SHADER);
+    composer.addPass(retroPass);
+
+    // SKUGGOR: the sun's shadow map. Only the loaded scene's meshes cast/
+    // receive it (see the scene-load effect); the ocean/sky/cloud shaders
+    // light themselves. The shadow camera is fitted per frame in animate().
+    renderer.shadowMap.type = THREE.PCFShadowMap;
+    sunLight.shadow.mapSize.set(2048, 2048);
+    sunLight.shadow.bias = -0.0004;
+    sunLight.shadow.normalBias = 0.04;
+    scene.add(sunLight.target);
 
     const torusRingField = new TorusRingField(scene, {
       enabled: initial.torusRingsOn && !initial.lowGraphicsMode,
@@ -5802,6 +6083,16 @@ export function Aquafulness() {
       uRefraction: { value: 0 },
       uFloorColor: { value: new THREE.Color(0xd8c078) },
       uFloorDepth: { value: 14 },
+      // BÄTTRE LJUS: the environment skybox reflected along the wave normal
+      // (uEnvReflMix 0 = off), rotated like the backdrop and tinted by
+      // DYGNSTONING so the reflection matches what's on screen.
+      uEnvTex: { value: whiteTex as THREE.Texture },
+      uEnvReflMix: { value: 0 },
+      uEnvRotY: { value: 0 },
+      uEnvTint: { value: new THREE.Color(1, 1, 1) },
+      // VATTENGLÖD: emissive glow added to the water body.
+      uGlow: { value: 0 },
+      uGlowColor: { value: new THREE.Vector3(0.22, 0.84, 1) },
       ...raytracedWater.uniforms,
     };
     // Expose the uniforms so the surface-selector effect can feed in a photo.
@@ -6169,6 +6460,12 @@ export function Aquafulness() {
       uniform float uQuality;
       uniform sampler2D uReflTex;
       uniform float uReflMix;
+      uniform sampler2D uEnvTex;
+      uniform float uEnvReflMix;
+      uniform float uEnvRotY;
+      uniform vec3 uEnvTint;
+      uniform float uGlow;
+      uniform vec3 uGlowColor;
       uniform float uSphereMix;
       uniform float uTurbidity;
       uniform float uRefraction;
@@ -6425,6 +6722,22 @@ export function Aquafulness() {
           skyRef = mix(skyRef, envRefl, uReflMix);
         }
 
+        // BÄTTRE LJUS: reflect the actual environment skybox (when one is
+        // active) instead of the procedural gradient. Same equirect mapping
+        // and Y rotation three.js uses for scene.background; the sRGB
+        // texture samples come back linear, so re-encode them to match the
+        // backdrop as displayed. Below-horizon reflections clamp to the
+        // horizon row (that half of the panorama is ground, not sky).
+        if (uEnvReflMix > 0.001) {
+          float cr = cos(uEnvRotY);
+          float sr = sin(uEnvRotY);
+          vec3 Re = vec3(cr * R.x - sr * R.z, max(R.y, 0.0), sr * R.x + cr * R.z);
+          Re = normalize(Re);
+          vec2 envUv = vec2(atan(Re.z, Re.x) * 0.15915494 + 0.5, asin(Re.y) * 0.31830989 + 0.5);
+          vec3 envCol = pow(texture2D(uEnvTex, envUv).rgb, vec3(1.0 / 2.2)) * uEnvTint;
+          skyRef = mix(skyRef, envCol, uEnvReflMix);
+        }
+
         // Refraction tint — view-dependent transmitted color. Straight down
         // we see into the deep hue; at grazing angles the shallow tint takes
         // over just before Fresnel flips everything to reflection.
@@ -6540,6 +6853,15 @@ export function Aquafulness() {
           float distC = length(cameraPosition - vWorldPos);
           float murk = clamp(1.0 - exp(-distC * uTurbidity * 0.01), 0.0, 0.95) * uUnderwater;
           col = mix(col, deepT * 0.55, murk);
+        }
+
+        // VATTENGLÖD: a soft emissive glow from inside the water, strongest
+        // on crests and foam and slowly breathing across the surface so it
+        // reads as lit water rather than a flat overlay.
+        if (uGlow > 0.001) {
+          float breathe = 0.85 + 0.15 * sin(uTime * 1.3 + vWorldPos.x * 0.3 + vWorldPos.z * 0.2);
+          float glowAmt = uGlow * (0.45 + 0.55 * height + foam * 0.8) * breathe;
+          col += uGlowColor * glowAmt * (1.0 - 0.5 * uUnderwater);
         }
 
         // Translucency — uOpacity controls how see-through the water is.
@@ -7289,6 +7611,82 @@ export function Aquafulness() {
     const sky = new THREE.Mesh(skyGeo, skyMat);
     scene.add(sky);
 
+    // DYGNSTONING: while it's on, the environment skybox is drawn on this
+    // camera-following dome (the same setup as the procedural sky dome
+    // above) instead of as scene.background, because three.js has no way
+    // to color-tint a texture background — this samples the panorama the
+    // same way and multiplies in the time-of-day tint.
+    const envDomeUniforms = {
+      uEnvTex: { value: whiteTex as THREE.Texture },
+      uRotY: { value: 0 },
+      uTint: { value: new THREE.Color(1, 1, 1) },
+      uUnderwater: uniforms.uUnderwater,
+      uTurbidity: skyUniforms.uTurbidity,
+      uFogColor: skyUniforms.uFogColor,
+    };
+    const envDomeMat = new THREE.ShaderMaterial({
+      uniforms: envDomeUniforms,
+      side: THREE.BackSide,
+      depthWrite: false,
+      vertexShader: `
+        varying vec3 vDir;
+        void main() {
+          vDir = normalize(position);
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform sampler2D uEnvTex;
+        uniform float uRotY;
+        uniform vec3 uTint;
+        uniform float uUnderwater;
+        uniform float uTurbidity;
+        uniform vec3 uFogColor;
+        varying vec3 vDir;
+        void main() {
+          vec3 d = normalize(vDir);
+          float cr = cos(uRotY);
+          float sr = sin(uRotY);
+          d = vec3(cr * d.x - sr * d.z, d.y, sr * d.x + cr * d.z);
+          vec2 uv = vec2(atan(d.z, d.x) * 0.15915494 + 0.5, asin(clamp(d.y, -1.0, 1.0)) * 0.31830989 + 0.5);
+          // sRGB texture samples come back linear; this material writes
+          // display values directly like every other custom shader here.
+          vec3 col = pow(texture2D(uEnvTex, uv).rgb, vec3(1.0 / 2.2)) * uTint;
+          if (uUnderwater > 0.001) {
+            float murk = clamp(uUnderwater * (0.25 + uTurbidity * 0.7), 0.0, 1.0);
+            col = mix(col, uFogColor, murk);
+          }
+          gl_FragColor = vec4(col, 1.0);
+        }
+      `,
+    });
+    const envDome = new THREE.Mesh(skyGeo, envDomeMat);
+    envDome.visible = false;
+    scene.add(envDome);
+
+    // BÄTTRE LJUS: image-based lighting for glTF materials. scene.environment
+    // is a PMREM of the environment skybox when one is active, otherwise of
+    // the procedural sky dome (sun disc included — that's what puts real sun
+    // highlights on glossy models), re-baked as TIMEOFDAY moves. iblScene
+    // holds a second mesh sharing the dome's geometry/material, since a
+    // mesh can only have one parent.
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    const iblScene = new THREE.Scene();
+    iblScene.add(new THREE.Mesh(skyGeo, skyMat));
+    let iblTarget: THREE.WebGLRenderTarget | null = null;
+    let iblSource: THREE.Texture | "sky" | null = null;
+    let iblTod = -1;
+
+    // SKUGGOR shadow-camera fit, cached per loaded model (see animate()).
+    let shadowFitModel: THREE.Object3D | null = null;
+    const shadowSphere = new THREE.Sphere();
+
+    // NEON edge lines along the loaded scene's meshes — see NeonEdges.
+    const neonEdges = new NeonEdges(scene);
+    neonEdges.setResolution(mount.clientWidth, mount.clientHeight);
+    const envTint = new THREE.Color(1, 1, 1);
+    const envTintScratch = new THREE.Color();
+
     // Handle resize
     const handleResize = () => {
       if (!mount) return;
@@ -7296,6 +7694,7 @@ export function Aquafulness() {
       const h = mount.clientHeight;
       renderer.setSize(w, h);
       composer.setSize(w, h);
+      neonEdges.setResolution(w, h);
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
       tvManager.setSize(w, h);
@@ -7542,6 +7941,120 @@ export function Aquafulness() {
       skyUniforms.uBottom.value.copy(uniforms.uHorizonColor.value);
       skyUniforms.uSunColor.value.copy(uniforms.uSunColor.value);
       (scene.fog as THREE.FogExp2).color.copy(uniforms.uFogColor.value);
+
+      // SKUGGOR: fit the sun's orthographic shadow camera around the loaded
+      // scene (or, for scenes too big for one 2048² map to stay sharp,
+      // around the camera), and fade the shadow out as the sun sets rather
+      // than casting long black streaks from below the horizon. Off (or in
+      // LOW GRAPHICS MODE) the shadow pass is skipped entirely.
+      {
+        const model = modelRef.current;
+        const shadowsActive = shadowsOnRef.current && !lowEnd && model !== null;
+        renderer.shadowMap.enabled = shadowsActive;
+        sunLight.castShadow = shadowsActive;
+        if (shadowsActive) {
+          if (shadowFitModel !== model) {
+            new THREE.Box3().setFromObject(model).getBoundingSphere(shadowSphere);
+            shadowFitModel = model;
+          }
+          const fitsModel = shadowSphere.radius * 1.1 <= SHADOW_MAX_HALF_SIZE;
+          const half = fitsModel ? shadowSphere.radius * 1.1 : SHADOW_MAX_HALF_SIZE;
+          const center = fitsModel ? shadowSphere.center : camera.position;
+          const shadowCam = sunLight.shadow.camera;
+          shadowCam.left = -half;
+          shadowCam.right = half;
+          shadowCam.top = half;
+          shadowCam.bottom = -half;
+          shadowCam.near = 0.5;
+          shadowCam.far = half * 4;
+          shadowCam.updateProjectionMatrix();
+          sunLight.target.position.copy(center);
+          sunLight.position.copy(center).addScaledVector(p.sunDir, half * 2);
+          sunLight.shadow.intensity = THREE.MathUtils.smoothstep(p.sunDir.y, 0.0, 0.15);
+        } else {
+          sunLight.target.position.set(0, 0, 0);
+        }
+      }
+
+      // DYGNSTONING: how TIMEOFDAY tints the environment skybox — shared by
+      // the env dome, the water's skybox reflection and the IBL intensity.
+      const envTex = envActiveRef.current ? envTextureRef.current : null;
+      const envTintOn = envDaylightTintOnRef.current && envTex !== null;
+      if (envTintOn) {
+        relativeDaylightTint(
+          p,
+          palette(envRefTodRef.current),
+          envDaylightTintStrengthRef.current,
+          envTint,
+          envTintScratch,
+        );
+      } else {
+        envTint.setRGB(1, 1, 1);
+      }
+      envDome.visible = envTintOn;
+      if (envTintOn && envTex) {
+        envDomeUniforms.uEnvTex.value = envTex;
+        envDomeUniforms.uRotY.value = scene.backgroundRotation.y;
+        envDomeUniforms.uTint.value.copy(envTint);
+        if (scene.background) scene.background = null;
+      } else if (envTex && scene.background !== envTex) {
+        scene.background = envTex;
+      }
+
+      // BÄTTRE LJUS: IBL for glTF materials plus the skybox reflected in
+      // the water (see uEnvReflMix in the ocean shader).
+      const betterLighting = betterLightingOnRef.current && !lowEnd;
+      const reflStrength = lightingReflStrengthRef.current;
+      if (betterLighting) {
+        const wantSource = envTex ?? "sky";
+        if (
+          iblSource !== wantSource ||
+          (wantSource === "sky" && Math.abs(todRef.current - iblTod) > 0.004)
+        ) {
+          iblTarget?.dispose();
+          iblTarget =
+            envTex !== null
+              ? pmrem.fromEquirectangular(envTex)
+              : pmrem.fromScene(iblScene, 0, 0.1, 2000);
+          iblSource = wantSource;
+          iblTod = todRef.current;
+        }
+        scene.environment = iblTarget!.texture;
+        scene.environmentRotation.set(0, envTex ? scene.backgroundRotation.y : 0, 0);
+        const tintLum = envTint.r * 0.299 + envTint.g * 0.587 + envTint.b * 0.114;
+        scene.environmentIntensity = reflStrength * (envTex ? tintLum : 1);
+      } else if (scene.environment) {
+        scene.environment = null;
+        iblTarget?.dispose();
+        iblTarget = null;
+        iblSource = null;
+      }
+      if (betterLighting && envTex) {
+        uniforms.uEnvTex.value = envTex;
+        uniforms.uEnvRotY.value = scene.backgroundRotation.y;
+        uniforms.uEnvTint.value.copy(envTint);
+      } else if (!envTex) {
+        // The skybox texture is disposed when the environment is cleared —
+        // drop it at once rather than fading out while sampling it.
+        uniforms.uEnvTex.value = whiteTex;
+        uniforms.uEnvReflMix.value = 0;
+      }
+      uniforms.uEnvReflMix.value +=
+        ((betterLighting && envTex ? Math.min(1, 0.85 * reflStrength) : 0) -
+          uniforms.uEnvReflMix.value) *
+        Math.min(1, dt * 4);
+
+      // VATTENGLÖD: with "evenings only" the glow follows how far the sun
+      // has set — nothing at full daylight, full strength once it's dark.
+      {
+        const evening = waterGlowEveningOnlyRef.current
+          ? THREE.MathUtils.clamp((0.25 - p.sunDir.y) / 0.4, 0, 1)
+          : 1;
+        const glowTarget = waterGlowOnRef.current ? waterGlowStrengthRef.current * evening : 0;
+        uniforms.uGlow.value += (glowTarget - uniforms.uGlow.value) * Math.min(1, dt * 3);
+        const glowRgb = hexToRgbNorm(waterGlowColorRef.current);
+        uniforms.uGlowColor.value.set(glowRgb[0], glowRgb[1], glowRgb[2]);
+      }
 
       // Water color + optional seafloor. uWaterColor stays the always-on
       // WATER preset tint (unaffected by the color picker). uOverlayColor is
@@ -9711,6 +10224,28 @@ export function Aquafulness() {
       // position is final for the frame.
       torusRingField.update(camera.position, dt);
 
+      // NEON: (re)build edge lines whenever the loaded scene changes, drop
+      // them when turned off, and recolor/re-sync them every frame.
+      {
+        const model = neonOnRef.current ? modelRef.current : null;
+        if (model !== neonEdges.attachedTo) {
+          if (model) neonEdges.attach(model);
+          else neonEdges.detach();
+        }
+        if (model) {
+          neonEdges.update(now / 1000, {
+            mode: neonModeRef.current,
+            primary: neonPrimaryRef.current,
+            secondary: neonSecondaryRef.current,
+            tint: neonTintRef.current,
+            tintAmount: neonTintAmountRef.current,
+            strength: neonStrengthRef.current,
+            width: neonWidthRef.current,
+            frequency: neonFrequencyRef.current,
+          });
+        }
+      }
+
       // Cap actual GPU renders to targetFps (gogglesFpsCap instead while
       // SIMGLASÖGON is on, for its own lower thermal-friendly ceiling) —
       // camera/physics/uniforms above still update every rAF tick (cheap,
@@ -9738,6 +10273,7 @@ export function Aquafulness() {
             depth: uniforms.uFloorDepth.value,
             surfaceY: camera.position.y - (camY - surfaceY),
             swimmerOn: Math.abs(camY - surfaceY) < 1.5,
+            shadowsOn: shadowsOnRef.current && !lowEnd,
           });
           // Depth of the solid scene behind the water (models, seafloor), for
           // depth-correct refraction of submerged items.
@@ -9752,11 +10288,25 @@ export function Aquafulness() {
         // objects properly occlude the panel uses this frame's position,
         // not last frame's.
         tvManager.render();
-        if (chromaticAberrationOnRef.current && !lowEnd) {
+        const chromaticOn = chromaticAberrationOnRef.current && !lowEnd;
+        const retroOn = retroOnRef.current;
+        if (chromaticOn || retroOn) {
+          chromaticAberrationPass.enabled = chromaticOn;
+          retroPass.enabled = retroOn;
           // 0..1 dial value -> a max red/blue UV offset of 0..~3.5% of the
           // frame at its corners (see CHROMATIC_ABERRATION_SHADER above).
           chromaticAberrationPass.uniforms.uAmount.value =
             chromaticAberrationAmountRef.current * 0.05;
+          if (retroOn) {
+            const ru = retroPass.uniforms;
+            renderer.getDrawingBufferSize(ru.uResolution.value);
+            // RETRO PIXEL SIZE is in CSS pixels, so it looks the same at
+            // any UPPLÖSNING / device pixel ratio.
+            ru.uPixelSize.value = Math.max(1, retroPixelSizeRef.current * renderer.getPixelRatio());
+            ru.uDither.value = retroDitherRef.current;
+            ru.uScanlines.value = retroScanlinesRef.current;
+            ru.uPalette.value = RETRO_PALETTE_INDEX[retroPaletteRef.current] ?? 0;
+          }
           composer.render();
         } else {
           renderer.render(scene, camera);
@@ -9774,7 +10324,13 @@ export function Aquafulness() {
       saveCameraPoseNow();
       renderer.dispose();
       chromaticAberrationPass.dispose();
+      retroPass.dispose();
       composer.dispose();
+      neonEdges.dispose();
+      scene.environment = null;
+      iblTarget?.dispose();
+      pmrem.dispose();
+      envDomeMat.dispose();
       geo.dispose();
       farOcean.geometry.dispose();
       mat.dispose();
@@ -9932,6 +10488,15 @@ export function Aquafulness() {
             }
             const model = gltf.scene;
             applyManifest(model, manifest);
+            // SKUGGOR: every mesh in the scene casts and receives the sun's
+            // shadow — whether any shadow is drawn at all is decided per
+            // frame by the light (see shadowsActive in animate()).
+            model.traverse((o) => {
+              if ((o as THREE.Mesh).isMesh) {
+                o.castShadow = true;
+                o.receiveShadow = true;
+              }
+            });
             scene.add(model);
             modelRef.current = model;
             const bob = resolveBob(manifest.bob);
@@ -10006,9 +10571,14 @@ export function Aquafulness() {
             scene.background = tex;
             scene.backgroundRotation.set(0, ((manifest.rotationY ?? 0) * Math.PI) / 180, 0);
             envActiveRef.current = true;
-            // Sync the water/lighting palette to this skybox's time-of-day.
-            if (typeof manifest.timeOfDay === "number") {
-              setTimeOfDay(((manifest.timeOfDay % 1) + 1) % 1);
+            // Sync the water/lighting palette to this skybox's time-of-day —
+            // unless DYGNSTONING is on, where TIMEOFDAY stays with the
+            // daylight engine and tints the skybox instead.
+            const skyboxTod =
+              typeof manifest.timeOfDay === "number" ? ((manifest.timeOfDay % 1) + 1) % 1 : null;
+            envRefTodRef.current = skyboxTod ?? 0.5;
+            if (skyboxTod !== null && !envDaylightTintOnRef.current) {
+              setTimeOfDay(skyboxTod);
             }
             setEnvBootSettled(true);
           },
@@ -10394,6 +10964,52 @@ export function Aquafulness() {
     setChromaticAberrationOn,
     chromaticAberrationAmount,
     setChromaticAberrationAmount,
+    betterLightingOn,
+    setBetterLightingOn,
+    lightingReflStrength,
+    setLightingReflStrength,
+    shadowsOn,
+    setShadowsOn,
+    retroOn,
+    setRetroOn,
+    retroPalette,
+    setRetroPalette,
+    retroPixelSize,
+    setRetroPixelSize,
+    retroDither,
+    setRetroDither,
+    retroScanlines,
+    setRetroScanlines,
+    waterGlowOn,
+    setWaterGlowOn,
+    waterGlowColor,
+    setWaterGlowColor,
+    waterGlowStrength,
+    setWaterGlowStrength,
+    waterGlowEveningOnly,
+    setWaterGlowEveningOnly,
+    envDaylightTintOn,
+    setEnvDaylightTintOn,
+    envDaylightTintStrength,
+    setEnvDaylightTintStrength,
+    neonOn,
+    setNeonOn,
+    neonMode,
+    setNeonMode,
+    neonPrimary,
+    setNeonPrimary,
+    neonSecondary,
+    setNeonSecondary,
+    neonTint,
+    setNeonTint,
+    neonTintAmount,
+    setNeonTintAmount,
+    neonStrength,
+    setNeonStrength,
+    neonWidth,
+    setNeonWidth,
+    neonFrequency,
+    setNeonFrequency,
     wakeLock,
     setWakeLock,
     waterColorIdx,

@@ -225,7 +225,21 @@
       "freakOutFrameColor": "FREAK OUT FRAME COLOR",
       "bodyflightAirflow": "AIRFLOW",
       "bodyflightGravity": "GRAVITY",
-      "bodyflightHoverHeight": "HOVER HEIGHT"
+      "bodyflightHoverHeight": "HOVER HEIGHT",
+      "betterLighting": "BETTER LIGHTING",
+      "lightingReflStrength": "REFLECTION STRENGTH",
+      "shadows": "SHADOWS",
+      "retro": "RETRO 90S MODE",
+      "retroPalette": "RETRO PALETTE",
+      "retroPaletteValue": {
+        "rgb332": "256 COLORS",
+        "websafe": "216 WEB-SAFE",
+        "ega": "16 EGA",
+        "gray": "16 GRAYS"
+      },
+      "retroPixelSize": "RETRO PIXEL SIZE",
+      "retroDither": "DITHERING",
+      "retroScanlines": "SCANLINES"
     },
     "env": {
       "backdrop": "BACKDROP",
@@ -267,7 +281,24 @@
       "worldBoundary": "WORLD BOUNDARY",
       "worldBoundaryHeight": "BOUNDARY HEIGHT (Y)",
       "worldBoundarySize": "BOUNDARY SIZE (XZ)",
-      "worldBoundaryYExtend": "INFINITE CLOUD LAYERS"
+      "worldBoundaryYExtend": "INFINITE CLOUD LAYERS",
+      "daylightTint": "TIME OF DAY TINT",
+      "daylightTintStrength": "TINT STRENGTH",
+      "neon": "NEON EDGES",
+      "neonMode": "NEON MODE",
+      "neonModeValue": {
+        "solid": "SOLID",
+        "alternate": "ALTERNATE",
+        "fade": "FADE",
+        "hue": "HUE CYCLE"
+      },
+      "neonPrimary": "PRIMARY COLOR",
+      "neonSecondary": "SECONDARY COLOR",
+      "neonFrequency": "NEON FREQUENCY",
+      "neonStrength": "NEON STRENGTH",
+      "neonWidth": "NEON WIDTH",
+      "neonTint": "NEON TINT",
+      "neonTintAmount": "TINT AMOUNT"
     },
     "water": {
       "bottom": "BOTTOM",
@@ -320,7 +351,11 @@
         "raytraced": "RAYTRACED",
         "sphereMap": "SPHERE MAP",
         "standard": "STANDARD"
-      }
+      },
+      "glow": "WATER GLOW",
+      "glowColor": "GLOW COLOR",
+      "glowStrength": "GLOW STRENGTH",
+      "glowEveningOnly": "ONLY IN THE EVENING"
     },
     "wave": {
       "amp": "WAVE",

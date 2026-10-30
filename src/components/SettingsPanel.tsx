@@ -57,6 +57,10 @@ import {
   type TornadoDirection,
   type TornadoSequenceExitMode,
   type SurgeRotationMode,
+  type RetroPalette,
+  type NeonMode,
+  RETRO_PALETTES,
+  NEON_MODES,
   SKY_CLOUDS_ALTITUDE_MIN,
   SKY_CLOUDS_ALTITUDE_MAX,
   CLOUD_SCALE_MIN,
@@ -726,6 +730,52 @@ export type SettingsPanelProps = {
   setChromaticAberrationOn: Dispatch<SetStateAction<boolean>>;
   chromaticAberrationAmount: number;
   setChromaticAberrationAmount: Dispatch<SetStateAction<number>>;
+  betterLightingOn: boolean;
+  setBetterLightingOn: Dispatch<SetStateAction<boolean>>;
+  lightingReflStrength: number;
+  setLightingReflStrength: Dispatch<SetStateAction<number>>;
+  shadowsOn: boolean;
+  setShadowsOn: Dispatch<SetStateAction<boolean>>;
+  retroOn: boolean;
+  setRetroOn: Dispatch<SetStateAction<boolean>>;
+  retroPalette: RetroPalette;
+  setRetroPalette: Dispatch<SetStateAction<RetroPalette>>;
+  retroPixelSize: number;
+  setRetroPixelSize: Dispatch<SetStateAction<number>>;
+  retroDither: number;
+  setRetroDither: Dispatch<SetStateAction<number>>;
+  retroScanlines: number;
+  setRetroScanlines: Dispatch<SetStateAction<number>>;
+  waterGlowOn: boolean;
+  setWaterGlowOn: Dispatch<SetStateAction<boolean>>;
+  waterGlowColor: string;
+  setWaterGlowColor: Dispatch<SetStateAction<string>>;
+  waterGlowStrength: number;
+  setWaterGlowStrength: Dispatch<SetStateAction<number>>;
+  waterGlowEveningOnly: boolean;
+  setWaterGlowEveningOnly: Dispatch<SetStateAction<boolean>>;
+  envDaylightTintOn: boolean;
+  setEnvDaylightTintOn: Dispatch<SetStateAction<boolean>>;
+  envDaylightTintStrength: number;
+  setEnvDaylightTintStrength: Dispatch<SetStateAction<number>>;
+  neonOn: boolean;
+  setNeonOn: Dispatch<SetStateAction<boolean>>;
+  neonMode: NeonMode;
+  setNeonMode: Dispatch<SetStateAction<NeonMode>>;
+  neonPrimary: string;
+  setNeonPrimary: Dispatch<SetStateAction<string>>;
+  neonSecondary: string;
+  setNeonSecondary: Dispatch<SetStateAction<string>>;
+  neonTint: string;
+  setNeonTint: Dispatch<SetStateAction<string>>;
+  neonTintAmount: number;
+  setNeonTintAmount: Dispatch<SetStateAction<number>>;
+  neonStrength: number;
+  setNeonStrength: Dispatch<SetStateAction<number>>;
+  neonWidth: number;
+  setNeonWidth: Dispatch<SetStateAction<number>>;
+  neonFrequency: number;
+  setNeonFrequency: Dispatch<SetStateAction<number>>;
   wakeLock: boolean;
   setWakeLock: Dispatch<SetStateAction<boolean>>;
 
@@ -1641,6 +1691,52 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setChromaticAberrationOn,
     chromaticAberrationAmount,
     setChromaticAberrationAmount,
+    betterLightingOn,
+    setBetterLightingOn,
+    lightingReflStrength,
+    setLightingReflStrength,
+    shadowsOn,
+    setShadowsOn,
+    retroOn,
+    setRetroOn,
+    retroPalette,
+    setRetroPalette,
+    retroPixelSize,
+    setRetroPixelSize,
+    retroDither,
+    setRetroDither,
+    retroScanlines,
+    setRetroScanlines,
+    waterGlowOn,
+    setWaterGlowOn,
+    waterGlowColor,
+    setWaterGlowColor,
+    waterGlowStrength,
+    setWaterGlowStrength,
+    waterGlowEveningOnly,
+    setWaterGlowEveningOnly,
+    envDaylightTintOn,
+    setEnvDaylightTintOn,
+    envDaylightTintStrength,
+    setEnvDaylightTintStrength,
+    neonOn,
+    setNeonOn,
+    neonMode,
+    setNeonMode,
+    neonPrimary,
+    setNeonPrimary,
+    neonSecondary,
+    setNeonSecondary,
+    neonTint,
+    setNeonTint,
+    neonTintAmount,
+    setNeonTintAmount,
+    neonStrength,
+    setNeonStrength,
+    neonWidth,
+    setNeonWidth,
+    neonFrequency,
+    setNeonFrequency,
     wakeLock,
     setWakeLock,
     waterColorIdx,
@@ -3567,6 +3663,106 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     setChromaticAberrationAmount((v) => Math.min(1, +(v + 0.05).toFixed(2)))
                   }
                 />
+                <SettingRow
+                  label={t("dial.camera.betterLighting")}
+                  value={onOff(betterLightingOn)}
+                  onDec={() => setBetterLightingOn(false)}
+                  onInc={() => setBetterLightingOn(true)}
+                />
+                {betterLightingOn && (
+                  <>
+                    <SettingRow
+                      label={t("dial.camera.lightingReflStrength")}
+                      mode="number"
+                      value={`${Math.round(lightingReflStrength * 100)}%`}
+                      rawValue={lightingReflStrength}
+                      onSet={(v) => setLightingReflStrength(Math.max(0, Math.min(2, v)))}
+                      min={0}
+                      max={2}
+                      step={0.1}
+                      onDec={() =>
+                        setLightingReflStrength((v) => Math.max(0, +(v - 0.1).toFixed(2)))
+                      }
+                      onInc={() =>
+                        setLightingReflStrength((v) => Math.min(2, +(v + 0.1).toFixed(2)))
+                      }
+                    />
+                  </>
+                )}
+                <SettingRow
+                  label={t("dial.camera.shadows")}
+                  value={onOff(shadowsOn)}
+                  onDec={() => setShadowsOn(false)}
+                  onInc={() => setShadowsOn(true)}
+                />
+                <SettingRow
+                  label={t("dial.camera.retro")}
+                  value={onOff(retroOn)}
+                  onDec={() => setRetroOn(false)}
+                  onInc={() => setRetroOn(true)}
+                />
+                {retroOn && (
+                  <>
+                    <SettingRow
+                      label={t("dial.camera.retroPalette")}
+                      value={t(`dial.camera.retroPaletteValue.${retroPalette}`)}
+                      options={RETRO_PALETTES.map((m) => t(`dial.camera.retroPaletteValue.${m}`))}
+                      selectedIndex={Math.max(0, RETRO_PALETTES.indexOf(retroPalette))}
+                      onSelectIndex={(i) => setRetroPalette(RETRO_PALETTES[i] as RetroPalette)}
+                      onDec={() =>
+                        setRetroPalette(
+                          (m) =>
+                            RETRO_PALETTES[
+                              (RETRO_PALETTES.indexOf(m) - 1 + RETRO_PALETTES.length) %
+                                RETRO_PALETTES.length
+                            ],
+                        )
+                      }
+                      onInc={() =>
+                        setRetroPalette(
+                          (m) =>
+                            RETRO_PALETTES[(RETRO_PALETTES.indexOf(m) + 1) % RETRO_PALETTES.length],
+                        )
+                      }
+                    />
+                    <SettingRow
+                      label={t("dial.camera.retroPixelSize")}
+                      mode="number"
+                      value={`${retroPixelSize}px`}
+                      rawValue={retroPixelSize}
+                      onSet={(v) => setRetroPixelSize(Math.max(1, Math.min(8, v)))}
+                      min={1}
+                      max={8}
+                      step={1}
+                      onDec={() => setRetroPixelSize((v) => Math.max(1, +(v - 1).toFixed(0)))}
+                      onInc={() => setRetroPixelSize((v) => Math.min(8, +(v + 1).toFixed(0)))}
+                    />
+                    <SettingRow
+                      label={t("dial.camera.retroDither")}
+                      mode="number"
+                      value={`${Math.round(retroDither * 100)}%`}
+                      rawValue={retroDither}
+                      onSet={(v) => setRetroDither(Math.max(0, Math.min(1, v)))}
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      onDec={() => setRetroDither((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                      onInc={() => setRetroDither((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+                    />
+                    <SettingRow
+                      label={t("dial.camera.retroScanlines")}
+                      mode="number"
+                      value={`${Math.round(retroScanlines * 100)}%`}
+                      rawValue={retroScanlines}
+                      onSet={(v) => setRetroScanlines(Math.max(0, Math.min(1, v)))}
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      onDec={() => setRetroScanlines((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                      onInc={() => setRetroScanlines((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+                    />
+                  </>
+                )}
               </>
             )}
             {settingsTab === "vatten" && (
@@ -4077,6 +4273,45 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   onDec={() => setCausticsOn(false)}
                   onInc={() => setCausticsOn(true)}
                 />
+                <SettingRow
+                  label={t("dial.water.glow")}
+                  value={onOff(waterGlowOn)}
+                  onDec={() => setWaterGlowOn(false)}
+                  onInc={() => setWaterGlowOn(true)}
+                />
+                {waterGlowOn && (
+                  <>
+                    <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
+                      <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
+                        {t("dial.water.glowColor")}
+                      </span>
+                      <input
+                        type="color"
+                        value={waterGlowColor}
+                        onChange={(e) => setWaterGlowColor(e.target.value)}
+                        className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
+                      />
+                    </label>
+                    <SettingRow
+                      label={t("dial.water.glowStrength")}
+                      mode="number"
+                      value={`${Math.round(waterGlowStrength * 100)}%`}
+                      rawValue={waterGlowStrength}
+                      onSet={(v) => setWaterGlowStrength(Math.max(0, Math.min(2, v)))}
+                      min={0}
+                      max={2}
+                      step={0.05}
+                      onDec={() => setWaterGlowStrength((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                      onInc={() => setWaterGlowStrength((v) => Math.min(2, +(v + 0.05).toFixed(2)))}
+                    />
+                    <SettingRow
+                      label={t("dial.water.glowEveningOnly")}
+                      value={onOff(waterGlowEveningOnly)}
+                      onDec={() => setWaterGlowEveningOnly(false)}
+                      onInc={() => setWaterGlowEveningOnly(true)}
+                    />
+                  </>
+                )}
               </>
             )}
             {settingsTab === "miljo" && (
@@ -4411,6 +4646,32 @@ export function SettingsPanel(props: SettingsPanelProps) {
                         onInc={() => cycleTime(1)}
                       />
                     )}
+                    <SettingRow
+                      label={t("dial.env.daylightTint")}
+                      value={onOff(envDaylightTintOn)}
+                      onDec={() => setEnvDaylightTintOn(false)}
+                      onInc={() => setEnvDaylightTintOn(true)}
+                    />
+                    {envDaylightTintOn && (
+                      <>
+                        <SettingRow
+                          label={t("dial.env.daylightTintStrength")}
+                          mode="number"
+                          value={`${Math.round(envDaylightTintStrength * 100)}%`}
+                          rawValue={envDaylightTintStrength}
+                          onSet={(v) => setEnvDaylightTintStrength(Math.max(0, Math.min(1, v)))}
+                          min={0}
+                          max={1}
+                          step={0.05}
+                          onDec={() =>
+                            setEnvDaylightTintStrength((v) => Math.max(0, +(v - 0.05).toFixed(2)))
+                          }
+                          onInc={() =>
+                            setEnvDaylightTintStrength((v) => Math.min(1, +(v + 0.05).toFixed(2)))
+                          }
+                        />
+                      </>
+                    )}
                   </>
                 )}
                 <SettingRow
@@ -4561,6 +4822,129 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       onInc={() =>
                         setTorusFadeDistance((v) => Math.min(100, +(v + 0.5).toFixed(1)))
                       }
+                    />
+                  </>
+                )}
+                <SettingRow
+                  label={t("dial.env.neon")}
+                  value={onOff(neonOn)}
+                  onDec={() => setNeonOn(false)}
+                  onInc={() => setNeonOn(true)}
+                />
+                {neonOn && (
+                  <>
+                    <SettingRow
+                      label={t("dial.env.neonMode")}
+                      value={t(`dial.env.neonModeValue.${neonMode}`)}
+                      options={NEON_MODES.map((m) => t(`dial.env.neonModeValue.${m}`))}
+                      selectedIndex={Math.max(0, NEON_MODES.indexOf(neonMode))}
+                      onSelectIndex={(i) => setNeonMode(NEON_MODES[i] as NeonMode)}
+                      onDec={() =>
+                        setNeonMode(
+                          (m) =>
+                            NEON_MODES[
+                              (NEON_MODES.indexOf(m) - 1 + NEON_MODES.length) % NEON_MODES.length
+                            ],
+                        )
+                      }
+                      onInc={() =>
+                        setNeonMode(
+                          (m) => NEON_MODES[(NEON_MODES.indexOf(m) + 1) % NEON_MODES.length],
+                        )
+                      }
+                    />
+                    <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
+                      <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
+                        {t("dial.env.neonPrimary")}
+                      </span>
+                      <input
+                        type="color"
+                        value={neonPrimary}
+                        onChange={(e) => setNeonPrimary(e.target.value)}
+                        className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
+                      />
+                    </label>
+                    {(neonMode === "alternate" || neonMode === "fade") && (
+                      <>
+                        <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
+                          <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
+                            {t("dial.env.neonSecondary")}
+                          </span>
+                          <input
+                            type="color"
+                            value={neonSecondary}
+                            onChange={(e) => setNeonSecondary(e.target.value)}
+                            className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
+                          />
+                        </label>
+                      </>
+                    )}
+                    {neonMode !== "solid" && (
+                      <>
+                        <SettingRow
+                          label={t("dial.env.neonFrequency")}
+                          mode="number"
+                          value={`${neonFrequency.toFixed(2)} Hz`}
+                          rawValue={neonFrequency}
+                          onSet={(v) => setNeonFrequency(Math.max(0.05, Math.min(10, v)))}
+                          min={0.05}
+                          max={10}
+                          step={0.05}
+                          onDec={() =>
+                            setNeonFrequency((v) => Math.max(0.05, +(v - 0.05).toFixed(2)))
+                          }
+                          onInc={() =>
+                            setNeonFrequency((v) => Math.min(10, +(v + 0.05).toFixed(2)))
+                          }
+                        />
+                      </>
+                    )}
+                    <SettingRow
+                      label={t("dial.env.neonStrength")}
+                      mode="number"
+                      value={`${Math.round(neonStrength * 100)}%`}
+                      rawValue={neonStrength}
+                      onSet={(v) => setNeonStrength(Math.max(0, Math.min(3, v)))}
+                      min={0}
+                      max={3}
+                      step={0.1}
+                      onDec={() => setNeonStrength((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
+                      onInc={() => setNeonStrength((v) => Math.min(3, +(v + 0.1).toFixed(2)))}
+                    />
+                    <SettingRow
+                      label={t("dial.env.neonWidth")}
+                      mode="number"
+                      value={`${neonWidth.toFixed(1)}px`}
+                      rawValue={neonWidth}
+                      onSet={(v) => setNeonWidth(Math.max(0.5, Math.min(12, v)))}
+                      min={0.5}
+                      max={12}
+                      step={0.5}
+                      onDec={() => setNeonWidth((v) => Math.max(0.5, +(v - 0.5).toFixed(1)))}
+                      onInc={() => setNeonWidth((v) => Math.min(12, +(v + 0.5).toFixed(1)))}
+                    />
+                    <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
+                      <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
+                        {t("dial.env.neonTint")}
+                      </span>
+                      <input
+                        type="color"
+                        value={neonTint}
+                        onChange={(e) => setNeonTint(e.target.value)}
+                        className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
+                      />
+                    </label>
+                    <SettingRow
+                      label={t("dial.env.neonTintAmount")}
+                      mode="number"
+                      value={`${Math.round(neonTintAmount * 100)}%`}
+                      rawValue={neonTintAmount}
+                      onSet={(v) => setNeonTintAmount(Math.max(0, Math.min(1, v)))}
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      onDec={() => setNeonTintAmount((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                      onInc={() => setNeonTintAmount((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
                     />
                   </>
                 )}

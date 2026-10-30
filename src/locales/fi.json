@@ -225,7 +225,21 @@
       "freakOutFrameColor": "FREAK OUT TELINEEN VÄRI",
       "bodyflightAirflow": "ILMAVIRTA",
       "bodyflightGravity": "PAINOVOIMA",
-      "bodyflightHoverHeight": "LEIJUNTAKORKEUS"
+      "bodyflightHoverHeight": "LEIJUNTAKORKEUS",
+      "betterLighting": "PAREMPI VALAISTUS",
+      "lightingReflStrength": "HEIJASTUKSEN VOIMAKKUUS",
+      "shadows": "VARJOT",
+      "retro": "RETRO 90-LUKU",
+      "retroPalette": "RETROPALETTI",
+      "retroPaletteValue": {
+        "rgb332": "256 VÄRIÄ",
+        "websafe": "216 VERKKOVÄRIÄ",
+        "ega": "16 EGA",
+        "gray": "16 HARMAATA"
+      },
+      "retroPixelSize": "RETRO PIKSELIKOKO",
+      "retroDither": "RASTEROINTI",
+      "retroScanlines": "JUOVAT"
     },
     "env": {
       "backdrop": "TAUSTA",
@@ -267,7 +281,24 @@
       "worldBoundary": "MAAILMAN RAJA",
       "worldBoundaryHeight": "RAJAN KORKEUS (Y)",
       "worldBoundarySize": "RAJAN KOKO (XZ)",
-      "worldBoundaryYExtend": "ÄÄRETTÖMÄT PILVIKERROKSET"
+      "worldBoundaryYExtend": "ÄÄRETTÖMÄT PILVIKERROKSET",
+      "daylightTint": "VUOROKAUDEN SÄVY",
+      "daylightTintStrength": "SÄVYN VOIMAKKUUS",
+      "neon": "NEONREUNAT",
+      "neonMode": "NEONTILA",
+      "neonModeValue": {
+        "solid": "KIINTEÄ",
+        "alternate": "VAIHTELE",
+        "fade": "HÄIVYTÄ",
+        "hue": "SÄVYKIERTO"
+      },
+      "neonPrimary": "PÄÄVÄRI",
+      "neonSecondary": "TOISSIJAINEN VÄRI",
+      "neonFrequency": "NEONTAAJUUS",
+      "neonStrength": "NEONIN VOIMAKKUUS",
+      "neonWidth": "NEONIN LEVEYS",
+      "neonTint": "NEONSÄVY",
+      "neonTintAmount": "SÄVYN MÄÄRÄ"
     },
     "water": {
       "bottom": "POHJA",
@@ -320,7 +351,11 @@
         "raytraced": "SÄTEENSEURATTU",
         "sphereMap": "PALLOKARTTA",
         "standard": "STANDARDI"
-      }
+      },
+      "glow": "VEDEN HEHKU",
+      "glowColor": "HEHKUN VÄRI",
+      "glowStrength": "HEHKUN VOIMAKKUUS",
+      "glowEveningOnly": "VAIN ILLALLA"
     },
     "wave": {
       "amp": "AALTO",

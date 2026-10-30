@@ -551,6 +551,9 @@ export type RaytracedWaterFrame = {
   surfaceY: number;
   /** Whether the swimmer sphere (at the camera) is in/at the water. */
   swimmerOn: boolean;
+  /** SKUGGOR: false drops the swimmer's blob shadow and AO (its wake
+   *  still pushes through the sim). Defaults to true. */
+  shadowsOn?: boolean;
 };
 
 export class RaytracedWater {
@@ -742,7 +745,8 @@ export class RaytracedWater {
     u.uRtProjectionInv.value.copy(f.camera.projectionMatrixInverse);
     this.captured = false;
     const cam = f.camera.position;
-    u.uRtSwimmer.value.set(cam.x, cam.y, cam.z, f.swimmerOn ? RT_SWIMMER_RADIUS : 0);
+    const swimmerShadow = f.swimmerOn && f.shadowsOn !== false;
+    u.uRtSwimmer.value.set(cam.x, cam.y, cam.z, swimmerShadow ? RT_SWIMMER_RADIUS : 0);
     if (!this.supported || !this.simA) return;
 
     const r = this.renderer;
