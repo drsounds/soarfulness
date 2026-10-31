@@ -1438,8 +1438,10 @@ const DEFAULTS: Persisted = {
   bottomClouds3d: false,
   midClouds3d: false,
   skyClouds3d: false,
-  bottomCloudsScale: 1,
-  skyCloudsScale: 1,
+  // 8x (the slider's max) so the bottom and sky cloud decks read as big,
+  // soft shapes from the first start.
+  bottomCloudsScale: 8,
+  skyCloudsScale: 8,
   cloudFadeSpeed: 3,
   skyPuffsOn: false,
   skyPuffsCount: 6,
@@ -4595,6 +4597,10 @@ export function Aquafulness() {
     setWorldBoundarySize(DEFAULTS.worldBoundarySize);
     setWorldBoundaryHeight(DEFAULTS.worldBoundaryHeight);
     setWorldBoundaryYExtend(DEFAULTS.worldBoundaryYExtend);
+    // ÅTERSTÄLL also brings back the default scene (Strandpark2) and its
+    // spawn point, same as a first start.
+    setSceneId(DEFAULTS.sceneId);
+    setSpawnLocationId(DEFAULTS.spawnLocationId);
     setLiveMode(DEFAULTS.liveMode);
     setReflStrength(DEFAULTS.reflStrength);
     setBottomColor(DEFAULTS.bottomColor);
@@ -4718,8 +4724,9 @@ export function Aquafulness() {
   // engine behind the save/load/export/import preset feature (SettingsPanel
   // .tsx's PresetControls): loading a saved preset, importing a JSON file,
   // or restoring a per-tab subset all funnel through here. Unlike
-  // resetToDefaults, this *does* touch sceneId/envId/envEra/envTime/
-  // surfaceId, since a preset is meant to fully recreate a saved look.
+  // resetToDefaults, this *does* touch envId/envEra/envTime/surfaceId
+  // (reset only restores sceneId/spawnLocationId), since a preset is meant to
+  // fully recreate a saved look.
   const applySettingsPatch = (patch: Partial<Persisted>) => {
     if (patch.waveAmp !== undefined) setWaveAmp(patch.waveAmp);
     if (patch.timeOfDay !== undefined) setTimeOfDay(patch.timeOfDay);
