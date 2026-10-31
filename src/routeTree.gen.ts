@@ -9,33 +9,23 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AboutRouteImport } from './routes/about'
-import { Route as DocsRouteImport } from './routes/docs'
-import { Route as LicensesRouteImport } from './routes/licenses'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as AuthSpacifyRouteImport } from './routes/auth.spacify'
-import { Route as BathingPayloadRouteImport } from './routes/bathing.$payload'
+import { Route as LicensesRouteImport } from './routes/licenses'
+import { Route as DocsRouteImport } from './routes/docs'
+import { Route as AboutRouteImport } from './routes/about'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as DocsIndexRouteImport } from './routes/docs.index'
-import { Route as DocsBackgroundRouteImport } from './routes/docs.background'
-import { Route as DocsOpticFlowRouteImport } from './routes/docs.optic-flow'
 import { Route as DocsReferencesRouteImport } from './routes/docs.references'
+import { Route as DocsOpticFlowRouteImport } from './routes/docs.optic-flow'
+import { Route as DocsBackgroundRouteImport } from './routes/docs.background'
+import { Route as BathingPayloadRouteImport } from './routes/bathing.$payload'
+import { Route as AuthSpacifyRouteImport } from './routes/auth.spacify'
 import { Route as BathingPayloadIndexRouteImport } from './routes/bathing.$payload.index'
 import { Route as BathingPayloadBatheRouteImport } from './routes/bathing.$payload.bathe'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AboutRoute = AboutRouteImport.update({
-  id: '/about',
-  path: '/about',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DocsRoute = DocsRouteImport.update({
-  id: '/docs',
-  path: '/docs',
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LicensesRoute = LicensesRouteImport.update({
@@ -43,19 +33,19 @@ const LicensesRoute = LicensesRouteImport.update({
   path: '/licenses',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
+const DocsRoute = DocsRouteImport.update({
+  id: '/docs',
+  path: '/docs',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthSpacifyRoute = AuthSpacifyRouteImport.update({
-  id: '/auth/spacify',
-  path: '/auth/spacify',
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
-const BathingPayloadRoute = BathingPayloadRouteImport.update({
-  id: '/bathing/$payload',
-  path: '/bathing/$payload',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DocsIndexRoute = DocsIndexRouteImport.update({
@@ -63,9 +53,9 @@ const DocsIndexRoute = DocsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => DocsRoute,
 } as any)
-const DocsBackgroundRoute = DocsBackgroundRouteImport.update({
-  id: '/background',
-  path: '/background',
+const DocsReferencesRoute = DocsReferencesRouteImport.update({
+  id: '/references',
+  path: '/references',
   getParentRoute: () => DocsRoute,
 } as any)
 const DocsOpticFlowRoute = DocsOpticFlowRouteImport.update({
@@ -73,10 +63,20 @@ const DocsOpticFlowRoute = DocsOpticFlowRouteImport.update({
   path: '/optic-flow',
   getParentRoute: () => DocsRoute,
 } as any)
-const DocsReferencesRoute = DocsReferencesRouteImport.update({
-  id: '/references',
-  path: '/references',
+const DocsBackgroundRoute = DocsBackgroundRouteImport.update({
+  id: '/background',
+  path: '/background',
   getParentRoute: () => DocsRoute,
+} as any)
+const BathingPayloadRoute = BathingPayloadRouteImport.update({
+  id: '/bathing/$payload',
+  path: '/bathing/$payload',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthSpacifyRoute = AuthSpacifyRouteImport.update({
+  id: '/auth/spacify',
+  path: '/auth/spacify',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const BathingPayloadIndexRoute = BathingPayloadIndexRouteImport.update({
   id: '/',
@@ -191,25 +191,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/about': {
-      id: '/about'
-      path: '/about'
-      fullPath: '/about'
-      preLoaderRoute: typeof AboutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/docs': {
-      id: '/docs'
-      path: '/docs'
-      fullPath: '/docs'
-      preLoaderRoute: typeof DocsRouteImport
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/licenses': {
@@ -219,25 +205,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LicensesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
+    '/docs': {
+      id: '/docs'
+      path: '/docs'
+      fullPath: '/docs'
+      preLoaderRoute: typeof DocsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/auth/spacify': {
-      id: '/auth/spacify'
-      path: '/auth/spacify'
-      fullPath: '/auth/spacify'
-      preLoaderRoute: typeof AuthSpacifyRouteImport
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/bathing/$payload': {
-      id: '/bathing/$payload'
-      path: '/bathing/$payload'
-      fullPath: '/bathing/$payload'
-      preLoaderRoute: typeof BathingPayloadRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/docs/': {
@@ -247,11 +233,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocsIndexRouteImport
       parentRoute: typeof DocsRoute
     }
-    '/docs/background': {
-      id: '/docs/background'
-      path: '/background'
-      fullPath: '/docs/background'
-      preLoaderRoute: typeof DocsBackgroundRouteImport
+    '/docs/references': {
+      id: '/docs/references'
+      path: '/references'
+      fullPath: '/docs/references'
+      preLoaderRoute: typeof DocsReferencesRouteImport
       parentRoute: typeof DocsRoute
     }
     '/docs/optic-flow': {
@@ -261,12 +247,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocsOpticFlowRouteImport
       parentRoute: typeof DocsRoute
     }
-    '/docs/references': {
-      id: '/docs/references'
-      path: '/references'
-      fullPath: '/docs/references'
-      preLoaderRoute: typeof DocsReferencesRouteImport
+    '/docs/background': {
+      id: '/docs/background'
+      path: '/background'
+      fullPath: '/docs/background'
+      preLoaderRoute: typeof DocsBackgroundRouteImport
       parentRoute: typeof DocsRoute
+    }
+    '/bathing/$payload': {
+      id: '/bathing/$payload'
+      path: '/bathing/$payload'
+      fullPath: '/bathing/$payload'
+      preLoaderRoute: typeof BathingPayloadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/spacify': {
+      id: '/auth/spacify'
+      path: '/auth/spacify'
+      fullPath: '/auth/spacify'
+      preLoaderRoute: typeof AuthSpacifyRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/bathing/$payload/': {
       id: '/bathing/$payload/'
