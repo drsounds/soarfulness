@@ -239,7 +239,9 @@
       },
       "retroPixelSize": "RETRO PIKSELIKOKO",
       "retroDither": "RASTEROINTI",
-      "retroScanlines": "JUOVAT"
+      "retroScanlines": "JUOVAT",
+      "extremeLimits": "ÄÄRIMMÄINEN",
+      "extremeLimitsHint": "Nelinkertaistaa AALTO-, HUOJUNTA-, MAININKI-, VIRTA-, NAV-, TORNADO-, KEINU- ja FREAK OUT -säätöjen maksimin. Pois: tavallisen maksimin ylittävät arvot lasketaan."
     },
     "env": {
       "backdrop": "TAUSTA",

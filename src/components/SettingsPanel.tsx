@@ -73,6 +73,7 @@ import {
 import { pickJsonFile, type PresetScope, type SavedPreset, type SavedState } from "@/lib/presets";
 import { changeLanguage, SUPPORTED_LANGUAGES, LANGUAGE_NAMES, type LanguageCode } from "@/lib/i18n";
 import { useUiTheme, UI_THEME_IDS } from "@/lib/uiTheme";
+import { limitMax, useExtremeLimits, type LimitedControl } from "@/lib/extremeLimits";
 import { ShareBathDialog } from "@/components/ShareBathDialog";
 import { ScenerySelectorButton } from "@/components/ScenerySelectorDialog";
 import type { AppSceneryPreset, SavedSceneryPreset, SceneryData } from "@/lib/sceneryPresets";
@@ -1929,6 +1930,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
 
   const { t } = useTranslation();
   const onOff = (v: boolean) => (v ? t("common.on") : t("common.off"));
+  // EXTREME (src/lib/extremeLimits.ts): while it's off the strength/size
+  // dials top out at ~25 % of their extreme max.
+  const [extremeLimits, setExtremeLimits] = useExtremeLimits();
+  const mx = (control: LimitedControl) => limitMax(control, extremeLimits);
   const [confirmResetOpen, setConfirmResetOpen] = useState(false);
   // Android-Settings-style two-level navigation: a home screen listing every
   // section as a row, and a section screen (back header + SettingRow list)
@@ -2083,10 +2088,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   rawValue={waveAmp}
                   onSet={setWaveAmp}
                   min={0}
-                  max={100}
+                  max={mx("waveAmp")}
                   step={0.5}
                   onDec={() => setWaveAmp((v) => Math.max(0, +(v - 0.5).toFixed(2)))}
-                  onInc={() => setWaveAmp((v) => Math.min(100, +(v + 0.5).toFixed(2)))}
+                  onInc={() => setWaveAmp((v) => Math.min(mx("waveAmp"), +(v + 0.5).toFixed(2)))}
                 />
                 <SettingRow
                   label={t("dial.wave.speed")}
@@ -2193,10 +2198,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   rawValue={swayAmp}
                   onSet={setSwayAmp}
                   min={0}
-                  max={60}
+                  max={mx("swayAmp")}
                   step={0.5}
                   onDec={() => setSwayAmp((v) => Math.max(0, +(v - 0.5).toFixed(2)))}
-                  onInc={() => setSwayAmp((v) => Math.min(60, +(v + 0.5).toFixed(2)))}
+                  onInc={() => setSwayAmp((v) => Math.min(mx("swayAmp"), +(v + 0.5).toFixed(2)))}
                 />
                 <SettingRow
                   label={t("dial.wave.swaySpeed")}
@@ -2261,10 +2266,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   rawValue={surgeAmp}
                   onSet={setSurgeAmp}
                   min={0}
-                  max={60}
+                  max={mx("surgeAmp")}
                   step={0.5}
                   onDec={() => setSurgeAmp((v) => Math.max(0, +(v - 0.5).toFixed(2)))}
-                  onInc={() => setSurgeAmp((v) => Math.min(60, +(v + 0.5).toFixed(2)))}
+                  onInc={() => setSurgeAmp((v) => Math.min(mx("surgeAmp"), +(v + 0.5).toFixed(2)))}
                 />
                 <SettingRow
                   label={t("dial.wave.surgeSpeed")}
@@ -2526,6 +2531,15 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   loadSavedPreset={loadSavedPreset}
                   deleteSavedPreset={deleteSavedPreset}
                 />
+                <SettingRow
+                  label={t("dial.camera.extremeLimits")}
+                  value={onOff(extremeLimits)}
+                  onDec={() => setExtremeLimits(false)}
+                  onInc={() => setExtremeLimits(true)}
+                />
+                <div className="w-full px-2 text-center text-[10px] leading-relaxed ui-ink-faint">
+                  {t("dial.camera.extremeLimitsHint")}
+                </div>
                 {intervalSessionOn ? (
                   <div className="flex min-w-[86px] flex-col items-start justify-center gap-0.5 rounded-full border ui-line-1 ui-surface px-3 py-2 leading-tight">
                     <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
@@ -2720,15 +2734,19 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${freakOutSwingSpeed.toFixed(2)}x`}
                       rawValue={freakOutSwingSpeed}
-                      onSet={(v) => setFreakOutSwingSpeed(Math.max(0, Math.min(5, v)))}
+                      onSet={(v) =>
+                        setFreakOutSwingSpeed(Math.max(0, Math.min(mx("freakOutSwingSpeed"), v)))
+                      }
                       min={0}
-                      max={5}
+                      max={mx("freakOutSwingSpeed")}
                       step={0.05}
                       onDec={() =>
                         setFreakOutSwingSpeed((v) => Math.max(0, +(v - 0.05).toFixed(2)))
                       }
                       onInc={() =>
-                        setFreakOutSwingSpeed((v) => Math.min(5, +(v + 0.05).toFixed(2)))
+                        setFreakOutSwingSpeed((v) =>
+                          Math.min(mx("freakOutSwingSpeed"), +(v + 0.05).toFixed(2)),
+                        )
                       }
                     />
                     <SettingRow
@@ -2736,15 +2754,19 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${freakOutSwingLength.toFixed(1)}m`}
                       rawValue={freakOutSwingLength}
-                      onSet={(v) => setFreakOutSwingLength(Math.max(0, Math.min(800, v)))}
+                      onSet={(v) =>
+                        setFreakOutSwingLength(Math.max(0, Math.min(mx("freakOutSwingLength"), v)))
+                      }
                       min={0}
-                      max={800}
+                      max={mx("freakOutSwingLength")}
                       step={0.5}
                       onDec={() =>
                         setFreakOutSwingLength((v) => Math.max(0, +(v - 0.5).toFixed(1)))
                       }
                       onInc={() =>
-                        setFreakOutSwingLength((v) => Math.min(800, +(v + 0.5).toFixed(1)))
+                        setFreakOutSwingLength((v) =>
+                          Math.min(mx("freakOutSwingLength"), +(v + 0.5).toFixed(1)),
+                        )
                       }
                     />
                     <SettingRow
@@ -2752,13 +2774,17 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${freakOutRingRadius.toFixed(1)}m`}
                       rawValue={freakOutRingRadius}
-                      onSet={(v) => setFreakOutRingRadius(Math.max(0, Math.min(200, v)))}
+                      onSet={(v) =>
+                        setFreakOutRingRadius(Math.max(0, Math.min(mx("freakOutRingRadius"), v)))
+                      }
                       min={0}
-                      max={200}
+                      max={mx("freakOutRingRadius")}
                       step={0.5}
                       onDec={() => setFreakOutRingRadius((v) => Math.max(0, +(v - 0.5).toFixed(1)))}
                       onInc={() =>
-                        setFreakOutRingRadius((v) => Math.min(200, +(v + 0.5).toFixed(1)))
+                        setFreakOutRingRadius((v) =>
+                          Math.min(mx("freakOutRingRadius"), +(v + 0.5).toFixed(1)),
+                        )
                       }
                     />
                     <SettingRow
@@ -2797,18 +2823,24 @@ export function SettingsPanel(props: SettingsPanelProps) {
                           mode="number"
                           value={`${freakOutRotationSpeed.toFixed(2)}x`}
                           rawValue={freakOutRotationSpeed}
-                          onSet={(v) => setFreakOutRotationSpeed(Math.max(0, Math.min(10, v)))}
+                          onSet={(v) =>
+                            setFreakOutRotationSpeed(
+                              Math.max(0, Math.min(mx("freakOutRotationSpeed"), v)),
+                            )
+                          }
                           min={0}
-                          max={10}
+                          max={mx("freakOutRotationSpeed")}
                           step={0.05}
                           onDec={() =>
                             setFreakOutRotationSpeed((v) => Math.max(0, +(v - 0.05).toFixed(2)))
                           }
                           onInc={() =>
-                            setFreakOutRotationSpeed((v) => Math.min(10, +(v + 0.05).toFixed(2)))
+                            setFreakOutRotationSpeed((v) =>
+                              Math.min(mx("freakOutRotationSpeed"), +(v + 0.05).toFixed(2)),
+                            )
                           }
                         />
-<SettingRow
+                        <SettingRow
                           label={t("dial.camera.freakOutRotationPeakSpeed")}
                           mode="number"
                           value={`${Math.round(freakOutRotationPeakSpeed * 100)}%`}
@@ -2823,9 +2855,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                             setFreakOutRotationPeakSpeed((v) => Math.max(0, +(v - 0.05).toFixed(2)))
                           }
                           onInc={() =>
-                            setFreakOutRotationPeakSpeed((v) =>
-                              Math.min(1, +(v + 0.05).toFixed(2)),
-                            )
+                            setFreakOutRotationPeakSpeed((v) => Math.min(1, +(v + 0.05).toFixed(2)))
                           }
                         />
                         <SettingRow
@@ -2833,9 +2863,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                           mode="number"
                           value={`${freakOutRotationRecovery.toFixed(2)}×`}
                           rawValue={freakOutRotationRecovery}
-                          onSet={(v) =>
-                            setFreakOutRotationRecovery(Math.max(0.25, Math.min(4, v)))
-                          }
+                          onSet={(v) => setFreakOutRotationRecovery(Math.max(0.25, Math.min(4, v)))}
                           min={0.25}
                           max={4}
                           step={0.05}
@@ -2845,9 +2873,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                             )
                           }
                           onInc={() =>
-                            setFreakOutRotationRecovery((v) =>
-                              Math.min(4, +(v + 0.05).toFixed(2)),
-                            )
+                            setFreakOutRotationRecovery((v) => Math.min(4, +(v + 0.05).toFixed(2)))
                           }
                         />
                         <SettingRow
@@ -3083,24 +3109,34 @@ export function SettingsPanel(props: SettingsPanelProps) {
                         mode="number"
                         value={`${tornadoRadius.toFixed(0)}m`}
                         rawValue={tornadoRadius}
-                        onSet={(v) => setTornadoRadius(Math.max(0, Math.min(2000, v)))}
+                        onSet={(v) =>
+                          setTornadoRadius(Math.max(0, Math.min(mx("tornadoRadius"), v)))
+                        }
                         min={0}
-                        max={2000}
+                        max={mx("tornadoRadius")}
                         step={5}
                         onDec={() => setTornadoRadius((v) => Math.max(0, +(v - 5).toFixed(0)))}
-                        onInc={() => setTornadoRadius((v) => Math.min(2000, +(v + 5).toFixed(0)))}
+                        onInc={() =>
+                          setTornadoRadius((v) =>
+                            Math.min(mx("tornadoRadius"), +(v + 5).toFixed(0)),
+                          )
+                        }
                       />
                       <SettingRow
                         label={t("dial.camera.tornadoSpeed")}
                         mode="number"
                         value={`${tornadoSpeed.toFixed(2)}x`}
                         rawValue={tornadoSpeed}
-                        onSet={(v) => setTornadoSpeed(Math.max(0, Math.min(10, v)))}
+                        onSet={(v) => setTornadoSpeed(Math.max(0, Math.min(mx("tornadoSpeed"), v)))}
                         min={0}
-                        max={10}
+                        max={mx("tornadoSpeed")}
                         step={0.1}
                         onDec={() => setTornadoSpeed((v) => Math.max(0, +(v - 0.1).toFixed(2)))}
-                        onInc={() => setTornadoSpeed((v) => Math.min(10, +(v + 0.1).toFixed(2)))}
+                        onInc={() =>
+                          setTornadoSpeed((v) =>
+                            Math.min(mx("tornadoSpeed"), +(v + 0.1).toFixed(2)),
+                          )
+                        }
                       />
                       <SettingRow
                         label={t("dial.camera.tornadoDirection")}
@@ -3346,26 +3382,34 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${swingIntensity.toFixed(4)}x`}
                       rawValue={swingIntensity}
-                      onSet={(v) => setSwingIntensity(Math.max(0.0001, Math.min(2.5, v)))}
+                      onSet={(v) =>
+                        setSwingIntensity(Math.max(0.0001, Math.min(mx("swingIntensity"), v)))
+                      }
                       min={0.0001}
-                      max={2.5}
+                      max={mx("swingIntensity")}
                       step={0.05}
                       onDec={() =>
                         setSwingIntensity((v) => Math.max(0.0001, +(v - 0.05).toFixed(4)))
                       }
-                      onInc={() => setSwingIntensity((v) => Math.min(2.5, +(v + 0.05).toFixed(4)))}
+                      onInc={() =>
+                        setSwingIntensity((v) =>
+                          Math.min(mx("swingIntensity"), +(v + 0.05).toFixed(4)),
+                        )
+                      }
                     />
                     <SettingRow
                       label={t("dial.camera.swingSpeed")}
                       mode="number"
                       value={`${swingSpeed.toFixed(2)}x`}
                       rawValue={swingSpeed}
-                      onSet={(v) => setSwingSpeed(Math.max(0.1, Math.min(5, v)))}
+                      onSet={(v) => setSwingSpeed(Math.max(0.1, Math.min(mx("swingSpeed"), v)))}
                       min={0.1}
-                      max={5}
+                      max={mx("swingSpeed")}
                       step={0.1}
                       onDec={() => setSwingSpeed((v) => Math.max(0.1, +(v - 0.1).toFixed(2)))}
-                      onInc={() => setSwingSpeed((v) => Math.min(5, +(v + 0.1).toFixed(2)))}
+                      onInc={() =>
+                        setSwingSpeed((v) => Math.min(mx("swingSpeed"), +(v + 0.1).toFixed(2)))
+                      }
                     />
                     <SettingRow
                       label={t("dial.camera.swingXFactor")}
@@ -3386,12 +3430,14 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${swingHeight.toFixed(0)}m`}
                       rawValue={swingHeight}
-                      onSet={(v) => setSwingHeight(Math.max(0, Math.min(100000, v)))}
+                      onSet={(v) => setSwingHeight(Math.max(0, Math.min(mx("swingHeight"), v)))}
                       min={0}
-                      max={100000}
+                      max={mx("swingHeight")}
                       step={100}
                       onDec={() => setSwingHeight((v) => Math.max(0, +(v - 100).toFixed(0)))}
-                      onInc={() => setSwingHeight((v) => Math.min(100000, +(v + 100).toFixed(0)))}
+                      onInc={() =>
+                        setSwingHeight((v) => Math.min(mx("swingHeight"), +(v + 100).toFixed(0)))
+                      }
                     />
                     <SettingRow
                       label={t("dial.camera.swingKeepSpeed")}

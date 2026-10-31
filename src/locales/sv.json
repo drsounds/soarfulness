@@ -239,7 +239,9 @@
       },
       "retroPixelSize": "RETRO PIXELSTORLEK",
       "retroDither": "DITHERING",
-      "retroScanlines": "SCANLINJER"
+      "retroScanlines": "SCANLINJER",
+      "extremeLimits": "EXTREME",
+      "extremeLimitsHint": "Höjer maxvärdena för VÅG, SVAJ, SVALL, STRÖM, NAV, TORNADO, GUNGA och FREAK OUT till det fyrdubbla. Av: värden över de vanliga maxen sänks."
     },
     "env": {
       "backdrop": "BAKGRUND",

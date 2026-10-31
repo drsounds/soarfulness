@@ -239,7 +239,9 @@
       },
       "retroPixelSize": "RETRO PIXEL SIZE",
       "retroDither": "DITHERING",
-      "retroScanlines": "SCANLINES"
+      "retroScanlines": "SCANLINES",
+      "extremeLimits": "EXTREME",
+      "extremeLimitsHint": "Raises the max of WAVE, SWAY, SURGE, CURRENT, NAV, TORNADO, SWING and FREAK OUT fourfold. Off: values above the normal max are lowered."
     },
     "env": {
       "backdrop": "BACKDROP",

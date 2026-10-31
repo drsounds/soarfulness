@@ -239,7 +239,9 @@
       },
       "retroPixelSize": "RETRO PIKSELSTØRRELSE",
       "retroDither": "DITHERING",
-      "retroScanlines": "SKANNELINJER"
+      "retroScanlines": "SKANNELINJER",
+      "extremeLimits": "EKSTREM",
+      "extremeLimitsHint": "Hever maks for BØLGE, SVAI, DØNNING, STRØM, NAV, TORNADO, HUSKE og FREAK OUT til det firedobbelte. Av: verdier over vanlig maks senkes."
     },
     "env": {
       "backdrop": "BAKGRUNN",
