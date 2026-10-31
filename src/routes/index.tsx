@@ -19,6 +19,7 @@ import { useOnlineStatus } from "@/hooks/use-online-status";
 import { CSS3DTVManager, type DeviceKind } from "@/lib/tv/CSS3DTVManager";
 import { TorusRingField } from "@/lib/torusRings/TorusRingField";
 import { RETRO_PALETTE_INDEX, RETRO_SHADER } from "@/lib/sceneFx/retroShader";
+import { limitMax, useExtremeLimits, type LimitedControl } from "@/lib/extremeLimits";
 import { NeonEdges } from "@/lib/sceneFx/NeonEdges";
 import { relativeDaylightTint } from "@/lib/sceneFx/daylightTint";
 import { WatercraftRig } from "@/lib/watercraft/WatercraftRig";
@@ -788,7 +789,6 @@ function layoutFreakOutSeats(
 }
 const _foUp = new THREE.Vector3(0, 1, 0);
 const FREAK_OUT_MAX_SEATS = 32;
-const FREAK_OUT_MAX_ARM = 800; // longest arm (ARM LENGTH) the dials offer
 const FREAK_OUT_MAX_SEAT_POST = 30;
 function freakOutSeatPostLengthClamp(n: number): number {
   return Math.min(FREAK_OUT_MAX_SEAT_POST, Math.max(0.5, Number.isFinite(n) ? n : 1.9));
@@ -2262,6 +2262,48 @@ export function Aquafulness() {
   const [tornadoOn, setTornadoOn] = useState(initial.tornadoOn);
   const [tornadoRadius, setTornadoRadius] = useState(initial.tornadoRadius);
   const [tornadoSpeed, setTornadoSpeed] = useState(initial.tornadoSpeed);
+  // EXTREME (src/lib/extremeLimits.ts): the high maximums on VÅG, SVAJ,
+  // SVALL, STRÖM, NAV, TORNADO, GUNGA and FREAK OUT only apply while EXTREME
+  // is on; otherwise every one of them tops out at ~25 %. Whenever they don't apply, anything above the everyday max —
+  // a value set with EXTREME on, a loaded preset/badlänk, SLUMPA VÅGOR — is
+  // clamped down to it.
+  const [extremeLimits] = useExtremeLimits();
+  const mx = (control: LimitedControl) => limitMax(control, extremeLimits);
+  const extremeLimitsRef = useRef(extremeLimits);
+  extremeLimitsRef.current = extremeLimits;
+  useEffect(() => {
+    if (extremeLimits) return;
+    const clamp = (control: LimitedControl, value: number, set: (v: number) => void) => {
+      const max = limitMax(control, false);
+      if (value > max) set(max);
+    };
+    clamp("waveAmp", waveAmp, setWaveAmp);
+    clamp("swayAmp", swayAmp, setSwayAmp);
+    clamp("surgeAmp", surgeAmp, setSurgeAmp);
+    clamp("tornadoRadius", tornadoRadius, setTornadoRadius);
+    clamp("tornadoSpeed", tornadoSpeed, setTornadoSpeed);
+    clamp("swingIntensity", swingIntensity, setSwingIntensity);
+    clamp("swingSpeed", swingSpeed, setSwingSpeed);
+    clamp("swingHeight", swingHeight, setSwingHeight);
+    clamp("freakOutSwingSpeed", freakOutSwingSpeed, setFreakOutSwingSpeed);
+    clamp("freakOutSwingLength", freakOutSwingLength, setFreakOutSwingLength);
+    clamp("freakOutRingRadius", freakOutRingRadius, setFreakOutRingRadius);
+    clamp("freakOutRotationSpeed", freakOutRotationSpeed, setFreakOutRotationSpeed);
+  }, [
+    extremeLimits,
+    waveAmp,
+    swayAmp,
+    surgeAmp,
+    tornadoRadius,
+    tornadoSpeed,
+    swingIntensity,
+    swingSpeed,
+    swingHeight,
+    freakOutSwingSpeed,
+    freakOutSwingLength,
+    freakOutRingRadius,
+    freakOutRotationSpeed,
+  ]);
   const [tornadoDirection, setTornadoDirection] = useState<TornadoDirection>(
     initial.tornadoDirection,
   );
@@ -8339,14 +8381,18 @@ export function Aquafulness() {
       // — can also sample the real wave height (see tornadoWaterHeightAt
       // there).
       const dirRad = (waveDirRef.current * Math.PI) / 180;
-      const walkSpeed = 16; // m/s at full deflection
-      // STRÖM / DRIFT XZ speed (m/s per unit of stick). Full deflection
-      // reaches 10× the old 13.2 m/s cap, but on a cubic ramp so small
+      // NAV: m/s at full deflection — 16 with EXTREME, ~25 % (4) without.
+      const extremeNow = extremeLimitsRef.current;
+      const walkSpeed = limitMax("navSpeed", extremeNow);
+      // STRÖM / DRIFT XZ speed (m/s per unit of stick). With EXTREME, full
+      // deflection reaches 10× the old 13.2 m/s cap (132 m/s); without it
+      // ~25 % of that (33 m/s). Either way on a cubic ramp so small
       // deflections still drift about as gently as before instead of every
-      // touch of the pad becoming ten times faster.
+      // touch of the pad becoming that much faster.
+      const currentTopRatio = limitMax("currentSpeed", extremeNow) / 13.2 - 1;
       const currentSpeedFor = (v: { x: number; z: number }) => {
         const m = Math.min(1, Math.hypot(v.x, v.z));
-        return 13.2 * (1 + 9 * m * m * m);
+        return 13.2 * (1 + currentTopRatio * m * m * m);
       };
       const driftSpeed = currentSpeedFor(driftWorldRef.current);
       let camX: number, camZ: number;
@@ -9650,7 +9696,7 @@ export function Aquafulness() {
             foDir *=
               foSwingSync * foSwingAlt + (1 - foSwingSync) * Math.cos(freakOutOscPhaseRef.current);
           }
- // The ring slows at the swing's turnarounds. PEAK SPEED sets the
+          // The ring slows at the swing's turnarounds. PEAK SPEED sets the
           // remaining speed there (0 stops the ring); RECOVERY shapes how
           // quickly it accelerates back toward full speed on the return.
           const swingSpeed = Math.abs(Math.cos(freakOutSwingPhaseRef.current));
@@ -9661,10 +9707,7 @@ export function Aquafulness() {
           const recoveryProgress = 1 - Math.pow(1 - swingSpeed, recoveryIntensity);
           const recoveryEase = recoveryProgress * recoveryProgress * (3 - 2 * recoveryProgress);
           const peakSpeed = Math.max(0, Math.min(1, freakOutRotationPeakSpeedRef.current));
-          const foSpinScale =
-            1 -
-            foSwingSync *
-              (1 - peakSpeed - (1 - peakSpeed) * recoveryEase);
+          const foSpinScale = 1 - foSwingSync * (1 - peakSpeed - (1 - peakSpeed) * recoveryEase);
           freakOutRingSpinRef.current =
             0.8 * Math.max(0, freakOutRotationSpeedRef.current) * foDir * foSpinScale;
           freakOutRingAngleRef.current +=
@@ -12129,7 +12172,7 @@ export function Aquafulness() {
                         label={t("hud.slider.wave")}
                         value={waveAmp}
                         min={0}
-                        max={100}
+                        max={mx("waveAmp")}
                         step={0.5}
                         curve={4}
                         format={(v) => `${v.toFixed(2)}m`}
@@ -12222,7 +12265,7 @@ export function Aquafulness() {
                         label={t("dial.camera.swingIntensity")}
                         value={swingIntensity}
                         min={0.0001}
-                        max={2.5}
+                        max={mx("swingIntensity")}
                         step={0.05}
                         curve={2}
                         format={(v) => `${v.toFixed(2)}×`}
@@ -12232,7 +12275,7 @@ export function Aquafulness() {
                         label={t("dial.camera.swingSpeed")}
                         value={swingSpeed}
                         min={0.1}
-                        max={5}
+                        max={mx("swingSpeed")}
                         step={0.1}
                         curve={2}
                         format={(v) => `${v.toFixed(2)}×`}
@@ -12252,7 +12295,7 @@ export function Aquafulness() {
                         label={t("dial.camera.swingHeight")}
                         value={swingHeight}
                         min={0}
-                        max={100000}
+                        max={mx("swingHeight")}
                         step={100}
                         curve={2}
                         format={(v) => `${v.toFixed(0)}m`}
@@ -12565,7 +12608,7 @@ export function Aquafulness() {
                         label={t("dial.camera.freakOutSwingSpeed")}
                         value={freakOutSwingSpeed}
                         min={0}
-                        max={5}
+                        max={mx("freakOutSwingSpeed")}
                         step={0.05}
                         curve={2}
                         format={(v) => `${v.toFixed(2)}×`}
@@ -12575,7 +12618,7 @@ export function Aquafulness() {
                         label={t("dial.camera.freakOutSwingLength")}
                         value={freakOutSwingLength}
                         min={0}
-                        max={FREAK_OUT_MAX_ARM}
+                        max={mx("freakOutSwingLength")}
                         step={0.5}
                         curve={2}
                         format={(v) => `${v.toFixed(1)}m`}
@@ -12598,13 +12641,13 @@ export function Aquafulness() {
                         label={t("dial.camera.freakOutRotationSpeed")}
                         value={freakOutRotationSpeed}
                         min={0}
-                        max={10}
+                        max={mx("freakOutRotationSpeed")}
                         step={0.05}
                         curve={2}
                         format={(v) => `${v.toFixed(2)}×`}
                         onChange={setFreakOutRotationSpeed}
                       />
-                       <PadSlider
+                      <PadSlider
                         label={t("dial.camera.freakOutRotationPeakSpeed")}
                         value={freakOutRotationPeakSpeed}
                         min={0}
@@ -12626,7 +12669,7 @@ export function Aquafulness() {
                         label={t("dial.camera.freakOutRingRadius")}
                         value={freakOutRingRadius}
                         min={0}
-                        max={200}
+                        max={mx("freakOutRingRadius")}
                         step={0.5}
                         curve={2}
                         format={(v) => `${v.toFixed(1)}m`}
@@ -12884,7 +12927,7 @@ export function Aquafulness() {
                         label={t("dial.camera.tornadoRadius")}
                         value={tornadoRadius}
                         min={0}
-                        max={2000}
+                        max={mx("tornadoRadius")}
                         step={5}
                         curve={2}
                         format={(v) => `${v.toFixed(0)}m`}
@@ -12894,7 +12937,7 @@ export function Aquafulness() {
                         label={t("dial.camera.tornadoSpeed")}
                         value={tornadoSpeed}
                         min={0}
-                        max={20}
+                        max={mx("tornadoSpeed")}
                         step={0.1}
                         curve={2}
                         format={(v) => `${v.toFixed(2)}×`}
