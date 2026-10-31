@@ -1758,7 +1758,14 @@ async function buildCurrentBathPayload(
       ...settingsOverride,
     },
   };
-  const pose = loadCameraPose();
+  // A first-time visitor (nothing saved yet) gets the default Strandpark
+  // start pose — without it the bathe route seeds STORAGE_KEY with no pose,
+  // which no longer counts as a first start and lands at the origin.
+  const pose =
+    loadCameraPose() ??
+    (typeof window !== "undefined" && !window.localStorage.getItem(STORAGE_KEY)
+      ? FIRST_START_POSE
+      : null);
   if (pose && typeof pose.y === "number") {
     payload.c = { x: pose.x, y: pose.y, z: pose.z, yaw: pose.yaw, pitch: pose.pitch };
   }
