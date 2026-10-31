@@ -1140,6 +1140,18 @@ const WATERCRAFT_RAFT_Z = -30;
 // so the player initially faces the opposite way.
 const DEFAULT_START_YAW = Math.PI;
 
+// Where the player starts on a true first start (no saved settings and no
+// saved camera pose): the runtime half of the "Strandpark" state export
+// that DEFAULTS mirrors, so a fresh install opens looking exactly like it.
+const FIRST_START_POSE: CameraPose = {
+  x: 34.811963787462446,
+  y: -0.660333062409336,
+  z: -6.205494286536123,
+  yaw: 3.166723342940864,
+  pitch: 0.038964467019962666,
+};
+const FIRST_START_SURGE_DIR = { x: 0.9510381771772541, z: -0.30907343067848086 };
+
 // Respawn falls back to this single "Spawn" point at world origin whenever a
 // scene has no manifest, or its manifest lists no locations/places.
 const DEFAULT_SPAWN_LOCATION: SpawnLocation = {
@@ -1319,10 +1331,12 @@ const DEFAULTS: Persisted = {
   wavePreset: "standard",
   // Overrides on top of the "standard" wave preset — the app's default
   // initial state (see aquafulness-state export) tunes these away from that
-  // preset's own values.
-  waveAmp: 2.94,
-  waveSpeed: 5.21,
-  waveFreq: 0.51,
+  // preset's own values. All DEFAULTS values mirror the "Strandpark" state
+  // export (sceneId Strandpark2), the app's first-start state.
+  waveAmp: 0.34,
+  waveSpeed: 4.84,
+  waveFreq: 2.58,
+  wavePeak: 3,
   // Off by default: the FFT wave modes stay the same fixed shape every load
   // (see FFT_WAVE_SEED/DYING_WAVE_SEED above) rather than reshuffling.
   randomizeWaves: false,
@@ -1332,7 +1346,7 @@ const DEFAULTS: Persisted = {
   heightOffset: 0,
   submergeAmp: 0,
   floatLift: 0,
-  waveAnticipation: 1,
+  waveAnticipation: 2,
   camOffX: 0,
   camOffY: -0.1,
   camOffZ: 0,
@@ -1342,15 +1356,15 @@ const DEFAULTS: Persisted = {
   audioSpatial: false,
   waterSoundIdx: 2,
   waterColorIdx: 4,
-  waterOpacity: 0.5,
+  waterOpacity: 1,
   waterColorAlpha: 0,
   waveBgCustomColor: "",
-  waveBgOpacity: 1,
-  foamAmount: 1,
+  waveBgOpacity: 0.5,
+  foamAmount: 0,
   foamCoverage: 0.5,
   foamScale: 1,
   foamColor: "#f2faff",
-  detailWaves: 0.5,
+  detailWaves: 0,
   detailScale: 1,
   waterHue: 0,
   waterSat: 0.95,
@@ -1358,7 +1372,7 @@ const DEFAULTS: Persisted = {
   surfBright: 1,
   surfSat: 1,
   turbidity: 0,
-  bottomIdx: 0,
+  bottomIdx: 6,
   leanEnabled: false,
   // Off by default: an optional "swimming goggles" overlay — static water
   // droplets on the lens, plus an optional whole-screen blur (0 = none).
@@ -1384,7 +1398,7 @@ const DEFAULTS: Persisted = {
   // Both default to a conservative preset since this scene is expensive
   // (FFT ocean, reflections, torus rings) and many devices can't sustain a
   // full-resolution 60fps render.
-  targetFps: 40,
+  targetFps: 25,
   resolutionScale: 0.5,
   // Off by default: see lowGraphicsMode's doc comment in settingsShared.ts.
   lowGraphicsMode: false,
@@ -1398,9 +1412,9 @@ const DEFAULTS: Persisted = {
   backdropIdx: 0,
   wakeLock: true,
   camFov: 77,
-  camNear: 5,
+  camNear: 1.781,
   camFar: 100000,
-  waveDir: 182.51523652581446,
+  waveDir: 265.8681519256307,
   floorDepth: 28,
   floorTexture: true,
   floorCloudsAnimated: false,
@@ -1413,13 +1427,13 @@ const DEFAULTS: Persisted = {
   depthSineWaveform: "sine",
   depthDriftSpeed: 0,
   depthDriftSineOn: false,
-  depthDriftSineAmp: 1,
-  depthDriftSineSpeed: 0.1,
+  depthDriftSineAmp: 20,
+  depthDriftSineSpeed: 0.32,
   depthDriftSinePhase: 0,
   hideWater: false,
   midCloudsOn: false,
   midCloudsHeight: 0.5,
-  skyCloudsOn: true,
+  skyCloudsOn: false,
   skyCloudsAltitude: 1000,
   bottomClouds3d: false,
   midClouds3d: false,
@@ -1443,7 +1457,7 @@ const DEFAULTS: Persisted = {
   // the existing HEAVE-locked SVAJ, not a replacement for it.
   surgeAmp: 0,
   surgeSpeed: 0.2,
-  surgeRotationMode: "off",
+  surgeRotationMode: "cw",
   surgeRotationSpeed: 2,
   // On by default, generous enough (20km horizontally, 3km up/down) that
   // normal float-mode swimming near origin never brushes it — mainly meant
@@ -1453,11 +1467,11 @@ const DEFAULTS: Persisted = {
   worldBoundaryOn: true,
   worldBoundarySize: 20000,
   worldBoundaryHeight: 3000,
-  worldBoundaryYExtend: true,
+  worldBoundaryYExtend: false,
   liveMode: false,
   sceneId: "Strandpark2",
-  spawnLocationId: null,
-  envId: "strandpark",
+  spawnLocationId: "spawn",
+  envId: "sky",
   envEra: "present",
   envTime: "day",
   timeTravelBaseMs: null,
@@ -1532,59 +1546,59 @@ const DEFAULTS: Persisted = {
   noclipSpeed: 1,
   noclipFallRiseSpeed: 48,
   noclipVertEaseTime: 0.7,
-  bodyflightAirflow: 60,
+  bodyflightAirflow: 120,
   bodyflightGravity: 1,
   bodyflightHoverHeight: 2,
-  swingPositionY: 25,
-  swingIntensity: 0.3,
+  swingPositionY: 78.4,
+  swingIntensity: 1.47,
   // GUNGA HASTIGHET: multiplies the pendulum's tempo on top of GUNGA
   // INTENSITET, so it can cross the water surface faster without also
   // widening the arc.
-  swingSpeed: 1,
+  swingSpeed: 0.22,
   swingXFactor: 0,
-  swingHeight: 20000,
+  swingHeight: 336.4,
   swingPreset: "water",
   swingYWaveform: "pendulum",
   // FREAK OUT carousel layered on GUNGA — off by default.
   freakOutOn: false,
-  freakOutSwingAxis: 0,
-  freakOutSwingAngle: 90,
-  freakOutSwingSpeed: 1,
-  freakOutSwingLength: 12,
-  freakOutRingRadius: 8,
+  freakOutSwingAxis: 114,
+  freakOutSwingAngle: 125,
+  freakOutSwingSpeed: 1.25,
+  freakOutSwingLength: 800,
+  freakOutRingRadius: 3.28,
   freakOutRotationOn: true,
   freakOutRotationAxis: "y",
-  freakOutRotationSpeed: 1,
-  freakOutRotationPeakSpeed: 0.25,
-  freakOutRotationRecovery: 1,
+  freakOutRotationSpeed: 0.26,
+  freakOutRotationPeakSpeed: 1,
+  freakOutRotationRecovery: 0.25,
   freakOutRotationOscillate: false,
   freakOutRotationOscillateSpeed: 1,
-  freakOutRotationOscillateEveryOther: false,
-  freakOutRotationDirection: "cw",
+  freakOutRotationOscillateEveryOther: true,
+  freakOutRotationDirection: "ccw",
   freakOutViewFixedHeading: false,
-  freakOutShowArm: true,
+  freakOutShowArm: false,
   freakOutShowFrame: false,
-  freakOutShowTopRing: true,
-  freakOutShowHub: true,
+  freakOutShowTopRing: false,
+  freakOutShowHub: false,
   freakOutRingLevel: false,
-  freakOutSeatsOn: false,
-  freakOutSeatCount: 8,
-  freakOutCameraSeat: 1,
-  freakOutSeatPostLength: 1.9,
-  freakOutSeatColor: "#ffffff",
+  freakOutSeatsOn: true,
+  freakOutSeatCount: 16,
+  freakOutCameraSeat: 2,
+  freakOutSeatPostLength: 0.77,
+  freakOutSeatColor: "#ff00ff",
   freakOutRingColor: "#d8dde3",
   freakOutPostColor: "#d8dde3",
   freakOutArmColor: "#d8dde3",
   freakOutFrameColor: "#8b5a2b",
-  swingKeepSpeed: false,
-  swingKeepSpeedRefHeight: 20000,
+  swingKeepSpeed: true,
+  swingKeepSpeedRefHeight: 291.6,
   // Unified TORNADO toggle for GUNGA (swing) and flying (noclip/watercraft):
   // off by default (plain pendulum arc / plain free flight).
   tornadoOn: false,
-  tornadoRadius: 40,
-  tornadoSpeed: 1,
-  tornadoDirection: "cw",
-  tornadoOpening: 14,
+  tornadoRadius: 66.25,
+  tornadoSpeed: 13.38,
+  tornadoDirection: "ccw",
+  tornadoOpening: 16.5,
   // On by default: camera eases toward staring at the tornado/whirlpool
   // center (like the old standalone VIRVEL mode always did) instead of
   // keeping whatever forward direction NAV/LOOK has it facing.
@@ -1595,7 +1609,7 @@ const DEFAULTS: Persisted = {
   // TORNADO SEQUENCE: off by default — the automatic drag-in/stay/exit cycle
   // is opt-in on top of the always-available manual NAV+current radial pull.
   tornadoSequenceOn: false,
-  tornadoSequenceDragSpeed: 20,
+  tornadoSequenceDragSpeed: 5.45,
   tornadoSequenceDragDuration: 4,
   tornadoSequenceStayDuration: 5,
   tornadoSequenceExitMode: "outer",
@@ -1614,19 +1628,20 @@ const DEFAULTS: Persisted = {
   surfaceArea: 1000,
   // Floating torus "bath rings" field — off by default so existing scenes
   // look unchanged until explicitly turned on. Defaults per the feature
-  // spec: emissive white, 50% opacity. Scale defaults to 3x — the original
-  // 1x rings read as far too small (see TORUS_SCALE_MIGRATION_KEY below).
+  // spec: emissive white, 50% opacity. Scale defaults to 20x (from the
+  // Strandpark default state); see TORUS_SCALE_MIGRATION_KEY below for the
+  // old 1x -> 3x bump.
   torusRingsOn: false,
   torusRadius: 0.6,
-  torusTube: 0.08,
-  torusScale: 3,
+  torusTube: 0.02,
+  torusScale: 20,
   torusOpacity: 0.5,
   torusTextureIdx: 0,
   // Edge-to-edge gaps between rings (horizontal XZ / vertical Y), not
   // center distances — TorusRingField adds the ring's own scaled size on
   // top, so resizing rings never makes neighbours intersect.
   torusCellSize: 2,
-  torusVerticalSpacing: 1,
+  torusVerticalSpacing: 13.58,
   torusVerticalCount: 5,
   torusViewDistance: 26,
   torusFadeDistance: 8,
@@ -1646,13 +1661,12 @@ function loadSettings(): Persisted {
     if (!raw) return DEFAULTS;
     const parsed: Record<string, unknown> = JSON.parse(raw);
     if (!window.localStorage.getItem(TORUS_SCALE_MIGRATION_KEY)) {
-      if (parsed.torusScale === 1) parsed.torusScale = DEFAULTS.torusScale;
+      if (parsed.torusScale === 1) parsed.torusScale = 3;
       window.localStorage.setItem(TORUS_SCALE_MIGRATION_KEY, "1");
     }
     if (!window.localStorage.getItem(TORUS_GAPS_MIGRATION_KEY)) {
-      if (parsed.torusCellSize === 6) parsed.torusCellSize = DEFAULTS.torusCellSize;
-      if (parsed.torusVerticalSpacing === 1.4)
-        parsed.torusVerticalSpacing = DEFAULTS.torusVerticalSpacing;
+      if (parsed.torusCellSize === 6) parsed.torusCellSize = 2;
+      if (parsed.torusVerticalSpacing === 1.4) parsed.torusVerticalSpacing = 1;
       window.localStorage.setItem(TORUS_GAPS_MIGRATION_KEY, "1");
     }
     // Migrate settings saved before TORNADO/WHIRLPOOL were merged into one
@@ -1882,11 +1896,28 @@ export function Aquafulness() {
   const { t } = useTranslation();
   const online = useOnlineStatus();
   const mountRef = useRef<HTMLDivElement>(null);
+  // True only on the very first start: nothing has been saved yet, so the
+  // app opens in the default "Strandpark" state including its camera pose.
+  const isFirstStart = useRef(
+    typeof window !== "undefined" &&
+      (() => {
+        try {
+          return (
+            !window.localStorage.getItem(STORAGE_KEY) &&
+            !window.localStorage.getItem(CAMERA_STORAGE_KEY)
+          );
+        } catch {
+          return false;
+        }
+      })(),
+  ).current;
   const initial = useRef<Persisted>(loadSettings()).current;
   // Autosaved free-roam camera pose (see CAMERA_STORAGE_KEY below) — read
   // once at mount so a reload resumes from wherever the camera was left,
   // instead of always snapping back to the origin looking forward.
-  const initialCameraPose = useRef<CameraPose | null>(loadCameraPose()).current;
+  const initialCameraPose = useRef<CameraPose | null>(
+    loadCameraPose() ?? (isFirstStart ? FIRST_START_POSE : null),
+  ).current;
   const [waveAmp, setWaveAmp] = useState(initial.waveAmp);
   const [timeOfDay, setTimeOfDay] = useState(initial.timeOfDay);
   const [waveSpeed, setWaveSpeed] = useState(initial.waveSpeed);
@@ -3282,11 +3313,13 @@ export function Aquafulness() {
   // it (cw/ccw) or nudging it (random) on its own. Defaults to a concrete
   // bearing (not {0,0}) so raising SURGE AMOUNT alone already produces
   // visible motion before the direction is ever touched.
-  const surgeWorldRef = useRef({ x: 0, z: 1 });
+  const surgeWorldRef = useRef(isFirstStart ? { ...FIRST_START_SURGE_DIR } : { x: 0, z: 1 });
   // Current SURGE bearing in radians (atan2(x,z) convention, matching
   // worldXZBearing/bearingToWorldXZ) — the single source of truth for
   // surgeWorldRef's direction; see setSurgeBearing and the physics loop.
-  const surgeAngleRef = useRef(0);
+  const surgeAngleRef = useRef(
+    isFirstStart ? Math.atan2(FIRST_START_SURGE_DIR.x, FIRST_START_SURGE_DIR.z) : 0,
+  );
   // Smoothed angular-velocity accumulator (rad/s) driving surgeRotationMode
   // "random" — a damped random walk instead of raw per-frame jitter, so the
   // direction wanders the way a real current shifts instead of jittering.
