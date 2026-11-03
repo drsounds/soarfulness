@@ -735,6 +735,12 @@ export type Persisted = {
   // While the arm swings, alternate at every other turnaround instead of
   // at every one.
   freakOutRotationOscillateEveryOther: boolean;
+  // PEAK KICK: a rotational impulse to the seat ring at each peak of the
+  // swing (both directions). The extra spin, freakOutRotationKick times
+  // the ring's own ROTATION SPEED, lands right at the turnaround and lets
+  // go on the way back to the middle, until the next peak kicks again.
+  freakOutRotationKickOn: boolean;
+  freakOutRotationKick: number;
   // Spin direction of the gondola ring (before any back-and-forth
   // alternation from freakOutRotationOscillate).
   // By default the view rides the ring like the real ride's seat: it turns
@@ -873,6 +879,8 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "freakOutRotationOscillate",
     "freakOutRotationOscillateSpeed",
     "freakOutRotationOscillateEveryOther",
+    "freakOutRotationKickOn",
+    "freakOutRotationKick",
     "freakOutRotationDirection",
     "freakOutViewFixedHeading",
     "freakOutShowArm",

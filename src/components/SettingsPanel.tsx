@@ -590,6 +590,10 @@ export type SettingsPanelProps = {
   setFreakOutRotationOscillateSpeed: Dispatch<SetStateAction<number>>;
   freakOutRotationOscillateEveryOther: boolean;
   setFreakOutRotationOscillateEveryOther: Dispatch<SetStateAction<boolean>>;
+  freakOutRotationKickOn: boolean;
+  setFreakOutRotationKickOn: Dispatch<SetStateAction<boolean>>;
+  freakOutRotationKick: number;
+  setFreakOutRotationKick: Dispatch<SetStateAction<number>>;
   freakOutRotationDirection: TornadoDirection;
   freakOutViewFixedHeading: boolean;
   setFreakOutViewFixedHeading: Dispatch<SetStateAction<boolean>>;
@@ -1580,6 +1584,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setFreakOutRotationOscillateSpeed,
     freakOutRotationOscillateEveryOther,
     setFreakOutRotationOscillateEveryOther,
+    freakOutRotationKickOn,
+    setFreakOutRotationKickOn,
+    freakOutRotationKick,
+    setFreakOutRotationKick,
     freakOutRotationDirection,
     setFreakOutRotationDirection,
     freakOutViewFixedHeading,
@@ -2876,6 +2884,36 @@ export function SettingsPanel(props: SettingsPanelProps) {
                             setFreakOutRotationRecovery((v) => Math.min(4, +(v + 0.05).toFixed(2)))
                           }
                         />
+                        <SettingRow
+                          label={t("dial.camera.freakOutRotationKickOn")}
+                          value={onOff(freakOutRotationKickOn)}
+                          onDec={() => setFreakOutRotationKickOn(false)}
+                          onInc={() => setFreakOutRotationKickOn(true)}
+                        />
+                        {freakOutRotationKickOn && (
+                          <SettingRow
+                            label={t("dial.camera.freakOutRotationKick")}
+                            mode="number"
+                            value={`${freakOutRotationKick.toFixed(2)}×`}
+                            rawValue={freakOutRotationKick}
+                            onSet={(v) =>
+                              setFreakOutRotationKick(
+                                Math.max(0, Math.min(mx("freakOutRotationKick"), v)),
+                              )
+                            }
+                            min={0}
+                            max={mx("freakOutRotationKick")}
+                            step={0.05}
+                            onDec={() =>
+                              setFreakOutRotationKick((v) => Math.max(0, +(v - 0.05).toFixed(2)))
+                            }
+                            onInc={() =>
+                              setFreakOutRotationKick((v) =>
+                                Math.min(mx("freakOutRotationKick"), +(v + 0.05).toFixed(2)),
+                              )
+                            }
+                          />
+                        )}
                         <SettingRow
                           label={t("dial.camera.freakOutRotationDirection")}
                           value={t(TORNADO_DIRECTION_LABEL_KEYS[freakOutRotationDirection])}
