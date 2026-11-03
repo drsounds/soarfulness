@@ -3282,11 +3282,9 @@ export function Aquafulness() {
   // The lift actually applied (eases toward the float offset while RIDE
   // runs in SIMMARE, toward 0 otherwise).
   const freakOutLiftRef = useRef(0);
-  // PEAK KICK state: the kick's current extra spin (in ROTATION SPEED
-  // units, decaying toward 0) and the swing's last cos(phase) sign, whose
-  // flip marks a turnaround.
+  // PEAK SPIN-UP: its strength as actually applied, eased toward the
+  // setting (0 while off).
   const freakOutKickRef = useRef(0);
-  const freakOutKickPrevCosRef = useRef(1);
   const freakOutRotationDirectionRef = useRef(freakOutRotationDirection);
   const freakOutViewFixedHeadingRef = useRef(freakOutViewFixedHeading);
   const freakOutShowArmRef = useRef(freakOutShowArm);
@@ -9762,33 +9760,29 @@ export function Aquafulness() {
           const recoveryEase = recoveryProgress * recoveryProgress * (3 - 2 * recoveryProgress);
           const peakSpeed = Math.max(0, Math.min(1, freakOutRotationPeakSpeedRef.current));
           const foSpinScale = 1 - foSwingSync * (1 - peakSpeed - (1 - peakSpeed) * recoveryEase);
-          // PEAK KICK: the moment the swing turns around (cos(phase) flips
-          // sign, i.e. exactly at the peak angle on either side) the ring
-          // gets a rotational impulse of KICK × ROTATION SPEED on top, which
-          // then lets go on the way back down, so it is all but gone by the
-          // middle of the swing, and the next peak kicks again. It pushes
-          // whichever way the ring is heading, so ALTERNATE DIRECTION gets
-          // its kick into the new pass.
+          // PEAK SPIN-UP (TOPPSTÖT): no jolt. The ring's spin builds up
+          // gradually as the swing climbs toward its peak angle on either
+          // side, is fastest right at the peak, and winds back down on the
+          // way back to the middle, then builds again toward the next peak.
+          // The extra spin follows sin²(phase) of the swing (0 at the
+          // bottom, 1 at each peak, smooth everywhere), so the spin
+          // accelerates and decelerates smoothly rather than snapping.
+          // freakOutKickRef eases the strength itself so switching it on/off
+          // or dragging the slider never jumps either.
           {
-            const foCos = Math.cos(freakOutSwingPhaseRef.current);
-            const foCosSign = foCos < 0 ? -1 : 1;
-            if (freakOutRotationKickOnRef.current && foCosSign !== freakOutKickPrevCosRef.current) {
-              freakOutKickRef.current = Math.max(0, freakOutRotationKickRef.current);
-            }
-            freakOutKickPrevCosRef.current = foCosSign;
-            // A quarter swing (peak to middle) takes (π/2)/ω; easing with a
-            // third of that leaves ~5 % of the kick by the middle.
-            const foPhaseRate = 0.6 * Math.max(0, Math.min(5, freakOutSwingSpeedRef.current));
-            const foKickTau = foPhaseRate > 1e-4 ? Math.PI / 2 / foPhaseRate / 3 : 0.3;
-            freakOutKickRef.current *= Math.exp(-physDt / Math.max(0.05, foKickTau));
-            if (!freakOutRotationKickOnRef.current) freakOutKickRef.current = 0;
+            const kickTarget = freakOutRotationKickOnRef.current
+              ? Math.max(0, freakOutRotationKickRef.current)
+              : 0;
+            freakOutKickRef.current +=
+              (kickTarget - freakOutKickRef.current) * (1 - Math.exp(-physDt / 0.6));
           }
-          const foBaseDir = freakOutRotationDirectionRef.current === "ccw" ? -1 : 1;
-          const foKickDir = foDir > 0 ? 1 : foDir < 0 ? -1 : foBaseDir;
+          const foPeakSin = Math.sin(freakOutSwingPhaseRef.current);
+          const foPeakBoost = foSwingSync * freakOutKickRef.current * foPeakSin * foPeakSin;
           freakOutRingSpinRef.current =
             0.8 *
             Math.max(0, freakOutRotationSpeedRef.current) *
-            (foDir * foSpinScale + foKickDir * foSwingSync * freakOutKickRef.current);
+            foDir *
+            (foSpinScale + foPeakBoost);
           freakOutRingAngleRef.current +=
             freakOutRingSpinRef.current * freakOutRotBlendRef.current * physDt;
           // SEATS: ride in the chosen seat by sitting that much further
