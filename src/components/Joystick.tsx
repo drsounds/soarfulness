@@ -14,14 +14,25 @@ export function JoystickPad({
   value,
   label = "NAV",
   sticky = false,
-  radius = 42,
+  radius: radiusProp,
+  size = "md",
+  variant = "stick",
 }: {
   onChange: (v: StickValue) => void;
   value: StickValue;
   label?: string;
   sticky?: boolean;
   radius?: number;
+  // sm: the compact levers in the bottom-center console; md: the original
+  // 96 px pad; lg: the big NAV steering wheel on the left.
+  size?: "sm" | "md" | "lg";
+  // "wheel" draws the pad as a steering wheel (thick rim and spokes) rather
+  // than a plain stick base. It still reads out the same 2D vector.
+  variant?: "stick" | "wheel";
 }) {
+  const radius = radiusProp ?? (size === "lg" ? 56 : size === "sm" ? 30 : 42);
+  const baseSize = size === "lg" ? "h-32 w-32" : size === "sm" ? "h-20 w-20" : "h-24 w-24";
+  const thumbSize = size === "lg" ? "h-11 w-11" : size === "sm" ? "h-8 w-8" : "h-9 w-9";
   const { t } = useTranslation();
   const baseRef = useRef<HTMLDivElement>(null);
   const activeId = useRef<number | null>(null);
@@ -69,12 +80,32 @@ export function JoystickPad({
         activeId.current = null;
         if (!sticky) onChange({ x: 0, y: 0 });
       }}
-      className="ui-surface pointer-events-auto relative h-24 w-24 touch-none select-none rounded-full border backdrop-blur-md"
+      className={`ui-surface pointer-events-auto relative ${baseSize} touch-none select-none rounded-full border backdrop-blur-md`}
       style={{ boxShadow: "inset 0 0 40px rgba(255,255,255,0.05)" }}
     >
-      <div className="ui-line-1 pointer-events-none absolute inset-3 rounded-full border" />
+      {variant === "wheel" ? (
+        // Steering wheel: a thick rim plus three spokes, turned with the
+        // stick's x so it visibly steers.
+        <svg
+          viewBox="0 0 100 100"
+          className="ui-ink-faint pointer-events-none absolute inset-0 h-full w-full"
+          fill="none"
+          stroke="currentColor"
+          aria-hidden="true"
+          style={{
+            transform: `rotate(${value.x * 70}deg)`,
+            transition: "transform 0.1s ease-out",
+          }}
+        >
+          <circle cx="50" cy="50" r="43" strokeWidth="7" opacity="0.55" />
+          <circle cx="50" cy="50" r="12" strokeWidth="2" opacity="0.5" />
+          <path d="M38 50H8M62 50h30M50 62v31" strokeWidth="5" opacity="0.45" />
+        </svg>
+      ) : (
+        <div className="ui-line-1 pointer-events-none absolute inset-3 rounded-full border" />
+      )}
       <div
-        className="ui-thumb pointer-events-none absolute left-1/2 top-1/2 h-9 w-9 rounded-full border"
+        className={`ui-thumb pointer-events-none absolute left-1/2 top-1/2 ${thumbSize} rounded-full border`}
         style={{
           transform: `translate(calc(-50% + ${value.x * radius}px), calc(-50% + ${-value.y * radius}px))`,
         }}
@@ -302,16 +333,27 @@ export function Joystick({
   label = "NAV",
   positionClass = "bottom-8 left-8",
   sticky = false,
+  size,
+  variant,
 }: {
   onChange: (v: StickValue) => void;
   value: StickValue;
   label?: string;
   positionClass?: string;
   sticky?: boolean;
+  size?: "sm" | "md" | "lg";
+  variant?: "stick" | "wheel";
 }) {
   return (
     <div className={`pointer-events-none absolute z-10 select-none ${positionClass}`}>
-      <JoystickPad onChange={onChange} value={value} label={label} sticky={sticky} />
+      <JoystickPad
+        onChange={onChange}
+        value={value}
+        label={label}
+        sticky={sticky}
+        size={size}
+        variant={variant}
+      />
     </div>
   );
 }

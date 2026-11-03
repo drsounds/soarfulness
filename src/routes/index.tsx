@@ -41,6 +41,8 @@ import {
   VerticalModeSlider,
   type VerticalMode,
 } from "@/components/Joystick";
+import { CameraModeIcon, HudIconButton } from "@/components/HudControls";
+import { FerrisWheel, LifeBuoy, Tornado } from "lucide-react";
 import { hsvToRgb } from "@/lib/waterTint";
 import AmbientAudio, { resolveNativeAudioSource } from "@/lib/ambientAudio";
 import {
@@ -11803,115 +11805,75 @@ export function Aquafulness() {
           </div>
         </div>
 
-        {/* Camera mode toggle: picks between the four movement schemes
-            (SIMMARE/FLYG/VIRVEL/GUNGA — see CameraMode) without opening the
-            full settings panel — one tab button per mode (see
-            CAMERA_MODE_TAB_ORDER) rather than a single cycling dial, so any
-            mode is reachable in one tap. Disabled to a plain readout while
-            an interval session is driving cameraMode automatically (mirrors
-            the same read-only treatment the KAMERA settings tab gives it),
-            so manual taps here never fight the session's own alternation.
-            Changing cameraMode by any means re-syncs the bottom camera
-            drawer's tab (see the cameraDrawerTab effect above) to match.
-            To its left, a standalone WHIRLPOOL/TORNADO toggle button binds
-            directly to the shared tornadoOn setting regardless of which
-            mode is active: while swimming (float) it reads WHIRLPOOL and
-            brings back the old standalone VIRVEL mode's feel (camera orbits
-            and dips into a real water vortex); in every other mode it reads
-            TORNADO and behaves exactly like the KAMERA settings dial.
-            top- tracks the top bar's own safe-area/fullscreen-aware offset
-            above (plus its button height) so this row keeps a steady gap
-            below it instead of a fixed distance from the raw screen top. */}
+        {/* Controller layout, right side: the camera modes (SIMMARE/GUNGA/
+            FLYG/BODYFLIGHT, see CAMERA_MODE_TAB_ORDER) and the quick toggles
+            that used to sit as a dropdown and pill buttons along the top
+            (WHIRLPOOL/TORNADO, RIDE, BADRINGAR) are one column of round icon
+            buttons down the right edge, like a gamepad's face buttons. The
+            active mode is lit. While an interval session drives cameraMode
+            the mode buttons are disabled (the session's own alternation
+            wins), and TORNADO/RIDE are hidden as before. A mode reached some
+            other way (FARKOST via the app catalog) gets a button of its own
+            while it's active, so the column never hides the current mode. */}
         <div
-          className={`pointer-events-none absolute inset-x-0 z-20 flex flex-wrap items-center justify-center gap-2 px-4 ${
+          className={`pointer-events-none absolute right-[calc(env(safe-area-inset-right,0px)+1rem)] z-20 flex max-h-[calc(100dvh-26rem)] md:max-h-[calc(100dvh-21rem)] flex-col flex-wrap-reverse items-center gap-x-0 gap-y-1 ${
             isFullscreen
               ? "top-[calc(env(safe-area-inset-top,0px)+5.5rem)]"
               : "top-[calc(env(safe-area-inset-top,0px)+4.5rem)]"
           }`}
         >
-          {!intervalSessionOn && (
-            <button
-              type="button"
-              onClick={() => setTornadoOn((v) => !v)}
-              aria-pressed={tornadoOn}
-              className={`pointer-events-auto rounded-full border px-3 py-1.5 text-[10px] font-light tracking-[0.2em] backdrop-blur-md transition active:scale-95 ${
-                tornadoOn ? "ui-line-3 ui-tint-2 ui-ink" : "ui-line-2 ui-surface ui-ink-muted"
-              }`}
+          {(CAMERA_MODE_TAB_ORDER.includes(cameraMode)
+            ? CAMERA_MODE_TAB_ORDER
+            : [...CAMERA_MODE_TAB_ORDER, cameraMode]
+          ).map((m) => (
+            <HudIconButton
+              key={m}
+              label={
+                intervalSessionOn && m === cameraMode
+                  ? `${t(CAMERA_MODE_LABEL_KEYS[m])} ${t("camera.mode.autoSuffix")}`
+                  : t(CAMERA_MODE_LABEL_KEYS[m])
+              }
+              active={cameraMode === m}
+              disabled={intervalSessionOn}
+              onClick={() => setCameraMode(m)}
             >
-              {t(
+              <CameraModeIcon mode={m} />
+            </HudIconButton>
+          ))}
+          <div className="ui-line-2 my-0.5 h-px w-6 border-t" aria-hidden="true" />
+          {!intervalSessionOn && (
+            <HudIconButton
+              label={t(
                 cameraMode === "float" || cameraMode === "bodyflight"
                   ? "hud.tornadoToggle.whirlpool"
                   : "hud.tornadoToggle.tornado",
               )}
-            </button>
+              active={tornadoOn}
+              onClick={() => setTornadoOn((v) => !v)}
+            >
+              <Tornado className="h-5 w-5" strokeWidth={1.6} aria-hidden="true" />
+            </HudIconButton>
           )}
           {!intervalSessionOn && (
-            <button
-              type="button"
+            <HudIconButton
+              label={t("dial.camera.freakOut")}
+              active={freakOutOn}
               onClick={() => setFreakOutOn((v) => !v)}
-              aria-pressed={freakOutOn}
-              className={`pointer-events-auto rounded-full border px-3 py-1.5 text-[10px] font-light tracking-[0.2em] backdrop-blur-md transition active:scale-95 ${
-                freakOutOn ? "ui-line-3 ui-tint-2 ui-ink" : "ui-line-2 ui-surface ui-ink-muted"
-              }`}
             >
-              {t("dial.camera.freakOut")}
-            </button>
+              <FerrisWheel className="h-5 w-5" strokeWidth={1.6} aria-hidden="true" />
+            </HudIconButton>
           )}
-          {intervalSessionOn ? (
-            <div className="pointer-events-auto rounded-full border ui-line-1 ui-surface px-4 py-1.5 text-[10px] font-light tracking-[0.3em] ui-ink-muted backdrop-blur-md">
-              {t(CAMERA_MODE_LABEL_KEYS[cameraMode])} {t("camera.mode.autoSuffix")}
-            </div>
-          ) : (
-            <label className="pointer-events-auto relative flex items-center rounded-full border ui-line-2 ui-surface backdrop-blur-md">
-              <span className="sr-only">{t("dial.camera.mode")}</span>
-              <select
-                value={cameraMode}
-                onChange={(e) => setCameraMode(e.target.value as CameraMode)}
-                className="cursor-pointer appearance-none rounded-full bg-transparent py-1.5 pl-4 pr-8 text-[10px] font-light tracking-[0.2em] ui-ink outline-none"
-              >
-                {/* A mode reached some other way (FARKOST via the app
-                    catalog) stays selectable here so the dropdown never
-                    shows the wrong mode. */}
-                {(CAMERA_MODE_TAB_ORDER.includes(cameraMode)
-                  ? CAMERA_MODE_TAB_ORDER
-                  : [...CAMERA_MODE_TAB_ORDER, cameraMode]
-                ).map((m) => (
-                  <option key={m} value={m} className="bg-neutral-900 text-white">
-                    {t(CAMERA_MODE_LABEL_KEYS[m])}
-                  </option>
-                ))}
-              </select>
-              <svg
-                viewBox="0 0 12 12"
-                width="10"
-                height="10"
-                className="pointer-events-none absolute right-3 ui-ink-muted"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                aria-hidden="true"
-              >
-                <path d="M2.5 4.5 6 8l3.5-3.5" />
-              </svg>
-            </label>
-          )}
-          {/* BADRINGAR: the bath-ring counterpart of the WHIRLPOOL/TORNADO
-              toggle on the left — one tap flips torusRingsOn without opening
-              any settings. Not hidden during interval sessions (unlike the
+          {/* BADRINGAR: not hidden during interval sessions (unlike the
               tornado toggle), since the rings don't move the camera. */}
-          <button
-            type="button"
+          <HudIconButton
+            label={t("dial.env.torusRings")}
+            ariaLabel={t("hud.torusToggleAria")}
+            active={torusRingsOn}
             onClick={() => setTorusRingsOn((v) => !v)}
-            aria-pressed={torusRingsOn}
-            aria-label={t("hud.torusToggleAria")}
-            className={`pointer-events-auto rounded-full border px-3 py-1.5 text-[10px] font-light tracking-[0.2em] backdrop-blur-md transition active:scale-95 ${
-              torusRingsOn ? "ui-line-3 ui-tint-2 ui-ink" : "ui-line-2 ui-surface ui-ink-muted"
-            }`}
           >
-            {t("dial.env.torusRings")}
-          </button>
+            <LifeBuoy className="h-5 w-5" strokeWidth={1.6} aria-hidden="true" />
+          </HudIconButton>
         </div>
-
         <ShareBathDialog
           open={shareBathOpen}
           onClose={() => setShareBathOpen(false)}
@@ -11954,60 +11916,34 @@ export function Aquafulness() {
           </div>
         )}
 
-        {/* PS-liknande layout:
-            Vänster sida: NAV (rörelse, momentan) längst ned, STRÖM/NOCLIP
-            DRIFT XZ (drift, sticky) ovanför.
-            Höger sida: LOOK (rotation, momentan) längst ned, VÅGRIKT
-            (sticky) ovanför.
-            SVAJ (FRI) eller HÖJD + FRITT FALL/OMVÄND STIGNING (NOCLIP) delar
-            STRÖM/DRIFT XZ:s kolumn, ovanför den.
-            STRÖM/HÖJD/SVAJ/VÅGRIKT finns även i "Fjärrkontroll"-appen i
-            bathOS-telefonen (se VirtualPhone.tsx) — samma state/handlers,
-            bara ett andra sätt att nå dem. I GUNGA-läget flyttar NAV/STRÖM
-            gungans ankarpunkt — utom när TORNADO är på, då NAV:s y-axel i
-            stället styr avståndet in mot/ut från virvelns centrum (se
-            updateTornadoLiveRadius). */}
+        {/* Controller layout ("handkontroll"):
+            Left: NAV as a steering wheel (movement, momentary). In NOCLIP/
+            FARKOST the FRITT FALL/OMVÄND STIGNING/AUTO/HÄVNING/SVAJ pills
+            sit in a column above it.
+            Bottom center: a console of levers (see the console row in the
+            drawer stack below) — STRÖM, SVAJ, VÅGRIKT and SYNVINKEL (LOOK),
+            swapped per mode for DRIVA XZ/DRIVA Y/HOPP (NOCLIP) or LUFTSTRÖM/
+            KROPP (BODYFLIGHT).
+            Right: the camera modes and quick toggles as icon buttons (see
+            above), with the water level's raise/lower regulator (NIVÅ DRIFT
+            + NIVÅ RESET) at the bottom and TILL MITTEN beside it while
+            TORNADO is on.
+            STRÖM/HÖJD/SVAJ/VÅGRIKT also live in the bathOS phone's
+            "Fjärrkontroll" app (VirtualPhone.tsx) — same state/handlers. In
+            GUNGA, NAV/STRÖM move the swing's anchor — except with TORNADO on,
+            where NAV's y axis instead steers in toward/out from the vortex
+            (see updateTornadoLiveRadius). */}
         <Joystick
           onChange={setStick}
           value={stick}
           label={t("hud.joystick.nav")}
-          positionClass="bottom-[calc(env(safe-area-inset-bottom,0px)+2rem)] left-[calc(env(safe-area-inset-left,0px)+2rem)]"
+          size="lg"
+          variant="wheel"
+          positionClass="bottom-[calc(env(safe-area-inset-bottom,0px)+2rem)] left-[calc(env(safe-area-inset-left,0px)+1.5rem)]"
         />
-        {(cameraMode === "float" || cameraMode === "swing" || cameraMode === "bodyflight") && (
-          <Joystick
-            onChange={remoteControllerProps.onDriftChange}
-            value={remoteControllerProps.driftStick}
-            label={t("hud.joystick.current")}
-            positionClass="bottom-[calc(env(safe-area-inset-bottom,0px)+9rem)] left-[calc(env(safe-area-inset-left,0px)+2rem)]"
-            sticky
-          />
-        )}
-        {cameraMode === "float" && (
-          <Joystick
-            onChange={remoteControllerProps.onSwayChange}
-            value={remoteControllerProps.swayStick}
-            label={t("hud.joystick.sway")}
-            positionClass="bottom-[calc(env(safe-area-inset-bottom,0px)+16rem)] left-[calc(env(safe-area-inset-left,0px)+2rem)]"
-            sticky
-          />
-        )}
-        {/* NOCLIP replaces STRÖM/SVAJ's two slots with its own sticky drift
-            dials: DRIFT XZ (STRÖM's spot) and, above it (SVAJ's spot), a Y
-            drift pad (HÖJD/vertStick, made sticky here) flanked by two small
-            toggle buttons — OMVÄND STIGNING above, FRITT FALL below — that
-            each pin the vertical rate to a strong constant climb/dive. */}
         {(cameraMode === "noclip" || cameraMode === "watercraft") && (
-          <Joystick
-            onChange={remoteControllerProps.onNoclipDriftChange}
-            value={remoteControllerProps.noclipDriftStick}
-            label={t("hud.joystick.noclipDriftXZ")}
-            positionClass="bottom-[calc(env(safe-area-inset-bottom,0px)+9rem)] left-[calc(env(safe-area-inset-left,0px)+2rem)]"
-            sticky
-          />
-        )}
-        {(cameraMode === "noclip" || cameraMode === "watercraft") && (
-          <div className="pointer-events-none absolute bottom-[calc(env(safe-area-inset-bottom,0px)+16rem)] left-[calc(env(safe-area-inset-left,0px)+2rem)] z-10 select-none">
-            <div className="flex flex-col items-center gap-1">
+          <div className="pointer-events-none absolute bottom-[calc(env(safe-area-inset-bottom,0px)+11rem)] left-[calc(env(safe-area-inset-left,0px)+1.5rem)] z-10 select-none">
+            <div className="flex flex-col items-start gap-1">
               <button
                 type="button"
                 onClick={() => {
@@ -12023,12 +11959,6 @@ export function Aquafulness() {
               >
                 {t("hud.joystick.reverseRise")}
               </button>
-              <JoystickPad
-                label={t("hud.joystick.noclipDriftY")}
-                value={vertStick}
-                onChange={setVertStick}
-                sticky
-              />
               <button
                 type="button"
                 onClick={() => {
@@ -12060,11 +11990,8 @@ export function Aquafulness() {
               </button>
               {/* HEAVE/SWAY: opt in to riding the wave's own vertical bob/
                   horizontal sway on top of the free-flight position — purely
-                  cosmetic (unlike FLYT/VIRVEL's real buoyancy), so it applies
-                  the same above or under the surface. Only takes effect while
-                  JUMP is in STILL (see the physics loop's noclip sway/heave
-                  branch), easing in/out with the same NOCLIP EASE dial as
-                  FRITT FALL/OMVÄND STIGNING. */}
+                  cosmetic, applies the same above or under the surface, only
+                  while HOPP is in STILL, easing with NOCLIP EASE. */}
               <button
                 type="button"
                 onClick={() => setNoclipHeaveOn((v) => !v)}
@@ -12088,55 +12015,12 @@ export function Aquafulness() {
             </div>
           </div>
         )}
-        <Joystick
-          onChange={setRotStick}
-          value={rotStick}
-          label={t("hud.joystick.look")}
-          // Extra bottom clearance (+3.5rem beyond the left column's
-          // matching offset) keeps this clear of the "Edit with Lovable"
-          // badge that Lovable's published preview pins to the bottom-right
-          // corner of the viewport.
-          positionClass="bottom-[calc(env(safe-area-inset-bottom,0px)+5.5rem)] right-[calc(env(safe-area-inset-right,0px)+2rem)]"
-        />
-        {/* BODYFLIGHT: LUFTSTRÖM, the updraft's strength from the ground,
-            in SVAJ's spot (bodyflight has no sway). */}
-        {cameraMode === "bodyflight" && (
-          <div className="pointer-events-none absolute bottom-[calc(env(safe-area-inset-bottom,0px)+16rem)] left-[calc(env(safe-area-inset-left,0px)+2rem)] z-10 select-none">
-            <VerticalDial
-              value={bodyflightAirflow}
-              onChange={(v) => setBodyflightAirflow(Math.round(v))}
-              onReset={() => setBodyflightAirflow(DEFAULTS.bodyflightAirflow)}
-              label={t("hud.joystick.airflow")}
-              min={0}
-              max={BODYFLIGHT_AIRFLOW_MAX}
-            />
-          </div>
-        )}
-        {/* BODYFLIGHT: KROPP, the body's posture, in VÅGRIKT's spot above
-            LOOK — up/down stands the body up head first/feet first (falls
-            faster), centered lies flat (floats), sideways banks it. */}
-        {cameraMode === "bodyflight" && (
-          <Joystick
-            onChange={setBodyStick}
-            value={bodyStick}
-            label={t("hud.joystick.body")}
-            positionClass="bottom-[calc(env(safe-area-inset-bottom,0px)+12.5rem)] right-[calc(env(safe-area-inset-right,0px)+2rem)]"
-            sticky
-          />
-        )}
-        {cameraMode === "float" && (
-          <Joystick
-            onChange={remoteControllerProps.onWaveDirChange}
-            value={remoteControllerProps.waveDirStick}
-            label={t("hud.joystick.waveDirection")}
-            positionClass="bottom-[calc(env(safe-area-inset-bottom,0px)+12.5rem)] right-[calc(env(safe-area-inset-right,0px)+2rem)]"
-            sticky
-          />
-        )}
-        {/* LEVEL DRIFT: unlike STRÖM/SVAJ/VÅGRIKT/HÖJD above, this isn't
+        {/* NIVÅ: the water level's raise/lower regulator, bottom right. Not
             gated behind a cameraMode check — the water level drifts the same
-            way regardless of how the camera is currently moving. */}
-        <div className="pointer-events-none absolute bottom-[calc(env(safe-area-inset-bottom,0px)+19.5rem)] right-[calc(env(safe-area-inset-right,0px)+2rem)] z-10 select-none">
+            way however the camera is moving. Extra bottom clearance keeps it
+            clear of the "Edit with Lovable" badge Lovable's published
+            preview pins to the bottom-right corner. */}
+        <div className="pointer-events-none absolute bottom-[calc(env(safe-area-inset-bottom,0px)+2rem)] right-[calc(env(safe-area-inset-right,0px)+1.75rem)] md:bottom-[calc(env(safe-area-inset-bottom,0px)+4.5rem)] z-10 select-none">
           <div className="flex flex-col items-center gap-1">
             <VerticalDial
               value={depthDriftSpeed}
@@ -12144,6 +12028,7 @@ export function Aquafulness() {
               label={t("hud.joystick.levelDrift")}
               min={-20}
               max={20}
+              height={120}
             />
             <button
               type="button"
@@ -12154,12 +12039,10 @@ export function Aquafulness() {
             </button>
           </div>
         </div>
-        {/* TORNADO TO CENTER: carries the bather in toward (up) or out
-            from (down) the whirlpool's center, now that NAV and STRÖM move
-            the whole whirlpool. Left of LEVEL DRIFT, clear of its RESET LEVEL
-            pill. */}
+        {/* TORNADO TO CENTER: carries the bather in toward (up) or out from
+            (down) the whirlpool's center. Left of the level regulator. */}
         {tornadoOn && cameraMode !== "watercraft" && (
-          <div className="pointer-events-none absolute bottom-[calc(env(safe-area-inset-bottom,0px)+19.5rem)] right-[calc(env(safe-area-inset-right,0px)+8.75rem)] z-10 select-none">
+          <div className="pointer-events-none absolute bottom-[calc(env(safe-area-inset-bottom,0px)+3.5rem)] right-[calc(env(safe-area-inset-right,0px)+6rem)] md:bottom-[calc(env(safe-area-inset-bottom,0px)+6rem)] z-10 select-none">
             <VerticalDial
               value={tornadoRadialSpeed}
               onChange={setTornadoRadialSpeed}
@@ -12169,21 +12052,99 @@ export function Aquafulness() {
             />
           </div>
         )}
-        {/* JUMP: a single tri-state slider (RISE/STILL/FALL) replacing the
-            left column's separate FRITT FALL/OMVÄND STIGNING pill buttons for
-            anyone who'd rather drag one control than tap two — both drive the
-            exact same state, so either stays in sync with the other. Sits in
-            VÅGRIKT's unused spot on the right since noclip has no wave
-            direction to steer. */}
-        {(cameraMode === "noclip" || cameraMode === "watercraft") && (
-          <div className="pointer-events-none absolute bottom-[calc(env(safe-area-inset-bottom,0px)+12.5rem)] right-[calc(env(safe-area-inset-right,0px)+2rem)] z-10 select-none">
+        {/* The lever console: the controller's bottom-center row of
+            sticks/levers, just under the camera drawer. Below md it rises
+            above the NAV wheel and the level regulator, since the three
+            don't fit side by side on a portrait phone. */}
+        <div className="pointer-events-none absolute bottom-[calc(env(safe-area-inset-bottom,0px)+14rem)] left-1/2 z-10 flex -translate-x-1/2 md:bottom-[calc(env(safe-area-inset-bottom,0px)+1.5rem)] max-w-[calc(100vw-2rem)] items-end justify-center gap-2.5 select-none">
+          {(cameraMode === "float" || cameraMode === "swing" || cameraMode === "bodyflight") && (
+            <JoystickPad
+              onChange={remoteControllerProps.onDriftChange}
+              value={remoteControllerProps.driftStick}
+              label={t("hud.joystick.current")}
+              size="sm"
+              sticky
+            />
+          )}
+          {cameraMode === "float" && (
+            <JoystickPad
+              onChange={remoteControllerProps.onSwayChange}
+              value={remoteControllerProps.swayStick}
+              label={t("hud.joystick.sway")}
+              size="sm"
+              sticky
+            />
+          )}
+          {cameraMode === "float" && (
+            <JoystickPad
+              onChange={remoteControllerProps.onWaveDirChange}
+              value={remoteControllerProps.waveDirStick}
+              label={t("hud.joystick.waveDirection")}
+              size="sm"
+              sticky
+            />
+          )}
+          {/* NOCLIP/FARKOST: DRIVA XZ and DRIVA Y (HÖJD/vertStick, sticky
+              here) in STRÖM/SVAJ's places, then HOPP — the tri-state
+              RISE/STILL/FALL lever driving the same state as the FRITT
+              FALL/OMVÄND STIGNING pills by the wheel. */}
+          {(cameraMode === "noclip" || cameraMode === "watercraft") && (
+            <JoystickPad
+              onChange={remoteControllerProps.onNoclipDriftChange}
+              value={remoteControllerProps.noclipDriftStick}
+              label={t("hud.joystick.noclipDriftXZ")}
+              size="sm"
+              sticky
+            />
+          )}
+          {(cameraMode === "noclip" || cameraMode === "watercraft") && (
+            <JoystickPad
+              label={t("hud.joystick.noclipDriftY")}
+              value={vertStick}
+              onChange={setVertStick}
+              size="sm"
+              sticky
+            />
+          )}
+          {(cameraMode === "noclip" || cameraMode === "watercraft") && (
             <VerticalModeSlider
               value={noclipVerticalMode}
               onChange={setNoclipVerticalMode}
               label={t("hud.joystick.jump")}
+              height={80}
             />
-          </div>
-        )}
+          )}
+          {/* BODYFLIGHT: LUFTSTRÖM (the updraft's strength) as a lever
+              in SVAJ's place, and KROPP (posture: up/down stands the body
+              head or feet first and it falls faster, centered lies flat
+              and floats, sideways banks) in VÅGRIKT's. */}
+          {cameraMode === "bodyflight" && (
+            <VerticalDial
+              value={bodyflightAirflow}
+              onChange={(v) => setBodyflightAirflow(Math.round(v))}
+              onReset={() => setBodyflightAirflow(DEFAULTS.bodyflightAirflow)}
+              label={t("hud.joystick.airflow")}
+              min={0}
+              max={BODYFLIGHT_AIRFLOW_MAX}
+              height={72}
+            />
+          )}
+          {cameraMode === "bodyflight" && (
+            <JoystickPad
+              onChange={setBodyStick}
+              value={bodyStick}
+              label={t("hud.joystick.body")}
+              size="sm"
+              sticky
+            />
+          )}
+          <JoystickPad
+            onChange={setRotStick}
+            value={rotStick}
+            label={t("hud.joystick.look")}
+            size="sm"
+          />
+        </div>
 
         {/* RIDE OVERLAY: while the ride is on, its most-used dials sit on
             screen down the left edge (between the top bar and the left
@@ -12294,7 +12255,7 @@ export function Aquafulness() {
             and it would otherwise collide with WatercraftHud occupying the
             same bottom-center spot. */}
         {cameraMode !== "watercraft" && (
-          <div className="pointer-events-auto absolute bottom-[calc(env(safe-area-inset-bottom,0px)+2rem)] left-1/2 z-20 flex -translate-x-1/2 flex-col items-center gap-2">
+          <div className="pointer-events-auto absolute bottom-[calc(env(safe-area-inset-bottom,0px)+22rem)] md:bottom-[calc(env(safe-area-inset-bottom,0px)+9.5rem)] left-1/2 z-20 flex -translate-x-1/2 flex-col items-center gap-2">
             {cameraDrawerOpen && (
               <div className="flex flex-col items-center gap-2 rounded-3xl border ui-line-1 ui-surface-strong p-4 shadow-2xl backdrop-blur-xl">
                 {/* One row that swipes sideways when the tabs don't fit,
@@ -12354,7 +12315,7 @@ export function Aquafulness() {
                     (the tab row above stays put), so a long tab like
                     FREAK OUT never pushes the drawer off the top of the
                     screen. */}
-                <div className="flex max-h-[55vh] w-full flex-col items-center gap-2 overflow-y-auto overscroll-contain">
+                <div className="flex max-h-[min(55vh,calc(100dvh-34rem))] w-full md:max-h-[min(55vh,calc(100dvh-22rem))] flex-col items-center gap-2 overflow-y-auto overscroll-contain">
                   {cameraDrawerTab === "float" && (
                     <>
                       <PadSlider
