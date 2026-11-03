@@ -594,6 +594,10 @@ export type SettingsPanelProps = {
   setFreakOutRotationKickOn: Dispatch<SetStateAction<boolean>>;
   freakOutRotationKick: number;
   setFreakOutRotationKick: Dispatch<SetStateAction<number>>;
+  freakOutFloatYOffset: number;
+  setFreakOutFloatYOffset: Dispatch<SetStateAction<number>>;
+  freakOutOverlayOn: boolean;
+  setFreakOutOverlayOn: Dispatch<SetStateAction<boolean>>;
   freakOutRotationDirection: TornadoDirection;
   freakOutViewFixedHeading: boolean;
   setFreakOutViewFixedHeading: Dispatch<SetStateAction<boolean>>;
@@ -1588,6 +1592,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setFreakOutRotationKickOn,
     freakOutRotationKick,
     setFreakOutRotationKick,
+    freakOutFloatYOffset,
+    setFreakOutFloatYOffset,
+    freakOutOverlayOn,
+    setFreakOutOverlayOn,
     freakOutRotationDirection,
     setFreakOutRotationDirection,
     freakOutViewFixedHeading,
@@ -2776,6 +2784,34 @@ export function SettingsPanel(props: SettingsPanelProps) {
                           Math.min(mx("freakOutSwingLength"), +(v + 0.5).toFixed(1)),
                         )
                       }
+                    />
+                    <SettingRow
+                      label={t("dial.camera.freakOutFloatYOffset")}
+                      mode="number"
+                      value={`${freakOutFloatYOffset.toFixed(1)}m`}
+                      rawValue={freakOutFloatYOffset}
+                      onSet={(v) =>
+                        setFreakOutFloatYOffset(
+                          Math.max(0, Math.min(mx("freakOutFloatYOffset"), v)),
+                        )
+                      }
+                      min={0}
+                      max={mx("freakOutFloatYOffset")}
+                      step={0.5}
+                      onDec={() =>
+                        setFreakOutFloatYOffset((v) => Math.max(0, +(v - 0.5).toFixed(1)))
+                      }
+                      onInc={() =>
+                        setFreakOutFloatYOffset((v) =>
+                          Math.min(mx("freakOutFloatYOffset"), +(v + 0.5).toFixed(1)),
+                        )
+                      }
+                    />
+                    <SettingRow
+                      label={t("dial.camera.freakOutOverlayOn")}
+                      value={onOff(freakOutOverlayOn)}
+                      onDec={() => setFreakOutOverlayOn(false)}
+                      onInc={() => setFreakOutOverlayOn(true)}
                     />
                     <SettingRow
                       label={t("dial.camera.freakOutRingRadius")}

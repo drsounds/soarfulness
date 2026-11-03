@@ -741,6 +741,12 @@ export type Persisted = {
   // go on the way back to the middle, until the next peak kicks again.
   freakOutRotationKickOn: boolean;
   freakOutRotationKick: number;
+  // RIDE in SIMMARE (float) mode: the whole ride, view and rig, sits this
+  // many meters higher, so the gondola swings clear of the waves.
+  freakOutFloatYOffset: number;
+  // RIDE OVERLAY: quick on-screen sliders (swing speed/angle/axis, spin
+  // speed/axis, peak kick) while the ride is on.
+  freakOutOverlayOn: boolean;
   // Spin direction of the gondola ring (before any back-and-forth
   // alternation from freakOutRotationOscillate).
   // By default the view rides the ring like the real ride's seat: it turns
@@ -881,6 +887,8 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "freakOutRotationOscillateEveryOther",
     "freakOutRotationKickOn",
     "freakOutRotationKick",
+    "freakOutFloatYOffset",
+    "freakOutOverlayOn",
     "freakOutRotationDirection",
     "freakOutViewFixedHeading",
     "freakOutShowArm",
