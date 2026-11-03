@@ -30,7 +30,7 @@ export const EXTREME_MAX = {
   freakOutRingRadius: 200, // FREAK OUT RINGRADIE
   freakOutRotationSpeed: 10, // RIDE ROTATIONSHASTIGHET (navet)
   freakOutFloatYOffset: 200, // RIDE HÖJD I SIMLÄGE (m)
-  freakOutRotationKick: 8, // RIDE TOPPSTÖT (× rotationshastigheten)
+  freakOutRotationKick: 8, // RIDE SNURR VID TOPPEN (× rotationshastigheten)
 } as const;
 
 export type LimitedControl = keyof typeof EXTREME_MAX;

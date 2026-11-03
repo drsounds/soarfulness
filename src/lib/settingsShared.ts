@@ -735,10 +735,10 @@ export type Persisted = {
   // While the arm swings, alternate at every other turnaround instead of
   // at every one.
   freakOutRotationOscillateEveryOther: boolean;
-  // PEAK KICK: a rotational impulse to the seat ring at each peak of the
-  // swing (both directions). The extra spin, freakOutRotationKick times
-  // the ring's own ROTATION SPEED, lands right at the turnaround and lets
-  // go on the way back to the middle, until the next peak kicks again.
+  // PEAK SPIN-UP (TOPPSTÖT): the seat ring's spin builds up gradually
+  // toward each peak of the swing (both directions), up to
+  // 1 + freakOutRotationKick times ROTATION SPEED at the peak, and winds
+  // back down on the way to the middle. Smooth, never a jolt.
   freakOutRotationKickOn: boolean;
   freakOutRotationKick: number;
   // RIDE in SIMMARE (float) mode: the whole ride, view and rig, sits this
