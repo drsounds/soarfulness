@@ -78,6 +78,7 @@ import {
   type SwingPreset,
   type SwingYWaveform,
   type FreakOutAxis,
+  FREAK_OUT_AXES,
   type DepthSineWaveform,
   type IntervalSessionType,
   type WavePresetName,
@@ -1578,6 +1579,8 @@ const DEFAULTS: Persisted = {
   freakOutRotationOscillateEveryOther: true,
   freakOutRotationKickOn: false,
   freakOutRotationKick: 1.5,
+  freakOutFloatYOffset: 10,
+  freakOutOverlayOn: true,
   freakOutRotationDirection: "ccw",
   freakOutViewFixedHeading: false,
   freakOutShowArm: false,
@@ -2232,6 +2235,8 @@ export function Aquafulness() {
     initial.freakOutRotationKickOn,
   );
   const [freakOutRotationKick, setFreakOutRotationKick] = useState(initial.freakOutRotationKick);
+  const [freakOutFloatYOffset, setFreakOutFloatYOffset] = useState(initial.freakOutFloatYOffset);
+  const [freakOutOverlayOn, setFreakOutOverlayOn] = useState(initial.freakOutOverlayOn);
   const [freakOutRotationDirection, setFreakOutRotationDirection] = useState<TornadoDirection>(
     initial.freakOutRotationDirection,
   );
@@ -2296,6 +2301,7 @@ export function Aquafulness() {
     clamp("freakOutRingRadius", freakOutRingRadius, setFreakOutRingRadius);
     clamp("freakOutRotationSpeed", freakOutRotationSpeed, setFreakOutRotationSpeed);
     clamp("freakOutRotationKick", freakOutRotationKick, setFreakOutRotationKick);
+    clamp("freakOutFloatYOffset", freakOutFloatYOffset, setFreakOutFloatYOffset);
   }, [
     extremeLimits,
     waveAmp,
@@ -2311,6 +2317,7 @@ export function Aquafulness() {
     freakOutRingRadius,
     freakOutRotationSpeed,
     freakOutRotationKick,
+    freakOutFloatYOffset,
   ]);
   const [tornadoDirection, setTornadoDirection] = useState<TornadoDirection>(
     initial.tornadoDirection,
@@ -2870,6 +2877,8 @@ export function Aquafulness() {
     freakOutRotationOscillateEveryOther,
     freakOutRotationKickOn,
     freakOutRotationKick,
+    freakOutFloatYOffset,
+    freakOutOverlayOn,
     freakOutRotationDirection,
     freakOutViewFixedHeading,
     freakOutShowArm,
@@ -3116,6 +3125,8 @@ export function Aquafulness() {
     freakOutRotationOscillateEveryOther,
     freakOutRotationKickOn,
     freakOutRotationKick,
+    freakOutFloatYOffset,
+    freakOutOverlayOn,
     freakOutRotationDirection,
     freakOutViewFixedHeading,
     freakOutShowArm,
@@ -3267,6 +3278,10 @@ export function Aquafulness() {
   const freakOutRotationOscillateEveryOtherRef = useRef(freakOutRotationOscillateEveryOther);
   const freakOutRotationKickOnRef = useRef(freakOutRotationKickOn);
   const freakOutRotationKickRef = useRef(freakOutRotationKick);
+  const freakOutFloatYOffsetRef = useRef(freakOutFloatYOffset);
+  // The lift actually applied (eases toward the float offset while RIDE
+  // runs in SIMMARE, toward 0 otherwise).
+  const freakOutLiftRef = useRef(0);
   // PEAK KICK state: the kick's current extra spin (in ROTATION SPEED
   // units, decaying toward 0) and the swing's last cos(phase) sign, whose
   // flip marks a turnaround.
@@ -4233,6 +4248,9 @@ export function Aquafulness() {
     freakOutRotationKickRef.current = freakOutRotationKick;
   }, [freakOutRotationKick]);
   useEffect(() => {
+    freakOutFloatYOffsetRef.current = freakOutFloatYOffset;
+  }, [freakOutFloatYOffset]);
+  useEffect(() => {
     freakOutRotationDirectionRef.current = freakOutRotationDirection;
   }, [freakOutRotationDirection]);
   useEffect(() => {
@@ -4732,6 +4750,8 @@ export function Aquafulness() {
     setFreakOutRotationOscillateEveryOther(DEFAULTS.freakOutRotationOscillateEveryOther);
     setFreakOutRotationKickOn(DEFAULTS.freakOutRotationKickOn);
     setFreakOutRotationKick(DEFAULTS.freakOutRotationKick);
+    setFreakOutFloatYOffset(DEFAULTS.freakOutFloatYOffset);
+    setFreakOutOverlayOn(DEFAULTS.freakOutOverlayOn);
     setFreakOutRotationDirection(DEFAULTS.freakOutRotationDirection);
     setFreakOutViewFixedHeading(DEFAULTS.freakOutViewFixedHeading);
     setFreakOutShowArm(DEFAULTS.freakOutShowArm);
@@ -5006,6 +5026,9 @@ export function Aquafulness() {
       setFreakOutRotationKickOn(patch.freakOutRotationKickOn);
     if (patch.freakOutRotationKick !== undefined)
       setFreakOutRotationKick(patch.freakOutRotationKick);
+    if (patch.freakOutFloatYOffset !== undefined)
+      setFreakOutFloatYOffset(patch.freakOutFloatYOffset);
+    if (patch.freakOutOverlayOn !== undefined) setFreakOutOverlayOn(patch.freakOutOverlayOn);
     if (patch.freakOutRotationDirection !== undefined)
       setFreakOutRotationDirection(patch.freakOutRotationDirection);
     if (patch.freakOutViewFixedHeading !== undefined)
@@ -9799,7 +9822,25 @@ export function Aquafulness() {
         }
       }
 
-      const camY = (camYRef.current ?? 0) + tornadoLiftOffsetRef.current * tornadoBlendRef.current;
+      // RIDE in SIMMARE: lift the whole ride (the view's seat and, since the
+      // rig is anchored off camera.position, the rig with it) by the float
+      // offset, faded with the ride's own blend and eased when the mode
+      // changes underneath it. Like the rest of RIDE it is a rendered offset
+      // only, so floating's buoyancy spring never sees it.
+      {
+        const liftTarget =
+          camMode === "float"
+            ? Math.max(0, freakOutFloatYOffsetRef.current) * freakOutBlendRef.current
+            : 0;
+        freakOutLiftRef.current +=
+          (liftTarget - freakOutLiftRef.current) * (1 - Math.exp(-physDt / 0.4));
+        if (Math.abs(freakOutLiftRef.current) < 1e-4 && liftTarget === 0)
+          freakOutLiftRef.current = 0;
+      }
+      const camY =
+        (camYRef.current ?? 0) +
+        tornadoLiftOffsetRef.current * tornadoBlendRef.current +
+        freakOutLiftRef.current;
       camera.position.set(
         camX + camOffXRef.current + swayX + surgeX + _foOffset.x,
         camY + camOffYRef.current + levelY + _foOffset.y,
@@ -11002,6 +11043,10 @@ export function Aquafulness() {
     setFreakOutRotationKickOn,
     freakOutRotationKick,
     setFreakOutRotationKick,
+    freakOutFloatYOffset,
+    setFreakOutFloatYOffset,
+    freakOutOverlayOn,
+    setFreakOutOverlayOn,
     freakOutRotationDirection,
     setFreakOutRotationDirection,
     freakOutViewFixedHeading,
@@ -12146,6 +12191,96 @@ export function Aquafulness() {
           </div>
         )}
 
+        {/* RIDE OVERLAY: while the ride is on, its most-used dials sit on
+            screen down the left edge (between the top bar and the left
+            joystick) so they can be played with mid-ride without opening
+            the drawer. Hidden while the RIDE drawer tab is showing the same
+            dials, and switchable off with RIDE OVERLAY. */}
+        {freakOutOn &&
+          freakOutOverlayOn &&
+          !settingsOpen &&
+          !(cameraDrawerOpen && cameraDrawerTab === "freakout") && (
+            <div className="pointer-events-auto absolute left-[calc(env(safe-area-inset-left,0px)+1rem)] top-[calc(env(safe-area-inset-top,0px)+5.5rem)] z-20 flex max-h-[calc(100%-22rem)] max-w-[calc(100%-2rem)] flex-col items-start gap-1.5 overflow-y-auto">
+              <PadSlider
+                label={t("dial.camera.freakOutOverlaySwingSpeed")}
+                value={freakOutSwingSpeed}
+                min={0}
+                max={mx("freakOutSwingSpeed")}
+                step={0.05}
+                curve={2}
+                format={(v) => `${v.toFixed(2)}×`}
+                onChange={setFreakOutSwingSpeed}
+              />
+              <PadSlider
+                label={t("dial.camera.freakOutOverlaySwingAngle")}
+                value={freakOutSwingAngle}
+                min={0}
+                max={180}
+                step={1}
+                format={(v) => `${v.toFixed(0)}°`}
+                onChange={setFreakOutSwingAngle}
+              />
+              <PadSlider
+                label={t("dial.camera.freakOutOverlaySwingAxis")}
+                value={freakOutSwingAxis}
+                min={0}
+                max={180}
+                step={1}
+                format={(v) => `${v.toFixed(0)}°`}
+                onChange={setFreakOutSwingAxis}
+              />
+              <PadSlider
+                label={t("dial.camera.freakOutOverlayRotationSpeed")}
+                value={freakOutRotationSpeed}
+                min={0}
+                max={mx("freakOutRotationSpeed")}
+                step={0.05}
+                curve={2}
+                format={(v) => `${v.toFixed(2)}×`}
+                onChange={setFreakOutRotationSpeed}
+              />
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFreakOutRotationAxis(
+                      (a) =>
+                        FREAK_OUT_AXES[(FREAK_OUT_AXES.indexOf(a) + 1) % FREAK_OUT_AXES.length],
+                    )
+                  }
+                  className="ui-line-2 ui-surface ui-ink rounded-full border px-3 py-1.5 text-[9px] font-light tracking-[0.28em] backdrop-blur-md transition active:scale-95"
+                >
+                  {t("dial.camera.freakOutOverlayRotationAxis")}:{" "}
+                  {freakOutRotationAxis.toUpperCase()}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFreakOutRotationKickOn((v) => !v)}
+                  aria-pressed={freakOutRotationKickOn}
+                  className={`rounded-full border px-3 py-1.5 text-[9px] font-light tracking-[0.28em] backdrop-blur-md transition active:scale-95 ${
+                    freakOutRotationKickOn
+                      ? "ui-line-3 ui-tint-2 ui-ink"
+                      : "ui-line-2 ui-surface ui-ink-muted"
+                  }`}
+                >
+                  {t("dial.camera.freakOutOverlayKick")}:{" "}
+                  {t(freakOutRotationKickOn ? "common.on" : "common.off")}
+                </button>
+              </div>
+              {freakOutRotationKickOn && (
+                <PadSlider
+                  label={t("dial.camera.freakOutOverlayKickStrength")}
+                  value={freakOutRotationKick}
+                  min={0}
+                  max={mx("freakOutRotationKick")}
+                  step={0.05}
+                  format={(v) => `${v.toFixed(2)}×`}
+                  onChange={setFreakOutRotationKick}
+                />
+              )}
+            </div>
+          )}
+
         {/* Quick per-camera-mode settings — tucked behind their own bottom
             drawer (like SETTINGS) instead of always-on sliders sitting right
             next to the joysticks, so a stray touch near bottom-center can't
@@ -12684,6 +12819,29 @@ export function Aquafulness() {
                         format={(v) => `${v.toFixed(1)}m`}
                         onChange={setFreakOutSwingLength}
                       />
+                      <PadSlider
+                        label={t("dial.camera.freakOutFloatYOffset")}
+                        value={freakOutFloatYOffset}
+                        min={0}
+                        max={mx("freakOutFloatYOffset")}
+                        step={0.5}
+                        curve={2}
+                        format={(v) => `${v.toFixed(1)}m`}
+                        onChange={setFreakOutFloatYOffset}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setFreakOutOverlayOn((v) => !v)}
+                        aria-pressed={freakOutOverlayOn}
+                        className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                          freakOutOverlayOn
+                            ? "ui-line-3 ui-tint-2 ui-ink"
+                            : "ui-line-2 ui-surface ui-ink-muted"
+                        }`}
+                      >
+                        {t("dial.camera.freakOutOverlayOn")}:{" "}
+                        {t(freakOutOverlayOn ? "common.on" : "common.off")}
+                      </button>
                       <button
                         type="button"
                         onClick={() => setFreakOutRotationOn((v) => !v)}
