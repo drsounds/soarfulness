@@ -1576,6 +1576,8 @@ const DEFAULTS: Persisted = {
   freakOutRotationOscillate: false,
   freakOutRotationOscillateSpeed: 1,
   freakOutRotationOscillateEveryOther: true,
+  freakOutRotationKickOn: false,
+  freakOutRotationKick: 1.5,
   freakOutRotationDirection: "ccw",
   freakOutViewFixedHeading: false,
   freakOutShowArm: false,
@@ -2226,6 +2228,10 @@ export function Aquafulness() {
   const [freakOutRotationOscillateEveryOther, setFreakOutRotationOscillateEveryOther] = useState(
     initial.freakOutRotationOscillateEveryOther,
   );
+  const [freakOutRotationKickOn, setFreakOutRotationKickOn] = useState(
+    initial.freakOutRotationKickOn,
+  );
+  const [freakOutRotationKick, setFreakOutRotationKick] = useState(initial.freakOutRotationKick);
   const [freakOutRotationDirection, setFreakOutRotationDirection] = useState<TornadoDirection>(
     initial.freakOutRotationDirection,
   );
@@ -2289,6 +2295,7 @@ export function Aquafulness() {
     clamp("freakOutSwingLength", freakOutSwingLength, setFreakOutSwingLength);
     clamp("freakOutRingRadius", freakOutRingRadius, setFreakOutRingRadius);
     clamp("freakOutRotationSpeed", freakOutRotationSpeed, setFreakOutRotationSpeed);
+    clamp("freakOutRotationKick", freakOutRotationKick, setFreakOutRotationKick);
   }, [
     extremeLimits,
     waveAmp,
@@ -2303,6 +2310,7 @@ export function Aquafulness() {
     freakOutSwingLength,
     freakOutRingRadius,
     freakOutRotationSpeed,
+    freakOutRotationKick,
   ]);
   const [tornadoDirection, setTornadoDirection] = useState<TornadoDirection>(
     initial.tornadoDirection,
@@ -2860,6 +2868,8 @@ export function Aquafulness() {
     freakOutRotationOscillate,
     freakOutRotationOscillateSpeed,
     freakOutRotationOscillateEveryOther,
+    freakOutRotationKickOn,
+    freakOutRotationKick,
     freakOutRotationDirection,
     freakOutViewFixedHeading,
     freakOutShowArm,
@@ -3104,6 +3114,8 @@ export function Aquafulness() {
     freakOutRotationOscillate,
     freakOutRotationOscillateSpeed,
     freakOutRotationOscillateEveryOther,
+    freakOutRotationKickOn,
+    freakOutRotationKick,
     freakOutRotationDirection,
     freakOutViewFixedHeading,
     freakOutShowArm,
@@ -3253,6 +3265,13 @@ export function Aquafulness() {
   const freakOutRotationOscillateRef = useRef(freakOutRotationOscillate);
   const freakOutRotationOscillateSpeedRef = useRef(freakOutRotationOscillateSpeed);
   const freakOutRotationOscillateEveryOtherRef = useRef(freakOutRotationOscillateEveryOther);
+  const freakOutRotationKickOnRef = useRef(freakOutRotationKickOn);
+  const freakOutRotationKickRef = useRef(freakOutRotationKick);
+  // PEAK KICK state: the kick's current extra spin (in ROTATION SPEED
+  // units, decaying toward 0) and the swing's last cos(phase) sign, whose
+  // flip marks a turnaround.
+  const freakOutKickRef = useRef(0);
+  const freakOutKickPrevCosRef = useRef(1);
   const freakOutRotationDirectionRef = useRef(freakOutRotationDirection);
   const freakOutViewFixedHeadingRef = useRef(freakOutViewFixedHeading);
   const freakOutShowArmRef = useRef(freakOutShowArm);
@@ -4208,6 +4227,12 @@ export function Aquafulness() {
     freakOutRotationOscillateEveryOtherRef.current = freakOutRotationOscillateEveryOther;
   }, [freakOutRotationOscillateEveryOther]);
   useEffect(() => {
+    freakOutRotationKickOnRef.current = freakOutRotationKickOn;
+  }, [freakOutRotationKickOn]);
+  useEffect(() => {
+    freakOutRotationKickRef.current = freakOutRotationKick;
+  }, [freakOutRotationKick]);
+  useEffect(() => {
     freakOutRotationDirectionRef.current = freakOutRotationDirection;
   }, [freakOutRotationDirection]);
   useEffect(() => {
@@ -4705,6 +4730,8 @@ export function Aquafulness() {
     setFreakOutRotationOscillate(DEFAULTS.freakOutRotationOscillate);
     setFreakOutRotationOscillateSpeed(DEFAULTS.freakOutRotationOscillateSpeed);
     setFreakOutRotationOscillateEveryOther(DEFAULTS.freakOutRotationOscillateEveryOther);
+    setFreakOutRotationKickOn(DEFAULTS.freakOutRotationKickOn);
+    setFreakOutRotationKick(DEFAULTS.freakOutRotationKick);
     setFreakOutRotationDirection(DEFAULTS.freakOutRotationDirection);
     setFreakOutViewFixedHeading(DEFAULTS.freakOutViewFixedHeading);
     setFreakOutShowArm(DEFAULTS.freakOutShowArm);
@@ -4975,6 +5002,10 @@ export function Aquafulness() {
       setFreakOutRotationOscillateSpeed(patch.freakOutRotationOscillateSpeed);
     if (patch.freakOutRotationOscillateEveryOther !== undefined)
       setFreakOutRotationOscillateEveryOther(patch.freakOutRotationOscillateEveryOther);
+    if (patch.freakOutRotationKickOn !== undefined)
+      setFreakOutRotationKickOn(patch.freakOutRotationKickOn);
+    if (patch.freakOutRotationKick !== undefined)
+      setFreakOutRotationKick(patch.freakOutRotationKick);
     if (patch.freakOutRotationDirection !== undefined)
       setFreakOutRotationDirection(patch.freakOutRotationDirection);
     if (patch.freakOutViewFixedHeading !== undefined)
@@ -9708,8 +9739,33 @@ export function Aquafulness() {
           const recoveryEase = recoveryProgress * recoveryProgress * (3 - 2 * recoveryProgress);
           const peakSpeed = Math.max(0, Math.min(1, freakOutRotationPeakSpeedRef.current));
           const foSpinScale = 1 - foSwingSync * (1 - peakSpeed - (1 - peakSpeed) * recoveryEase);
+          // PEAK KICK: the moment the swing turns around (cos(phase) flips
+          // sign, i.e. exactly at the peak angle on either side) the ring
+          // gets a rotational impulse of KICK × ROTATION SPEED on top, which
+          // then lets go on the way back down, so it is all but gone by the
+          // middle of the swing, and the next peak kicks again. It pushes
+          // whichever way the ring is heading, so ALTERNATE DIRECTION gets
+          // its kick into the new pass.
+          {
+            const foCos = Math.cos(freakOutSwingPhaseRef.current);
+            const foCosSign = foCos < 0 ? -1 : 1;
+            if (freakOutRotationKickOnRef.current && foCosSign !== freakOutKickPrevCosRef.current) {
+              freakOutKickRef.current = Math.max(0, freakOutRotationKickRef.current);
+            }
+            freakOutKickPrevCosRef.current = foCosSign;
+            // A quarter swing (peak to middle) takes (π/2)/ω; easing with a
+            // third of that leaves ~5 % of the kick by the middle.
+            const foPhaseRate = 0.6 * Math.max(0, Math.min(5, freakOutSwingSpeedRef.current));
+            const foKickTau = foPhaseRate > 1e-4 ? Math.PI / 2 / foPhaseRate / 3 : 0.3;
+            freakOutKickRef.current *= Math.exp(-physDt / Math.max(0.05, foKickTau));
+            if (!freakOutRotationKickOnRef.current) freakOutKickRef.current = 0;
+          }
+          const foBaseDir = freakOutRotationDirectionRef.current === "ccw" ? -1 : 1;
+          const foKickDir = foDir > 0 ? 1 : foDir < 0 ? -1 : foBaseDir;
           freakOutRingSpinRef.current =
-            0.8 * Math.max(0, freakOutRotationSpeedRef.current) * foDir * foSpinScale;
+            0.8 *
+            Math.max(0, freakOutRotationSpeedRef.current) *
+            (foDir * foSpinScale + foKickDir * foSwingSync * freakOutKickRef.current);
           freakOutRingAngleRef.current +=
             freakOutRingSpinRef.current * freakOutRotBlendRef.current * physDt;
           // SEATS: ride in the chosen seat by sitting that much further
@@ -10942,6 +10998,10 @@ export function Aquafulness() {
     setFreakOutRotationOscillateSpeed,
     freakOutRotationOscillateEveryOther,
     setFreakOutRotationOscillateEveryOther,
+    freakOutRotationKickOn,
+    setFreakOutRotationKickOn,
+    freakOutRotationKick,
+    setFreakOutRotationKick,
     freakOutRotationDirection,
     setFreakOutRotationDirection,
     freakOutViewFixedHeading,
@@ -12665,6 +12725,30 @@ export function Aquafulness() {
                         format={(v) => `${v.toFixed(2)}×`}
                         onChange={setFreakOutRotationRecovery}
                       />
+                      <button
+                        type="button"
+                        onClick={() => setFreakOutRotationKickOn((v) => !v)}
+                        aria-pressed={freakOutRotationKickOn}
+                        className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                          freakOutRotationKickOn
+                            ? "ui-line-3 ui-tint-2 ui-ink"
+                            : "ui-line-2 ui-surface ui-ink-muted"
+                        }`}
+                      >
+                        {t("dial.camera.freakOutRotationKickOn")}:{" "}
+                        {t(freakOutRotationKickOn ? "common.on" : "common.off")}
+                      </button>
+                      {freakOutRotationKickOn && (
+                        <PadSlider
+                          label={t("dial.camera.freakOutRotationKick")}
+                          value={freakOutRotationKick}
+                          min={0}
+                          max={mx("freakOutRotationKick")}
+                          step={0.05}
+                          format={(v) => `${v.toFixed(2)}×`}
+                          onChange={setFreakOutRotationKick}
+                        />
+                      )}
                       <PadSlider
                         label={t("dial.camera.freakOutRingRadius")}
                         value={freakOutRingRadius}

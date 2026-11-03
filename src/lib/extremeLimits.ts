@@ -28,7 +28,8 @@ export const EXTREME_MAX = {
   freakOutSwingSpeed: 5, // FREAK OUT GUNGHASTIGHET
   freakOutSwingLength: 800, // FREAK OUT ARMLÄNGD
   freakOutRingRadius: 200, // FREAK OUT RINGRADIE
-  freakOutRotationSpeed: 10, // FREAK OUT ROTATIONSHASTIGHET (navet)
+  freakOutRotationSpeed: 10, // RIDE ROTATIONSHASTIGHET (navet)
+  freakOutRotationKick: 8, // RIDE TOPPSTÖT (× rotationshastigheten)
 } as const;
 
 export type LimitedControl = keyof typeof EXTREME_MAX;
