@@ -295,6 +295,7 @@
       "worldBoundaryHeight": "GRÆNSEHØJDE (Y)",
       "worldBoundarySize": "GRÆNSESTØRRELSE (XZ)",
       "worldBoundaryYExtend": "UENDELIGE SKYLAG",
+      "sunTint": "SOLTONING",
       "dayNightAuto": "DØGNSKIFT",
       "snow": "SNE",
       "snowAmount": "SNEMÆNGDE",

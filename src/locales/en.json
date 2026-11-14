@@ -295,6 +295,7 @@
       "worldBoundaryHeight": "BOUNDARY HEIGHT (Y)",
       "worldBoundarySize": "BOUNDARY SIZE (XZ)",
       "worldBoundaryYExtend": "INFINITE CLOUD LAYERS",
+      "sunTint": "SUNRISE/SUNSET TINT",
       "dayNightAuto": "DAY/NIGHT SWAP",
       "snow": "SNOW",
       "snowAmount": "SNOW AMOUNT",

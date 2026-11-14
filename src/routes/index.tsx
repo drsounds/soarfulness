@@ -29,6 +29,7 @@ import {
   NIGHT_TIME_ID,
   hasDayNightPair,
   nightBackdropMix,
+  sunsetTintAmount,
 } from "@/lib/sceneFx/dayNightBackdrop";
 import { WatercraftRig } from "@/lib/watercraft/WatercraftRig";
 import type { BuildAction, SculptAction, ToolMode } from "@/lib/watercraft/types";
@@ -1559,6 +1560,8 @@ const DEFAULTS: Persisted = {
   // skybox, the backdrop follows TIMEOFDAY — night skybox at night, day
   // skybox by day, cross-faded at dawn and dusk (lib/sceneFx/dayNightBackdrop.ts).
   envDayNightAutoOn: true,
+  // SOLTONING: sunrise/sunset tints the backdrop warm toward the sun.
+  envSunTintOn: true,
   // SNÖ: falling snow around the camera (lib/sceneFx/snow.ts). snowAmount is
   // the number of flakes, snowIntensity how hard it snows (fall speed, flake
   // size, wind). SNÖTÄCKE (snowCoverOn) whitens the loaded scene and the
@@ -2219,6 +2222,7 @@ export function Aquafulness() {
     initial.envDaylightTintStrength,
   );
   const [envDayNightAutoOn, setEnvDayNightAutoOn] = useState(initial.envDayNightAutoOn);
+  const [envSunTintOn, setEnvSunTintOn] = useState(initial.envSunTintOn);
   const [snowOn, setSnowOn] = useState(initial.snowOn);
   const [snowAmount, setSnowAmount] = useState(initial.snowAmount);
   const [snowIntensity, setSnowIntensity] = useState(initial.snowIntensity);
@@ -2746,6 +2750,9 @@ export function Aquafulness() {
   const envDaylightTintOnRef = useRef(envDaylightTintOn);
   const envDaylightTintStrengthRef = useRef(envDaylightTintStrength);
   const envDayNightAutoOnRef = useRef(envDayNightAutoOn);
+  const envSunTintOnRef = useRef(envSunTintOn);
+  // SOLTONING overlay over the flat DOM backdrop image, restyled per frame.
+  const backdropSunTintRef = useRef<HTMLDivElement | null>(null);
   const snowOnRef = useRef(snowOn);
   const snowAmountRef = useRef(snowAmount);
   const snowIntensityRef = useRef(snowIntensity);
@@ -2911,6 +2918,7 @@ export function Aquafulness() {
     envDaylightTintOn,
     envDaylightTintStrength,
     envDayNightAutoOn,
+    envSunTintOn,
     snowOn,
     snowAmount,
     snowIntensity,
@@ -3166,6 +3174,7 @@ export function Aquafulness() {
     envDaylightTintOn,
     envDaylightTintStrength,
     envDayNightAutoOn,
+    envSunTintOn,
     snowOn,
     snowAmount,
     snowIntensity,
@@ -4206,6 +4215,9 @@ export function Aquafulness() {
     envDayNightAutoOnRef.current = envDayNightAutoOn;
   }, [envDayNightAutoOn]);
   useEffect(() => {
+    envSunTintOnRef.current = envSunTintOn;
+  }, [envSunTintOn]);
+  useEffect(() => {
     snowOnRef.current = snowOn;
     snowAmountRef.current = snowAmount;
     snowIntensityRef.current = snowIntensity;
@@ -4813,6 +4825,7 @@ export function Aquafulness() {
     setEnvDaylightTintOn(DEFAULTS.envDaylightTintOn);
     setEnvDaylightTintStrength(DEFAULTS.envDaylightTintStrength);
     setEnvDayNightAutoOn(DEFAULTS.envDayNightAutoOn);
+    setEnvSunTintOn(DEFAULTS.envSunTintOn);
     setSnowOn(DEFAULTS.snowOn);
     setSnowAmount(DEFAULTS.snowAmount);
     setSnowIntensity(DEFAULTS.snowIntensity);
@@ -5085,6 +5098,7 @@ export function Aquafulness() {
     if (patch.envDaylightTintStrength !== undefined)
       setEnvDaylightTintStrength(patch.envDaylightTintStrength);
     if (patch.envDayNightAutoOn !== undefined) setEnvDayNightAutoOn(patch.envDayNightAutoOn);
+    if (patch.envSunTintOn !== undefined) setEnvSunTintOn(patch.envSunTintOn);
     if (patch.snowOn !== undefined) setSnowOn(patch.snowOn);
     if (patch.snowAmount !== undefined) setSnowAmount(patch.snowAmount);
     if (patch.snowIntensity !== undefined) setSnowIntensity(patch.snowIntensity);
@@ -6439,6 +6453,8 @@ export function Aquafulness() {
       uEnvNightMix: { value: 0 },
       uEnvRotYNight: { value: 0 },
       uEnvTintNight: { value: new THREE.Color(1, 1, 1) },
+      // SOLTONING: sunrise/sunset glow on the reflected skybox (0 = off).
+      uEnvSunTint: { value: 0 },
       // VATTENGLÖD: emissive glow added to the water body.
       uGlow: { value: 0 },
       uGlowColor: { value: new THREE.Vector3(0.22, 0.84, 1) },
@@ -6817,6 +6833,7 @@ export function Aquafulness() {
       uniform float uEnvNightMix;
       uniform float uEnvRotYNight;
       uniform vec3 uEnvTintNight;
+      uniform float uEnvSunTint;
       uniform float uGlow;
       uniform vec3 uGlowColor;
       uniform float uSphereMix;
@@ -7096,6 +7113,16 @@ export function Aquafulness() {
             vec2 nightUv = vec2(atan(Rn.z, Rn.x) * 0.15915494 + 0.5, asin(Rn.y) * 0.31830989 + 0.5);
             vec3 nightCol = pow(texture2D(uEnvTexNight, nightUv).rgb, vec3(1.0 / 2.2)) * uEnvTintNight;
             envCol = mix(envCol, nightCol, uEnvNightMix);
+          }
+          // SOLTONING: same sunrise/sunset glow as the backdrop dome.
+          if (uEnvSunTint > 0.001) {
+            vec3 Rw = normalize(vec3(R.x, max(R.y, 0.0), R.z));
+            float toward = max(dot(normalize(Rw.xz + 1e-4), normalize(uSunDir.xz + 1e-4)), 0.0);
+            float horizon = 1.0 - Rw.y;
+            float k = uEnvSunTint * (0.35 + 0.65 * toward * toward) * (0.4 + 0.6 * horizon * horizon);
+            vec3 warm = uSunColor / max(max(uSunColor.r, uSunColor.g), max(uSunColor.b, 1e-3));
+            envCol *= mix(vec3(1.0), warm, k);
+            envCol += uSunColor * uEnvSunTint * pow(max(dot(Rw, normalize(uSunDir)), 0.0), 12.0) * 0.35;
           }
           skyRef = mix(skyRef, envCol, uEnvReflMix);
         }
@@ -7987,6 +8014,10 @@ export function Aquafulness() {
       uNightMix: { value: 0 },
       uRotYNight: { value: 0 },
       uTintNight: { value: new THREE.Color(1, 1, 1) },
+      // SOLTONING: sunrise/sunset glow toward the sun (0 = off).
+      uSunTint: { value: 0 },
+      uSunDir: { value: uniforms.uSunDir.value },
+      uSunColor: { value: uniforms.uSunColor.value },
       uSnowCover: { value: 0 },
       uUnderwater: uniforms.uUnderwater,
       uTurbidity: skyUniforms.uTurbidity,
@@ -8011,6 +8042,9 @@ export function Aquafulness() {
         uniform float uNightMix;
         uniform float uRotYNight;
         uniform vec3 uTintNight;
+        uniform float uSunTint;
+        uniform vec3 uSunDir;
+        uniform vec3 uSunColor;
         uniform float uSnowCover;
         uniform float uUnderwater;
         uniform float uTurbidity;
@@ -8030,6 +8064,17 @@ export function Aquafulness() {
           if (uNightMix > 0.001) {
             vec3 night = pow(texture2D(uEnvTexNight, panoUv(d, uRotYNight)).rgb, vec3(1.0 / 2.2)) * uTintNight;
             col = mix(col, night, uNightMix);
+          }
+          // SOLTONING: at sunrise/sunset, warm the panorama in the sun's
+          // color — most toward the sun and near the horizon — plus a soft
+          // glow around the sun itself.
+          if (uSunTint > 0.001) {
+            float toward = max(dot(normalize(d.xz + 1e-4), normalize(uSunDir.xz + 1e-4)), 0.0);
+            float horizon = 1.0 - abs(d.y);
+            float k = uSunTint * (0.35 + 0.65 * toward * toward) * (0.4 + 0.6 * horizon * horizon);
+            vec3 warm = uSunColor / max(max(uSunColor.r, uSunColor.g), max(uSunColor.b, 1e-3));
+            col *= mix(vec3(1.0), warm, k);
+            col += uSunColor * uSunTint * pow(max(dot(d, normalize(uSunDir)), 0.0), 12.0) * 0.35;
           }
           if (uSnowCover > 0.001) {
             // SNÖTÄCKE: a winter look for the photo — colder and paler
@@ -8411,11 +8456,32 @@ export function Aquafulness() {
         envTintNight.setRGB(1, 1, 1);
       }
       envTintMixed.copy(envTint).lerp(envTintNight, nightMix);
+      // SOLTONING: how much sunrise/sunset colors the backdrop right now.
+      const sunTint = envSunTintOnRef.current ? sunsetTintAmount(todRef.current) * 0.85 : 0;
+      envDomeUniforms.uSunTint.value = sunTint;
+      uniforms.uEnvSunTint.value = envTex ? sunTint : 0;
+      {
+        const el = backdropSunTintRef.current;
+        if (el) {
+          const op = sunTint.toFixed(3);
+          if (el.style.opacity !== op) el.style.opacity = op;
+          if (sunTint > 0.001) {
+            const m = Math.max(p.sun[0], p.sun[1], p.sun[2], 1e-3);
+            const c = p.sun.map((v) => Math.round((v / m) * 255)).join(",");
+            const bg = `linear-gradient(to top, rgb(${c}) 0%, rgba(${c},0.55) 45%, rgba(${c},0.15) 100%)`;
+            if (el.dataset.bg !== bg) {
+              el.dataset.bg = bg;
+              el.style.background = bg;
+            }
+          }
+        }
+      }
       // SNÖTÄCKE settles over a few seconds (SnowCover.update eases it); the
       // backdrop needs the env dome to be whitened at all.
       snowCover.update(dt, snowCoverOnRef.current ? snowCoverStrengthRef.current : 0);
       envDomeUniforms.uSnowCover.value = snowCover.cover;
-      const useEnvDome = envTex !== null && (envTintOn || envBlending || snowCover.cover > 0.001);
+      const useEnvDome =
+        envTex !== null && (envTintOn || envBlending || sunTint > 0.001 || snowCover.cover > 0.001);
       envDome.visible = useEnvDome;
       if (useEnvDome && envDayTex) {
         envDomeUniforms.uEnvTex.value = envDayTex;
@@ -11559,6 +11625,8 @@ export function Aquafulness() {
     setEnvDaylightTintStrength,
     envDayNightAutoOn,
     setEnvDayNightAutoOn,
+    envSunTintOn,
+    setEnvSunTintOn,
     snowOn,
     setSnowOn,
     snowAmount,
@@ -11867,6 +11935,16 @@ export function Aquafulness() {
           alt=""
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+        />
+      )}
+      {!envId && BACKDROPS[backdropIdx]?.url && (
+        // SOLTONING over the flat backdrop: a sun-colored gradient multiplied
+        // in, faded by the render loop as the sun rises/sets.
+        <div
+          ref={backdropSunTintRef}
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 mix-blend-multiply"
+          style={{ opacity: 0 }}
         />
       )}
       <div ref={mountRef} className="absolute inset-0 touch-none" />

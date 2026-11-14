@@ -675,6 +675,9 @@ export type Persisted = {
   // DYGNSBYTE: an environment with both a day and a night skybox shows the
   // one matching TIMEOFDAY, cross-fading the two at dawn and dusk.
   envDayNightAutoOn: boolean;
+  // SOLTONING: sunrise/sunset colors the backdrop (environment skybox, its
+  // water reflection and the flat backdrop image) warm around the sun.
+  envSunTintOn: boolean;
   // SNÖ: falling snow (lib/sceneFx/snow.ts). snowAmount = number of flakes,
   // snowIntensity = how hard it snows. SNÖTÄCKE (snowCoverOn) whitens the
   // loaded scene and environment backdrop by snowCoverStrength 0..1.
@@ -1066,6 +1069,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "envDaylightTintOn",
     "envDaylightTintStrength",
     "envDayNightAutoOn",
+    "envSunTintOn",
     "snowOn",
     "snowAmount",
     "snowIntensity",

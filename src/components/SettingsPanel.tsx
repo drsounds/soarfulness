@@ -769,6 +769,8 @@ export type SettingsPanelProps = {
   setEnvDaylightTintStrength: Dispatch<SetStateAction<number>>;
   envDayNightAutoOn: boolean;
   setEnvDayNightAutoOn: Dispatch<SetStateAction<boolean>>;
+  envSunTintOn: boolean;
+  setEnvSunTintOn: Dispatch<SetStateAction<boolean>>;
   snowOn: boolean;
   setSnowOn: Dispatch<SetStateAction<boolean>>;
   snowAmount: number;
@@ -1758,6 +1760,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setEnvDaylightTintStrength,
     envDayNightAutoOn,
     setEnvDayNightAutoOn,
+    envSunTintOn,
+    setEnvSunTintOn,
     snowOn,
     setSnowOn,
     snowAmount,
@@ -4826,6 +4830,12 @@ export function SettingsPanel(props: SettingsPanelProps) {
                         onInc={() => cycleTime(1)}
                       />
                     )}
+                    <SettingRow
+                      label={t("dial.env.sunTint")}
+                      value={onOff(envSunTintOn)}
+                      onDec={() => setEnvSunTintOn(false)}
+                      onInc={() => setEnvSunTintOn(true)}
+                    />
                     <SettingRow
                       label={t("dial.env.dayNightAuto")}
                       value={onOff(envDayNightAutoOn)}
