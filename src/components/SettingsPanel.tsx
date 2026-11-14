@@ -948,6 +948,8 @@ export type SettingsPanelProps = {
   setWorldBoundaryHeight: Dispatch<SetStateAction<number>>;
   worldBoundaryYExtend: boolean;
   setWorldBoundaryYExtend: Dispatch<SetStateAction<boolean>>;
+  waterFullWorld: boolean;
+  setWaterFullWorld: Dispatch<SetStateAction<boolean>>;
   surfaceArea: number;
   setSurfaceArea: Dispatch<SetStateAction<number>>;
   torusRingsOn: boolean;
@@ -1946,6 +1948,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setWorldBoundaryHeight,
     worldBoundaryYExtend,
     setWorldBoundaryYExtend,
+    waterFullWorld,
+    setWaterFullWorld,
     surfaceArea,
     setSurfaceArea,
     torusRingsOn,
@@ -4817,6 +4821,12 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     />
                   </>
                 )}
+                <SettingRow
+                  label={t("dial.env.waterFullWorld")}
+                  value={onOff(waterFullWorld)}
+                  onDec={() => setWaterFullWorld(false)}
+                  onInc={() => setWaterFullWorld(true)}
+                />
                 <SettingRow
                   label={t("dial.env.roomSize")}
                   mode="number"
