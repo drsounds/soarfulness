@@ -367,6 +367,7 @@
       "waveBgOpacity": "BAKGRUNDENS OPACITET",
       "waveBgNatural": "NATURLIG",
       "waveBgCustomColor": "VÅGBAKGRUND",
+      "cloudSurface": "MOLNYTA",
       "waveMaterial": "VÅGMATERIAL",
       "waveMaterialValue": {
         "raytraced": "STRÅLSPÅRAD",

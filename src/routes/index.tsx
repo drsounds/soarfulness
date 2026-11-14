@@ -1508,6 +1508,9 @@ const DEFAULTS: Persisted = {
   bottomColor: "#8a7550",
   sphereMaterial: false,
   sphereStrength: 0.7,
+  // MOLNYTA: the water surface shaded as soft sunlit clouds instead of water
+  // (the waves keep moving it). Off by default.
+  waterCloudsOn: false,
   raytracedMaterial: false,
   raytracedStrength: 1,
   trochoid: 0,
@@ -2195,6 +2198,7 @@ export function Aquafulness() {
   const [reflStrength, setReflStrength] = useState(initial.reflStrength);
   const [bottomColor, setBottomColor] = useState(initial.bottomColor);
   const [sphereMaterial, setSphereMaterial] = useState(initial.sphereMaterial);
+  const [waterCloudsOn, setWaterCloudsOn] = useState(initial.waterCloudsOn);
   const [sphereStrength, setSphereStrength] = useState(initial.sphereStrength);
   const [raytracedMaterial, setRaytracedMaterial] = useState(initial.raytracedMaterial);
   const [raytracedStrength, setRaytracedStrength] = useState(initial.raytracedStrength);
@@ -2727,6 +2731,7 @@ export function Aquafulness() {
   const reflStrengthRef = useRef(reflStrength);
   const bottomColorRef = useRef(bottomColor);
   const sphereMaterialRef = useRef(sphereMaterial);
+  const waterCloudsOnRef = useRef(waterCloudsOn);
   const sphereStrengthRef = useRef(sphereStrength);
   const raytracedMaterialRef = useRef(raytracedMaterial);
   const raytracedStrengthRef = useRef(raytracedStrength);
@@ -2895,6 +2900,7 @@ export function Aquafulness() {
     reflStrength,
     bottomColor,
     sphereMaterial,
+    waterCloudsOn,
     sphereStrength,
     raytracedMaterial,
     raytracedStrength,
@@ -3151,6 +3157,7 @@ export function Aquafulness() {
     reflStrength,
     bottomColor,
     sphereMaterial,
+    waterCloudsOn,
     sphereStrength,
     raytracedMaterial,
     raytracedStrength,
@@ -4155,6 +4162,9 @@ export function Aquafulness() {
     sphereMaterialRef.current = sphereMaterial;
   }, [sphereMaterial]);
   useEffect(() => {
+    waterCloudsOnRef.current = waterCloudsOn;
+  }, [waterCloudsOn]);
+  useEffect(() => {
     raytracedMaterialRef.current = raytracedMaterial;
   }, [raytracedMaterial]);
   useEffect(() => {
@@ -4802,6 +4812,7 @@ export function Aquafulness() {
     setReflStrength(DEFAULTS.reflStrength);
     setBottomColor(DEFAULTS.bottomColor);
     setSphereMaterial(DEFAULTS.sphereMaterial);
+    setWaterCloudsOn(DEFAULTS.waterCloudsOn);
     setSphereStrength(DEFAULTS.sphereStrength);
     setRaytracedMaterial(DEFAULTS.raytracedMaterial);
     setRaytracedStrength(DEFAULTS.raytracedStrength);
@@ -5070,6 +5081,7 @@ export function Aquafulness() {
     if (patch.reflStrength !== undefined) setReflStrength(patch.reflStrength);
     if (patch.bottomColor !== undefined) setBottomColor(patch.bottomColor);
     if (patch.sphereMaterial !== undefined) setSphereMaterial(patch.sphereMaterial);
+    if (patch.waterCloudsOn !== undefined) setWaterCloudsOn(patch.waterCloudsOn);
     if (patch.sphereStrength !== undefined) setSphereStrength(patch.sphereStrength);
     if (patch.raytracedMaterial !== undefined) setRaytracedMaterial(patch.raytracedMaterial);
     if (patch.raytracedStrength !== undefined) setRaytracedStrength(patch.raytracedStrength);
@@ -6422,6 +6434,8 @@ export function Aquafulness() {
       // reflection — cheap, and unlike the photo reflection above it stays
       // convincing at any camera angle. uSphereMix is the blend amount.
       uSphereMix: { value: 0 },
+      // MOLNYTA: 0 = water, 1 = the surface shaded as clouds.
+      uCloudSurface: { value: 0 },
       // Trochoidal (Gerstner-like) horizontal displacement blended in on top
       // of the existing sine/shaped height — purely a vertex-shader visual,
       // never fed into the JS-side waveHeight() the camera physics reads.
@@ -6837,6 +6851,7 @@ export function Aquafulness() {
       uniform float uGlow;
       uniform vec3 uGlowColor;
       uniform float uSphereMix;
+      uniform float uCloudSurface;
       uniform float uTurbidity;
       uniform float uRefraction;
       uniform vec3 uFloorColor;
@@ -7212,6 +7227,31 @@ export function Aquafulness() {
           col = mix(col, sphereMapShade(Nshim, fillCol), uSphereMix);
         }
 
+        // MOLNYTA: shade the surface as a sea of clouds instead of water —
+        // drifting fbm puffs, pushed around by the wave normals and lifted
+        // on the crests, lit from the sun's side in the palette's colors.
+        float cloudCover = 1.0;
+        if (uCloudSurface > 0.001) {
+          vec2 cp = vWorldPos.xz * 0.035 + N.xz * 0.3 + vec2(uTime * 0.012, uTime * 0.007);
+          float n1 = fbm(cp);
+          float n2 = fbm(cp * 2.6 + vec2(3.1, 7.7) - uTime * 0.01);
+          float puff = smoothstep(0.2, 0.8, n1 * 0.65 + n2 * 0.35 + (height - 0.5) * 0.35);
+          // Light from the sun's side of each puff (approximated by stepping
+          // the noise toward the sun), soft at night.
+          float toward = fbm(cp + normalize(L.xz + 1e-4) * 0.08);
+          float lit = clamp(0.55 + (n1 - toward) * 3.0 + dot(N, L) * 0.25, 0.0, 1.0);
+          float day = clamp(L.y + 0.35, 0.15, 1.1);
+          vec3 sunTone = uSunColor / max(max(uSunColor.r, uSunColor.g), max(uSunColor.b, 1e-3));
+          vec3 litCol = mix(vec3(1.0), sunTone, 0.3) * day;
+          // Shaded sides stay a cool blue-grey (the sky's fill light), so
+          // only the lit sides pick up the sunrise/sunset color.
+          vec3 shadowCol = mix(uSkyColor, vec3(0.62, 0.67, 0.78), 0.6) * (0.5 + 0.35 * day) + 0.04;
+          vec3 cloudCol = mix(shadowCol, litCol, lit * (0.55 + 0.45 * puff));
+          // Thin gaps between puffs let whatever is below show through.
+          cloudCover = 0.2 + 0.8 * smoothstep(0.1, 0.65, puff);
+          col = mix(col, cloudCol, uCloudSurface);
+        }
+
         // The color picker's flat uOverlayColor and the whitecap foam are
         // *not* folded into col here — they're composited as their own
         // layers, on top of the shaded water body, further down (see the
@@ -7286,7 +7326,8 @@ export function Aquafulness() {
         float bodyAlpha = clamp(mix(uOpacity, step(0.001, uOpacity), uRtMix), 0.0, 1.0);
         float visGate = pow(bodyAlpha, 0.35);
 
-        float bodyA = bodyAlpha * fillAlpha;
+        // MOLNYTA swaps the wave background's fill for the clouds' own cover.
+        float bodyA = bodyAlpha * mix(fillAlpha, cloudCover, uCloudSurface);
         vec3 premult = col * bodyA;
         float alpha = bodyA;
 
@@ -10588,6 +10629,8 @@ export function Aquafulness() {
         ((sphereMaterialRef.current && !lowEnd ? sphereStrengthRef.current : 0) -
           uniforms.uSphereMix.value) *
         Math.min(1, dt * 6);
+      uniforms.uCloudSurface.value +=
+        ((waterCloudsOnRef.current ? 1 : 0) - uniforms.uCloudSurface.value) * Math.min(1, dt * 3);
       // LOW GRAPHICS MODE skips the RAYTRACED material's offscreen passes.
       uniforms.uRtMix.value +=
         ((raytracedMaterialRef.current && !lowEnd ? raytracedStrengthRef.current : 0) -
@@ -11687,6 +11730,8 @@ export function Aquafulness() {
     setReflStrength,
     sphereMaterial,
     setSphereMaterial,
+    waterCloudsOn,
+    setWaterCloudsOn,
     sphereStrength,
     setSphereStrength,
     raytracedMaterial,
