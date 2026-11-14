@@ -296,6 +296,11 @@
       "worldBoundarySize": "GRÄNSSTORLEK (XZ)",
       "worldBoundaryYExtend": "OÄNDLIGA MOLNLAGER",
       "dayNightAuto": "DYGNSBYTE",
+      "snow": "SNÖ",
+      "snowAmount": "SNÖMÄNGD",
+      "snowIntensity": "SNÖSTYRKA",
+      "snowCover": "SNÖTÄCKE",
+      "snowCoverStrength": "TÄCKNINGSGRAD",
       "daylightTint": "DYGNSTONING",
       "daylightTintStrength": "TONINGSSTYRKA",
       "neon": "NEONKANTER",
@@ -312,7 +317,8 @@
       "neonStrength": "NEONSTYRKA",
       "neonWidth": "NEONBREDD",
       "neonTint": "NEONTON",
-      "neonTintAmount": "TONMÄNGD"
+      "neonTintAmount": "TONMÄNGD",
+      "neonAccent": "NEONACCENT"
     },
     "water": {
       "bottom": "BOTTEN",

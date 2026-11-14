@@ -296,6 +296,11 @@
       "worldBoundarySize": "GRÆNSESTØRRELSE (XZ)",
       "worldBoundaryYExtend": "UENDELIGE SKYLAG",
       "dayNightAuto": "DØGNSKIFT",
+      "snow": "SNE",
+      "snowAmount": "SNEMÆNGDE",
+      "snowIntensity": "SNESTYRKE",
+      "snowCover": "SNEDÆKKE",
+      "snowCoverStrength": "DÆKNINGSGRAD",
       "daylightTint": "DØGNTONING",
       "daylightTintStrength": "TONINGSSTYRKE",
       "neon": "NEONKANTER",
@@ -312,7 +317,8 @@
       "neonStrength": "NEONSTYRKE",
       "neonWidth": "NEONBREDDE",
       "neonTint": "NEONTONE",
-      "neonTintAmount": "TONEMÆNGDE"
+      "neonTintAmount": "TONEMÆNGDE",
+      "neonAccent": "NEONACCENT"
     },
     "water": {
       "bottom": "BUND",

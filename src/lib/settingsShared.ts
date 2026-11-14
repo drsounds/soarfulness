@@ -675,6 +675,14 @@ export type Persisted = {
   // DYGNSBYTE: an environment with both a day and a night skybox shows the
   // one matching TIMEOFDAY, cross-fading the two at dawn and dusk.
   envDayNightAutoOn: boolean;
+  // SNÖ: falling snow (lib/sceneFx/snow.ts). snowAmount = number of flakes,
+  // snowIntensity = how hard it snows. SNÖTÄCKE (snowCoverOn) whitens the
+  // loaded scene and environment backdrop by snowCoverStrength 0..1.
+  snowOn: boolean;
+  snowAmount: number;
+  snowIntensity: number;
+  snowCoverOn: boolean;
+  snowCoverStrength: number;
   // NEON: glowing lines along the loaded scene's mesh edges. neonMode picks
   // how the color moves over time (see NeonMode); neonFrequency is in
   // cycles per second. neonTint is mixed over the result by neonTintAmount.
@@ -687,6 +695,9 @@ export type Persisted = {
   neonStrength: number;
   neonWidth: number;
   neonFrequency: number;
+  // NEONACCENT: tint + emission (intensity 1.00) for every scene material
+  // whose name ends in "-neon" — see lib/sceneFx/neonAccent.ts.
+  neonAccentColor: string;
   cameraMode: CameraMode;
   noclipSpeed: number;
   // FRITT FALL/OMVÄND STIGNING's terminal vertical speed in m/s (at
@@ -1055,6 +1066,11 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "envDaylightTintOn",
     "envDaylightTintStrength",
     "envDayNightAutoOn",
+    "snowOn",
+    "snowAmount",
+    "snowIntensity",
+    "snowCoverOn",
+    "snowCoverStrength",
     "neonOn",
     "neonMode",
     "neonPrimary",
@@ -1064,6 +1080,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "neonStrength",
     "neonWidth",
     "neonFrequency",
+    "neonAccentColor",
   ],
   ljud: ["audioOn", "audioVol", "audioSyncSpeed", "audioSpatial", "waterSoundIdx"],
   // Tema (UI chrome theme) isn't part of the wave/camera/water/environment/

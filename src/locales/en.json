@@ -296,6 +296,11 @@
       "worldBoundarySize": "BOUNDARY SIZE (XZ)",
       "worldBoundaryYExtend": "INFINITE CLOUD LAYERS",
       "dayNightAuto": "DAY/NIGHT SWAP",
+      "snow": "SNOW",
+      "snowAmount": "SNOW AMOUNT",
+      "snowIntensity": "SNOW INTENSITY",
+      "snowCover": "SNOW COVER",
+      "snowCoverStrength": "COVER STRENGTH",
       "daylightTint": "TIME OF DAY TINT",
       "daylightTintStrength": "TINT STRENGTH",
       "neon": "NEON EDGES",
@@ -312,7 +317,8 @@
       "neonStrength": "NEON STRENGTH",
       "neonWidth": "NEON WIDTH",
       "neonTint": "NEON TINT",
-      "neonTintAmount": "TINT AMOUNT"
+      "neonTintAmount": "TINT AMOUNT",
+      "neonAccent": "NEON ACCENT"
     },
     "water": {
       "bottom": "BOTTOM",

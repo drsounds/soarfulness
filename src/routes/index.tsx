@@ -21,6 +21,8 @@ import { TorusRingField } from "@/lib/torusRings/TorusRingField";
 import { RETRO_PALETTE_INDEX, RETRO_SHADER } from "@/lib/sceneFx/retroShader";
 import { limitMax, useExtremeLimits, type LimitedControl } from "@/lib/extremeLimits";
 import { NeonEdges } from "@/lib/sceneFx/NeonEdges";
+import { SnowCover, Snowfall } from "@/lib/sceneFx/snow";
+import { applyNeonAccent } from "@/lib/sceneFx/neonAccent";
 import { relativeDaylightTint } from "@/lib/sceneFx/daylightTint";
 import {
   DAY_TIME_ID,
@@ -1557,6 +1559,15 @@ const DEFAULTS: Persisted = {
   // skybox, the backdrop follows TIMEOFDAY — night skybox at night, day
   // skybox by day, cross-faded at dawn and dusk (lib/sceneFx/dayNightBackdrop.ts).
   envDayNightAutoOn: true,
+  // SNÖ: falling snow around the camera (lib/sceneFx/snow.ts). snowAmount is
+  // the number of flakes, snowIntensity how hard it snows (fall speed, flake
+  // size, wind). SNÖTÄCKE (snowCoverOn) whitens the loaded scene and the
+  // environment backdrop as if snow had settled, by snowCoverStrength 0..1.
+  snowOn: false,
+  snowAmount: 4000,
+  snowIntensity: 0.5,
+  snowCoverOn: false,
+  snowCoverStrength: 0.8,
   // NEON: glowing lines along the loaded scene's mesh edges — see
   // lib/sceneFx/NeonEdges.ts for how neonMode/neonFrequency animate color.
   neonOn: false,
@@ -1568,6 +1579,9 @@ const DEFAULTS: Persisted = {
   neonStrength: 1,
   neonWidth: 3,
   neonFrequency: 0.5,
+  // NEONACCENT: color of every "-neon" scene material (tint + emission at
+  // 1.00) — see lib/sceneFx/neonAccent.ts.
+  neonAccentColor: "#ff2bd6",
   cameraMode: "float",
   noclipSpeed: 1,
   noclipFallRiseSpeed: 48,
@@ -2205,6 +2219,11 @@ export function Aquafulness() {
     initial.envDaylightTintStrength,
   );
   const [envDayNightAutoOn, setEnvDayNightAutoOn] = useState(initial.envDayNightAutoOn);
+  const [snowOn, setSnowOn] = useState(initial.snowOn);
+  const [snowAmount, setSnowAmount] = useState(initial.snowAmount);
+  const [snowIntensity, setSnowIntensity] = useState(initial.snowIntensity);
+  const [snowCoverOn, setSnowCoverOn] = useState(initial.snowCoverOn);
+  const [snowCoverStrength, setSnowCoverStrength] = useState(initial.snowCoverStrength);
   const [neonOn, setNeonOn] = useState(initial.neonOn);
   const [neonMode, setNeonMode] = useState(initial.neonMode);
   const [neonPrimary, setNeonPrimary] = useState(initial.neonPrimary);
@@ -2214,6 +2233,7 @@ export function Aquafulness() {
   const [neonStrength, setNeonStrength] = useState(initial.neonStrength);
   const [neonWidth, setNeonWidth] = useState(initial.neonWidth);
   const [neonFrequency, setNeonFrequency] = useState(initial.neonFrequency);
+  const [neonAccentColor, setNeonAccentColor] = useState(initial.neonAccentColor);
   const [cameraMode, setCameraMode] = useState<CameraMode>(initial.cameraMode);
   const [noclipSpeed, setNoclipSpeed] = useState(initial.noclipSpeed);
   const [noclipFallRiseSpeed, setNoclipFallRiseSpeed] = useState(initial.noclipFallRiseSpeed);
@@ -2339,8 +2359,12 @@ export function Aquafulness() {
     clamp("freakOutRotationSpeed", freakOutRotationSpeed, setFreakOutRotationSpeed);
     clamp("freakOutRotationKick", freakOutRotationKick, setFreakOutRotationKick);
     clamp("freakOutFloatYOffset", freakOutFloatYOffset, setFreakOutFloatYOffset);
+    clamp("snowAmount", snowAmount, setSnowAmount);
+    clamp("snowIntensity", snowIntensity, setSnowIntensity);
   }, [
     extremeLimits,
+    snowAmount,
+    snowIntensity,
     waveAmp,
     swayAmp,
     surgeAmp,
@@ -2722,6 +2746,11 @@ export function Aquafulness() {
   const envDaylightTintOnRef = useRef(envDaylightTintOn);
   const envDaylightTintStrengthRef = useRef(envDaylightTintStrength);
   const envDayNightAutoOnRef = useRef(envDayNightAutoOn);
+  const snowOnRef = useRef(snowOn);
+  const snowAmountRef = useRef(snowAmount);
+  const snowIntensityRef = useRef(snowIntensity);
+  const snowCoverOnRef = useRef(snowCoverOn);
+  const snowCoverStrengthRef = useRef(snowCoverStrength);
   const neonOnRef = useRef(neonOn);
   const neonModeRef = useRef(neonMode);
   const neonPrimaryRef = useRef(neonPrimary);
@@ -2731,6 +2760,7 @@ export function Aquafulness() {
   const neonStrengthRef = useRef(neonStrength);
   const neonWidthRef = useRef(neonWidth);
   const neonFrequencyRef = useRef(neonFrequency);
+  const neonAccentColorRef = useRef(neonAccentColor);
 
   // A full snapshot of every settings-dialog field, in the exact Persisted
   // shape saved to localStorage below — also reused by the preset save/
@@ -2881,6 +2911,11 @@ export function Aquafulness() {
     envDaylightTintOn,
     envDaylightTintStrength,
     envDayNightAutoOn,
+    snowOn,
+    snowAmount,
+    snowIntensity,
+    snowCoverOn,
+    snowCoverStrength,
     neonOn,
     neonMode,
     neonPrimary,
@@ -2890,6 +2925,7 @@ export function Aquafulness() {
     neonStrength,
     neonWidth,
     neonFrequency,
+    neonAccentColor,
     cameraMode,
     noclipSpeed,
     noclipFallRiseSpeed,
@@ -3130,6 +3166,11 @@ export function Aquafulness() {
     envDaylightTintOn,
     envDaylightTintStrength,
     envDayNightAutoOn,
+    snowOn,
+    snowAmount,
+    snowIntensity,
+    snowCoverOn,
+    snowCoverStrength,
     neonOn,
     neonMode,
     neonPrimary,
@@ -3139,6 +3180,7 @@ export function Aquafulness() {
     neonStrength,
     neonWidth,
     neonFrequency,
+    neonAccentColor,
     cameraMode,
     noclipSpeed,
     noclipFallRiseSpeed,
@@ -4164,6 +4206,13 @@ export function Aquafulness() {
     envDayNightAutoOnRef.current = envDayNightAutoOn;
   }, [envDayNightAutoOn]);
   useEffect(() => {
+    snowOnRef.current = snowOn;
+    snowAmountRef.current = snowAmount;
+    snowIntensityRef.current = snowIntensity;
+    snowCoverOnRef.current = snowCoverOn;
+    snowCoverStrengthRef.current = snowCoverStrength;
+  }, [snowOn, snowAmount, snowIntensity, snowCoverOn, snowCoverStrength]);
+  useEffect(() => {
     neonOnRef.current = neonOn;
   }, [neonOn]);
   useEffect(() => {
@@ -4190,6 +4239,12 @@ export function Aquafulness() {
   useEffect(() => {
     neonFrequencyRef.current = neonFrequency;
   }, [neonFrequency]);
+  // NEONACCENT: recolor the loaded scene's "-neon" materials right away (a
+  // newly loaded scene picks the current color up in its loader instead).
+  useEffect(() => {
+    neonAccentColorRef.current = neonAccentColor;
+    if (modelRef.current) applyNeonAccent(modelRef.current, neonAccentColor);
+  }, [neonAccentColor]);
   useEffect(() => {
     sphereStrengthRef.current = sphereStrength;
   }, [sphereStrength]);
@@ -4758,6 +4813,11 @@ export function Aquafulness() {
     setEnvDaylightTintOn(DEFAULTS.envDaylightTintOn);
     setEnvDaylightTintStrength(DEFAULTS.envDaylightTintStrength);
     setEnvDayNightAutoOn(DEFAULTS.envDayNightAutoOn);
+    setSnowOn(DEFAULTS.snowOn);
+    setSnowAmount(DEFAULTS.snowAmount);
+    setSnowIntensity(DEFAULTS.snowIntensity);
+    setSnowCoverOn(DEFAULTS.snowCoverOn);
+    setSnowCoverStrength(DEFAULTS.snowCoverStrength);
     setNeonOn(DEFAULTS.neonOn);
     setNeonMode(DEFAULTS.neonMode);
     setNeonPrimary(DEFAULTS.neonPrimary);
@@ -4767,6 +4827,7 @@ export function Aquafulness() {
     setNeonStrength(DEFAULTS.neonStrength);
     setNeonWidth(DEFAULTS.neonWidth);
     setNeonFrequency(DEFAULTS.neonFrequency);
+    setNeonAccentColor(DEFAULTS.neonAccentColor);
     setCameraMode(DEFAULTS.cameraMode);
     setNoclipSpeed(DEFAULTS.noclipSpeed);
     setNoclipFallRiseSpeed(DEFAULTS.noclipFallRiseSpeed);
@@ -5024,6 +5085,11 @@ export function Aquafulness() {
     if (patch.envDaylightTintStrength !== undefined)
       setEnvDaylightTintStrength(patch.envDaylightTintStrength);
     if (patch.envDayNightAutoOn !== undefined) setEnvDayNightAutoOn(patch.envDayNightAutoOn);
+    if (patch.snowOn !== undefined) setSnowOn(patch.snowOn);
+    if (patch.snowAmount !== undefined) setSnowAmount(patch.snowAmount);
+    if (patch.snowIntensity !== undefined) setSnowIntensity(patch.snowIntensity);
+    if (patch.snowCoverOn !== undefined) setSnowCoverOn(patch.snowCoverOn);
+    if (patch.snowCoverStrength !== undefined) setSnowCoverStrength(patch.snowCoverStrength);
     if (patch.neonOn !== undefined) setNeonOn(patch.neonOn);
     if (patch.neonMode !== undefined) setNeonMode(patch.neonMode);
     if (patch.neonPrimary !== undefined) setNeonPrimary(patch.neonPrimary);
@@ -5033,6 +5099,7 @@ export function Aquafulness() {
     if (patch.neonStrength !== undefined) setNeonStrength(patch.neonStrength);
     if (patch.neonWidth !== undefined) setNeonWidth(patch.neonWidth);
     if (patch.neonFrequency !== undefined) setNeonFrequency(patch.neonFrequency);
+    if (patch.neonAccentColor !== undefined) setNeonAccentColor(patch.neonAccentColor);
     if (patch.cameraMode !== undefined) setCameraMode(patch.cameraMode);
     if (patch.noclipSpeed !== undefined) setNoclipSpeed(patch.noclipSpeed);
     if (patch.noclipFallRiseSpeed !== undefined) setNoclipFallRiseSpeed(patch.noclipFallRiseSpeed);
@@ -7920,6 +7987,7 @@ export function Aquafulness() {
       uNightMix: { value: 0 },
       uRotYNight: { value: 0 },
       uTintNight: { value: new THREE.Color(1, 1, 1) },
+      uSnowCover: { value: 0 },
       uUnderwater: uniforms.uUnderwater,
       uTurbidity: skyUniforms.uTurbidity,
       uFogColor: skyUniforms.uFogColor,
@@ -7943,6 +8011,7 @@ export function Aquafulness() {
         uniform float uNightMix;
         uniform float uRotYNight;
         uniform vec3 uTintNight;
+        uniform float uSnowCover;
         uniform float uUnderwater;
         uniform float uTurbidity;
         uniform vec3 uFogColor;
@@ -7961,6 +8030,18 @@ export function Aquafulness() {
           if (uNightMix > 0.001) {
             vec3 night = pow(texture2D(uEnvTexNight, panoUv(d, uRotYNight)).rgb, vec3(1.0 / 2.2)) * uTintNight;
             col = mix(col, night, uNightMix);
+          }
+          if (uSnowCover > 0.001) {
+            // SNÖTÄCKE: a winter look for the photo — colder and paler
+            // overall (overcast sky), and the ground below the horizon
+            // lifted toward snow, keeping some of its light/dark detail.
+            float lum = dot(col, vec3(0.299, 0.587, 0.114));
+            float k = clamp(uSnowCover, 0.0, 1.0);
+            col = mix(col, vec3(lum) * vec3(0.95, 0.98, 1.05), 0.55 * k);
+            float ground = 1.0 - smoothstep(-0.02, 0.12, d.y);
+            float snowAmt = k * mix(0.35, 0.85, ground) * smoothstep(0.02, 0.35, lum + 0.15);
+            vec3 snow = vec3(0.88, 0.91, 0.97) * (0.8 + 0.3 * lum);
+            col = mix(col, snow, snowAmt);
           }
           if (uUnderwater > 0.001) {
             float murk = clamp(uUnderwater * (0.25 + uTurbidity * 0.7), 0.0, 1.0);
@@ -7994,6 +8075,10 @@ export function Aquafulness() {
     // NEON edge lines along the loaded scene's meshes — see NeonEdges.
     const neonEdges = new NeonEdges(scene);
     neonEdges.setResolution(mount.clientWidth, mount.clientHeight);
+    // SNÖ: falling flakes around the camera, and SNÖTÄCKE whitening of the
+    // loaded scene (see lib/sceneFx/snow.ts).
+    const snowfall = new Snowfall(scene);
+    const snowCover = new SnowCover();
     const envTint = new THREE.Color(1, 1, 1);
     const envTintScratch = new THREE.Color();
     const envTintNight = new THREE.Color(1, 1, 1);
@@ -8326,7 +8411,11 @@ export function Aquafulness() {
         envTintNight.setRGB(1, 1, 1);
       }
       envTintMixed.copy(envTint).lerp(envTintNight, nightMix);
-      const useEnvDome = envTex !== null && (envTintOn || envBlending);
+      // SNÖTÄCKE settles over a few seconds (SnowCover.update eases it); the
+      // backdrop needs the env dome to be whitened at all.
+      snowCover.update(dt, snowCoverOnRef.current ? snowCoverStrengthRef.current : 0);
+      envDomeUniforms.uSnowCover.value = snowCover.cover;
+      const useEnvDome = envTex !== null && (envTintOn || envBlending || snowCover.cover > 0.001);
       envDome.visible = useEnvDome;
       if (useEnvDome && envDayTex) {
         envDomeUniforms.uEnvTex.value = envDayTex;
@@ -10633,6 +10722,25 @@ export function Aquafulness() {
         }
       }
 
+      // SNÖ: flakes follow the camera; SNÖTÄCKE patches the loaded scene's
+      // materials once per model (the shared uniform does the rest).
+      {
+        if (snowOnRef.current) {
+          snowfall.setPixelRatio(renderer.getPixelRatio());
+          snowfall.update(now / 1000, dt, camera.position, {
+            amount: snowAmountRef.current * (lowEnd ? 0.5 : 1),
+            intensity: snowIntensityRef.current,
+            waterLevel: ocean.position.y,
+            underwater: uniforms.uUnderwater.value,
+          });
+        } else {
+          snowfall.hide();
+        }
+        const model = snowCover.cover > 0.001 ? modelRef.current : null;
+        if (model && model !== snowCover.attachedTo) snowCover.attach(model);
+        else if (!modelRef.current && snowCover.attachedTo) snowCover.detach();
+      }
+
       // Cap actual GPU renders to targetFps (gogglesFpsCap instead while
       // SIMGLASÖGON is on, for its own lower thermal-friendly ceiling) —
       // camera/physics/uniforms above still update every rAF tick (cheap,
@@ -10714,6 +10822,7 @@ export function Aquafulness() {
       retroPass.dispose();
       composer.dispose();
       neonEdges.dispose();
+      snowfall.dispose();
       scene.environment = null;
       iblTarget?.dispose();
       pmrem.dispose();
@@ -10901,6 +11010,9 @@ export function Aquafulness() {
               o.receiveShadow = true;
             }
           });
+          // NEONACCENT: "-neon" materials take the accent color as tint
+          // and emission (intensity 1.00).
+          applyNeonAccent(model, neonAccentColorRef.current);
           scene.add(model);
           modelRef.current = model;
           const bob = resolveBob(manifest.bob);
@@ -11447,6 +11559,16 @@ export function Aquafulness() {
     setEnvDaylightTintStrength,
     envDayNightAutoOn,
     setEnvDayNightAutoOn,
+    snowOn,
+    setSnowOn,
+    snowAmount,
+    setSnowAmount,
+    snowIntensity,
+    setSnowIntensity,
+    snowCoverOn,
+    setSnowCoverOn,
+    snowCoverStrength,
+    setSnowCoverStrength,
     neonOn,
     setNeonOn,
     neonMode,
@@ -11465,6 +11587,8 @@ export function Aquafulness() {
     setNeonWidth,
     neonFrequency,
     setNeonFrequency,
+    neonAccentColor,
+    setNeonAccentColor,
     wakeLock,
     setWakeLock,
     waterColorIdx,
