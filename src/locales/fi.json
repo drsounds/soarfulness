@@ -297,6 +297,11 @@
       "worldBoundaryYExtend": "ÄÄRETTÖMÄT PILVIKERROKSET",
       "sunTint": "AURINGON SÄVY",
       "dayNightAuto": "PÄIVÄ/YÖ-VAIHTO",
+      "snow": "LUMI",
+      "snowAmount": "LUMEN MÄÄRÄ",
+      "snowIntensity": "LUMEN VOIMAKKUUS",
+      "snowCover": "LUMIPEITE",
+      "snowCoverStrength": "PEITTÄVYYS",
       "daylightTint": "VUOROKAUDEN SÄVY",
       "daylightTintStrength": "SÄVYN VOIMAKKUUS",
       "neon": "NEONREUNAT",
@@ -313,7 +318,8 @@
       "neonStrength": "NEONIN VOIMAKKUUS",
       "neonWidth": "NEONIN LEVEYS",
       "neonTint": "NEONSÄVY",
-      "neonTintAmount": "SÄVYN MÄÄRÄ"
+      "neonTintAmount": "SÄVYN MÄÄRÄ",
+      "neonAccent": "NEONKOROSTE"
     },
     "water": {
       "bottom": "POHJA",
@@ -1101,6 +1107,25 @@
     "midday": "Keskipäivä",
     "morning": "Aamu",
     "night": "Yö"
+  },
+  "userScenes": {
+    "appName": "OMAT",
+    "title": "OMAT NÄYTTÄMÖT",
+    "import": "TUO GLB",
+    "importing": "TUODAAN…",
+    "importHint": "Lataa oma .glb-tiedosto näyttämöksi. Se tallennetaan tälle laitteelle ja pysyy näyttämöluettelossa.",
+    "remove": "POISTA",
+    "removeConfirm": "Poistetaanko tuotu näyttämö \"{{name}}\" tältä laitteelta?",
+    "errors": {
+      "empty": "Tiedosto on tyhjä.",
+      "tooLarge": "Tiedosto on liian suuri — enintään {{max}} Mt.",
+      "notGlb": "Tämä ei ole .glb-tiedosto. Vie näyttämö binäärisenä glTF:nä (.glb).",
+      "unsupportedVersion": "Vain glTF 2.0 on tuettu. Vie tiedosto uudelleen glTF 2.0 -muodossa (.glb).",
+      "corrupt": "Tiedostoa ei voitu lukea — se näyttää vioittuneelta tai keskeneräiseltä.",
+      "storageFull": "Laitteella ei ole tarpeeksi tilaa näyttämön tallentamiseen.",
+      "storageUnavailable": "Näyttämöitä ei voi tallentaa tälle laitteelle (tallennus on pois päältä, esim. yksityisessä tilassa).",
+      "loadFailed": "Tuotua näyttämöä ei voitu näyttää — tiedosto saattaa käyttää tukematonta glTF-laajennusta."
+    }
   },
   "wave": {
     "preset": {

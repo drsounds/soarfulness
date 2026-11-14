@@ -297,6 +297,11 @@
       "worldBoundaryYExtend": "UENDELIGE SKYLAG",
       "sunTint": "SOLTONING",
       "dayNightAuto": "DØGNSKIFTE",
+      "snow": "SNØ",
+      "snowAmount": "SNØMENGDE",
+      "snowIntensity": "SNØSTYRKE",
+      "snowCover": "SNØDEKKE",
+      "snowCoverStrength": "DEKNINGSGRAD",
       "daylightTint": "DØGNTONING",
       "daylightTintStrength": "TONINGSSTYRKE",
       "neon": "NEONKANTER",
@@ -313,7 +318,8 @@
       "neonStrength": "NEONSTYRKE",
       "neonWidth": "NEONBREDDE",
       "neonTint": "NEONTONE",
-      "neonTintAmount": "TONEMENGDE"
+      "neonTintAmount": "TONEMENGDE",
+      "neonAccent": "NEONAKSENT"
     },
     "water": {
       "bottom": "BUNN",
@@ -1101,6 +1107,25 @@
     "midday": "Middag",
     "morning": "Morgen",
     "night": "Natt"
+  },
+  "userScenes": {
+    "appName": "EGNE",
+    "title": "EGNE SCENER",
+    "import": "IMPORTER GLB",
+    "importing": "IMPORTERER…",
+    "importHint": "Last inn din egen .glb-fil som scene. Den lagres på denne enheten og blir værende i scenelisten.",
+    "remove": "FJERN",
+    "removeConfirm": "Fjerne den importerte scenen \"{{name}}\" fra denne enheten?",
+    "errors": {
+      "empty": "Filen er tom.",
+      "tooLarge": "Filen er for stor — maks {{max}} MB.",
+      "notGlb": "Dette er ikke en .glb-fil. Eksporter scenen som binær glTF (.glb).",
+      "unsupportedVersion": "Bare glTF 2.0 støttes. Eksporter filen på nytt som glTF 2.0 (.glb).",
+      "corrupt": "Kunne ikke lese filen — den ser ut til å være skadet eller ufullstendig.",
+      "storageFull": "Det er ikke nok plass på enheten til å lagre scenen.",
+      "storageUnavailable": "Scener kan ikke lagres på denne enheten (lagring er slått av, f.eks. i privat modus).",
+      "loadFailed": "Den importerte scenen kunne ikke vises — filen bruker kanskje en glTF-utvidelse som ikke støttes."
+    }
   },
   "wave": {
     "preset": {

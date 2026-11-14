@@ -771,6 +771,16 @@ export type SettingsPanelProps = {
   setEnvDayNightAutoOn: Dispatch<SetStateAction<boolean>>;
   envSunTintOn: boolean;
   setEnvSunTintOn: Dispatch<SetStateAction<boolean>>;
+  snowOn: boolean;
+  setSnowOn: Dispatch<SetStateAction<boolean>>;
+  snowAmount: number;
+  setSnowAmount: Dispatch<SetStateAction<number>>;
+  snowIntensity: number;
+  setSnowIntensity: Dispatch<SetStateAction<number>>;
+  snowCoverOn: boolean;
+  setSnowCoverOn: Dispatch<SetStateAction<boolean>>;
+  snowCoverStrength: number;
+  setSnowCoverStrength: Dispatch<SetStateAction<number>>;
   neonOn: boolean;
   setNeonOn: Dispatch<SetStateAction<boolean>>;
   neonMode: NeonMode;
@@ -789,6 +799,8 @@ export type SettingsPanelProps = {
   setNeonWidth: Dispatch<SetStateAction<number>>;
   neonFrequency: number;
   setNeonFrequency: Dispatch<SetStateAction<number>>;
+  neonAccentColor: string;
+  setNeonAccentColor: Dispatch<SetStateAction<string>>;
   wakeLock: boolean;
   setWakeLock: Dispatch<SetStateAction<boolean>>;
 
@@ -957,6 +969,12 @@ export type SettingsPanelProps = {
   sceneId: string | null;
   setSceneId: Dispatch<SetStateAction<string | null>>;
   cycleScene: (dir: number) => void;
+  // EGNA SCENER (src/lib/userScenes.ts): ids of the scenes in `scenes` that
+  // the player imported from their own device, plus import/remove actions.
+  userSceneIds: string[];
+  userSceneBusy: boolean;
+  pickUserSceneFile: () => void;
+  deleteUserScene: (id: string) => void;
   spawnLocations: NamedOption[];
   spawnLocationId: string | null;
   setSpawnLocationId: Dispatch<SetStateAction<string | null>>;
@@ -1744,6 +1762,16 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setEnvDayNightAutoOn,
     envSunTintOn,
     setEnvSunTintOn,
+    snowOn,
+    setSnowOn,
+    snowAmount,
+    setSnowAmount,
+    snowIntensity,
+    setSnowIntensity,
+    snowCoverOn,
+    setSnowCoverOn,
+    snowCoverStrength,
+    setSnowCoverStrength,
     neonOn,
     setNeonOn,
     neonMode,
@@ -1762,6 +1790,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setNeonWidth,
     neonFrequency,
     setNeonFrequency,
+    neonAccentColor,
+    setNeonAccentColor,
     wakeLock,
     setWakeLock,
     waterColorIdx,
@@ -1921,6 +1951,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
     sceneId,
     setSceneId,
     cycleScene,
+    userSceneIds,
+    userSceneBusy,
+    pickUserSceneFile,
+    deleteUserScene,
     spawnLocations,
     spawnLocationId,
     setSpawnLocationId,
@@ -4714,6 +4748,28 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     onInc={() => cycleScene(1)}
                   />
                 )}
+                <div className="flex w-full flex-wrap items-center justify-center gap-1.5 py-1">
+                  <span className="text-[9px] font-light tracking-[0.28em] ui-ink-faint">
+                    {t("userScenes.title")}
+                  </span>
+                  <button
+                    onClick={pickUserSceneFile}
+                    disabled={userSceneBusy}
+                    title={t("userScenes.importHint")}
+                    className="rounded-full border ui-line-1 ui-tint-1 px-2.5 py-0.5 text-[9px] font-light tracking-wider ui-ink-muted transition active:scale-95 ui-press disabled:opacity-30"
+                  >
+                    {userSceneBusy ? t("userScenes.importing") : t("userScenes.import")}
+                  </button>
+                  {sceneId && userSceneIds.includes(sceneId) && (
+                    <button
+                      onClick={() => deleteUserScene(sceneId)}
+                      disabled={userSceneBusy}
+                      className="rounded-full border ui-line-1 ui-tint-1 px-2.5 py-0.5 text-[9px] font-light tracking-wider ui-ink-muted transition active:scale-95 ui-press disabled:opacity-30"
+                    >
+                      {t("userScenes.remove")}
+                    </button>
+                  )}
+                </div>
                 {spawnLocations.length > 1 && (
                   <SettingRow
                     label={t("dial.env.spawnLocation")}
@@ -4813,6 +4869,68 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       </>
                     )}
                   </>
+                )}
+                <SettingRow
+                  label={t("dial.env.snow")}
+                  value={onOff(snowOn)}
+                  onDec={() => setSnowOn(false)}
+                  onInc={() => setSnowOn(true)}
+                />
+                {snowOn && (
+                  <>
+                    <SettingRow
+                      label={t("dial.env.snowAmount")}
+                      mode="number"
+                      value={`${Math.round(snowAmount)}`}
+                      rawValue={snowAmount}
+                      onSet={(v) =>
+                        setSnowAmount(Math.max(0, Math.min(mx("snowAmount"), Math.round(v))))
+                      }
+                      min={0}
+                      max={mx("snowAmount")}
+                      step={500}
+                      onDec={() => setSnowAmount((v) => Math.max(0, Math.round(v - 500)))}
+                      onInc={() =>
+                        setSnowAmount((v) => Math.min(mx("snowAmount"), Math.round(v + 500)))
+                      }
+                    />
+                    <SettingRow
+                      label={t("dial.env.snowIntensity")}
+                      mode="number"
+                      value={`${Math.round(snowIntensity * 100)}%`}
+                      rawValue={snowIntensity}
+                      onSet={(v) => setSnowIntensity(Math.max(0, Math.min(mx("snowIntensity"), v)))}
+                      min={0}
+                      max={mx("snowIntensity")}
+                      step={0.05}
+                      onDec={() => setSnowIntensity((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                      onInc={() =>
+                        setSnowIntensity((v) =>
+                          Math.min(mx("snowIntensity"), +(v + 0.05).toFixed(2)),
+                        )
+                      }
+                    />
+                  </>
+                )}
+                <SettingRow
+                  label={t("dial.env.snowCover")}
+                  value={onOff(snowCoverOn)}
+                  onDec={() => setSnowCoverOn(false)}
+                  onInc={() => setSnowCoverOn(true)}
+                />
+                {snowCoverOn && (
+                  <SettingRow
+                    label={t("dial.env.snowCoverStrength")}
+                    mode="number"
+                    value={`${Math.round(snowCoverStrength * 100)}%`}
+                    rawValue={snowCoverStrength}
+                    onSet={(v) => setSnowCoverStrength(Math.max(0, Math.min(1, v)))}
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    onDec={() => setSnowCoverStrength((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                    onInc={() => setSnowCoverStrength((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+                  />
                 )}
                 <SettingRow
                   label={t("dial.env.backdrop")}
@@ -5088,6 +5206,17 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     />
                   </>
                 )}
+                <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
+                  <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
+                    {t("dial.env.neonAccent")}
+                  </span>
+                  <input
+                    type="color"
+                    value={neonAccentColor}
+                    onChange={(e) => setNeonAccentColor(e.target.value)}
+                    className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
+                  />
+                </label>
               </>
             )}
             {settingsTab === "ljud" && (

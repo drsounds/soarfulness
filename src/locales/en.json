@@ -297,6 +297,11 @@
       "worldBoundaryYExtend": "INFINITE CLOUD LAYERS",
       "sunTint": "SUNRISE/SUNSET TINT",
       "dayNightAuto": "DAY/NIGHT SWAP",
+      "snow": "SNOW",
+      "snowAmount": "SNOW AMOUNT",
+      "snowIntensity": "SNOW INTENSITY",
+      "snowCover": "SNOW COVER",
+      "snowCoverStrength": "COVER STRENGTH",
       "daylightTint": "TIME OF DAY TINT",
       "daylightTintStrength": "TINT STRENGTH",
       "neon": "NEON EDGES",
@@ -313,7 +318,8 @@
       "neonStrength": "NEON STRENGTH",
       "neonWidth": "NEON WIDTH",
       "neonTint": "NEON TINT",
-      "neonTintAmount": "TINT AMOUNT"
+      "neonTintAmount": "TINT AMOUNT",
+      "neonAccent": "NEON ACCENT"
     },
     "water": {
       "bottom": "BOTTOM",
@@ -1101,6 +1107,25 @@
     "midday": "Midday",
     "morning": "Morning",
     "night": "Night"
+  },
+  "userScenes": {
+    "appName": "OWN",
+    "title": "OWN SCENES",
+    "import": "IMPORT GLB",
+    "importing": "IMPORTING…",
+    "importHint": "Load your own .glb file as a scene. It's saved on this device and stays in the scene list.",
+    "remove": "REMOVE",
+    "removeConfirm": "Remove the imported scene \"{{name}}\" from this device?",
+    "errors": {
+      "empty": "The file is empty.",
+      "tooLarge": "The file is too large — max {{max}} MB.",
+      "notGlb": "This isn't a .glb file. Export the scene as binary glTF (.glb).",
+      "unsupportedVersion": "Only glTF 2.0 is supported. Re-export the file as glTF 2.0 (.glb).",
+      "corrupt": "Couldn't read the file — it looks broken or incomplete.",
+      "storageFull": "There isn't enough space on this device to save the scene.",
+      "storageUnavailable": "Scenes can't be saved on this device (storage is disabled, e.g. in private mode).",
+      "loadFailed": "The imported scene couldn't be shown — the file may use an unsupported glTF extension."
+    }
   },
   "wave": {
     "preset": {

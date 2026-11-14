@@ -21,6 +21,8 @@ import { TorusRingField } from "@/lib/torusRings/TorusRingField";
 import { RETRO_PALETTE_INDEX, RETRO_SHADER } from "@/lib/sceneFx/retroShader";
 import { limitMax, useExtremeLimits, type LimitedControl } from "@/lib/extremeLimits";
 import { NeonEdges } from "@/lib/sceneFx/NeonEdges";
+import { SnowCover, Snowfall } from "@/lib/sceneFx/snow";
+import { applyNeonAccent } from "@/lib/sceneFx/neonAccent";
 import { relativeDaylightTint } from "@/lib/sceneFx/daylightTint";
 import {
   DAY_TIME_ID,
@@ -125,7 +127,18 @@ import {
   replaceSavedPresets,
   replaceSavedStates,
 } from "@/lib/presets";
-import { saveFileToDevice } from "@/lib/deviceFiles";
+import { pickFileFromDevice, saveFileToDevice } from "@/lib/deviceFiles";
+import {
+  USER_SCENE_APP_ID,
+  UserSceneError,
+  addUserScene,
+  getUserSceneData,
+  isUserSceneId,
+  listUserScenes,
+  removeUserScene,
+  userSceneMaxBytes,
+  type UserSceneMeta,
+} from "@/lib/userScenes";
 import { PUBLIC_APP_URL } from "@/lib/appLinks";
 import { syncedList, useSpacifySync } from "@/hooks/use-spacify-sync";
 import {
@@ -1549,6 +1562,15 @@ const DEFAULTS: Persisted = {
   envDayNightAutoOn: true,
   // SOLTONING: sunrise/sunset tints the backdrop warm toward the sun.
   envSunTintOn: true,
+  // SNÖ: falling snow around the camera (lib/sceneFx/snow.ts). snowAmount is
+  // the number of flakes, snowIntensity how hard it snows (fall speed, flake
+  // size, wind). SNÖTÄCKE (snowCoverOn) whitens the loaded scene and the
+  // environment backdrop as if snow had settled, by snowCoverStrength 0..1.
+  snowOn: false,
+  snowAmount: 4000,
+  snowIntensity: 0.5,
+  snowCoverOn: false,
+  snowCoverStrength: 0.8,
   // NEON: glowing lines along the loaded scene's mesh edges — see
   // lib/sceneFx/NeonEdges.ts for how neonMode/neonFrequency animate color.
   neonOn: false,
@@ -1560,6 +1582,9 @@ const DEFAULTS: Persisted = {
   neonStrength: 1,
   neonWidth: 3,
   neonFrequency: 0.5,
+  // NEONACCENT: color of every "-neon" scene material (tint + emission at
+  // 1.00) — see lib/sceneFx/neonAccent.ts.
+  neonAccentColor: "#ff2bd6",
   cameraMode: "float",
   noclipSpeed: 1,
   noclipFallRiseSpeed: 48,
@@ -2109,7 +2134,20 @@ export function Aquafulness() {
   // only, so this never restricts which options are selectable.
   const [apps, setApps] = useState<AppEntry[]>([]);
   // Loadable scenes discovered by walking every installed app's manifest.json.
-  const [scenes, setScenes] = useState<AppSceneEntry[]>([]);
+  const [catalogScenes, setCatalogScenes] = useState<AppSceneEntry[]>([]);
+  // EGNA SCENER: .glb files the player imported from their own device and
+  // kept on it (src/lib/userScenes.ts). null until IndexedDB has answered.
+  const [userScenes, setUserScenes] = useState<UserSceneMeta[] | null>(null);
+  const [userSceneBusy, setUserSceneBusy] = useState(false);
+  // The scene list every picker shows: the shipped scenes, then the
+  // player's own imports.
+  const scenes = useMemo<AppSceneEntry[]>(
+    () => [
+      ...catalogScenes,
+      ...(userScenes ?? []).map((u) => ({ id: u.id, name: u.name, appId: USER_SCENE_APP_ID })),
+    ],
+    [catalogScenes, userScenes],
+  );
   const [sceneId, setSceneId] = useState<string | null>(initial.sceneId);
   // Named respawn points for the current scene, from its manifest's
   // "locations"/"places" list (see resolveSpawnLocations) — always at least
@@ -2185,6 +2223,11 @@ export function Aquafulness() {
   );
   const [envDayNightAutoOn, setEnvDayNightAutoOn] = useState(initial.envDayNightAutoOn);
   const [envSunTintOn, setEnvSunTintOn] = useState(initial.envSunTintOn);
+  const [snowOn, setSnowOn] = useState(initial.snowOn);
+  const [snowAmount, setSnowAmount] = useState(initial.snowAmount);
+  const [snowIntensity, setSnowIntensity] = useState(initial.snowIntensity);
+  const [snowCoverOn, setSnowCoverOn] = useState(initial.snowCoverOn);
+  const [snowCoverStrength, setSnowCoverStrength] = useState(initial.snowCoverStrength);
   const [neonOn, setNeonOn] = useState(initial.neonOn);
   const [neonMode, setNeonMode] = useState(initial.neonMode);
   const [neonPrimary, setNeonPrimary] = useState(initial.neonPrimary);
@@ -2194,6 +2237,7 @@ export function Aquafulness() {
   const [neonStrength, setNeonStrength] = useState(initial.neonStrength);
   const [neonWidth, setNeonWidth] = useState(initial.neonWidth);
   const [neonFrequency, setNeonFrequency] = useState(initial.neonFrequency);
+  const [neonAccentColor, setNeonAccentColor] = useState(initial.neonAccentColor);
   const [cameraMode, setCameraMode] = useState<CameraMode>(initial.cameraMode);
   const [noclipSpeed, setNoclipSpeed] = useState(initial.noclipSpeed);
   const [noclipFallRiseSpeed, setNoclipFallRiseSpeed] = useState(initial.noclipFallRiseSpeed);
@@ -2319,8 +2363,12 @@ export function Aquafulness() {
     clamp("freakOutRotationSpeed", freakOutRotationSpeed, setFreakOutRotationSpeed);
     clamp("freakOutRotationKick", freakOutRotationKick, setFreakOutRotationKick);
     clamp("freakOutFloatYOffset", freakOutFloatYOffset, setFreakOutFloatYOffset);
+    clamp("snowAmount", snowAmount, setSnowAmount);
+    clamp("snowIntensity", snowIntensity, setSnowIntensity);
   }, [
     extremeLimits,
+    snowAmount,
+    snowIntensity,
     waveAmp,
     swayAmp,
     surgeAmp,
@@ -2705,6 +2753,11 @@ export function Aquafulness() {
   const envSunTintOnRef = useRef(envSunTintOn);
   // SOLTONING overlay over the flat DOM backdrop image, restyled per frame.
   const backdropSunTintRef = useRef<HTMLDivElement | null>(null);
+  const snowOnRef = useRef(snowOn);
+  const snowAmountRef = useRef(snowAmount);
+  const snowIntensityRef = useRef(snowIntensity);
+  const snowCoverOnRef = useRef(snowCoverOn);
+  const snowCoverStrengthRef = useRef(snowCoverStrength);
   const neonOnRef = useRef(neonOn);
   const neonModeRef = useRef(neonMode);
   const neonPrimaryRef = useRef(neonPrimary);
@@ -2714,6 +2767,7 @@ export function Aquafulness() {
   const neonStrengthRef = useRef(neonStrength);
   const neonWidthRef = useRef(neonWidth);
   const neonFrequencyRef = useRef(neonFrequency);
+  const neonAccentColorRef = useRef(neonAccentColor);
 
   // A full snapshot of every settings-dialog field, in the exact Persisted
   // shape saved to localStorage below — also reused by the preset save/
@@ -2865,6 +2919,11 @@ export function Aquafulness() {
     envDaylightTintStrength,
     envDayNightAutoOn,
     envSunTintOn,
+    snowOn,
+    snowAmount,
+    snowIntensity,
+    snowCoverOn,
+    snowCoverStrength,
     neonOn,
     neonMode,
     neonPrimary,
@@ -2874,6 +2933,7 @@ export function Aquafulness() {
     neonStrength,
     neonWidth,
     neonFrequency,
+    neonAccentColor,
     cameraMode,
     noclipSpeed,
     noclipFallRiseSpeed,
@@ -3115,6 +3175,11 @@ export function Aquafulness() {
     envDaylightTintStrength,
     envDayNightAutoOn,
     envSunTintOn,
+    snowOn,
+    snowAmount,
+    snowIntensity,
+    snowCoverOn,
+    snowCoverStrength,
     neonOn,
     neonMode,
     neonPrimary,
@@ -3124,6 +3189,7 @@ export function Aquafulness() {
     neonStrength,
     neonWidth,
     neonFrequency,
+    neonAccentColor,
     cameraMode,
     noclipSpeed,
     noclipFallRiseSpeed,
@@ -4152,6 +4218,13 @@ export function Aquafulness() {
     envSunTintOnRef.current = envSunTintOn;
   }, [envSunTintOn]);
   useEffect(() => {
+    snowOnRef.current = snowOn;
+    snowAmountRef.current = snowAmount;
+    snowIntensityRef.current = snowIntensity;
+    snowCoverOnRef.current = snowCoverOn;
+    snowCoverStrengthRef.current = snowCoverStrength;
+  }, [snowOn, snowAmount, snowIntensity, snowCoverOn, snowCoverStrength]);
+  useEffect(() => {
     neonOnRef.current = neonOn;
   }, [neonOn]);
   useEffect(() => {
@@ -4178,6 +4251,12 @@ export function Aquafulness() {
   useEffect(() => {
     neonFrequencyRef.current = neonFrequency;
   }, [neonFrequency]);
+  // NEONACCENT: recolor the loaded scene's "-neon" materials right away (a
+  // newly loaded scene picks the current color up in its loader instead).
+  useEffect(() => {
+    neonAccentColorRef.current = neonAccentColor;
+    if (modelRef.current) applyNeonAccent(modelRef.current, neonAccentColor);
+  }, [neonAccentColor]);
   useEffect(() => {
     sphereStrengthRef.current = sphereStrength;
   }, [sphereStrength]);
@@ -4747,6 +4826,11 @@ export function Aquafulness() {
     setEnvDaylightTintStrength(DEFAULTS.envDaylightTintStrength);
     setEnvDayNightAutoOn(DEFAULTS.envDayNightAutoOn);
     setEnvSunTintOn(DEFAULTS.envSunTintOn);
+    setSnowOn(DEFAULTS.snowOn);
+    setSnowAmount(DEFAULTS.snowAmount);
+    setSnowIntensity(DEFAULTS.snowIntensity);
+    setSnowCoverOn(DEFAULTS.snowCoverOn);
+    setSnowCoverStrength(DEFAULTS.snowCoverStrength);
     setNeonOn(DEFAULTS.neonOn);
     setNeonMode(DEFAULTS.neonMode);
     setNeonPrimary(DEFAULTS.neonPrimary);
@@ -4756,6 +4840,7 @@ export function Aquafulness() {
     setNeonStrength(DEFAULTS.neonStrength);
     setNeonWidth(DEFAULTS.neonWidth);
     setNeonFrequency(DEFAULTS.neonFrequency);
+    setNeonAccentColor(DEFAULTS.neonAccentColor);
     setCameraMode(DEFAULTS.cameraMode);
     setNoclipSpeed(DEFAULTS.noclipSpeed);
     setNoclipFallRiseSpeed(DEFAULTS.noclipFallRiseSpeed);
@@ -5014,6 +5099,11 @@ export function Aquafulness() {
       setEnvDaylightTintStrength(patch.envDaylightTintStrength);
     if (patch.envDayNightAutoOn !== undefined) setEnvDayNightAutoOn(patch.envDayNightAutoOn);
     if (patch.envSunTintOn !== undefined) setEnvSunTintOn(patch.envSunTintOn);
+    if (patch.snowOn !== undefined) setSnowOn(patch.snowOn);
+    if (patch.snowAmount !== undefined) setSnowAmount(patch.snowAmount);
+    if (patch.snowIntensity !== undefined) setSnowIntensity(patch.snowIntensity);
+    if (patch.snowCoverOn !== undefined) setSnowCoverOn(patch.snowCoverOn);
+    if (patch.snowCoverStrength !== undefined) setSnowCoverStrength(patch.snowCoverStrength);
     if (patch.neonOn !== undefined) setNeonOn(patch.neonOn);
     if (patch.neonMode !== undefined) setNeonMode(patch.neonMode);
     if (patch.neonPrimary !== undefined) setNeonPrimary(patch.neonPrimary);
@@ -5023,6 +5113,7 @@ export function Aquafulness() {
     if (patch.neonStrength !== undefined) setNeonStrength(patch.neonStrength);
     if (patch.neonWidth !== undefined) setNeonWidth(patch.neonWidth);
     if (patch.neonFrequency !== undefined) setNeonFrequency(patch.neonFrequency);
+    if (patch.neonAccentColor !== undefined) setNeonAccentColor(patch.neonAccentColor);
     if (patch.cameraMode !== undefined) setCameraMode(patch.cameraMode);
     if (patch.noclipSpeed !== undefined) setNoclipSpeed(patch.noclipSpeed);
     if (patch.noclipFallRiseSpeed !== undefined) setNoclipFallRiseSpeed(patch.noclipFallRiseSpeed);
@@ -5973,9 +6064,12 @@ export function Aquafulness() {
       .then((catalog) => {
         if (!alive) return;
         setApps(catalog.apps);
-        setScenes(catalog.scenes);
-        // Drop a persisted selection that no longer exists.
-        setSceneId((cur) => (cur && !catalog.scenes.some((s) => s.id === cur) ? null : cur));
+        setCatalogScenes(catalog.scenes);
+        // Drop a persisted selection that no longer exists. Imported scenes
+        // are checked against IndexedDB instead (see the effect below).
+        setSceneId((cur) =>
+          cur && !isUserSceneId(cur) && !catalog.scenes.some((s) => s.id === cur) ? null : cur,
+        );
         setEnvironments(catalog.environments);
         setSurfaces(catalog.surfaces);
         setSurfaceId((cur) => (cur && !catalog.surfaces.some((s) => s.id === cur) ? null : cur));
@@ -5984,7 +6078,7 @@ export function Aquafulness() {
       .catch(() => {
         if (!alive) return;
         setApps([]);
-        setScenes([]);
+        setCatalogScenes([]);
         setEnvironments([]);
         setSurfaces([]);
         setAppAudioTracks([]);
@@ -5993,6 +6087,68 @@ export function Aquafulness() {
       alive = false;
     };
   }, []);
+
+  // EGNA SCENER: load the imported-scene shortcuts saved on this device, and
+  // drop a persisted selection of one that has since been removed.
+  useEffect(() => {
+    let alive = true;
+    listUserScenes().then((list) => {
+      if (!alive) return;
+      setUserScenes(list);
+      setSceneId((cur) => (isUserSceneId(cur) && !list.some((u) => u.id === cur) ? null : cur));
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const userSceneErrorMessage = (err: unknown) => {
+    const code =
+      err instanceof UserSceneError
+        ? err.code
+        : (err as { code?: string } | null)?.code === "TOO_LARGE"
+          ? "tooLarge"
+          : "corrupt";
+    return t(`userScenes.errors.${code}`, {
+      max: Math.round(userSceneMaxBytes() / (1024 * 1024)),
+    });
+  };
+
+  // IMPORTERA GLB: copies a picked .glb into this device's storage, lists it
+  // as a scene and switches to it.
+  const importUserSceneFile = async (file: File) => {
+    setUserSceneBusy(true);
+    try {
+      const meta = await addUserScene(file);
+      setUserScenes((list) => [...(list ?? []), meta]);
+      setSceneId(meta.id);
+    } catch (err) {
+      console.error("Importing scene failed", err);
+      window.alert(userSceneErrorMessage(err));
+    } finally {
+      setUserSceneBusy(false);
+    }
+  };
+  const pickUserSceneFile = () => {
+    pickFileFromDevice(".glb,model/gltf-binary", (file) => void importUserSceneFile(file), {
+      binary: true,
+      maxBytes: userSceneMaxBytes(),
+      onError: (err) => window.alert(userSceneErrorMessage(err)),
+    });
+  };
+  // TA BORT: forgets an imported scene (and its stored copy) on this device.
+  const deleteUserScene = async (id: string) => {
+    const entry = userScenes?.find((u) => u.id === id);
+    if (!entry || !window.confirm(t("userScenes.removeConfirm", { name: entry.name }))) return;
+    try {
+      await removeUserScene(id);
+      setUserScenes((list) => (list ?? []).filter((u) => u.id !== id));
+      setSceneId((cur) => (cur === id ? null : cur));
+    } catch (err) {
+      console.error("Removing scene failed", err);
+      window.alert(userSceneErrorMessage(err));
+    }
+  };
 
   // Once the installed apps are known, fetch each one's shipped "scenery"
   // presets (public/apps/<appId>/scenary/manifest.json) — read-only defaults
@@ -7862,6 +8018,7 @@ export function Aquafulness() {
       uSunTint: { value: 0 },
       uSunDir: { value: uniforms.uSunDir.value },
       uSunColor: { value: uniforms.uSunColor.value },
+      uSnowCover: { value: 0 },
       uUnderwater: uniforms.uUnderwater,
       uTurbidity: skyUniforms.uTurbidity,
       uFogColor: skyUniforms.uFogColor,
@@ -7888,6 +8045,7 @@ export function Aquafulness() {
         uniform float uSunTint;
         uniform vec3 uSunDir;
         uniform vec3 uSunColor;
+        uniform float uSnowCover;
         uniform float uUnderwater;
         uniform float uTurbidity;
         uniform vec3 uFogColor;
@@ -7917,6 +8075,18 @@ export function Aquafulness() {
             vec3 warm = uSunColor / max(max(uSunColor.r, uSunColor.g), max(uSunColor.b, 1e-3));
             col *= mix(vec3(1.0), warm, k);
             col += uSunColor * uSunTint * pow(max(dot(d, normalize(uSunDir)), 0.0), 12.0) * 0.35;
+          }
+          if (uSnowCover > 0.001) {
+            // SNÖTÄCKE: a winter look for the photo — colder and paler
+            // overall (overcast sky), and the ground below the horizon
+            // lifted toward snow, keeping some of its light/dark detail.
+            float lum = dot(col, vec3(0.299, 0.587, 0.114));
+            float k = clamp(uSnowCover, 0.0, 1.0);
+            col = mix(col, vec3(lum) * vec3(0.95, 0.98, 1.05), 0.55 * k);
+            float ground = 1.0 - smoothstep(-0.02, 0.12, d.y);
+            float snowAmt = k * mix(0.35, 0.85, ground) * smoothstep(0.02, 0.35, lum + 0.15);
+            vec3 snow = vec3(0.88, 0.91, 0.97) * (0.8 + 0.3 * lum);
+            col = mix(col, snow, snowAmt);
           }
           if (uUnderwater > 0.001) {
             float murk = clamp(uUnderwater * (0.25 + uTurbidity * 0.7), 0.0, 1.0);
@@ -7950,6 +8120,10 @@ export function Aquafulness() {
     // NEON edge lines along the loaded scene's meshes — see NeonEdges.
     const neonEdges = new NeonEdges(scene);
     neonEdges.setResolution(mount.clientWidth, mount.clientHeight);
+    // SNÖ: falling flakes around the camera, and SNÖTÄCKE whitening of the
+    // loaded scene (see lib/sceneFx/snow.ts).
+    const snowfall = new Snowfall(scene);
+    const snowCover = new SnowCover();
     const envTint = new THREE.Color(1, 1, 1);
     const envTintScratch = new THREE.Color();
     const envTintNight = new THREE.Color(1, 1, 1);
@@ -8302,7 +8476,12 @@ export function Aquafulness() {
           }
         }
       }
-      const useEnvDome = envTex !== null && (envTintOn || envBlending || sunTint > 0.001);
+      // SNÖTÄCKE settles over a few seconds (SnowCover.update eases it); the
+      // backdrop needs the env dome to be whitened at all.
+      snowCover.update(dt, snowCoverOnRef.current ? snowCoverStrengthRef.current : 0);
+      envDomeUniforms.uSnowCover.value = snowCover.cover;
+      const useEnvDome =
+        envTex !== null && (envTintOn || envBlending || sunTint > 0.001 || snowCover.cover > 0.001);
       envDome.visible = useEnvDome;
       if (useEnvDome && envDayTex) {
         envDomeUniforms.uEnvTex.value = envDayTex;
@@ -10609,6 +10788,25 @@ export function Aquafulness() {
         }
       }
 
+      // SNÖ: flakes follow the camera; SNÖTÄCKE patches the loaded scene's
+      // materials once per model (the shared uniform does the rest).
+      {
+        if (snowOnRef.current) {
+          snowfall.setPixelRatio(renderer.getPixelRatio());
+          snowfall.update(now / 1000, dt, camera.position, {
+            amount: snowAmountRef.current * (lowEnd ? 0.5 : 1),
+            intensity: snowIntensityRef.current,
+            waterLevel: ocean.position.y,
+            underwater: uniforms.uUnderwater.value,
+          });
+        } else {
+          snowfall.hide();
+        }
+        const model = snowCover.cover > 0.001 ? modelRef.current : null;
+        if (model && model !== snowCover.attachedTo) snowCover.attach(model);
+        else if (!modelRef.current && snowCover.attachedTo) snowCover.detach();
+      }
+
       // Cap actual GPU renders to targetFps (gogglesFpsCap instead while
       // SIMGLASÖGON is on, for its own lower thermal-friendly ceiling) —
       // camera/physics/uniforms above still update every rAF tick (cheap,
@@ -10690,6 +10888,7 @@ export function Aquafulness() {
       retroPass.dispose();
       composer.dispose();
       neonEdges.dispose();
+      snowfall.dispose();
       scene.environment = null;
       iblTarget?.dispose();
       pmrem.dispose();
@@ -10802,6 +11001,7 @@ export function Aquafulness() {
     return () => window.clearTimeout(id);
   }, [bootReady]);
 
+  const sceneAppId = (sceneId && scenes.find((s) => s.id === sceneId)?.appId) || null;
   // Load / swap the selected scene into the live three.js scene graph. Runs
   // after the WebGL setup effect above has populated sceneRef, and re-runs
   // whenever the user picks a different scene.
@@ -10822,64 +11022,89 @@ export function Aquafulness() {
     // itself, so a persisted sceneId from localStorage still resolves once
     // the catalog loads (apps are a packaging unit, not part of the
     // player's saved selection).
-    const sceneEntry = sceneId ? scenes.find((s) => s.id === sceneId) : null;
-    if (!sceneId || !sceneEntry) {
+    if (!sceneId || !sceneAppId) {
       setSpawnLocations([DEFAULT_SPAWN_LOCATION]);
       setSceneBootSettled(true);
       return;
     }
 
     let cancelled = false;
-    const base = sceneDir(sceneEntry.appId, sceneId);
     const loader = new GLTFLoader();
-    // Scenes are exported as either a single-file .glb or a .gltf with
-    // sibling .bin/texture files; try .glb first (the common case) and fall
-    // back to .gltf so both layouts resolve without a manifest flag.
-    const loadModel = (ext: "glb" | "gltf") =>
-      new Promise<GLTF>((resolve, reject) => {
-        loader.load(`${base}/${encodeURIComponent(sceneId)}.${ext}`, resolve, undefined, reject);
-      });
+    let manifestPromise: Promise<SceneManifest>;
+    let loadScene: () => Promise<GLTF>;
+    if (sceneAppId === USER_SCENE_APP_ID) {
+      // EGNA SCENER: an imported .glb is parsed straight from its stored
+      // copy and placed as authored (no manifest, so the default spawn).
+      manifestPromise = Promise.resolve({});
+      loadScene = () =>
+        getUserSceneData(sceneId).then((data) => {
+          if (!data) throw new Error("imported scene is missing from storage");
+          return loader.parseAsync(data, "");
+        });
+    } else {
+      const base = sceneDir(sceneAppId, sceneId);
+      // Scenes are exported as either a single-file .glb or a .gltf with
+      // sibling .bin/texture files; try .glb first (the common case) and
+      // fall back to .gltf so both layouts resolve without a manifest flag.
+      const loadModel = (ext: "glb" | "gltf") =>
+        new Promise<GLTF>((resolve, reject) => {
+          loader.load(`${base}/${encodeURIComponent(sceneId)}.${ext}`, resolve, undefined, reject);
+        });
+      manifestPromise = fetch(`${base}/manifest.json`)
+        .then((r) => (r.ok ? (r.json() as Promise<SceneManifest>) : {}))
+        .catch(() => ({}) as SceneManifest);
+      loadScene = () => loadModel("glb").catch(() => loadModel("gltf"));
+    }
 
-    fetch(`${base}/manifest.json`)
-      .then((r) => (r.ok ? (r.json() as Promise<SceneManifest>) : {}))
-      .catch(() => ({}) as SceneManifest)
-      .then((manifest: SceneManifest) => {
-        if (cancelled) return;
-        setSpawnLocations(resolveSpawnLocations(manifest));
-        loadModel("glb")
-          .catch(() => loadModel("gltf"))
-          .then((gltf) => {
-            if (cancelled) {
-              disposeObject(gltf.scene);
-              return;
+    manifestPromise.then((manifest: SceneManifest) => {
+      if (cancelled) return;
+      setSpawnLocations(resolveSpawnLocations(manifest));
+      loadScene()
+        .then((gltf) => {
+          if (cancelled) {
+            disposeObject(gltf.scene);
+            return;
+          }
+          const model = gltf.scene;
+          applyManifest(model, manifest);
+          // SKUGGOR: every mesh in the scene casts and receives the sun's
+          // shadow — whether any shadow is drawn at all is decided per
+          // frame by the light (see shadowsActive in animate()).
+          model.traverse((o) => {
+            if ((o as THREE.Mesh).isMesh) {
+              o.castShadow = true;
+              o.receiveShadow = true;
             }
-            const model = gltf.scene;
-            applyManifest(model, manifest);
-            // SKUGGOR: every mesh in the scene casts and receives the sun's
-            // shadow — whether any shadow is drawn at all is decided per
-            // frame by the light (see shadowsActive in animate()).
-            model.traverse((o) => {
-              if ((o as THREE.Mesh).isMesh) {
-                o.castShadow = true;
-                o.receiveShadow = true;
-              }
-            });
-            scene.add(model);
-            modelRef.current = model;
-            const bob = resolveBob(manifest.bob);
-            modelBobRef.current = bob ? { base: model.position.clone(), bob } : null;
-            setSceneBootSettled(true);
-          })
-          .catch((err) => {
-            console.error(`Failed to load scene "${sceneId}"`, err);
-            if (!cancelled) setSceneBootSettled(true);
           });
-      });
+          // NEONACCENT: "-neon" materials take the accent color as tint
+          // and emission (intensity 1.00).
+          applyNeonAccent(model, neonAccentColorRef.current);
+          scene.add(model);
+          modelRef.current = model;
+          const bob = resolveBob(manifest.bob);
+          modelBobRef.current = bob ? { base: model.position.clone(), bob } : null;
+          setSceneBootSettled(true);
+        })
+        .catch((err) => {
+          console.error(`Failed to load scene "${sceneId}"`, err);
+          if (cancelled) return;
+          setSceneBootSettled(true);
+          // An imported file that passed the header check can still fail
+          // to parse (or need an extension three.js can't decode) — say so
+          // rather than silently showing an empty scene.
+          if (sceneAppId === USER_SCENE_APP_ID) {
+            window.alert(t("userScenes.errors.loadFailed"));
+          }
+        });
+    });
 
     return () => {
       cancelled = true;
     };
-  }, [sceneId, scenes]);
+    // Keyed on the owning app rather than the whole scenes list, so importing
+    // or removing another scene doesn't reload the one on screen.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sceneId, sceneAppId]);
 
   // Drop a persisted spawn-location selection that no longer exists once the
   // current scene's location list resolves (e.g. after switching scenes, or
@@ -11402,6 +11627,16 @@ export function Aquafulness() {
     setEnvDayNightAutoOn,
     envSunTintOn,
     setEnvSunTintOn,
+    snowOn,
+    setSnowOn,
+    snowAmount,
+    setSnowAmount,
+    snowIntensity,
+    setSnowIntensity,
+    snowCoverOn,
+    setSnowCoverOn,
+    snowCoverStrength,
+    setSnowCoverStrength,
     neonOn,
     setNeonOn,
     neonMode,
@@ -11420,6 +11655,8 @@ export function Aquafulness() {
     setNeonWidth,
     neonFrequency,
     setNeonFrequency,
+    neonAccentColor,
+    setNeonAccentColor,
     wakeLock,
     setWakeLock,
     waterColorIdx,
@@ -11579,6 +11816,10 @@ export function Aquafulness() {
     sceneId,
     setSceneId,
     cycleScene,
+    userSceneIds: (userScenes ?? []).map((u) => u.id),
+    userSceneBusy,
+    pickUserSceneFile,
+    deleteUserScene: (id: string) => void deleteUserScene(id),
     spawnLocations,
     spawnLocationId,
     setSpawnLocationId,
@@ -11608,7 +11849,9 @@ export function Aquafulness() {
     waterSoundIdx,
     setWaterSoundIdx,
     waterSounds: allWaterSounds,
-    apps,
+    apps: userScenes?.length
+      ? [...apps, { id: USER_SCENE_APP_ID, name: t("userScenes.appName") }]
+      : apps,
     savedSceneryPresets,
     appSceneryPresets,
     saveSceneryPresetAs,
