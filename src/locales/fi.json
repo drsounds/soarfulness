@@ -295,6 +295,7 @@
       "worldBoundaryHeight": "RAJAN KORKEUS (Y)",
       "worldBoundarySize": "RAJAN KOKO (XZ)",
       "worldBoundaryYExtend": "ÄÄRETTÖMÄT PILVIKERROKSET",
+      "sunTint": "AURINGON SÄVY",
       "dayNightAuto": "PÄIVÄ/YÖ-VAIHTO",
       "daylightTint": "VUOROKAUDEN SÄVY",
       "daylightTintStrength": "SÄVYN VOIMAKKUUS",

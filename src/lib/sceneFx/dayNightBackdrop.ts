@@ -34,3 +34,12 @@ export function nightBackdropMix(t: number): number {
   const x = Math.min(1, Math.max(0, (elev - NIGHT_FULL_ELEV) / (DAY_FULL_ELEV - NIGHT_FULL_ELEV)));
   return 1 - x * x * (3 - 2 * x);
 }
+
+// SOLTONING: how strongly sunrise/sunset colors the backdrop (0..1). Peaks
+// with the sun just at the horizon and fades out by the time it's well up in
+// the sky or well below it.
+export function sunsetTintAmount(t: number): number {
+  const elev = sunElevationForTimeOfDay(t);
+  const x = Math.min(1, Math.max(0, 1 - Math.abs(elev - 0.03) / 0.32));
+  return x * x * (3 - 2 * x);
+}

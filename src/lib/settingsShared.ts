@@ -675,6 +675,9 @@ export type Persisted = {
   // DYGNSBYTE: an environment with both a day and a night skybox shows the
   // one matching TIMEOFDAY, cross-fading the two at dawn and dusk.
   envDayNightAutoOn: boolean;
+  // SOLTONING: sunrise/sunset colors the backdrop (environment skybox, its
+  // water reflection and the flat backdrop image) warm around the sun.
+  envSunTintOn: boolean;
   // NEON: glowing lines along the loaded scene's mesh edges. neonMode picks
   // how the color moves over time (see NeonMode); neonFrequency is in
   // cycles per second. neonTint is mixed over the result by neonTintAmount.
@@ -1055,6 +1058,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "envDaylightTintOn",
     "envDaylightTintStrength",
     "envDayNightAutoOn",
+    "envSunTintOn",
     "neonOn",
     "neonMode",
     "neonPrimary",

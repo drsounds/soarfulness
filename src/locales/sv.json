@@ -295,6 +295,7 @@
       "worldBoundaryHeight": "GRÄNSHÖJD (Y)",
       "worldBoundarySize": "GRÄNSSTORLEK (XZ)",
       "worldBoundaryYExtend": "OÄNDLIGA MOLNLAGER",
+      "sunTint": "SOLTONING",
       "dayNightAuto": "DYGNSBYTE",
       "daylightTint": "DYGNSTONING",
       "daylightTintStrength": "TONINGSSTYRKA",
