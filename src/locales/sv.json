@@ -1101,6 +1101,25 @@
     "morning": "Morgon",
     "night": "Natt"
   },
+  "userScenes": {
+    "appName": "EGNA",
+    "title": "EGNA SCENER",
+    "import": "IMPORTERA GLB",
+    "importing": "IMPORTERAR…",
+    "importHint": "Läs in en egen .glb-fil som scen. Den sparas på den här enheten och finns kvar i scenlistan.",
+    "remove": "TA BORT",
+    "removeConfirm": "Ta bort den importerade scenen \"{{name}}\" från den här enheten?",
+    "errors": {
+      "empty": "Filen är tom.",
+      "tooLarge": "Filen är för stor — max {{max}} MB.",
+      "notGlb": "Det här är ingen .glb-fil. Exportera scenen som glTF binär (.glb).",
+      "unsupportedVersion": "Bara glTF 2.0 stöds. Exportera om filen som glTF 2.0 (.glb).",
+      "corrupt": "Kunde inte läsa filen — den verkar vara trasig eller ofullständig.",
+      "storageFull": "Det finns inte plats nog på enheten för att spara scenen.",
+      "storageUnavailable": "Kan inte spara scener på den här enheten (lagring är avstängd, t.ex. i privat läge).",
+      "loadFailed": "Den importerade scenen kunde inte visas — filen kan använda ett glTF-tillägg som inte stöds."
+    }
+  },
   "wave": {
     "preset": {
       "legacy": "LEGACY",

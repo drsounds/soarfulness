@@ -124,7 +124,18 @@ import {
   replaceSavedPresets,
   replaceSavedStates,
 } from "@/lib/presets";
-import { saveFileToDevice } from "@/lib/deviceFiles";
+import { pickFileFromDevice, saveFileToDevice } from "@/lib/deviceFiles";
+import {
+  USER_SCENE_APP_ID,
+  UserSceneError,
+  addUserScene,
+  getUserSceneData,
+  isUserSceneId,
+  listUserScenes,
+  removeUserScene,
+  userSceneMaxBytes,
+  type UserSceneMeta,
+} from "@/lib/userScenes";
 import { PUBLIC_APP_URL } from "@/lib/appLinks";
 import { syncedList, useSpacifySync } from "@/hooks/use-spacify-sync";
 import {
@@ -2106,7 +2117,20 @@ export function Aquafulness() {
   // only, so this never restricts which options are selectable.
   const [apps, setApps] = useState<AppEntry[]>([]);
   // Loadable scenes discovered by walking every installed app's manifest.json.
-  const [scenes, setScenes] = useState<AppSceneEntry[]>([]);
+  const [catalogScenes, setCatalogScenes] = useState<AppSceneEntry[]>([]);
+  // EGNA SCENER: .glb files the player imported from their own device and
+  // kept on it (src/lib/userScenes.ts). null until IndexedDB has answered.
+  const [userScenes, setUserScenes] = useState<UserSceneMeta[] | null>(null);
+  const [userSceneBusy, setUserSceneBusy] = useState(false);
+  // The scene list every picker shows: the shipped scenes, then the
+  // player's own imports.
+  const scenes = useMemo<AppSceneEntry[]>(
+    () => [
+      ...catalogScenes,
+      ...(userScenes ?? []).map((u) => ({ id: u.id, name: u.name, appId: USER_SCENE_APP_ID })),
+    ],
+    [catalogScenes, userScenes],
+  );
   const [sceneId, setSceneId] = useState<string | null>(initial.sceneId);
   // Named respawn points for the current scene, from its manifest's
   // "locations"/"places" list (see resolveSpawnLocations) — always at least
@@ -5959,9 +5983,12 @@ export function Aquafulness() {
       .then((catalog) => {
         if (!alive) return;
         setApps(catalog.apps);
-        setScenes(catalog.scenes);
-        // Drop a persisted selection that no longer exists.
-        setSceneId((cur) => (cur && !catalog.scenes.some((s) => s.id === cur) ? null : cur));
+        setCatalogScenes(catalog.scenes);
+        // Drop a persisted selection that no longer exists. Imported scenes
+        // are checked against IndexedDB instead (see the effect below).
+        setSceneId((cur) =>
+          cur && !isUserSceneId(cur) && !catalog.scenes.some((s) => s.id === cur) ? null : cur,
+        );
         setEnvironments(catalog.environments);
         setSurfaces(catalog.surfaces);
         setSurfaceId((cur) => (cur && !catalog.surfaces.some((s) => s.id === cur) ? null : cur));
@@ -5970,7 +5997,7 @@ export function Aquafulness() {
       .catch(() => {
         if (!alive) return;
         setApps([]);
-        setScenes([]);
+        setCatalogScenes([]);
         setEnvironments([]);
         setSurfaces([]);
         setAppAudioTracks([]);
@@ -5979,6 +6006,68 @@ export function Aquafulness() {
       alive = false;
     };
   }, []);
+
+  // EGNA SCENER: load the imported-scene shortcuts saved on this device, and
+  // drop a persisted selection of one that has since been removed.
+  useEffect(() => {
+    let alive = true;
+    listUserScenes().then((list) => {
+      if (!alive) return;
+      setUserScenes(list);
+      setSceneId((cur) => (isUserSceneId(cur) && !list.some((u) => u.id === cur) ? null : cur));
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const userSceneErrorMessage = (err: unknown) => {
+    const code =
+      err instanceof UserSceneError
+        ? err.code
+        : (err as { code?: string } | null)?.code === "TOO_LARGE"
+          ? "tooLarge"
+          : "corrupt";
+    return t(`userScenes.errors.${code}`, {
+      max: Math.round(userSceneMaxBytes() / (1024 * 1024)),
+    });
+  };
+
+  // IMPORTERA GLB: copies a picked .glb into this device's storage, lists it
+  // as a scene and switches to it.
+  const importUserSceneFile = async (file: File) => {
+    setUserSceneBusy(true);
+    try {
+      const meta = await addUserScene(file);
+      setUserScenes((list) => [...(list ?? []), meta]);
+      setSceneId(meta.id);
+    } catch (err) {
+      console.error("Importing scene failed", err);
+      window.alert(userSceneErrorMessage(err));
+    } finally {
+      setUserSceneBusy(false);
+    }
+  };
+  const pickUserSceneFile = () => {
+    pickFileFromDevice(".glb,model/gltf-binary", (file) => void importUserSceneFile(file), {
+      binary: true,
+      maxBytes: userSceneMaxBytes(),
+      onError: (err) => window.alert(userSceneErrorMessage(err)),
+    });
+  };
+  // TA BORT: forgets an imported scene (and its stored copy) on this device.
+  const deleteUserScene = async (id: string) => {
+    const entry = userScenes?.find((u) => u.id === id);
+    if (!entry || !window.confirm(t("userScenes.removeConfirm", { name: entry.name }))) return;
+    try {
+      await removeUserScene(id);
+      setUserScenes((list) => (list ?? []).filter((u) => u.id !== id));
+      setSceneId((cur) => (cur === id ? null : cur));
+    } catch (err) {
+      console.error("Removing scene failed", err);
+      window.alert(userSceneErrorMessage(err));
+    }
+  };
 
   // Once the installed apps are known, fetch each one's shipped "scenery"
   // presets (public/apps/<appId>/scenary/manifest.json) — read-only defaults
@@ -10737,6 +10826,7 @@ export function Aquafulness() {
     return () => window.clearTimeout(id);
   }, [bootReady]);
 
+  const sceneAppId = (sceneId && scenes.find((s) => s.id === sceneId)?.appId) || null;
   // Load / swap the selected scene into the live three.js scene graph. Runs
   // after the WebGL setup effect above has populated sceneRef, and re-runs
   // whenever the user picks a different scene.
@@ -10757,64 +10847,86 @@ export function Aquafulness() {
     // itself, so a persisted sceneId from localStorage still resolves once
     // the catalog loads (apps are a packaging unit, not part of the
     // player's saved selection).
-    const sceneEntry = sceneId ? scenes.find((s) => s.id === sceneId) : null;
-    if (!sceneId || !sceneEntry) {
+    if (!sceneId || !sceneAppId) {
       setSpawnLocations([DEFAULT_SPAWN_LOCATION]);
       setSceneBootSettled(true);
       return;
     }
 
     let cancelled = false;
-    const base = sceneDir(sceneEntry.appId, sceneId);
     const loader = new GLTFLoader();
-    // Scenes are exported as either a single-file .glb or a .gltf with
-    // sibling .bin/texture files; try .glb first (the common case) and fall
-    // back to .gltf so both layouts resolve without a manifest flag.
-    const loadModel = (ext: "glb" | "gltf") =>
-      new Promise<GLTF>((resolve, reject) => {
-        loader.load(`${base}/${encodeURIComponent(sceneId)}.${ext}`, resolve, undefined, reject);
-      });
+    let manifestPromise: Promise<SceneManifest>;
+    let loadScene: () => Promise<GLTF>;
+    if (sceneAppId === USER_SCENE_APP_ID) {
+      // EGNA SCENER: an imported .glb is parsed straight from its stored
+      // copy and placed as authored (no manifest, so the default spawn).
+      manifestPromise = Promise.resolve({});
+      loadScene = () =>
+        getUserSceneData(sceneId).then((data) => {
+          if (!data) throw new Error("imported scene is missing from storage");
+          return loader.parseAsync(data, "");
+        });
+    } else {
+      const base = sceneDir(sceneAppId, sceneId);
+      // Scenes are exported as either a single-file .glb or a .gltf with
+      // sibling .bin/texture files; try .glb first (the common case) and
+      // fall back to .gltf so both layouts resolve without a manifest flag.
+      const loadModel = (ext: "glb" | "gltf") =>
+        new Promise<GLTF>((resolve, reject) => {
+          loader.load(`${base}/${encodeURIComponent(sceneId)}.${ext}`, resolve, undefined, reject);
+        });
+      manifestPromise = fetch(`${base}/manifest.json`)
+        .then((r) => (r.ok ? (r.json() as Promise<SceneManifest>) : {}))
+        .catch(() => ({}) as SceneManifest);
+      loadScene = () => loadModel("glb").catch(() => loadModel("gltf"));
+    }
 
-    fetch(`${base}/manifest.json`)
-      .then((r) => (r.ok ? (r.json() as Promise<SceneManifest>) : {}))
-      .catch(() => ({}) as SceneManifest)
-      .then((manifest: SceneManifest) => {
-        if (cancelled) return;
-        setSpawnLocations(resolveSpawnLocations(manifest));
-        loadModel("glb")
-          .catch(() => loadModel("gltf"))
-          .then((gltf) => {
-            if (cancelled) {
-              disposeObject(gltf.scene);
-              return;
+    manifestPromise.then((manifest: SceneManifest) => {
+      if (cancelled) return;
+      setSpawnLocations(resolveSpawnLocations(manifest));
+      loadScene()
+        .then((gltf) => {
+          if (cancelled) {
+            disposeObject(gltf.scene);
+            return;
+          }
+          const model = gltf.scene;
+          applyManifest(model, manifest);
+          // SKUGGOR: every mesh in the scene casts and receives the sun's
+          // shadow — whether any shadow is drawn at all is decided per
+          // frame by the light (see shadowsActive in animate()).
+          model.traverse((o) => {
+            if ((o as THREE.Mesh).isMesh) {
+              o.castShadow = true;
+              o.receiveShadow = true;
             }
-            const model = gltf.scene;
-            applyManifest(model, manifest);
-            // SKUGGOR: every mesh in the scene casts and receives the sun's
-            // shadow — whether any shadow is drawn at all is decided per
-            // frame by the light (see shadowsActive in animate()).
-            model.traverse((o) => {
-              if ((o as THREE.Mesh).isMesh) {
-                o.castShadow = true;
-                o.receiveShadow = true;
-              }
-            });
-            scene.add(model);
-            modelRef.current = model;
-            const bob = resolveBob(manifest.bob);
-            modelBobRef.current = bob ? { base: model.position.clone(), bob } : null;
-            setSceneBootSettled(true);
-          })
-          .catch((err) => {
-            console.error(`Failed to load scene "${sceneId}"`, err);
-            if (!cancelled) setSceneBootSettled(true);
           });
-      });
+          scene.add(model);
+          modelRef.current = model;
+          const bob = resolveBob(manifest.bob);
+          modelBobRef.current = bob ? { base: model.position.clone(), bob } : null;
+          setSceneBootSettled(true);
+        })
+        .catch((err) => {
+          console.error(`Failed to load scene "${sceneId}"`, err);
+          if (cancelled) return;
+          setSceneBootSettled(true);
+          // An imported file that passed the header check can still fail
+          // to parse (or need an extension three.js can't decode) — say so
+          // rather than silently showing an empty scene.
+          if (sceneAppId === USER_SCENE_APP_ID) {
+            window.alert(t("userScenes.errors.loadFailed"));
+          }
+        });
+    });
 
     return () => {
       cancelled = true;
     };
-  }, [sceneId, scenes]);
+    // Keyed on the owning app rather than the whole scenes list, so importing
+    // or removing another scene doesn't reload the one on screen.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sceneId, sceneAppId]);
 
   // Drop a persisted spawn-location selection that no longer exists once the
   // current scene's location list resolves (e.g. after switching scenes, or
@@ -11512,6 +11624,10 @@ export function Aquafulness() {
     sceneId,
     setSceneId,
     cycleScene,
+    userSceneIds: (userScenes ?? []).map((u) => u.id),
+    userSceneBusy,
+    pickUserSceneFile,
+    deleteUserScene: (id: string) => void deleteUserScene(id),
     spawnLocations,
     spawnLocationId,
     setSpawnLocationId,
@@ -11541,7 +11657,9 @@ export function Aquafulness() {
     waterSoundIdx,
     setWaterSoundIdx,
     waterSounds: allWaterSounds,
-    apps,
+    apps: userScenes?.length
+      ? [...apps, { id: USER_SCENE_APP_ID, name: t("userScenes.appName") }]
+      : apps,
     savedSceneryPresets,
     appSceneryPresets,
     saveSceneryPresetAs,
