@@ -22,6 +22,7 @@ import { RETRO_PALETTE_INDEX, RETRO_SHADER } from "@/lib/sceneFx/retroShader";
 import { limitMax, useExtremeLimits, type LimitedControl } from "@/lib/extremeLimits";
 import { NeonEdges } from "@/lib/sceneFx/NeonEdges";
 import { SnowCover, Snowfall } from "@/lib/sceneFx/snow";
+import { Fireworks, FIREWORKS_LIGHTS } from "@/lib/sceneFx/fireworks";
 import { Confetti } from "@/lib/sceneFx/confetti";
 import { applyNeonAccent } from "@/lib/sceneFx/neonAccent";
 import { relativeDaylightTint } from "@/lib/sceneFx/daylightTint";
@@ -1593,6 +1594,21 @@ const DEFAULTS: Persisted = {
   snowIntensity: 0.5,
   snowCoverOn: false,
   snowCoverStrength: 0.8,
+  // FYRVERKERI: rockets launched from the water in front of the camera
+  // (lib/sceneFx/fireworks.ts). fireworksIntensity scales burst size, star
+  // count and brightness; fireworksRate is rockets per minute and
+  // fireworksDistance the typical distance to the launch site (m).
+  // FYRVERKERILJUS lights the scene and water in each burst's color by
+  // fireworksLightStrength; FYRVERKERILJUD is synthesized (no assets), heard
+  // only while LJUD is on, at fireworksVolume.
+  fireworksOn: false,
+  fireworksIntensity: 1,
+  fireworksRate: 12,
+  fireworksDistance: 250,
+  fireworksLightsOn: true,
+  fireworksLightStrength: 1,
+  fireworksSoundOn: true,
+  fireworksVolume: 0.7,
   // GRÅ BAKGRUND: with SNÖTÄCKE on, also wash the environment backdrop out to
   // a cold gray (the old overcast look). Off by default; the backdrop keeps
   // its colors and only its ground gets snow.
@@ -2268,6 +2284,16 @@ export function Aquafulness() {
   const [snowIntensity, setSnowIntensity] = useState(initial.snowIntensity);
   const [snowCoverOn, setSnowCoverOn] = useState(initial.snowCoverOn);
   const [snowCoverStrength, setSnowCoverStrength] = useState(initial.snowCoverStrength);
+  const [fireworksOn, setFireworksOn] = useState(initial.fireworksOn);
+  const [fireworksIntensity, setFireworksIntensity] = useState(initial.fireworksIntensity);
+  const [fireworksRate, setFireworksRate] = useState(initial.fireworksRate);
+  const [fireworksDistance, setFireworksDistance] = useState(initial.fireworksDistance);
+  const [fireworksLightsOn, setFireworksLightsOn] = useState(initial.fireworksLightsOn);
+  const [fireworksLightStrength, setFireworksLightStrength] = useState(
+    initial.fireworksLightStrength,
+  );
+  const [fireworksSoundOn, setFireworksSoundOn] = useState(initial.fireworksSoundOn);
+  const [fireworksVolume, setFireworksVolume] = useState(initial.fireworksVolume);
   const [snowGrayBackdropOn, setSnowGrayBackdropOn] = useState(initial.snowGrayBackdropOn);
   const [confettiOn, setConfettiOn] = useState(initial.confettiOn);
   const [confettiAmount, setConfettiAmount] = useState(initial.confettiAmount);
@@ -2420,10 +2446,14 @@ export function Aquafulness() {
     clamp("freakOutFloatYOffset", freakOutFloatYOffset, setFreakOutFloatYOffset);
     clamp("snowAmount", snowAmount, setSnowAmount);
     clamp("snowIntensity", snowIntensity, setSnowIntensity);
+    clamp("fireworksIntensity", fireworksIntensity, setFireworksIntensity);
+    clamp("fireworksRate", fireworksRate, setFireworksRate);
     clamp("confettiAmount", confettiAmount, setConfettiAmount);
     clamp("confettiIntensity", confettiIntensity, setConfettiIntensity);
   }, [
     extremeLimits,
+    fireworksIntensity,
+    fireworksRate,
     snowAmount,
     snowIntensity,
     confettiAmount,
@@ -2818,6 +2848,16 @@ export function Aquafulness() {
   const snowIntensityRef = useRef(snowIntensity);
   const snowCoverOnRef = useRef(snowCoverOn);
   const snowCoverStrengthRef = useRef(snowCoverStrength);
+  const fireworksOnRef = useRef(fireworksOn);
+  const fireworksIntensityRef = useRef(fireworksIntensity);
+  const fireworksRateRef = useRef(fireworksRate);
+  const fireworksDistanceRef = useRef(fireworksDistance);
+  const fireworksLightsOnRef = useRef(fireworksLightsOn);
+  const fireworksLightStrengthRef = useRef(fireworksLightStrength);
+  const fireworksSoundOnRef = useRef(fireworksSoundOn);
+  const fireworksVolumeRef = useRef(fireworksVolume);
+  // LJUD is the master switch for the fireworks' own sound too.
+  const fireworksAudioOnRef = useRef(audioOn);
   const snowGrayBackdropOnRef = useRef(snowGrayBackdropOn);
   const confettiOnRef = useRef(confettiOn);
   const confettiAmountRef = useRef(confettiAmount);
@@ -2998,6 +3038,14 @@ export function Aquafulness() {
     confettiIntensity,
     confettiPalette,
     confettiFlutter,
+    fireworksOn,
+    fireworksIntensity,
+    fireworksRate,
+    fireworksDistance,
+    fireworksLightsOn,
+    fireworksLightStrength,
+    fireworksSoundOn,
+    fireworksVolume,
     neonOn,
     neonMode,
     neonPrimary,
@@ -3266,6 +3314,14 @@ export function Aquafulness() {
     confettiIntensity,
     confettiPalette,
     confettiFlutter,
+    fireworksOn,
+    fireworksIntensity,
+    fireworksRate,
+    fireworksDistance,
+    fireworksLightsOn,
+    fireworksLightStrength,
+    fireworksSoundOn,
+    fireworksVolume,
     neonOn,
     neonMode,
     neonPrimary,
@@ -4334,6 +4390,27 @@ export function Aquafulness() {
     snowGrayBackdropOnRef.current = snowGrayBackdropOn;
   }, [snowOn, snowAmount, snowIntensity, snowCoverOn, snowCoverStrength, snowGrayBackdropOn]);
   useEffect(() => {
+    fireworksOnRef.current = fireworksOn;
+    fireworksIntensityRef.current = fireworksIntensity;
+    fireworksRateRef.current = fireworksRate;
+    fireworksDistanceRef.current = fireworksDistance;
+    fireworksLightsOnRef.current = fireworksLightsOn;
+    fireworksLightStrengthRef.current = fireworksLightStrength;
+    fireworksSoundOnRef.current = fireworksSoundOn;
+    fireworksVolumeRef.current = fireworksVolume;
+    fireworksAudioOnRef.current = audioOn;
+  }, [
+    fireworksOn,
+    fireworksIntensity,
+    fireworksRate,
+    fireworksDistance,
+    fireworksLightsOn,
+    fireworksLightStrength,
+    fireworksSoundOn,
+    fireworksVolume,
+    audioOn,
+  ]);
+  useEffect(() => {
     confettiOnRef.current = confettiOn;
     confettiAmountRef.current = confettiAmount;
     confettiIntensityRef.current = confettiIntensity;
@@ -4972,6 +5049,14 @@ export function Aquafulness() {
     setSnowIntensity(DEFAULTS.snowIntensity);
     setSnowCoverOn(DEFAULTS.snowCoverOn);
     setSnowCoverStrength(DEFAULTS.snowCoverStrength);
+    setFireworksOn(DEFAULTS.fireworksOn);
+    setFireworksIntensity(DEFAULTS.fireworksIntensity);
+    setFireworksRate(DEFAULTS.fireworksRate);
+    setFireworksDistance(DEFAULTS.fireworksDistance);
+    setFireworksLightsOn(DEFAULTS.fireworksLightsOn);
+    setFireworksLightStrength(DEFAULTS.fireworksLightStrength);
+    setFireworksSoundOn(DEFAULTS.fireworksSoundOn);
+    setFireworksVolume(DEFAULTS.fireworksVolume);
     setSnowGrayBackdropOn(DEFAULTS.snowGrayBackdropOn);
     setConfettiOn(DEFAULTS.confettiOn);
     setConfettiAmount(DEFAULTS.confettiAmount);
@@ -5257,6 +5342,15 @@ export function Aquafulness() {
     if (patch.snowIntensity !== undefined) setSnowIntensity(patch.snowIntensity);
     if (patch.snowCoverOn !== undefined) setSnowCoverOn(patch.snowCoverOn);
     if (patch.snowCoverStrength !== undefined) setSnowCoverStrength(patch.snowCoverStrength);
+    if (patch.fireworksOn !== undefined) setFireworksOn(patch.fireworksOn);
+    if (patch.fireworksIntensity !== undefined) setFireworksIntensity(patch.fireworksIntensity);
+    if (patch.fireworksRate !== undefined) setFireworksRate(patch.fireworksRate);
+    if (patch.fireworksDistance !== undefined) setFireworksDistance(patch.fireworksDistance);
+    if (patch.fireworksLightsOn !== undefined) setFireworksLightsOn(patch.fireworksLightsOn);
+    if (patch.fireworksLightStrength !== undefined)
+      setFireworksLightStrength(patch.fireworksLightStrength);
+    if (patch.fireworksSoundOn !== undefined) setFireworksSoundOn(patch.fireworksSoundOn);
+    if (patch.fireworksVolume !== undefined) setFireworksVolume(patch.fireworksVolume);
     if (patch.snowGrayBackdropOn !== undefined) setSnowGrayBackdropOn(patch.snowGrayBackdropOn);
     if (patch.confettiOn !== undefined) setConfettiOn(patch.confettiOn);
     if (patch.confettiAmount !== undefined) setConfettiAmount(patch.confettiAmount);
@@ -6623,6 +6717,14 @@ export function Aquafulness() {
       // VATTENGLÖD: emissive glow added to the water body.
       uGlow: { value: 0 },
       uGlowColor: { value: new THREE.Vector3(0.22, 0.84, 1) },
+      // FYRVERKERILJUS: the latest bursts' colored flashes (xyz position;
+      // color·intensity in candela), copied from Fireworks every frame.
+      uFwLightPos: {
+        value: Array.from({ length: FIREWORKS_LIGHTS }, () => new THREE.Vector4(0, -1e6, 0, 0)),
+      },
+      uFwLightCol: {
+        value: Array.from({ length: FIREWORKS_LIGHTS }, () => new THREE.Vector3()),
+      },
       ...raytracedWater.uniforms,
     };
     // Expose the uniforms so the surface-selector effect can feed in a photo.
@@ -7001,6 +7103,8 @@ export function Aquafulness() {
       uniform float uEnvSunTint;
       uniform float uGlow;
       uniform vec3 uGlowColor;
+      uniform vec4 uFwLightPos[${FIREWORKS_LIGHTS}];
+      uniform vec3 uFwLightCol[${FIREWORKS_LIGHTS}];
       uniform float uSphereMix;
       uniform float uCloudSurface;
       uniform float uTurbidity;
@@ -7442,6 +7546,23 @@ export function Aquafulness() {
           float breathe = 0.85 + 0.15 * sin(uTime * 1.3 + vWorldPos.x * 0.3 + vWorldPos.z * 0.2);
           float glowAmt = uGlow * (0.45 + 0.55 * height + foam * 0.8) * breathe;
           col += uGlowColor * glowAmt * (1.0 - 0.5 * uUnderwater);
+        }
+
+        // FYRVERKERILJUS: each burst lights the water in its color — a soft
+        // diffuse wash plus glints and a long reflection streak on the waves.
+        for (int i = 0; i < ${FIREWORKS_LIGHTS}; i++) {
+          vec3 fc = uFwLightCol[i];
+          if (fc.r + fc.g + fc.b < 0.01) continue;
+          vec3 toL = uFwLightPos[i].xyz - vWorldPos;
+          float d2 = max(dot(toL, toL), 1.0);
+          vec3 Lf = toL * inversesqrt(d2);
+          vec3 E = fc / d2;
+          float diff = max(dot(N, Lf), 0.0);
+          vec3 Rf = reflect(-V, N);
+          float rl = max(dot(Rf, Lf), 0.0);
+          float spec = pow(rl, 30.0) * 0.8 + pow(rl, 300.0) * 3.0;
+          float fres = 0.25 + 0.75 * pow(1.0 - NdotV, 3.0);
+          col += E * (diff * 0.12 + spec * fres) * (1.0 - 0.6 * uUnderwater);
         }
 
         // Translucency — uOpacity controls how see-through the water is.
@@ -8428,6 +8549,8 @@ export function Aquafulness() {
     // loaded scene (see lib/sceneFx/snow.ts).
     const snowfall = new Snowfall(scene);
     const snowCover = new SnowCover();
+    // FYRVERKERI (see lib/sceneFx/fireworks.ts).
+    const fireworks = new Fireworks(scene);
     envDomeUniforms.uSnowLight = snowCover.uLight;
     // KONFETTI: confetti falling like the snow (see lib/sceneFx/confetti.ts).
     const confetti = new Confetti(scene);
@@ -11167,6 +11290,32 @@ export function Aquafulness() {
         else if (!modelRef.current && snowCover.attachedTo) snowCover.detach();
       }
 
+      // FYRVERKERI: launches, simulates and sounds the show, then feeds its
+      // flashes to the ocean shader (the scene lights are its own).
+      {
+        const fwOn = fireworksOnRef.current;
+        if (fwOn || fireworks.busy) {
+          fireworks.update(dt, camera, fwOn, {
+            intensity: fireworksIntensityRef.current,
+            rate: fireworksRateRef.current,
+            distance: fireworksDistanceRef.current,
+            lightStrength: fireworksLightsOnRef.current ? fireworksLightStrengthRef.current : 0,
+            waterLevel: ocean.position.y,
+            underwater: uniforms.uUnderwater.value,
+            pixelHeight: renderer.domElement.height,
+            lowEnd,
+            soundOn: fireworksSoundOnRef.current && fireworksAudioOnRef.current,
+            volume: fireworksVolumeRef.current,
+          });
+        } else {
+          fireworks.audio.update(false, 0, 0);
+        }
+        for (let i = 0; i < FIREWORKS_LIGHTS; i++) {
+          uniforms.uFwLightPos.value[i].copy(fireworks.lightPos[i]);
+          uniforms.uFwLightCol.value[i].copy(fireworks.lightCol[i]);
+        }
+      }
+
       // KONFETTI: pieces follow the camera like the snowflakes.
       if (confettiOnRef.current) {
         confetti.setPixelRatio(renderer.getPixelRatio());
@@ -11264,6 +11413,7 @@ export function Aquafulness() {
       composer.dispose();
       neonEdges.dispose();
       snowfall.dispose();
+      fireworks.dispose();
       confetti.dispose();
       scene.environment = null;
       iblTarget?.dispose();
@@ -12044,6 +12194,22 @@ export function Aquafulness() {
     setConfettiPalette,
     confettiFlutter,
     setConfettiFlutter,
+    fireworksOn,
+    setFireworksOn,
+    fireworksIntensity,
+    setFireworksIntensity,
+    fireworksRate,
+    setFireworksRate,
+    fireworksDistance,
+    setFireworksDistance,
+    fireworksLightsOn,
+    setFireworksLightsOn,
+    fireworksLightStrength,
+    setFireworksLightStrength,
+    fireworksSoundOn,
+    setFireworksSoundOn,
+    fireworksVolume,
+    setFireworksVolume,
     neonOn,
     setNeonOn,
     neonMode,

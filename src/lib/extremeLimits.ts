@@ -1,7 +1,8 @@
 import { useSyncExternalStore } from "react";
 
 // EXTREME: the very high maximums on the strength/size controls (VÅG, SVAJ,
-// SVALL, STRÖM, NAV, TORNADO, GUNGA, FREAK OUT, SNÖ…) are only offered while
+// SVALL, STRÖM, NAV, TORNADO, GUNGA, FREAK OUT, SNÖ,
+// FYRVERKERI…) are only offered while
 // EXTREME is on. Otherwise every one of those controls tops out at
 // NORMAL_FRACTION (~25 %) of its extreme max, and any value above that is
 // clamped down (see the clamp effect in src/routes/index.tsx).
@@ -33,6 +34,8 @@ export const EXTREME_MAX = {
   freakOutRotationKick: 8, // RIDE SNURR VID TOPPEN (× rotationshastigheten)
   snowAmount: 40000, // SNÖMÄNGD (flingor)
   snowIntensity: 4, // SNÖSTYRKA
+  fireworksIntensity: 4, // FYRVERKERI INTENSITET
+  fireworksRate: 240, // FYRVERKERI RAKETER/MIN
   confettiAmount: 40000, // KONFETTIMÄNGD (bitar)
   confettiIntensity: 4, // KONFETTISTYRKA
 } as const;
