@@ -36,6 +36,8 @@ export const EXTREME_MAX = {
   snowIntensity: 4, // SNÖSTYRKA
   fireworksIntensity: 4, // FYRVERKERI INTENSITET
   fireworksRate: 240, // FYRVERKERI RAKETER/MIN
+  confettiAmount: 40000, // KONFETTIMÄNGD (bitar)
+  confettiIntensity: 4, // KONFETTISTYRKA
 } as const;
 
 export type LimitedControl = keyof typeof EXTREME_MAX;

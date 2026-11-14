@@ -316,6 +316,18 @@
       "fireworksLightStrength": "LIGHT STRENGTH",
       "fireworksSound": "FIREWORK SOUND",
       "fireworksVolume": "VOLUME",
+      "snowGrayBackdrop": "GRAY BACKDROP",
+      "confetti": "CONFETTI",
+      "confettiAmount": "CONFETTI AMOUNT",
+      "confettiIntensity": "CONFETTI INTENSITY",
+      "confettiPalette": "CONFETTI COLORS",
+      "confettiPaletteValue": {
+        "rainbow": "COLORFUL",
+        "pastel": "PASTEL",
+        "gold": "GOLD & SILVER",
+        "white": "WHITE"
+      },
+      "confettiFlutter": "FLUTTER",
       "daylightTint": "TIME OF DAY TINT",
       "daylightTintStrength": "TINT STRENGTH",
       "neon": "NEON EDGES",

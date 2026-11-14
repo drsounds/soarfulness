@@ -316,6 +316,18 @@
       "fireworksLightStrength": "LYSSTYRKE",
       "fireworksSound": "FYRVERKERILYD",
       "fireworksVolume": "LYDVOLUM",
+      "snowGrayBackdrop": "GRÅ BAKGRUNN",
+      "confetti": "KONFETTI",
+      "confettiAmount": "KONFETTIMENGDE",
+      "confettiIntensity": "KONFETTISTYRKE",
+      "confettiPalette": "KONFETTIFARGER",
+      "confettiPaletteValue": {
+        "rainbow": "FARGERIK",
+        "pastel": "PASTELL",
+        "gold": "GULL & SØLV",
+        "white": "HVIT"
+      },
+      "confettiFlutter": "FLAGRING",
       "daylightTint": "DØGNTONING",
       "daylightTintStrength": "TONINGSSTYRKE",
       "neon": "NEONKANTER",

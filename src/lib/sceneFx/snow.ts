@@ -34,6 +34,7 @@ export class Snowfall {
     uCamPos: { value: THREE.Vector3 };
     uBoxHalf: { value: THREE.Vector3 };
     uFall: { value: number };
+    uSink: { value: number };
     uWind: { value: THREE.Vector2 };
     uSway: { value: number };
     uSize: { value: number };
@@ -45,6 +46,10 @@ export class Snowfall {
   // shader) so that changing SNÖSTYRKA doesn't make every flake jump.
   private readonly drift = new THREE.Vector3();
   private windAngle = Math.random() * Math.PI * 2;
+  // How far the snow has sunk along with a descending camera (m), and the
+  // camera height last frame — see the sinking compensation in update().
+  private sink = 0;
+  private lastCamY: number | null = null;
 
   constructor(scene: THREE.Scene) {
     const seeds = new Float32Array(SNOW_MAX_FLAKES * 4);
@@ -68,6 +73,7 @@ export class Snowfall {
       uCamPos: { value: new THREE.Vector3() },
       uBoxHalf: { value: BOX_HALF.clone() },
       uFall: { value: 0 },
+      uSink: { value: 0 },
       uWind: { value: new THREE.Vector2() },
       uSway: { value: 0.4 },
       uSize: { value: 1 },
@@ -86,6 +92,7 @@ export class Snowfall {
         uniform vec3 uCamPos;
         uniform vec3 uBoxHalf;
         uniform float uFall;
+        uniform float uSink;
         uniform vec2 uWind;
         uniform float uSway;
         uniform float uSize;
@@ -98,7 +105,7 @@ export class Snowfall {
           // its own little circle.
           float speedVar = 0.7 + aSeed.w * 0.6;
           vec3 p = aSeed.xyz * box;
-          p.y -= uFall * speedVar;
+          p.y -= uFall * speedVar + uSink;
           p.xz += uWind * speedVar;
           float ph = aSeed.w * 6.2831853 + uTime * (0.6 + aSeed.x * 0.8);
           p.x += sin(ph) * uSway;
@@ -146,16 +153,28 @@ export class Snowfall {
 
   hide() {
     this.points.visible = false;
+    this.lastCamY = null;
   }
 
   update(timeS: number, dt: number, camPos: THREE.Vector3, cfg: SnowConfig) {
     const count = Math.max(0, Math.min(SNOW_MAX_FLAKES, Math.round(cfg.amount)));
+    const step = Math.min(dt, 0.1);
+    // When the camera sinks (diving under, bobbing down on a wave, a
+    // descending flight), world-anchored flakes would seem to rise past it.
+    // So the whole cloud sinks along with the camera — uniformly, not scaled
+    // by each flake's speed — and the snow keeps looking like it falls.
+    // Rising is left alone (flakes then just fall a bit faster past you).
+    // Jumps of 5 m or more in one frame are teleports, not sinking.
+    if (this.lastCamY !== null) {
+      const descent = this.lastCamY - camPos.y;
+      if (descent > 0 && descent < 5) this.sink = (this.sink + descent) % (BOX_HALF.y * 2);
+    }
+    this.lastCamY = camPos.y;
     const visible = count > 0 && cfg.underwater < 0.5;
     this.points.visible = visible;
     if (!visible) return;
     this.geometry.setDrawRange(0, count);
     const k = Math.max(0, cfg.intensity);
-    const step = Math.min(dt, 0.1);
     // Calm snow drifts down at ~0.8 m/s; a storm at a few m/s with wind
     // that slowly turns.
     const fallSpeed = 0.6 + k * 1.6;
@@ -173,6 +192,7 @@ export class Snowfall {
     u.uTime.value = timeS;
     u.uCamPos.value.copy(camPos);
     u.uFall.value = this.drift.y;
+    u.uSink.value = this.sink;
     u.uWind.value.set(this.drift.x, this.drift.z);
     u.uSway.value = 0.25 + k * 0.35;
     u.uSize.value = 0.8 + k * 0.45;
@@ -195,6 +215,9 @@ const SNOW_PATCHED = "__snowCoverPatched";
 
 export class SnowCover {
   readonly uCover = { value: 0 };
+  /** Light falling on the snow (see snowLightColor); only unlit materials
+   *  and the env dome use it, lit materials get it from the scene lights. */
+  readonly uLight = { value: new THREE.Color(1, 1, 1) };
   private patched = new WeakSet<THREE.Material>();
   private root: THREE.Object3D | null = null;
 
@@ -224,12 +247,17 @@ export class SnowCover {
     this.patched.add(material);
     material.userData[SNOW_PATCHED] = true;
     const uCover = this.uCover;
+    const uLight = this.uLight;
     const prevCompile = material.onBeforeCompile;
     const prevKey = material.customProgramCacheKey.bind(material);
     material.onBeforeCompile = (shader, renderer) => {
       prevCompile.call(material, shader, renderer);
       if (!shader.fragmentShader.includes("#include <color_fragment>")) return;
       shader.uniforms.uSnowCover = uCover;
+      shader.uniforms.uSnowLight = uLight;
+      // Unlit materials (MeshBasic, KHR_materials_unlit photo scans) don't
+      // darken at night by themselves, so their snow takes the light level.
+      const unlit = !shader.fragmentShader.includes("#include <lights_fragment_begin>");
       shader.vertexShader = shader.vertexShader
         .replace("void main() {", "varying vec3 vSnowN;\nvoid main() {")
         .replace(
@@ -241,7 +269,10 @@ export class SnowCover {
           }`,
         );
       shader.fragmentShader = shader.fragmentShader
-        .replace("void main() {", "uniform float uSnowCover;\nvarying vec3 vSnowN;\nvoid main() {")
+        .replace(
+          "void main() {",
+          "uniform float uSnowCover;\nuniform vec3 uSnowLight;\nvarying vec3 vSnowN;\nvoid main() {",
+        )
         .replace(
           "#include <color_fragment>",
           `#include <color_fragment>
@@ -250,6 +281,7 @@ export class SnowCover {
           // Keep a hint of the texture's detail in the snow.
           float snowLum = dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114));
           vec3 snowCol = vec3(0.86, 0.9, 0.96) + (snowLum - 0.5) * 0.12;
+          ${unlit ? "snowCol *= uSnowLight;" : ""}
           diffuseColor.rgb = mix(diffuseColor.rgb, snowCol, snowAmt);`,
         );
       if (shader.fragmentShader.includes("#include <roughnessmap_fragment>")) {
@@ -282,4 +314,17 @@ export class SnowCover {
   get cover(): number {
     return this.uCover.value;
   }
+
+  /** `daylight` 0 (night) .. 1 (day), e.g. 1 - nightBackdropMix(tod). */
+  setDaylight(daylight: number) {
+    snowLightColor(daylight, this.uLight.value);
+  }
+}
+
+// The light snow is seen in: white by day, a dim moonlit blue at night.
+const NIGHT_SNOW_LIGHT = new THREE.Color(0.17, 0.21, 0.32);
+const DAY_SNOW_LIGHT = new THREE.Color(1, 1, 1);
+export function snowLightColor(daylight: number, out = new THREE.Color()): THREE.Color {
+  const d = Math.min(1, Math.max(0, daylight));
+  return out.copy(NIGHT_SNOW_LIGHT).lerp(DAY_SNOW_LIGHT, d);
 }
