@@ -18,7 +18,15 @@ export interface DeviceFilesPlugin {
     encoding: "utf8" | "base64";
   }): Promise<{ saved: boolean }>;
   /** Resolves with no data when the user backs out of the picker. */
-  openFile(options: { mimeTypes?: string[]; encoding: "utf8" | "base64" }): Promise<{
+  /**
+   * Rejects with code "TOO_LARGE" when maxBytes is given and the file is
+   * bigger (APKs older than that option ignore it and read the whole file).
+   */
+  openFile(options: {
+    mimeTypes?: string[];
+    encoding: "utf8" | "base64";
+    maxBytes?: number;
+  }): Promise<{
     name?: string;
     mimeType?: string;
     data?: string;
@@ -86,17 +94,24 @@ export async function saveFileToDevice(filename: string, blob: Blob): Promise<bo
 export function pickFileFromDevice(
   accept: string,
   onFile: (file: File) => void,
-  { binary = false }: { binary?: boolean } = {},
+  {
+    binary = false,
+    maxBytes,
+    onError,
+  }: { binary?: boolean; maxBytes?: number; onError?: (err: unknown) => void } = {},
 ) {
   if (hasDeviceFiles()) {
-    DeviceFiles.openFile({ encoding: binary ? "base64" : "utf8" })
+    DeviceFiles.openFile({ encoding: binary ? "base64" : "utf8", maxBytes })
       .then((r) => {
         if (r.data === undefined) return;
         const type = r.mimeType || "application/octet-stream";
         const content = binary ? base64ToBytes(r.data) : r.data;
         onFile(new File([content], r.name || "file", { type }));
       })
-      .catch((err) => console.error("Opening file failed", err));
+      .catch((err) => {
+        console.error("Opening file failed", err);
+        onError?.(err);
+      });
     return;
   }
   // Briefly attached to the DOM (hidden) since some browsers refuse to show

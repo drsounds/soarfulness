@@ -1107,6 +1107,25 @@
     "morning": "Morgen",
     "night": "Nat"
   },
+  "userScenes": {
+    "appName": "EGNE",
+    "title": "EGNE SCENER",
+    "import": "IMPORTÉR GLB",
+    "importing": "IMPORTERER…",
+    "importHint": "Indlæs din egen .glb-fil som scene. Den gemmes på denne enhed og bliver i scenelisten.",
+    "remove": "FJERN",
+    "removeConfirm": "Fjern den importerede scene \"{{name}}\" fra denne enhed?",
+    "errors": {
+      "empty": "Filen er tom.",
+      "tooLarge": "Filen er for stor — maks. {{max}} MB.",
+      "notGlb": "Dette er ikke en .glb-fil. Eksportér scenen som binær glTF (.glb).",
+      "unsupportedVersion": "Kun glTF 2.0 understøttes. Eksportér filen igen som glTF 2.0 (.glb).",
+      "corrupt": "Kunne ikke læse filen — den ser ud til at være beskadiget eller ufuldstændig.",
+      "storageFull": "Der er ikke plads nok på enheden til at gemme scenen.",
+      "storageUnavailable": "Scener kan ikke gemmes på denne enhed (lagring er slået fra, f.eks. i privat tilstand).",
+      "loadFailed": "Den importerede scene kunne ikke vises — filen bruger måske en glTF-udvidelse, der ikke understøttes."
+    }
+  },
   "wave": {
     "preset": {
       "legacy": "LEGACY",

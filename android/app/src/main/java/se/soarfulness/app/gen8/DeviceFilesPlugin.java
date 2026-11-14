@@ -74,7 +74,12 @@ public class DeviceFilesPlugin extends Plugin {
         }).start();
     }
 
-    /** { mimeTypes?: string[], encoding: "utf8" | "base64" } → { name, mimeType, data } or {} if cancelled */
+    /**
+     * { mimeTypes?: string[], encoding: "utf8" | "base64", maxBytes?: number } → { name, mimeType, data }
+     * or {} if cancelled. With maxBytes, a bigger file is rejected with code "TOO_LARGE" before (or,
+     * when the provider doesn't report a size, while) reading it, so a huge pick can't run the app
+     * out of memory.
+     */
     @PluginMethod
     public void openFile(PluginCall call) {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
@@ -100,13 +105,29 @@ public class DeviceFilesPlugin extends Plugin {
             call.resolve(new JSObject());
             return;
         }
+        long maxBytes = call.getLong("maxBytes", 0L);
+        if (maxBytes > 0) {
+            long size = sizeOf(uri);
+            if (size > maxBytes) {
+                call.reject("File is too large", "TOO_LARGE");
+                return;
+            }
+        }
         new Thread(() -> {
             try (InputStream in = getContext().getContentResolver().openInputStream(uri)) {
                 if (in == null) throw new IllegalStateException("No input stream for " + uri);
                 ByteArrayOutputStream buffer = new ByteArrayOutputStream();
                 byte[] chunk = new byte[64 * 1024];
                 int n;
-                while ((n = in.read(chunk)) != -1) buffer.write(chunk, 0, n);
+                long total = 0;
+                while ((n = in.read(chunk)) != -1) {
+                    total += n;
+                    if (maxBytes > 0 && total > maxBytes) {
+                        call.reject("File is too large", "TOO_LARGE");
+                        return;
+                    }
+                    buffer.write(chunk, 0, n);
+                }
                 byte[] bytes = buffer.toByteArray();
                 JSObject r = new JSObject();
                 r.put("name", displayName(uri));
@@ -118,6 +139,8 @@ public class DeviceFilesPlugin extends Plugin {
                         : new String(bytes, StandardCharsets.UTF_8)
                 );
                 call.resolve(r);
+            } catch (OutOfMemoryError e) {
+                call.reject("File is too large", "TOO_LARGE");
             } catch (Exception e) {
                 call.reject("Couldn't read the file", e);
             }
@@ -128,6 +151,16 @@ public class DeviceFilesPlugin extends Plugin {
         if (result.getResultCode() != Activity.RESULT_OK) return null;
         Intent data = result.getData();
         return data != null ? data.getData() : null;
+    }
+
+    /** The provider-reported size in bytes, or -1 when unknown. */
+    private long sizeOf(Uri uri) {
+        try (Cursor c = getContext().getContentResolver().query(uri, new String[] { OpenableColumns.SIZE }, null, null, null)) {
+            if (c != null && c.moveToFirst() && !c.isNull(0)) return c.getLong(0);
+        } catch (Exception ignored) {
+            // Unknown size: the read loop enforces maxBytes instead.
+        }
+        return -1;
     }
 
     private String displayName(Uri uri) {
