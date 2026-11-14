@@ -561,6 +561,16 @@ export type SettingsPanelProps = {
   swingYWaveform: SwingYWaveform;
   setSwingYWaveform: Dispatch<SetStateAction<SwingYWaveform>>;
   cycleSwingYWaveform: (dir: number) => void;
+  // SWING HOOK + CORD — see settingsShared.ts.
+  swingHook: string;
+  setSwingHook: Dispatch<SetStateAction<string>>;
+  sceneHooks: string[];
+  swingCordColor: string;
+  setSwingCordColor: Dispatch<SetStateAction<string>>;
+  swingCordThickness: number;
+  setSwingCordThickness: Dispatch<SetStateAction<number>>;
+  swingCordSoftness: number;
+  setSwingCordSoftness: Dispatch<SetStateAction<number>>;
   // FREAK OUT carousel layered on GUNGA — see settingsShared.ts.
   freakOutOn: boolean;
   setFreakOutOn: Dispatch<SetStateAction<boolean>>;
@@ -1584,6 +1594,15 @@ export function SettingsPanel(props: SettingsPanelProps) {
     swingYWaveform,
     setSwingYWaveform,
     cycleSwingYWaveform,
+    swingHook,
+    setSwingHook,
+    sceneHooks,
+    swingCordColor,
+    setSwingCordColor,
+    swingCordThickness,
+    setSwingCordThickness,
+    swingCordSoftness,
+    setSwingCordSoftness,
     freakOutOn,
     setFreakOutOn,
     freakOutSwingAxis,
@@ -3574,6 +3593,73 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       onDec={() => cycleSwingYWaveform(-1)}
                       onInc={() => cycleSwingYWaveform(1)}
                     />
+                    {(() => {
+                      // SWING HOOK: scene objects named "...-hook".
+                      const hookOptions = ["", ...sceneHooks];
+                      const hookIdx = Math.max(0, hookOptions.indexOf(swingHook));
+                      const stepHook = (dir: number) =>
+                        setSwingHook(
+                          hookOptions[(hookIdx + dir + hookOptions.length) % hookOptions.length],
+                        );
+                      return (
+                        <SettingRow
+                          label={t("dial.camera.swingHook")}
+                          value={swingHook && hookIdx > 0 ? swingHook : t("dial.camera.swingHookNone")}
+                          options={hookOptions.map((h) => h || t("dial.camera.swingHookNone"))}
+                          selectedIndex={hookIdx}
+                          onSelectIndex={(i) => setSwingHook(hookOptions[i])}
+                          onDec={() => stepHook(-1)}
+                          onInc={() => stepHook(1)}
+                        />
+                      );
+                    })()}
+                    {swingHook && sceneHooks.includes(swingHook) && (
+                      <>
+                        <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
+                          <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
+                            {t("dial.camera.swingCordColor")}
+                          </span>
+                          <input
+                            type="color"
+                            value={swingCordColor}
+                            onChange={(e) => setSwingCordColor(e.target.value)}
+                            className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
+                          />
+                        </label>
+                        <SettingRow
+                          label={t("dial.camera.swingCordThickness")}
+                          mode="number"
+                          value={`${swingCordThickness.toFixed(2)}m`}
+                          rawValue={swingCordThickness}
+                          onSet={(v) => setSwingCordThickness(Math.max(0, Math.min(2, v)))}
+                          min={0}
+                          max={2}
+                          step={0.02}
+                          onDec={() =>
+                            setSwingCordThickness((v) => Math.max(0, +(v - 0.02).toFixed(2)))
+                          }
+                          onInc={() =>
+                            setSwingCordThickness((v) => Math.min(2, +(v + 0.02).toFixed(2)))
+                          }
+                        />
+                        <SettingRow
+                          label={t("dial.camera.swingCordSoftness")}
+                          mode="number"
+                          value={`${Math.round(swingCordSoftness * 100)}%`}
+                          rawValue={swingCordSoftness}
+                          onSet={(v) => setSwingCordSoftness(Math.max(0, Math.min(1, v)))}
+                          min={0}
+                          max={1}
+                          step={0.05}
+                          onDec={() =>
+                            setSwingCordSoftness((v) => Math.max(0, +(v - 0.05).toFixed(2)))
+                          }
+                          onInc={() =>
+                            setSwingCordSoftness((v) => Math.min(1, +(v + 0.05).toFixed(2)))
+                          }
+                        />
+                      </>
+                    )}
                   </>
                 )}
                 <SettingRow

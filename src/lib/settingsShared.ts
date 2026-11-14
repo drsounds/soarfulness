@@ -726,6 +726,15 @@ export type Persisted = {
   swingHeight: number;
   swingPreset: SwingPreset;
   swingYWaveform: SwingYWaveform;
+  // SWING HOOK: name of a scene object whose name ends in "-hook". While
+  // swinging, the pendulum hangs from that object ("" = no hook, the
+  // default free swing). The cord below is drawn from the hook down to the
+  // camera; thickness is in meters, softness (0..1) is how much it sags
+  // and trails behind the motion.
+  swingHook: string;
+  swingCordColor: string;
+  swingCordThickness: number;
+  swingCordSoftness: number;
   // FREAK OUT: an optional carousel ride, its own toggle like TORNADO —
   // available in every camera mode and layered on top of whatever that
   // mode does (with GUNGA both swings combine) — the camera rides one seat
@@ -890,6 +899,10 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "swingXFactor",
     "swingHeight",
     "swingYWaveform",
+    "swingHook",
+    "swingCordColor",
+    "swingCordThickness",
+    "swingCordSoftness",
     "freakOutOn",
     "freakOutSwingAxis",
     "freakOutSwingAngle",
