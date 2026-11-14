@@ -308,6 +308,17 @@
       "snowIntensity": "SNÖSTYRKA",
       "snowCover": "SNÖTÄCKE",
       "snowCoverStrength": "TÄCKNINGSGRAD",
+      "confetti": "KONFETTI",
+      "confettiAmount": "KONFETTIMÄNGD",
+      "confettiIntensity": "KONFETTISTYRKA",
+      "confettiPalette": "KONFETTIFÄRGER",
+      "confettiPaletteValue": {
+        "rainbow": "FÄRGGLAD",
+        "pastel": "PASTELL",
+        "gold": "GULD & SILVER",
+        "white": "VIT"
+      },
+      "confettiFlutter": "FLADDER",
       "daylightTint": "DYGNSTONING",
       "daylightTintStrength": "TONINGSSTYRKA",
       "neon": "NEONKANTER",

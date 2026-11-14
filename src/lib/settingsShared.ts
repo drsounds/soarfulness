@@ -182,6 +182,14 @@ export const RETRO_PALETTES: RetroPalette[] = ["rgb332", "websafe", "ega", "gray
 export type NeonMode = "solid" | "alternate" | "fade" | "hue";
 export const NEON_MODES: NeonMode[] = ["solid", "alternate", "fade", "hue"];
 
+// KONFETTIFÄRGER: which colors the falling confetti (KONFETTI) is cut from.
+//  - "rainbow"  colorful mix (FÄRGGLAD)
+//  - "pastel"   soft pastels
+//  - "gold"     gold and silver foil that glints as it turns
+//  - "white"    plain white paper
+export type ConfettiPalette = "rainbow" | "pastel" | "gold" | "white";
+export const CONFETTI_PALETTES: ConfettiPalette[] = ["rainbow", "pastel", "gold", "white"];
+
 // BODYFLIGHT dial ranges: the updraft's speed at the ground (m/s), the
 // gravity multiplier (1 = Earth) and the height (m) the air cushion holds
 // the body at above the ground.
@@ -693,6 +701,14 @@ export type Persisted = {
   snowIntensity: number;
   snowCoverOn: boolean;
   snowCoverStrength: number;
+  // KONFETTI: confetti falling like snow (lib/sceneFx/confetti.ts).
+  // confettiAmount = number of pieces, confettiIntensity = fall speed, size
+  // and wind, confettiFlutter = how much the pieces spin, tumble and sway.
+  confettiOn: boolean;
+  confettiAmount: number;
+  confettiIntensity: number;
+  confettiPalette: ConfettiPalette;
+  confettiFlutter: number;
   // NEON: glowing lines along the loaded scene's mesh edges. neonMode picks
   // how the color moves over time (see NeonMode); neonFrequency is in
   // cycles per second. neonTint is mixed over the result by neonTintAmount.
@@ -1097,6 +1113,11 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "snowIntensity",
     "snowCoverOn",
     "snowCoverStrength",
+    "confettiOn",
+    "confettiAmount",
+    "confettiIntensity",
+    "confettiPalette",
+    "confettiFlutter",
     "neonOn",
     "neonMode",
     "neonPrimary",

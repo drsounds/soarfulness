@@ -59,8 +59,10 @@ import {
   type SurgeRotationMode,
   type RetroPalette,
   type NeonMode,
+  type ConfettiPalette,
   RETRO_PALETTES,
   NEON_MODES,
+  CONFETTI_PALETTES,
   SKY_CLOUDS_ALTITUDE_MIN,
   SKY_CLOUDS_ALTITUDE_MAX,
   CLOUD_SCALE_MIN,
@@ -791,6 +793,16 @@ export type SettingsPanelProps = {
   setSnowCoverOn: Dispatch<SetStateAction<boolean>>;
   snowCoverStrength: number;
   setSnowCoverStrength: Dispatch<SetStateAction<number>>;
+  confettiOn: boolean;
+  setConfettiOn: Dispatch<SetStateAction<boolean>>;
+  confettiAmount: number;
+  setConfettiAmount: Dispatch<SetStateAction<number>>;
+  confettiIntensity: number;
+  setConfettiIntensity: Dispatch<SetStateAction<number>>;
+  confettiPalette: ConfettiPalette;
+  setConfettiPalette: Dispatch<SetStateAction<ConfettiPalette>>;
+  confettiFlutter: number;
+  setConfettiFlutter: Dispatch<SetStateAction<number>>;
   neonOn: boolean;
   setNeonOn: Dispatch<SetStateAction<boolean>>;
   neonMode: NeonMode;
@@ -1795,6 +1807,16 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setSnowCoverOn,
     snowCoverStrength,
     setSnowCoverStrength,
+    confettiOn,
+    setConfettiOn,
+    confettiAmount,
+    setConfettiAmount,
+    confettiIntensity,
+    setConfettiIntensity,
+    confettiPalette,
+    setConfettiPalette,
+    confettiFlutter,
+    setConfettiFlutter,
     neonOn,
     setNeonOn,
     neonMode,
@@ -5037,6 +5059,95 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     onDec={() => setSnowCoverStrength((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
                     onInc={() => setSnowCoverStrength((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
                   />
+                )}
+                <SettingRow
+                  label={t("dial.env.confetti")}
+                  value={onOff(confettiOn)}
+                  onDec={() => setConfettiOn(false)}
+                  onInc={() => setConfettiOn(true)}
+                />
+                {confettiOn && (
+                  <>
+                    <SettingRow
+                      label={t("dial.env.confettiAmount")}
+                      mode="number"
+                      value={`${Math.round(confettiAmount)}`}
+                      rawValue={confettiAmount}
+                      onSet={(v) =>
+                        setConfettiAmount(
+                          Math.max(0, Math.min(mx("confettiAmount"), Math.round(v))),
+                        )
+                      }
+                      min={0}
+                      max={mx("confettiAmount")}
+                      step={500}
+                      onDec={() => setConfettiAmount((v) => Math.max(0, Math.round(v - 500)))}
+                      onInc={() =>
+                        setConfettiAmount((v) =>
+                          Math.min(mx("confettiAmount"), Math.round(v + 500)),
+                        )
+                      }
+                    />
+                    <SettingRow
+                      label={t("dial.env.confettiIntensity")}
+                      mode="number"
+                      value={`${Math.round(confettiIntensity * 100)}%`}
+                      rawValue={confettiIntensity}
+                      onSet={(v) =>
+                        setConfettiIntensity(Math.max(0, Math.min(mx("confettiIntensity"), v)))
+                      }
+                      min={0}
+                      max={mx("confettiIntensity")}
+                      step={0.05}
+                      onDec={() => setConfettiIntensity((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                      onInc={() =>
+                        setConfettiIntensity((v) =>
+                          Math.min(mx("confettiIntensity"), +(v + 0.05).toFixed(2)),
+                        )
+                      }
+                    />
+                    <SettingRow
+                      label={t("dial.env.confettiPalette")}
+                      value={t(`dial.env.confettiPaletteValue.${confettiPalette}`)}
+                      options={CONFETTI_PALETTES.map((p) =>
+                        t(`dial.env.confettiPaletteValue.${p}`),
+                      )}
+                      selectedIndex={Math.max(0, CONFETTI_PALETTES.indexOf(confettiPalette))}
+                      onSelectIndex={(i) => setConfettiPalette(CONFETTI_PALETTES[i])}
+                      onDec={() =>
+                        setConfettiPalette(
+                          (p) =>
+                            CONFETTI_PALETTES[
+                              (Math.max(0, CONFETTI_PALETTES.indexOf(p)) -
+                                1 +
+                                CONFETTI_PALETTES.length) %
+                                CONFETTI_PALETTES.length
+                            ],
+                        )
+                      }
+                      onInc={() =>
+                        setConfettiPalette(
+                          (p) =>
+                            CONFETTI_PALETTES[
+                              (Math.max(0, CONFETTI_PALETTES.indexOf(p)) + 1) %
+                                CONFETTI_PALETTES.length
+                            ],
+                        )
+                      }
+                    />
+                    <SettingRow
+                      label={t("dial.env.confettiFlutter")}
+                      mode="number"
+                      value={`${Math.round(confettiFlutter * 100)}%`}
+                      rawValue={confettiFlutter}
+                      onSet={(v) => setConfettiFlutter(Math.max(0, Math.min(2, v)))}
+                      min={0}
+                      max={2}
+                      step={0.05}
+                      onDec={() => setConfettiFlutter((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                      onInc={() => setConfettiFlutter((v) => Math.min(2, +(v + 0.05).toFixed(2)))}
+                    />
+                  </>
                 )}
                 <SettingRow
                   label={t("dial.env.backdrop")}
