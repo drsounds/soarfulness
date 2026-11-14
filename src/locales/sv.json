@@ -308,6 +308,7 @@
       "snowIntensity": "SNÖSTYRKA",
       "snowCover": "SNÖTÄCKE",
       "snowCoverStrength": "TÄCKNINGSGRAD",
+      "snowGrayBackdrop": "GRÅ BAKGRUND",
       "daylightTint": "DYGNSTONING",
       "daylightTintStrength": "TONINGSSTYRKA",
       "neon": "NEONKANTER",

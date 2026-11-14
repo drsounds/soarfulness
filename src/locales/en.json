@@ -308,6 +308,7 @@
       "snowIntensity": "SNOW INTENSITY",
       "snowCover": "SNOW COVER",
       "snowCoverStrength": "COVER STRENGTH",
+      "snowGrayBackdrop": "GRAY BACKDROP",
       "daylightTint": "TIME OF DAY TINT",
       "daylightTintStrength": "TINT STRENGTH",
       "neon": "NEON EDGES",

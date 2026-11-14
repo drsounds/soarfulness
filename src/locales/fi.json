@@ -308,6 +308,7 @@
       "snowIntensity": "LUMEN VOIMAKKUUS",
       "snowCover": "LUMIPEITE",
       "snowCoverStrength": "PEITTÄVYYS",
+      "snowGrayBackdrop": "HARMAA TAUSTA",
       "daylightTint": "VUOROKAUDEN SÄVY",
       "daylightTintStrength": "SÄVYN VOIMAKKUUS",
       "neon": "NEONREUNAT",

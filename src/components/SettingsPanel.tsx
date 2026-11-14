@@ -791,6 +791,8 @@ export type SettingsPanelProps = {
   setSnowCoverOn: Dispatch<SetStateAction<boolean>>;
   snowCoverStrength: number;
   setSnowCoverStrength: Dispatch<SetStateAction<number>>;
+  snowGrayBackdropOn: boolean;
+  setSnowGrayBackdropOn: Dispatch<SetStateAction<boolean>>;
   neonOn: boolean;
   setNeonOn: Dispatch<SetStateAction<boolean>>;
   neonMode: NeonMode;
@@ -1795,6 +1797,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setSnowCoverOn,
     snowCoverStrength,
     setSnowCoverStrength,
+    snowGrayBackdropOn,
+    setSnowGrayBackdropOn,
     neonOn,
     setNeonOn,
     neonMode,
@@ -5024,6 +5028,14 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   onDec={() => setSnowCoverOn(false)}
                   onInc={() => setSnowCoverOn(true)}
                 />
+                {snowCoverOn && (
+                  <SettingRow
+                    label={t("dial.env.snowGrayBackdrop")}
+                    value={onOff(snowGrayBackdropOn)}
+                    onDec={() => setSnowGrayBackdropOn(false)}
+                    onInc={() => setSnowGrayBackdropOn(true)}
+                  />
+                )}
                 {snowCoverOn && (
                   <SettingRow
                     label={t("dial.env.snowCoverStrength")}
