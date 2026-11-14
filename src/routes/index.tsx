@@ -24,6 +24,7 @@ import { NeonEdges } from "@/lib/sceneFx/NeonEdges";
 import { SnowCover, Snowfall } from "@/lib/sceneFx/snow";
 import { Fireworks, FIREWORKS_LIGHTS } from "@/lib/sceneFx/fireworks";
 import { Confetti } from "@/lib/sceneFx/confetti";
+import { Aurora } from "@/lib/sceneFx/aurora";
 import { applyNeonAccent } from "@/lib/sceneFx/neonAccent";
 import { relativeDaylightTint } from "@/lib/sceneFx/daylightTint";
 import {
@@ -1635,6 +1636,16 @@ const DEFAULTS: Persisted = {
   // NEONACCENT: color of every "-neon" scene material (tint + emission at
   // 1.00) — see lib/sceneFx/neonAccent.ts.
   neonAccentColor: "#ff2bd6",
+  // NORRSKEN: northern lights (lib/sceneFx/aurora.ts), off by default.
+  auroraOn: false,
+  auroraIntensity: 1,
+  auroraAmount: 0.5,
+  auroraSpeed: 1,
+  auroraHeight: 0.35,
+  auroraPalette: "classic",
+  auroraColorMain: "#3dff8c",
+  auroraColorTop: "#c23a9e",
+  auroraDaylightOn: false,
   cameraMode: "float",
   noclipSpeed: 1,
   noclipFallRiseSpeed: 48,
@@ -2310,6 +2321,15 @@ export function Aquafulness() {
   const [neonWidth, setNeonWidth] = useState(initial.neonWidth);
   const [neonFrequency, setNeonFrequency] = useState(initial.neonFrequency);
   const [neonAccentColor, setNeonAccentColor] = useState(initial.neonAccentColor);
+  const [auroraOn, setAuroraOn] = useState(initial.auroraOn);
+  const [auroraIntensity, setAuroraIntensity] = useState(initial.auroraIntensity);
+  const [auroraAmount, setAuroraAmount] = useState(initial.auroraAmount);
+  const [auroraSpeed, setAuroraSpeed] = useState(initial.auroraSpeed);
+  const [auroraHeight, setAuroraHeight] = useState(initial.auroraHeight);
+  const [auroraPalette, setAuroraPalette] = useState(initial.auroraPalette);
+  const [auroraColorMain, setAuroraColorMain] = useState(initial.auroraColorMain);
+  const [auroraColorTop, setAuroraColorTop] = useState(initial.auroraColorTop);
+  const [auroraDaylightOn, setAuroraDaylightOn] = useState(initial.auroraDaylightOn);
   const [cameraMode, setCameraMode] = useState<CameraMode>(initial.cameraMode);
   const [noclipSpeed, setNoclipSpeed] = useState(initial.noclipSpeed);
   const [noclipFallRiseSpeed, setNoclipFallRiseSpeed] = useState(initial.noclipFallRiseSpeed);
@@ -2444,6 +2464,7 @@ export function Aquafulness() {
     clamp("freakOutRotationSpeed", freakOutRotationSpeed, setFreakOutRotationSpeed);
     clamp("freakOutRotationKick", freakOutRotationKick, setFreakOutRotationKick);
     clamp("freakOutFloatYOffset", freakOutFloatYOffset, setFreakOutFloatYOffset);
+    clamp("auroraIntensity", auroraIntensity, setAuroraIntensity);
     clamp("snowAmount", snowAmount, setSnowAmount);
     clamp("snowIntensity", snowIntensity, setSnowIntensity);
     clamp("fireworksIntensity", fireworksIntensity, setFireworksIntensity);
@@ -2452,6 +2473,7 @@ export function Aquafulness() {
     clamp("confettiIntensity", confettiIntensity, setConfettiIntensity);
   }, [
     extremeLimits,
+    auroraIntensity,
     fireworksIntensity,
     fireworksRate,
     snowAmount,
@@ -2874,6 +2896,15 @@ export function Aquafulness() {
   const neonWidthRef = useRef(neonWidth);
   const neonFrequencyRef = useRef(neonFrequency);
   const neonAccentColorRef = useRef(neonAccentColor);
+  const auroraOnRef = useRef(auroraOn);
+  const auroraIntensityRef = useRef(auroraIntensity);
+  const auroraAmountRef = useRef(auroraAmount);
+  const auroraSpeedRef = useRef(auroraSpeed);
+  const auroraHeightRef = useRef(auroraHeight);
+  const auroraPaletteRef = useRef(auroraPalette);
+  const auroraColorMainRef = useRef(auroraColorMain);
+  const auroraColorTopRef = useRef(auroraColorTop);
+  const auroraDaylightOnRef = useRef(auroraDaylightOn);
 
   // A full snapshot of every settings-dialog field, in the exact Persisted
   // shape saved to localStorage below — also reused by the preset save/
@@ -3056,6 +3087,15 @@ export function Aquafulness() {
     neonWidth,
     neonFrequency,
     neonAccentColor,
+    auroraOn,
+    auroraIntensity,
+    auroraAmount,
+    auroraSpeed,
+    auroraHeight,
+    auroraPalette,
+    auroraColorMain,
+    auroraColorTop,
+    auroraDaylightOn,
     cameraMode,
     noclipSpeed,
     noclipFallRiseSpeed,
@@ -3332,6 +3372,15 @@ export function Aquafulness() {
     neonWidth,
     neonFrequency,
     neonAccentColor,
+    auroraOn,
+    auroraIntensity,
+    auroraAmount,
+    auroraSpeed,
+    auroraHeight,
+    auroraPalette,
+    auroraColorMain,
+    auroraColorTop,
+    auroraDaylightOn,
     cameraMode,
     noclipSpeed,
     noclipFallRiseSpeed,
@@ -4451,6 +4500,27 @@ export function Aquafulness() {
     if (modelRef.current) applyNeonAccent(modelRef.current, neonAccentColor);
   }, [neonAccentColor]);
   useEffect(() => {
+    auroraOnRef.current = auroraOn;
+    auroraIntensityRef.current = auroraIntensity;
+    auroraAmountRef.current = auroraAmount;
+    auroraSpeedRef.current = auroraSpeed;
+    auroraHeightRef.current = auroraHeight;
+    auroraPaletteRef.current = auroraPalette;
+    auroraColorMainRef.current = auroraColorMain;
+    auroraColorTopRef.current = auroraColorTop;
+    auroraDaylightOnRef.current = auroraDaylightOn;
+  }, [
+    auroraOn,
+    auroraIntensity,
+    auroraAmount,
+    auroraSpeed,
+    auroraHeight,
+    auroraPalette,
+    auroraColorMain,
+    auroraColorTop,
+    auroraDaylightOn,
+  ]);
+  useEffect(() => {
     sphereStrengthRef.current = sphereStrength;
   }, [sphereStrength]);
   useEffect(() => {
@@ -5073,6 +5143,15 @@ export function Aquafulness() {
     setNeonWidth(DEFAULTS.neonWidth);
     setNeonFrequency(DEFAULTS.neonFrequency);
     setNeonAccentColor(DEFAULTS.neonAccentColor);
+    setAuroraOn(DEFAULTS.auroraOn);
+    setAuroraIntensity(DEFAULTS.auroraIntensity);
+    setAuroraAmount(DEFAULTS.auroraAmount);
+    setAuroraSpeed(DEFAULTS.auroraSpeed);
+    setAuroraHeight(DEFAULTS.auroraHeight);
+    setAuroraPalette(DEFAULTS.auroraPalette);
+    setAuroraColorMain(DEFAULTS.auroraColorMain);
+    setAuroraColorTop(DEFAULTS.auroraColorTop);
+    setAuroraDaylightOn(DEFAULTS.auroraDaylightOn);
     setCameraMode(DEFAULTS.cameraMode);
     setNoclipSpeed(DEFAULTS.noclipSpeed);
     setNoclipFallRiseSpeed(DEFAULTS.noclipFallRiseSpeed);
@@ -5367,6 +5446,15 @@ export function Aquafulness() {
     if (patch.neonWidth !== undefined) setNeonWidth(patch.neonWidth);
     if (patch.neonFrequency !== undefined) setNeonFrequency(patch.neonFrequency);
     if (patch.neonAccentColor !== undefined) setNeonAccentColor(patch.neonAccentColor);
+    if (patch.auroraOn !== undefined) setAuroraOn(patch.auroraOn);
+    if (patch.auroraIntensity !== undefined) setAuroraIntensity(patch.auroraIntensity);
+    if (patch.auroraAmount !== undefined) setAuroraAmount(patch.auroraAmount);
+    if (patch.auroraSpeed !== undefined) setAuroraSpeed(patch.auroraSpeed);
+    if (patch.auroraHeight !== undefined) setAuroraHeight(patch.auroraHeight);
+    if (patch.auroraPalette !== undefined) setAuroraPalette(patch.auroraPalette);
+    if (patch.auroraColorMain !== undefined) setAuroraColorMain(patch.auroraColorMain);
+    if (patch.auroraColorTop !== undefined) setAuroraColorTop(patch.auroraColorTop);
+    if (patch.auroraDaylightOn !== undefined) setAuroraDaylightOn(patch.auroraDaylightOn);
     if (patch.cameraMode !== undefined) setCameraMode(patch.cameraMode);
     if (patch.noclipSpeed !== undefined) setNoclipSpeed(patch.noclipSpeed);
     if (patch.noclipFallRiseSpeed !== undefined) setNoclipFallRiseSpeed(patch.noclipFallRiseSpeed);
@@ -6717,6 +6805,12 @@ export function Aquafulness() {
       // VATTENGLÖD: emissive glow added to the water body.
       uGlow: { value: 0 },
       uGlowColor: { value: new THREE.Vector3(0.22, 0.84, 1) },
+      // NORRSKEN: the aurora's glow reflected in the water — its color ×
+      // brightness (0 = off), the elevation (radians) of the main band and
+      // HÖJD (0 = low in the north .. 1 = overhead, all around).
+      uAuroraGlow: { value: new THREE.Color(0, 0, 0) },
+      uAuroraElev: { value: 0.3 },
+      uAuroraHeight: { value: 0.35 },
       // FYRVERKERILJUS: the latest bursts' colored flashes (xyz position;
       // color·intensity in candela), copied from Fireworks every frame.
       uFwLightPos: {
@@ -7103,6 +7197,9 @@ export function Aquafulness() {
       uniform float uEnvSunTint;
       uniform float uGlow;
       uniform vec3 uGlowColor;
+      uniform vec3 uAuroraGlow;
+      uniform float uAuroraElev;
+      uniform float uAuroraHeight;
       uniform vec4 uFwLightPos[${FIREWORKS_LIGHTS}];
       uniform vec3 uFwLightCol[${FIREWORKS_LIGHTS}];
       uniform float uSphereMix;
@@ -7395,6 +7492,18 @@ export function Aquafulness() {
             envCol += uSunColor * uEnvSunTint * pow(max(dot(Rw, normalize(uSunDir)), 0.0), 12.0) * 0.35;
           }
           skyRef = mix(skyRef, envCol, uEnvReflMix);
+        }
+
+        // NORRSKEN: the aurora reflected in the water — a soft band of its
+        // light at the curtains' elevation, toward the north unless they're
+        // overhead; the wave normals in R break it up into streaks.
+        if (uAuroraGlow.r + uAuroraGlow.g + uAuroraGlow.b > 0.0005) {
+          vec3 Ra = normalize(vec3(R.x, max(R.y, 0.0), R.z));
+          float el = asin(Ra.y);
+          float north = mix(smoothstep(-0.35, 0.75, -Ra.z), 1.0, uAuroraHeight * uAuroraHeight);
+          float bandW = 0.16 + 0.35 * uAuroraHeight;
+          float k = exp(-pow((el - uAuroraElev) / bandW, 2.0)) * north;
+          skyRef += uAuroraGlow * k;
         }
 
         // Refraction tint — view-dependent transmitted color. Straight down
@@ -8524,6 +8633,10 @@ export function Aquafulness() {
     const envDome = new THREE.Mesh(skyGeo, envDomeMat);
     envDome.visible = false;
     scene.add(envDome);
+
+    // NORRSKEN: northern lights curtains, at infinity like the sky dome and
+    // drawn behind everything in the scene (see lib/sceneFx/aurora.ts).
+    const aurora = new Aurora(scene);
 
     // BÄTTRE LJUS: image-based lighting for glTF materials. scene.environment
     // is a PMREM of the environment skybox when one is active, otherwise of
@@ -11083,6 +11196,28 @@ export function Aquafulness() {
 
       sky.position.copy(camera.position);
 
+      // NORRSKEN: fades in with the night (DYGNSBYTE's curve) unless SYNS PÅ
+      // DAGEN is on, and is reflected in the water.
+      if (auroraOnRef.current) {
+        aurora.update(dt, camera.position, {
+          intensity: auroraIntensityRef.current,
+          amount: auroraAmountRef.current,
+          speed: auroraSpeedRef.current,
+          height: auroraHeightRef.current,
+          palette: auroraPaletteRef.current,
+          customMain: auroraColorMainRef.current,
+          customTop: auroraColorTopRef.current,
+          night: nightBackdropMix(todRef.current),
+          showInDaylight: auroraDaylightOnRef.current,
+          underwater: uniforms.uUnderwater.value,
+        });
+      } else {
+        aurora.hide();
+      }
+      uniforms.uAuroraGlow.value.copy(aurora.glow);
+      uniforms.uAuroraElev.value = aurora.glowElevation;
+      uniforms.uAuroraHeight.value = auroraHeightRef.current;
+
       // Backdrop / skybox priority:
       //  - A real environment skybox (scene.background) wins: hide the sky dome,
       //    ignore the flat DOM backdrop, keep an opaque clear behind it. A
@@ -11413,6 +11548,7 @@ export function Aquafulness() {
       composer.dispose();
       neonEdges.dispose();
       snowfall.dispose();
+      aurora.dispose();
       fireworks.dispose();
       confetti.dispose();
       scene.environment = null;
@@ -12230,6 +12366,24 @@ export function Aquafulness() {
     setNeonFrequency,
     neonAccentColor,
     setNeonAccentColor,
+    auroraOn,
+    setAuroraOn,
+    auroraIntensity,
+    setAuroraIntensity,
+    auroraAmount,
+    setAuroraAmount,
+    auroraSpeed,
+    setAuroraSpeed,
+    auroraHeight,
+    setAuroraHeight,
+    auroraPalette,
+    setAuroraPalette,
+    auroraColorMain,
+    setAuroraColorMain,
+    auroraColorTop,
+    setAuroraColorTop,
+    auroraDaylightOn,
+    setAuroraDaylightOn,
     wakeLock,
     setWakeLock,
     waterColorIdx,

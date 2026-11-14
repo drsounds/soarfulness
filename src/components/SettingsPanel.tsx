@@ -62,6 +62,8 @@ import {
   type ConfettiPalette,
   RETRO_PALETTES,
   NEON_MODES,
+  type AuroraPalette,
+  AURORA_PALETTES,
   CONFETTI_PALETTES,
   SKY_CLOUDS_ALTITUDE_MIN,
   SKY_CLOUDS_ALTITUDE_MAX,
@@ -841,6 +843,24 @@ export type SettingsPanelProps = {
   setNeonFrequency: Dispatch<SetStateAction<number>>;
   neonAccentColor: string;
   setNeonAccentColor: Dispatch<SetStateAction<string>>;
+  auroraOn: boolean;
+  setAuroraOn: Dispatch<SetStateAction<boolean>>;
+  auroraIntensity: number;
+  setAuroraIntensity: Dispatch<SetStateAction<number>>;
+  auroraAmount: number;
+  setAuroraAmount: Dispatch<SetStateAction<number>>;
+  auroraSpeed: number;
+  setAuroraSpeed: Dispatch<SetStateAction<number>>;
+  auroraHeight: number;
+  setAuroraHeight: Dispatch<SetStateAction<number>>;
+  auroraPalette: AuroraPalette;
+  setAuroraPalette: Dispatch<SetStateAction<AuroraPalette>>;
+  auroraColorMain: string;
+  setAuroraColorMain: Dispatch<SetStateAction<string>>;
+  auroraColorTop: string;
+  setAuroraColorTop: Dispatch<SetStateAction<string>>;
+  auroraDaylightOn: boolean;
+  setAuroraDaylightOn: Dispatch<SetStateAction<boolean>>;
   wakeLock: boolean;
   setWakeLock: Dispatch<SetStateAction<boolean>>;
 
@@ -1873,6 +1893,24 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setNeonFrequency,
     neonAccentColor,
     setNeonAccentColor,
+    auroraOn,
+    setAuroraOn,
+    auroraIntensity,
+    setAuroraIntensity,
+    auroraAmount,
+    setAuroraAmount,
+    auroraSpeed,
+    setAuroraSpeed,
+    auroraHeight,
+    setAuroraHeight,
+    auroraPalette,
+    setAuroraPalette,
+    auroraColorMain,
+    setAuroraColorMain,
+    auroraColorTop,
+    setAuroraColorTop,
+    auroraDaylightOn,
+    setAuroraDaylightOn,
     wakeLock,
     setWakeLock,
     waterColorIdx,
@@ -5032,6 +5070,120 @@ export function SettingsPanel(props: SettingsPanelProps) {
                         />
                       </>
                     )}
+                  </>
+                )}
+                <SettingRow
+                  label={t("dial.env.aurora")}
+                  value={onOff(auroraOn)}
+                  onDec={() => setAuroraOn(false)}
+                  onInc={() => setAuroraOn(true)}
+                />
+                {auroraOn && (
+                  <>
+                    <SettingRow
+                      label={t("dial.env.auroraIntensity")}
+                      mode="number"
+                      value={`${Math.round(auroraIntensity * 100)}%`}
+                      rawValue={auroraIntensity}
+                      onSet={(v) => setAuroraIntensity(Math.max(0, Math.min(mx("auroraIntensity"), v)))}
+                      min={0}
+                      max={mx("auroraIntensity")}
+                      step={0.05}
+                      onDec={() => setAuroraIntensity((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                      onInc={() => setAuroraIntensity((v) => Math.min(mx("auroraIntensity"), +(v + 0.05).toFixed(2)))}
+                    />
+                    <SettingRow
+                      label={t("dial.env.auroraAmount")}
+                      mode="number"
+                      value={`${Math.round(auroraAmount * 100)}%`}
+                      rawValue={auroraAmount}
+                      onSet={(v) => setAuroraAmount(Math.max(0, Math.min(1, v)))}
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      onDec={() => setAuroraAmount((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                      onInc={() => setAuroraAmount((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+                    />
+                    <SettingRow
+                      label={t("dial.env.auroraSpeed")}
+                      mode="number"
+                      value={`${Math.round(auroraSpeed * 100)}%`}
+                      rawValue={auroraSpeed}
+                      onSet={(v) => setAuroraSpeed(Math.max(0, Math.min(3, v)))}
+                      min={0}
+                      max={3}
+                      step={0.05}
+                      onDec={() => setAuroraSpeed((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                      onInc={() => setAuroraSpeed((v) => Math.min(3, +(v + 0.05).toFixed(2)))}
+                    />
+                    <SettingRow
+                      label={t("dial.env.auroraHeight")}
+                      mode="number"
+                      value={`${Math.round(auroraHeight * 100)}%`}
+                      rawValue={auroraHeight}
+                      onSet={(v) => setAuroraHeight(Math.max(0, Math.min(1, v)))}
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      onDec={() => setAuroraHeight((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                      onInc={() => setAuroraHeight((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+                    />
+                    <SettingRow
+                      label={t("dial.env.auroraPalette")}
+                      value={t(`dial.env.auroraPaletteValue.${auroraPalette}`)}
+                      options={AURORA_PALETTES.map((p) => t(`dial.env.auroraPaletteValue.${p}`))}
+                      selectedIndex={Math.max(0, AURORA_PALETTES.indexOf(auroraPalette))}
+                      onSelectIndex={(i) => setAuroraPalette(AURORA_PALETTES[i])}
+                      onDec={() =>
+                        setAuroraPalette(
+                          (p) =>
+                            AURORA_PALETTES[
+                              (Math.max(0, AURORA_PALETTES.indexOf(p)) - 1 + AURORA_PALETTES.length) %
+                                AURORA_PALETTES.length
+                            ],
+                        )
+                      }
+                      onInc={() =>
+                        setAuroraPalette(
+                          (p) =>
+                            AURORA_PALETTES[
+                              (Math.max(0, AURORA_PALETTES.indexOf(p)) + 1) % AURORA_PALETTES.length
+                            ],
+                        )
+                      }
+                    />
+                    {auroraPalette === "custom" && (
+                      <>
+                        <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
+                          <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
+                            {t("dial.env.auroraColorMain")}
+                          </span>
+                          <input
+                            type="color"
+                            value={auroraColorMain}
+                            onChange={(e) => setAuroraColorMain(e.target.value)}
+                            className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
+                          />
+                        </label>
+                        <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
+                          <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
+                            {t("dial.env.auroraColorTop")}
+                          </span>
+                          <input
+                            type="color"
+                            value={auroraColorTop}
+                            onChange={(e) => setAuroraColorTop(e.target.value)}
+                            className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
+                          />
+                        </label>
+                      </>
+                    )}
+                    <SettingRow
+                      label={t("dial.env.auroraDaylight")}
+                      value={onOff(auroraDaylightOn)}
+                      onDec={() => setAuroraDaylightOn(false)}
+                      onInc={() => setAuroraDaylightOn(true)}
+                    />
                   </>
                 )}
                 <SettingRow

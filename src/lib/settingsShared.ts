@@ -182,6 +182,21 @@ export const RETRO_PALETTES: RetroPalette[] = ["rgb332", "websafe", "ega", "gray
 export type NeonMode = "solid" | "alternate" | "fade" | "hue";
 export const NEON_MODES: NeonMode[] = ["solid", "alternate", "fade", "hue"];
 
+// NORRSKENSFÄRGER: the aurora's (NORRSKEN) color palette. "classic" is the
+// usual green with a pink lower fringe and a faint red-violet top, "rainbow"
+// runs through the hues along the bands, "custom" uses auroraColorMain /
+// auroraColorTop. The actual colors live in lib/sceneFx/aurora.ts.
+export type AuroraPalette = "classic" | "green" | "red" | "violet" | "blue" | "rainbow" | "custom";
+export const AURORA_PALETTES: AuroraPalette[] = [
+  "classic",
+  "green",
+  "red",
+  "violet",
+  "blue",
+  "rainbow",
+  "custom",
+];
+
 // KONFETTIFÄRGER: which colors the falling confetti (KONFETTI) is cut from.
 //  - "rainbow"  colorful mix (FÄRGGLAD)
 //  - "pastel"   soft pastels
@@ -737,6 +752,20 @@ export type Persisted = {
   // NEONACCENT: tint + emission (intensity 1.00) for every scene material
   // whose name ends in "-neon" — see lib/sceneFx/neonAccent.ts.
   neonAccentColor: string;
+  // NORRSKEN: northern lights in the sky (lib/sceneFx/aurora.ts), shown at
+  // night (faded with TIMEOFDAY) unless auroraDaylightOn. auroraIntensity =
+  // brightness, auroraAmount = how many bands / how much sky they cover
+  // (0..1), auroraSpeed = how fast they move, auroraHeight = low over the
+  // northern horizon (0) .. overhead (1).
+  auroraOn: boolean;
+  auroraIntensity: number;
+  auroraAmount: number;
+  auroraSpeed: number;
+  auroraHeight: number;
+  auroraPalette: AuroraPalette;
+  auroraColorMain: string;
+  auroraColorTop: string;
+  auroraDaylightOn: boolean;
   cameraMode: CameraMode;
   noclipSpeed: number;
   // FRITT FALL/OMVÄND STIGNING's terminal vertical speed in m/s (at
@@ -1150,6 +1179,15 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "neonWidth",
     "neonFrequency",
     "neonAccentColor",
+    "auroraOn",
+    "auroraIntensity",
+    "auroraAmount",
+    "auroraSpeed",
+    "auroraHeight",
+    "auroraPalette",
+    "auroraColorMain",
+    "auroraColorTop",
+    "auroraDaylightOn",
   ],
   ljud: ["audioOn", "audioVol", "audioSyncSpeed", "audioSpatial", "waterSoundIdx"],
   // Tema (UI chrome theme) isn't part of the wave/camera/water/environment/
