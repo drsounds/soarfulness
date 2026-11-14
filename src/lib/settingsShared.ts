@@ -172,16 +172,6 @@ export const CAMERA_MODES: CameraMode[] = ["float", "noclip", "swing", "watercra
 export type RetroPalette = "rgb332" | "websafe" | "ega" | "gray";
 export const RETRO_PALETTES: RetroPalette[] = ["rgb332", "websafe", "ega", "gray"];
 
-// NEON color animation:
-//  - "solid"     always neonPrimary
-//  - "alternate" hard switch between neonPrimary and neonSecondary,
-//                neonFrequency times per second
-//  - "fade"      smooth back-and-forth blend between the two
-//  - "hue"       cycles the full hue wheel starting from neonPrimary's hue,
-//                neonFrequency turns per second
-export type NeonMode = "solid" | "alternate" | "fade" | "hue";
-export const NEON_MODES: NeonMode[] = ["solid", "alternate", "fade", "hue"];
-
 // NORRSKENSFÄRGER: the aurora's (NORRSKEN) color palette. "classic" is the
 // usual green with a pink lower fringe and a faint red-violet top, "rainbow"
 // runs through the hues along the bands, "custom" uses auroraColorMain /
@@ -196,6 +186,16 @@ export const AURORA_PALETTES: AuroraPalette[] = [
   "rainbow",
   "custom",
 ];
+
+// NEON color animation:
+//  - "solid"     always neonPrimary
+//  - "alternate" hard switch between neonPrimary and neonSecondary,
+//                neonFrequency times per second
+//  - "fade"      smooth back-and-forth blend between the two
+//  - "hue"       cycles the full hue wheel starting from neonPrimary's hue,
+//                neonFrequency turns per second
+export type NeonMode = "solid" | "alternate" | "fade" | "hue";
+export const NEON_MODES: NeonMode[] = ["solid", "alternate", "fade", "hue"];
 
 // KONFETTIFÄRGER: which colors the falling confetti (KONFETTI) is cut from.
 //  - "rainbow"  colorful mix (FÄRGGLAD)

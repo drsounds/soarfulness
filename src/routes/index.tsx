@@ -21,10 +21,10 @@ import { TorusRingField } from "@/lib/torusRings/TorusRingField";
 import { RETRO_PALETTE_INDEX, RETRO_SHADER } from "@/lib/sceneFx/retroShader";
 import { limitMax, useExtremeLimits, type LimitedControl } from "@/lib/extremeLimits";
 import { NeonEdges } from "@/lib/sceneFx/NeonEdges";
+import { Aurora } from "@/lib/sceneFx/aurora";
 import { SnowCover, Snowfall } from "@/lib/sceneFx/snow";
 import { Fireworks, FIREWORKS_LIGHTS } from "@/lib/sceneFx/fireworks";
 import { Confetti } from "@/lib/sceneFx/confetti";
-import { Aurora } from "@/lib/sceneFx/aurora";
 import { applyNeonAccent } from "@/lib/sceneFx/neonAccent";
 import { relativeDaylightTint } from "@/lib/sceneFx/daylightTint";
 import {
@@ -11547,8 +11547,8 @@ export function Aquafulness() {
       retroPass.dispose();
       composer.dispose();
       neonEdges.dispose();
-      snowfall.dispose();
       aurora.dispose();
+      snowfall.dispose();
       fireworks.dispose();
       confetti.dispose();
       scene.environment = null;

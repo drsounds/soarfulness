@@ -32,9 +32,9 @@ export const EXTREME_MAX = {
   freakOutRotationSpeed: 10, // RIDE ROTATIONSHASTIGHET (navet)
   freakOutFloatYOffset: 200, // RIDE HÖJD I SIMLÄGE (m)
   freakOutRotationKick: 8, // RIDE SNURR VID TOPPEN (× rotationshastigheten)
+  auroraIntensity: 4, // NORRSKENSSTYRKA
   snowAmount: 40000, // SNÖMÄNGD (flingor)
   snowIntensity: 4, // SNÖSTYRKA
-  auroraIntensity: 4, // NORRSKENSSTYRKA
   fireworksIntensity: 4, // FYRVERKERI INTENSITET
   fireworksRate: 240, // FYRVERKERI RAKETER/MIN
   confettiAmount: 40000, // KONFETTIMÄNGD (bitar)
