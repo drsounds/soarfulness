@@ -7,6 +7,7 @@
     { "id": "bucharest", "name": "Bucharest", "description": "Bucharest skybox." },
     { "id": "vanern", "name": "Vänern", "description": "Vänern's skybox and water-surface reflection." },
     { "id": "futuristic", "name": "Futuristisk", "description": "A futuristic skybox." },
-    { "id": "sky", "name": "Himmel", "description": "A plain sky skybox." }
+    { "id": "sky", "name": "Himmel", "description": "A plain sky skybox." },
+    { "id": "romanium", "name": "Romanium", "description": "The Romanium scene." }
   ]
 }
