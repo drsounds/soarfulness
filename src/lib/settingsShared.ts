@@ -693,6 +693,17 @@ export type Persisted = {
   snowIntensity: number;
   snowCoverOn: boolean;
   snowCoverStrength: number;
+  // FYRVERKERI (lib/sceneFx/fireworks.ts): intensity = burst size/brightness,
+  // rate = rockets per minute, distance = to the launch site (m). The light
+  // and synthesized sound each have their own toggle and level.
+  fireworksOn: boolean;
+  fireworksIntensity: number;
+  fireworksRate: number;
+  fireworksDistance: number;
+  fireworksLightsOn: boolean;
+  fireworksLightStrength: number;
+  fireworksSoundOn: boolean;
+  fireworksVolume: number;
   // NEON: glowing lines along the loaded scene's mesh edges. neonMode picks
   // how the color moves over time (see NeonMode); neonFrequency is in
   // cycles per second. neonTint is mixed over the result by neonTintAmount.
@@ -1097,6 +1108,14 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "snowIntensity",
     "snowCoverOn",
     "snowCoverStrength",
+    "fireworksOn",
+    "fireworksIntensity",
+    "fireworksRate",
+    "fireworksDistance",
+    "fireworksLightsOn",
+    "fireworksLightStrength",
+    "fireworksSoundOn",
+    "fireworksVolume",
     "neonOn",
     "neonMode",
     "neonPrimary",

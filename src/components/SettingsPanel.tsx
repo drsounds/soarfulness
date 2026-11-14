@@ -791,6 +791,22 @@ export type SettingsPanelProps = {
   setSnowCoverOn: Dispatch<SetStateAction<boolean>>;
   snowCoverStrength: number;
   setSnowCoverStrength: Dispatch<SetStateAction<number>>;
+  fireworksOn: boolean;
+  setFireworksOn: Dispatch<SetStateAction<boolean>>;
+  fireworksIntensity: number;
+  setFireworksIntensity: Dispatch<SetStateAction<number>>;
+  fireworksRate: number;
+  setFireworksRate: Dispatch<SetStateAction<number>>;
+  fireworksDistance: number;
+  setFireworksDistance: Dispatch<SetStateAction<number>>;
+  fireworksLightsOn: boolean;
+  setFireworksLightsOn: Dispatch<SetStateAction<boolean>>;
+  fireworksLightStrength: number;
+  setFireworksLightStrength: Dispatch<SetStateAction<number>>;
+  fireworksSoundOn: boolean;
+  setFireworksSoundOn: Dispatch<SetStateAction<boolean>>;
+  fireworksVolume: number;
+  setFireworksVolume: Dispatch<SetStateAction<number>>;
   neonOn: boolean;
   setNeonOn: Dispatch<SetStateAction<boolean>>;
   neonMode: NeonMode;
@@ -1795,6 +1811,22 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setSnowCoverOn,
     snowCoverStrength,
     setSnowCoverStrength,
+    fireworksOn,
+    setFireworksOn,
+    fireworksIntensity,
+    setFireworksIntensity,
+    fireworksRate,
+    setFireworksRate,
+    fireworksDistance,
+    setFireworksDistance,
+    fireworksLightsOn,
+    setFireworksLightsOn,
+    fireworksLightStrength,
+    setFireworksLightStrength,
+    fireworksSoundOn,
+    setFireworksSoundOn,
+    fireworksVolume,
+    setFireworksVolume,
     neonOn,
     setNeonOn,
     neonMode,
@@ -5037,6 +5069,110 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     onDec={() => setSnowCoverStrength((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
                     onInc={() => setSnowCoverStrength((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
                   />
+                )}
+                <SettingRow
+                  label={t("dial.env.fireworks")}
+                  value={onOff(fireworksOn)}
+                  onDec={() => setFireworksOn(false)}
+                  onInc={() => setFireworksOn(true)}
+                />
+                {fireworksOn && (
+                  <>
+                    <SettingRow
+                      label={t("dial.env.fireworksIntensity")}
+                      mode="number"
+                      value={`${Math.round(fireworksIntensity * 100)}%`}
+                      rawValue={fireworksIntensity}
+                      onSet={(v) =>
+                        setFireworksIntensity(Math.max(0, Math.min(mx("fireworksIntensity"), v)))
+                      }
+                      min={0}
+                      max={mx("fireworksIntensity")}
+                      step={0.05}
+                      onDec={() =>
+                        setFireworksIntensity((v) => Math.max(0, +(v - 0.05).toFixed(2)))
+                      }
+                      onInc={() =>
+                        setFireworksIntensity((v) =>
+                          Math.min(mx("fireworksIntensity"), +(v + 0.05).toFixed(2)),
+                        )
+                      }
+                    />
+                    <SettingRow
+                      label={t("dial.env.fireworksRate")}
+                      mode="number"
+                      value={`${Math.round(fireworksRate)}`}
+                      rawValue={fireworksRate}
+                      onSet={(v) =>
+                        setFireworksRate(Math.max(1, Math.min(mx("fireworksRate"), Math.round(v))))
+                      }
+                      min={1}
+                      max={mx("fireworksRate")}
+                      step={1}
+                      onDec={() => setFireworksRate((v) => Math.max(1, Math.round(v - 2)))}
+                      onInc={() =>
+                        setFireworksRate((v) => Math.min(mx("fireworksRate"), Math.round(v + 2)))
+                      }
+                    />
+                    <SettingRow
+                      label={t("dial.env.fireworksDistance")}
+                      mode="number"
+                      value={`${Math.round(fireworksDistance)} m`}
+                      rawValue={fireworksDistance}
+                      onSet={(v) =>
+                        setFireworksDistance(Math.max(50, Math.min(1500, Math.round(v))))
+                      }
+                      min={50}
+                      max={1500}
+                      step={25}
+                      onDec={() => setFireworksDistance((v) => Math.max(50, Math.round(v - 25)))}
+                      onInc={() => setFireworksDistance((v) => Math.min(1500, Math.round(v + 25)))}
+                    />
+                    <SettingRow
+                      label={t("dial.env.fireworksLights")}
+                      value={onOff(fireworksLightsOn)}
+                      onDec={() => setFireworksLightsOn(false)}
+                      onInc={() => setFireworksLightsOn(true)}
+                    />
+                    {fireworksLightsOn && (
+                      <SettingRow
+                        label={t("dial.env.fireworksLightStrength")}
+                        mode="number"
+                        value={`${Math.round(fireworksLightStrength * 100)}%`}
+                        rawValue={fireworksLightStrength}
+                        onSet={(v) => setFireworksLightStrength(Math.max(0, Math.min(3, v)))}
+                        min={0}
+                        max={3}
+                        step={0.1}
+                        onDec={() =>
+                          setFireworksLightStrength((v) => Math.max(0, +(v - 0.1).toFixed(2)))
+                        }
+                        onInc={() =>
+                          setFireworksLightStrength((v) => Math.min(3, +(v + 0.1).toFixed(2)))
+                        }
+                      />
+                    )}
+                    <SettingRow
+                      label={t("dial.env.fireworksSound")}
+                      value={onOff(fireworksSoundOn)}
+                      onDec={() => setFireworksSoundOn(false)}
+                      onInc={() => setFireworksSoundOn(true)}
+                    />
+                    {fireworksSoundOn && (
+                      <SettingRow
+                        label={t("dial.env.fireworksVolume")}
+                        mode="number"
+                        value={`${Math.round(fireworksVolume * 100)}%`}
+                        rawValue={fireworksVolume}
+                        onSet={(v) => setFireworksVolume(Math.max(0, Math.min(1, v)))}
+                        min={0}
+                        max={1}
+                        step={0.05}
+                        onDec={() => setFireworksVolume((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                        onInc={() => setFireworksVolume((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+                      />
+                    )}
+                  </>
                 )}
                 <SettingRow
                   label={t("dial.env.backdrop")}
