@@ -317,7 +317,8 @@
       "neonStrength": "NEONSTYRKA",
       "neonWidth": "NEONBREDD",
       "neonTint": "NEONTON",
-      "neonTintAmount": "TONMÄNGD"
+      "neonTintAmount": "TONMÄNGD",
+      "neonAccent": "NEONACCENT"
     },
     "water": {
       "bottom": "BOTTEN",

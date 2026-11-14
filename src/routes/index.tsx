@@ -22,6 +22,7 @@ import { RETRO_PALETTE_INDEX, RETRO_SHADER } from "@/lib/sceneFx/retroShader";
 import { limitMax, useExtremeLimits, type LimitedControl } from "@/lib/extremeLimits";
 import { NeonEdges } from "@/lib/sceneFx/NeonEdges";
 import { SnowCover, Snowfall } from "@/lib/sceneFx/snow";
+import { applyNeonAccent } from "@/lib/sceneFx/neonAccent";
 import { relativeDaylightTint } from "@/lib/sceneFx/daylightTint";
 import {
   DAY_TIME_ID,
@@ -1567,6 +1568,9 @@ const DEFAULTS: Persisted = {
   neonStrength: 1,
   neonWidth: 3,
   neonFrequency: 0.5,
+  // NEONACCENT: color of every "-neon" scene material (tint + emission at
+  // 1.00) — see lib/sceneFx/neonAccent.ts.
+  neonAccentColor: "#ff2bd6",
   cameraMode: "float",
   noclipSpeed: 1,
   noclipFallRiseSpeed: 48,
@@ -2205,6 +2209,7 @@ export function Aquafulness() {
   const [neonStrength, setNeonStrength] = useState(initial.neonStrength);
   const [neonWidth, setNeonWidth] = useState(initial.neonWidth);
   const [neonFrequency, setNeonFrequency] = useState(initial.neonFrequency);
+  const [neonAccentColor, setNeonAccentColor] = useState(initial.neonAccentColor);
   const [cameraMode, setCameraMode] = useState<CameraMode>(initial.cameraMode);
   const [noclipSpeed, setNoclipSpeed] = useState(initial.noclipSpeed);
   const [noclipFallRiseSpeed, setNoclipFallRiseSpeed] = useState(initial.noclipFallRiseSpeed);
@@ -2731,6 +2736,7 @@ export function Aquafulness() {
   const neonStrengthRef = useRef(neonStrength);
   const neonWidthRef = useRef(neonWidth);
   const neonFrequencyRef = useRef(neonFrequency);
+  const neonAccentColorRef = useRef(neonAccentColor);
 
   // A full snapshot of every settings-dialog field, in the exact Persisted
   // shape saved to localStorage below — also reused by the preset save/
@@ -2895,6 +2901,7 @@ export function Aquafulness() {
     neonStrength,
     neonWidth,
     neonFrequency,
+    neonAccentColor,
     cameraMode,
     noclipSpeed,
     noclipFallRiseSpeed,
@@ -3149,6 +3156,7 @@ export function Aquafulness() {
     neonStrength,
     neonWidth,
     neonFrequency,
+    neonAccentColor,
     cameraMode,
     noclipSpeed,
     noclipFallRiseSpeed,
@@ -4207,6 +4215,12 @@ export function Aquafulness() {
   useEffect(() => {
     neonFrequencyRef.current = neonFrequency;
   }, [neonFrequency]);
+  // NEONACCENT: recolor the loaded scene's "-neon" materials right away (a
+  // newly loaded scene picks the current color up in its loader instead).
+  useEffect(() => {
+    neonAccentColorRef.current = neonAccentColor;
+    if (modelRef.current) applyNeonAccent(modelRef.current, neonAccentColor);
+  }, [neonAccentColor]);
   useEffect(() => {
     sphereStrengthRef.current = sphereStrength;
   }, [sphereStrength]);
@@ -4789,6 +4803,7 @@ export function Aquafulness() {
     setNeonStrength(DEFAULTS.neonStrength);
     setNeonWidth(DEFAULTS.neonWidth);
     setNeonFrequency(DEFAULTS.neonFrequency);
+    setNeonAccentColor(DEFAULTS.neonAccentColor);
     setCameraMode(DEFAULTS.cameraMode);
     setNoclipSpeed(DEFAULTS.noclipSpeed);
     setNoclipFallRiseSpeed(DEFAULTS.noclipFallRiseSpeed);
@@ -5060,6 +5075,7 @@ export function Aquafulness() {
     if (patch.neonStrength !== undefined) setNeonStrength(patch.neonStrength);
     if (patch.neonWidth !== undefined) setNeonWidth(patch.neonWidth);
     if (patch.neonFrequency !== undefined) setNeonFrequency(patch.neonFrequency);
+    if (patch.neonAccentColor !== undefined) setNeonAccentColor(patch.neonAccentColor);
     if (patch.cameraMode !== undefined) setCameraMode(patch.cameraMode);
     if (patch.noclipSpeed !== undefined) setNoclipSpeed(patch.noclipSpeed);
     if (patch.noclipFallRiseSpeed !== undefined) setNoclipFallRiseSpeed(patch.noclipFallRiseSpeed);
@@ -10892,6 +10908,9 @@ export function Aquafulness() {
                 o.receiveShadow = true;
               }
             });
+            // NEONACCENT: "-neon" materials take the accent color as tint
+            // and emission (intensity 1.00).
+            applyNeonAccent(model, neonAccentColorRef.current);
             scene.add(model);
             modelRef.current = model;
             const bob = resolveBob(manifest.bob);
@@ -11456,6 +11475,8 @@ export function Aquafulness() {
     setNeonWidth,
     neonFrequency,
     setNeonFrequency,
+    neonAccentColor,
+    setNeonAccentColor,
     wakeLock,
     setWakeLock,
     waterColorIdx,
