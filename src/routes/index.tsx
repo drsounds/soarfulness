@@ -183,6 +183,7 @@ import {
   type OceanWaveComponent,
 } from "@/lib/ocean/fftOceanSpectrum";
 import sandTextureAsset from "@/assets/sand_cc0_512.jpg.asset.json";
+import { createSandTexture } from "@/lib/sandTexture";
 import {
   RaytracedWater,
   RT_FLOOR_GLSL,
@@ -7488,12 +7489,13 @@ export function Aquafulness() {
     const floorGeo = new THREE.PlaneGeometry(FLOOR_SIZE, FLOOR_SIZE, 32, 32);
     floorGeo.rotateX(-Math.PI / 2);
     // Real CC0 sand photo (ambientCG Ground054, 512px) – loaded lazily so the
-    // scene renders even if the CDN request is slow.
-    const sandTex = new THREE.TextureLoader().load(sandTextureAsset.url);
-    sandTex.wrapS = THREE.RepeatWrapping;
-    sandTex.wrapT = THREE.RepeatWrapping;
-    sandTex.anisotropy = renderer.capabilities.getMaxAnisotropy?.() ?? 4;
-    sandTex.colorSpace = THREE.SRGBColorSpace;
+    // scene renders even if the CDN request is slow. Starts as procedural
+    // grain so a missing photo (it only exists on Lovable's hosting) never
+    // samples as black — see lib/sandTexture.ts.
+    const sandTex = createSandTexture(
+      sandTextureAsset.url,
+      renderer.capabilities.getMaxAnisotropy?.() ?? 4,
+    );
 
     const floorUniforms = {
       uColor: { value: new THREE.Color(0xd8c078) },
