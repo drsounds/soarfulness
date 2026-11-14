@@ -22,6 +22,7 @@ import { RETRO_PALETTE_INDEX, RETRO_SHADER } from "@/lib/sceneFx/retroShader";
 import { limitMax, useExtremeLimits, type LimitedControl } from "@/lib/extremeLimits";
 import { NeonEdges } from "@/lib/sceneFx/NeonEdges";
 import { SnowCover, Snowfall } from "@/lib/sceneFx/snow";
+import { Confetti } from "@/lib/sceneFx/confetti";
 import { applyNeonAccent } from "@/lib/sceneFx/neonAccent";
 import { relativeDaylightTint } from "@/lib/sceneFx/daylightTint";
 import {
@@ -1596,6 +1597,14 @@ const DEFAULTS: Persisted = {
   // a cold gray (the old overcast look). Off by default; the backdrop keeps
   // its colors and only its ground gets snow.
   snowGrayBackdropOn: false,
+  // KONFETTI: confetti falling like snow (lib/sceneFx/confetti.ts), with
+  // the same amount/intensity dials as SNÖ plus KONFETTIFÄRGER (palette) and
+  // FLADDER (how much the pieces spin, tumble and sway).
+  confettiOn: false,
+  confettiAmount: 3000,
+  confettiIntensity: 0.5,
+  confettiPalette: "rainbow",
+  confettiFlutter: 0.6,
   // NEON: glowing lines along the loaded scene's mesh edges — see
   // lib/sceneFx/NeonEdges.ts for how neonMode/neonFrequency animate color.
   neonOn: false,
@@ -2260,6 +2269,11 @@ export function Aquafulness() {
   const [snowCoverOn, setSnowCoverOn] = useState(initial.snowCoverOn);
   const [snowCoverStrength, setSnowCoverStrength] = useState(initial.snowCoverStrength);
   const [snowGrayBackdropOn, setSnowGrayBackdropOn] = useState(initial.snowGrayBackdropOn);
+  const [confettiOn, setConfettiOn] = useState(initial.confettiOn);
+  const [confettiAmount, setConfettiAmount] = useState(initial.confettiAmount);
+  const [confettiIntensity, setConfettiIntensity] = useState(initial.confettiIntensity);
+  const [confettiPalette, setConfettiPalette] = useState(initial.confettiPalette);
+  const [confettiFlutter, setConfettiFlutter] = useState(initial.confettiFlutter);
   const [neonOn, setNeonOn] = useState(initial.neonOn);
   const [neonMode, setNeonMode] = useState(initial.neonMode);
   const [neonPrimary, setNeonPrimary] = useState(initial.neonPrimary);
@@ -2406,10 +2420,14 @@ export function Aquafulness() {
     clamp("freakOutFloatYOffset", freakOutFloatYOffset, setFreakOutFloatYOffset);
     clamp("snowAmount", snowAmount, setSnowAmount);
     clamp("snowIntensity", snowIntensity, setSnowIntensity);
+    clamp("confettiAmount", confettiAmount, setConfettiAmount);
+    clamp("confettiIntensity", confettiIntensity, setConfettiIntensity);
   }, [
     extremeLimits,
     snowAmount,
     snowIntensity,
+    confettiAmount,
+    confettiIntensity,
     waveAmp,
     swayAmp,
     surgeAmp,
@@ -2801,6 +2819,11 @@ export function Aquafulness() {
   const snowCoverOnRef = useRef(snowCoverOn);
   const snowCoverStrengthRef = useRef(snowCoverStrength);
   const snowGrayBackdropOnRef = useRef(snowGrayBackdropOn);
+  const confettiOnRef = useRef(confettiOn);
+  const confettiAmountRef = useRef(confettiAmount);
+  const confettiIntensityRef = useRef(confettiIntensity);
+  const confettiPaletteRef = useRef(confettiPalette);
+  const confettiFlutterRef = useRef(confettiFlutter);
   const neonOnRef = useRef(neonOn);
   const neonModeRef = useRef(neonMode);
   const neonPrimaryRef = useRef(neonPrimary);
@@ -2970,6 +2993,11 @@ export function Aquafulness() {
     snowCoverOn,
     snowCoverStrength,
     snowGrayBackdropOn,
+    confettiOn,
+    confettiAmount,
+    confettiIntensity,
+    confettiPalette,
+    confettiFlutter,
     neonOn,
     neonMode,
     neonPrimary,
@@ -3233,6 +3261,11 @@ export function Aquafulness() {
     snowCoverOn,
     snowCoverStrength,
     snowGrayBackdropOn,
+    confettiOn,
+    confettiAmount,
+    confettiIntensity,
+    confettiPalette,
+    confettiFlutter,
     neonOn,
     neonMode,
     neonPrimary,
@@ -4301,6 +4334,13 @@ export function Aquafulness() {
     snowGrayBackdropOnRef.current = snowGrayBackdropOn;
   }, [snowOn, snowAmount, snowIntensity, snowCoverOn, snowCoverStrength, snowGrayBackdropOn]);
   useEffect(() => {
+    confettiOnRef.current = confettiOn;
+    confettiAmountRef.current = confettiAmount;
+    confettiIntensityRef.current = confettiIntensity;
+    confettiPaletteRef.current = confettiPalette;
+    confettiFlutterRef.current = confettiFlutter;
+  }, [confettiOn, confettiAmount, confettiIntensity, confettiPalette, confettiFlutter]);
+  useEffect(() => {
     neonOnRef.current = neonOn;
   }, [neonOn]);
   useEffect(() => {
@@ -4933,6 +4973,11 @@ export function Aquafulness() {
     setSnowCoverOn(DEFAULTS.snowCoverOn);
     setSnowCoverStrength(DEFAULTS.snowCoverStrength);
     setSnowGrayBackdropOn(DEFAULTS.snowGrayBackdropOn);
+    setConfettiOn(DEFAULTS.confettiOn);
+    setConfettiAmount(DEFAULTS.confettiAmount);
+    setConfettiIntensity(DEFAULTS.confettiIntensity);
+    setConfettiPalette(DEFAULTS.confettiPalette);
+    setConfettiFlutter(DEFAULTS.confettiFlutter);
     setNeonOn(DEFAULTS.neonOn);
     setNeonMode(DEFAULTS.neonMode);
     setNeonPrimary(DEFAULTS.neonPrimary);
@@ -5213,6 +5258,11 @@ export function Aquafulness() {
     if (patch.snowCoverOn !== undefined) setSnowCoverOn(patch.snowCoverOn);
     if (patch.snowCoverStrength !== undefined) setSnowCoverStrength(patch.snowCoverStrength);
     if (patch.snowGrayBackdropOn !== undefined) setSnowGrayBackdropOn(patch.snowGrayBackdropOn);
+    if (patch.confettiOn !== undefined) setConfettiOn(patch.confettiOn);
+    if (patch.confettiAmount !== undefined) setConfettiAmount(patch.confettiAmount);
+    if (patch.confettiIntensity !== undefined) setConfettiIntensity(patch.confettiIntensity);
+    if (patch.confettiPalette !== undefined) setConfettiPalette(patch.confettiPalette);
+    if (patch.confettiFlutter !== undefined) setConfettiFlutter(patch.confettiFlutter);
     if (patch.neonOn !== undefined) setNeonOn(patch.neonOn);
     if (patch.neonMode !== undefined) setNeonMode(patch.neonMode);
     if (patch.neonPrimary !== undefined) setNeonPrimary(patch.neonPrimary);
@@ -8379,6 +8429,8 @@ export function Aquafulness() {
     const snowfall = new Snowfall(scene);
     const snowCover = new SnowCover();
     envDomeUniforms.uSnowLight = snowCover.uLight;
+    // KONFETTI: confetti falling like the snow (see lib/sceneFx/confetti.ts).
+    const confetti = new Confetti(scene);
     const envTint = new THREE.Color(1, 1, 1);
     const envTintScratch = new THREE.Color();
     const envTintNight = new THREE.Color(1, 1, 1);
@@ -11115,6 +11167,21 @@ export function Aquafulness() {
         else if (!modelRef.current && snowCover.attachedTo) snowCover.detach();
       }
 
+      // KONFETTI: pieces follow the camera like the snowflakes.
+      if (confettiOnRef.current) {
+        confetti.setPixelRatio(renderer.getPixelRatio());
+        confetti.update(now / 1000, dt, camera.position, {
+          amount: confettiAmountRef.current * (lowEnd ? 0.5 : 1),
+          intensity: confettiIntensityRef.current,
+          flutter: confettiFlutterRef.current,
+          palette: confettiPaletteRef.current,
+          waterLevel: ocean.position.y,
+          underwater: uniforms.uUnderwater.value,
+        });
+      } else {
+        confetti.hide();
+      }
+
       // Cap actual GPU renders to targetFps (gogglesFpsCap instead while
       // SIMGLASÖGON is on, for its own lower thermal-friendly ceiling) —
       // camera/physics/uniforms above still update every rAF tick (cheap,
@@ -11197,6 +11264,7 @@ export function Aquafulness() {
       composer.dispose();
       neonEdges.dispose();
       snowfall.dispose();
+      confetti.dispose();
       scene.environment = null;
       iblTarget?.dispose();
       pmrem.dispose();
@@ -11966,6 +12034,16 @@ export function Aquafulness() {
     setSnowCoverStrength,
     snowGrayBackdropOn,
     setSnowGrayBackdropOn,
+    confettiOn,
+    setConfettiOn,
+    confettiAmount,
+    setConfettiAmount,
+    confettiIntensity,
+    setConfettiIntensity,
+    confettiPalette,
+    setConfettiPalette,
+    confettiFlutter,
+    setConfettiFlutter,
     neonOn,
     setNeonOn,
     neonMode,

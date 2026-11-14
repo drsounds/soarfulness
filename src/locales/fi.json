@@ -309,6 +309,17 @@
       "snowCover": "LUMIPEITE",
       "snowCoverStrength": "PEITTÄVYYS",
       "snowGrayBackdrop": "HARMAA TAUSTA",
+      "confetti": "KONFETTI",
+      "confettiAmount": "KONFETIN MÄÄRÄ",
+      "confettiIntensity": "KONFETIN VOIMAKKUUS",
+      "confettiPalette": "KONFETIN VÄRIT",
+      "confettiPaletteValue": {
+        "rainbow": "VÄRIKÄS",
+        "pastel": "PASTELLI",
+        "gold": "KULTA & HOPEA",
+        "white": "VALKOINEN"
+      },
+      "confettiFlutter": "LEPATUS",
       "daylightTint": "VUOROKAUDEN SÄVY",
       "daylightTintStrength": "SÄVYN VOIMAKKUUS",
       "neon": "NEONREUNAT",

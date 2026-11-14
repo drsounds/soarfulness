@@ -33,6 +33,8 @@ export const EXTREME_MAX = {
   freakOutRotationKick: 8, // RIDE SNURR VID TOPPEN (× rotationshastigheten)
   snowAmount: 40000, // SNÖMÄNGD (flingor)
   snowIntensity: 4, // SNÖSTYRKA
+  confettiAmount: 40000, // KONFETTIMÄNGD (bitar)
+  confettiIntensity: 4, // KONFETTISTYRKA
 } as const;
 
 export type LimitedControl = keyof typeof EXTREME_MAX;
