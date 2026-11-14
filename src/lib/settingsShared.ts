@@ -701,6 +701,8 @@ export type Persisted = {
   snowIntensity: number;
   snowCoverOn: boolean;
   snowCoverStrength: number;
+  // GRÅ BAKGRUND: SNÖTÄCKE also turns the backdrop a cold gray (off by default).
+  snowGrayBackdropOn: boolean;
   // KONFETTI: confetti falling like snow (lib/sceneFx/confetti.ts).
   // confettiAmount = number of pieces, confettiIntensity = fall speed, size
   // and wind, confettiFlutter = how much the pieces spin, tumble and sway.
@@ -1113,6 +1115,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "snowIntensity",
     "snowCoverOn",
     "snowCoverStrength",
+    "snowGrayBackdropOn",
     "confettiOn",
     "confettiAmount",
     "confettiIntensity",

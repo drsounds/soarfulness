@@ -308,6 +308,7 @@
       "snowIntensity": "LUMEN VOIMAKKUUS",
       "snowCover": "LUMIPEITE",
       "snowCoverStrength": "PEITTÄVYYS",
+      "snowGrayBackdrop": "HARMAA TAUSTA",
       "confetti": "KONFETTI",
       "confettiAmount": "KONFETIN MÄÄRÄ",
       "confettiIntensity": "KONFETIN VOIMAKKUUS",

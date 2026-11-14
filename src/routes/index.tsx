@@ -1593,6 +1593,10 @@ const DEFAULTS: Persisted = {
   snowIntensity: 0.5,
   snowCoverOn: false,
   snowCoverStrength: 0.8,
+  // GRÅ BAKGRUND: with SNÖTÄCKE on, also wash the environment backdrop out to
+  // a cold gray (the old overcast look). Off by default; the backdrop keeps
+  // its colors and only its ground gets snow.
+  snowGrayBackdropOn: false,
   // KONFETTI: confetti falling like snow (lib/sceneFx/confetti.ts), with
   // the same amount/intensity dials as SNÖ plus KONFETTIFÄRGER (palette) and
   // FLADDER (how much the pieces spin, tumble and sway).
@@ -2264,6 +2268,7 @@ export function Aquafulness() {
   const [snowIntensity, setSnowIntensity] = useState(initial.snowIntensity);
   const [snowCoverOn, setSnowCoverOn] = useState(initial.snowCoverOn);
   const [snowCoverStrength, setSnowCoverStrength] = useState(initial.snowCoverStrength);
+  const [snowGrayBackdropOn, setSnowGrayBackdropOn] = useState(initial.snowGrayBackdropOn);
   const [confettiOn, setConfettiOn] = useState(initial.confettiOn);
   const [confettiAmount, setConfettiAmount] = useState(initial.confettiAmount);
   const [confettiIntensity, setConfettiIntensity] = useState(initial.confettiIntensity);
@@ -2813,6 +2818,7 @@ export function Aquafulness() {
   const snowIntensityRef = useRef(snowIntensity);
   const snowCoverOnRef = useRef(snowCoverOn);
   const snowCoverStrengthRef = useRef(snowCoverStrength);
+  const snowGrayBackdropOnRef = useRef(snowGrayBackdropOn);
   const confettiOnRef = useRef(confettiOn);
   const confettiAmountRef = useRef(confettiAmount);
   const confettiIntensityRef = useRef(confettiIntensity);
@@ -2986,6 +2992,7 @@ export function Aquafulness() {
     snowIntensity,
     snowCoverOn,
     snowCoverStrength,
+    snowGrayBackdropOn,
     confettiOn,
     confettiAmount,
     confettiIntensity,
@@ -3253,6 +3260,7 @@ export function Aquafulness() {
     snowIntensity,
     snowCoverOn,
     snowCoverStrength,
+    snowGrayBackdropOn,
     confettiOn,
     confettiAmount,
     confettiIntensity,
@@ -4323,7 +4331,8 @@ export function Aquafulness() {
     snowIntensityRef.current = snowIntensity;
     snowCoverOnRef.current = snowCoverOn;
     snowCoverStrengthRef.current = snowCoverStrength;
-  }, [snowOn, snowAmount, snowIntensity, snowCoverOn, snowCoverStrength]);
+    snowGrayBackdropOnRef.current = snowGrayBackdropOn;
+  }, [snowOn, snowAmount, snowIntensity, snowCoverOn, snowCoverStrength, snowGrayBackdropOn]);
   useEffect(() => {
     confettiOnRef.current = confettiOn;
     confettiAmountRef.current = confettiAmount;
@@ -4963,6 +4972,7 @@ export function Aquafulness() {
     setSnowIntensity(DEFAULTS.snowIntensity);
     setSnowCoverOn(DEFAULTS.snowCoverOn);
     setSnowCoverStrength(DEFAULTS.snowCoverStrength);
+    setSnowGrayBackdropOn(DEFAULTS.snowGrayBackdropOn);
     setConfettiOn(DEFAULTS.confettiOn);
     setConfettiAmount(DEFAULTS.confettiAmount);
     setConfettiIntensity(DEFAULTS.confettiIntensity);
@@ -5247,6 +5257,7 @@ export function Aquafulness() {
     if (patch.snowIntensity !== undefined) setSnowIntensity(patch.snowIntensity);
     if (patch.snowCoverOn !== undefined) setSnowCoverOn(patch.snowCoverOn);
     if (patch.snowCoverStrength !== undefined) setSnowCoverStrength(patch.snowCoverStrength);
+    if (patch.snowGrayBackdropOn !== undefined) setSnowGrayBackdropOn(patch.snowGrayBackdropOn);
     if (patch.confettiOn !== undefined) setConfettiOn(patch.confettiOn);
     if (patch.confettiAmount !== undefined) setConfettiAmount(patch.confettiAmount);
     if (patch.confettiIntensity !== undefined) setConfettiIntensity(patch.confettiIntensity);
@@ -8300,6 +8311,9 @@ export function Aquafulness() {
       uSunDir: { value: uniforms.uSunDir.value },
       uSunColor: { value: uniforms.uSunColor.value },
       uSnowCover: { value: 0 },
+      // Filled in once snowCover exists below (shared with its materials).
+      uSnowLight: { value: new THREE.Color(1, 1, 1) },
+      uSnowGray: { value: 0 },
       uUnderwater: uniforms.uUnderwater,
       uTurbidity: skyUniforms.uTurbidity,
       uFogColor: skyUniforms.uFogColor,
@@ -8327,6 +8341,8 @@ export function Aquafulness() {
         uniform vec3 uSunDir;
         uniform vec3 uSunColor;
         uniform float uSnowCover;
+        uniform vec3 uSnowLight;
+        uniform float uSnowGray;
         uniform float uUnderwater;
         uniform float uTurbidity;
         uniform vec3 uFogColor;
@@ -8358,16 +8374,23 @@ export function Aquafulness() {
             col += uSunColor * uSunTint * pow(max(dot(d, normalize(uSunDir)), 0.0), 12.0) * 0.35;
           }
           if (uSnowCover > 0.001) {
-            // SNÖTÄCKE: a winter look for the photo — colder and paler
-            // overall (overcast sky), and the ground below the horizon
-            // lifted toward snow, keeping some of its light/dark detail.
+            // SNÖTÄCKE: the ground below the horizon gets snow, keeping
+            // some of its light/dark detail. The snow is lit like the rest
+            // of the scene (uSnowLight): white by day, dim moonlit blue at
+            // night, and the photo's own lights (windows, lamps) stay on
+            // top of it. Colors are kept, just a little colder; GRÅ
+            // BAKGRUND (uSnowGray) washes the whole backdrop out to gray.
             float lum = dot(col, vec3(0.299, 0.587, 0.114));
             float k = clamp(uSnowCover, 0.0, 1.0);
-            col = mix(col, vec3(lum) * vec3(0.95, 0.98, 1.05), 0.55 * k);
+            float light = max(dot(uSnowLight, vec3(0.299, 0.587, 0.114)), 0.05);
+            float relLum = lum / light;
+            col = mix(col, vec3(lum) * vec3(0.95, 0.98, 1.05), mix(0.12, 0.55, uSnowGray) * k);
+            vec3 orig = col;
             float ground = 1.0 - smoothstep(-0.02, 0.12, d.y);
-            float snowAmt = k * mix(0.35, 0.85, ground) * smoothstep(0.02, 0.35, lum + 0.15);
-            vec3 snow = vec3(0.88, 0.91, 0.97) * (0.8 + 0.3 * lum);
+            float snowAmt = k * mix(0.35, 0.85, ground) * smoothstep(0.02, 0.35, relLum + 0.15);
+            vec3 snow = vec3(0.88, 0.91, 0.97) * (0.8 + 0.3 * min(relLum, 1.5)) * uSnowLight;
             col = mix(col, snow, snowAmt);
+            col = mix(col, max(col, orig), 1.0 - light);
           }
           if (uUnderwater > 0.001) {
             float murk = clamp(uUnderwater * (0.25 + uTurbidity * 0.7), 0.0, 1.0);
@@ -8405,6 +8428,7 @@ export function Aquafulness() {
     // loaded scene (see lib/sceneFx/snow.ts).
     const snowfall = new Snowfall(scene);
     const snowCover = new SnowCover();
+    envDomeUniforms.uSnowLight = snowCover.uLight;
     // KONFETTI: confetti falling like the snow (see lib/sceneFx/confetti.ts).
     const confetti = new Confetti(scene);
     const envTint = new THREE.Color(1, 1, 1);
@@ -8763,6 +8787,8 @@ export function Aquafulness() {
       // backdrop needs the env dome to be whitened at all.
       snowCover.update(dt, snowCoverOnRef.current ? snowCoverStrengthRef.current : 0);
       envDomeUniforms.uSnowCover.value = snowCover.cover;
+      snowCover.setDaylight(1 - nightBackdropMix(todRef.current));
+      envDomeUniforms.uSnowGray.value = snowGrayBackdropOnRef.current ? 1 : 0;
       const useEnvDome =
         envTex !== null && (envTintOn || envBlending || sunTint > 0.001 || snowCover.cover > 0.001);
       envDome.visible = useEnvDome;
@@ -12006,6 +12032,8 @@ export function Aquafulness() {
     setSnowCoverOn,
     snowCoverStrength,
     setSnowCoverStrength,
+    snowGrayBackdropOn,
+    setSnowGrayBackdropOn,
     confettiOn,
     setConfettiOn,
     confettiAmount,

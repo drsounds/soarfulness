@@ -793,6 +793,8 @@ export type SettingsPanelProps = {
   setSnowCoverOn: Dispatch<SetStateAction<boolean>>;
   snowCoverStrength: number;
   setSnowCoverStrength: Dispatch<SetStateAction<number>>;
+  snowGrayBackdropOn: boolean;
+  setSnowGrayBackdropOn: Dispatch<SetStateAction<boolean>>;
   confettiOn: boolean;
   setConfettiOn: Dispatch<SetStateAction<boolean>>;
   confettiAmount: number;
@@ -1807,6 +1809,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setSnowCoverOn,
     snowCoverStrength,
     setSnowCoverStrength,
+    snowGrayBackdropOn,
+    setSnowGrayBackdropOn,
     confettiOn,
     setConfettiOn,
     confettiAmount,
@@ -5046,6 +5050,14 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   onDec={() => setSnowCoverOn(false)}
                   onInc={() => setSnowCoverOn(true)}
                 />
+                {snowCoverOn && (
+                  <SettingRow
+                    label={t("dial.env.snowGrayBackdrop")}
+                    value={onOff(snowGrayBackdropOn)}
+                    onDec={() => setSnowGrayBackdropOn(false)}
+                    onInc={() => setSnowGrayBackdropOn(true)}
+                  />
+                )}
                 {snowCoverOn && (
                   <SettingRow
                     label={t("dial.env.snowCoverStrength")}

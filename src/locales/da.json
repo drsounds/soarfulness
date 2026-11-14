@@ -308,6 +308,7 @@
       "snowIntensity": "SNESTYRKE",
       "snowCover": "SNEDÆKKE",
       "snowCoverStrength": "DÆKNINGSGRAD",
+      "snowGrayBackdrop": "GRÅ BAGGRUND",
       "confetti": "KONFETTI",
       "confettiAmount": "KONFETTIMÆNGDE",
       "confettiIntensity": "KONFETTISTYRKE",

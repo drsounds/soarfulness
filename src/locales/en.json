@@ -308,6 +308,7 @@
       "snowIntensity": "SNOW INTENSITY",
       "snowCover": "SNOW COVER",
       "snowCoverStrength": "COVER STRENGTH",
+      "snowGrayBackdrop": "GRAY BACKDROP",
       "confetti": "CONFETTI",
       "confettiAmount": "CONFETTI AMOUNT",
       "confettiIntensity": "CONFETTI INTENSITY",
