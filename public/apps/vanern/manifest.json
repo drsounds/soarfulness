@@ -7,7 +7,10 @@
         {
           "id": "present",
           "name": "Nutid",
-          "times": [{ "id": "day", "name": "Dag" }]
+          "times": [
+            { "id": "day", "name": "Dag" },
+            { "id": "night", "name": "Natt" }
+          ]
         },
         {
           "id": "future",
