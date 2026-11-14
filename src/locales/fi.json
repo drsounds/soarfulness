@@ -312,7 +312,8 @@
       "neonStrength": "NEONIN VOIMAKKUUS",
       "neonWidth": "NEONIN LEVEYS",
       "neonTint": "NEONSÄVY",
-      "neonTintAmount": "SÄVYN MÄÄRÄ"
+      "neonTintAmount": "SÄVYN MÄÄRÄ",
+      "neonAccent": "NEONKOROSTE"
     },
     "water": {
       "bottom": "POHJA",

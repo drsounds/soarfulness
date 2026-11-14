@@ -687,6 +687,9 @@ export type Persisted = {
   neonStrength: number;
   neonWidth: number;
   neonFrequency: number;
+  // NEONACCENT: tint + emission (intensity 1.00) for every scene material
+  // whose name ends in "-neon" — see lib/sceneFx/neonAccent.ts.
+  neonAccentColor: string;
   cameraMode: CameraMode;
   noclipSpeed: number;
   // FRITT FALL/OMVÄND STIGNING's terminal vertical speed in m/s (at
@@ -1064,6 +1067,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "neonStrength",
     "neonWidth",
     "neonFrequency",
+    "neonAccentColor",
   ],
   ljud: ["audioOn", "audioVol", "audioSyncSpeed", "audioSpatial", "waterSoundIdx"],
   // Tema (UI chrome theme) isn't part of the wave/camera/water/environment/

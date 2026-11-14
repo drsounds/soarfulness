@@ -787,6 +787,8 @@ export type SettingsPanelProps = {
   setNeonWidth: Dispatch<SetStateAction<number>>;
   neonFrequency: number;
   setNeonFrequency: Dispatch<SetStateAction<number>>;
+  neonAccentColor: string;
+  setNeonAccentColor: Dispatch<SetStateAction<string>>;
   wakeLock: boolean;
   setWakeLock: Dispatch<SetStateAction<boolean>>;
 
@@ -1758,6 +1760,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setNeonWidth,
     neonFrequency,
     setNeonFrequency,
+    neonAccentColor,
+    setNeonAccentColor,
     wakeLock,
     setWakeLock,
     waterColorIdx,
@@ -5078,6 +5082,17 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     />
                   </>
                 )}
+                <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
+                  <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
+                    {t("dial.env.neonAccent")}
+                  </span>
+                  <input
+                    type="color"
+                    value={neonAccentColor}
+                    onChange={(e) => setNeonAccentColor(e.target.value)}
+                    className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
+                  />
+                </label>
               </>
             )}
             {settingsTab === "ljud" && (

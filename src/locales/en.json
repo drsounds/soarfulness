@@ -312,7 +312,8 @@
       "neonStrength": "NEON STRENGTH",
       "neonWidth": "NEON WIDTH",
       "neonTint": "NEON TINT",
-      "neonTintAmount": "TINT AMOUNT"
+      "neonTintAmount": "TINT AMOUNT",
+      "neonAccent": "NEON ACCENT"
     },
     "water": {
       "bottom": "BOTTOM",
