@@ -588,6 +588,11 @@ export type Persisted = {
   worldBoundarySize: number;
   worldBoundaryHeight: number;
   worldBoundaryYExtend: boolean;
+  // VATTEN ÖVER HELA VÄRLDEN: on (default), the far ocean ring reaches
+  // 1.25x the world (2 x worldBoundarySize per side), so the water never
+  // ends inside the world. Off keeps the older, cheaper behavior where the
+  // water is clipped to RUMSSTORLEK (surfaceArea).
+  waterFullWorld: boolean;
   liveMode: boolean;
   sceneId: string | null;
   // Which entry of the current scene's manifest "locations" (a.k.a.
@@ -1059,6 +1064,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "worldBoundarySize",
     "worldBoundaryHeight",
     "worldBoundaryYExtend",
+    "waterFullWorld",
     "surfaceArea",
     "sceneId",
     "spawnLocationId",

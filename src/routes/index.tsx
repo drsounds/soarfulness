@@ -1058,11 +1058,23 @@ function cloudLayerJitter(layerIndex: number): { x: number; z: number } {
   };
 }
 
-// Builds the far ocean ring at the given RUMSSTORLEK/surfaceArea outer
+// Full width of the water plane. VATTEN ÖVER HELA VÄRLDEN on (the default):
+// the world's full side length (2 x VÄRLDSGRÄNS's worldBoundarySize, since
+// the camera wraps at ±worldBoundarySize) times WATER_WORLD_SCALE, so the
+// water reaches past the world edge in every direction. Off: the older
+// behavior, clipped to RUMSSTORLEK/surfaceArea — cheaper on weak GPUs since
+// fewer far-off water pixels get shaded.
+const WATER_WORLD_SCALE = 1.25;
+function waterPlaneExtent(fullWorld: boolean, worldBoundarySize: number, surfaceArea: number) {
+  return fullWorld ? Math.max(50, worldBoundarySize) * 2 * WATER_WORLD_SCALE : surfaceArea;
+}
+
+// Builds the far ocean ring at the given outer extent (see waterPlaneExtent)
+// — RUMSSTORLEK/surfaceArea, or the whole world when VATTEN ÖVER HELA VÄRLDEN is on
 // extent — see OCEAN_FAR_INNER_RADIUS above for why this is a ring (fixed
 // inner radius) rebuilt on change, not a plane scaled from origin.
-function buildFarOceanGeometry(surfaceArea: number) {
-  const outerRadius = Math.max(OCEAN_FAR_INNER_RADIUS + 1, surfaceArea / 2);
+function buildFarOceanGeometry(extent: number) {
+  const outerRadius = Math.max(OCEAN_FAR_INNER_RADIUS + 1, extent / 2);
   const geo = new THREE.RingGeometry(OCEAN_FAR_INNER_RADIUS, outerRadius, 64, 1);
   geo.rotateX(-Math.PI / 2);
   return geo;
@@ -1495,6 +1507,9 @@ const DEFAULTS: Persisted = {
   worldBoundarySize: 20000,
   worldBoundaryHeight: 3000,
   worldBoundaryYExtend: false,
+  // Water plane spans the whole world x 1.25 by default; off = clipped to
+  // RUMSSTORLEK (surfaceArea), kept as a performance option.
+  waterFullWorld: true,
   liveMode: false,
   sceneId: "Strandpark2",
   spawnLocationId: "spawn",
@@ -2136,6 +2151,7 @@ export function Aquafulness() {
   const [worldBoundarySize, setWorldBoundarySize] = useState(initial.worldBoundarySize);
   const [worldBoundaryHeight, setWorldBoundaryHeight] = useState(initial.worldBoundaryHeight);
   const [worldBoundaryYExtend, setWorldBoundaryYExtend] = useState(initial.worldBoundaryYExtend);
+  const [waterFullWorld, setWaterFullWorld] = useState(initial.waterFullWorld);
   const [liveMode, setLiveMode] = useState(initial.liveMode);
   // Every installed app's own metadata (public/apps/apps.json) — used to
   // label/group scene/environment/surface/audio options by which app they
@@ -2901,6 +2917,7 @@ export function Aquafulness() {
     worldBoundarySize,
     worldBoundaryHeight,
     worldBoundaryYExtend,
+    waterFullWorld,
     liveMode,
     sceneId,
     spawnLocationId,
@@ -3162,6 +3179,7 @@ export function Aquafulness() {
     worldBoundarySize,
     worldBoundaryHeight,
     worldBoundaryYExtend,
+    waterFullWorld,
     liveMode,
     sceneId,
     spawnLocationId,
@@ -3723,6 +3741,7 @@ export function Aquafulness() {
   const worldBoundarySizeRef = useRef(worldBoundarySize);
   const worldBoundaryHeightRef = useRef(worldBoundaryHeight);
   const worldBoundaryYExtendRef = useRef(worldBoundaryYExtend);
+  const waterFullWorldRef = useRef(waterFullWorld);
   const noclipFreeFallOnRef = useRef(noclipFreeFallOn);
   const noclipReverseRiseOnRef = useRef(noclipReverseRiseOn);
   const noclipAutoAlternateIntervalRef = useRef(noclipAutoAlternateInterval);
@@ -4486,17 +4505,25 @@ export function Aquafulness() {
     // The near, finely-tessellated ocean tier stays at scale 1 (see
     // OCEAN_FAR_INNER_RADIUS above) — only its coarse far ring follows the
     // dial, and it's rebuilt (not scaled) so its inner radius stays fixed.
-    const farOcean = farOceanRef.current;
-    if (farOcean) {
-      farOcean.geometry.dispose();
-      farOcean.geometry = buildFarOceanGeometry(surfaceArea);
-    }
     const cloudScale = surfaceArea / CLOUD_BASE_SIZE;
     midCloudsMeshRef.current?.scale.set(cloudScale, 1, cloudScale);
     // The sky deck and its VÄRLDSGRÄNS extend layers are built at
     // FLOOR_SIZE and stay at scale 1, so they always span the same area as
     // the seafloor instead of shrinking with this dial.
   }, [surfaceArea]);
+  // Far ocean ring follows VATTEN ÖVER HELA VÄRLDEN + the world size, or
+  // RUMSSTORLEK when that's off — rebuilt (not scaled) so its inner radius
+  // stays fixed.
+  useEffect(() => {
+    waterFullWorldRef.current = waterFullWorld;
+    const farOcean = farOceanRef.current;
+    if (farOcean) {
+      farOcean.geometry.dispose();
+      farOcean.geometry = buildFarOceanGeometry(
+        waterPlaneExtent(waterFullWorld, worldBoundarySize, surfaceArea),
+      );
+    }
+  }, [waterFullWorld, worldBoundarySize, surfaceArea]);
   // Live torus-ring settings → the field manager (a no-op via `?.` until the
   // WebGL mount effect below has run and constructed it; that effect builds
   // it with these same values as its initial config).
@@ -4856,6 +4883,7 @@ export function Aquafulness() {
     setWorldBoundarySize(DEFAULTS.worldBoundarySize);
     setWorldBoundaryHeight(DEFAULTS.worldBoundaryHeight);
     setWorldBoundaryYExtend(DEFAULTS.worldBoundaryYExtend);
+    setWaterFullWorld(DEFAULTS.waterFullWorld);
     // ÅTERSTÄLL also brings back the default scene (Strandpark2) and its
     // spawn point, same as a first start.
     setSceneId(DEFAULTS.sceneId);
@@ -5124,6 +5152,7 @@ export function Aquafulness() {
     if (patch.worldBoundaryHeight !== undefined) setWorldBoundaryHeight(patch.worldBoundaryHeight);
     if (patch.worldBoundaryYExtend !== undefined)
       setWorldBoundaryYExtend(patch.worldBoundaryYExtend);
+    if (patch.waterFullWorld !== undefined) setWaterFullWorld(patch.waterFullWorld);
     if (patch.liveMode !== undefined) setLiveMode(patch.liveMode);
     if (patch.sceneId !== undefined) setSceneId(patch.sceneId);
     if (patch.envId !== undefined) setEnvId(patch.envId);
@@ -7431,7 +7460,16 @@ export function Aquafulness() {
     // shader) has already faded their amplitude to exactly 0 — it only ever
     // renders flat water, so it needs no more tessellation than the
     // equally-flat seafloor below.
-    const farOcean = new THREE.Mesh(buildFarOceanGeometry(surfaceAreaRef.current), mat);
+    const farOcean = new THREE.Mesh(
+      buildFarOceanGeometry(
+        waterPlaneExtent(
+          waterFullWorldRef.current,
+          worldBoundarySizeRef.current,
+          surfaceAreaRef.current,
+        ),
+      ),
+      mat,
+    );
     // RAYTRACED refraction: copy the frame drawn so far (everything behind
     // the water) just before whichever ocean tier draws first.
     const captureRtBackground = () => raytracedWater.captureBackground();
@@ -12051,6 +12089,8 @@ export function Aquafulness() {
     setWorldBoundaryHeight,
     worldBoundaryYExtend,
     setWorldBoundaryYExtend,
+    waterFullWorld,
+    setWaterFullWorld,
     surfaceArea,
     setSurfaceArea,
     torusRingsOn,
