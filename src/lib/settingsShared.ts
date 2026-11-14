@@ -672,6 +672,9 @@ export type Persisted = {
   // skybox snapping TIMEOFDAY to that time. Strength 0..1.
   envDaylightTintOn: boolean;
   envDaylightTintStrength: number;
+  // DYGNSBYTE: an environment with both a day and a night skybox shows the
+  // one matching TIMEOFDAY, cross-fading the two at dawn and dusk.
+  envDayNightAutoOn: boolean;
   // NEON: glowing lines along the loaded scene's mesh edges. neonMode picks
   // how the color moves over time (see NeonMode); neonFrequency is in
   // cycles per second. neonTint is mixed over the result by neonTintAmount.
@@ -1051,6 +1054,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "torusFadeDistance",
     "envDaylightTintOn",
     "envDaylightTintStrength",
+    "envDayNightAutoOn",
     "neonOn",
     "neonMode",
     "neonPrimary",

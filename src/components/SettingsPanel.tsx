@@ -767,6 +767,8 @@ export type SettingsPanelProps = {
   setEnvDaylightTintOn: Dispatch<SetStateAction<boolean>>;
   envDaylightTintStrength: number;
   setEnvDaylightTintStrength: Dispatch<SetStateAction<number>>;
+  envDayNightAutoOn: boolean;
+  setEnvDayNightAutoOn: Dispatch<SetStateAction<boolean>>;
   neonOn: boolean;
   setNeonOn: Dispatch<SetStateAction<boolean>>;
   neonMode: NeonMode;
@@ -1736,6 +1738,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setEnvDaylightTintOn,
     envDaylightTintStrength,
     setEnvDaylightTintStrength,
+    envDayNightAutoOn,
+    setEnvDayNightAutoOn,
     neonOn,
     setNeonOn,
     neonMode,
@@ -4766,6 +4770,12 @@ export function SettingsPanel(props: SettingsPanelProps) {
                         onInc={() => cycleTime(1)}
                       />
                     )}
+                    <SettingRow
+                      label={t("dial.env.dayNightAuto")}
+                      value={onOff(envDayNightAutoOn)}
+                      onDec={() => setEnvDayNightAutoOn(false)}
+                      onInc={() => setEnvDayNightAutoOn(true)}
+                    />
                     <SettingRow
                       label={t("dial.env.daylightTint")}
                       value={onOff(envDaylightTintOn)}

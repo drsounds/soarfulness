@@ -22,6 +22,12 @@ import { RETRO_PALETTE_INDEX, RETRO_SHADER } from "@/lib/sceneFx/retroShader";
 import { limitMax, useExtremeLimits, type LimitedControl } from "@/lib/extremeLimits";
 import { NeonEdges } from "@/lib/sceneFx/NeonEdges";
 import { relativeDaylightTint } from "@/lib/sceneFx/daylightTint";
+import {
+  DAY_TIME_ID,
+  NIGHT_TIME_ID,
+  hasDayNightPair,
+  nightBackdropMix,
+} from "@/lib/sceneFx/dayNightBackdrop";
 import { WatercraftRig } from "@/lib/watercraft/WatercraftRig";
 import type { BuildAction, SculptAction, ToolMode } from "@/lib/watercraft/types";
 import { WatercraftHud } from "@/components/watercraft/WatercraftHud";
@@ -1536,6 +1542,10 @@ const DEFAULTS: Persisted = {
   // manifest time.
   envDaylightTintOn: false,
   envDaylightTintStrength: 1,
+  // DYGNSBYTE: when the environment's era has both a day and a night
+  // skybox, the backdrop follows TIMEOFDAY — night skybox at night, day
+  // skybox by day, cross-faded at dawn and dusk (lib/sceneFx/dayNightBackdrop.ts).
+  envDayNightAutoOn: true,
   // NEON: glowing lines along the loaded scene's mesh edges — see
   // lib/sceneFx/NeonEdges.ts for how neonMode/neonFrequency animate color.
   neonOn: false,
@@ -2170,6 +2180,7 @@ export function Aquafulness() {
   const [envDaylightTintStrength, setEnvDaylightTintStrength] = useState(
     initial.envDaylightTintStrength,
   );
+  const [envDayNightAutoOn, setEnvDayNightAutoOn] = useState(initial.envDayNightAutoOn);
   const [neonOn, setNeonOn] = useState(initial.neonOn);
   const [neonMode, setNeonMode] = useState(initial.neonMode);
   const [neonPrimary, setNeonPrimary] = useState(initial.neonPrimary);
@@ -2648,6 +2659,10 @@ export function Aquafulness() {
   // manifest's timeOfDay, noon if it doesn't say) — the reference
   // DYGNSTONING tints relative to.
   const envRefTodRef = useRef(0.5);
+  // DYGNSBYTE: the era's night skybox, loaded next to the day one (which then
+  // sits in envTextureRef) when both exist, plus its own reference time.
+  const envNightTextureRef = useRef<THREE.Texture | null>(null);
+  const envNightRefTodRef = useRef(0);
   // Water-shader uniforms + reflection-texture plumbing, so the surface-selector
   // effect can feed a photo into the shader without rebuilding the material.
   const waterUniformsRef = useRef<Record<string, { value: unknown }> | null>(null);
@@ -2682,6 +2697,7 @@ export function Aquafulness() {
   const waterGlowEveningOnlyRef = useRef(waterGlowEveningOnly);
   const envDaylightTintOnRef = useRef(envDaylightTintOn);
   const envDaylightTintStrengthRef = useRef(envDaylightTintStrength);
+  const envDayNightAutoOnRef = useRef(envDayNightAutoOn);
   const neonOnRef = useRef(neonOn);
   const neonModeRef = useRef(neonMode);
   const neonPrimaryRef = useRef(neonPrimary);
@@ -2840,6 +2856,7 @@ export function Aquafulness() {
     waterGlowEveningOnly,
     envDaylightTintOn,
     envDaylightTintStrength,
+    envDayNightAutoOn,
     neonOn,
     neonMode,
     neonPrimary,
@@ -3088,6 +3105,7 @@ export function Aquafulness() {
     waterGlowEveningOnly,
     envDaylightTintOn,
     envDaylightTintStrength,
+    envDayNightAutoOn,
     neonOn,
     neonMode,
     neonPrimary,
@@ -4119,6 +4137,9 @@ export function Aquafulness() {
     envDaylightTintStrengthRef.current = envDaylightTintStrength;
   }, [envDaylightTintStrength]);
   useEffect(() => {
+    envDayNightAutoOnRef.current = envDayNightAutoOn;
+  }, [envDayNightAutoOn]);
+  useEffect(() => {
     neonOnRef.current = neonOn;
   }, [neonOn]);
   useEffect(() => {
@@ -4712,6 +4733,7 @@ export function Aquafulness() {
     setWaterGlowEveningOnly(DEFAULTS.waterGlowEveningOnly);
     setEnvDaylightTintOn(DEFAULTS.envDaylightTintOn);
     setEnvDaylightTintStrength(DEFAULTS.envDaylightTintStrength);
+    setEnvDayNightAutoOn(DEFAULTS.envDayNightAutoOn);
     setNeonOn(DEFAULTS.neonOn);
     setNeonMode(DEFAULTS.neonMode);
     setNeonPrimary(DEFAULTS.neonPrimary);
@@ -4977,6 +4999,7 @@ export function Aquafulness() {
     if (patch.envDaylightTintOn !== undefined) setEnvDaylightTintOn(patch.envDaylightTintOn);
     if (patch.envDaylightTintStrength !== undefined)
       setEnvDaylightTintStrength(patch.envDaylightTintStrength);
+    if (patch.envDayNightAutoOn !== undefined) setEnvDayNightAutoOn(patch.envDayNightAutoOn);
     if (patch.neonOn !== undefined) setNeonOn(patch.neonOn);
     if (patch.neonMode !== undefined) setNeonMode(patch.neonMode);
     if (patch.neonPrimary !== undefined) setNeonPrimary(patch.neonPrimary);
@@ -5500,6 +5523,28 @@ export function Aquafulness() {
   const curEra = curEnv?.eras.find((er) => er.id === envEra) ?? null;
   const curTime = curEra?.times.find((tm) => tm.id === envTime) ?? null;
 
+  // DYGNSBYTE: with both a day and a night skybox in the current era, the
+  // backdrop follows TIMEOFDAY (both are loaded and cross-faded in the render
+  // loop) rather than the picked time snapping TIMEOFDAY to its skybox.
+  const envDayNightPair = envDayNightAutoOn && hasDayNightPair(curEra?.times);
+  // Picking DAG/NATT by hand then moves TIMEOFDAY to that skybox's own time,
+  // so the pick still does what it says (falling back to midnight/noon if
+  // the manifest's time would land on the other side of the cross-fade).
+  const selectEnvTime: Dispatch<SetStateAction<string | null>> = (action) => {
+    const next = typeof action === "function" ? action(envTime) : action;
+    setEnvTime(next);
+    if (!envDayNightPair || (next !== DAY_TIME_ID && next !== NIGHT_TIME_ID)) return;
+    const night = next === NIGHT_TIME_ID;
+    const ref = night ? envNightRefTodRef.current : envRefTodRef.current;
+    setTimeOfDay(nightBackdropMix(ref) >= 0.5 === night ? ref : night ? 0 : 0.5);
+  };
+  // ...and the picker keeps showing whichever skybox currently dominates.
+  useEffect(() => {
+    if (!envDayNightPair) return;
+    const want = nightBackdropMix(timeOfDay) >= 0.5 ? NIGHT_TIME_ID : DAY_TIME_ID;
+    if (envTime !== want) setEnvTime(want);
+  }, [envDayNightPair, timeOfDay, envTime]);
+
   // Selecting an environment cascades to its first era + time.
   const applyEnv = (id: string | null) => {
     if (!id) {
@@ -5546,7 +5591,7 @@ export function Aquafulness() {
       0,
       times.findIndex((t) => t.id === envTime),
     );
-    setEnvTime(times[(i + dir + times.length) % times.length].id);
+    selectEnvTime(times[(i + dir + times.length) % times.length].id);
   };
 
   // DATE & TIME TRAVEL: once a minute, advance the simulated clock (real
@@ -6233,6 +6278,11 @@ export function Aquafulness() {
       uEnvReflMix: { value: 0 },
       uEnvRotY: { value: 0 },
       uEnvTint: { value: new THREE.Color(1, 1, 1) },
+      // DYGNSBYTE: the era's night skybox, cross-faded in by uEnvNightMix.
+      uEnvTexNight: { value: whiteTex as THREE.Texture },
+      uEnvNightMix: { value: 0 },
+      uEnvRotYNight: { value: 0 },
+      uEnvTintNight: { value: new THREE.Color(1, 1, 1) },
       // VATTENGLÖD: emissive glow added to the water body.
       uGlow: { value: 0 },
       uGlowColor: { value: new THREE.Vector3(0.22, 0.84, 1) },
@@ -6607,6 +6657,10 @@ export function Aquafulness() {
       uniform float uEnvReflMix;
       uniform float uEnvRotY;
       uniform vec3 uEnvTint;
+      uniform sampler2D uEnvTexNight;
+      uniform float uEnvNightMix;
+      uniform float uEnvRotYNight;
+      uniform vec3 uEnvTintNight;
       uniform float uGlow;
       uniform vec3 uGlowColor;
       uniform float uSphereMix;
@@ -6878,6 +6932,15 @@ export function Aquafulness() {
           Re = normalize(Re);
           vec2 envUv = vec2(atan(Re.z, Re.x) * 0.15915494 + 0.5, asin(Re.y) * 0.31830989 + 0.5);
           vec3 envCol = pow(texture2D(uEnvTex, envUv).rgb, vec3(1.0 / 2.2)) * uEnvTint;
+          // DYGNSBYTE: cross-fade in the night skybox at dawn/dusk/night.
+          if (uEnvNightMix > 0.001) {
+            float crN = cos(uEnvRotYNight);
+            float srN = sin(uEnvRotYNight);
+            vec3 Rn = normalize(vec3(crN * R.x - srN * R.z, max(R.y, 0.0), srN * R.x + crN * R.z));
+            vec2 nightUv = vec2(atan(Rn.z, Rn.x) * 0.15915494 + 0.5, asin(Rn.y) * 0.31830989 + 0.5);
+            vec3 nightCol = pow(texture2D(uEnvTexNight, nightUv).rgb, vec3(1.0 / 2.2)) * uEnvTintNight;
+            envCol = mix(envCol, nightCol, uEnvNightMix);
+          }
           skyRef = mix(skyRef, envCol, uEnvReflMix);
         }
 
@@ -7758,11 +7821,16 @@ export function Aquafulness() {
     // camera-following dome (the same setup as the procedural sky dome
     // above) instead of as scene.background, because three.js has no way
     // to color-tint a texture background — this samples the panorama the
-    // same way and multiplies in the time-of-day tint.
+    // same way and multiplies in the time-of-day tint. DYGNSBYTE uses it
+    // too, to cross-fade the day and night skyboxes at dawn and dusk.
     const envDomeUniforms = {
       uEnvTex: { value: whiteTex as THREE.Texture },
       uRotY: { value: 0 },
       uTint: { value: new THREE.Color(1, 1, 1) },
+      uEnvTexNight: { value: whiteTex as THREE.Texture },
+      uNightMix: { value: 0 },
+      uRotYNight: { value: 0 },
+      uTintNight: { value: new THREE.Color(1, 1, 1) },
       uUnderwater: uniforms.uUnderwater,
       uTurbidity: skyUniforms.uTurbidity,
       uFogColor: skyUniforms.uFogColor,
@@ -7782,19 +7850,29 @@ export function Aquafulness() {
         uniform sampler2D uEnvTex;
         uniform float uRotY;
         uniform vec3 uTint;
+        uniform sampler2D uEnvTexNight;
+        uniform float uNightMix;
+        uniform float uRotYNight;
+        uniform vec3 uTintNight;
         uniform float uUnderwater;
         uniform float uTurbidity;
         uniform vec3 uFogColor;
         varying vec3 vDir;
+        vec2 panoUv(vec3 dir, float rotY) {
+          float cr = cos(rotY);
+          float sr = sin(rotY);
+          vec3 d = vec3(cr * dir.x - sr * dir.z, dir.y, sr * dir.x + cr * dir.z);
+          return vec2(atan(d.z, d.x) * 0.15915494 + 0.5, asin(clamp(d.y, -1.0, 1.0)) * 0.31830989 + 0.5);
+        }
         void main() {
           vec3 d = normalize(vDir);
-          float cr = cos(uRotY);
-          float sr = sin(uRotY);
-          d = vec3(cr * d.x - sr * d.z, d.y, sr * d.x + cr * d.z);
-          vec2 uv = vec2(atan(d.z, d.x) * 0.15915494 + 0.5, asin(clamp(d.y, -1.0, 1.0)) * 0.31830989 + 0.5);
           // sRGB texture samples come back linear; this material writes
           // display values directly like every other custom shader here.
-          vec3 col = pow(texture2D(uEnvTex, uv).rgb, vec3(1.0 / 2.2)) * uTint;
+          vec3 col = pow(texture2D(uEnvTex, panoUv(d, uRotY)).rgb, vec3(1.0 / 2.2)) * uTint;
+          if (uNightMix > 0.001) {
+            vec3 night = pow(texture2D(uEnvTexNight, panoUv(d, uRotYNight)).rgb, vec3(1.0 / 2.2)) * uTintNight;
+            col = mix(col, night, uNightMix);
+          }
           if (uUnderwater > 0.001) {
             float murk = clamp(uUnderwater * (0.25 + uTurbidity * 0.7), 0.0, 1.0);
             col = mix(col, uFogColor, murk);
@@ -7829,6 +7907,11 @@ export function Aquafulness() {
     neonEdges.setResolution(mount.clientWidth, mount.clientHeight);
     const envTint = new THREE.Color(1, 1, 1);
     const envTintScratch = new THREE.Color();
+    const envTintNight = new THREE.Color(1, 1, 1);
+    const envTintMixed = new THREE.Color(1, 1, 1);
+    // Each skybox's panorama rotation (its manifest's rotationY), stamped on
+    // the texture by the skybox loader.
+    const envRotOf = (tex: THREE.Texture) => (tex.userData.envRotY as number | undefined) ?? 0;
 
     // Handle resize
     const handleResize = () => {
@@ -8121,7 +8204,14 @@ export function Aquafulness() {
 
       // DYGNSTONING: how TIMEOFDAY tints the environment skybox — shared by
       // the env dome, the water's skybox reflection and the IBL intensity.
-      const envTex = envActiveRef.current ? envTextureRef.current : null;
+      // DYGNSBYTE: with a night skybox loaded too, nightMix cross-fades from
+      // the day one to it as the sun sets; envTex is whichever dominates,
+      // for the places that can only show one (scene.background, IBL).
+      const envDayTex = envActiveRef.current ? envTextureRef.current : null;
+      const envNightTex = envDayTex ? envNightTextureRef.current : null;
+      const nightMix = envNightTex ? nightBackdropMix(todRef.current) : 0;
+      const envTex = envNightTex && nightMix >= 0.5 ? envNightTex : envDayTex;
+      const envBlending = envNightTex !== null && nightMix > 0.001 && nightMix < 0.999;
       const envTintOn = envDaylightTintOnRef.current && envTex !== null;
       if (envTintOn) {
         relativeDaylightTint(
@@ -8131,17 +8221,36 @@ export function Aquafulness() {
           envTint,
           envTintScratch,
         );
+        if (envNightTex) {
+          relativeDaylightTint(
+            p,
+            palette(envNightRefTodRef.current),
+            envDaylightTintStrengthRef.current,
+            envTintNight,
+            envTintScratch,
+          );
+        } else {
+          envTintNight.copy(envTint);
+        }
       } else {
         envTint.setRGB(1, 1, 1);
+        envTintNight.setRGB(1, 1, 1);
       }
-      envDome.visible = envTintOn;
-      if (envTintOn && envTex) {
-        envDomeUniforms.uEnvTex.value = envTex;
-        envDomeUniforms.uRotY.value = scene.backgroundRotation.y;
+      envTintMixed.copy(envTint).lerp(envTintNight, nightMix);
+      const useEnvDome = envTex !== null && (envTintOn || envBlending);
+      envDome.visible = useEnvDome;
+      if (useEnvDome && envDayTex) {
+        envDomeUniforms.uEnvTex.value = envDayTex;
+        envDomeUniforms.uRotY.value = envRotOf(envDayTex);
         envDomeUniforms.uTint.value.copy(envTint);
+        envDomeUniforms.uEnvTexNight.value = envNightTex ?? whiteTex;
+        envDomeUniforms.uNightMix.value = nightMix;
+        envDomeUniforms.uRotYNight.value = envNightTex ? envRotOf(envNightTex) : 0;
+        envDomeUniforms.uTintNight.value.copy(envTintNight);
         if (scene.background) scene.background = null;
       } else if (envTex && scene.background !== envTex) {
         scene.background = envTex;
+        scene.backgroundRotation.set(0, envRotOf(envTex), 0);
       }
 
       // BÄTTRE LJUS: IBL for glTF materials plus the skybox reflected in
@@ -8163,8 +8272,8 @@ export function Aquafulness() {
           iblTod = todRef.current;
         }
         scene.environment = iblTarget!.texture;
-        scene.environmentRotation.set(0, envTex ? scene.backgroundRotation.y : 0, 0);
-        const tintLum = envTint.r * 0.299 + envTint.g * 0.587 + envTint.b * 0.114;
+        scene.environmentRotation.set(0, envTex ? envRotOf(envTex) : 0, 0);
+        const tintLum = envTintMixed.r * 0.299 + envTintMixed.g * 0.587 + envTintMixed.b * 0.114;
         scene.environmentIntensity = reflStrength * (envTex ? tintLum : 1);
       } else if (scene.environment) {
         scene.environment = null;
@@ -8172,14 +8281,20 @@ export function Aquafulness() {
         iblTarget = null;
         iblSource = null;
       }
-      if (betterLighting && envTex) {
-        uniforms.uEnvTex.value = envTex;
-        uniforms.uEnvRotY.value = scene.backgroundRotation.y;
+      if (betterLighting && envDayTex) {
+        uniforms.uEnvTex.value = envDayTex;
+        uniforms.uEnvRotY.value = envRotOf(envDayTex);
         uniforms.uEnvTint.value.copy(envTint);
-      } else if (!envTex) {
-        // The skybox texture is disposed when the environment is cleared —
-        // drop it at once rather than fading out while sampling it.
+        uniforms.uEnvTexNight.value = envNightTex ?? whiteTex;
+        uniforms.uEnvNightMix.value = nightMix;
+        uniforms.uEnvRotYNight.value = envNightTex ? envRotOf(envNightTex) : 0;
+        uniforms.uEnvTintNight.value.copy(envTintNight);
+      } else if (!envDayTex) {
+        // The skybox textures are disposed when the environment is cleared —
+        // drop them at once rather than fading out while sampling them.
         uniforms.uEnvTex.value = whiteTex;
+        uniforms.uEnvTexNight.value = whiteTex;
+        uniforms.uEnvNightMix.value = 0;
         uniforms.uEnvReflMix.value = 0;
       }
       uniforms.uEnvReflMix.value +=
@@ -10558,6 +10673,10 @@ export function Aquafulness() {
         envTextureRef.current.dispose();
         envTextureRef.current = null;
       }
+      if (envNightTextureRef.current) {
+        envNightTextureRef.current.dispose();
+        envNightTextureRef.current = null;
+      }
       envActiveRef.current = false;
       if (reflTexRef.current) {
         reflTexRef.current.dispose();
@@ -10708,7 +10827,11 @@ export function Aquafulness() {
 
   // Load / swap the selected environment's equirectangular skybox as the scene
   // background so it moves correctly with the camera. Re-runs whenever the
-  // environment, era, or time-of-day selection changes.
+  // environment, era, or time-of-day selection changes. With DYGNSBYTE and a
+  // day+night pair, both skyboxes load at once (the day one in envTextureRef,
+  // the night one in envNightTextureRef) and the render loop picks/blends
+  // them by TIMEOFDAY — so the picked time doesn't reload anything there.
+  const envLoadTime = envDayNightPair ? null : envTime;
   useEffect(() => {
     const scene = sceneRef.current;
     if (!scene) return;
@@ -10720,66 +10843,93 @@ export function Aquafulness() {
         envTextureRef.current.dispose();
         envTextureRef.current = null;
       }
+      if (envNightTextureRef.current) {
+        envNightTextureRef.current.dispose();
+        envNightTextureRef.current = null;
+      }
     };
 
     const envEntry = envId ? environments.find((e) => e.id === envId) : null;
+    const times = envDayNightPair ? [DAY_TIME_ID, NIGHT_TIME_ID] : envLoadTime ? [envLoadTime] : [];
     // No environment (or an incomplete/not-yet-resolved selection) → procedural sky dome.
-    if (!envId || !envEra || !envTime || !envEntry) {
+    if (!envId || !envEra || times.length === 0 || !envEntry) {
       clearSkybox();
       setEnvBootSettled(true);
       return;
     }
 
     let cancelled = false;
-    const dir = environmentDir(envEntry.appId, envId, envEra, envTime);
-
-    fetch(`${dir}/manifest.json`)
-      .then((r) => (r.ok ? (r.json() as Promise<EnvManifest>) : {}))
-      .catch(() => ({}) as EnvManifest)
-      .then((manifest: EnvManifest) => {
-        if (cancelled) return;
-        const image = manifest.image ?? "skybox.png";
-        new THREE.TextureLoader().load(
-          `${dir}/${encodeURIComponent(image)}`,
-          (tex) => {
-            if (cancelled) {
-              tex.dispose();
-              return;
-            }
-            tex.mapping = THREE.EquirectangularReflectionMapping;
-            tex.colorSpace = THREE.SRGBColorSpace;
-            // Swap in the new texture, disposing whatever was there before.
-            if (envTextureRef.current) envTextureRef.current.dispose();
-            envTextureRef.current = tex;
-            scene.background = tex;
-            scene.backgroundRotation.set(0, ((manifest.rotationY ?? 0) * Math.PI) / 180, 0);
-            envActiveRef.current = true;
-            // Sync the water/lighting palette to this skybox's time-of-day —
-            // unless DYGNSTONING is on, where TIMEOFDAY stays with the
-            // daylight engine and tints the skybox instead.
-            const skyboxTod =
-              typeof manifest.timeOfDay === "number" ? ((manifest.timeOfDay % 1) + 1) % 1 : null;
-            envRefTodRef.current = skyboxTod ?? 0.5;
-            if (skyboxTod !== null && !envDaylightTintOnRef.current) {
-              setTimeOfDay(skyboxTod);
-            }
-            setEnvBootSettled(true);
-          },
-          undefined,
-          (err) => {
-            console.error(`Failed to load skybox "${envId}/${envEra}/${envTime}"`, err);
-            if (!cancelled) {
-              clearSkybox();
-              setEnvBootSettled(true);
-            }
-          },
+    const loadSkybox = (time: string) => {
+      const dir = environmentDir(envEntry.appId, envId, envEra, time);
+      return fetch(`${dir}/manifest.json`)
+        .then((r) => (r.ok ? (r.json() as Promise<EnvManifest>) : {}))
+        .catch(() => ({}) as EnvManifest)
+        .then(
+          (manifest: EnvManifest) =>
+            new Promise<{ tex: THREE.Texture; manifest: EnvManifest }>((resolve, reject) => {
+              const image = manifest.image ?? "skybox.png";
+              new THREE.TextureLoader().load(
+                `${dir}/${encodeURIComponent(image)}`,
+                (tex) => {
+                  tex.mapping = THREE.EquirectangularReflectionMapping;
+                  tex.colorSpace = THREE.SRGBColorSpace;
+                  tex.userData.envRotY = ((manifest.rotationY ?? 0) * Math.PI) / 180;
+                  resolve({ tex, manifest });
+                },
+                undefined,
+                reject,
+              );
+            }),
         );
-      });
+    };
+    const manifestTod = (manifest: EnvManifest) =>
+      typeof manifest.timeOfDay === "number" ? ((manifest.timeOfDay % 1) + 1) % 1 : null;
+
+    Promise.allSettled(times.map(loadSkybox)).then((results) => {
+      const loaded = results.flatMap((r) => (r.status === "fulfilled" ? [r.value] : []));
+      const failed = results.find((r): r is PromiseRejectedResult => r.status === "rejected");
+      if (cancelled || failed) {
+        for (const l of loaded) l.tex.dispose();
+        if (failed) {
+          console.error(
+            `Failed to load skybox "${envId}/${envEra}/${times.join("+")}"`,
+            failed.reason,
+          );
+          if (!cancelled) {
+            clearSkybox();
+            setEnvBootSettled(true);
+          }
+        }
+        return;
+      }
+      const [main, night] = loaded;
+      // Swap in the new textures, disposing whatever was there before.
+      if (envTextureRef.current) envTextureRef.current.dispose();
+      envTextureRef.current = main.tex;
+      if (envNightTextureRef.current) envNightTextureRef.current.dispose();
+      envNightTextureRef.current = night?.tex ?? null;
+      scene.background = main.tex;
+      scene.backgroundRotation.set(0, main.tex.userData.envRotY as number, 0);
+      envActiveRef.current = true;
+      const skyboxTod = manifestTod(main.manifest);
+      envRefTodRef.current = skyboxTod ?? 0.5;
+      envNightRefTodRef.current = night ? (manifestTod(night.manifest) ?? 0) : 0;
+      // Sync the water/lighting palette to this skybox's time-of-day —
+      // unless DYGNSTONING is on, where TIMEOFDAY stays with the daylight
+      // engine and tints the skybox instead, or DYGNSBYTE is following
+      // TIMEOFDAY with a day+night pair.
+      if (!night && skyboxTod !== null && !envDaylightTintOnRef.current) {
+        setTimeOfDay(skyboxTod);
+      }
+      setEnvBootSettled(true);
+    });
 
     return () => {
       cancelled = true;
     };
-  }, [envId, envEra, envTime, environments]);
+    // envTime is deliberately read through envLoadTime: in a DYGNSBYTE pair
+    // the picked time follows TIMEOFDAY and must not reload the skyboxes.
+  }, [envId, envEra, envLoadTime, envDayNightPair, environments]);
 
   // Load / swap the selected water-surface reflection photo into the water
   // shader. Re-runs whenever the surface selection changes.
@@ -11183,6 +11333,8 @@ export function Aquafulness() {
     setEnvDaylightTintOn,
     envDaylightTintStrength,
     setEnvDaylightTintStrength,
+    envDayNightAutoOn,
+    setEnvDayNightAutoOn,
     neonOn,
     setNeonOn,
     neonMode,
@@ -11372,7 +11524,7 @@ export function Aquafulness() {
     applyEra,
     cycleEra,
     curTime,
-    setEnvTime,
+    setEnvTime: selectEnvTime,
     cycleTime,
     backdropIdx,
     setBackdropIdx,
