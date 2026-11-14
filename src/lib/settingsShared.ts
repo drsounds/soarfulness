@@ -622,6 +622,8 @@ export type Persisted = {
   reflStrength: number;
   bottomColor: string;
   sphereMaterial: boolean;
+  // MOLNYTA: shade the water surface as a sea of clouds instead of water.
+  waterCloudsOn: boolean;
   sphereStrength: number;
   // VÅGMATERIAL = RAYTRACED: the port of Evan Wallace's WebGL Water (see
   // src/lib/raytracedWater/RaytracedWater.ts). Mutually exclusive with
@@ -979,6 +981,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "surfaceId",
     "reflStrength",
     "sphereMaterial",
+    "waterCloudsOn",
     "sphereStrength",
     "raytracedMaterial",
     "raytracedStrength",

@@ -367,6 +367,7 @@
       "waveBgOpacity": "BAKGRUNNSOPASITET",
       "waveBgNatural": "NATURLIG",
       "waveBgCustomColor": "BØLGEBAKGRUNN",
+      "cloudSurface": "SKYOVERFLATE",
       "waveMaterial": "BØLGEMATERIALE",
       "waveMaterialValue": {
         "raytraced": "STRÅLESPORET",

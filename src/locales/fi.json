@@ -367,6 +367,7 @@
       "waveBgOpacity": "TAUSTAN PEITTÄVYYS",
       "waveBgNatural": "LUONNOLLINEN",
       "waveBgCustomColor": "AALLON TAUSTA",
+      "cloudSurface": "PILVIPINTA",
       "waveMaterial": "AALLON MATERIAALI",
       "waveMaterialValue": {
         "raytraced": "SÄTEENSEURATTU",

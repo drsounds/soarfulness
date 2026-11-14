@@ -367,6 +367,7 @@
       "waveBgOpacity": "BACKGROUND OPACITY",
       "waveBgNatural": "NATURAL",
       "waveBgCustomColor": "WAVE BACKGROUND",
+      "cloudSurface": "CLOUD SURFACE",
       "waveMaterial": "WAVE MATERIAL",
       "waveMaterialValue": {
         "raytraced": "RAYTRACED",

@@ -815,6 +815,8 @@ export type SettingsPanelProps = {
   setReflStrength: Dispatch<SetStateAction<number>>;
   sphereMaterial: boolean;
   setSphereMaterial: Dispatch<SetStateAction<boolean>>;
+  waterCloudsOn: boolean;
+  setWaterCloudsOn: Dispatch<SetStateAction<boolean>>;
   sphereStrength: number;
   setSphereStrength: Dispatch<SetStateAction<number>>;
   raytracedMaterial: boolean;
@@ -1822,6 +1824,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setReflStrength,
     sphereMaterial,
     setSphereMaterial,
+    waterCloudsOn,
+    setWaterCloudsOn,
     sphereStrength,
     setSphereStrength,
     raytracedMaterial,
@@ -4006,6 +4010,12 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     setSphereMaterial(next === 1);
                     setRaytracedMaterial(next === 2);
                   }}
+                />
+                <SettingRow
+                  label={t("dial.water.cloudSurface")}
+                  value={onOff(waterCloudsOn)}
+                  onDec={() => setWaterCloudsOn(false)}
+                  onInc={() => setWaterCloudsOn(true)}
                 />
                 {raytracedMaterial && (
                   <SettingRow
