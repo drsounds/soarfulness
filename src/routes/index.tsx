@@ -8330,12 +8330,12 @@ export function Aquafulness() {
             // night, and the photo's own lights (windows, lamps) stay on
             // top of it. Colors are kept, just a little colder; GRÅ
             // BAKGRUND (uSnowGray) washes the whole backdrop out to gray.
-            vec3 orig = col;
             float lum = dot(col, vec3(0.299, 0.587, 0.114));
             float k = clamp(uSnowCover, 0.0, 1.0);
             float light = max(dot(uSnowLight, vec3(0.299, 0.587, 0.114)), 0.05);
             float relLum = lum / light;
             col = mix(col, vec3(lum) * vec3(0.95, 0.98, 1.05), mix(0.12, 0.55, uSnowGray) * k);
+            vec3 orig = col;
             float ground = 1.0 - smoothstep(-0.02, 0.12, d.y);
             float snowAmt = k * mix(0.35, 0.85, ground) * smoothstep(0.02, 0.35, relLum + 0.15);
             vec3 snow = vec3(0.88, 0.91, 0.97) * (0.8 + 0.3 * min(relLum, 1.5)) * uSnowLight;
