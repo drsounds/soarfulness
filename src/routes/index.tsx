@@ -6802,15 +6802,15 @@ export function Aquafulness() {
       uEnvTintNight: { value: new THREE.Color(1, 1, 1) },
       // SOLTONING: sunrise/sunset glow on the reflected skybox (0 = off).
       uEnvSunTint: { value: 0 },
-      // VATTENGLÖD: emissive glow added to the water body.
-      uGlow: { value: 0 },
-      uGlowColor: { value: new THREE.Vector3(0.22, 0.84, 1) },
       // NORRSKEN: the aurora's glow reflected in the water — its color ×
       // brightness (0 = off), the elevation (radians) of the main band and
       // HÖJD (0 = low in the north .. 1 = overhead, all around).
       uAuroraGlow: { value: new THREE.Color(0, 0, 0) },
       uAuroraElev: { value: 0.3 },
       uAuroraHeight: { value: 0.35 },
+      // VATTENGLÖD: emissive glow added to the water body.
+      uGlow: { value: 0 },
+      uGlowColor: { value: new THREE.Vector3(0.22, 0.84, 1) },
       // FYRVERKERILJUS: the latest bursts' colored flashes (xyz position;
       // color·intensity in candela), copied from Fireworks every frame.
       uFwLightPos: {
@@ -7195,11 +7195,11 @@ export function Aquafulness() {
       uniform float uEnvRotYNight;
       uniform vec3 uEnvTintNight;
       uniform float uEnvSunTint;
-      uniform float uGlow;
-      uniform vec3 uGlowColor;
       uniform vec3 uAuroraGlow;
       uniform float uAuroraElev;
       uniform float uAuroraHeight;
+      uniform float uGlow;
+      uniform vec3 uGlowColor;
       uniform vec4 uFwLightPos[${FIREWORKS_LIGHTS}];
       uniform vec3 uFwLightCol[${FIREWORKS_LIGHTS}];
       uniform float uSphereMix;
