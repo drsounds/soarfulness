@@ -500,6 +500,8 @@ function swingYWaveformValue(
 // to the right for "z", i.e. always perpendicular to the spin axis), so the
 // spin carries it around a circle of that radius.
 const _foAxisSwing = new THREE.Vector3();
+const _swingHookPos = new THREE.Vector3();
+const _cordEnd = new THREE.Vector3();
 const _foAxisRing = new THREE.Vector3();
 const _foSeat = new THREE.Vector3();
 const _foArm = new THREE.Vector3();
@@ -1605,6 +1607,10 @@ const DEFAULTS: Persisted = {
   swingHeight: 336.4,
   swingPreset: "water",
   swingYWaveform: "pendulum",
+  swingHook: "",
+  swingCordColor: "#d8c9a6",
+  swingCordThickness: 0.08,
+  swingCordSoftness: 0.4,
   // FREAK OUT carousel layered on GUNGA — off by default.
   freakOutOn: false,
   freakOutSwingAxis: 114,
@@ -2263,6 +2269,15 @@ export function Aquafulness() {
   // thousands of meters up/down from wherever it rests.
   const [swingHeight, setSwingHeight] = useState(initial.swingHeight);
   const [swingYWaveform, setSwingYWaveform] = useState<SwingYWaveform>(initial.swingYWaveform);
+  const [swingHook, setSwingHook] = useState<string>(initial.swingHook ?? "");
+  const [swingCordColor, setSwingCordColor] = useState<string>(initial.swingCordColor);
+  const [swingCordThickness, setSwingCordThickness] = useState<number>(initial.swingCordThickness);
+  const [swingCordSoftness, setSwingCordSoftness] = useState<number>(initial.swingCordSoftness);
+  // Names of the loaded scene's "-hook" objects (fills when the scene loads).
+  const [sceneHooks, setSceneHooks] = useState<string[]>([]);
+  // XZ pendulum pad (shown only in swing mode): which horizontal direction
+  // the swing arcs along, and how far. Live input, not persisted.
+  const [swingPad, setSwingPad] = useState({ x: 0, y: 0 });
   const [swingKeepSpeed, setSwingKeepSpeed] = useState(initial.swingKeepSpeed);
   const [swingKeepSpeedRefHeight, setSwingKeepSpeedRefHeight] = useState(
     initial.swingKeepSpeedRefHeight,
@@ -2954,6 +2969,10 @@ export function Aquafulness() {
     swingHeight,
     swingPreset,
     swingYWaveform,
+    swingHook,
+    swingCordColor,
+    swingCordThickness,
+    swingCordSoftness,
     freakOutOn,
     freakOutSwingAxis,
     freakOutSwingAngle,
@@ -3211,6 +3230,10 @@ export function Aquafulness() {
     swingHeight,
     swingPreset,
     swingYWaveform,
+    swingHook,
+    swingCordColor,
+    swingCordThickness,
+    swingCordSoftness,
     freakOutOn,
     freakOutSwingAxis,
     freakOutSwingAngle,
@@ -3364,6 +3387,20 @@ export function Aquafulness() {
   const swingXFactorRef = useRef(swingXFactor);
   const swingHeightRef = useRef(swingHeight);
   const swingYWaveformRef = useRef(swingYWaveform);
+  const swingHookRef = useRef(swingHook);
+  const swingCordColorRef = useRef(swingCordColor);
+  const swingCordThicknessRef = useRef(swingCordThickness);
+  const swingCordSoftnessRef = useRef(swingCordSoftness);
+  const swingPadRef = useRef(swingPad);
+  const swingCordActiveRef = useRef(false);
+  const swingCordHookRef = useRef(new THREE.Vector3());
+  // Cached lookup of the chosen hook object (re-resolved when the name or
+  // the loaded model changes).
+  const swingHookObjRef = useRef<{ name: string; model: THREE.Object3D | null; obj: THREE.Object3D | null }>({
+    name: "",
+    model: null,
+    obj: null,
+  });
   const freakOutOnRef = useRef(freakOutOn);
   const freakOutSwingAxisRef = useRef(freakOutSwingAxis);
   const freakOutSwingAngleRef = useRef(freakOutSwingAngle);
@@ -4322,6 +4359,21 @@ export function Aquafulness() {
     swingYWaveformRef.current = swingYWaveform;
   }, [swingYWaveform]);
   useEffect(() => {
+    swingHookRef.current = swingHook;
+  }, [swingHook]);
+  useEffect(() => {
+    swingCordColorRef.current = swingCordColor;
+  }, [swingCordColor]);
+  useEffect(() => {
+    swingCordThicknessRef.current = swingCordThickness;
+  }, [swingCordThickness]);
+  useEffect(() => {
+    swingCordSoftnessRef.current = swingCordSoftness;
+  }, [swingCordSoftness]);
+  useEffect(() => {
+    swingPadRef.current = swingPad;
+  }, [swingPad]);
+  useEffect(() => {
     freakOutOnRef.current = freakOutOn;
   }, [freakOutOn]);
   useEffect(() => {
@@ -4865,6 +4917,10 @@ export function Aquafulness() {
     setSwingXFactor(DEFAULTS.swingXFactor);
     setSwingHeight(DEFAULTS.swingHeight);
     setSwingYWaveform(DEFAULTS.swingYWaveform);
+    setSwingHook(DEFAULTS.swingHook);
+    setSwingCordColor(DEFAULTS.swingCordColor);
+    setSwingCordThickness(DEFAULTS.swingCordThickness);
+    setSwingCordSoftness(DEFAULTS.swingCordSoftness);
     setFreakOutOn(DEFAULTS.freakOutOn);
     setFreakOutSwingAxis(DEFAULTS.freakOutSwingAxis);
     setFreakOutSwingAngle(DEFAULTS.freakOutSwingAngle);
@@ -5141,6 +5197,10 @@ export function Aquafulness() {
     if (patch.swingHeight !== undefined) setSwingHeight(patch.swingHeight);
     if (patch.swingPreset !== undefined) setSwingPreset(patch.swingPreset);
     if (patch.swingYWaveform !== undefined) setSwingYWaveform(patch.swingYWaveform);
+    if (patch.swingHook !== undefined) setSwingHook(patch.swingHook);
+    if (patch.swingCordColor !== undefined) setSwingCordColor(patch.swingCordColor);
+    if (patch.swingCordThickness !== undefined) setSwingCordThickness(patch.swingCordThickness);
+    if (patch.swingCordSoftness !== undefined) setSwingCordSoftness(patch.swingCordSoftness);
     if (patch.freakOutOn !== undefined) setFreakOutOn(patch.freakOutOn);
     if (patch.freakOutSwingAxis !== undefined) setFreakOutSwingAxis(patch.freakOutSwingAxis);
     if (patch.freakOutSwingAngle !== undefined) setFreakOutSwingAngle(patch.freakOutSwingAngle);
@@ -7822,6 +7882,96 @@ export function Aquafulness() {
     let bodyflightParticleFade = 0;
     let bodyflightParticlesSeeded = false;
 
+    // SWING CORD: a soft rope from the chosen "-hook" down to the camera,
+    // rebuilt every frame as a thin tube along a sagging, lagging curve.
+    const CORD_PTS = 20;
+    const CORD_SIDES = 6;
+    const cordPos = new Float32Array(CORD_PTS * CORD_SIDES * 3);
+    const cordGeo = new THREE.BufferGeometry();
+    cordGeo.setAttribute("position", new THREE.BufferAttribute(cordPos, 3).setUsage(THREE.DynamicDrawUsage));
+    {
+      const idx: number[] = [];
+      for (let i = 0; i < CORD_PTS - 1; i++) {
+        for (let j = 0; j < CORD_SIDES; j++) {
+          const a = i * CORD_SIDES + j;
+          const b = i * CORD_SIDES + ((j + 1) % CORD_SIDES);
+          const c = (i + 1) * CORD_SIDES + j;
+          const d = (i + 1) * CORD_SIDES + ((j + 1) % CORD_SIDES);
+          idx.push(a, c, b, b, c, d);
+        }
+      }
+      cordGeo.setIndex(idx);
+    }
+    const cordMat = new THREE.MeshStandardMaterial({ color: "#d8c9a6", roughness: 0.9, metalness: 0 });
+    const cordMesh = new THREE.Mesh(cordGeo, cordMat);
+    cordMesh.frustumCulled = false;
+    cordMesh.visible = false;
+    scene.add(cordMesh);
+    const cordLag = new THREE.Vector3();
+    const cordPrevEnd = new THREE.Vector3();
+    let cordHadPrev = false;
+    const cordColorObj = new THREE.Color();
+    const _cA = new THREE.Vector3();
+    const _cB = new THREE.Vector3();
+    const _cP = new THREE.Vector3();
+    const _cT = new THREE.Vector3();
+    const _cN = new THREE.Vector3();
+    const _cBi = new THREE.Vector3();
+    const updateSwingCord = (hook: THREE.Vector3 | null, end: THREE.Vector3, dtS: number) => {
+      const thickness = swingCordThicknessRef.current;
+      if (!hook || thickness <= 0.0005) {
+        cordMesh.visible = false;
+        cordHadPrev = false;
+        return;
+      }
+      const soft = Math.max(0, Math.min(1, swingCordSoftnessRef.current));
+      // Trail behind the attach point's motion (spring-smoothed velocity).
+      if (cordHadPrev && dtS > 1e-5) {
+        _cA.copy(end).sub(cordPrevEnd).divideScalar(dtS);
+        _cA.multiplyScalar(-soft * 0.12);
+        cordLag.lerp(_cA, 1 - Math.exp(-dtS / 0.25));
+      } else cordLag.set(0, 0, 0);
+      cordPrevEnd.copy(end);
+      cordHadPrev = true;
+      const dist = hook.distanceTo(end);
+      const maxLag = dist * 0.35 * soft;
+      if (cordLag.length() > maxLag) cordLag.setLength(maxLag);
+      const sag = soft * dist * 0.12;
+      const r = thickness / 2;
+      for (let i = 0; i < CORD_PTS; i++) {
+        const u = i / (CORD_PTS - 1);
+        const bow = Math.sin(Math.PI * u);
+        _cP.lerpVectors(hook, end, u).addScaledVector(cordLag, bow);
+        _cP.y -= sag * bow;
+        // Tangent from neighbors → ring basis.
+        const u0 = Math.max(0, i - 1) / (CORD_PTS - 1);
+        const u1 = Math.min(CORD_PTS - 1, i + 1) / (CORD_PTS - 1);
+        _cA.lerpVectors(hook, end, u0).addScaledVector(cordLag, Math.sin(Math.PI * u0));
+        _cA.y -= sag * Math.sin(Math.PI * u0);
+        _cB.lerpVectors(hook, end, u1).addScaledVector(cordLag, Math.sin(Math.PI * u1));
+        _cB.y -= sag * Math.sin(Math.PI * u1);
+        _cT.copy(_cB).sub(_cA).normalize();
+        _cN.set(1, 0, 0);
+        if (Math.abs(_cT.x) > 0.9) _cN.set(0, 0, 1);
+        _cBi.crossVectors(_cT, _cN).normalize();
+        _cN.crossVectors(_cBi, _cT).normalize();
+        for (let j = 0; j < CORD_SIDES; j++) {
+          const a = (j / CORD_SIDES) * Math.PI * 2;
+          const cs = Math.cos(a) * r,
+            sn = Math.sin(a) * r;
+          const o = (i * CORD_SIDES + j) * 3;
+          cordPos[o] = _cP.x + _cN.x * cs + _cBi.x * sn;
+          cordPos[o + 1] = _cP.y + _cN.y * cs + _cBi.y * sn;
+          cordPos[o + 2] = _cP.z + _cN.z * cs + _cBi.z * sn;
+        }
+      }
+      (cordGeo.getAttribute("position") as THREE.BufferAttribute).needsUpdate = true;
+      cordGeo.computeVertexNormals();
+      cordGeo.computeBoundingSphere();
+      cordMat.color.copy(cordColorObj.set(swingCordColorRef.current));
+      cordMesh.visible = true;
+    };
+
     const freakOutRig = buildFreakOutRig();
     freakOutRigRef.current = freakOutRig;
     scene.add(freakOutRig.root);
@@ -9152,7 +9302,32 @@ export function Aquafulness() {
         // it too. With TORNADO on the anchor is the whirlpool's center, so
         // both sticks move the whole whirlpool; the TO CENTER dial does the
         // in/out radius below.
+        //
+        // SWING HOOK: with a "-hook" scene object chosen, the anchor eases
+        // to the hook's xz instead (NAV/STRÖM no longer move it), the
+        // pendulum's arm is the drop from the hook to the resting altitude,
+        // and the camera never rises above the hook.
+        let swingHookWorld: THREE.Vector3 | null = null;
         {
+          const hn = swingHookRef.current;
+          const model = modelRef.current;
+          const cache = swingHookObjRef.current;
+          if (cache.name !== hn || cache.model !== model) {
+            cache.name = hn;
+            cache.model = model;
+            cache.obj = hn && model ? (model.getObjectByName(hn) ?? null) : null;
+          }
+          if (cache.obj) {
+            cache.obj.updateWorldMatrix(true, false);
+            cache.obj.getWorldPosition(_swingHookPos);
+            swingHookWorld = _swingHookPos;
+          }
+        }
+        if (swingHookWorld) {
+          const k = 1 - Math.exp(-physDt / 0.5);
+          posRef.current.x += (swingHookWorld.x - posRef.current.x) * k;
+          posRef.current.z += (swingHookWorld.z - posRef.current.z) * k;
+        } else {
           const yaw = yawRef.current;
           const fwdX = -Math.sin(yaw),
             fwdZ = -Math.cos(yaw);
@@ -9163,6 +9338,8 @@ export function Aquafulness() {
           posRef.current.x += (walkX * walkSpeed + driftWorldRef.current.x * driftSpeed) * physDt;
           posRef.current.z += (walkZ * walkSpeed + driftWorldRef.current.z * driftSpeed) * physDt;
         }
+        swingCordActiveRef.current = !!swingHookWorld;
+        if (swingHookWorld) swingCordHookRef.current.copy(swingHookWorld);
         const theta = swingThetaNow;
         const gungaSwingY =
           swingPositionYRef.current +
@@ -9170,7 +9347,9 @@ export function Aquafulness() {
             swingYWaveformValue(swingYWaveformRef.current, theta, swingPhaseNow, swingAmpRadNow);
         // GUNGA's swing carries the whole FREAK OUT ride and camera, while
         // the ride's own arm swing is layered on top.
-        const rawSwingY = gungaSwingY;
+        const rawSwingY = swingHookWorld
+          ? Math.min(gungaSwingY, swingHookWorld.y - levelY - 0.5)
+          : gungaSwingY;
 
         // TORNADO: crossfades the pendulum arc into a circular orbit around
         // the anchor at swing altitude instead of replacing it outright — a
@@ -9183,9 +9362,20 @@ export function Aquafulness() {
         const rightX = Math.cos(swingYawRef.current),
           rightZ = -Math.sin(swingYawRef.current);
         const horizArmLen = Math.max(8, Math.min(60, swingPositionYRef.current * 0.6));
-        const rawSwingOff = Math.sin(theta) * horizArmLen * swingXFactorRef.current;
-        const pendOffX = rightX * rawSwingOff;
-        const pendOffZ = rightZ * rawSwingOff;
+        const armLen = swingHookWorld
+          ? Math.max(4, swingHookWorld.y - levelY - swingPositionYRef.current)
+          : horizArmLen;
+        // XZ PAD: any horizontal direction for the pendulum (pad up =
+        // forward of the entry heading, right = sideways), added to the
+        // side-to-side GUNGA X swing. Pad length is how far it reaches.
+        const sinY = Math.sin(swingYawRef.current),
+          cosY = Math.cos(swingYawRef.current);
+        const swingPadNow = swingPadRef.current;
+        const dirX = rightX * (swingXFactorRef.current + swingPadNow.x) - sinY * swingPadNow.y;
+        const dirZ = rightZ * (swingXFactorRef.current + swingPadNow.x) - cosY * swingPadNow.y;
+        const sinTheta = Math.sin(theta);
+        const pendOffX = sinTheta * armLen * dirX;
+        const pendOffZ = sinTheta * armLen * dirZ;
         // Manual radial control: NAV and STRÖM move the whole anchor here
         // (see above), so only the TO CENTER dial pulls the orbit in/out
         // while TORNADO is on — see updateTornadoLiveRadius above.
@@ -10242,6 +10432,15 @@ export function Aquafulness() {
         camY + camOffYRef.current + levelY + _foOffset.y,
         camZ + camOffZRef.current + swayZ + surgeZ + _foOffset.z,
       );
+      // SWING CORD: hook → just above the camera (only while swinging
+      // from a chosen hook).
+      _cordEnd.copy(camera.position);
+      _cordEnd.y += 0.25;
+      updateSwingCord(
+        camMode === "swing" && swingCordActiveRef.current ? swingCordHookRef.current : null,
+        _cordEnd,
+        dt,
+      );
       // Look direction: normally level forward; with TORNADO FOLLOW CENTER
       // on, eases toward facing the tornado/whirlpool's own center instead
       // (så kameran följer med runt virveln och naturligt tittar ner mot
@@ -10950,6 +11149,9 @@ export function Aquafulness() {
       tornadoCloudMat.dispose();
       bodyflightParticleGeo.dispose();
       bodyflightParticleMat.dispose();
+      scene.remove(cordMesh);
+      cordGeo.dispose();
+      cordMat.dispose();
       bodyflightDotTex.dispose();
       for (const layer of extendCloudLayersRef.current) {
         (layer.material as THREE.Material).dispose();
@@ -11059,6 +11261,7 @@ export function Aquafulness() {
       modelRef.current = null;
     }
     modelBobRef.current = null;
+    setSceneHooks([]);
 
     // The owning app is looked up from the merged catalog (see the
     // appCatalog-fetch effect above) rather than stored alongside sceneId
@@ -11122,6 +11325,12 @@ export function Aquafulness() {
           // NEONACCENT: "-neon" materials take the accent color as tint
           // and emission (intensity 1.00).
           applyNeonAccent(model, neonAccentColorRef.current);
+          // SWING HOOK: collect every object named "...-hook".
+          const hookNames = new Set<string>();
+          model.traverse((o) => {
+            if (o.name && /-hook$/i.test(o.name)) hookNames.add(o.name);
+          });
+          setSceneHooks([...hookNames].sort());
           scene.add(model);
           modelRef.current = model;
           const bob = resolveBob(manifest.bob);
@@ -11490,6 +11699,15 @@ export function Aquafulness() {
     swingYWaveform,
     setSwingYWaveform,
     cycleSwingYWaveform,
+    swingHook,
+    setSwingHook,
+    sceneHooks,
+    swingCordColor,
+    setSwingCordColor,
+    swingCordThickness,
+    setSwingCordThickness,
+    swingCordSoftness,
+    setSwingCordSoftness,
     freakOutOn,
     setFreakOutOn,
     freakOutSwingAxis,
@@ -12579,6 +12797,15 @@ export function Aquafulness() {
               onChange={remoteControllerProps.onDriftChange}
               value={remoteControllerProps.driftStick}
               label={t("hud.joystick.current")}
+              size="sm"
+              sticky
+            />
+          )}
+          {cameraMode === "swing" && (
+            <JoystickPad
+              onChange={setSwingPad}
+              value={swingPad}
+              label={t("hud.joystick.swingXZ")}
               size="sm"
               sticky
             />
