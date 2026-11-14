@@ -295,6 +295,7 @@
       "worldBoundaryHeight": "GRÆNSEHØJDE (Y)",
       "worldBoundarySize": "GRÆNSESTØRRELSE (XZ)",
       "worldBoundaryYExtend": "UENDELIGE SKYLAG",
+      "dayNightAuto": "DØGNSKIFT",
       "daylightTint": "DØGNTONING",
       "daylightTintStrength": "TONINGSSTYRKE",
       "neon": "NEONKANTER",
