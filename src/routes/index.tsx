@@ -1441,6 +1441,9 @@ const DEFAULTS: Persisted = {
   hoodColor: "#2b3a55",
   hoodMetallic: 0.5,
   hoodMotion: 0.5,
+  hoodLowerOn: false,
+  hoodLowerHeight: 0.45,
+  hoodZipperOn: false,
   // General performance controls, independent of SIMGLASÖGON: targetFps caps
   // renderer.render() calls at all times (not just while goggles are on —
   // see the fpsCap logic in the animate() loop below), and resolutionScale
@@ -2103,6 +2106,9 @@ export function Aquafulness() {
   const [hoodColor, setHoodColor] = useState(initial.hoodColor);
   const [hoodMetallic, setHoodMetallic] = useState(initial.hoodMetallic);
   const [hoodMotion, setHoodMotion] = useState(initial.hoodMotion);
+  const [hoodLowerOn, setHoodLowerOn] = useState(initial.hoodLowerOn);
+  const [hoodLowerHeight, setHoodLowerHeight] = useState(initial.hoodLowerHeight);
+  const [hoodZipperOn, setHoodZipperOn] = useState(initial.hoodZipperOn);
   const [targetFps, setTargetFps] = useState(initial.targetFps);
   const [resolutionScale, setResolutionScale] = useState(initial.resolutionScale);
   const [lowGraphicsMode, setLowGraphicsMode] = useState(initial.lowGraphicsMode);
@@ -2991,6 +2997,9 @@ export function Aquafulness() {
     hoodColor,
     hoodMetallic,
     hoodMotion,
+    hoodLowerOn,
+    hoodLowerHeight,
+    hoodZipperOn,
     targetFps,
     resolutionScale,
     lowGraphicsMode,
@@ -3288,6 +3297,9 @@ export function Aquafulness() {
     hoodColor,
     hoodMetallic,
     hoodMotion,
+    hoodLowerOn,
+    hoodLowerHeight,
+    hoodZipperOn,
     targetFps,
     resolutionScale,
     lowGraphicsMode,
@@ -3793,6 +3805,9 @@ export function Aquafulness() {
   const hoodColorRef = useRef(hoodColor);
   const hoodMetallicRef = useRef(hoodMetallic);
   const hoodMotionRef = useRef(hoodMotion);
+  const hoodLowerOnRef = useRef(hoodLowerOn);
+  const hoodLowerHeightRef = useRef(hoodLowerHeight);
+  const hoodZipperOnRef = useRef(hoodZipperOn);
   // General performance controls — read every frame by the animate() loop
   // below (targetFps: caps renderer.render() calls whenever SIMGLASÖGON is
   // off, mirroring gogglesFpsCapRef's cap for when it's on; resolutionScale:
@@ -4583,7 +4598,20 @@ export function Aquafulness() {
     hoodColorRef.current = hoodColor;
     hoodMetallicRef.current = hoodMetallic;
     hoodMotionRef.current = hoodMotion;
-  }, [hoodOn, hoodHeight, hoodOpening, hoodColor, hoodMetallic, hoodMotion]);
+    hoodLowerOnRef.current = hoodLowerOn;
+    hoodLowerHeightRef.current = hoodLowerHeight;
+    hoodZipperOnRef.current = hoodZipperOn;
+  }, [
+    hoodOn,
+    hoodHeight,
+    hoodOpening,
+    hoodColor,
+    hoodMetallic,
+    hoodMotion,
+    hoodLowerOn,
+    hoodLowerHeight,
+    hoodZipperOn,
+  ]);
   useEffect(() => {
     auroraOnRef.current = auroraOn;
     auroraIntensityRef.current = auroraIntensity;
@@ -5102,6 +5130,9 @@ export function Aquafulness() {
     setHoodColor(DEFAULTS.hoodColor);
     setHoodMetallic(DEFAULTS.hoodMetallic);
     setHoodMotion(DEFAULTS.hoodMotion);
+    setHoodLowerOn(DEFAULTS.hoodLowerOn);
+    setHoodLowerHeight(DEFAULTS.hoodLowerHeight);
+    setHoodZipperOn(DEFAULTS.hoodZipperOn);
     setTargetFps(DEFAULTS.targetFps);
     setResolutionScale(DEFAULTS.resolutionScale);
     setLowGraphicsMode(DEFAULTS.lowGraphicsMode);
@@ -5397,6 +5428,9 @@ export function Aquafulness() {
     if (patch.hoodColor !== undefined) setHoodColor(patch.hoodColor);
     if (patch.hoodMetallic !== undefined) setHoodMetallic(patch.hoodMetallic);
     if (patch.hoodMotion !== undefined) setHoodMotion(patch.hoodMotion);
+    if (patch.hoodLowerOn !== undefined) setHoodLowerOn(patch.hoodLowerOn);
+    if (patch.hoodLowerHeight !== undefined) setHoodLowerHeight(patch.hoodLowerHeight);
+    if (patch.hoodZipperOn !== undefined) setHoodZipperOn(patch.hoodZipperOn);
     if (patch.targetFps !== undefined) setTargetFps(patch.targetFps);
     if (patch.resolutionScale !== undefined) setResolutionScale(patch.resolutionScale);
     if (patch.lowGraphicsMode !== undefined) setLowGraphicsMode(patch.lowGraphicsMode);
@@ -11610,6 +11644,9 @@ export function Aquafulness() {
           color: hoodColorRef.current,
           metallic: hoodMetallicRef.current,
           motion: hoodMotionRef.current,
+          lower: hoodLowerOnRef.current,
+          lowerHeight: hoodLowerHeightRef.current,
+          zipper: hoodZipperOnRef.current,
           skyColor: uniforms.uSkyColor.value,
           horizonColor: uniforms.uHorizonColor.value,
           waterColor: uniforms.uWaterDeep.value,
@@ -12446,6 +12483,12 @@ export function Aquafulness() {
     setHoodMetallic,
     hoodMotion,
     setHoodMotion,
+    hoodLowerOn,
+    setHoodLowerOn,
+    hoodLowerHeight,
+    setHoodLowerHeight,
+    hoodZipperOn,
+    setHoodZipperOn,
     targetFps,
     setTargetFps,
     resolutionScale,
