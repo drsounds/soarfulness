@@ -451,6 +451,20 @@
       "surgeDirection": "MAININGIN SUUNTA",
       "surgeRotationMode": "MAININGIN PYÖRIMINEN",
       "surgeRotationSpeed": "MAININGIN PYÖRIMISNOPEUS",
+      "openDrift": "AVOVESIAJELEHDINTA",
+      "openDriftCurve": "AJELEHDINNAN REITTI",
+      "openDriftCurveValue": {
+        "circle": "YMPYRÄ",
+        "wander": "SATUNNAINEN"
+      },
+      "openDriftRadius": "YMPYRÄN SÄDE",
+      "openDriftDirection": "SUUNTA",
+      "openDriftDirectionValue": {
+        "cw": "MYÖTÄPÄIVÄÄN",
+        "ccw": "VASTAPÄIVÄÄN"
+      },
+      "openDriftCycleSpeed": "KIERTONOPEUS",
+      "openDriftMagnitude": "AJELEHDINNAN VOIMAKKUUS",
       "surgeSpeed": "MAININGIN TEMPO",
       "sway": "HEILUNTA",
       "swayDirection": "HEILUNNAN SUUNTA",

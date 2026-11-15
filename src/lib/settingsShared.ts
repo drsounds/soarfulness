@@ -1,6 +1,7 @@
 import vanernBackdrop from "@/assets/vanern-backdrop.png.asset.json";
 import sandTextureAsset from "@/assets/sand_cc0_512.jpg.asset.json";
 import waterAsset from "@/assets/water.mp3.asset.json";
+import type { OpenDriftCurve, OpenDriftDirection } from "@/lib/openDrift";
 
 // Shared between the main HUD's settings dialog (routes/index.tsx) and its
 // clone rendered as the "Inställningar" app inside the virtual phone's bathOS
@@ -600,6 +601,17 @@ export type Persisted = {
   surgeSpeed: number;
   surgeRotationMode: SurgeRotationMode;
   surgeRotationSpeed: number;
+  // HAVSDRIFT: an endless open-water drift that keeps carrying the
+  // player around with every stick at rest (lib/openDrift.ts): a
+  // circle of openDriftRadius m (openDriftDirection) or a random
+  // wander, openDriftCycleSpeed laps / changes of course per minute,
+  // openDriftMagnitude = strength (1 = 100 %). Off by default.
+  openDriftOn: boolean;
+  openDriftCurve: OpenDriftCurve;
+  openDriftRadius: number;
+  openDriftCycleSpeed: number;
+  openDriftMagnitude: number;
+  openDriftDirection: OpenDriftDirection;
   // VÄRLDSGRÄNS (world boundary): once on, the camera's x/z and y wrap to the
   // opposite edge on crossing ±worldBoundarySize/Height — see wrapAxis in
   // routes/index.tsx. worldBoundaryYExtend is the *default* y behavior:
@@ -928,6 +940,12 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "surgeSpeed",
     "surgeRotationMode",
     "surgeRotationSpeed",
+    "openDriftOn",
+    "openDriftCurve",
+    "openDriftRadius",
+    "openDriftCycleSpeed",
+    "openDriftMagnitude",
+    "openDriftDirection",
     "buoyAmp",
     "bobSpeed",
     "regularWaves",

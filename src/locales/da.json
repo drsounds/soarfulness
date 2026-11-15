@@ -451,6 +451,20 @@
       "surgeDirection": "DØNNING RETNING",
       "surgeRotationMode": "DØNNING ROTATION",
       "surgeRotationSpeed": "DØNNING ROTATIONSHASTIGHED",
+      "openDrift": "HAVDRIFT",
+      "openDriftCurve": "DRIFTKURVE",
+      "openDriftCurveValue": {
+        "circle": "CIRKEL",
+        "wander": "TILFÆLDIG"
+      },
+      "openDriftRadius": "CIRKELRADIUS",
+      "openDriftDirection": "RETNING",
+      "openDriftDirectionValue": {
+        "cw": "MED URET",
+        "ccw": "MOD URET"
+      },
+      "openDriftCycleSpeed": "CYKLUSTEMPO",
+      "openDriftMagnitude": "DRIFTSTYRKE",
       "surgeSpeed": "DØNNING TEMPO",
       "sway": "SVAJ",
       "swayDirection": "SVAJ RETNING",

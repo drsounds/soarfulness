@@ -451,6 +451,20 @@
       "surgeDirection": "SURGE DIRECTION",
       "surgeRotationMode": "SURGE ROTATION",
       "surgeRotationSpeed": "SURGE ROTATION SPEED",
+      "openDrift": "OPEN-WATER DRIFT",
+      "openDriftCurve": "DRIFT PATH",
+      "openDriftCurveValue": {
+        "circle": "CIRCLE",
+        "wander": "RANDOM"
+      },
+      "openDriftRadius": "CIRCLE RADIUS",
+      "openDriftDirection": "DIRECTION",
+      "openDriftDirectionValue": {
+        "cw": "CLOCKWISE",
+        "ccw": "COUNTER-CLOCKWISE"
+      },
+      "openDriftCycleSpeed": "CYCLE SPEED",
+      "openDriftMagnitude": "DRIFT STRENGTH",
       "surgeSpeed": "SURGE TEMPO",
       "sway": "SWAY",
       "swayDirection": "SWAY DIRECTION",

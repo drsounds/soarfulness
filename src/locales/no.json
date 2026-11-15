@@ -451,6 +451,20 @@
       "surgeDirection": "SVELL RETNING",
       "surgeRotationMode": "SVELL ROTASJON",
       "surgeRotationSpeed": "SVELL ROTASJONSHASTIGHET",
+      "openDrift": "HAVDRIFT",
+      "openDriftCurve": "DRIFTKURVE",
+      "openDriftCurveValue": {
+        "circle": "SIRKEL",
+        "wander": "TILFELDIG"
+      },
+      "openDriftRadius": "SIRKELRADIUS",
+      "openDriftDirection": "RETNING",
+      "openDriftDirectionValue": {
+        "cw": "MED KLOKKA",
+        "ccw": "MOT KLOKKA"
+      },
+      "openDriftCycleSpeed": "SYKLUSTEMPO",
+      "openDriftMagnitude": "DRIFTSTYRKE",
       "surgeSpeed": "SVELL TEMPO",
       "sway": "SVAI",
       "swayDirection": "SVAI RETNING",

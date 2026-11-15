@@ -33,6 +33,8 @@ export const EXTREME_MAX = {
   freakOutFloatYOffset: 200, // RIDE HÖJD I SIMLÄGE (m)
   freakOutRotationKick: 8, // RIDE SNURR VID TOPPEN (× rotationshastigheten)
   auroraIntensity: 4, // NORRSKENSSTYRKA
+  openDriftMagnitude: 4, // HAVSDRIFT STYRKA
+  openDriftRadius: 2000, // HAVSDRIFT CIRKELRADIE (m)
   snowAmount: 40000, // SNÖMÄNGD (flingor)
   snowIntensity: 4, // SNÖSTYRKA
   fireworksIntensity: 4, // FYRVERKERI INTENSITET

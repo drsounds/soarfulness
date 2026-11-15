@@ -22,6 +22,7 @@ import { RETRO_PALETTE_INDEX, RETRO_SHADER } from "@/lib/sceneFx/retroShader";
 import { limitMax, useExtremeLimits, type LimitedControl } from "@/lib/extremeLimits";
 import { NeonEdges } from "@/lib/sceneFx/NeonEdges";
 import { Aurora } from "@/lib/sceneFx/aurora";
+import { OpenDrift } from "@/lib/openDrift";
 import { SnowCover, Snowfall } from "@/lib/sceneFx/snow";
 import { Fireworks, FIREWORKS_LIGHTS } from "@/lib/sceneFx/fireworks";
 import { Confetti } from "@/lib/sceneFx/confetti";
@@ -1502,6 +1503,13 @@ const DEFAULTS: Persisted = {
   surgeSpeed: 0.2,
   surgeRotationMode: "cw",
   surgeRotationSpeed: 2,
+  // HAVSDRIFT: endless open-water drift (lib/openDrift.ts), off by default.
+  openDriftOn: false,
+  openDriftCurve: "circle",
+  openDriftRadius: 10,
+  openDriftCycleSpeed: 0.5,
+  openDriftMagnitude: 1,
+  openDriftDirection: "cw",
   // On by default, generous enough (20km horizontally, 3km up/down) that
   // normal float-mode swimming near origin never brushes it — mainly meant
   // to be discovered by flying far in NOCLIP. worldBoundaryYExtend on means
@@ -2188,6 +2196,12 @@ export function Aquafulness() {
     initial.surgeRotationMode,
   );
   const [surgeRotationSpeed, setSurgeRotationSpeed] = useState(initial.surgeRotationSpeed);
+  const [openDriftOn, setOpenDriftOn] = useState(initial.openDriftOn);
+  const [openDriftCurve, setOpenDriftCurve] = useState(initial.openDriftCurve);
+  const [openDriftRadius, setOpenDriftRadius] = useState(initial.openDriftRadius);
+  const [openDriftCycleSpeed, setOpenDriftCycleSpeed] = useState(initial.openDriftCycleSpeed);
+  const [openDriftMagnitude, setOpenDriftMagnitude] = useState(initial.openDriftMagnitude);
+  const [openDriftDirection, setOpenDriftDirection] = useState(initial.openDriftDirection);
   const [worldBoundaryOn, setWorldBoundaryOn] = useState(initial.worldBoundaryOn);
   const [worldBoundarySize, setWorldBoundarySize] = useState(initial.worldBoundarySize);
   const [worldBoundaryHeight, setWorldBoundaryHeight] = useState(initial.worldBoundaryHeight);
@@ -2465,6 +2479,8 @@ export function Aquafulness() {
     clamp("freakOutRotationKick", freakOutRotationKick, setFreakOutRotationKick);
     clamp("freakOutFloatYOffset", freakOutFloatYOffset, setFreakOutFloatYOffset);
     clamp("auroraIntensity", auroraIntensity, setAuroraIntensity);
+    clamp("openDriftMagnitude", openDriftMagnitude, setOpenDriftMagnitude);
+    clamp("openDriftRadius", openDriftRadius, setOpenDriftRadius);
     clamp("snowAmount", snowAmount, setSnowAmount);
     clamp("snowIntensity", snowIntensity, setSnowIntensity);
     clamp("fireworksIntensity", fireworksIntensity, setFireworksIntensity);
@@ -2473,6 +2489,8 @@ export function Aquafulness() {
     clamp("confettiIntensity", confettiIntensity, setConfettiIntensity);
   }, [
     extremeLimits,
+    openDriftMagnitude,
+    openDriftRadius,
     auroraIntensity,
     fireworksIntensity,
     fireworksRate,
@@ -3014,6 +3032,12 @@ export function Aquafulness() {
     surgeSpeed,
     surgeRotationMode,
     surgeRotationSpeed,
+    openDriftOn,
+    openDriftCurve,
+    openDriftRadius,
+    openDriftCycleSpeed,
+    openDriftMagnitude,
+    openDriftDirection,
     worldBoundaryOn,
     worldBoundarySize,
     worldBoundaryHeight,
@@ -3299,6 +3323,12 @@ export function Aquafulness() {
     surgeSpeed,
     surgeRotationMode,
     surgeRotationSpeed,
+    openDriftOn,
+    openDriftCurve,
+    openDriftRadius,
+    openDriftCycleSpeed,
+    openDriftMagnitude,
+    openDriftDirection,
     worldBoundaryOn,
     worldBoundarySize,
     worldBoundaryHeight,
@@ -3884,6 +3914,12 @@ export function Aquafulness() {
   const surgeSpeedRef = useRef(surgeSpeed);
   const surgeRotationModeRef = useRef(surgeRotationMode);
   const surgeRotationSpeedRef = useRef(surgeRotationSpeed);
+  const openDriftOnRef = useRef(openDriftOn);
+  const openDriftCurveRef = useRef(openDriftCurve);
+  const openDriftRadiusRef = useRef(openDriftRadius);
+  const openDriftCycleSpeedRef = useRef(openDriftCycleSpeed);
+  const openDriftMagnitudeRef = useRef(openDriftMagnitude);
+  const openDriftDirectionRef = useRef(openDriftDirection);
   const worldBoundaryOnRef = useRef(worldBoundaryOn);
   const worldBoundarySizeRef = useRef(worldBoundarySize);
   const worldBoundaryHeightRef = useRef(worldBoundaryHeight);
@@ -4302,6 +4338,14 @@ export function Aquafulness() {
   useEffect(() => {
     surgeRotationSpeedRef.current = surgeRotationSpeed;
   }, [surgeRotationSpeed]);
+  useEffect(() => {
+    openDriftOnRef.current = openDriftOn;
+    openDriftCurveRef.current = openDriftCurve;
+    openDriftRadiusRef.current = openDriftRadius;
+    openDriftCycleSpeedRef.current = openDriftCycleSpeed;
+    openDriftMagnitudeRef.current = openDriftMagnitude;
+    openDriftDirectionRef.current = openDriftDirection;
+  }, [openDriftOn, openDriftCurve, openDriftRadius, openDriftCycleSpeed, openDriftMagnitude, openDriftDirection]);
   useEffect(() => {
     worldBoundaryOnRef.current = worldBoundaryOn;
   }, [worldBoundaryOn]);
@@ -5076,6 +5120,12 @@ export function Aquafulness() {
     setSurgeSpeed(DEFAULTS.surgeSpeed);
     setSurgeRotationMode(DEFAULTS.surgeRotationMode);
     setSurgeRotationSpeed(DEFAULTS.surgeRotationSpeed);
+    setOpenDriftOn(DEFAULTS.openDriftOn);
+    setOpenDriftCurve(DEFAULTS.openDriftCurve);
+    setOpenDriftRadius(DEFAULTS.openDriftRadius);
+    setOpenDriftCycleSpeed(DEFAULTS.openDriftCycleSpeed);
+    setOpenDriftMagnitude(DEFAULTS.openDriftMagnitude);
+    setOpenDriftDirection(DEFAULTS.openDriftDirection);
     setWorldBoundaryOn(DEFAULTS.worldBoundaryOn);
     setWorldBoundarySize(DEFAULTS.worldBoundarySize);
     setWorldBoundaryHeight(DEFAULTS.worldBoundaryHeight);
@@ -5367,6 +5417,12 @@ export function Aquafulness() {
     if (patch.surgeSpeed !== undefined) setSurgeSpeed(patch.surgeSpeed);
     if (patch.surgeRotationMode !== undefined) setSurgeRotationMode(patch.surgeRotationMode);
     if (patch.surgeRotationSpeed !== undefined) setSurgeRotationSpeed(patch.surgeRotationSpeed);
+    if (patch.openDriftOn !== undefined) setOpenDriftOn(patch.openDriftOn);
+    if (patch.openDriftCurve !== undefined) setOpenDriftCurve(patch.openDriftCurve);
+    if (patch.openDriftRadius !== undefined) setOpenDriftRadius(patch.openDriftRadius);
+    if (patch.openDriftCycleSpeed !== undefined) setOpenDriftCycleSpeed(patch.openDriftCycleSpeed);
+    if (patch.openDriftMagnitude !== undefined) setOpenDriftMagnitude(patch.openDriftMagnitude);
+    if (patch.openDriftDirection !== undefined) setOpenDriftDirection(patch.openDriftDirection);
     if (patch.worldBoundaryOn !== undefined) setWorldBoundaryOn(patch.worldBoundaryOn);
     if (patch.worldBoundarySize !== undefined) setWorldBoundarySize(patch.worldBoundarySize);
     if (patch.worldBoundaryHeight !== undefined) setWorldBoundaryHeight(patch.worldBoundaryHeight);
@@ -8637,6 +8693,9 @@ export function Aquafulness() {
     // drawn behind everything in the scene (see lib/sceneFx/aurora.ts).
     const aurora = new Aurora(scene);
 
+    // HAVSDRIFT: endless open-water drift state (lib/openDrift.ts).
+    const openDrift = new OpenDrift();
+
     // BÄTTRE LJUS: image-based lighting for glTF materials. scene.environment
     // is a PMREM of the environment skybox when one is active, otherwise of
     // the procedural sky dome (sun disc included — that's what puts real sun
@@ -9941,6 +10000,29 @@ export function Aquafulness() {
           tornadoCloudRadius = tornadoRadiusRef.current;
           tornadoCloudHeight = tornadoCloudRadius * TORNADO_CLOUD_HEIGHT_SCALE;
           tornadoCloudAngle = ang;
+        }
+      }
+
+      // HAVSDRIFT: the open water keeps carrying the player — a circle or a
+      // random wander (lib/openDrift.ts) — on top of NAV/STRÖM in every
+      // mode. It moves posRef (the whirlpool/ride/pendulum center) and the
+      // camera together, so it never turns the view, and it's eased in and
+      // out. VÄRLDSGRÄNS's wrap below plus the camera-centred planes make
+      // the drift endless in any direction.
+      {
+        const d = openDrift.step(physDt, {
+          on: openDriftOnRef.current && !(camMode === "swing" && swingCordActiveRef.current),
+          curve: openDriftCurveRef.current,
+          radius: openDriftRadiusRef.current,
+          cycleSpeed: openDriftCycleSpeedRef.current,
+          magnitude: openDriftMagnitudeRef.current,
+          direction: openDriftDirectionRef.current,
+        });
+        if (d.dx !== 0 || d.dz !== 0) {
+          posRef.current.x += d.dx;
+          posRef.current.z += d.dz;
+          camX += d.dx;
+          camZ += d.dz;
         }
       }
 
@@ -12045,6 +12127,18 @@ export function Aquafulness() {
     setSurgeRotationMode,
     surgeRotationSpeed,
     setSurgeRotationSpeed,
+    openDriftOn,
+    setOpenDriftOn,
+    openDriftCurve,
+    setOpenDriftCurve,
+    openDriftRadius,
+    setOpenDriftRadius,
+    openDriftCycleSpeed,
+    setOpenDriftCycleSpeed,
+    openDriftMagnitude,
+    setOpenDriftMagnitude,
+    openDriftDirection,
+    setOpenDriftDirection,
     buoyAmp,
     setBuoyAmp,
     bobSpeed,
