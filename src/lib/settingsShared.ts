@@ -188,6 +188,17 @@ export const AURORA_PALETTES: AuroraPalette[] = [
   "custom",
 ];
 
+// UNDERVATTENDIS: how the underwater fog gradient overlay blends over the 3D
+// view (CSS mix-blend-mode). See lib/sceneFx/underwaterFog.ts.
+export type UnderwaterFogBlend = "normal" | "multiply" | "screen" | "overlay" | "soft-light";
+export const UNDERWATER_FOG_BLENDS: UnderwaterFogBlend[] = [
+  "normal",
+  "multiply",
+  "screen",
+  "overlay",
+  "soft-light",
+];
+
 // NEON color animation:
 //  - "solid"     always neonPrimary
 //  - "alternate" hard switch between neonPrimary and neonSecondary,
@@ -778,6 +789,28 @@ export type Persisted = {
   auroraColorMain: string;
   auroraColorTop: string;
   auroraDaylightOn: boolean;
+  // UNDERVATTENDIS: a screen gradient over the 3D view (below the HUD) from
+  // a fog color at the top to the water color, its top edge docked to the
+  // on-screen waterline VATTENLINJEAVSTÅND meters ahead (so it sinks as you
+  // rise above the water and climbs as you dive). Opacities are 0..1,
+  // intensity multiplies both; spread = share of the way down to the screen
+  // bottom the fade takes; curve = fade shape; feather = soft top edge as a
+  // share of the screen height; offset nudges the edge (share of screen,
+  // + = lower). See lib/sceneFx/underwaterFog.ts.
+  underwaterFogOn: boolean;
+  underwaterFogColor: string;
+  underwaterFogOpacity: number;
+  underwaterFogWaterColorAuto: boolean;
+  underwaterFogWaterColor: string;
+  underwaterFogWaterOpacity: number;
+  underwaterFogIntensity: number;
+  underwaterFogSpread: number;
+  underwaterFogCurve: number;
+  underwaterFogFeather: number;
+  underwaterFogDistance: number;
+  underwaterFogOffset: number;
+  underwaterFogSubmergedOnly: boolean;
+  underwaterFogBlend: UnderwaterFogBlend;
   cameraMode: CameraMode;
   noclipSpeed: number;
   // FRITT FALL/OMVÄND STIGNING's terminal vertical speed in m/s (at
@@ -1206,6 +1239,20 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "auroraColorMain",
     "auroraColorTop",
     "auroraDaylightOn",
+    "underwaterFogOn",
+    "underwaterFogColor",
+    "underwaterFogOpacity",
+    "underwaterFogWaterColorAuto",
+    "underwaterFogWaterColor",
+    "underwaterFogWaterOpacity",
+    "underwaterFogIntensity",
+    "underwaterFogSpread",
+    "underwaterFogCurve",
+    "underwaterFogFeather",
+    "underwaterFogDistance",
+    "underwaterFogOffset",
+    "underwaterFogSubmergedOnly",
+    "underwaterFogBlend",
   ],
   ljud: ["audioOn", "audioVol", "audioSyncSpeed", "audioSpatial", "waterSoundIdx"],
   // Tema (UI chrome theme) isn't part of the wave/camera/water/environment/
