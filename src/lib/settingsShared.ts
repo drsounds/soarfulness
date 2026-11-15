@@ -411,6 +411,16 @@ export type Persisted = {
   gogglesLoop: boolean;
   gogglesIntensity: number;
   gogglesFpsCap: number;
+  // HUVA: a hoodie hood around the bather (lib/sceneFx/hood.ts), off by
+  // default. hoodHeight = where its sides end, from the bottom of the view
+  // up (0..1); hoodOpening = face opening tight..wide (0..1); hoodMetallic =
+  // matte cloth..wet metallic sheen (0..1); hoodMotion = sway/flutter (0..1).
+  hoodOn: boolean;
+  hoodHeight: number;
+  hoodOpening: number;
+  hoodColor: string;
+  hoodMetallic: number;
+  hoodMotion: number;
   targetFps: number;
   resolutionScale: number;
   // LOW GRAPHICS MODE: a single opt-in "everything cheap" switch for lower-
@@ -1056,6 +1066,12 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "gogglesLoop",
     "gogglesIntensity",
     "gogglesFpsCap",
+    "hoodOn",
+    "hoodHeight",
+    "hoodOpening",
+    "hoodColor",
+    "hoodMetallic",
+    "hoodMotion",
     "targetFps",
     "resolutionScale",
     "lowGraphicsMode",
