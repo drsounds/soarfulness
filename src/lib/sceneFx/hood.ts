@@ -33,6 +33,14 @@ export type HoodConfig = {
   waterInside: boolean;
   /** 0..1: how much higher the water inside sits than the sea outside (VATTENNIVÅ). */
   waterInsideLevel: number;
+  /** 0..1: how low the hood hangs over the forehead (HUVHÖJD). */
+  drop: number;
+  /** 0..1: cloth weight — more sag and lag behind movement (TYNGD). */
+  weight: number;
+  /** 0..1: fine wet-cloth wrinkles (VÅTA VECK). */
+  wrinkles: number;
+  /** 0..1: darker lighting (MÖRKHET). */
+  darkness: number;
   /** Eye height above the water surface at the bather (m, negative under water). */
   eyeAboveWater: number;
   /** "#rrggbb" fabric color (FÄRG). */
@@ -76,6 +84,9 @@ const FRAG = /* glsl */ `
   uniform float uWaterIn;
   uniform float uEyeAbove;
   uniform float uWaterLevelIn;
+  uniform float uDrop;
+  uniform float uWrinkle;
+  uniform float uDark;
   uniform float uMetal;
   uniform vec3 uColor;
   uniform vec3 uSky;
@@ -91,7 +102,9 @@ const FRAG = /* glsl */ `
   // x: how far into the fabric (0 at the opening's edge, < 0 in the opening),
   // y: fabric height, z: bottom-cut distance (> 0 where the fabric exists).
   vec3 hoodField(vec2 p) {
-    vec2 c = vec2(uSway.x, 0.04 + uSway.y);
+    // HUVHÖJD: the hood hangs lower over the forehead (the opening's top edge
+    // comes down, the sides stay put).
+    vec2 c = vec2(uSway.x, 0.04 + uSway.y - uDrop * 0.22);
     vec2 q = p - c;
     float ang = atan(q.y, q.x);
     // The hem itself ripples a little, slowest at the top of the head.
@@ -100,7 +113,7 @@ const FRAG = /* glsl */ `
       0.008 * sin(ang * 13.0 - uTime * 2.3 + 1.3)
     );
     float a = uAspect * mix(0.55, 0.95, uOpening) + 0.06;
-    float b = mix(0.6, 0.98, uOpening);
+    float b = mix(0.6, 0.98, uOpening) * (1.0 - uDrop * 0.3);
     float r;
     if (q.y > 0.0) {
       vec2 e = abs(vec2(q.x / a, q.y / b));
@@ -132,7 +145,16 @@ const FRAG = /* glsl */ `
     // Past the hem the hood curves away toward the screen edges.
     float tc = max(t - HEM, 0.0);
     float curve = (1.0 - exp(-tc * 2.2)) * 0.3 + tc * 0.04;
-    float h = hem + curve + g * 0.022 * gatherMask;
+    // VÅTA VECK: fine, irregular wrinkles where wet cloth clings.
+    float wr = 0.0;
+    if (uWrinkle > 0.001) {
+      wr = sin(p.x * 19.0 + sin(p.y * 11.0 + ph * 0.2) * 2.5) *
+           sin(p.y * 16.0 - p.x * 6.0 + sin(p.x * 7.0) * 1.5)
+         + 0.5 * sin(ang * 23.0 + t * 17.0 + sin(p.x * 9.0 + p.y * 5.0) * 1.7)
+         + 0.3 * sin(p.x * 31.0 + p.y * 27.0 + sin(p.y * 13.0) * 2.0);
+      wr *= uWrinkle * 0.008 * smoothstep(HEM * 0.6, HEM * 1.6, t);
+    }
+    float h = hem + curve + g * 0.022 * gatherMask + wr;
 
     // HÖJD FRÅN BOTTEN: the sides end at this screen height, curling up
     // toward the opening.
@@ -214,20 +236,22 @@ const FRAG = /* glsl */ `
 
     float m = clamp(uMetal, 0.0, 1.0);
     vec3 base = uColor * mix(1.0, 0.55, m); // wet cloth reads darker
-    vec3 ambient = mix(uHorizon, uSky, 0.5 + 0.5 * N.y) * 0.6 + 0.1;
+    // MÖRKHET: darker lighting overall, for really dark fabric.
+    float light = mix(1.0, 0.18, clamp(uDark, 0.0, 1.0));
+    vec3 ambient = (mix(uHorizon, uSky, 0.5 + 0.5 * N.y) * 0.6 + 0.1) * light;
     float sunUp = clamp(L.y + 0.15, 0.0, 1.0);
     float diff = (0.35 + 0.65 * max(dot(N, L), 0.0)) * sunUp;
-    vec3 col = base * (ambient * ao + uSunCol * diff * ao * 0.7) * mix(1.0, 0.55, m);
+    vec3 col = base * (ambient * ao + uSunCol * diff * ao * 0.7 * light) * mix(1.0, 0.55, m);
 
     vec3 F0 = mix(vec3(0.04), max(uColor, vec3(0.15)), m * 0.75);
     float ndv = clamp(dot(N, V), 0.0, 1.0);
     vec3 fres = F0 + (1.0 - F0) * pow(1.0 - ndv, 5.0);
-    col += env(R) * fres * (0.25 + 1.1 * m) * mix(0.5, 1.0, ao);
+    col += env(R) * fres * (0.25 + 1.1 * m) * mix(0.5, 1.0, ao) * mix(1.0, 0.45, uDark);
     float shin = mix(10.0, 140.0, m);
     float spec = pow(max(dot(R, L), 0.0), shin) * (0.15 + 2.2 * m) * sunUp;
     col += uSunCol * spec * mix(0.6, 1.0, ao);
     // A soft broad sheen along the gathers' crests, the wet-fabric look.
-    col += env(N) * m * 0.18 * smoothstep(0.55, 1.0, ndv) * ao;
+    col += env(N) * m * 0.18 * smoothstep(0.55, 1.0, ndv) * ao * light;
     col *= hemLight + 0.35;
 
     // BLIXTLÅS: a zipper down the middle of the mouth/neck cover, with the
@@ -314,6 +338,9 @@ export class Hood {
     uWaterIn: { value: number };
     uEyeAbove: { value: number };
     uWaterLevelIn: { value: number };
+    uDrop: { value: number };
+    uWrinkle: { value: number };
+    uDark: { value: number };
     uMetal: { value: number };
     uColor: { value: THREE.Color };
     uSky: { value: THREE.Color };
@@ -335,7 +362,8 @@ export class Hood {
   private readonly tmpV = new THREE.Vector3();
   private readonly tmpE = new THREE.Euler();
 
-  constructor(scene: THREE.Scene) {
+  /** `order` stacks layers: a higher one draws over a lower one. */
+  constructor(scene: THREE.Scene, order = 0) {
     this.uniforms = {
       uAspect: { value: 1 },
       uTanHalfFov: { value: 1 },
@@ -350,6 +378,9 @@ export class Hood {
       uWaterIn: { value: 0 },
       uEyeAbove: { value: 1 },
       uWaterLevelIn: { value: 0.3 },
+      uDrop: { value: 0 },
+      uWrinkle: { value: 0 },
+      uDark: { value: 0 },
       uMetal: { value: 0.5 },
       uColor: { value: new THREE.Color() },
       uSky: { value: new THREE.Color() },
@@ -372,7 +403,7 @@ export class Hood {
     this.geometry = new THREE.PlaneGeometry(2, 2);
     this.mesh = new THREE.Mesh(this.geometry, this.material);
     this.mesh.frustumCulled = false;
-    this.mesh.renderOrder = 1e6;
+    this.mesh.renderOrder = 1e6 + order;
     this.mesh.visible = false;
     this.mesh.name = "hood";
     scene.add(this.mesh);
@@ -389,6 +420,9 @@ export class Hood {
     u.uLower.value = cfg.lower ? 1 : 0;
     u.uZipper.value = cfg.zipper ? 1 : 0;
     u.uWaterIn.value = cfg.waterInside ? 1 : 0;
+    u.uDrop.value = THREE.MathUtils.clamp(cfg.drop, 0, 1);
+    u.uWrinkle.value = THREE.MathUtils.clamp(cfg.wrinkles, 0, 1);
+    u.uDark.value = THREE.MathUtils.clamp(cfg.darkness, 0, 1);
     u.uWaterLevelIn.value = THREE.MathUtils.clamp(cfg.waterInsideLevel, 0, 1);
     u.uEyeAbove.value = Number.isFinite(cfg.eyeAboveWater) ? cfg.eyeAboveWater : 1;
     u.uLowerHeight.value = THREE.MathUtils.clamp(cfg.lowerHeight, 0, 1);
@@ -409,7 +443,12 @@ export class Hood {
     camera.updateMatrixWorld();
     u.uViewToWorld.value.setFromMatrix4(camera.matrixWorld);
 
-    // RÖRELSE: the hood lags behind head turns and bobs (damped spring).
+    // RÖRELSE + TYNGD: the hood hangs on the head like cloth on a damped
+    // spring. Moving up leaves it behind (it slides down), sinking lifts it,
+    // and turning or moving sideways swings it the other way. Heavier cloth
+    // sags more, swings further and settles more slowly.
+    const weight = THREE.MathUtils.clamp(cfg.weight, 0, 1);
+    const heavy = 0.5 + weight * 1.5;
     const step = Math.min(Math.max(dt, 0), 0.1);
     let pushX = 0;
     let pushY = 0;
@@ -419,28 +458,33 @@ export class Hood {
       this.tmpE.setFromQuaternion(this.tmpQ, "YXZ");
       const yawRate = THREE.MathUtils.clamp(this.tmpE.y / step, -6, 6);
       const pitchRate = THREE.MathUtils.clamp(this.tmpE.x / step, -6, 6);
-      // Vertical camera speed (bobbing on waves, diving).
-      this.tmpV.copy(camera.position).sub(this.lastPos);
-      const vy = THREE.MathUtils.clamp(this.tmpV.y / step, -8, 8);
-      pushX = yawRate * 0.05;
-      pushY = -pitchRate * 0.04 + vy * 0.012;
+      // Camera velocity, in the camera's own frame (x = right, y = up).
+      this.tmpV.copy(camera.position).sub(this.lastPos).divideScalar(step);
+      const vyWorld = THREE.MathUtils.clamp(this.tmpV.y, -8, 8);
+      this.tmpQ.copy(camera.quaternion).invert();
+      this.tmpV.applyQuaternion(this.tmpQ);
+      const vxLocal = THREE.MathUtils.clamp(this.tmpV.x, -8, 8);
+      pushX = (yawRate * 0.05 - vxLocal * 0.02) * heavy;
+      pushY = (-pitchRate * 0.04 - vyWorld * 0.02) * heavy;
     }
     this.lastQuat.copy(camera.quaternion);
     this.lastPos.copy(camera.position);
     this.hasLast = true;
     if (step > 0) {
-      const k = 38;
-      const damping = 7.5;
+      const k = THREE.MathUtils.lerp(55, 16, weight);
+      const damping = THREE.MathUtils.lerp(9, 4.5, weight);
       const idleX = Math.sin(time * 0.7) * 0.006 + Math.sin(time * 1.9 + 1.2) * 0.003;
       const idleY = Math.sin(time * 0.9 + 0.4) * 0.005;
       const targetX = (pushX + idleX) * motion;
-      const targetY = (pushY + idleY) * motion;
+      const targetY = (pushY + idleY) * motion - weight * 0.04;
       this.swayVel.x += ((targetX - this.sway.x) * k - this.swayVel.x * damping) * step;
       this.swayVel.y += ((targetY - this.sway.y) * k - this.swayVel.y * damping) * step;
       this.sway.x += this.swayVel.x * step;
       this.sway.y += this.swayVel.y * step;
-      this.sway.x = THREE.MathUtils.clamp(this.sway.x, -0.12, 0.12);
-      this.sway.y = THREE.MathUtils.clamp(this.sway.y, -0.08, 0.08);
+      const maxX = 0.12 + 0.08 * weight;
+      const maxY = 0.08 + 0.08 * weight;
+      this.sway.x = THREE.MathUtils.clamp(this.sway.x, -maxX, maxX);
+      this.sway.y = THREE.MathUtils.clamp(this.sway.y, -maxY, maxY);
     }
     u.uSway.value.copy(this.sway);
   }

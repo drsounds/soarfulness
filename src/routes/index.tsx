@@ -28,6 +28,7 @@ import { SnowCover, Snowfall } from "@/lib/sceneFx/snow";
 import { Fireworks, FIREWORKS_LIGHTS } from "@/lib/sceneFx/fireworks";
 import { Confetti } from "@/lib/sceneFx/confetti";
 import { Hood } from "@/lib/sceneFx/hood";
+import { HOOD_MAX_LAYERS, sanitizeHoodLayers, type HoodLayer } from "@/lib/hoodLayers";
 import { applyNeonAccent } from "@/lib/sceneFx/neonAccent";
 import { relativeDaylightTint } from "@/lib/sceneFx/daylightTint";
 import {
@@ -1447,6 +1448,11 @@ const DEFAULTS: Persisted = {
   hoodZipperOn: false,
   hoodWaterOn: false,
   hoodWaterLevel: 0.3,
+  hoodDrop: 0,
+  hoodWeight: 0.4,
+  hoodWrinkles: 0,
+  hoodDarkness: 0,
+  hoodExtraLayers: [] as HoodLayer[],
   // General performance controls, independent of SIMGLASÖGON: targetFps caps
   // renderer.render() calls at all times (not just while goggles are on —
   // see the fpsCap logic in the animate() loop below), and resolutionScale
@@ -2129,6 +2135,13 @@ export function Aquafulness() {
   const [hoodZipperOn, setHoodZipperOn] = useState(initial.hoodZipperOn);
   const [hoodWaterOn, setHoodWaterOn] = useState(initial.hoodWaterOn);
   const [hoodWaterLevel, setHoodWaterLevel] = useState(initial.hoodWaterLevel);
+  const [hoodDrop, setHoodDrop] = useState(initial.hoodDrop);
+  const [hoodWeight, setHoodWeight] = useState(initial.hoodWeight);
+  const [hoodWrinkles, setHoodWrinkles] = useState(initial.hoodWrinkles);
+  const [hoodDarkness, setHoodDarkness] = useState(initial.hoodDarkness);
+  const [hoodExtraLayers, setHoodExtraLayers] = useState<HoodLayer[]>(() =>
+    sanitizeHoodLayers(initial.hoodExtraLayers),
+  );
   const [targetFps, setTargetFps] = useState(initial.targetFps);
   const [resolutionScale, setResolutionScale] = useState(initial.resolutionScale);
   const [lowGraphicsMode, setLowGraphicsMode] = useState(initial.lowGraphicsMode);
@@ -3056,6 +3069,11 @@ export function Aquafulness() {
     hoodZipperOn,
     hoodWaterOn,
     hoodWaterLevel,
+    hoodDrop,
+    hoodWeight,
+    hoodWrinkles,
+    hoodDarkness,
+    hoodExtraLayers,
     targetFps,
     resolutionScale,
     lowGraphicsMode,
@@ -3372,6 +3390,11 @@ export function Aquafulness() {
     hoodZipperOn,
     hoodWaterOn,
     hoodWaterLevel,
+    hoodDrop,
+    hoodWeight,
+    hoodWrinkles,
+    hoodDarkness,
+    hoodExtraLayers,
     targetFps,
     resolutionScale,
     lowGraphicsMode,
@@ -3896,6 +3919,11 @@ export function Aquafulness() {
   const hoodZipperOnRef = useRef(hoodZipperOn);
   const hoodWaterOnRef = useRef(hoodWaterOn);
   const hoodWaterLevelRef = useRef(hoodWaterLevel);
+  const hoodDropRef = useRef(hoodDrop);
+  const hoodWeightRef = useRef(hoodWeight);
+  const hoodWrinklesRef = useRef(hoodWrinkles);
+  const hoodDarknessRef = useRef(hoodDarkness);
+  const hoodExtraLayersRef = useRef(hoodExtraLayers);
   // General performance controls — read every frame by the animate() loop
   // below (targetFps: caps renderer.render() calls whenever SIMGLASÖGON is
   // off, mirroring gogglesFpsCapRef's cap for when it's on; resolutionScale:
@@ -4691,6 +4719,11 @@ export function Aquafulness() {
     hoodZipperOnRef.current = hoodZipperOn;
     hoodWaterOnRef.current = hoodWaterOn;
     hoodWaterLevelRef.current = hoodWaterLevel;
+    hoodDropRef.current = hoodDrop;
+    hoodWeightRef.current = hoodWeight;
+    hoodWrinklesRef.current = hoodWrinkles;
+    hoodDarknessRef.current = hoodDarkness;
+    hoodExtraLayersRef.current = hoodExtraLayers;
   }, [
     hoodOn,
     hoodHeight,
@@ -4703,6 +4736,11 @@ export function Aquafulness() {
     hoodZipperOn,
     hoodWaterOn,
     hoodWaterLevel,
+    hoodDrop,
+    hoodWeight,
+    hoodWrinkles,
+    hoodDarkness,
+    hoodExtraLayers,
   ]);
   useEffect(() => {
     auroraOnRef.current = auroraOn;
@@ -5227,6 +5265,11 @@ export function Aquafulness() {
     setHoodZipperOn(DEFAULTS.hoodZipperOn);
     setHoodWaterOn(DEFAULTS.hoodWaterOn);
     setHoodWaterLevel(DEFAULTS.hoodWaterLevel);
+    setHoodDrop(DEFAULTS.hoodDrop);
+    setHoodWeight(DEFAULTS.hoodWeight);
+    setHoodWrinkles(DEFAULTS.hoodWrinkles);
+    setHoodDarkness(DEFAULTS.hoodDarkness);
+    setHoodExtraLayers(DEFAULTS.hoodExtraLayers);
     setTargetFps(DEFAULTS.targetFps);
     setResolutionScale(DEFAULTS.resolutionScale);
     setLowGraphicsMode(DEFAULTS.lowGraphicsMode);
@@ -5541,6 +5584,12 @@ export function Aquafulness() {
     if (patch.hoodZipperOn !== undefined) setHoodZipperOn(patch.hoodZipperOn);
     if (patch.hoodWaterOn !== undefined) setHoodWaterOn(patch.hoodWaterOn);
     if (patch.hoodWaterLevel !== undefined) setHoodWaterLevel(patch.hoodWaterLevel);
+    if (patch.hoodDrop !== undefined) setHoodDrop(patch.hoodDrop);
+    if (patch.hoodWeight !== undefined) setHoodWeight(patch.hoodWeight);
+    if (patch.hoodWrinkles !== undefined) setHoodWrinkles(patch.hoodWrinkles);
+    if (patch.hoodDarkness !== undefined) setHoodDarkness(patch.hoodDarkness);
+    if (patch.hoodExtraLayers !== undefined)
+      setHoodExtraLayers(sanitizeHoodLayers(patch.hoodExtraLayers));
     if (patch.targetFps !== undefined) setTargetFps(patch.targetFps);
     if (patch.resolutionScale !== undefined) setResolutionScale(patch.resolutionScale);
     if (patch.lowGraphicsMode !== undefined) setLowGraphicsMode(patch.lowGraphicsMode);
@@ -8939,8 +8988,9 @@ export function Aquafulness() {
     envDomeUniforms.uSnowLight = snowCover.uLight;
     // KONFETTI: confetti falling like the snow (see lib/sceneFx/confetti.ts).
     const confetti = new Confetti(scene);
-    // HUVA: the hood framing the view (drawn last, over the 3D scene).
-    const hood = new Hood(scene);
+    // HUVA: the hood framing the view (drawn last, over the 3D scene), one
+    // per layer; a later layer draws over an earlier one.
+    const hoods = Array.from({ length: HOOD_MAX_LAYERS }, (_, i) => new Hood(scene, i));
     const envTint = new THREE.Color(1, 1, 1);
     const envTintScratch = new THREE.Color();
     const envTintNight = new THREE.Color(1, 1, 1);
@@ -11802,29 +11852,61 @@ export function Aquafulness() {
         confetti.hide();
       }
 
-      // HUVA: a hood around the bather, framing the view.
-      if (hoodOnRef.current) {
-        hood.update(now / 1000, dt, camera, {
-          height: hoodHeightRef.current,
-          opening: hoodOpeningRef.current,
-          color: hoodColorRef.current,
-          metallic: hoodMetallicRef.current,
-          motion: hoodMotionRef.current,
-          lower: hoodLowerOnRef.current,
-          lowerHeight: hoodLowerHeightRef.current,
-          zipper: hoodZipperOnRef.current,
-          waterInside: hoodWaterOnRef.current,
-          waterInsideLevel: hoodWaterLevelRef.current,
-          eyeAboveWater: camY - surfaceY,
-          skyColor: uniforms.uSkyColor.value,
-          horizonColor: uniforms.uHorizonColor.value,
-          waterColor: uniforms.uWaterDeep.value,
-          sunColor: uniforms.uSunColor.value,
-          sunDir: uniforms.uSunDir.value,
-          underwater: uniforms.uUnderwater.value,
+      // HUVA: a hood around the bather, framing the view. Layer 1 comes from
+      // the flat hood* settings, layers 2+ from hoodExtraLayers.
+      {
+        const layers: HoodLayer[] = hoodOnRef.current
+          ? [
+              {
+                on: true,
+                height: hoodHeightRef.current,
+                opening: hoodOpeningRef.current,
+                color: hoodColorRef.current,
+                metallic: hoodMetallicRef.current,
+                motion: hoodMotionRef.current,
+                lowerOn: hoodLowerOnRef.current,
+                lowerHeight: hoodLowerHeightRef.current,
+                zipperOn: hoodZipperOnRef.current,
+                waterOn: hoodWaterOnRef.current,
+                waterLevel: hoodWaterLevelRef.current,
+                drop: hoodDropRef.current,
+                weight: hoodWeightRef.current,
+                wrinkles: hoodWrinklesRef.current,
+                darkness: hoodDarknessRef.current,
+              },
+              ...hoodExtraLayersRef.current,
+            ]
+          : [];
+        hoods.forEach((h, i) => {
+          const l = layers[i];
+          if (!l || !l.on) {
+            h.hide();
+            return;
+          }
+          h.update(now / 1000, dt, camera, {
+            height: l.height,
+            opening: l.opening,
+            color: l.color,
+            metallic: l.metallic,
+            motion: l.motion,
+            lower: l.lowerOn,
+            lowerHeight: l.lowerHeight,
+            zipper: l.zipperOn,
+            waterInside: l.waterOn,
+            waterInsideLevel: l.waterLevel,
+            drop: l.drop,
+            weight: l.weight,
+            wrinkles: l.wrinkles,
+            darkness: l.darkness,
+            eyeAboveWater: camY - surfaceY,
+            skyColor: uniforms.uSkyColor.value,
+            horizonColor: uniforms.uHorizonColor.value,
+            waterColor: uniforms.uWaterDeep.value,
+            sunColor: uniforms.uSunColor.value,
+            sunDir: uniforms.uSunDir.value,
+            underwater: uniforms.uUnderwater.value,
+          });
         });
-      } else {
-        hood.hide();
       }
 
       // Cap actual GPU renders to targetFps (gogglesFpsCap instead while
@@ -11912,7 +11994,7 @@ export function Aquafulness() {
       snowfall.dispose();
       fireworks.dispose();
       confetti.dispose();
-      hood.dispose();
+      for (const h of hoods) h.dispose();
       scene.environment = null;
       iblTarget?.dispose();
       pmrem.dispose();
@@ -12662,6 +12744,16 @@ export function Aquafulness() {
     setHoodWaterOn,
     hoodWaterLevel,
     setHoodWaterLevel,
+    hoodDrop,
+    setHoodDrop,
+    hoodWeight,
+    setHoodWeight,
+    hoodWrinkles,
+    setHoodWrinkles,
+    hoodDarkness,
+    setHoodDarkness,
+    hoodExtraLayers,
+    setHoodExtraLayers,
     targetFps,
     setTargetFps,
     resolutionScale,
