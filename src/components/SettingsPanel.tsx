@@ -768,6 +768,12 @@ export type SettingsPanelProps = {
   setHoodMetallic: Dispatch<SetStateAction<number>>;
   hoodMotion: number;
   setHoodMotion: Dispatch<SetStateAction<number>>;
+  hoodLowerOn: boolean;
+  setHoodLowerOn: Dispatch<SetStateAction<boolean>>;
+  hoodLowerHeight: number;
+  setHoodLowerHeight: Dispatch<SetStateAction<number>>;
+  hoodZipperOn: boolean;
+  setHoodZipperOn: Dispatch<SetStateAction<boolean>>;
   // General performance controls (independent of SIMGLASÖGON): caps the
   // main render loop's fps and scales the renderer's internal resolution.
   targetFps: number;
@@ -1878,6 +1884,12 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setHoodMetallic,
     hoodMotion,
     setHoodMotion,
+    hoodLowerOn,
+    setHoodLowerOn,
+    hoodLowerHeight,
+    setHoodLowerHeight,
+    hoodZipperOn,
+    setHoodZipperOn,
     targetFps,
     setTargetFps,
     resolutionScale,
@@ -4172,18 +4184,20 @@ export function SettingsPanel(props: SettingsPanelProps) {
                 />
                 {hoodOn && (
                   <>
-                    <SettingRow
-                      label={t("dial.camera.hoodHeight")}
-                      mode="number"
-                      value={`${Math.round(hoodHeight * 100)}%`}
-                      rawValue={hoodHeight}
-                      onSet={(v) => setHoodHeight(Math.max(0, Math.min(1, v)))}
-                      min={0}
-                      max={1}
-                      step={0.05}
-                      onDec={() => setHoodHeight((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
-                      onInc={() => setHoodHeight((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
-                    />
+                    {!hoodLowerOn && (
+                      <SettingRow
+                        label={t("dial.camera.hoodHeight")}
+                        mode="number"
+                        value={`${Math.round(hoodHeight * 100)}%`}
+                        rawValue={hoodHeight}
+                        onSet={(v) => setHoodHeight(Math.max(0, Math.min(1, v)))}
+                        min={0}
+                        max={1}
+                        step={0.05}
+                        onDec={() => setHoodHeight((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                        onInc={() => setHoodHeight((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+                      />
+                    )}
                     <SettingRow
                       label={t("dial.camera.hoodOpening")}
                       mode="number"
@@ -4196,6 +4210,34 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       onDec={() => setHoodOpening((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
                       onInc={() => setHoodOpening((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
                     />
+                    <SettingRow
+                      label={t("dial.camera.hoodLower")}
+                      value={onOff(hoodLowerOn)}
+                      onDec={() => setHoodLowerOn(false)}
+                      onInc={() => setHoodLowerOn(true)}
+                    />
+                    {hoodLowerOn && (
+                      <>
+                        <SettingRow
+                          label={t("dial.camera.hoodLowerHeight")}
+                          mode="number"
+                          value={`${Math.round(hoodLowerHeight * 100)}%`}
+                          rawValue={hoodLowerHeight}
+                          onSet={(v) => setHoodLowerHeight(Math.max(0, Math.min(1, v)))}
+                          min={0}
+                          max={1}
+                          step={0.05}
+                          onDec={() => setHoodLowerHeight((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                          onInc={() => setHoodLowerHeight((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+                        />
+                        <SettingRow
+                          label={t("dial.camera.hoodZipper")}
+                          value={onOff(hoodZipperOn)}
+                          onDec={() => setHoodZipperOn(false)}
+                          onInc={() => setHoodZipperOn(true)}
+                        />
+                      </>
+                    )}
                     <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
                       <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
                         {t("dial.camera.hoodColor")}

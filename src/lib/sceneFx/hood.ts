@@ -23,6 +23,12 @@ export type HoodConfig = {
   height: number;
   /** 0..1: size of the face opening, tight (0) .. wide (1) (ÖPPNING). */
   opening: number;
+  /** Also cover the mouth and neck, closing the hood under the face (MUN OCH HALS). */
+  lower: boolean;
+  /** 0..1: how high up the view the mouth/neck cover reaches (TÄCKHÖJD). */
+  lowerHeight: number;
+  /** A zipper down the middle of the mouth/neck cover (BLIXTLÅS). */
+  zipper: boolean;
   /** "#rrggbb" fabric color (FÄRG). */
   color: string;
   /** 0..1: matte cloth (0) .. wet metallic sheen (1) (METALLGLANS). */
@@ -58,6 +64,9 @@ const FRAG = /* glsl */ `
   uniform float uMotion;
   uniform float uHeight;
   uniform float uOpening;
+  uniform float uLower;
+  uniform float uLowerHeight;
+  uniform float uZipper;
   uniform float uMetal;
   uniform vec3 uColor;
   uniform vec3 uSky;
@@ -87,6 +96,13 @@ const FRAG = /* glsl */ `
     if (q.y > 0.0) {
       vec2 e = abs(vec2(q.x / a, q.y / b));
       r = pow(pow(e.x, 2.6) + pow(e.y, 2.6), 1.0 / 2.6);
+    } else if (uLower > 0.5) {
+      // MUN OCH HALS: the hood closes under the face, the cover's top edge
+      // at this screen height (wider and flatter than the top of the hood).
+      float edgeY = mix(-0.92, -0.05, uLowerHeight) + uSway.y;
+      float bb = max(c.y - edgeY, 0.05);
+      vec2 e = abs(vec2(q.x / a, q.y / bb));
+      r = pow(pow(e.x, 3.2) + pow(e.y, 3.2), 1.0 / 3.2);
     } else {
       // Below the opening's center the sides hang straight, flaring a little.
       r = abs(q.x) / (a * (1.0 + 0.12 * q.y * q.y));
@@ -113,12 +129,27 @@ const FRAG = /* glsl */ `
     // toward the opening.
     float yCut = mix(-1.08, 0.8, uHeight) + 0.22 * exp(-max(t, 0.0) * 7.0);
     float cut = p.y - yCut + 0.01 * sin(p.x * 11.0 + uTime * 1.3) * uMotion;
+    // With MUN OCH HALS on, the fabric runs all the way down.
+    if (uLower > 0.5) cut = 1.0;
     return vec3(t, h, cut);
   }
 
   vec3 env(vec3 d) {
     if (d.y >= 0.0) return mix(uHorizon, uSky, pow(clamp(d.y, 0.0, 1.0), 0.6));
     return mix(uHorizon, uWater, smoothstep(0.0, 0.35, -d.y));
+  }
+
+  // A brushed-metal shade for the zipper's teeth, slider and pull.
+  vec3 metalShade(vec3 nView, vec3 V, vec3 L) {
+    vec3 N = normalize(uViewToWorld * nView);
+    vec3 R = reflect(-V, N);
+    float sunUp = clamp(L.y + 0.15, 0.0, 1.0);
+    // Silver lit by the sky, plus a softer mirror term (a pure mirror would
+    // mostly show the dark water below and read as black).
+    vec3 lit = mix(uHorizon, uSky, 0.5) * 0.75 + uSunCol * 0.25 * sunUp + 0.12;
+    vec3 c = vec3(0.66, 0.68, 0.72) * lit + env(R) * 0.3;
+    c += uSunCol * pow(max(dot(R, L), 0.0), 60.0) * 1.6 * sunUp;
+    return c * mix(0.75, 1.0, clamp(N.y * 0.5 + 0.5, 0.0, 1.0));
   }
 
   void main() {
@@ -166,6 +197,46 @@ const FRAG = /* glsl */ `
     col += env(N) * m * 0.18 * smoothstep(0.55, 1.0, ndv) * ao;
     col *= hemLight + 0.35;
 
+    // BLIXTLÅS: a zipper down the middle of the mouth/neck cover, with the
+    // slider and its pull tab at the top.
+    if (uLower > 0.5 && uZipper > 0.5) {
+      vec2 zc = vec2(uSway.x, 0.04 + uSway.y);
+      float edgeY = mix(-0.92, -0.05, uLowerHeight) + uSway.y;
+      float zx = p.x - zc.x - 0.005 * sin(p.y * 5.0 + uTime * 0.8) * uMotion;
+      float top = edgeY - HEM * 0.35;
+      float aa = max(fwidth(p.x), 1e-4);
+      if (p.y < top + 0.01) {
+        float below = 1.0 - smoothstep(top - aa, top, p.y);
+        // Tape: a darker strip of fabric the teeth sit on.
+        float tape = (1.0 - smoothstep(0.045 - aa, 0.045, abs(zx))) * below;
+        col = mix(col, col * 0.55, tape);
+        // Teeth, alternating from each side and interlocking at the middle.
+        float period = 0.036;
+        float k = p.y / period;
+        float side = mod(floor(k), 2.0) * 2.0 - 1.0;
+        float fy = fract(k);
+        float tooth = (1.0 - smoothstep(0.026 - aa, 0.026, abs(zx))) *
+          smoothstep(0.1, 0.1 + aa / period, fy) * (1.0 - smoothstep(0.9 - aa / period, 0.9, fy)) *
+          step(-0.009, zx * side) * below;
+        vec3 nT = normalize(vec3(zx * 12.0, (fy - 0.5) * 1.2, 1.0));
+        col = mix(col, metalShade(nT, V, L) * 0.9, tooth);
+      }
+      // Slider body just under the cover's top edge, and the pull hanging off it.
+      vec2 sp = vec2(zx, p.y - (top - 0.05));
+      vec2 sd = abs(sp) - vec2(0.036, 0.05);
+      float slider = 1.0 - smoothstep(-aa, aa, length(max(sd, 0.0)) + min(max(sd.x, sd.y), 0.0) - 0.006);
+      float swing = uSway.x * 2.0 + 0.06 * sin(uTime * 1.4) * uMotion;
+      vec2 pp = vec2(zx + (p.y - (top - 0.1)) * swing, p.y - (top - 0.19));
+      vec2 pd = abs(pp) - vec2(0.018, 0.075);
+      float pull = 1.0 - smoothstep(-aa, aa, length(max(pd, 0.0)) + min(max(pd.x, pd.y), 0.0) - 0.008);
+      float hole = 1.0 - smoothstep(-aa, aa, length(pp + vec2(0.0, 0.045)) - 0.009);
+      pull *= 1.0 - hole;
+      vec3 nS = normalize(vec3(sp.x * 10.0, sp.y * 4.0, 1.0));
+      vec3 nP = normalize(vec3(pp.x * 25.0, 0.2, 1.0));
+      col = mix(col, metalShade(nS, V, L), slider);
+      col = mix(col, metalShade(nP, V, L) * 0.95, pull);
+    }
+
     // Under water: tint toward the water and dim.
     col = mix(col, col * (uWater * 2.2 + 0.25), uUnderwater * 0.6);
 
@@ -187,6 +258,9 @@ export class Hood {
     uMotion: { value: number };
     uHeight: { value: number };
     uOpening: { value: number };
+    uLower: { value: number };
+    uLowerHeight: { value: number };
+    uZipper: { value: number };
     uMetal: { value: number };
     uColor: { value: THREE.Color };
     uSky: { value: THREE.Color };
@@ -217,6 +291,9 @@ export class Hood {
       uMotion: { value: 0.5 },
       uHeight: { value: 0.3 },
       uOpening: { value: 0.5 },
+      uLower: { value: 0 },
+      uLowerHeight: { value: 0.45 },
+      uZipper: { value: 0 },
       uMetal: { value: 0.5 },
       uColor: { value: new THREE.Color() },
       uSky: { value: new THREE.Color() },
@@ -253,6 +330,9 @@ export class Hood {
     u.uTanHalfFov.value = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
     u.uHeight.value = THREE.MathUtils.clamp(cfg.height, 0, 1);
     u.uOpening.value = THREE.MathUtils.clamp(cfg.opening, 0, 1);
+    u.uLower.value = cfg.lower ? 1 : 0;
+    u.uZipper.value = cfg.zipper ? 1 : 0;
+    u.uLowerHeight.value = THREE.MathUtils.clamp(cfg.lowerHeight, 0, 1);
     u.uMetal.value = THREE.MathUtils.clamp(cfg.metallic, 0, 1);
     const motion = THREE.MathUtils.clamp(cfg.motion, 0, 1);
     u.uMotion.value = motion;

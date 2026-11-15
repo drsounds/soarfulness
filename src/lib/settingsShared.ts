@@ -432,6 +432,11 @@ export type Persisted = {
   hoodColor: string;
   hoodMetallic: number;
   hoodMotion: number;
+  // MUN OCH HALS: also cover the mouth and neck (hoodLowerHeight = how high
+  // up the view that cover reaches, 0..1), optionally with a BLIXTLÅS zipper.
+  hoodLowerOn: boolean;
+  hoodLowerHeight: number;
+  hoodZipperOn: boolean;
   targetFps: number;
   resolutionScale: number;
   // LOW GRAPHICS MODE: a single opt-in "everything cheap" switch for lower-
@@ -1105,6 +1110,9 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "hoodColor",
     "hoodMetallic",
     "hoodMotion",
+    "hoodLowerOn",
+    "hoodLowerHeight",
+    "hoodZipperOn",
     "targetFps",
     "resolutionScale",
     "lowGraphicsMode",
