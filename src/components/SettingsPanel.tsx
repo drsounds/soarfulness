@@ -65,10 +65,12 @@ import {
   type SurgeRotationMode,
   type RetroPalette,
   type AuroraPalette,
+  type UnderwaterFogBlend,
   type NeonMode,
   type ConfettiPalette,
   RETRO_PALETTES,
   AURORA_PALETTES,
+  UNDERWATER_FOG_BLENDS,
   NEON_MODES,
   CONFETTI_PALETTES,
   SKY_CLOUDS_ALTITUDE_MIN,
@@ -898,6 +900,34 @@ export type SettingsPanelProps = {
   setAuroraColorTop: Dispatch<SetStateAction<string>>;
   auroraDaylightOn: boolean;
   setAuroraDaylightOn: Dispatch<SetStateAction<boolean>>;
+  underwaterFogOn: boolean;
+  setUnderwaterFogOn: Dispatch<SetStateAction<boolean>>;
+  underwaterFogColor: string;
+  setUnderwaterFogColor: Dispatch<SetStateAction<string>>;
+  underwaterFogOpacity: number;
+  setUnderwaterFogOpacity: Dispatch<SetStateAction<number>>;
+  underwaterFogWaterColorAuto: boolean;
+  setUnderwaterFogWaterColorAuto: Dispatch<SetStateAction<boolean>>;
+  underwaterFogWaterColor: string;
+  setUnderwaterFogWaterColor: Dispatch<SetStateAction<string>>;
+  underwaterFogWaterOpacity: number;
+  setUnderwaterFogWaterOpacity: Dispatch<SetStateAction<number>>;
+  underwaterFogIntensity: number;
+  setUnderwaterFogIntensity: Dispatch<SetStateAction<number>>;
+  underwaterFogSpread: number;
+  setUnderwaterFogSpread: Dispatch<SetStateAction<number>>;
+  underwaterFogCurve: number;
+  setUnderwaterFogCurve: Dispatch<SetStateAction<number>>;
+  underwaterFogFeather: number;
+  setUnderwaterFogFeather: Dispatch<SetStateAction<number>>;
+  underwaterFogDistance: number;
+  setUnderwaterFogDistance: Dispatch<SetStateAction<number>>;
+  underwaterFogOffset: number;
+  setUnderwaterFogOffset: Dispatch<SetStateAction<number>>;
+  underwaterFogSubmergedOnly: boolean;
+  setUnderwaterFogSubmergedOnly: Dispatch<SetStateAction<boolean>>;
+  underwaterFogBlend: UnderwaterFogBlend;
+  setUnderwaterFogBlend: Dispatch<SetStateAction<UnderwaterFogBlend>>;
   wakeLock: boolean;
   setWakeLock: Dispatch<SetStateAction<boolean>>;
 
@@ -1978,6 +2008,34 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setAuroraColorTop,
     auroraDaylightOn,
     setAuroraDaylightOn,
+    underwaterFogOn,
+    setUnderwaterFogOn,
+    underwaterFogColor,
+    setUnderwaterFogColor,
+    underwaterFogOpacity,
+    setUnderwaterFogOpacity,
+    underwaterFogWaterColorAuto,
+    setUnderwaterFogWaterColorAuto,
+    underwaterFogWaterColor,
+    setUnderwaterFogWaterColor,
+    underwaterFogWaterOpacity,
+    setUnderwaterFogWaterOpacity,
+    underwaterFogIntensity,
+    setUnderwaterFogIntensity,
+    underwaterFogSpread,
+    setUnderwaterFogSpread,
+    underwaterFogCurve,
+    setUnderwaterFogCurve,
+    underwaterFogFeather,
+    setUnderwaterFogFeather,
+    underwaterFogDistance,
+    setUnderwaterFogDistance,
+    underwaterFogOffset,
+    setUnderwaterFogOffset,
+    underwaterFogSubmergedOnly,
+    setUnderwaterFogSubmergedOnly,
+    underwaterFogBlend,
+    setUnderwaterFogBlend,
     wakeLock,
     setWakeLock,
     waterColorIdx,
@@ -5437,6 +5495,167 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       value={onOff(auroraDaylightOn)}
                       onDec={() => setAuroraDaylightOn(false)}
                       onInc={() => setAuroraDaylightOn(true)}
+                    />
+                  </>
+                )}
+                <SettingRow
+                  label={t("dial.env.underwaterFog")}
+                  value={onOff(underwaterFogOn)}
+                  onDec={() => setUnderwaterFogOn(false)}
+                  onInc={() => setUnderwaterFogOn(true)}
+                />
+                {underwaterFogOn && (
+                  <>
+                    <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
+                      <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
+                        {t("dial.env.underwaterFogColor")}
+                      </span>
+                      <input
+                        type="color"
+                        value={underwaterFogColor}
+                        onChange={(e) => setUnderwaterFogColor(e.target.value)}
+                        className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
+                      />
+                    </label>
+                    <SettingRow
+                      label={t("dial.env.underwaterFogOpacity")}
+                      mode="number"
+                      value={`${Math.round(underwaterFogOpacity * 100)}%`}
+                      rawValue={underwaterFogOpacity}
+                      onSet={(v) => setUnderwaterFogOpacity(Math.max(0, Math.min(1, v)))}
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      onDec={() => setUnderwaterFogOpacity((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                      onInc={() => setUnderwaterFogOpacity((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+                    />
+                    <SettingRow
+                      label={t("dial.env.underwaterFogWaterColorMode")}
+                      value={t(
+                        `dial.env.underwaterFogWaterColorValue.${underwaterFogWaterColorAuto ? "auto" : "custom"}`,
+                      )}
+                      onDec={() => setUnderwaterFogWaterColorAuto((v) => !v)}
+                      onInc={() => setUnderwaterFogWaterColorAuto((v) => !v)}
+                    />
+                    {!underwaterFogWaterColorAuto && (
+                      <>
+                    <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
+                      <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
+                        {t("dial.env.underwaterFogWaterColorPick")}
+                      </span>
+                      <input
+                        type="color"
+                        value={underwaterFogWaterColor}
+                        onChange={(e) => setUnderwaterFogWaterColor(e.target.value)}
+                        className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
+                      />
+                    </label>
+                      </>
+                    )}
+                    <SettingRow
+                      label={t("dial.env.underwaterFogWaterOpacity")}
+                      mode="number"
+                      value={`${Math.round(underwaterFogWaterOpacity * 100)}%`}
+                      rawValue={underwaterFogWaterOpacity}
+                      onSet={(v) => setUnderwaterFogWaterOpacity(Math.max(0, Math.min(1, v)))}
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      onDec={() => setUnderwaterFogWaterOpacity((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                      onInc={() => setUnderwaterFogWaterOpacity((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+                    />
+                    <SettingRow
+                      label={t("dial.env.underwaterFogIntensity")}
+                      mode="number"
+                      value={`${Math.round(underwaterFogIntensity * 100)}%`}
+                      rawValue={underwaterFogIntensity}
+                      onSet={(v) => setUnderwaterFogIntensity(Math.max(0, Math.min(1, v)))}
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      onDec={() => setUnderwaterFogIntensity((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                      onInc={() => setUnderwaterFogIntensity((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+                    />
+                    <SettingRow
+                      label={t("dial.env.underwaterFogSpread")}
+                      mode="number"
+                      value={`${Math.round(underwaterFogSpread * 100)}%`}
+                      rawValue={underwaterFogSpread}
+                      onSet={(v) => setUnderwaterFogSpread(Math.max(0.05, Math.min(1, v)))}
+                      min={0.05}
+                      max={1}
+                      step={0.05}
+                      onDec={() => setUnderwaterFogSpread((v) => Math.max(0.05, +(v - 0.05).toFixed(2)))}
+                      onInc={() => setUnderwaterFogSpread((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+                    />
+                    <SettingRow
+                      label={t("dial.env.underwaterFogCurve")}
+                      mode="number"
+                      value={underwaterFogCurve.toFixed(1)}
+                      rawValue={underwaterFogCurve}
+                      onSet={(v) => setUnderwaterFogCurve(Math.max(0.2, Math.min(4, v)))}
+                      min={0.2}
+                      max={4}
+                      step={0.1}
+                      onDec={() => setUnderwaterFogCurve((v) => Math.max(0.2, +(v - 0.1).toFixed(2)))}
+                      onInc={() => setUnderwaterFogCurve((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
+                    />
+                    <SettingRow
+                      label={t("dial.env.underwaterFogFeather")}
+                      mode="number"
+                      value={`${Math.round(underwaterFogFeather * 100)}%`}
+                      rawValue={underwaterFogFeather}
+                      onSet={(v) => setUnderwaterFogFeather(Math.max(0, Math.min(0.3, v)))}
+                      min={0}
+                      max={0.3}
+                      step={0.01}
+                      onDec={() => setUnderwaterFogFeather((v) => Math.max(0, +(v - 0.01).toFixed(2)))}
+                      onInc={() => setUnderwaterFogFeather((v) => Math.min(0.3, +(v + 0.01).toFixed(2)))}
+                    />
+                    <SettingRow
+                      label={t("dial.env.underwaterFogDistance")}
+                      mode="number"
+                      value={`${Math.round(underwaterFogDistance)} m`}
+                      rawValue={underwaterFogDistance}
+                      onSet={(v) => setUnderwaterFogDistance(Math.max(2, Math.min(500, v)))}
+                      min={2}
+                      max={500}
+                      step={1}
+                      onDec={() => setUnderwaterFogDistance((v) => Math.max(2, +(v - 1).toFixed(2)))}
+                      onInc={() => setUnderwaterFogDistance((v) => Math.min(500, +(v + 1).toFixed(2)))}
+                    />
+                    <SettingRow
+                      label={t("dial.env.underwaterFogOffset")}
+                      mode="number"
+                      value={`${Math.round(underwaterFogOffset * 100)}%`}
+                      rawValue={underwaterFogOffset}
+                      onSet={(v) => setUnderwaterFogOffset(Math.max(-0.5, Math.min(0.5, v)))}
+                      min={-0.5}
+                      max={0.5}
+                      step={0.01}
+                      onDec={() => setUnderwaterFogOffset((v) => Math.max(-0.5, +(v - 0.01).toFixed(2)))}
+                      onInc={() => setUnderwaterFogOffset((v) => Math.min(0.5, +(v + 0.01).toFixed(2)))}
+                    />
+                    <SettingRow
+                      label={t("dial.env.underwaterFogSubmergedOnly")}
+                      value={onOff(underwaterFogSubmergedOnly)}
+                      onDec={() => setUnderwaterFogSubmergedOnly(false)}
+                      onInc={() => setUnderwaterFogSubmergedOnly(true)}
+                    />
+                    <SettingRow
+                      label={t("dial.env.underwaterFogBlend")}
+                      value={t(`dial.env.underwaterFogBlendValue.${underwaterFogBlend}`)}
+                      options={UNDERWATER_FOG_BLENDS.map((b) => t(`dial.env.underwaterFogBlendValue.${b}`))}
+                      selectedIndex={Math.max(0, UNDERWATER_FOG_BLENDS.indexOf(underwaterFogBlend))}
+                      onSelectIndex={(i) => setUnderwaterFogBlend(UNDERWATER_FOG_BLENDS[i])}
+                      onDec={() =>
+                        setUnderwaterFogBlend(
+                          (b) => UNDERWATER_FOG_BLENDS[(Math.max(0, UNDERWATER_FOG_BLENDS.indexOf(b)) - 1 + UNDERWATER_FOG_BLENDS.length) % UNDERWATER_FOG_BLENDS.length],
+                        )
+                      }
+                      onInc={() =>
+                        setUnderwaterFogBlend((b) => UNDERWATER_FOG_BLENDS[(Math.max(0, UNDERWATER_FOG_BLENDS.indexOf(b)) + 1) % UNDERWATER_FOG_BLENDS.length])
+                      }
                     />
                   </>
                 )}

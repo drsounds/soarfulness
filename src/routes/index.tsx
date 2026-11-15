@@ -22,6 +22,7 @@ import { RETRO_PALETTE_INDEX, RETRO_SHADER } from "@/lib/sceneFx/retroShader";
 import { limitMax, useExtremeLimits, type LimitedControl } from "@/lib/extremeLimits";
 import { NeonEdges } from "@/lib/sceneFx/NeonEdges";
 import { Aurora } from "@/lib/sceneFx/aurora";
+import { UnderwaterFogOverlay, waterlineScreenFraction } from "@/lib/sceneFx/underwaterFog";
 import { OpenDrift } from "@/lib/openDrift";
 import { SnowCover, Snowfall } from "@/lib/sceneFx/snow";
 import { Fireworks, FIREWORKS_LIGHTS } from "@/lib/sceneFx/fireworks";
@@ -1665,6 +1666,21 @@ const DEFAULTS: Persisted = {
   auroraColorMain: "#3dff8c",
   auroraColorTop: "#c23a9e",
   auroraDaylightOn: false,
+  // UNDERVATTENDIS: underwater fog gradient overlay, off by default.
+  underwaterFogOn: false,
+  underwaterFogColor: "#a8d8e8",
+  underwaterFogOpacity: 0.45,
+  underwaterFogWaterColorAuto: true,
+  underwaterFogWaterColor: "#0e4a6e",
+  underwaterFogWaterOpacity: 0.55,
+  underwaterFogIntensity: 1,
+  underwaterFogSpread: 0.7,
+  underwaterFogCurve: 1,
+  underwaterFogFeather: 0.04,
+  underwaterFogDistance: 12,
+  underwaterFogOffset: 0,
+  underwaterFogSubmergedOnly: false,
+  underwaterFogBlend: "normal",
   cameraMode: "float",
   noclipSpeed: 1,
   noclipFallRiseSpeed: 48,
@@ -2364,6 +2380,20 @@ export function Aquafulness() {
   const [auroraColorMain, setAuroraColorMain] = useState(initial.auroraColorMain);
   const [auroraColorTop, setAuroraColorTop] = useState(initial.auroraColorTop);
   const [auroraDaylightOn, setAuroraDaylightOn] = useState(initial.auroraDaylightOn);
+  const [underwaterFogOn, setUnderwaterFogOn] = useState(initial.underwaterFogOn);
+  const [underwaterFogColor, setUnderwaterFogColor] = useState(initial.underwaterFogColor);
+  const [underwaterFogOpacity, setUnderwaterFogOpacity] = useState(initial.underwaterFogOpacity);
+  const [underwaterFogWaterColorAuto, setUnderwaterFogWaterColorAuto] = useState(initial.underwaterFogWaterColorAuto);
+  const [underwaterFogWaterColor, setUnderwaterFogWaterColor] = useState(initial.underwaterFogWaterColor);
+  const [underwaterFogWaterOpacity, setUnderwaterFogWaterOpacity] = useState(initial.underwaterFogWaterOpacity);
+  const [underwaterFogIntensity, setUnderwaterFogIntensity] = useState(initial.underwaterFogIntensity);
+  const [underwaterFogSpread, setUnderwaterFogSpread] = useState(initial.underwaterFogSpread);
+  const [underwaterFogCurve, setUnderwaterFogCurve] = useState(initial.underwaterFogCurve);
+  const [underwaterFogFeather, setUnderwaterFogFeather] = useState(initial.underwaterFogFeather);
+  const [underwaterFogDistance, setUnderwaterFogDistance] = useState(initial.underwaterFogDistance);
+  const [underwaterFogOffset, setUnderwaterFogOffset] = useState(initial.underwaterFogOffset);
+  const [underwaterFogSubmergedOnly, setUnderwaterFogSubmergedOnly] = useState(initial.underwaterFogSubmergedOnly);
+  const [underwaterFogBlend, setUnderwaterFogBlend] = useState(initial.underwaterFogBlend);
   const [cameraMode, setCameraMode] = useState<CameraMode>(initial.cameraMode);
   const [noclipSpeed, setNoclipSpeed] = useState(initial.noclipSpeed);
   const [noclipFallRiseSpeed, setNoclipFallRiseSpeed] = useState(initial.noclipFallRiseSpeed);
@@ -2943,6 +2973,26 @@ export function Aquafulness() {
   const auroraColorMainRef = useRef(auroraColorMain);
   const auroraColorTopRef = useRef(auroraColorTop);
   const auroraDaylightOnRef = useRef(auroraDaylightOn);
+  // UNDERVATTENDIS settings, read by the render loop every frame.
+  const underwaterFogSettings = {
+    underwaterFogOn,
+    underwaterFogColor,
+    underwaterFogOpacity,
+    underwaterFogWaterColorAuto,
+    underwaterFogWaterColor,
+    underwaterFogWaterOpacity,
+    underwaterFogIntensity,
+    underwaterFogSpread,
+    underwaterFogCurve,
+    underwaterFogFeather,
+    underwaterFogDistance,
+    underwaterFogOffset,
+    underwaterFogSubmergedOnly,
+    underwaterFogBlend,
+  };
+  const underwaterFogSettingsRef = useRef(underwaterFogSettings);
+  underwaterFogSettingsRef.current = underwaterFogSettings;
+  const underwaterFogElRef = useRef<HTMLDivElement | null>(null);
 
   // A full snapshot of every settings-dialog field, in the exact Persisted
   // shape saved to localStorage below — also reused by the preset save/
@@ -3149,6 +3199,20 @@ export function Aquafulness() {
     auroraColorMain,
     auroraColorTop,
     auroraDaylightOn,
+    underwaterFogOn,
+    underwaterFogColor,
+    underwaterFogOpacity,
+    underwaterFogWaterColorAuto,
+    underwaterFogWaterColor,
+    underwaterFogWaterOpacity,
+    underwaterFogIntensity,
+    underwaterFogSpread,
+    underwaterFogCurve,
+    underwaterFogFeather,
+    underwaterFogDistance,
+    underwaterFogOffset,
+    underwaterFogSubmergedOnly,
+    underwaterFogBlend,
     cameraMode,
     noclipSpeed,
     noclipFallRiseSpeed,
@@ -3449,6 +3513,20 @@ export function Aquafulness() {
     auroraColorMain,
     auroraColorTop,
     auroraDaylightOn,
+    underwaterFogOn,
+    underwaterFogColor,
+    underwaterFogOpacity,
+    underwaterFogWaterColorAuto,
+    underwaterFogWaterColor,
+    underwaterFogWaterOpacity,
+    underwaterFogIntensity,
+    underwaterFogSpread,
+    underwaterFogCurve,
+    underwaterFogFeather,
+    underwaterFogDistance,
+    underwaterFogOffset,
+    underwaterFogSubmergedOnly,
+    underwaterFogBlend,
     cameraMode,
     noclipSpeed,
     noclipFallRiseSpeed,
@@ -5280,6 +5358,20 @@ export function Aquafulness() {
     setAuroraColorMain(DEFAULTS.auroraColorMain);
     setAuroraColorTop(DEFAULTS.auroraColorTop);
     setAuroraDaylightOn(DEFAULTS.auroraDaylightOn);
+    setUnderwaterFogOn(DEFAULTS.underwaterFogOn);
+    setUnderwaterFogColor(DEFAULTS.underwaterFogColor);
+    setUnderwaterFogOpacity(DEFAULTS.underwaterFogOpacity);
+    setUnderwaterFogWaterColorAuto(DEFAULTS.underwaterFogWaterColorAuto);
+    setUnderwaterFogWaterColor(DEFAULTS.underwaterFogWaterColor);
+    setUnderwaterFogWaterOpacity(DEFAULTS.underwaterFogWaterOpacity);
+    setUnderwaterFogIntensity(DEFAULTS.underwaterFogIntensity);
+    setUnderwaterFogSpread(DEFAULTS.underwaterFogSpread);
+    setUnderwaterFogCurve(DEFAULTS.underwaterFogCurve);
+    setUnderwaterFogFeather(DEFAULTS.underwaterFogFeather);
+    setUnderwaterFogDistance(DEFAULTS.underwaterFogDistance);
+    setUnderwaterFogOffset(DEFAULTS.underwaterFogOffset);
+    setUnderwaterFogSubmergedOnly(DEFAULTS.underwaterFogSubmergedOnly);
+    setUnderwaterFogBlend(DEFAULTS.underwaterFogBlend);
     setCameraMode(DEFAULTS.cameraMode);
     setNoclipSpeed(DEFAULTS.noclipSpeed);
     setNoclipFallRiseSpeed(DEFAULTS.noclipFallRiseSpeed);
@@ -5598,6 +5690,20 @@ export function Aquafulness() {
     if (patch.auroraColorMain !== undefined) setAuroraColorMain(patch.auroraColorMain);
     if (patch.auroraColorTop !== undefined) setAuroraColorTop(patch.auroraColorTop);
     if (patch.auroraDaylightOn !== undefined) setAuroraDaylightOn(patch.auroraDaylightOn);
+    if (patch.underwaterFogOn !== undefined) setUnderwaterFogOn(patch.underwaterFogOn);
+    if (patch.underwaterFogColor !== undefined) setUnderwaterFogColor(patch.underwaterFogColor);
+    if (patch.underwaterFogOpacity !== undefined) setUnderwaterFogOpacity(patch.underwaterFogOpacity);
+    if (patch.underwaterFogWaterColorAuto !== undefined) setUnderwaterFogWaterColorAuto(patch.underwaterFogWaterColorAuto);
+    if (patch.underwaterFogWaterColor !== undefined) setUnderwaterFogWaterColor(patch.underwaterFogWaterColor);
+    if (patch.underwaterFogWaterOpacity !== undefined) setUnderwaterFogWaterOpacity(patch.underwaterFogWaterOpacity);
+    if (patch.underwaterFogIntensity !== undefined) setUnderwaterFogIntensity(patch.underwaterFogIntensity);
+    if (patch.underwaterFogSpread !== undefined) setUnderwaterFogSpread(patch.underwaterFogSpread);
+    if (patch.underwaterFogCurve !== undefined) setUnderwaterFogCurve(patch.underwaterFogCurve);
+    if (patch.underwaterFogFeather !== undefined) setUnderwaterFogFeather(patch.underwaterFogFeather);
+    if (patch.underwaterFogDistance !== undefined) setUnderwaterFogDistance(patch.underwaterFogDistance);
+    if (patch.underwaterFogOffset !== undefined) setUnderwaterFogOffset(patch.underwaterFogOffset);
+    if (patch.underwaterFogSubmergedOnly !== undefined) setUnderwaterFogSubmergedOnly(patch.underwaterFogSubmergedOnly);
+    if (patch.underwaterFogBlend !== undefined) setUnderwaterFogBlend(patch.underwaterFogBlend);
     if (patch.cameraMode !== undefined) setCameraMode(patch.cameraMode);
     if (patch.noclipSpeed !== undefined) setNoclipSpeed(patch.noclipSpeed);
     if (patch.noclipFallRiseSpeed !== undefined) setNoclipFallRiseSpeed(patch.noclipFallRiseSpeed);
@@ -8779,6 +8885,9 @@ export function Aquafulness() {
     // NORRSKEN: northern lights curtains, at infinity like the sky dome and
     // drawn behind everything in the scene (see lib/sceneFx/aurora.ts).
     const aurora = new Aurora(scene);
+    // UNDERVATTENDIS: drives the fog gradient overlay element (DOM, not GL).
+    const underwaterFog = new UnderwaterFogOverlay();
+    let underwaterFogEl: HTMLDivElement | null = null;
 
     // HAVSDRIFT: endless open-water drift state (lib/openDrift.ts).
     const openDrift = new OpenDrift();
@@ -11388,6 +11497,45 @@ export function Aquafulness() {
       uniforms.uAuroraElev.value = aurora.glowElevation;
       uniforms.uAuroraHeight.value = auroraHeightRef.current;
 
+      // UNDERVATTENDIS: the fog gradient over the 3D view, its top edge
+      // docked to the on-screen waterline VATTENLINJEAVSTÅND meters ahead —
+      // it sinks as the camera rises above the water and climbs as it dives.
+      {
+        const fog = underwaterFogSettingsRef.current;
+        const el = underwaterFogElRef.current;
+        if (el !== underwaterFogEl) {
+          underwaterFogEl = el;
+          underwaterFog.reset();
+        }
+        if (fog.underwaterFogOn && el) {
+          const topFrac =
+            waterlineScreenFraction(camera, ocean.position.y, fog.underwaterFogDistance) +
+            fog.underwaterFogOffset;
+          const ws = uniforms.uWaterShallow.value;
+          const wd = uniforms.uWaterDeep.value;
+          const waterRgb: [number, number, number] = fog.underwaterFogWaterColorAuto
+            ? [
+                ws.r * 0.45 + wd.r * 0.55,
+                ws.g * 0.45 + wd.g * 0.55,
+                ws.b * 0.45 + wd.b * 0.55,
+              ]
+            : hexToRgbNorm(fog.underwaterFogWaterColor);
+          underwaterFog.update(el, dt, topFrac, fog.underwaterFogBlend, {
+            fogColor: fog.underwaterFogColor,
+            fogOpacity: fog.underwaterFogOpacity,
+            waterColor: waterRgb,
+            waterOpacity: fog.underwaterFogWaterOpacity,
+            intensity: fog.underwaterFogIntensity,
+            spread: fog.underwaterFogSpread,
+            curve: fog.underwaterFogCurve,
+            feather: fog.underwaterFogFeather,
+            visibility: fog.underwaterFogSubmergedOnly
+              ? Math.min(1, (uniforms.uUnderwater.value as number) * 3)
+              : 1,
+          });
+        }
+      }
+
       // Backdrop / skybox priority:
       //  - A real environment skybox (scene.background) wins: hide the sky dome,
       //    ignore the flat DOM backdrop, keep an opaque clear behind it. A
@@ -12607,6 +12755,34 @@ export function Aquafulness() {
     setAuroraColorTop,
     auroraDaylightOn,
     setAuroraDaylightOn,
+    underwaterFogOn,
+    setUnderwaterFogOn,
+    underwaterFogColor,
+    setUnderwaterFogColor,
+    underwaterFogOpacity,
+    setUnderwaterFogOpacity,
+    underwaterFogWaterColorAuto,
+    setUnderwaterFogWaterColorAuto,
+    underwaterFogWaterColor,
+    setUnderwaterFogWaterColor,
+    underwaterFogWaterOpacity,
+    setUnderwaterFogWaterOpacity,
+    underwaterFogIntensity,
+    setUnderwaterFogIntensity,
+    underwaterFogSpread,
+    setUnderwaterFogSpread,
+    underwaterFogCurve,
+    setUnderwaterFogCurve,
+    underwaterFogFeather,
+    setUnderwaterFogFeather,
+    underwaterFogDistance,
+    setUnderwaterFogDistance,
+    underwaterFogOffset,
+    setUnderwaterFogOffset,
+    underwaterFogSubmergedOnly,
+    setUnderwaterFogSubmergedOnly,
+    underwaterFogBlend,
+    setUnderwaterFogBlend,
     wakeLock,
     setWakeLock,
     waterColorIdx,
@@ -12924,6 +13100,17 @@ export function Aquafulness() {
             </p>
           </div>
         </div>
+      )}
+
+      {/* UNDERVATTENDIS: underwater fog gradient (MILJÖ settings), styled
+          from the render loop. Above the 3D canvas, below the goggles
+          droplets and every HUD control. */}
+      {underwaterFogOn && (
+        <div
+          ref={underwaterFogElRef}
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0"
+        />
       )}
 
       {/* Optional "swimming goggles" effect — water droplets on the lens,
