@@ -155,6 +155,8 @@
       "hoodLower": "MOUTH AND NECK",
       "hoodLowerHeight": "COVER HEIGHT",
       "hoodZipper": "ZIPPER",
+      "hoodWater": "WATER IN HOOD",
+      "hoodWaterLevel": "WATER LEVEL",
       "intervalCount": "NUMBER OF INTERVALS",
       "intervalDuration": "INTERVAL",
       "intervalIncludeFloat": "INTERVAL: DEFAULT",

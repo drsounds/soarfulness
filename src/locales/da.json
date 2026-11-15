@@ -155,6 +155,8 @@
       "hoodLower": "MUND OG HALS",
       "hoodLowerHeight": "DÆKHØJDE",
       "hoodZipper": "LYNLÅS",
+      "hoodWater": "VAND I HÆTTEN",
+      "hoodWaterLevel": "VANDSTAND",
       "intervalCount": "ANTAL INTERVALLER",
       "intervalDuration": "INTERVAL",
       "intervalIncludeFloat": "INTERVAL: STANDARD",

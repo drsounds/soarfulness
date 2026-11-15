@@ -437,6 +437,10 @@ export type Persisted = {
   hoodLowerOn: boolean;
   hoodLowerHeight: number;
   hoodZipperOn: boolean;
+  // VATTEN I HUVAN: water runs in inside the hood below the waterline, like
+  // swimming in clothes; hoodWaterLevel (0..1) raises it above the sea outside.
+  hoodWaterOn: boolean;
+  hoodWaterLevel: number;
   targetFps: number;
   resolutionScale: number;
   // LOW GRAPHICS MODE: a single opt-in "everything cheap" switch for lower-
@@ -1113,6 +1117,8 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "hoodLowerOn",
     "hoodLowerHeight",
     "hoodZipperOn",
+    "hoodWaterOn",
+    "hoodWaterLevel",
     "targetFps",
     "resolutionScale",
     "lowGraphicsMode",

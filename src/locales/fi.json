@@ -155,6 +155,8 @@
       "hoodLower": "SUU JA KAULA",
       "hoodLowerHeight": "PEITON KORKEUS",
       "hoodZipper": "VETOKETJU",
+      "hoodWater": "VETTÄ HUPUSSA",
+      "hoodWaterLevel": "VEDENPINTA",
       "intervalCount": "INTERVALLIEN MÄÄRÄ",
       "intervalDuration": "INTERVALLI",
       "intervalIncludeFloat": "INTERVALLI: VAKIO",

@@ -1445,6 +1445,8 @@ const DEFAULTS: Persisted = {
   hoodLowerOn: false,
   hoodLowerHeight: 0.45,
   hoodZipperOn: false,
+  hoodWaterOn: false,
+  hoodWaterLevel: 0.3,
   // General performance controls, independent of SIMGLASÖGON: targetFps caps
   // renderer.render() calls at all times (not just while goggles are on —
   // see the fpsCap logic in the animate() loop below), and resolutionScale
@@ -2125,6 +2127,8 @@ export function Aquafulness() {
   const [hoodLowerOn, setHoodLowerOn] = useState(initial.hoodLowerOn);
   const [hoodLowerHeight, setHoodLowerHeight] = useState(initial.hoodLowerHeight);
   const [hoodZipperOn, setHoodZipperOn] = useState(initial.hoodZipperOn);
+  const [hoodWaterOn, setHoodWaterOn] = useState(initial.hoodWaterOn);
+  const [hoodWaterLevel, setHoodWaterLevel] = useState(initial.hoodWaterLevel);
   const [targetFps, setTargetFps] = useState(initial.targetFps);
   const [resolutionScale, setResolutionScale] = useState(initial.resolutionScale);
   const [lowGraphicsMode, setLowGraphicsMode] = useState(initial.lowGraphicsMode);
@@ -3050,6 +3054,8 @@ export function Aquafulness() {
     hoodLowerOn,
     hoodLowerHeight,
     hoodZipperOn,
+    hoodWaterOn,
+    hoodWaterLevel,
     targetFps,
     resolutionScale,
     lowGraphicsMode,
@@ -3364,6 +3370,8 @@ export function Aquafulness() {
     hoodLowerOn,
     hoodLowerHeight,
     hoodZipperOn,
+    hoodWaterOn,
+    hoodWaterLevel,
     targetFps,
     resolutionScale,
     lowGraphicsMode,
@@ -3886,6 +3894,8 @@ export function Aquafulness() {
   const hoodLowerOnRef = useRef(hoodLowerOn);
   const hoodLowerHeightRef = useRef(hoodLowerHeight);
   const hoodZipperOnRef = useRef(hoodZipperOn);
+  const hoodWaterOnRef = useRef(hoodWaterOn);
+  const hoodWaterLevelRef = useRef(hoodWaterLevel);
   // General performance controls — read every frame by the animate() loop
   // below (targetFps: caps renderer.render() calls whenever SIMGLASÖGON is
   // off, mirroring gogglesFpsCapRef's cap for when it's on; resolutionScale:
@@ -4679,6 +4689,8 @@ export function Aquafulness() {
     hoodLowerOnRef.current = hoodLowerOn;
     hoodLowerHeightRef.current = hoodLowerHeight;
     hoodZipperOnRef.current = hoodZipperOn;
+    hoodWaterOnRef.current = hoodWaterOn;
+    hoodWaterLevelRef.current = hoodWaterLevel;
   }, [
     hoodOn,
     hoodHeight,
@@ -4689,6 +4701,8 @@ export function Aquafulness() {
     hoodLowerOn,
     hoodLowerHeight,
     hoodZipperOn,
+    hoodWaterOn,
+    hoodWaterLevel,
   ]);
   useEffect(() => {
     auroraOnRef.current = auroraOn;
@@ -5211,6 +5225,8 @@ export function Aquafulness() {
     setHoodLowerOn(DEFAULTS.hoodLowerOn);
     setHoodLowerHeight(DEFAULTS.hoodLowerHeight);
     setHoodZipperOn(DEFAULTS.hoodZipperOn);
+    setHoodWaterOn(DEFAULTS.hoodWaterOn);
+    setHoodWaterLevel(DEFAULTS.hoodWaterLevel);
     setTargetFps(DEFAULTS.targetFps);
     setResolutionScale(DEFAULTS.resolutionScale);
     setLowGraphicsMode(DEFAULTS.lowGraphicsMode);
@@ -5523,6 +5539,8 @@ export function Aquafulness() {
     if (patch.hoodLowerOn !== undefined) setHoodLowerOn(patch.hoodLowerOn);
     if (patch.hoodLowerHeight !== undefined) setHoodLowerHeight(patch.hoodLowerHeight);
     if (patch.hoodZipperOn !== undefined) setHoodZipperOn(patch.hoodZipperOn);
+    if (patch.hoodWaterOn !== undefined) setHoodWaterOn(patch.hoodWaterOn);
+    if (patch.hoodWaterLevel !== undefined) setHoodWaterLevel(patch.hoodWaterLevel);
     if (patch.targetFps !== undefined) setTargetFps(patch.targetFps);
     if (patch.resolutionScale !== undefined) setResolutionScale(patch.resolutionScale);
     if (patch.lowGraphicsMode !== undefined) setLowGraphicsMode(patch.lowGraphicsMode);
@@ -11795,6 +11813,9 @@ export function Aquafulness() {
           lower: hoodLowerOnRef.current,
           lowerHeight: hoodLowerHeightRef.current,
           zipper: hoodZipperOnRef.current,
+          waterInside: hoodWaterOnRef.current,
+          waterInsideLevel: hoodWaterLevelRef.current,
+          eyeAboveWater: camY - surfaceY,
           skyColor: uniforms.uSkyColor.value,
           horizonColor: uniforms.uHorizonColor.value,
           waterColor: uniforms.uWaterDeep.value,
@@ -12637,6 +12658,10 @@ export function Aquafulness() {
     setHoodLowerHeight,
     hoodZipperOn,
     setHoodZipperOn,
+    hoodWaterOn,
+    setHoodWaterOn,
+    hoodWaterLevel,
+    setHoodWaterLevel,
     targetFps,
     setTargetFps,
     resolutionScale,
