@@ -7495,14 +7495,13 @@ export function Aquafulness() {
         }
 
         // NORRSKEN: the aurora reflected in the water — a soft band of its
-        // light at the curtains' elevation, toward the north unless they're
-        // overhead; the wave normals in R break it up into streaks.
+        // light at the curtains' elevation, all around (the curtains ring
+        // the whole sky); the wave normals in R break it up into streaks.
         if (uAuroraGlow.r + uAuroraGlow.g + uAuroraGlow.b > 0.0005) {
           vec3 Ra = normalize(vec3(R.x, max(R.y, 0.0), R.z));
           float el = asin(Ra.y);
-          float north = mix(smoothstep(-0.35, 0.75, -Ra.z), 1.0, uAuroraHeight * uAuroraHeight);
           float bandW = 0.16 + 0.35 * uAuroraHeight;
-          float k = exp(-pow((el - uAuroraElev) / bandW, 2.0)) * north;
+          float k = exp(-pow((el - uAuroraElev) / bandW, 2.0));
           skyRef += uAuroraGlow * k;
         }
 
