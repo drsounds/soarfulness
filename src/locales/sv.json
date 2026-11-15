@@ -451,6 +451,20 @@
       "surgeDirection": "SVALL RIKTNING",
       "surgeRotationMode": "SVALL ROTATION",
       "surgeRotationSpeed": "SVALL ROTATIONSHASTIGHET",
+      "openDrift": "HAVSDRIFT",
+      "openDriftCurve": "DRIFTKURVA",
+      "openDriftCurveValue": {
+        "circle": "CIRKEL",
+        "wander": "SLUMPVIS"
+      },
+      "openDriftRadius": "CIRKELRADIE",
+      "openDriftDirection": "RIKTNING",
+      "openDriftDirectionValue": {
+        "cw": "MEDURS",
+        "ccw": "MOTURS"
+      },
+      "openDriftCycleSpeed": "CYKELTEMPO",
+      "openDriftMagnitude": "DRIFTSTYRKA",
       "surgeSpeed": "SVALL TEMPO",
       "sway": "SVAJ",
       "swayDirection": "SVAJ RIKTNING",
