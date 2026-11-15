@@ -755,8 +755,8 @@ export type Persisted = {
   // NORRSKEN: northern lights in the sky (lib/sceneFx/aurora.ts), shown at
   // night (faded with TIMEOFDAY) unless auroraDaylightOn. auroraIntensity =
   // brightness, auroraAmount = how many bands / how much sky they cover
-  // (0..1), auroraSpeed = how fast they move, auroraHeight = low over the
-  // northern horizon (0) .. overhead (1).
+  // (0..1), auroraSpeed = how fast they move, auroraHeight = low on the
+  // horizon all around (0) .. a corona overhead (1).
   auroraOn: boolean;
   auroraIntensity: number;
   auroraAmount: number;

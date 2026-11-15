@@ -12,21 +12,29 @@ import type { AuroraPalette } from "@/lib/settingsShared";
 // patches drifting along each band and the color layering (a pinkish lower
 // fringe, the bright main color, a faint top color).
 //
+// Every band is a ring around the camera, so the aurora shows in all
+// directions: low on the horizon all around at HÖJD 0, closing in to a corona
+// overhead at HÖJD 1. A ring runs a little more than a full turn and its two
+// ends cross-fade over the overlap; its course and folds use whole wave
+// counts per turn, so the seam doesn't show. The bands' seams are spread out.
+//
 // The curtains live in a camera-following group, so they sit "at infinity"
 // like the sky dome, and every vertex is pushed onto the far plane: anything
 // in the scene (islands, buildings, clouds, the water) is drawn in front of
 // them, while they draw over the sky dome, the environment skybox and the
 // flat DOM backdrop (the blending adds light, also on the transparent canvas).
 //
-// Coordinates: north is -Z. Units are "curtain base altitudes" (1 = the
+// Coordinates: north is -Z (the first band's middle). Units are "curtain base altitudes" (1 = the
 // bottom edge of the curtains), the group's scale only keeps the geometry
 // well clear of the near plane.
 
 export const AURORA_MAX_BANDS = 7;
-const SEGMENTS = 260;
-// Half the length of a band along east-west (in base altitudes) — long
-// enough to reach the horizon on both sides.
-const X_HALF = 42;
+const SEGMENTS = 420;
+// How many turns a ring spans; the part past one turn is the cross-faded
+// overlap at its seam.
+const RING_TURNS = 1.12;
+// Arc-length scale (base altitudes per radian) for the rays and patches.
+const ARC_SCALE = 8;
 // Curtain height above its base edge, in base altitudes (~100 km → ~250 km).
 const CURTAIN_HEIGHT = 1.5;
 const GROUP_SCALE = 60;
@@ -76,7 +84,7 @@ export type AuroraConfig = {
   amount: number;
   /** 0..~3: how fast the curtains drift, fold and shimmer (RÖRELSE). */
   speed: number;
-  /** 0..1: low over the northern horizon (0) .. overhead (1) (HÖJD). */
+  /** 0..1: low on the horizon all around (0) .. a corona overhead (1) (HÖJD). */
   height: number;
   palette: AuroraPalette;
   /** Hex colors used by the "custom" palette. */
@@ -198,33 +206,38 @@ export class Aurora {
           // Bands switch on one by one as MÄNGD grows (the first always).
           float bands = 1.0 + uAmount * ${(AURORA_MAX_BANDS - 1).toFixed(1)};
           float bandOn = clamp(bands - band, 0.0, 1.0);
-          // Low amounts give partial arcs; high amounts span the sky.
-          float len = clamp(0.3 + uAmount * 0.9 + s1 * 0.25 - band * 0.04, 0.25, 1.0);
-          float u = (s2 - 0.5) * (1.0 - len) + (aRib.x - 0.5) * len;
-          float x = u * ${(2 * X_HALF).toFixed(1)};
-          // Distance north of the camera: the first band at HÖJD's
-          // distance, the others alternating behind and in front of it.
+          // A ring around the camera, a little over one turn. The first
+          // band is centered on north, the others start at random angles.
+          float theta0 = band < 0.5 ? 0.0 : s2 * 6.2832;
+          float theta = theta0 + (aRib.x - 0.5) * ${(RING_TURNS * 2 * Math.PI).toFixed(4)};
+          float x = theta * ${ARC_SCALE.toFixed(1)};
+          // Ring radius: the first band at HÖJD's distance, the others
+          // alternating outside and inside it.
           float r = ceil(band * 0.5) * (mod(band, 2.0) > 0.5 ? -1.0 : 1.0);
           float d0 = mix(7.0, 0.12, pow(uHeight, 0.8));
           float spread = 0.5 + uAmount * 0.5;
           float d = d0 * exp(r * 0.32 * spread) + r * 0.22 * spread + (s3 - 0.5) * 0.2;
-          // The curtain's wavy course and folds, slowly drifting.
-          float amp = 0.25 + 0.18 * abs(d);
-          float z = d
-            + amp * sin(x * 0.11 + s1 * 6.2832 + t * 0.045)
-            + amp * 0.45 * sin(x * 0.27 - t * 0.07 + s2 * 6.2832)
-            + 0.14 * sin(x * 0.85 + t * 0.21 + s3 * 6.2832)
-            + 0.05 * sin(x * 2.3 - t * 0.5 + s1 * 6.2832);
+          d = max(abs(d), 0.15);
+          // The curtain's wavy course and folds, slowly drifting. Whole
+          // wave counts per turn keep the course continuous over the seam.
+          float amp = min(0.25 + 0.18 * d, d * 0.6);
+          float R = d
+            + amp * sin(theta * 3.0 + s1 * 6.2832 + t * 0.045)
+            + amp * 0.45 * sin(theta * 7.0 - t * 0.07 + s2 * 6.2832)
+            + min(0.14, d * 0.3) * sin(theta * 13.0 + t * 0.21 + s3 * 6.2832)
+            + min(0.05, d * 0.15) * sin(theta * 31.0 - t * 0.5 + s1 * 6.2832);
           // Ragged, slowly breathing top edge; base edge with a slight sag.
           float top = ${CURTAIN_HEIGHT.toFixed(2)} * (0.55 + 0.75 * auroraNoise(x * 0.16 + s3 * 40.0 + t * 0.06));
-          float y = 1.0 - 0.06 * sin(x * 0.2 + t * 0.03 + s2 * 6.2832) + aRib.y * top;
-          vec3 p = vec3(x, y, -z);
+          float y = 1.0 - 0.06 * sin(theta * 5.0 + t * 0.03 + s2 * 6.2832) + aRib.y * top;
+          vec3 p = vec3(R * sin(theta), y, -R * cos(theta));
           vX = x + band * 37.0;
           vV = aRib.y;
           vBand = band;
-          // Fade out at the ribbon ends and near the horizon (the light
-          // travels through more air there).
-          float ends = smoothstep(0.0, 0.14, aRib.x) * smoothstep(1.0, 0.86, aRib.x);
+          // Cross-fade the two overlapping ends of the ring (the fades sum
+          // to 1 over the overlap), and fade out near the horizon (the
+          // light travels through more air there).
+          float ov = ${((RING_TURNS - 1) / RING_TURNS).toFixed(5)};
+          float ends = smoothstep(0.0, ov, aRib.x) * smoothstep(1.0, 1.0 - ov, aRib.x);
           float elev = normalize(vec3(p.x, 1.0, p.z)).y;
           vFade = bandOn * ends * smoothstep(0.02, 0.16, elev);
           vec4 clip = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
