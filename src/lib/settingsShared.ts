@@ -2,6 +2,7 @@ import vanernBackdrop from "@/assets/vanern-backdrop.png.asset.json";
 import sandTextureAsset from "@/assets/sand_cc0_512.jpg.asset.json";
 import waterAsset from "@/assets/water.mp3.asset.json";
 import type { OpenDriftCurve, OpenDriftDirection } from "@/lib/openDrift";
+import type { HoodLayer } from "@/lib/hoodLayers";
 
 // Shared between the main HUD's settings dialog (routes/index.tsx) and its
 // clone rendered as the "Inställningar" app inside the virtual phone's bathOS
@@ -441,6 +442,14 @@ export type Persisted = {
   // swimming in clothes; hoodWaterLevel (0..1) raises it above the sea outside.
   hoodWaterOn: boolean;
   hoodWaterLevel: number;
+  // HUVHÖJD (hoodDrop), TYNGD (hoodWeight), VÅTA VECK (hoodWrinkles) and
+  // MÖRKHET (hoodDarkness) for layer 1, all 0..1; layers 2+ live in
+  // hoodExtraLayers (lib/hoodLayers.ts).
+  hoodDrop: number;
+  hoodWeight: number;
+  hoodWrinkles: number;
+  hoodDarkness: number;
+  hoodExtraLayers: HoodLayer[];
   targetFps: number;
   resolutionScale: number;
   // LOW GRAPHICS MODE: a single opt-in "everything cheap" switch for lower-
@@ -1119,6 +1128,11 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "hoodZipperOn",
     "hoodWaterOn",
     "hoodWaterLevel",
+    "hoodDrop",
+    "hoodWeight",
+    "hoodWrinkles",
+    "hoodDarkness",
+    "hoodExtraLayers",
     "targetFps",
     "resolutionScale",
     "lowGraphicsMode",

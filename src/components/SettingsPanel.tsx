@@ -22,6 +22,8 @@ import {
 import { Link } from "@tanstack/react-router";
 import { Save } from "lucide-react";
 import { SettingRow } from "@/components/SettingRow";
+import { HoodSettings } from "@/components/HoodSettings";
+import type { HoodLayer } from "@/lib/hoodLayers";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { hsvToRgb, tintToCss } from "@/lib/waterTint";
 import {
@@ -778,6 +780,16 @@ export type SettingsPanelProps = {
   setHoodWaterOn: Dispatch<SetStateAction<boolean>>;
   hoodWaterLevel: number;
   setHoodWaterLevel: Dispatch<SetStateAction<number>>;
+  hoodDrop: number;
+  setHoodDrop: Dispatch<SetStateAction<number>>;
+  hoodWeight: number;
+  setHoodWeight: Dispatch<SetStateAction<number>>;
+  hoodWrinkles: number;
+  setHoodWrinkles: Dispatch<SetStateAction<number>>;
+  hoodDarkness: number;
+  setHoodDarkness: Dispatch<SetStateAction<number>>;
+  hoodExtraLayers: HoodLayer[];
+  setHoodExtraLayers: Dispatch<SetStateAction<HoodLayer[]>>;
   // General performance controls (independent of SIMGLASÖGON): caps the
   // main render loop's fps and scales the renderer's internal resolution.
   targetFps: number;
@@ -1898,6 +1910,16 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setHoodWaterOn,
     hoodWaterLevel,
     setHoodWaterLevel,
+    hoodDrop,
+    setHoodDrop,
+    hoodWeight,
+    setHoodWeight,
+    hoodWrinkles,
+    setHoodWrinkles,
+    hoodDarkness,
+    setHoodDarkness,
+    hoodExtraLayers,
+    setHoodExtraLayers,
     targetFps,
     setTargetFps,
     resolutionScale,
@@ -4184,125 +4206,45 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   onDec={() => setGogglesFpsCap((v) => Math.max(10, v - 5))}
                   onInc={() => setGogglesFpsCap((v) => Math.min(60, v + 5))}
                 />
-                <SettingRow
-                  label={t("dial.camera.hood")}
-                  value={onOff(hoodOn)}
-                  onDec={() => setHoodOn(false)}
-                  onInc={() => setHoodOn(true)}
+                <HoodSettings
+                  hoodOn={hoodOn}
+                  setHoodOn={setHoodOn}
+                  layer1={{
+                    on: true,
+                    height: hoodHeight,
+                    opening: hoodOpening,
+                    color: hoodColor,
+                    metallic: hoodMetallic,
+                    motion: hoodMotion,
+                    lowerOn: hoodLowerOn,
+                    lowerHeight: hoodLowerHeight,
+                    zipperOn: hoodZipperOn,
+                    waterOn: hoodWaterOn,
+                    waterLevel: hoodWaterLevel,
+                    drop: hoodDrop,
+                    weight: hoodWeight,
+                    wrinkles: hoodWrinkles,
+                    darkness: hoodDarkness,
+                  }}
+                  setLayer1={(p) => {
+                    if (p.height !== undefined) setHoodHeight(p.height);
+                    if (p.opening !== undefined) setHoodOpening(p.opening);
+                    if (p.color !== undefined) setHoodColor(p.color);
+                    if (p.metallic !== undefined) setHoodMetallic(p.metallic);
+                    if (p.motion !== undefined) setHoodMotion(p.motion);
+                    if (p.lowerOn !== undefined) setHoodLowerOn(p.lowerOn);
+                    if (p.lowerHeight !== undefined) setHoodLowerHeight(p.lowerHeight);
+                    if (p.zipperOn !== undefined) setHoodZipperOn(p.zipperOn);
+                    if (p.waterOn !== undefined) setHoodWaterOn(p.waterOn);
+                    if (p.waterLevel !== undefined) setHoodWaterLevel(p.waterLevel);
+                    if (p.drop !== undefined) setHoodDrop(p.drop);
+                    if (p.weight !== undefined) setHoodWeight(p.weight);
+                    if (p.wrinkles !== undefined) setHoodWrinkles(p.wrinkles);
+                    if (p.darkness !== undefined) setHoodDarkness(p.darkness);
+                  }}
+                  extraLayers={hoodExtraLayers}
+                  setExtraLayers={setHoodExtraLayers}
                 />
-                {hoodOn && (
-                  <>
-                    {!hoodLowerOn && (
-                      <SettingRow
-                        label={t("dial.camera.hoodHeight")}
-                        mode="number"
-                        value={`${Math.round(hoodHeight * 100)}%`}
-                        rawValue={hoodHeight}
-                        onSet={(v) => setHoodHeight(Math.max(0, Math.min(1, v)))}
-                        min={0}
-                        max={1}
-                        step={0.05}
-                        onDec={() => setHoodHeight((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
-                        onInc={() => setHoodHeight((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
-                      />
-                    )}
-                    <SettingRow
-                      label={t("dial.camera.hoodOpening")}
-                      mode="number"
-                      value={`${Math.round(hoodOpening * 100)}%`}
-                      rawValue={hoodOpening}
-                      onSet={(v) => setHoodOpening(Math.max(0, Math.min(1, v)))}
-                      min={0}
-                      max={1}
-                      step={0.05}
-                      onDec={() => setHoodOpening((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
-                      onInc={() => setHoodOpening((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
-                    />
-                    <SettingRow
-                      label={t("dial.camera.hoodLower")}
-                      value={onOff(hoodLowerOn)}
-                      onDec={() => setHoodLowerOn(false)}
-                      onInc={() => setHoodLowerOn(true)}
-                    />
-                    {hoodLowerOn && (
-                      <>
-                        <SettingRow
-                          label={t("dial.camera.hoodLowerHeight")}
-                          mode="number"
-                          value={`${Math.round(hoodLowerHeight * 100)}%`}
-                          rawValue={hoodLowerHeight}
-                          onSet={(v) => setHoodLowerHeight(Math.max(0, Math.min(1, v)))}
-                          min={0}
-                          max={1}
-                          step={0.05}
-                          onDec={() => setHoodLowerHeight((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
-                          onInc={() => setHoodLowerHeight((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
-                        />
-                        <SettingRow
-                          label={t("dial.camera.hoodZipper")}
-                          value={onOff(hoodZipperOn)}
-                          onDec={() => setHoodZipperOn(false)}
-                          onInc={() => setHoodZipperOn(true)}
-                        />
-                      </>
-                    )}
-                    <SettingRow
-                      label={t("dial.camera.hoodWater")}
-                      value={onOff(hoodWaterOn)}
-                      onDec={() => setHoodWaterOn(false)}
-                      onInc={() => setHoodWaterOn(true)}
-                    />
-                    {hoodWaterOn && (
-                      <SettingRow
-                        label={t("dial.camera.hoodWaterLevel")}
-                        mode="number"
-                        value={`${Math.round(hoodWaterLevel * 100)}%`}
-                        rawValue={hoodWaterLevel}
-                        onSet={(v) => setHoodWaterLevel(Math.max(0, Math.min(1, v)))}
-                        min={0}
-                        max={1}
-                        step={0.05}
-                        onDec={() => setHoodWaterLevel((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
-                        onInc={() => setHoodWaterLevel((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
-                      />
-                    )}
-                    <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
-                      <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
-                        {t("dial.camera.hoodColor")}
-                      </span>
-                      <input
-                        type="color"
-                        value={hoodColor}
-                        onChange={(e) => setHoodColor(e.target.value)}
-                        className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
-                      />
-                    </label>
-                    <SettingRow
-                      label={t("dial.camera.hoodMetallic")}
-                      mode="number"
-                      value={`${Math.round(hoodMetallic * 100)}%`}
-                      rawValue={hoodMetallic}
-                      onSet={(v) => setHoodMetallic(Math.max(0, Math.min(1, v)))}
-                      min={0}
-                      max={1}
-                      step={0.05}
-                      onDec={() => setHoodMetallic((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
-                      onInc={() => setHoodMetallic((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
-                    />
-                    <SettingRow
-                      label={t("dial.camera.hoodMotion")}
-                      mode="number"
-                      value={`${Math.round(hoodMotion * 100)}%`}
-                      rawValue={hoodMotion}
-                      onSet={(v) => setHoodMotion(Math.max(0, Math.min(1, v)))}
-                      min={0}
-                      max={1}
-                      step={0.05}
-                      onDec={() => setHoodMotion((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
-                      onInc={() => setHoodMotion((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
-                    />
-                  </>
-                )}
                 <SettingRow
                   label={t("dial.camera.lowGraphicsMode")}
                   value={onOff(lowGraphicsMode)}
