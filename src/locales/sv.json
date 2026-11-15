@@ -155,6 +155,8 @@
       "hoodLower": "MUN OCH HALS",
       "hoodLowerHeight": "TÄCKHÖJD",
       "hoodZipper": "BLIXTLÅS",
+      "hoodWater": "VATTEN I HUVAN",
+      "hoodWaterLevel": "VATTENNIVÅ",
       "intervalCount": "ANTAL INTERVALL",
       "intervalDuration": "INTERVALL",
       "intervalIncludeFloat": "INTERVALL: STANDARD",

@@ -29,6 +29,12 @@ export type HoodConfig = {
   lowerHeight: number;
   /** A zipper down the middle of the mouth/neck cover (BLIXTLÅS). */
   zipper: boolean;
+  /** Water runs in inside the hood below the waterline (VATTEN I HUVAN). */
+  waterInside: boolean;
+  /** 0..1: how much higher the water inside sits than the sea outside (VATTENNIVÅ). */
+  waterInsideLevel: number;
+  /** Eye height above the water surface at the bather (m, negative under water). */
+  eyeAboveWater: number;
   /** "#rrggbb" fabric color (FÄRG). */
   color: string;
   /** 0..1: matte cloth (0) .. wet metallic sheen (1) (METALLGLANS). */
@@ -67,6 +73,9 @@ const FRAG = /* glsl */ `
   uniform float uLower;
   uniform float uLowerHeight;
   uniform float uZipper;
+  uniform float uWaterIn;
+  uniform float uEyeAbove;
+  uniform float uWaterLevelIn;
   uniform float uMetal;
   uniform vec3 uColor;
   uniform vec3 uSky;
@@ -169,6 +178,30 @@ const FRAG = /* glsl */ `
     float hx1 = hoodField(p + vec2(e, 0.0)).y;
     float hy1 = hoodField(p + vec2(0.0, e)).y;
     vec3 nView = normalize(vec3(-(hx1 - f.y) / e, -(hy1 - f.y) / e, 1.0));
+
+    // VATTEN I HUVAN: water that has run in between the hood and the face.
+    // The fabric sits about HOOD_DIST m from the eye along this pixel's view
+    // ray, so it is under water where eye height + ray.y * HOOD_DIST drops
+    // below the (sloshing) water inside. Tilting the head moves the line,
+    // and it fills the whole hood once the head goes under.
+    float wl = 1.0;
+    float wet = 0.0;
+    if (uWaterIn > 0.5) {
+      const float HOOD_DIST = 0.3;
+      vec3 rayW = normalize(uViewToWorld * vec3(p.x * uTanHalfFov, p.y * uTanHalfFov, -1.0));
+      float slosh = (0.6 * uSway.x * rayW.x + 0.4 * uSway.y) * 0.9 +
+        (0.006 + 0.012 * uMotion) * sin(rayW.x * 9.0 + rayW.z * 5.0 + uTime * 2.1) +
+        (0.004 + 0.008 * uMotion) * sin(rayW.z * 13.0 - rayW.x * 4.0 - uTime * 2.9);
+      wl = uEyeAbove - uWaterLevelIn * 0.35 + rayW.y * HOOD_DIST - slosh;
+      float aaW = max(fwidth(wl), 1e-4);
+      wet = 1.0 - smoothstep(-aaW, aaW, wl);
+      // Seen through the water the fabric's folds wobble.
+      vec2 wob = vec2(
+        sin(p.y * 38.0 + uTime * 3.1) + sin(p.x * 23.0 - uTime * 2.2),
+        cos(p.x * 35.0 - uTime * 2.6) + cos(p.y * 19.0 + uTime * 1.7)
+      ) * 0.09;
+      nView = normalize(nView + vec3(wob * wet, 0.0));
+    }
     vec3 vView = normalize(vec3(-p.x * uTanHalfFov, -p.y * uTanHalfFov, 1.0));
     vec3 N = normalize(uViewToWorld * nView);
     vec3 V = normalize(uViewToWorld * vView);
@@ -237,6 +270,23 @@ const FRAG = /* glsl */ `
       col = mix(col, metalShade(nP, V, L) * 0.95, pull);
     }
 
+    if (uWaterIn > 0.5) {
+      // Fabric under the water inside the hood: tinted, dimmer, with a soft
+      // caustic shimmer, and a bright meniscus along the waterline.
+      float depth = max(-wl, 0.0);
+      vec3 tint = mix(uWater * 1.6 + 0.05, mix(uHorizon, uSky, 0.5) * 0.45, 0.35);
+      float shimmer = pow(
+        (0.5 + 0.5 * sin(p.x * 23.0 + uTime * 2.4 + sin(p.y * 17.0 - uTime * 1.9) * 2.0)) *
+        (0.5 + 0.5 * sin(p.y * 29.0 - p.x * 11.0 - uTime * 1.7 + sin(p.x * 13.0 + uTime) * 1.5)),
+        3.0);
+      vec3 under = mix(col, col * 0.5 + tint * 0.6, 0.65 * (1.0 - exp(-depth * 10.0)) + 0.35);
+      under += mix(uHorizon, uSky, 0.5) * shimmer * 0.09 * exp(-depth * 6.0);
+      col = mix(col, under, wet);
+      float aaW = max(fwidth(wl), 1e-4);
+      float meniscus = exp(-abs(wl) / (aaW * 2.5 + 0.004));
+      col += (mix(uHorizon, uSky, 0.5) * 0.45 + uSunCol * 0.15) * meniscus * inside;
+    }
+
     // Under water: tint toward the water and dim.
     col = mix(col, col * (uWater * 2.2 + 0.25), uUnderwater * 0.6);
 
@@ -261,6 +311,9 @@ export class Hood {
     uLower: { value: number };
     uLowerHeight: { value: number };
     uZipper: { value: number };
+    uWaterIn: { value: number };
+    uEyeAbove: { value: number };
+    uWaterLevelIn: { value: number };
     uMetal: { value: number };
     uColor: { value: THREE.Color };
     uSky: { value: THREE.Color };
@@ -294,6 +347,9 @@ export class Hood {
       uLower: { value: 0 },
       uLowerHeight: { value: 0.45 },
       uZipper: { value: 0 },
+      uWaterIn: { value: 0 },
+      uEyeAbove: { value: 1 },
+      uWaterLevelIn: { value: 0.3 },
       uMetal: { value: 0.5 },
       uColor: { value: new THREE.Color() },
       uSky: { value: new THREE.Color() },
@@ -332,6 +388,9 @@ export class Hood {
     u.uOpening.value = THREE.MathUtils.clamp(cfg.opening, 0, 1);
     u.uLower.value = cfg.lower ? 1 : 0;
     u.uZipper.value = cfg.zipper ? 1 : 0;
+    u.uWaterIn.value = cfg.waterInside ? 1 : 0;
+    u.uWaterLevelIn.value = THREE.MathUtils.clamp(cfg.waterInsideLevel, 0, 1);
+    u.uEyeAbove.value = Number.isFinite(cfg.eyeAboveWater) ? cfg.eyeAboveWater : 1;
     u.uLowerHeight.value = THREE.MathUtils.clamp(cfg.lowerHeight, 0, 1);
     u.uMetal.value = THREE.MathUtils.clamp(cfg.metallic, 0, 1);
     const motion = THREE.MathUtils.clamp(cfg.motion, 0, 1);

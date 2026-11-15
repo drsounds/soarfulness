@@ -774,6 +774,10 @@ export type SettingsPanelProps = {
   setHoodLowerHeight: Dispatch<SetStateAction<number>>;
   hoodZipperOn: boolean;
   setHoodZipperOn: Dispatch<SetStateAction<boolean>>;
+  hoodWaterOn: boolean;
+  setHoodWaterOn: Dispatch<SetStateAction<boolean>>;
+  hoodWaterLevel: number;
+  setHoodWaterLevel: Dispatch<SetStateAction<number>>;
   // General performance controls (independent of SIMGLASÖGON): caps the
   // main render loop's fps and scales the renderer's internal resolution.
   targetFps: number;
@@ -1890,6 +1894,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setHoodLowerHeight,
     hoodZipperOn,
     setHoodZipperOn,
+    hoodWaterOn,
+    setHoodWaterOn,
+    hoodWaterLevel,
+    setHoodWaterLevel,
     targetFps,
     setTargetFps,
     resolutionScale,
@@ -4237,6 +4245,26 @@ export function SettingsPanel(props: SettingsPanelProps) {
                           onInc={() => setHoodZipperOn(true)}
                         />
                       </>
+                    )}
+                    <SettingRow
+                      label={t("dial.camera.hoodWater")}
+                      value={onOff(hoodWaterOn)}
+                      onDec={() => setHoodWaterOn(false)}
+                      onInc={() => setHoodWaterOn(true)}
+                    />
+                    {hoodWaterOn && (
+                      <SettingRow
+                        label={t("dial.camera.hoodWaterLevel")}
+                        mode="number"
+                        value={`${Math.round(hoodWaterLevel * 100)}%`}
+                        rawValue={hoodWaterLevel}
+                        onSet={(v) => setHoodWaterLevel(Math.max(0, Math.min(1, v)))}
+                        min={0}
+                        max={1}
+                        step={0.05}
+                        onDec={() => setHoodWaterLevel((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                        onInc={() => setHoodWaterLevel((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+                      />
                     )}
                     <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
                       <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">

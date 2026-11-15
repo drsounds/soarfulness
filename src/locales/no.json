@@ -155,6 +155,8 @@
       "hoodLower": "MUNN OG HALS",
       "hoodLowerHeight": "DEKKHØYDE",
       "hoodZipper": "GLIDELÅS",
+      "hoodWater": "VANN I HETTEN",
+      "hoodWaterLevel": "VANNNIVÅ",
       "intervalCount": "ANTALL INTERVALLER",
       "intervalDuration": "INTERVALL",
       "intervalIncludeFloat": "INTERVALL: STANDARD",
