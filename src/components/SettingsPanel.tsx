@@ -755,6 +755,19 @@ export type SettingsPanelProps = {
   setGogglesIntensity: Dispatch<SetStateAction<number>>;
   gogglesFpsCap: number;
   setGogglesFpsCap: Dispatch<SetStateAction<number>>;
+  // HUVA (lib/sceneFx/hood.ts).
+  hoodOn: boolean;
+  setHoodOn: Dispatch<SetStateAction<boolean>>;
+  hoodHeight: number;
+  setHoodHeight: Dispatch<SetStateAction<number>>;
+  hoodOpening: number;
+  setHoodOpening: Dispatch<SetStateAction<number>>;
+  hoodColor: string;
+  setHoodColor: Dispatch<SetStateAction<string>>;
+  hoodMetallic: number;
+  setHoodMetallic: Dispatch<SetStateAction<number>>;
+  hoodMotion: number;
+  setHoodMotion: Dispatch<SetStateAction<number>>;
   // General performance controls (independent of SIMGLASÖGON): caps the
   // main render loop's fps and scales the renderer's internal resolution.
   targetFps: number;
@@ -1853,6 +1866,18 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setGogglesIntensity,
     gogglesFpsCap,
     setGogglesFpsCap,
+    hoodOn,
+    setHoodOn,
+    hoodHeight,
+    setHoodHeight,
+    hoodOpening,
+    setHoodOpening,
+    hoodColor,
+    setHoodColor,
+    hoodMetallic,
+    setHoodMetallic,
+    hoodMotion,
+    setHoodMotion,
     targetFps,
     setTargetFps,
     resolutionScale,
@@ -4139,6 +4164,75 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   onDec={() => setGogglesFpsCap((v) => Math.max(10, v - 5))}
                   onInc={() => setGogglesFpsCap((v) => Math.min(60, v + 5))}
                 />
+                <SettingRow
+                  label={t("dial.camera.hood")}
+                  value={onOff(hoodOn)}
+                  onDec={() => setHoodOn(false)}
+                  onInc={() => setHoodOn(true)}
+                />
+                {hoodOn && (
+                  <>
+                    <SettingRow
+                      label={t("dial.camera.hoodHeight")}
+                      mode="number"
+                      value={`${Math.round(hoodHeight * 100)}%`}
+                      rawValue={hoodHeight}
+                      onSet={(v) => setHoodHeight(Math.max(0, Math.min(1, v)))}
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      onDec={() => setHoodHeight((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                      onInc={() => setHoodHeight((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+                    />
+                    <SettingRow
+                      label={t("dial.camera.hoodOpening")}
+                      mode="number"
+                      value={`${Math.round(hoodOpening * 100)}%`}
+                      rawValue={hoodOpening}
+                      onSet={(v) => setHoodOpening(Math.max(0, Math.min(1, v)))}
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      onDec={() => setHoodOpening((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                      onInc={() => setHoodOpening((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+                    />
+                    <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
+                      <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
+                        {t("dial.camera.hoodColor")}
+                      </span>
+                      <input
+                        type="color"
+                        value={hoodColor}
+                        onChange={(e) => setHoodColor(e.target.value)}
+                        className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
+                      />
+                    </label>
+                    <SettingRow
+                      label={t("dial.camera.hoodMetallic")}
+                      mode="number"
+                      value={`${Math.round(hoodMetallic * 100)}%`}
+                      rawValue={hoodMetallic}
+                      onSet={(v) => setHoodMetallic(Math.max(0, Math.min(1, v)))}
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      onDec={() => setHoodMetallic((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                      onInc={() => setHoodMetallic((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+                    />
+                    <SettingRow
+                      label={t("dial.camera.hoodMotion")}
+                      mode="number"
+                      value={`${Math.round(hoodMotion * 100)}%`}
+                      rawValue={hoodMotion}
+                      onSet={(v) => setHoodMotion(Math.max(0, Math.min(1, v)))}
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      onDec={() => setHoodMotion((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                      onInc={() => setHoodMotion((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+                    />
+                  </>
+                )}
                 <SettingRow
                   label={t("dial.camera.lowGraphicsMode")}
                   value={onOff(lowGraphicsMode)}

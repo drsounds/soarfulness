@@ -27,6 +27,7 @@ import { OpenDrift } from "@/lib/openDrift";
 import { SnowCover, Snowfall } from "@/lib/sceneFx/snow";
 import { Fireworks, FIREWORKS_LIGHTS } from "@/lib/sceneFx/fireworks";
 import { Confetti } from "@/lib/sceneFx/confetti";
+import { Hood } from "@/lib/sceneFx/hood";
 import { applyNeonAccent } from "@/lib/sceneFx/neonAccent";
 import { relativeDaylightTint } from "@/lib/sceneFx/daylightTint";
 import {
@@ -1434,6 +1435,13 @@ const DEFAULTS: Persisted = {
   // meaningfully less GPU/thermal load during the effect. Has no effect at
   // all while SIMGLASÖGON is off.
   gogglesFpsCap: 25,
+  // HUVA: off by default — see lib/sceneFx/hood.ts.
+  hoodOn: false,
+  hoodHeight: 0.3,
+  hoodOpening: 0.5,
+  hoodColor: "#2b3a55",
+  hoodMetallic: 0.5,
+  hoodMotion: 0.5,
   // General performance controls, independent of SIMGLASÖGON: targetFps caps
   // renderer.render() calls at all times (not just while goggles are on —
   // see the fpsCap logic in the animate() loop below), and resolutionScale
@@ -2105,6 +2113,12 @@ export function Aquafulness() {
   const [gogglesLoop, setGogglesLoop] = useState(initial.gogglesLoop);
   const [gogglesIntensity, setGogglesIntensity] = useState(initial.gogglesIntensity);
   const [gogglesFpsCap, setGogglesFpsCap] = useState(initial.gogglesFpsCap);
+  const [hoodOn, setHoodOn] = useState(initial.hoodOn);
+  const [hoodHeight, setHoodHeight] = useState(initial.hoodHeight);
+  const [hoodOpening, setHoodOpening] = useState(initial.hoodOpening);
+  const [hoodColor, setHoodColor] = useState(initial.hoodColor);
+  const [hoodMetallic, setHoodMetallic] = useState(initial.hoodMetallic);
+  const [hoodMotion, setHoodMotion] = useState(initial.hoodMotion);
   const [targetFps, setTargetFps] = useState(initial.targetFps);
   const [resolutionScale, setResolutionScale] = useState(initial.resolutionScale);
   const [lowGraphicsMode, setLowGraphicsMode] = useState(initial.lowGraphicsMode);
@@ -3021,6 +3035,12 @@ export function Aquafulness() {
     gogglesLoop,
     gogglesIntensity,
     gogglesFpsCap,
+    hoodOn,
+    hoodHeight,
+    hoodOpening,
+    hoodColor,
+    hoodMetallic,
+    hoodMotion,
     targetFps,
     resolutionScale,
     lowGraphicsMode,
@@ -3326,6 +3346,12 @@ export function Aquafulness() {
     gogglesLoop,
     gogglesIntensity,
     gogglesFpsCap,
+    hoodOn,
+    hoodHeight,
+    hoodOpening,
+    hoodColor,
+    hoodMetallic,
+    hoodMotion,
     targetFps,
     resolutionScale,
     lowGraphicsMode,
@@ -3838,6 +3864,13 @@ export function Aquafulness() {
   // closure below and GogglesOverlay's own matching cap.
   const gogglesOnRef = useRef(gogglesOn);
   const gogglesFpsCapRef = useRef(gogglesFpsCap);
+  // HUVA, read every frame by animate().
+  const hoodOnRef = useRef(hoodOn);
+  const hoodHeightRef = useRef(hoodHeight);
+  const hoodOpeningRef = useRef(hoodOpening);
+  const hoodColorRef = useRef(hoodColor);
+  const hoodMetallicRef = useRef(hoodMetallic);
+  const hoodMotionRef = useRef(hoodMotion);
   // General performance controls — read every frame by the animate() loop
   // below (targetFps: caps renderer.render() calls whenever SIMGLASÖGON is
   // off, mirroring gogglesFpsCapRef's cap for when it's on; resolutionScale:
@@ -4622,6 +4655,14 @@ export function Aquafulness() {
     if (modelRef.current) applyNeonAccent(modelRef.current, neonAccentColor);
   }, [neonAccentColor]);
   useEffect(() => {
+    hoodOnRef.current = hoodOn;
+    hoodHeightRef.current = hoodHeight;
+    hoodOpeningRef.current = hoodOpening;
+    hoodColorRef.current = hoodColor;
+    hoodMetallicRef.current = hoodMetallic;
+    hoodMotionRef.current = hoodMotion;
+  }, [hoodOn, hoodHeight, hoodOpening, hoodColor, hoodMetallic, hoodMotion]);
+  useEffect(() => {
     auroraOnRef.current = auroraOn;
     auroraIntensityRef.current = auroraIntensity;
     auroraAmountRef.current = auroraAmount;
@@ -5133,6 +5174,12 @@ export function Aquafulness() {
     setGogglesLoop(DEFAULTS.gogglesLoop);
     setGogglesIntensity(DEFAULTS.gogglesIntensity);
     setGogglesFpsCap(DEFAULTS.gogglesFpsCap);
+    setHoodOn(DEFAULTS.hoodOn);
+    setHoodHeight(DEFAULTS.hoodHeight);
+    setHoodOpening(DEFAULTS.hoodOpening);
+    setHoodColor(DEFAULTS.hoodColor);
+    setHoodMetallic(DEFAULTS.hoodMetallic);
+    setHoodMotion(DEFAULTS.hoodMotion);
     setTargetFps(DEFAULTS.targetFps);
     setResolutionScale(DEFAULTS.resolutionScale);
     setLowGraphicsMode(DEFAULTS.lowGraphicsMode);
@@ -5436,6 +5483,12 @@ export function Aquafulness() {
     if (patch.gogglesLoop !== undefined) setGogglesLoop(patch.gogglesLoop);
     if (patch.gogglesIntensity !== undefined) setGogglesIntensity(patch.gogglesIntensity);
     if (patch.gogglesFpsCap !== undefined) setGogglesFpsCap(patch.gogglesFpsCap);
+    if (patch.hoodOn !== undefined) setHoodOn(patch.hoodOn);
+    if (patch.hoodHeight !== undefined) setHoodHeight(patch.hoodHeight);
+    if (patch.hoodOpening !== undefined) setHoodOpening(patch.hoodOpening);
+    if (patch.hoodColor !== undefined) setHoodColor(patch.hoodColor);
+    if (patch.hoodMetallic !== undefined) setHoodMetallic(patch.hoodMetallic);
+    if (patch.hoodMotion !== undefined) setHoodMotion(patch.hoodMotion);
     if (patch.targetFps !== undefined) setTargetFps(patch.targetFps);
     if (patch.resolutionScale !== undefined) setResolutionScale(patch.resolutionScale);
     if (patch.lowGraphicsMode !== undefined) setLowGraphicsMode(patch.lowGraphicsMode);
@@ -8834,6 +8887,8 @@ export function Aquafulness() {
     envDomeUniforms.uSnowLight = snowCover.uLight;
     // KONFETTI: confetti falling like the snow (see lib/sceneFx/confetti.ts).
     const confetti = new Confetti(scene);
+    // HUVA: the hood framing the view (drawn last, over the 3D scene).
+    const hood = new Hood(scene);
     const envTint = new THREE.Color(1, 1, 1);
     const envTintScratch = new THREE.Color();
     const envTintNight = new THREE.Color(1, 1, 1);
@@ -11695,6 +11750,25 @@ export function Aquafulness() {
         confetti.hide();
       }
 
+      // HUVA: a hood around the bather, framing the view.
+      if (hoodOnRef.current) {
+        hood.update(now / 1000, dt, camera, {
+          height: hoodHeightRef.current,
+          opening: hoodOpeningRef.current,
+          color: hoodColorRef.current,
+          metallic: hoodMetallicRef.current,
+          motion: hoodMotionRef.current,
+          skyColor: uniforms.uSkyColor.value,
+          horizonColor: uniforms.uHorizonColor.value,
+          waterColor: uniforms.uWaterDeep.value,
+          sunColor: uniforms.uSunColor.value,
+          sunDir: uniforms.uSunDir.value,
+          underwater: uniforms.uUnderwater.value,
+        });
+      } else {
+        hood.hide();
+      }
+
       // Cap actual GPU renders to targetFps (gogglesFpsCap instead while
       // SIMGLASÖGON is on, for its own lower thermal-friendly ceiling) —
       // camera/physics/uniforms above still update every rAF tick (cheap,
@@ -11780,6 +11854,7 @@ export function Aquafulness() {
       snowfall.dispose();
       fireworks.dispose();
       confetti.dispose();
+      hood.dispose();
       scene.environment = null;
       iblTarget?.dispose();
       pmrem.dispose();
@@ -12507,6 +12582,18 @@ export function Aquafulness() {
     setGogglesIntensity,
     gogglesFpsCap,
     setGogglesFpsCap,
+    hoodOn,
+    setHoodOn,
+    hoodHeight,
+    setHoodHeight,
+    hoodOpening,
+    setHoodOpening,
+    hoodColor,
+    setHoodColor,
+    hoodMetallic,
+    setHoodMetallic,
+    hoodMotion,
+    setHoodMotion,
     targetFps,
     setTargetFps,
     resolutionScale,
