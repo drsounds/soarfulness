@@ -104,6 +104,8 @@
     "cancel": "ANNULLÉR",
     "close": "LUK",
     "decreaseAria": "{{label}} formindsk",
+    "typeToOverride": "Tryk på værdien for at skrive din egen, også uden for skyderen",
+    "typedOutOfRange": "Egen værdi uden for skyderens område",
     "high": "HØJ",
     "increaseAria": "{{label}} forøg",
     "low": "LAV",

@@ -104,6 +104,8 @@
     "cancel": "AVBRYT",
     "close": "STÄNG",
     "decreaseAria": "{{label}} minska",
+    "typeToOverride": "Tryck på värdet för att skriva ett eget, även utanför reglaget",
+    "typedOutOfRange": "Eget värde utanför reglagets område",
     "high": "HÖG",
     "increaseAria": "{{label}} öka",
     "low": "LÅG",

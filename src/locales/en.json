@@ -104,6 +104,8 @@
     "cancel": "CANCEL",
     "close": "CLOSE",
     "decreaseAria": "{{label}} decrease",
+    "typeToOverride": "Tap the value to type your own, even beyond the slider",
+    "typedOutOfRange": "Custom value outside the slider's range",
     "high": "HÖG",
     "increaseAria": "{{label}} increase",
     "low": "LÅG",

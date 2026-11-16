@@ -104,6 +104,8 @@
     "cancel": "PERUUTA",
     "close": "SULJE",
     "decreaseAria": "{{label}} pienennä",
+    "typeToOverride": "Napauta arvoa kirjoittaaksesi oman, myös liukusäätimen ulkopuolelta",
+    "typedOutOfRange": "Oma arvo liukusäätimen alueen ulkopuolella",
     "high": "KORKEA",
     "increaseAria": "{{label}} suurenna",
     "low": "MATALA",
