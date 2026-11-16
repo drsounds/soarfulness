@@ -60,8 +60,17 @@ import {
   NIGHT_TIME_ID,
   hasDayNightPair,
   nightBackdropMix,
-  sunsetTintAmount,
 } from "@/lib/sceneFx/dayNightBackdrop";
+import {
+  NEUTRAL_TWILIGHT,
+  getSkyLook,
+  goldenHourAmount,
+  resetSkyLook,
+  sampleSkyColors,
+  sunTintRgb,
+  type SkyLook,
+} from "@/lib/skyLook";
+import { applyNodeVisibility } from "@/lib/gltfVisibility";
 import { WatercraftRig } from "@/lib/watercraft/WatercraftRig";
 import type { BuildAction, SculptAction, ToolMode } from "@/lib/watercraft/types";
 import { WatercraftHud } from "@/components/watercraft/WatercraftHud";
@@ -5670,6 +5679,7 @@ export function Aquafulness() {
     setEnvDaylightTintStrength(DEFAULTS.envDaylightTintStrength);
     setEnvDayNightAutoOn(DEFAULTS.envDayNightAutoOn);
     setEnvSunTintOn(DEFAULTS.envSunTintOn);
+    resetSkyLook();
     setSnowOn(DEFAULTS.snowOn);
     setSnowAmount(DEFAULTS.snowAmount);
     setSnowIntensity(DEFAULTS.snowIntensity);
@@ -7449,6 +7459,10 @@ export function Aquafulness() {
       uEnvTintNight: { value: new THREE.Color(1, 1, 1) },
       // SOLTONING: sunrise/sunset glow on the reflected skybox (0 = off).
       uEnvSunTint: { value: 0 },
+      // HIMMELSLJUS: SOLTONING's color (brightest channel 1) and how much of
+      // the sky it covers (0 = toward the sun/horizon, 1 = everywhere).
+      uEnvSunTintColor: { value: new THREE.Color(1, 0.6, 0.4) },
+      uEnvSunTintSpread: { value: 0 },
       // NORRSKEN: the aurora's glow reflected in the water — its color ×
       // brightness (0 = off), the elevation (radians) of the main band and
       // HÖJD (0 = low in the north .. 1 = overhead, all around).
@@ -7842,6 +7856,8 @@ export function Aquafulness() {
       uniform float uEnvRotYNight;
       uniform vec3 uEnvTintNight;
       uniform float uEnvSunTint;
+      uniform vec3 uEnvSunTintColor;
+      uniform float uEnvSunTintSpread;
       uniform vec3 uAuroraGlow;
       uniform float uAuroraElev;
       uniform float uAuroraHeight;
@@ -8133,10 +8149,11 @@ export function Aquafulness() {
             vec3 Rw = normalize(vec3(R.x, max(R.y, 0.0), R.z));
             float toward = max(dot(normalize(Rw.xz + 1e-4), normalize(uSunDir.xz + 1e-4)), 0.0);
             float horizon = 1.0 - Rw.y;
-            float k = uEnvSunTint * (0.35 + 0.65 * toward * toward) * (0.4 + 0.6 * horizon * horizon);
-            vec3 warm = uSunColor / max(max(uSunColor.r, uSunColor.g), max(uSunColor.b, 1e-3));
+            float shape = (0.35 + 0.65 * toward * toward) * (0.4 + 0.6 * horizon * horizon);
+            float k = min(1.0, uEnvSunTint * mix(shape, 1.0, uEnvSunTintSpread));
+            vec3 warm = uEnvSunTintColor;
             envCol *= mix(vec3(1.0), warm, k);
-            envCol += uSunColor * uEnvSunTint * pow(max(dot(Rw, normalize(uSunDir)), 0.0), 12.0) * 0.35;
+            envCol += warm * uEnvSunTint * pow(max(dot(Rw, normalize(uSunDir)), 0.0), mix(12.0, 3.0, uEnvSunTintSpread)) * 0.35;
           }
           skyRef = mix(skyRef, envCol, uEnvReflMix);
         }
@@ -9184,8 +9201,15 @@ export function Aquafulness() {
       uTintNight: { value: new THREE.Color(1, 1, 1) },
       // SOLTONING: sunrise/sunset glow toward the sun (0 = off).
       uSunTint: { value: 0 },
+      uSunTintColor: uniforms.uEnvSunTintColor,
+      uSunTintSpread: uniforms.uEnvSunTintSpread,
       uSunDir: { value: uniforms.uSunDir.value },
       uSunColor: { value: uniforms.uSunColor.value },
+      // SOL I HIMLEN: the sun drawn into the skybox (0 = off), its angular
+      // radius (radians) and halo strength.
+      uSunDisc: { value: 0 },
+      uSunDiscRadius: { value: 0.02 },
+      uSunDiscGlow: { value: 0.6 },
       uSnowCover: { value: 0 },
       // Filled in once snowCover exists below (shared with its materials).
       uSnowLight: { value: new THREE.Color(1, 1, 1) },
@@ -9214,8 +9238,13 @@ export function Aquafulness() {
         uniform float uRotYNight;
         uniform vec3 uTintNight;
         uniform float uSunTint;
+        uniform vec3 uSunTintColor;
+        uniform float uSunTintSpread;
         uniform vec3 uSunDir;
         uniform vec3 uSunColor;
+        uniform float uSunDisc;
+        uniform float uSunDiscRadius;
+        uniform float uSunDiscGlow;
         uniform float uSnowCover;
         uniform vec3 uSnowLight;
         uniform float uSnowGray;
@@ -9244,10 +9273,26 @@ export function Aquafulness() {
           if (uSunTint > 0.001) {
             float toward = max(dot(normalize(d.xz + 1e-4), normalize(uSunDir.xz + 1e-4)), 0.0);
             float horizon = 1.0 - abs(d.y);
-            float k = uSunTint * (0.35 + 0.65 * toward * toward) * (0.4 + 0.6 * horizon * horizon);
-            vec3 warm = uSunColor / max(max(uSunColor.r, uSunColor.g), max(uSunColor.b, 1e-3));
+            // HIMMELSLJUS: uSunTintSpread widens it up to the whole sky.
+            float shape = (0.35 + 0.65 * toward * toward) * (0.4 + 0.6 * horizon * horizon);
+            float k = min(1.0, uSunTint * mix(shape, 1.0, uSunTintSpread));
+            vec3 warm = uSunTintColor;
             col *= mix(vec3(1.0), warm, k);
-            col += uSunColor * uSunTint * pow(max(dot(d, normalize(uSunDir)), 0.0), 12.0) * 0.35;
+            col += warm * uSunTint * pow(max(dot(d, normalize(uSunDir)), 0.0), mix(12.0, 3.0, uSunTintSpread)) * 0.35;
+          }
+          // SOL I HIMLEN: a sun disc plus halo at the time-of-day sun
+          // position, hidden once it's below the horizon line.
+          if (uSunDisc > 0.001) {
+            vec3 sd = normalize(uSunDir);
+            float ang = acos(clamp(dot(d, sd), -1.0, 1.0));
+            float r = max(uSunDiscRadius, 1e-4);
+            float disc = 1.0 - smoothstep(r * 0.8, r, ang);
+            float halo = exp(-ang / (r * 3.0)) * 0.6 + exp(-ang / (r * 14.0)) * 0.25;
+            float vis = smoothstep(-0.015, 0.01, d.y) * smoothstep(-0.12, 0.0, sd.y);
+            vec3 sc = uSunColor / max(max(uSunColor.r, uSunColor.g), max(uSunColor.b, 1e-3));
+            vec3 core = mix(vec3(1.0, 0.98, 0.92), sc, 0.45);
+            col = mix(col, core * 1.4, disc * vis * uSunDisc);
+            col += sc * halo * uSunDiscGlow * vis * uSunDisc;
           }
           if (uSnowCover > 0.001) {
             // SNÖTÄCKE: the ground below the horizon gets snow, keeping
@@ -9342,7 +9387,27 @@ export function Aquafulness() {
     const envTintMixed = new THREE.Color(1, 1, 1);
     // Each skybox's panorama rotation (its manifest's rotationY), stamped on
     // the texture by the skybox loader.
-    const envRotOf = (tex: THREE.Texture) => (tex.userData.envRotY as number | undefined) ?? 0;
+    const envRotOf = (tex: THREE.Texture) =>
+      ((tex.userData.envRotY as number | undefined) ?? 0) +
+      (getSkyLook().rotationDeg * Math.PI) / 180;
+    // HIMMELSLJUS "from the sky" color: a skybox's average horizon/upper-sky
+    // colors, sampled once per texture.
+    const skyColorsOfTex = (tex: THREE.Texture | null) => {
+      if (!tex) return null;
+      if (!("skyColors" in tex.userData)) {
+        tex.userData.skyColors = sampleSkyColors(tex.image as CanvasImageSource, true);
+      }
+      return tex.userData.skyColors as ReturnType<typeof sampleSkyColors>;
+    };
+    // Same for the flat backdrop photo (the <img> rendered just before its
+    // SOLTONING overlay), cached per image URL.
+    const flatSkyColors = new Map<string, ReturnType<typeof sampleSkyColors>>();
+    const skyColorsOfFlatBackdrop = () => {
+      const img = backdropSunTintRef.current?.previousElementSibling;
+      if (!(img instanceof HTMLImageElement) || !img.complete || !img.naturalWidth) return null;
+      if (!flatSkyColors.has(img.src)) flatSkyColors.set(img.src, sampleSkyColors(img, false));
+      return flatSkyColors.get(img.src) ?? null;
+    };
 
     // Handle resize
     const handleResize = () => {
@@ -9359,7 +9424,18 @@ export function Aquafulness() {
     window.addEventListener("resize", handleResize);
 
     // Palette for time of day (t: 0..1, 0=night, 0.25=sunrise, 0.5=noon, 0.75=sunset, 1=night)
-    const palette = (t: number) => {
+    // HIMMELSLJUS: `twilight` customizes the sunrise/sunset stops. With a
+    // real backdrop showing (neutral), they're replaced by neutral colors,
+    // so the water and fog follow the backdrop and only turn warm through
+    // SOLTONING (added on top in the render loop, in the same color as the
+    // backdrop's shading). The procedural sky keeps its own sunset colors,
+    // recolored/scaled by the SOLTONING color and strength.
+    type Twilight = {
+      neutral: boolean;
+      look: SkyLook;
+      skyHorizon: [number, number, number] | null;
+    };
+    const palette = (t: number, twilight?: Twilight) => {
       // sun elevation
       const sunElev = Math.sin(t * Math.PI * 2 - Math.PI / 2); // -1..1..-1
       const sunAz = t * Math.PI * 2;
@@ -9374,6 +9450,26 @@ export function Aquafulness() {
       const dawn = { top: [0.35, 0.45, 0.7], bot: [1.0, 0.55, 0.35], sun: [1.0, 0.75, 0.5] };
       const day = { top: [0.4, 0.65, 0.95], bot: [0.75, 0.88, 1.0], sun: [1.0, 0.95, 0.85] };
       const dusk = { top: [0.25, 0.15, 0.4], bot: [1.0, 0.45, 0.3], sun: [1.0, 0.55, 0.35] };
+      let tint: [number, number, number] = [1, 1, 1];
+      if (twilight) {
+        const { look } = twilight;
+        const sunNow = t < 0.5 ? dawn.sun : dusk.sun;
+        tint = sunTintRgb(look, sunNow, twilight.skyHorizon);
+        for (const stop of [dawn, dusk]) {
+          if (twilight.neutral) {
+            stop.top = [...NEUTRAL_TWILIGHT.top];
+            stop.bot = [...NEUTRAL_TWILIGHT.bot];
+            continue;
+          }
+          const s = Math.min(look.tintStrength, 3);
+          const bot = look.tintColorMode === "sun" ? stop.bot : tint;
+          for (let i = 0; i < 3; i++) {
+            stop.top[i] = NEUTRAL_TWILIGHT.top[i] + (stop.top[i] - NEUTRAL_TWILIGHT.top[i]) * s;
+            const nb = NEUTRAL_TWILIGHT.bot[i];
+            stop.bot[i] = Math.max(0, nb + (bot[i] - nb) * s);
+          }
+        }
+      }
 
       let a: typeof night, b: typeof night, k: number;
       if (t < 0.25) {
@@ -9406,7 +9502,7 @@ export function Aquafulness() {
       const waterShallow = [top[0] * 0.4 + 0.1, top[1] * 0.5 + 0.15, top[2] * 0.6 + 0.2];
       const waterDeep = [waterShallow[0] * 0.15, waterShallow[1] * 0.2, waterShallow[2] * 0.35];
 
-      return { top, bot, sun, sunDir, waterShallow, waterDeep };
+      return { top, bot, sun, sunDir, waterShallow, waterDeep, tint, neutral: !!twilight?.neutral };
     };
 
     let raf = 0;
@@ -9584,7 +9680,49 @@ export function Aquafulness() {
       uniforms.uVortexCenter.value.set(posRef.current.x, posRef.current.z);
       uniforms.uVortexSpin.value = tornadoDirectionRef.current === "ccw" ? -1 : 1;
 
-      const p = palette(todRef.current);
+      // HIMMELSLJUS (lib/skyLook.ts): SOLTONING color/strength/timing/
+      // spread, skybox rotation, sun disc and scene light levels.
+      const look = getSkyLook();
+      const flatBackdropShown = backdropSunTintRef.current !== null;
+      const skyboxShown = envActiveRef.current && envTextureRef.current !== null;
+      let skyHorizon: [number, number, number] | null = null;
+      if (look.tintColorMode === "sky") {
+        if (skyboxShown) {
+          const dayC = skyColorsOfTex(envTextureRef.current);
+          const nightTex = envNightTextureRef.current;
+          const nightC = nightTex ? skyColorsOfTex(nightTex) : null;
+          const nm = nightC ? nightBackdropMix(todRef.current) : 0;
+          if (dayC) {
+            skyHorizon = [0, 1, 2].map(
+              (i) => dayC.horizon[i] + ((nightC?.horizon[i] ?? 0) - dayC.horizon[i]) * nm,
+            ) as [number, number, number];
+          }
+        } else if (flatBackdropShown) {
+          skyHorizon = skyColorsOfFlatBackdrop()?.horizon ?? null;
+        }
+      }
+      const p = palette(todRef.current, {
+        neutral: skyboxShown || flatBackdropShown,
+        look,
+        skyHorizon,
+      });
+      // SOLTONING: how much sunrise/sunset colors the backdrop right now.
+      const sunTint = envSunTintOnRef.current
+        ? goldenHourAmount(todRef.current, look.tintWidth) * 0.85 * look.tintStrength
+        : 0;
+      uniforms.uEnvSunTintColor.value.setRGB(p.tint[0], p.tint[1], p.tint[2]);
+      uniforms.uEnvSunTintSpread.value = look.tintSpread;
+      if (p.neutral && sunTint > 0.001) {
+        // The water's own sky reflection and the fog take on the same
+        // shading as the backdrop — the horizon most, the sky above less,
+        // all of it evenly at full spread.
+        const kb = Math.min(1, sunTint * (0.6 + 0.4 * look.tintSpread));
+        const kt = Math.min(1, sunTint * (0.25 + 0.75 * look.tintSpread));
+        for (let i = 0; i < 3; i++) {
+          p.bot[i] *= 1 + (p.tint[i] - 1) * kb;
+          p.top[i] *= 1 + (p.tint[i] - 1) * kt;
+        }
+      }
       // Keep the real scene lights (see their creation above) in sync with
       // the same sun direction/color driving the water and sky shaders, so
       // glTF-model materials are lit consistently with the rest of the
@@ -9593,7 +9731,19 @@ export function Aquafulness() {
       // nighttime models stay dimly visible instead of vanishing.
       sunLight.position.copy(p.sunDir).multiplyScalar(100);
       sunLight.color.setRGB(p.sun[0], p.sun[1], p.sun[2]);
-      sunLight.intensity = Math.max(0, p.sunDir.y) * 2.2 + 0.15;
+      // Lit .glb scenes: three.js lights are physically scaled (no π in the
+      // irradiance any more), so a full sun needs ~π to show a texture at
+      // its own brightness — the old 2.2·elevation left sunlit textures
+      // dull. Ramps in around sunrise/sunset; 0.15 of moonlight at night.
+      sunLight.intensity =
+        (Math.PI * 0.95 * THREE.MathUtils.smoothstep(p.sunDir.y, -0.05, 0.15) + 0.15) *
+        look.sceneSunLight;
+      // Sky fill: BÄTTRE LJUS's image-based light does most of it when on;
+      // without it (or in LOW GRAPHICS MODE) the hemisphere light is the
+      // only thing lighting faces turned away from the sun, so it's scaled
+      // up the same way.
+      hemiLight.intensity =
+        0.6 * look.sceneSkyLight * (betterLightingOnRef.current && !lowEnd ? 1 : Math.PI);
       hemiLight.color.setRGB(p.top[0], p.top[1], p.top[2]);
       hemiLight.groundColor.setRGB(p.bot[0] * 0.4, p.bot[1] * 0.4, p.bot[2] * 0.4);
       uniforms.uSunDir.value.copy(p.sunDir);
@@ -9677,8 +9827,6 @@ export function Aquafulness() {
         envTintNight.setRGB(1, 1, 1);
       }
       envTintMixed.copy(envTint).lerp(envTintNight, nightMix);
-      // SOLTONING: how much sunrise/sunset colors the backdrop right now.
-      const sunTint = envSunTintOnRef.current ? sunsetTintAmount(todRef.current) * 0.85 : 0;
       envDomeUniforms.uSunTint.value = sunTint;
       uniforms.uEnvSunTint.value = envTex ? sunTint : 0;
       {
@@ -9687,9 +9835,11 @@ export function Aquafulness() {
           const op = sunTint.toFixed(3);
           if (el.style.opacity !== op) el.style.opacity = op;
           if (sunTint > 0.001) {
-            const m = Math.max(p.sun[0], p.sun[1], p.sun[2], 1e-3);
-            const c = p.sun.map((v) => Math.round((v / m) * 255)).join(",");
-            const bg = `linear-gradient(to top, rgb(${c}) 0%, rgba(${c},0.55) 45%, rgba(${c},0.15) 100%)`;
+            const c = p.tint.map((v) => Math.round(v * 255)).join(",");
+            const sp = look.tintSpread;
+            const mid = (0.55 + 0.45 * sp).toFixed(2);
+            const top = (0.15 + 0.85 * sp).toFixed(2);
+            const bg = `linear-gradient(to top, rgb(${c}) 0%, rgba(${c},${mid}) 45%, rgba(${c},${top}) 100%)`;
             if (el.dataset.bg !== bg) {
               el.dataset.bg = bg;
               el.style.background = bg;
@@ -9703,8 +9853,12 @@ export function Aquafulness() {
       envDomeUniforms.uSnowCover.value = snowCover.cover;
       snowCover.setDaylight(1 - nightBackdropMix(todRef.current));
       envDomeUniforms.uSnowGray.value = snowGrayBackdropOnRef.current ? 1 : 0;
+      envDomeUniforms.uSunDisc.value = look.sunDiscOn ? 1 : 0;
+      envDomeUniforms.uSunDiscRadius.value = ((look.sunDiscSize / 2) * Math.PI) / 180;
+      envDomeUniforms.uSunDiscGlow.value = look.sunDiscGlow;
       const useEnvDome =
-        envTex !== null && (envTintOn || envBlending || sunTint > 0.001 || snowCover.cover > 0.001);
+        envTex !== null &&
+        (envTintOn || envBlending || sunTint > 0.001 || snowCover.cover > 0.001 || look.sunDiscOn);
       envDome.visible = useEnvDome;
       if (useEnvDome && envDayTex) {
         envDomeUniforms.uEnvTex.value = envDayTex;
@@ -9715,8 +9869,9 @@ export function Aquafulness() {
         envDomeUniforms.uRotYNight.value = envNightTex ? envRotOf(envNightTex) : 0;
         envDomeUniforms.uTintNight.value.copy(envTintNight);
         if (scene.background) scene.background = null;
-      } else if (envTex && scene.background !== envTex) {
-        scene.background = envTex;
+      } else if (envTex) {
+        if (scene.background !== envTex) scene.background = envTex;
+        // Every frame: HIMMELSLJUS's rotation can change at any time.
         scene.backgroundRotation.set(0, envRotOf(envTex), 0);
       }
 
@@ -9741,7 +9896,7 @@ export function Aquafulness() {
         scene.environment = iblTarget!.texture;
         scene.environmentRotation.set(0, envTex ? envRotOf(envTex) : 0, 0);
         const tintLum = envTintMixed.r * 0.299 + envTintMixed.g * 0.587 + envTintMixed.b * 0.114;
-        scene.environmentIntensity = reflStrength * (envTex ? tintLum : 1);
+        scene.environmentIntensity = reflStrength * (envTex ? tintLum : 1) * look.sceneSkyLight;
       } else if (scene.environment) {
         scene.environment = null;
         iblTarget?.dispose();
@@ -12657,6 +12812,7 @@ export function Aquafulness() {
             return;
           }
           const model = gltf.scene;
+          applyNodeVisibility(gltf);
           applyManifest(model, manifest);
           // SKUGGOR: every mesh in the scene casts and receives the sun's
           // shadow — whether any shadow is drawn at all is decided per

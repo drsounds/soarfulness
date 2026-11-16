@@ -1544,5 +1544,23 @@
       "local": "LOCAL",
       "world": "WORLD"
     }
+  },
+  "skyLook": {
+    "tintStrength": "TINT STRENGTH",
+    "tintWidth": "GOLDEN HOUR LENGTH",
+    "tintSpread": "TINT SPREAD",
+    "tintColorMode": "TINT COLOR",
+    "tintColorModeValue": {
+      "sun": "SUN",
+      "sky": "FROM SKY",
+      "custom": "CUSTOM"
+    },
+    "tintColor": "COLOR",
+    "rotation": "SKYBOX ROTATION",
+    "sunDisc": "SUN IN SKY",
+    "sunDiscSize": "SUN SIZE",
+    "sunDiscGlow": "SUN GLOW",
+    "sceneSunLight": "SUNLIGHT ON SCENE",
+    "sceneSkyLight": "SKYLIGHT ON SCENE"
   }
 }
