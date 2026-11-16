@@ -35,6 +35,12 @@ export type HoodConfig = {
   waterInside: boolean;
   /** 0..1: how much higher the water inside sits than the sea outside (VATTENNIVÅ). */
   waterInsideLevel: number;
+  /**
+   * 0..1: how calmly the water inside follows the waves outside (VATTENLUGN).
+   * 0 = instantly (the old look, which flickers in fast waves), 1 = a slow,
+   * heavy slosh.
+   */
+  waterCalm: number;
   /** 0..1: how low the hood hangs over the forehead (HUVHÖJD). */
   drop: number;
   /** 0..1: cloth weight — more sag and lag behind movement (TYNGD). */
@@ -530,6 +536,10 @@ export class Hood {
   private readonly lastQuat = new THREE.Quaternion();
   private readonly lastPos = new THREE.Vector3();
   private hasLast = false;
+  // VATTENLUGN: the water inside the hood's own (smoothed) level and its speed.
+  private waterLevel = 0;
+  private waterVel = 0;
+  private hasWater = false;
   private colorHex = "";
   /** 0..1: how soaked (and so how swollen) the padding is right now. */
   private soak = 0;
@@ -637,7 +647,32 @@ export class Hood {
     u.uZipFixed.value = cfg.zipperFixed === false ? 0 : 1;
     u.uZipPullOut.value = cfg.zipperPullOut === false ? 0 : 1;
     u.uWaterLevelIn.value = THREE.MathUtils.clamp(cfg.waterInsideLevel, 0, 1);
-    u.uEyeAbove.value = Number.isFinite(cfg.eyeAboveWater) ? cfg.eyeAboveWater : 1;
+    // VATTENLUGN: the water inside lags the sea outside like water with some
+    // mass: a critically damped spring with a capped speed, so fast waves
+    // give a calm slosh instead of a waterline that flashes up and down.
+    {
+      const eye = Number.isFinite(cfg.eyeAboveWater) ? cfg.eyeAboveWater : 1;
+      const calm = THREE.MathUtils.clamp(cfg.waterCalm ?? 0.6, 0, 1);
+      const st = Math.min(Math.max(dt, 0), 0.1);
+      if (!this.hasWater || calm <= 0) {
+        this.waterLevel = eye;
+        this.waterVel = 0;
+        this.hasWater = true;
+      } else if (st > 0) {
+        const tau = THREE.MathUtils.lerp(0.08, 1.4, calm);
+        const w = 2 / tau;
+        const maxRate = THREE.MathUtils.lerp(3, 0.25, calm);
+        // Sub-steps keep the spring stable at low frame rates.
+        const n = Math.max(1, Math.ceil(st / (tau * 0.25)));
+        const h = st / n;
+        for (let i = 0; i < n; i++) {
+          this.waterVel += (w * w * (eye - this.waterLevel) - 2 * w * this.waterVel) * h;
+          this.waterVel = THREE.MathUtils.clamp(this.waterVel, -maxRate, maxRate);
+          this.waterLevel += this.waterVel * h;
+        }
+      }
+      u.uEyeAbove.value = this.waterLevel;
+    }
     u.uLowerHeight.value = THREE.MathUtils.clamp(cfg.lowerHeight, 0, 1);
     u.uMetal.value = THREE.MathUtils.clamp(cfg.metallic, 0, 1);
     const motion = THREE.MathUtils.clamp(cfg.motion, 0, 1);
@@ -705,6 +740,7 @@ export class Hood {
   hide(): void {
     this.mesh.visible = false;
     this.hasLast = false;
+    this.hasWater = false;
     this.sway.set(0, 0);
     this.swayVel.set(0, 0);
   }

@@ -37,6 +37,8 @@ export type HoodLayer = {
   /** VATTEN I HUVAN + VATTENNIVÅ. */
   waterOn: boolean;
   waterLevel: number;
+  /** VATTENLUGN: how calmly the water inside follows the waves (0 = instantly). */
+  waterCalm: number;
   /** HUVHÖJD: how low the hood hangs over the forehead (0 = high, 1 = low). */
   drop: number;
   /** TYNGD: how heavy the cloth is — sags more, lags further behind moves. */
@@ -93,6 +95,7 @@ export const HOOD_LAYER_DEFAULTS: HoodLayer = {
   zipperOn: false,
   waterOn: false,
   waterLevel: 0.3,
+  waterCalm: 0.6,
   drop: 0,
   weight: 0.4,
   wrinkles: 0,
@@ -119,6 +122,7 @@ const NUMBER_KEYS = [
   "motion",
   "lowerHeight",
   "waterLevel",
+  "waterCalm",
   "drop",
   "weight",
   "wrinkles",

@@ -182,7 +182,12 @@ export function HoodSettings({
             </>
           )}
           {toggle("waterOn", t("dial.camera.hoodWater"))}
-          {layer.waterOn && pct("waterLevel", t("dial.camera.hoodWaterLevel"))}
+          {layer.waterOn && (
+            <>
+              {pct("waterLevel", t("dial.camera.hoodWaterLevel"))}
+              {pct("waterCalm", t("dial.camera.hoodWaterCalm"))}
+            </>
+          )}
           <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
             <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
               {t("dial.camera.hoodColor")}
