@@ -238,6 +238,7 @@ export function HoodSettings({
           {pct("wrinkles", t("dial.camera.hoodWrinkles"))}
           {pct("motion", t("dial.camera.hoodMotion"))}
           {pct("weight", t("dial.camera.hoodWeight"))}
+          {toggle("hanging", t("dial.camera.hoodHanging"))}
 
           {/* Save / export / import the whole set of layers. */}
           <div className="mb-2 flex w-full flex-wrap items-center justify-center gap-1.5">

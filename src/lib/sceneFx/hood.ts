@@ -72,6 +72,12 @@ export type HoodConfig = {
    * the bottom of the view.
    */
   cuffTop: boolean;
+  /**
+   * HÄNGER FRÅN TOPPEN: the hood hangs from the top of the head. The top
+   * follows you, the bottom lags (more with TYNGD) and twists like wet
+   * cloth in the water. Off: the whole hood sways as one piece (the old look).
+   */
+  hanging: boolean;
   /** BLIXTLÅS FÄST I TYGET: the zipper's teeth move with the cloth, not the view. */
   zipperFixed: boolean;
   /** DRAGARE PÅ UTSIDAN: the pull tab sits on the outside; from inside only the slider's back shows. */
@@ -110,6 +116,9 @@ const FRAG = /* glsl */ `
   uniform float uTanHalfFov;
   uniform float uTime;
   uniform vec2 uSway;
+  uniform float uHang;
+  uniform float uHangHeavy;
+  uniform float uTwist;
   uniform float uMotion;
   uniform float uHeight;
   uniform float uOpening;
@@ -316,8 +325,26 @@ const FRAG = /* glsl */ `
     return c * mix(0.75, 1.0, clamp(N.y * 0.5 + 0.5, 0.0, 1.0));
   }
 
+  // HÄNGER FRÅN TOPPEN: warp the view position so the cloth near the top of
+  // the head barely sways while the heavy bottom swings further and lags,
+  // twisting about the top (each row turns a little more the lower it is).
+  // Every later use of uSway then sees this pixel's own displacement.
+  vec2 hangWarp(vec2 p) {
+    if (uHang < 0.5) return p;
+    float k = 1.0 - smoothstep(-1.05, 0.95, p.y);
+    k = pow(k, 1.5);
+    float f = mix(0.2, 1.0 + 0.8 * clamp(uHangHeavy, 0.0, 1.0), k);
+    vec2 q = p - uSway * (f - 1.0);
+    vec2 anchor = vec2(uSway.x * 0.2, 1.05);
+    float a = uTwist * k;
+    float cs = cos(a);
+    float sn = sin(a);
+    vec2 d = q - anchor;
+    return anchor + vec2(cs * d.x + sn * d.y, -sn * d.x + cs * d.y);
+  }
+
   void main() {
-    vec2 p = vec2(vNdc.x * uAspect, vNdc.y);
+    vec2 p = hangWarp(vec2(vNdc.x * uAspect, vNdc.y));
     vec3 f = hoodField(p);
     float cuffMask = gCuff;
     float t = f.x;
@@ -494,6 +521,9 @@ export class Hood {
     uTanHalfFov: { value: number };
     uTime: { value: number };
     uSway: { value: THREE.Vector2 };
+    uHang: { value: number };
+    uHangHeavy: { value: number };
+    uTwist: { value: number };
     uMotion: { value: number };
     uHeight: { value: number };
     uOpening: { value: number };
@@ -533,6 +563,9 @@ export class Hood {
   // Sway spring state (screen units) and the last camera orientation.
   private readonly sway = new THREE.Vector2();
   private readonly swayVel = new THREE.Vector2();
+  // HÄNGER FRÅN TOPPEN: the bottom's twist (radians) and its speed.
+  private twist = 0;
+  private twistVel = 0;
   private readonly lastQuat = new THREE.Quaternion();
   private readonly lastPos = new THREE.Vector3();
   private hasLast = false;
@@ -554,6 +587,9 @@ export class Hood {
       uTanHalfFov: { value: 1 },
       uTime: { value: 0 },
       uSway: { value: new THREE.Vector2() },
+      uHang: { value: 1 },
+      uHangHeavy: { value: 0.4 },
+      uTwist: { value: 0 },
       uMotion: { value: 0.5 },
       uHeight: { value: 0.3 },
       uOpening: { value: 0.5 },
@@ -733,8 +769,23 @@ export class Hood {
       const maxY = 0.08 + 0.08 * weight;
       this.sway.x = THREE.MathUtils.clamp(this.sway.x, -maxX, maxX);
       this.sway.y = THREE.MathUtils.clamp(this.sway.y, -maxY, maxY);
+
+      // HÄNGER FRÅN TOPPEN: the bottom twists after turns and sideways
+      // moves on a looser, less damped spring than the sway, so it lags,
+      // overshoots and swings back like wet cloth. In the water it also
+      // drifts slowly back and forth.
+      const tk = THREE.MathUtils.lerp(20, 6, weight);
+      const td = THREE.MathUtils.lerp(4, 1.6, weight);
+      const drift =
+        (Math.sin(time * 0.45) * 0.05 + Math.sin(time * 0.83 + 1.1) * 0.03) * this.soak;
+      const twistTarget = (pushX * 1.5 + drift) * motion;
+      this.twistVel += ((twistTarget - this.twist) * tk - this.twistVel * td) * step;
+      this.twist = THREE.MathUtils.clamp(this.twist + this.twistVel * step, -0.2, 0.2);
     }
     u.uSway.value.copy(this.sway);
+    u.uHang.value = cfg.hanging === false ? 0 : 1;
+    u.uHangHeavy.value = weight;
+    u.uTwist.value = cfg.hanging === false ? 0 : this.twist;
   }
 
   hide(): void {
@@ -743,6 +794,8 @@ export class Hood {
     this.hasWater = false;
     this.sway.set(0, 0);
     this.swayVel.set(0, 0);
+    this.twist = 0;
+    this.twistVel = 0;
   }
 
   dispose(): void {

@@ -806,6 +806,7 @@ export type SettingsPanelProps = {
   hoodCuffHeight: number;
   setHoodCuffHeight: Dispatch<SetStateAction<number>>;
   hoodCuffSize: number;
+  hoodHanging: boolean;
   hoodWaterCalm: number;
   hoodCuffTop: boolean;
   hoodZipperFixed: boolean;
@@ -814,6 +815,7 @@ export type SettingsPanelProps = {
   hoodPuffThickness: number;
   hoodPuffInflate: number;
   setHoodCuffSize: Dispatch<SetStateAction<number>>;
+  setHoodHanging: Dispatch<SetStateAction<boolean>>;
   setHoodWaterCalm: Dispatch<SetStateAction<number>>;
   setHoodCuffTop: Dispatch<SetStateAction<boolean>>;
   setHoodZipperFixed: Dispatch<SetStateAction<boolean>>;
@@ -1966,6 +1968,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
     hoodCuffHeight,
     setHoodCuffHeight,
     hoodCuffSize,
+    hoodHanging,
     hoodWaterCalm,
     hoodCuffTop,
     hoodZipperFixed,
@@ -1974,6 +1977,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
     hoodPuffThickness,
     hoodPuffInflate,
     setHoodCuffSize,
+    setHoodHanging,
     setHoodWaterCalm,
     setHoodCuffTop,
     setHoodZipperFixed,
@@ -4296,6 +4300,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     cuff: hoodCuffOn,
                     cuffHeight: hoodCuffHeight,
                     cuffSize: hoodCuffSize,
+                    hanging: hoodHanging,
                     waterCalm: hoodWaterCalm,
                     cuffTop: hoodCuffTop,
                     zipperFixed: hoodZipperFixed,
@@ -4327,6 +4332,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     if (p.cuff !== undefined) setHoodCuffOn(p.cuff);
                     if (p.cuffHeight !== undefined) setHoodCuffHeight(p.cuffHeight);
                     if (p.cuffSize !== undefined) setHoodCuffSize(p.cuffSize);
+                    if (p.hanging !== undefined) setHoodHanging(p.hanging);
                     if (p.waterCalm !== undefined) setHoodWaterCalm(p.waterCalm);
                     if (p.cuffTop !== undefined) setHoodCuffTop(p.cuffTop);
                     if (p.zipperFixed !== undefined) setHoodZipperFixed(p.zipperFixed);

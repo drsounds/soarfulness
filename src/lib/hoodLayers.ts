@@ -72,6 +72,8 @@ export type HoodLayer = {
   cuffSize: number;
   /** MUDD VID HALSKANT: cuff along the funnel neck's top edge, on the cloth (off = old bottom band). */
   cuffTop: boolean;
+  /** HÄNGER FRÅN TOPPEN: top follows you, heavy bottom lags and twists (off = rigid sway, the old look). */
+  hanging: boolean;
   /** BLIXTLÅS FÄST I TYGET: zipper teeth follow the cloth (off = fixed to the view, the old look). */
   zipperFixed: boolean;
   /** DRAGARE PÅ UTSIDAN: pull tab on the outside (off = pull hanging inside, the old look). */
@@ -111,6 +113,7 @@ export const HOOD_LAYER_DEFAULTS: HoodLayer = {
   cuffHeight: 0.3,
   cuffSize: 0.5,
   cuffTop: true,
+  hanging: true,
   zipperFixed: true,
   zipperPullOut: true,
 };
@@ -135,7 +138,7 @@ const NUMBER_KEYS = [
   "cuffHeight",
   "cuffSize",
 ] as const;
-const BOOL_KEYS = ["on", "lowerOn", "zipperOn", "waterOn", "cuff", "reflectLight", "cuffTop", "zipperFixed", "zipperPullOut"] as const;
+const BOOL_KEYS = ["on", "lowerOn", "zipperOn", "waterOn", "cuff", "reflectLight", "cuffTop", "hanging", "zipperFixed", "zipperPullOut"] as const;
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 
