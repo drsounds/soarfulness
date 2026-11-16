@@ -1315,7 +1315,19 @@
     "light": "VAALEA",
     "dark": "TUMMA",
     "blur": "LASIEFEKTI (SUMENNUS)",
-    "blurHint": "Paneelien takana näkyvä sumennusefekti. Oletuksena pois päältä paremman suorituskyvyn vuoksi."
+    "blurHint": "Paneelien takana näkyvä sumennusefekti. Oletuksena pois päältä paremman suorituskyvyn vuoksi.",
+    "glass": "LIQUID GLASS",
+    "glassDescription": "Virtaavaa, valoa taittavaa lasia valaistuin reunoin — säädä sumennus, taittuminen, sävy, peittävyys ja kulmat alla. Kuormittaa näytönohjainta enemmän kuin muut teemat.",
+    "glass_tintHue": "SÄVYVÄRI",
+    "glass_blur": "SUMENNUS",
+    "glass_refraction": "TAITTUMINEN",
+    "glass_saturation": "KYLLÄISYYS",
+    "glass_tintStrength": "SÄVYN VAHVUUS",
+    "glass_opacity": "PEITTÄVYYS",
+    "glass_highlight": "REUNAVALO",
+    "glass_radius": "KULMASÄDE",
+    "glass_reset": "PALAUTA LASI",
+    "glass_hint": "Liquid Glassilla on aina oma sumennuksensa (aseta SUMENNUS pois säästääksesi energiaa). Taittuminen näkyy Chromessa, Edgessä ja Android-sovelluksessa."
   },
   "timeTravel": {
     "applyButton": "Matkusta ajassa",

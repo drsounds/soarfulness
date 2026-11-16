@@ -85,7 +85,14 @@ import {
 } from "@/lib/settingsShared";
 import { pickJsonFile, type PresetScope, type SavedPreset, type SavedState } from "@/lib/presets";
 import { changeLanguage, SUPPORTED_LANGUAGES, LANGUAGE_NAMES, type LanguageCode } from "@/lib/i18n";
-import { useUiTheme, UI_THEME_IDS } from "@/lib/uiTheme";
+import {
+  useUiTheme,
+  usesColorScheme,
+  UI_THEME_IDS,
+  DEFAULT_LIQUID_GLASS,
+  LIQUID_GLASS_LIMITS,
+  type LiquidGlassSettings,
+} from "@/lib/uiTheme";
 import { limitMax, useExtremeLimits, type LimitedControl } from "@/lib/extremeLimits";
 import { ShareBathDialog } from "@/components/ShareBathDialog";
 import { ScenerySelectorButton } from "@/components/ScenerySelectorDialog";
@@ -351,7 +358,9 @@ function ThemeSettingsSection() {
         </div>
       )}
 
-      {ui.theme === "spa" && (
+      {ui.theme === "glass" && <LiquidGlassControls hueTrack={hueTrack} />}
+
+      {usesColorScheme(ui.theme) && (
         <SettingRow
           label={t("theme.colorScheme")}
           value={ui.colorScheme === "dark" ? t("theme.dark") : t("theme.light")}
@@ -360,14 +369,100 @@ function ThemeSettingsSection() {
         />
       )}
 
-      <SettingRow
-        label={t("theme.blur")}
-        value={ui.blurEnabled ? t("common.on") : t("common.off")}
-        onDec={() => setUi({ blurEnabled: false })}
-        onInc={() => setUi({ blurEnabled: true })}
-      />
-      <p className="ui-ink-faint max-w-xs text-center text-[9px] leading-relaxed">
-        {t("theme.blurHint")}
+      {ui.theme !== "glass" && (
+        <>
+          <SettingRow
+            label={t("theme.blur")}
+            value={ui.blurEnabled ? t("common.on") : t("common.off")}
+            onDec={() => setUi({ blurEnabled: false })}
+            onInc={() => setUi({ blurEnabled: true })}
+          />
+          <p className="ui-ink-faint max-w-xs text-center text-[9px] leading-relaxed">
+            {t("theme.blurHint")}
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+
+// LIQUID GLASS: every look-defining knob of the "glass" theme. Values live
+// in the same ui-theme store (uiTheme.ts → glass) and are pushed to <html>
+// as --ui-glass-* custom properties, so changes apply live to every panel,
+// dialog and control without re-rendering anything else.
+const LIQUID_GLASS_ROWS: {
+  key: keyof LiquidGlassSettings;
+  unit: string;
+  step: number;
+}[] = [
+  { key: "blur", unit: "px", step: 1 },
+  { key: "refraction", unit: "%", step: 5 },
+  { key: "saturation", unit: "%", step: 5 },
+  { key: "tintStrength", unit: "%", step: 5 },
+  { key: "opacity", unit: "%", step: 2 },
+  { key: "highlight", unit: "%", step: 5 },
+  { key: "radius", unit: "px", step: 2 },
+];
+
+function LiquidGlassControls({ hueTrack }: { hueTrack: string }) {
+  const { t } = useTranslation();
+  const [ui, setUi] = useUiTheme();
+  const g = ui.glass;
+  const setGlass = (patch: Partial<LiquidGlassSettings>) =>
+    setUi((s) => ({ ...s, glass: { ...s.glass, ...patch } }));
+
+  return (
+    <div className="flex w-full flex-col">
+      <div className="ui-surface flex w-full flex-col gap-1 rounded-2xl border px-3 py-2.5 backdrop-blur-md">
+        <div className="flex items-center justify-between">
+          <span className="ui-ink-muted text-[9px] font-light tracking-[0.28em]">
+            {t("theme.glass_tintHue")}
+          </span>
+          <span className="ui-ink text-[10px] font-medium tabular-nums tracking-wider">
+            {Math.round(g.tintHue)}°
+          </span>
+        </div>
+        <input
+          type="range"
+          min={0}
+          max={360}
+          step={1}
+          value={g.tintHue}
+          onChange={(e) => setGlass({ tintHue: Number(e.target.value) })}
+          aria-label={t("theme.glass_tintHue")}
+          className="aqua-color-slider w-full"
+          style={{ "--aqua-track": `linear-gradient(to right, ${hueTrack})` } as CSSProperties}
+        />
+      </div>
+      {LIQUID_GLASS_ROWS.map(({ key, unit, step }) => {
+        const [min, max] = LIQUID_GLASS_LIMITS[key];
+        const v = g[key];
+        const clamp = (n: number) => Math.min(max, Math.max(min, n));
+        return (
+          <SettingRow
+            key={key}
+            label={t(`theme.glass_${key}`)}
+            value={v === 0 && key !== "radius" ? t("common.off") : `${Math.round(v)}${unit}`}
+            mode="number"
+            rawValue={v}
+            min={min}
+            max={max}
+            step={step}
+            onSet={(n) => setGlass({ [key]: clamp(n) })}
+            onDec={() => setGlass({ [key]: clamp(v - step) })}
+            onInc={() => setGlass({ [key]: clamp(v + step) })}
+          />
+        );
+      })}
+      <button
+        type="button"
+        onClick={() => setGlass(DEFAULT_LIQUID_GLASS)}
+        className="ui-btn mt-3 self-center rounded-full border px-4 py-1.5 text-[9px] font-medium tracking-wider transition active:scale-95"
+      >
+        {t("theme.glass_reset")}
+      </button>
+      <p className="ui-ink-faint mt-2 max-w-xs self-center text-center text-[9px] leading-relaxed">
+        {t("theme.glass_hint")}
       </p>
     </div>
   );

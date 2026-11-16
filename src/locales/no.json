@@ -1315,7 +1315,19 @@
     "light": "LYST",
     "dark": "MØRKT",
     "blur": "GLASSEFFEKT (BLUR)",
-    "blurHint": "Uskarphetseffekten bak paneler. Av som standard for bedre ytelse."
+    "blurHint": "Uskarphetseffekten bak paneler. Av som standard for bedre ytelse.",
+    "glass": "LIQUID GLASS",
+    "glassDescription": "Flytende, lysbrytende glass med lyse kanter — juster uskarphet, brytning, tonefarge, opasitet og hjørner nedenfor. Bruker mer GPU enn de andre temaene.",
+    "glass_tintHue": "TONEFARGE",
+    "glass_blur": "USKARPHET",
+    "glass_refraction": "BRYTNING",
+    "glass_saturation": "METNING",
+    "glass_tintStrength": "TONESTYRKE",
+    "glass_opacity": "OPASITET",
+    "glass_highlight": "KANTLYS",
+    "glass_radius": "HJØRNERADIUS",
+    "glass_reset": "TILBAKESTILL GLASS",
+    "glass_hint": "Liquid Glass har alltid sin egen uskarphet (sett USKARPHET til av for å spare energi). Brytning vises i Chrome, Edge og Android-appen."
   },
   "timeTravel": {
     "applyButton": "Reis i tid",

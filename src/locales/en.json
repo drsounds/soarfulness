@@ -1315,7 +1315,19 @@
     "light": "LIGHT",
     "dark": "DARK",
     "blur": "GLASS BLUR",
-    "blurHint": "The blur effect behind panels. Off by default for better performance."
+    "blurHint": "The blur effect behind panels. Off by default for better performance.",
+    "glass": "LIQUID GLASS",
+    "glassDescription": "Fluid, refractive glass with lit edges — tune blur, refraction, tint, opacity and corners below. Uses more GPU than the other themes.",
+    "glass_tintHue": "TINT COLOR",
+    "glass_blur": "BLUR",
+    "glass_refraction": "REFRACTION",
+    "glass_saturation": "SATURATION",
+    "glass_tintStrength": "TINT STRENGTH",
+    "glass_opacity": "OPACITY",
+    "glass_highlight": "EDGE HIGHLIGHT",
+    "glass_radius": "CORNER RADIUS",
+    "glass_reset": "RESET GLASS",
+    "glass_hint": "Liquid Glass always brings its own blur (set BLUR to off to save energy). Refraction shows in Chrome, Edge and the Android app."
   },
   "timeTravel": {
     "applyButton": "Time travel",
