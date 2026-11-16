@@ -24,6 +24,7 @@ import { Save } from "lucide-react";
 import { SettingRow } from "@/components/SettingRow";
 import { WindSettings, type WindControls } from "@/components/WindPanel";
 import { HoodSettings } from "@/components/HoodSettings";
+import { StringLightsSettings } from "@/components/StringLightsSettings";
 import type { HoodCuffMaterial, HoodLayer, HoodStyle } from "@/lib/hoodLayers";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { hsvToRgb, tintToCss } from "@/lib/waterTint";
@@ -6302,6 +6303,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
                   />
                 </label>
+                <StringLightsSettings />
               </>
             )}
             {settingsTab === "ljud" && (
