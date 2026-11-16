@@ -1258,5 +1258,40 @@
       "legacy": "LEGACY",
       "standard": "STANDARD"
     }
+  },
+  "wind": {
+    "title": "WIND",
+    "openAria": "Open the wind panel",
+    "add": "+ ADD WIND",
+    "empty": "No winds yet. Tap ADD WIND — a new wind blows straight at you, then you can turn it.",
+    "total": "TOTAL",
+    "windN": "WIND {{n}}",
+    "direction": "DIRECTION",
+    "speed": "WIND SPEED",
+    "gust": "GUSTINESS",
+    "headwind": "AT ME",
+    "tailwind": "WITH ME",
+    "remove": "REMOVE",
+    "waves": "WIND → WAVE DIRECTION",
+    "wavesStrength": "WAVE STEERING",
+    "sway": "WIND → SWAY",
+    "swayStrength": "SWAY STRENGTH",
+    "current": "WIND → CURRENT",
+    "currentStrength": "CURRENT STRENGTH",
+    "sound": "WIND SOUND",
+    "altitudeAudio": "ALTITUDE SOUND",
+    "soundVolume": "WIND VOLUME",
+    "soundHint": "The wind sound follows the wind's speed and direction and how fast you move against it. ALTITUDE SOUND: above the water the water sound fades into noise, which fades out higher up where the wind blows stronger. Needs SOUND.",
+    "compass": {
+      "n": "N",
+      "ne": "NE",
+      "e": "E",
+      "se": "SE",
+      "s": "S",
+      "sw": "SW",
+      "w": "W",
+      "nw": "NW"
+    },
+    "from": "FROM"
   }
 }

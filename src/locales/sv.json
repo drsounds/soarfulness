@@ -1258,5 +1258,40 @@
       "legacy": "LEGACY",
       "standard": "STANDARD"
     }
+  },
+  "wind": {
+    "title": "VIND",
+    "openAria": "Öppna vindpanelen",
+    "add": "+ LÄGG TILL VIND",
+    "empty": "Inga vindar än. Tryck på LÄGG TILL VIND — en ny vind blåser rakt mot dig, sedan kan du vrida den.",
+    "total": "TOTALT",
+    "windN": "VIND {{n}}",
+    "direction": "RIKTNING",
+    "speed": "VINDSTYRKA",
+    "gust": "BYIGHET",
+    "headwind": "MOT MIG",
+    "tailwind": "MED MIG",
+    "remove": "TA BORT",
+    "waves": "VIND → VÅGRIKTNING",
+    "wavesStrength": "VÅGSTYRNING",
+    "sway": "VIND → SVAJ",
+    "swayStrength": "SVAJSTYRKA",
+    "current": "VIND → STRÖM",
+    "currentStrength": "STRÖMSTYRKA",
+    "sound": "VINDLJUD",
+    "altitudeAudio": "HÖJDLJUD",
+    "soundVolume": "VINDVOLYM",
+    "soundHint": "Vindljudet beror på vindens styrka och riktning och på hur fort du rör dig mot den. HÖJDLJUD: ovanför vattnet tonar vattenljudet ut i brus, som i sin tur tonar ut högre upp där vinden blåser starkare. Kräver LJUD.",
+    "compass": {
+      "n": "N",
+      "ne": "NO",
+      "e": "O",
+      "se": "SO",
+      "s": "S",
+      "sw": "SV",
+      "w": "V",
+      "nw": "NV"
+    },
+    "from": "FRÅN"
   }
 }

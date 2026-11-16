@@ -22,6 +22,7 @@ import {
 import { Link } from "@tanstack/react-router";
 import { Save } from "lucide-react";
 import { SettingRow } from "@/components/SettingRow";
+import { WindSettings, type WindControls } from "@/components/WindPanel";
 import { HoodSettings } from "@/components/HoodSettings";
 import type { HoodLayer, HoodStyle } from "@/lib/hoodLayers";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -388,6 +389,8 @@ type EnvOption = NamedOption & { eras: EnvEraOption[] };
 // own local state — this component owns none of it, so both hosts always
 // stay in sync (there is only one wave simulation, one camera, etc).
 export type SettingsPanelProps = {
+  // VIND: the wind list, its effects and sound (components/WindPanel.tsx).
+  wind: WindControls;
   settingsTab: SettingsTab;
   setSettingsTab: (tab: SettingsTab) => void;
   restoreCameraPosition: () => void;
@@ -5719,6 +5722,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     />
                   </>
                 )}
+                <div className="pt-4 pb-1 text-[10px] font-light tracking-[0.28em] ui-ink-muted">
+                  {t("wind.title")}
+                </div>
+                <WindSettings c={props.wind} />
                 <SettingRow
                   label={t("dial.env.snow")}
                   value={onOff(snowOn)}
