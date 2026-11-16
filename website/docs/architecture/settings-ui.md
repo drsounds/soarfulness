@@ -13,7 +13,7 @@ description: SettingsPanel, the grouped navigator with search and tabs, SettingR
 | `components/settingsNav.tsx` | `SETTINGS_GROUPS`, `<G id>`, `<Findable>`, `matchesQuery`, `useSettingsLayout`, `SettingsNavigator` |
 | `components/SettingRow.tsx` | One Android-Settings-style row: label, value summary, chevron; tapping opens a sheet with slider, +/- and typed entry (`mode="number"`) or an option list (`mode="cycle"` / `options`) |
 | `components/PadDial.tsx` | The older compact dial; same props as `SettingRow` |
-| Feature panels | `WindPanel.tsx` (`WindSettings`, `WindHudPanel`), `HoodSettings.tsx`, `DecorationPanel.tsx` (`DecorationSettings` + the PLACERA bar), `StringLightsSettings.tsx` (prop-free, reads its own store) |
+| Feature panels | `WindPanel.tsx` (`WindSettings`, `WindHudPanel`), `HoodPanel.tsx`, `DecorationPanel.tsx` (`DecorationSettings` + the PLACERA bar), `StringLightsPanel.tsx` (prop-free, reads its own store) |
 
 `SettingsPanel` is rendered **twice** with the same `settingsPanelProps`: in
 the HUD's settings dialog (`routes/index.tsx`) and as the Inställningar app

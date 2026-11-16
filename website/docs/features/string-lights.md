@@ -21,10 +21,10 @@ Each scene keeps its own strings.
 
 | File | Role |
 | --- | --- |
-| `src/lib/stringLights.ts` | Types, defaults, sanitizer, the store (`useStringLights()`), per-scene lists |
-| `src/lib/sceneFx/stringLights.ts` | `StringLightsFx` renderer |
-| `src/components/StringLightsSettings.tsx` | Prop-free settings UI (reads the store) |
-| `src/lib/stringLights.test.ts` | Tests |
+| `src/apps/string-lights/stringLights.ts` | Types, defaults, sanitizer, the store (`useStringLights()`), per-scene lists |
+| `src/apps/string-lights/StringLightsFx.ts` | `StringLightsFx` renderer |
+| `src/apps/string-lights/StringLightsPanel.tsx` | Prop-free settings UI (reads the store) |
+| `src/apps/string-lights/stringLights.test.ts` | Tests |
 
 `index.tsx` only constructs, updates and disposes `StringLightsFx`, and keeps
 `stringLightsSceneRef`; `SettingsPanel` only mounts `<StringLightsSettings />`.

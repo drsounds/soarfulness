@@ -98,7 +98,7 @@ The photo is sampled along the reflection vector on the water.
 - `scenes` in `index.tsx` merges the catalog scenes with the player's
   imported scenes (EGNA SCENER, ids `user:<uuid>`, appId `__user__`).
 - A **scene material named `…-neon`** takes the NEON ACCENT color
-  (`lib/sceneFx/neonAccent.ts`).
+  (`src/apps/neon/neonAccent.ts`).
 - Skybox backdrops need their waterline exactly at the image's vertical middle
   (row H/2), the scene horizon, or they look sunk in the water.
 - To give an environment a night look, add a `night` time to its era and set

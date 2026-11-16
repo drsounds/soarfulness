@@ -17,8 +17,8 @@ boat, even with every stick at rest.
 | `openDriftCycleSpeed` | CYKELTEMPO (laps or course changes per minute) | 0.5 |
 | `openDriftMagnitude` | DRIFTSTYRKA (EXTREME max 4) | 1 |
 
-**Files:** `src/lib/openDrift.ts` (`OpenDrift` class, types, constants),
-`src/lib/openDrift.test.ts`. UI in the `drift` settings group (it was in the
+**Files:** `src/apps/open-drift/OpenDrift.ts` (`OpenDrift` class, types, constants),
+`src/apps/open-drift/OpenDrift.test.ts`. UI in the `drift` settings group (it was in the
 VÅGOR tab right after SVALL, not under MILJÖ).
 
 **How it works:** the drift is a **velocity** (m/s, world x/z), not an

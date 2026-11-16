@@ -32,8 +32,8 @@ Any new effect that alters the backdrop must join that condition.
 
 | Feature | Setting | UI | Default | Code |
 | --- | --- | --- | --- | --- |
-| Daylight tint | `envDaylightTintOn`, `envDaylightTintStrength` | DYGNSTONING, TONINGSSTYRKA | off | `lib/sceneFx/daylightTint.ts`: tint relative to the skybox's own `timeOfDay` |
-| Day/night blend | `envDayNightAutoOn` | DYGNSBYTE | **on** | `lib/sceneFx/dayNightBackdrop.ts`: `nightBackdropMix(tod)` cross-fades the day and night skybox about two hours either side of sunrise/sunset. Only for eras that list both `day` and `night`. |
+| Daylight tint | `envDaylightTintOn`, `envDaylightTintStrength` | DYGNSTONING, TONINGSSTYRKA | off | `src/apps/day-night/daylightTint.ts`: tint relative to the skybox's own `timeOfDay` |
+| Day/night blend | `envDayNightAutoOn` | DYGNSBYTE | **on** | `src/apps/day-night/dayNightBackdrop.ts`: `nightBackdropMix(tod)` cross-fades the day and night skybox about two hours either side of sunrise/sunset. Only for eras that list both `day` and `night`. |
 | Sunset tint | `envSunTintOn` | SOLTONING | **on** | `sunsetTintAmount()`: warm tint on the env dome, the water reflection, and a multiply overlay on the flat DOM backdrop |
 | Cloud surface | `waterCloudsOn` | MOLNYTA | off | see [Waves and water](waves-and-water.md) |
 

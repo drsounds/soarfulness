@@ -13,7 +13,7 @@ description: Coloured paper pieces that spin and tumble down around the camera, 
 | `confettiPalette` | KONFETTIFÄRGER: `CONFETTI_PALETTES` rainbow / pastel / gold / white | rainbow |
 | `confettiFlutter` | FLADDER (0..2) | 0.6 |
 
-**Files:** `src/lib/sceneFx/confetti.ts` (`Confetti`).
+**Files:** `src/apps/confetti/Confetti.ts` (`Confetti`).
 
 **How it works:** the same technique as `Snowfall`: one `THREE.Points` cloud of
 `CONFETTI_MAX_PIECES`, first `amount` drawn, positions from seed + time +

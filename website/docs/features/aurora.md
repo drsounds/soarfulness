@@ -16,7 +16,7 @@ description: Aurora curtains as rings around the camera, drawn at the far plane,
 | `auroraColorMain`, `auroraColorTop` | HUVUDFÄRG, TOPPFÄRG (custom palette) | `#3dff8c`, `#c23a9e` |
 | `auroraDaylightOn` | SYNS PÅ DAGEN | off |
 
-**Files:** `src/lib/sceneFx/aurora.ts` (`Aurora`).
+**Files:** `src/apps/aurora/Aurora.ts` (`Aurora`).
 
 **How it works:**
 

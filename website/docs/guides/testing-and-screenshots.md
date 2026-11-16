@@ -9,7 +9,7 @@ description: Unit tests, headless Chromium screenshots, localStorage seeds and t
 
 `bun test` runs `src/**/*.test.ts`. Existing suites: `wind.test.ts`,
 `openDrift.test.ts`, `decorations.test.ts`, `stringLights.test.ts`,
-`userScenes.test.ts`, `spacifySync.test.ts`, `sceneFx/underwaterFog.test.ts`.
+`userScenes.test.ts`, `spacifySync.test.ts`, `src/apps/underwater-fog/underwaterFog.test.ts`.
 Put pure logic (curves, sanitizers, merges) in a module without three.js
 dependencies so it is testable.
 

@@ -5,8 +5,9 @@ import type * as Preset from "@docusaurus/preset-classic";
 // Developer documentation for Aquafulness / Soarfulness, published to GitHub
 // Pages by .github/workflows/docs.yml. The site has two docs instances:
 //   - website/docs  -> "/"        how the code works (architecture, features, guides)
-//   - ../docs       -> "/theory"  the existing background/theory documents,
-//                                  read in place so there is one copy of them.
+//   - ../docs       -> "/theory"  the repo's docs/ folder (theory documents and
+//                                  docs/architecture/apps.md), read in place so
+//                                  there is one copy of them.
 // The app itself is deployed separately (deploy.yml); nothing here touches it.
 
 const REPO = "https://github.com/drsounds/soarfulness";
@@ -54,9 +55,8 @@ const config: Config = {
         id: "theory",
         path: "../docs",
         routeBasePath: "theory",
-        // docs/architecture/ (the plugin refactor's write-up) is developer
-        // documentation, mirrored in website/docs/architecture/plugin-refactor.md.
-        exclude: ["architecture/**"],
+        // Includes docs/architecture/apps.md (the plugin app contract, the
+        // source of truth CLAUDE.md points at); website/docs links to it.
         sidebarPath: "./sidebarsTheory.ts",
         editUrl: `${REPO}/edit/main/docs/`,
       },

@@ -15,8 +15,8 @@ description: Every localStorage key, IndexedDB database, Cache API name and file
 | `aquafulness:presets:v1` | `lib/presets.ts` | Named settings presets |
 | `aquafulness:states:v1` | `lib/presets.ts` | Named full states |
 | `aquafulness:sceneryPresets:v1` | `lib/sceneryPresets.ts` | Saved sceneries |
-| `aquafulness:hoodLayerSets:v1` | `lib/hoodLayers.ts` | Saved HUVA layer sets |
-| `aquafulness:stringLights:v1` | `lib/stringLights.ts` | LJUSSLINGOR store |
+| `aquafulness:hoodLayerSets:v1` | `src/apps/hood/hoodLayers.ts` | Saved HUVA layer sets |
+| `aquafulness:stringLights:v1` | `src/apps/string-lights/stringLights.ts` | LJUSSLINGOR store |
 | `aquafulness:ui-theme:v1` | `lib/uiTheme.ts` | UI chrome theme, blur, Liquid Glass |
 | `aquafulness:extremeLimits:v1` | `lib/extremeLimits.ts` | EXTREME on/off |
 | `aquafulness:experimentalModes:v1` | `lib/experimentalModes.ts` (aqua only) | EXPERIMENTELLT LÄGE |
@@ -35,7 +35,7 @@ description: Every localStorage key, IndexedDB database, Cache API name and file
 | Database | Owner | Contents |
 | --- | --- | --- |
 | `aquafulness-user-scenes` | `lib/userScenes.ts` | EGNA SCENER (`meta` + `data` stores) |
-| `aquafulness-decorations` | `lib/decorations.ts` via `createGlbLibrary` | DEKORATIONER models |
+| `aquafulness-decorations` | `src/apps/decorations/decorations.ts` via `createGlbLibrary` | DEKORATIONER models |
 
 ## Cache API
 
@@ -52,5 +52,5 @@ description: Every localStorage key, IndexedDB database, Cache API name and file
 | `aquafulness-preset` | `lib/presets.ts` |
 | `aquafulness-state` | `lib/presets.ts` |
 | `aquafulness-library` | ALLA SPARADE export |
-| `aquafulness-hood-layers` | `lib/hoodLayers.ts` |
+| `aquafulness-hood-layers` | `src/apps/hood/hoodLayers.ts` |
 | `aquafulness-watercraft` | `lib/watercraft/glbIO.ts` (`.glb` extras) |

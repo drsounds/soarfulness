@@ -14,7 +14,7 @@ description: Installing, running, building and testing the app, plus the quirks 
 | 3D | three.js 0.185 (`WebGLRenderer`, `EffectComposer` post-processing, custom `ShaderMaterial`s) |
 | UI kit | shadcn/ui on Radix (`src/components/ui/`), lucide icons |
 | i18n | i18next with five locales in `src/locales/` |
-| Tests | `bun test` (`*.test.ts` next to the code they test, for example `src/lib/wind.test.ts`) |
+| Tests | `bun test` (`*.test.ts` next to the code they test, for example `src/apps/wind/wind.test.ts`) |
 | Native | Capacitor 8 Android project in `android/`; an experimental Expo port in `native/` |
 
 ## Commands

@@ -39,8 +39,8 @@ they differ.
    `DEFAULTS` to the render loop, localStorage, presets and share links. Almost every
    feature is "some settings + a scene effect", so this is the page that matters most.
 4. [The render loop](architecture/render-loop.md): the three.js scene, the `animate()` frame and
-   how scene effects in `src/lib/sceneFx/` plug into it.
-5. [Add a setting](guides/add-a-setting.md) and [Add a scene effect](guides/add-a-scene-effect.md):
+   how feature apps in `src/apps/` plug into it.
+5. [Add a setting](guides/add-a-setting.md) and [Add a feature app](guides/add-a-scene-effect.md):
    step-by-step checklists that follow the existing features.
 6. [Feature index](reference/feature-index.md): every feature, its Swedish UI name, its
    setting ids, its files and its status in each repo.
@@ -55,15 +55,16 @@ Settings are typed by `Persisted` in `src/lib/settingsShared.ts`; their first-st
 values are `DEFAULTS` in `index.tsx`. The settings UI is one large
 `SettingsPanel.tsx` (about 6 000 lines) split into groups by
 `settingsNav.tsx`. Self-contained effects (snow, aurora, fireworks, hood, string
-lights, …) live as classes in `src/lib/sceneFx/` and are constructed in the
-mount effect, updated once per frame and disposed on unmount. Content such as
+lights, …) are **apps** in `src/apps/<id>/`, each with a `manifest.json`, its
+own settings slice and one class per file; their runtimes are constructed in
+the mount effect, called once per frame and disposed on unmount. Content such as
 3D scenes and skyboxes is data under `public/apps/<appId>/` with JSON
 manifests.
 
-:::caution A refactor is under way
-A separate piece of work is moving features into a plugin-based `apps/`
-folder with per-app manifests. When it lands, the architecture pages here
-change. See [Apps: the plugin architecture](architecture/plugin-refactor.md) for the new structure (soarfulness PR #52, aqua-wave-dream PR #250).
+:::info Plugin structure
+Features are moving, step by step, into a plugin-based `src/apps/` folder
+with per-app manifests (steps 1–2 merged in soarfulness #52). Read
+[Apps: the plugin architecture](architecture/plugin-refactor.md) before adding a feature.
 :::
 
 ## Naming conventions you will see everywhere

@@ -14,7 +14,7 @@ description: GPU snowfall around the camera and optional whitening of the scene 
 | `snowCoverStrength` | TÄCKNINGSGRAD | 0.8 |
 | `snowGrayBackdropOn` | GRÅ BAKGRUND (the old grey look) | off |
 
-**Files:** `src/lib/sceneFx/snow.ts` (`Snowfall`, `SnowCover`).
+**Files:** `src/apps/snow/Snowfall.ts` (`Snowfall`, `SnowCover`).
 
 **How it works:**
 
