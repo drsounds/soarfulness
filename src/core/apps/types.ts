@@ -59,15 +59,44 @@ export type SceneAppContext = {
   scene: THREE.Scene;
 };
 
-/** Handed to AppRuntime.frame every rendered frame. */
+/** The scene's light right now, as the ocean shader sees it. */
+export type FrameLight = {
+  skyColor: THREE.Color;
+  horizonColor: THREE.Color;
+  waterColor: THREE.Color;
+  sunColor: THREE.Color;
+  sunDir: THREE.Vector3;
+};
+
+/**
+ * Handed to AppRuntime.frame every rendered frame: the host's view of the
+ * world this frame. Read-only for apps. Add a field here (and fill it in
+ * routes/index.tsx) when an app needs something more from the host.
+ */
 export type FrameContext = {
+  /** Seconds since the page loaded (animation clock). */
+  time: number;
   /** Seconds since the last frame. */
   dt: number;
-  camera: THREE.Camera;
+  camera: THREE.PerspectiveCamera;
   /** 0 (day) .. 1 (night), DYGNSBYTE's curve (apps/day-night). */
   night: number;
   /** 0 (above) .. 1 (under water), eased. */
   underwater: number;
+  /** World Y of the water plane. */
+  waterLevel: number;
+  /** Camera height above the wave surface right under it (m, negative below). */
+  eyeAboveWater: number;
+  /** The loaded .glb scene, if any. */
+  model: THREE.Object3D | null;
+  /** LOW GRAPHICS MODE: apps should halve particle counts and skip extras. */
+  lowEnd: boolean;
+  /** Renderer pixel ratio and drawing-buffer height (px). */
+  pixelRatio: number;
+  pixelHeight: number;
+  /** The master sound switch (LJUD); apps with sound must respect it. */
+  audioOn: boolean;
+  light: FrameLight;
 };
 
 /** The live part of an app inside the render loop. */

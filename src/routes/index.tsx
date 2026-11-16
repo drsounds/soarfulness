@@ -27,15 +27,16 @@ import { CSS3DTVManager, type DeviceKind } from "@/lib/tv/CSS3DTVManager";
 import { TorusRingField } from "@/lib/torusRings/TorusRingField";
 import { RETRO_PALETTE_INDEX, RETRO_SHADER } from "@/apps/retro/retroShader";
 import { limitMax, useExtremeLimits, type LimitedControl } from "@/lib/extremeLimits";
-import { NeonEdges } from "@/apps/neon/NeonEdges";
+import { NeonRuntime } from "@/apps/neon/NeonRuntime";
 import { AuroraRuntime } from "@/apps/aurora/AuroraRuntime";
 import "@/core/apps/catalog";
+import type { FrameContext } from "@/core/apps/types";
 import { AURORA_DEFAULTS, type AuroraSettings } from "@/apps/aurora/settings";
-import { HOOD_DEFAULTS } from "@/apps/hood/settings";
-import { SNOW_DEFAULTS } from "@/apps/snow/settings";
-import { CONFETTI_DEFAULTS } from "@/apps/confetti/settings";
-import { FIREWORKS_DEFAULTS } from "@/apps/fireworks/settings";
-import { NEON_DEFAULTS } from "@/apps/neon/settings";
+import { HOOD_DEFAULTS, type HoodSettings } from "@/apps/hood/settings";
+import { SNOW_DEFAULTS, type SnowSettings } from "@/apps/snow/settings";
+import { CONFETTI_DEFAULTS, type ConfettiSettings } from "@/apps/confetti/settings";
+import { FIREWORKS_DEFAULTS, type FireworksSettings } from "@/apps/fireworks/settings";
+import { NEON_DEFAULTS, type NeonSettings } from "@/apps/neon/settings";
 import { RETRO_DEFAULTS } from "@/apps/retro/settings";
 import { DAY_NIGHT_DEFAULTS } from "@/apps/day-night/settings";
 import { UNDERWATER_FOG_DEFAULTS } from "@/apps/underwater-fog/settings";
@@ -57,13 +58,12 @@ import { WindHudPanel, type WindControls } from "@/apps/wind/WindPanel";
 import { waterlineScreenFraction } from "@/apps/underwater-fog/underwaterFog";
 import { UnderwaterFogOverlay } from "@/apps/underwater-fog/UnderwaterFogOverlay";
 import { OpenDrift } from "@/apps/open-drift/OpenDrift";
-import { Snowfall } from "@/apps/snow/Snowfall";
-import { SnowCover } from "@/apps/snow/SnowCover";
-import { Fireworks, FIREWORKS_LIGHTS } from "@/apps/fireworks/Fireworks";
-import { Confetti } from "@/apps/confetti/Confetti";
-import { Hood } from "@/apps/hood/Hood";
+import { SnowRuntime } from "@/apps/snow/SnowRuntime";
+import { FIREWORKS_LIGHTS } from "@/apps/fireworks/Fireworks";
+import { FireworksRuntime } from "@/apps/fireworks/FireworksRuntime";
+import { ConfettiRuntime } from "@/apps/confetti/ConfettiRuntime";
+import { HoodRuntime } from "@/apps/hood/HoodRuntime";
 import {
-  HOOD_MAX_LAYERS,
   sanitizeHoodLayers,
   type HoodLayer,
   type HoodStyle,
@@ -2376,16 +2376,26 @@ export function Aquafulness() {
   const [underwaterFogOn, setUnderwaterFogOn] = useState(initial.underwaterFogOn);
   const [underwaterFogColor, setUnderwaterFogColor] = useState(initial.underwaterFogColor);
   const [underwaterFogOpacity, setUnderwaterFogOpacity] = useState(initial.underwaterFogOpacity);
-  const [underwaterFogWaterColorAuto, setUnderwaterFogWaterColorAuto] = useState(initial.underwaterFogWaterColorAuto);
-  const [underwaterFogWaterColor, setUnderwaterFogWaterColor] = useState(initial.underwaterFogWaterColor);
-  const [underwaterFogWaterOpacity, setUnderwaterFogWaterOpacity] = useState(initial.underwaterFogWaterOpacity);
-  const [underwaterFogIntensity, setUnderwaterFogIntensity] = useState(initial.underwaterFogIntensity);
+  const [underwaterFogWaterColorAuto, setUnderwaterFogWaterColorAuto] = useState(
+    initial.underwaterFogWaterColorAuto,
+  );
+  const [underwaterFogWaterColor, setUnderwaterFogWaterColor] = useState(
+    initial.underwaterFogWaterColor,
+  );
+  const [underwaterFogWaterOpacity, setUnderwaterFogWaterOpacity] = useState(
+    initial.underwaterFogWaterOpacity,
+  );
+  const [underwaterFogIntensity, setUnderwaterFogIntensity] = useState(
+    initial.underwaterFogIntensity,
+  );
   const [underwaterFogSpread, setUnderwaterFogSpread] = useState(initial.underwaterFogSpread);
   const [underwaterFogCurve, setUnderwaterFogCurve] = useState(initial.underwaterFogCurve);
   const [underwaterFogFeather, setUnderwaterFogFeather] = useState(initial.underwaterFogFeather);
   const [underwaterFogDistance, setUnderwaterFogDistance] = useState(initial.underwaterFogDistance);
   const [underwaterFogOffset, setUnderwaterFogOffset] = useState(initial.underwaterFogOffset);
-  const [underwaterFogSubmergedOnly, setUnderwaterFogSubmergedOnly] = useState(initial.underwaterFogSubmergedOnly);
+  const [underwaterFogSubmergedOnly, setUnderwaterFogSubmergedOnly] = useState(
+    initial.underwaterFogSubmergedOnly,
+  );
   const [underwaterFogBlend, setUnderwaterFogBlend] = useState(initial.underwaterFogBlend);
   const [cameraMode, setCameraMode] = useState<CameraMode>(initial.cameraMode);
   const [noclipSpeed, setNoclipSpeed] = useState(initial.noclipSpeed);
@@ -2931,42 +2941,100 @@ export function Aquafulness() {
   const envSunTintOnRef = useRef(envSunTintOn);
   // SOLTONING overlay over the flat DOM backdrop image, restyled per frame.
   const backdropSunTintRef = useRef<HTMLDivElement | null>(null);
-  const snowOnRef = useRef(snowOn);
-  const snowAmountRef = useRef(snowAmount);
-  const snowIntensityRef = useRef(snowIntensity);
-  const snowCoverOnRef = useRef(snowCoverOn);
-  const snowCoverStrengthRef = useRef(snowCoverStrength);
-  const fireworksOnRef = useRef(fireworksOn);
-  const fireworksIntensityRef = useRef(fireworksIntensity);
-  const fireworksRateRef = useRef(fireworksRate);
-  const fireworksDistanceRef = useRef(fireworksDistance);
-  const fireworksLightsOnRef = useRef(fireworksLightsOn);
-  const fireworksLightStrengthRef = useRef(fireworksLightStrength);
-  const fireworksSoundOnRef = useRef(fireworksSoundOn);
-  const fireworksVolumeRef = useRef(fireworksVolume);
   // LJUD is the master switch for the fireworks' own sound too.
   const fireworksAudioOnRef = useRef(audioOn);
-  const snowGrayBackdropOnRef = useRef(snowGrayBackdropOn);
-  const confettiOnRef = useRef(confettiOn);
-  const confettiAmountRef = useRef(confettiAmount);
-  const confettiIntensityRef = useRef(confettiIntensity);
-  const confettiPaletteRef = useRef(confettiPalette);
-  const confettiFlutterRef = useRef(confettiFlutter);
-  const neonOnRef = useRef(neonOn);
   // LJUSSLINGOR are kept per scene (see apps/string-lights/stringLights.ts).
   const stringLightsSceneRef = useRef(sceneId);
   useEffect(() => {
     stringLightsSceneRef.current = sceneId;
   }, [sceneId]);
-  const neonModeRef = useRef(neonMode);
-  const neonPrimaryRef = useRef(neonPrimary);
-  const neonSecondaryRef = useRef(neonSecondary);
-  const neonTintRef = useRef(neonTint);
-  const neonTintAmountRef = useRef(neonTintAmount);
-  const neonStrengthRef = useRef(neonStrength);
-  const neonWidthRef = useRef(neonWidth);
-  const neonFrequencyRef = useRef(neonFrequency);
-  const neonAccentColorRef = useRef(neonAccentColor);
+  // One settings-slice ref per app (apps/<id>/settings.ts), read by the
+  // render loop and refreshed after every render.
+  const snowSettings: SnowSettings = {
+    snowOn,
+    snowAmount,
+    snowIntensity,
+    snowCoverOn,
+    snowCoverStrength,
+    snowGrayBackdropOn,
+  };
+  const snowSettingsRef = useRef(snowSettings);
+  snowSettingsRef.current = snowSettings;
+  const confettiSettings: ConfettiSettings = {
+    confettiOn,
+    confettiAmount,
+    confettiIntensity,
+    confettiPalette,
+    confettiFlutter,
+  };
+  const confettiSettingsRef = useRef(confettiSettings);
+  confettiSettingsRef.current = confettiSettings;
+  const fireworksSettings: FireworksSettings = {
+    fireworksOn,
+    fireworksIntensity,
+    fireworksRate,
+    fireworksDistance,
+    fireworksLightsOn,
+    fireworksLightStrength,
+    fireworksSoundOn,
+    fireworksVolume,
+  };
+  const fireworksSettingsRef = useRef(fireworksSettings);
+  fireworksSettingsRef.current = fireworksSettings;
+  const neonSettings: NeonSettings = {
+    neonOn,
+    neonMode,
+    neonPrimary,
+    neonSecondary,
+    neonTint,
+    neonTintAmount,
+    neonStrength,
+    neonWidth,
+    neonFrequency,
+    neonAccentColor,
+  };
+  const neonSettingsRef = useRef(neonSettings);
+  neonSettingsRef.current = neonSettings;
+  const hoodSettings: HoodSettings = {
+    hoodOn,
+    hoodHeight,
+    hoodOpening,
+    hoodColor,
+    hoodMetallic,
+    hoodMotion,
+    hoodLowerOn,
+    hoodLowerHeight,
+    hoodZipperOn,
+    hoodWaterOn,
+    hoodWaterLevel,
+    hoodOpeningWidth,
+    hoodDrop,
+    hoodWeight,
+    hoodWrinkles,
+    hoodDarkness,
+    hoodRoundness,
+    hoodStyle,
+    hoodPuffSize,
+    hoodPuffHeight,
+    hoodCuffOn,
+    hoodCuffHeight,
+    hoodCuffSize,
+    hoodCuffCustom,
+    hoodCuffColor,
+    hoodCuffMetallic,
+    hoodCuffMaterial,
+    hoodHanging,
+    hoodWaterCalm,
+    hoodCuffTop,
+    hoodZipperFixed,
+    hoodZipperPullOut,
+    hoodReflectLight,
+    hoodPuffThickness,
+    hoodPuffInflate,
+    hoodExtraLayers,
+  };
+  const hoodSettingsRef = useRef(hoodSettings);
+  hoodSettingsRef.current = hoodSettings;
   // NORRSKEN (apps/aurora): its settings slice, read by the render loop.
   const auroraSettingsRef = useRef<AuroraSettings>({
     auroraOn,
@@ -3789,7 +3857,11 @@ export function Aquafulness() {
   const swingCordHookRef = useRef(new THREE.Vector3());
   // Cached lookup of the chosen hook object (re-resolved when the name or
   // the loaded model changes).
-  const swingHookObjRef = useRef<{ name: string; model: THREE.Object3D | null; obj: THREE.Object3D | null }>({
+  const swingHookObjRef = useRef<{
+    name: string;
+    model: THREE.Object3D | null;
+    obj: THREE.Object3D | null;
+  }>({
     name: "",
     model: null,
     obj: null,
@@ -3959,42 +4031,6 @@ export function Aquafulness() {
   const gogglesOnRef = useRef(gogglesOn);
   const gogglesFpsCapRef = useRef(gogglesFpsCap);
   // HUVA, read every frame by animate().
-  const hoodOnRef = useRef(hoodOn);
-  const hoodHeightRef = useRef(hoodHeight);
-  const hoodOpeningRef = useRef(hoodOpening);
-  const hoodColorRef = useRef(hoodColor);
-  const hoodMetallicRef = useRef(hoodMetallic);
-  const hoodMotionRef = useRef(hoodMotion);
-  const hoodLowerOnRef = useRef(hoodLowerOn);
-  const hoodLowerHeightRef = useRef(hoodLowerHeight);
-  const hoodZipperOnRef = useRef(hoodZipperOn);
-  const hoodWaterOnRef = useRef(hoodWaterOn);
-  const hoodWaterLevelRef = useRef(hoodWaterLevel);
-  const hoodOpeningWidthRef = useRef(hoodOpeningWidth);
-  const hoodDropRef = useRef(hoodDrop);
-  const hoodWeightRef = useRef(hoodWeight);
-  const hoodWrinklesRef = useRef(hoodWrinkles);
-  const hoodDarknessRef = useRef(hoodDarkness);
-  const hoodRoundnessRef = useRef(hoodRoundness);
-  const hoodStyleRef = useRef(hoodStyle);
-  const hoodPuffSizeRef = useRef(hoodPuffSize);
-  const hoodPuffHeightRef = useRef(hoodPuffHeight);
-  const hoodCuffOnRef = useRef(hoodCuffOn);
-  const hoodCuffHeightRef = useRef(hoodCuffHeight);
-  const hoodCuffSizeRef = useRef(hoodCuffSize);
-  const hoodCuffCustomRef = useRef(hoodCuffCustom);
-  const hoodCuffColorRef = useRef(hoodCuffColor);
-  const hoodCuffMetallicRef = useRef(hoodCuffMetallic);
-  const hoodCuffMaterialRef = useRef(hoodCuffMaterial);
-  const hoodHangingRef = useRef(hoodHanging);
-  const hoodWaterCalmRef = useRef(hoodWaterCalm);
-  const hoodCuffTopRef = useRef(hoodCuffTop);
-  const hoodZipperFixedRef = useRef(hoodZipperFixed);
-  const hoodZipperPullOutRef = useRef(hoodZipperPullOut);
-  const hoodReflectLightRef = useRef(hoodReflectLight);
-  const hoodPuffThicknessRef = useRef(hoodPuffThickness);
-  const hoodPuffInflateRef = useRef(hoodPuffInflate);
-  const hoodExtraLayersRef = useRef(hoodExtraLayers);
   // General performance controls — read every frame by the animate() loop
   // below (targetFps: caps renderer.render() calls whenever SIMGLASÖGON is
   // off, mirroring gogglesFpsCapRef's cap for when it's on; resolutionScale:
@@ -4599,7 +4635,18 @@ export function Aquafulness() {
     windSoundOnRef.current = windSoundOn;
     windSoundVolumeRef.current = windSoundVolume;
     windAltitudeAudioOnRef.current = windAltitudeAudioOn;
-  }, [winds, windWavesOn, windWaveStrength, windSwayOn, windSwayStrength, windCurrentOn, windCurrentStrength, windSoundOn, windSoundVolume, windAltitudeAudioOn]);
+  }, [
+    winds,
+    windWavesOn,
+    windWaveStrength,
+    windSwayOn,
+    windSwayStrength,
+    windCurrentOn,
+    windCurrentStrength,
+    windSoundOn,
+    windSoundVolume,
+    windAltitudeAudioOn,
+  ]);
   useEffect(() => {
     openDriftOnRef.current = openDriftOn;
     openDriftCurveRef.current = openDriftCurve;
@@ -4607,7 +4654,14 @@ export function Aquafulness() {
     openDriftCycleSpeedRef.current = openDriftCycleSpeed;
     openDriftMagnitudeRef.current = openDriftMagnitude;
     openDriftDirectionRef.current = openDriftDirection;
-  }, [openDriftOn, openDriftCurve, openDriftRadius, openDriftCycleSpeed, openDriftMagnitude, openDriftDirection]);
+  }, [
+    openDriftOn,
+    openDriftCurve,
+    openDriftRadius,
+    openDriftCycleSpeed,
+    openDriftMagnitude,
+    openDriftDirection,
+  ]);
   useEffect(() => {
     worldBoundaryOnRef.current = worldBoundaryOn;
   }, [worldBoundaryOn]);
@@ -4737,22 +4791,6 @@ export function Aquafulness() {
     envSunTintOnRef.current = envSunTintOn;
   }, [envSunTintOn]);
   useEffect(() => {
-    snowOnRef.current = snowOn;
-    snowAmountRef.current = snowAmount;
-    snowIntensityRef.current = snowIntensity;
-    snowCoverOnRef.current = snowCoverOn;
-    snowCoverStrengthRef.current = snowCoverStrength;
-    snowGrayBackdropOnRef.current = snowGrayBackdropOn;
-  }, [snowOn, snowAmount, snowIntensity, snowCoverOn, snowCoverStrength, snowGrayBackdropOn]);
-  useEffect(() => {
-    fireworksOnRef.current = fireworksOn;
-    fireworksIntensityRef.current = fireworksIntensity;
-    fireworksRateRef.current = fireworksRate;
-    fireworksDistanceRef.current = fireworksDistance;
-    fireworksLightsOnRef.current = fireworksLightsOn;
-    fireworksLightStrengthRef.current = fireworksLightStrength;
-    fireworksSoundOnRef.current = fireworksSoundOn;
-    fireworksVolumeRef.current = fireworksVolume;
     fireworksAudioOnRef.current = audioOn;
   }, [
     fireworksOn,
@@ -4765,121 +4803,11 @@ export function Aquafulness() {
     fireworksVolume,
     audioOn,
   ]);
-  useEffect(() => {
-    confettiOnRef.current = confettiOn;
-    confettiAmountRef.current = confettiAmount;
-    confettiIntensityRef.current = confettiIntensity;
-    confettiPaletteRef.current = confettiPalette;
-    confettiFlutterRef.current = confettiFlutter;
-  }, [confettiOn, confettiAmount, confettiIntensity, confettiPalette, confettiFlutter]);
-  useEffect(() => {
-    neonOnRef.current = neonOn;
-  }, [neonOn]);
-  useEffect(() => {
-    neonModeRef.current = neonMode;
-  }, [neonMode]);
-  useEffect(() => {
-    neonPrimaryRef.current = neonPrimary;
-  }, [neonPrimary]);
-  useEffect(() => {
-    neonSecondaryRef.current = neonSecondary;
-  }, [neonSecondary]);
-  useEffect(() => {
-    neonTintRef.current = neonTint;
-  }, [neonTint]);
-  useEffect(() => {
-    neonTintAmountRef.current = neonTintAmount;
-  }, [neonTintAmount]);
-  useEffect(() => {
-    neonStrengthRef.current = neonStrength;
-  }, [neonStrength]);
-  useEffect(() => {
-    neonWidthRef.current = neonWidth;
-  }, [neonWidth]);
-  useEffect(() => {
-    neonFrequencyRef.current = neonFrequency;
-  }, [neonFrequency]);
   // NEONACCENT: recolor the loaded scene's "-neon" materials right away (a
   // newly loaded scene picks the current color up in its loader instead).
   useEffect(() => {
-    neonAccentColorRef.current = neonAccentColor;
     if (modelRef.current) applyNeonAccent(modelRef.current, neonAccentColor);
   }, [neonAccentColor]);
-  useEffect(() => {
-    hoodOnRef.current = hoodOn;
-    hoodHeightRef.current = hoodHeight;
-    hoodOpeningRef.current = hoodOpening;
-    hoodColorRef.current = hoodColor;
-    hoodMetallicRef.current = hoodMetallic;
-    hoodMotionRef.current = hoodMotion;
-    hoodLowerOnRef.current = hoodLowerOn;
-    hoodLowerHeightRef.current = hoodLowerHeight;
-    hoodZipperOnRef.current = hoodZipperOn;
-    hoodWaterOnRef.current = hoodWaterOn;
-    hoodWaterLevelRef.current = hoodWaterLevel;
-    hoodOpeningWidthRef.current = hoodOpeningWidth;
-    hoodDropRef.current = hoodDrop;
-    hoodWeightRef.current = hoodWeight;
-    hoodWrinklesRef.current = hoodWrinkles;
-    hoodDarknessRef.current = hoodDarkness;
-    hoodRoundnessRef.current = hoodRoundness;
-    hoodStyleRef.current = hoodStyle;
-    hoodPuffSizeRef.current = hoodPuffSize;
-    hoodPuffHeightRef.current = hoodPuffHeight;
-    hoodCuffOnRef.current = hoodCuffOn;
-    hoodCuffHeightRef.current = hoodCuffHeight;
-    hoodCuffSizeRef.current = hoodCuffSize;
-    hoodCuffCustomRef.current = hoodCuffCustom;
-    hoodCuffColorRef.current = hoodCuffColor;
-    hoodCuffMetallicRef.current = hoodCuffMetallic;
-    hoodCuffMaterialRef.current = hoodCuffMaterial;
-    hoodHangingRef.current = hoodHanging;
-    hoodWaterCalmRef.current = hoodWaterCalm;
-    hoodCuffTopRef.current = hoodCuffTop;
-    hoodZipperFixedRef.current = hoodZipperFixed;
-    hoodZipperPullOutRef.current = hoodZipperPullOut;
-    hoodReflectLightRef.current = hoodReflectLight;
-    hoodPuffThicknessRef.current = hoodPuffThickness;
-    hoodPuffInflateRef.current = hoodPuffInflate;
-    hoodExtraLayersRef.current = hoodExtraLayers;
-  }, [
-    hoodOn,
-    hoodHeight,
-    hoodOpening,
-    hoodColor,
-    hoodMetallic,
-    hoodMotion,
-    hoodLowerOn,
-    hoodLowerHeight,
-    hoodZipperOn,
-    hoodWaterOn,
-    hoodWaterLevel,
-    hoodOpeningWidth,
-    hoodDrop,
-    hoodWeight,
-    hoodWrinkles,
-    hoodDarkness,
-    hoodRoundness,
-    hoodStyle,
-    hoodPuffSize,
-    hoodPuffHeight,
-    hoodCuffOn,
-    hoodCuffHeight,
-    hoodCuffSize,
-    hoodCuffCustom,
-    hoodCuffColor,
-    hoodCuffMetallic,
-    hoodCuffMaterial,
-    hoodHanging,
-    hoodWaterCalm,
-    hoodCuffTop,
-    hoodZipperFixed,
-    hoodZipperPullOut,
-    hoodReflectLight,
-    hoodPuffThickness,
-    hoodPuffInflate,
-    hoodExtraLayers,
-  ]);
   useEffect(() => {
     auroraSettingsRef.current = {
       auroraOn,
@@ -5961,17 +5889,25 @@ export function Aquafulness() {
     if (patch.auroraDaylightOn !== undefined) setAuroraDaylightOn(patch.auroraDaylightOn);
     if (patch.underwaterFogOn !== undefined) setUnderwaterFogOn(patch.underwaterFogOn);
     if (patch.underwaterFogColor !== undefined) setUnderwaterFogColor(patch.underwaterFogColor);
-    if (patch.underwaterFogOpacity !== undefined) setUnderwaterFogOpacity(patch.underwaterFogOpacity);
-    if (patch.underwaterFogWaterColorAuto !== undefined) setUnderwaterFogWaterColorAuto(patch.underwaterFogWaterColorAuto);
-    if (patch.underwaterFogWaterColor !== undefined) setUnderwaterFogWaterColor(patch.underwaterFogWaterColor);
-    if (patch.underwaterFogWaterOpacity !== undefined) setUnderwaterFogWaterOpacity(patch.underwaterFogWaterOpacity);
-    if (patch.underwaterFogIntensity !== undefined) setUnderwaterFogIntensity(patch.underwaterFogIntensity);
+    if (patch.underwaterFogOpacity !== undefined)
+      setUnderwaterFogOpacity(patch.underwaterFogOpacity);
+    if (patch.underwaterFogWaterColorAuto !== undefined)
+      setUnderwaterFogWaterColorAuto(patch.underwaterFogWaterColorAuto);
+    if (patch.underwaterFogWaterColor !== undefined)
+      setUnderwaterFogWaterColor(patch.underwaterFogWaterColor);
+    if (patch.underwaterFogWaterOpacity !== undefined)
+      setUnderwaterFogWaterOpacity(patch.underwaterFogWaterOpacity);
+    if (patch.underwaterFogIntensity !== undefined)
+      setUnderwaterFogIntensity(patch.underwaterFogIntensity);
     if (patch.underwaterFogSpread !== undefined) setUnderwaterFogSpread(patch.underwaterFogSpread);
     if (patch.underwaterFogCurve !== undefined) setUnderwaterFogCurve(patch.underwaterFogCurve);
-    if (patch.underwaterFogFeather !== undefined) setUnderwaterFogFeather(patch.underwaterFogFeather);
-    if (patch.underwaterFogDistance !== undefined) setUnderwaterFogDistance(patch.underwaterFogDistance);
+    if (patch.underwaterFogFeather !== undefined)
+      setUnderwaterFogFeather(patch.underwaterFogFeather);
+    if (patch.underwaterFogDistance !== undefined)
+      setUnderwaterFogDistance(patch.underwaterFogDistance);
     if (patch.underwaterFogOffset !== undefined) setUnderwaterFogOffset(patch.underwaterFogOffset);
-    if (patch.underwaterFogSubmergedOnly !== undefined) setUnderwaterFogSubmergedOnly(patch.underwaterFogSubmergedOnly);
+    if (patch.underwaterFogSubmergedOnly !== undefined)
+      setUnderwaterFogSubmergedOnly(patch.underwaterFogSubmergedOnly);
     if (patch.underwaterFogBlend !== undefined) setUnderwaterFogBlend(patch.underwaterFogBlend);
     if (patch.cameraMode !== undefined) setCameraMode(patch.cameraMode);
     if (patch.noclipSpeed !== undefined) setNoclipSpeed(patch.noclipSpeed);
@@ -8744,7 +8680,10 @@ export function Aquafulness() {
     const CORD_SIDES = 6;
     const cordPos = new Float32Array(CORD_PTS * CORD_SIDES * 3);
     const cordGeo = new THREE.BufferGeometry();
-    cordGeo.setAttribute("position", new THREE.BufferAttribute(cordPos, 3).setUsage(THREE.DynamicDrawUsage));
+    cordGeo.setAttribute(
+      "position",
+      new THREE.BufferAttribute(cordPos, 3).setUsage(THREE.DynamicDrawUsage),
+    );
     {
       const idx: number[] = [];
       for (let i = 0; i < CORD_PTS - 1; i++) {
@@ -8758,7 +8697,11 @@ export function Aquafulness() {
       }
       cordGeo.setIndex(idx);
     }
-    const cordMat = new THREE.MeshStandardMaterial({ color: "#d8c9a6", roughness: 0.9, metalness: 0 });
+    const cordMat = new THREE.MeshStandardMaterial({
+      color: "#d8c9a6",
+      roughness: 0.9,
+      metalness: 0,
+    });
     const cordMesh = new THREE.Mesh(cordGeo, cordMat);
     cordMesh.frustumCulled = false;
     cordMesh.visible = false;
@@ -9198,23 +9141,23 @@ export function Aquafulness() {
     let shadowFitModel: THREE.Object3D | null = null;
     const shadowSphere = new THREE.Sphere();
 
-    // NEON edge lines along the loaded scene's meshes — see NeonEdges.
-    const neonEdges = new NeonEdges(scene);
-    neonEdges.setResolution(mount.clientWidth, mount.clientHeight);
+    // NEON edge lines along the loaded scene's meshes (apps/neon).
+    const neon = new NeonRuntime({ scene });
+    neon.setResolution(mount.clientWidth, mount.clientHeight);
     // LJUSSLINGOR: decorative string lights (see apps/string-lights/StringLightsFx.ts).
     const stringLights = new StringLightsFx(scene);
     // SNÖ: falling flakes around the camera, and SNÖTÄCKE whitening of the
     // loaded scene (see apps/snow/Snowfall.ts).
-    const snowfall = new Snowfall(scene);
-    const snowCover = new SnowCover();
+    const snow = new SnowRuntime({ scene });
+    const snowCover = snow.cover;
     // FYRVERKERI (see apps/fireworks/Fireworks.ts).
-    const fireworks = new Fireworks(scene);
+    const fireworks = new FireworksRuntime({ scene });
     envDomeUniforms.uSnowLight = snowCover.uLight;
     // KONFETTI: confetti falling like the snow (see apps/confetti/Confetti.ts).
-    const confetti = new Confetti(scene);
+    const confetti = new ConfettiRuntime({ scene });
     // HUVA: the hood framing the view (drawn last, over the 3D scene), one
     // per layer; a later layer draws over an earlier one.
-    const hoods = Array.from({ length: HOOD_MAX_LAYERS }, (_, i) => new Hood(scene, i));
+    const hood = new HoodRuntime({ scene });
     const envTint = new THREE.Color(1, 1, 1);
     const envTintScratch = new THREE.Color();
     const envTintNight = new THREE.Color(1, 1, 1);
@@ -9230,7 +9173,7 @@ export function Aquafulness() {
       const h = mount.clientHeight;
       renderer.setSize(w, h);
       composer.setSize(w, h);
-      neonEdges.setResolution(w, h);
+      neon.setResolution(w, h);
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
       tvManager.setSize(w, h);
@@ -9578,10 +9521,9 @@ export function Aquafulness() {
       }
       // SNÖTÄCKE settles over a few seconds (SnowCover.update eases it); the
       // backdrop needs the env dome to be whitened at all.
-      snowCover.update(dt, snowCoverOnRef.current ? snowCoverStrengthRef.current : 0);
+      snow.updateCover(dt, nightBackdropMix(todRef.current), snowSettingsRef.current);
       envDomeUniforms.uSnowCover.value = snowCover.cover;
-      snowCover.setDaylight(1 - nightBackdropMix(todRef.current));
-      envDomeUniforms.uSnowGray.value = snowGrayBackdropOnRef.current ? 1 : 0;
+      envDomeUniforms.uSnowGray.value = snowSettingsRef.current.snowGrayBackdropOn ? 1 : 0;
       const useEnvDome =
         envTex !== null && (envTintOn || envBlending || sunTint > 0.001 || snowCover.cover > 0.001);
       envDome.visible = useEnvDome;
@@ -9895,9 +9837,7 @@ export function Aquafulness() {
       // CLOUD block further down — which runs before that point in the frame
       // — can also sample the real wave height (see tornadoWaterHeightAt
       // there).
-      const dirRad = windSteersWaves
-        ? uniforms.uDir.value
-        : (waveDirRef.current * Math.PI) / 180;
+      const dirRad = windSteersWaves ? uniforms.uDir.value : (waveDirRef.current * Math.PI) / 180;
       // NAV: m/s at full deflection — 16 with EXTREME, ~25 % (4) without.
       const extremeNow = extremeLimitsRef.current;
       const walkSpeed = limitMax("navSpeed", extremeNow);
@@ -11851,17 +11791,33 @@ export function Aquafulness() {
 
       sky.position.copy(camera.position);
 
+      // What every app runtime gets to know about this frame (see
+      // FrameContext in core/apps/types.ts).
+      const appFrame: FrameContext = {
+        time: now / 1000,
+        dt,
+        camera,
+        night: nightBackdropMix(todRef.current),
+        underwater: uniforms.uUnderwater.value,
+        waterLevel: ocean.position.y,
+        eyeAboveWater: camY - surfaceY,
+        model: modelRef.current,
+        lowEnd,
+        pixelRatio: renderer.getPixelRatio(),
+        pixelHeight: renderer.domElement.height,
+        audioOn: fireworksAudioOnRef.current,
+        light: {
+          skyColor: uniforms.uSkyColor.value,
+          horizonColor: uniforms.uHorizonColor.value,
+          waterColor: uniforms.uWaterDeep.value,
+          sunColor: uniforms.uSunColor.value,
+          sunDir: uniforms.uSunDir.value,
+        },
+      };
+
       // NORRSKEN (apps/aurora): fades in with the night and is reflected in
       // the water.
-      aurora.frame(
-        {
-          dt,
-          camera,
-          night: nightBackdropMix(todRef.current),
-          underwater: uniforms.uUnderwater.value,
-        },
-        auroraSettingsRef.current,
-      );
+      aurora.frame(appFrame, auroraSettingsRef.current);
       uniforms.uAuroraGlow.value.copy(aurora.glow);
       uniforms.uAuroraElev.value = aurora.glowElevation;
       uniforms.uAuroraHeight.value = auroraSettingsRef.current.auroraHeight;
@@ -11883,11 +11839,7 @@ export function Aquafulness() {
           const ws = uniforms.uWaterShallow.value;
           const wd = uniforms.uWaterDeep.value;
           const waterRgb: [number, number, number] = fog.underwaterFogWaterColorAuto
-            ? [
-                ws.r * 0.45 + wd.r * 0.55,
-                ws.g * 0.45 + wd.g * 0.55,
-                ws.b * 0.45 + wd.b * 0.55,
-              ]
+            ? [ws.r * 0.45 + wd.r * 0.55, ws.g * 0.45 + wd.g * 0.55, ws.b * 0.45 + wd.b * 0.55]
             : hexToRgbNorm(fog.underwaterFogWaterColor);
           underwaterFog.update(el, dt, topFrac, fog.underwaterFogBlend, {
             fogColor: fog.underwaterFogColor,
@@ -12071,27 +12023,8 @@ export function Aquafulness() {
       // position is final for the frame.
       torusRingField.update(camera.position, dt);
 
-      // NEON: (re)build edge lines whenever the loaded scene changes, drop
-      // them when turned off, and recolor/re-sync them every frame.
-      {
-        const model = neonOnRef.current ? modelRef.current : null;
-        if (model !== neonEdges.attachedTo) {
-          if (model) neonEdges.attach(model);
-          else neonEdges.detach();
-        }
-        if (model) {
-          neonEdges.update(now / 1000, {
-            mode: neonModeRef.current,
-            primary: neonPrimaryRef.current,
-            secondary: neonSecondaryRef.current,
-            tint: neonTintRef.current,
-            tintAmount: neonTintAmountRef.current,
-            strength: neonStrengthRef.current,
-            width: neonWidthRef.current,
-            frequency: neonFrequencyRef.current,
-          });
-        }
-      }
+      // NEON (apps/neon): edge lines along the loaded scene.
+      neon.frame(appFrame, neonSettingsRef.current);
 
       // LJUSSLINGOR: the current scene's string lights, animated.
       stringLights.update(now / 1000, camera, {
@@ -12101,162 +12034,23 @@ export function Aquafulness() {
         viewportHeight: mount.clientHeight,
       });
 
-      // SNÖ: flakes follow the camera; SNÖTÄCKE patches the loaded scene's
-      // materials once per model (the shared uniform does the rest).
-      {
-        if (snowOnRef.current) {
-          snowfall.setPixelRatio(renderer.getPixelRatio());
-          snowfall.update(now / 1000, dt, camera.position, {
-            amount: snowAmountRef.current * (lowEnd ? 0.5 : 1),
-            intensity: snowIntensityRef.current,
-            waterLevel: ocean.position.y,
-            underwater: uniforms.uUnderwater.value,
-          });
-        } else {
-          snowfall.hide();
-        }
-        const model = snowCover.cover > 0.001 ? modelRef.current : null;
-        if (model && model !== snowCover.attachedTo) snowCover.attach(model);
-        else if (!modelRef.current && snowCover.attachedTo) snowCover.detach();
+      // SNÖ (apps/snow): flakes follow the camera; SNÖTÄCKE patches the
+      // loaded scene's materials.
+      snow.frame(appFrame, snowSettingsRef.current);
+
+      // FYRVERKERI (apps/fireworks): runs the show, then its flashes are fed
+      // to the ocean shader (the scene lights are its own).
+      fireworks.frame(appFrame, fireworksSettingsRef.current);
+      for (let i = 0; i < FIREWORKS_LIGHTS; i++) {
+        uniforms.uFwLightPos.value[i].copy(fireworks.lightPos[i]);
+        uniforms.uFwLightCol.value[i].copy(fireworks.lightCol[i]);
       }
 
-      // FYRVERKERI: launches, simulates and sounds the show, then feeds its
-      // flashes to the ocean shader (the scene lights are its own).
-      {
-        const fwOn = fireworksOnRef.current;
-        if (fwOn || fireworks.busy) {
-          fireworks.update(dt, camera, fwOn, {
-            intensity: fireworksIntensityRef.current,
-            rate: fireworksRateRef.current,
-            distance: fireworksDistanceRef.current,
-            lightStrength: fireworksLightsOnRef.current ? fireworksLightStrengthRef.current : 0,
-            waterLevel: ocean.position.y,
-            underwater: uniforms.uUnderwater.value,
-            pixelHeight: renderer.domElement.height,
-            lowEnd,
-            soundOn: fireworksSoundOnRef.current && fireworksAudioOnRef.current,
-            volume: fireworksVolumeRef.current,
-          });
-        } else {
-          fireworks.audio.update(false, 0, 0);
-        }
-        for (let i = 0; i < FIREWORKS_LIGHTS; i++) {
-          uniforms.uFwLightPos.value[i].copy(fireworks.lightPos[i]);
-          uniforms.uFwLightCol.value[i].copy(fireworks.lightCol[i]);
-        }
-      }
+      // KONFETTI (apps/confetti): pieces follow the camera like the snow.
+      confetti.frame(appFrame, confettiSettingsRef.current);
 
-      // KONFETTI: pieces follow the camera like the snowflakes.
-      if (confettiOnRef.current) {
-        confetti.setPixelRatio(renderer.getPixelRatio());
-        confetti.update(now / 1000, dt, camera.position, {
-          amount: confettiAmountRef.current * (lowEnd ? 0.5 : 1),
-          intensity: confettiIntensityRef.current,
-          flutter: confettiFlutterRef.current,
-          palette: confettiPaletteRef.current,
-          waterLevel: ocean.position.y,
-          underwater: uniforms.uUnderwater.value,
-        });
-      } else {
-        confetti.hide();
-      }
-
-      // HUVA: a hood around the bather, framing the view. Layer 1 comes from
-      // the flat hood* settings, layers 2+ from hoodExtraLayers.
-      {
-        const layers: HoodLayer[] = hoodOnRef.current
-          ? [
-              {
-                on: true,
-                height: hoodHeightRef.current,
-                opening: hoodOpeningRef.current,
-                openingWidth: hoodOpeningWidthRef.current,
-                color: hoodColorRef.current,
-                metallic: hoodMetallicRef.current,
-                motion: hoodMotionRef.current,
-                lowerOn: hoodLowerOnRef.current,
-                lowerHeight: hoodLowerHeightRef.current,
-                zipperOn: hoodZipperOnRef.current,
-                waterOn: hoodWaterOnRef.current,
-                waterLevel: hoodWaterLevelRef.current,
-                drop: hoodDropRef.current,
-                weight: hoodWeightRef.current,
-                wrinkles: hoodWrinklesRef.current,
-                darkness: hoodDarknessRef.current,
-                roundness: hoodRoundnessRef.current,
-                style: hoodStyleRef.current,
-                puffSize: hoodPuffSizeRef.current,
-                puffHeight: hoodPuffHeightRef.current,
-                cuff: hoodCuffOnRef.current,
-                cuffHeight: hoodCuffHeightRef.current,
-                cuffSize: hoodCuffSizeRef.current,
-                cuffCustom: hoodCuffCustomRef.current,
-                cuffColor: hoodCuffColorRef.current,
-                cuffMetallic: hoodCuffMetallicRef.current,
-                cuffMaterial: hoodCuffMaterialRef.current,
-                hanging: hoodHangingRef.current,
-                waterCalm: hoodWaterCalmRef.current,
-                cuffTop: hoodCuffTopRef.current,
-                zipperFixed: hoodZipperFixedRef.current,
-                zipperPullOut: hoodZipperPullOutRef.current,
-                reflectLight: hoodReflectLightRef.current,
-                puffThickness: hoodPuffThicknessRef.current,
-                puffInflate: hoodPuffInflateRef.current,
-              },
-              ...hoodExtraLayersRef.current,
-            ]
-          : [];
-        hoods.forEach((h, i) => {
-          const l = layers[i];
-          if (!l || !l.on) {
-            h.hide();
-            return;
-          }
-          h.update(now / 1000, dt, camera, {
-            height: l.height,
-            opening: l.opening,
-            openingWidth: l.openingWidth,
-            color: l.color,
-            metallic: l.metallic,
-            motion: l.motion,
-            lower: l.lowerOn,
-            lowerHeight: l.lowerHeight,
-            zipper: l.zipperOn,
-            waterInside: l.waterOn,
-            waterInsideLevel: l.waterLevel,
-            drop: l.drop,
-            weight: l.weight,
-            wrinkles: l.wrinkles,
-            darkness: l.darkness,
-            roundness: l.roundness,
-            style: l.style,
-            puffSize: l.puffSize,
-            puffHeight: l.puffHeight,
-            cuff: l.cuff,
-            cuffHeight: l.cuffHeight,
-            cuffSize: l.cuffSize,
-            cuffCustom: l.cuffCustom,
-            cuffColor: l.cuffColor,
-            cuffMetallic: l.cuffMetallic,
-            cuffMaterial: l.cuffMaterial,
-            hanging: l.hanging,
-            waterCalm: l.waterCalm,
-            cuffTop: l.cuffTop,
-            zipperFixed: l.zipperFixed,
-            zipperPullOut: l.zipperPullOut,
-            reflectLight: l.reflectLight,
-            puffThickness: l.puffThickness,
-            puffInflate: l.puffInflate,
-            eyeAboveWater: camY - surfaceY,
-            skyColor: uniforms.uSkyColor.value,
-            horizonColor: uniforms.uHorizonColor.value,
-            waterColor: uniforms.uWaterDeep.value,
-            sunColor: uniforms.uSunColor.value,
-            sunDir: uniforms.uSunDir.value,
-            underwater: uniforms.uUnderwater.value,
-          });
-        });
-      }
+      // HUVA (apps/hood): the hood layers around the bather, framing the view.
+      hood.frame(appFrame, hoodSettingsRef.current);
 
       // Cap actual GPU renders to targetFps (gogglesFpsCap instead while
       // SIMGLASÖGON is on, for its own lower thermal-friendly ceiling) —
@@ -12338,15 +12132,15 @@ export function Aquafulness() {
       chromaticAberrationPass.dispose();
       retroPass.dispose();
       composer.dispose();
-      neonEdges.dispose();
+      neon.dispose();
       stringLights.dispose();
       aurora.dispose();
       windAudio.dispose();
       windField.reset();
-      snowfall.dispose();
+      snow.dispose();
       fireworks.dispose();
       confetti.dispose();
-      for (const h of hoods) h.dispose();
+      hood.dispose();
       scene.environment = null;
       iblTarget?.dispose();
       pmrem.dispose();
@@ -12541,7 +12335,7 @@ export function Aquafulness() {
           });
           // NEONACCENT: "-neon" materials take the accent color as tint
           // and emission (intensity 1.00).
-          applyNeonAccent(model, neonAccentColorRef.current);
+          applyNeonAccent(model, neonSettingsRef.current.neonAccentColor);
           // SWING HOOK: collect every object named "...-hook".
           const hookNames = new Set<string>();
           model.traverse((o) => {
@@ -14039,9 +13833,7 @@ export function Aquafulness() {
             <Wind className="h-5 w-5" strokeWidth={1.6} aria-hidden="true" />
           </HudIconButton>
         </div>
-        {windPanelOpen && (
-          <WindHudPanel c={windControls} onClose={() => setWindPanelOpen(false)} />
-        )}
+        {windPanelOpen && <WindHudPanel c={windControls} onClose={() => setWindPanelOpen(false)} />}
         <ShareBathDialog
           open={shareBathOpen}
           onClose={() => setShareBathOpen(false)}

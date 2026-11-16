@@ -51,6 +51,7 @@ Swedish, like `NORRSKEN`) goes in the manifest's `name`.
 | `open-drift` | HAVSDRIFT | motion | drift | | `OpenDrift.ts` |
 | `retro` | RETRO | screen-fx | graphics | | `retroShader.ts` |
 | `snow` | SNÖ | scene-fx | weather | day-night | `Snowfall.ts`, `SnowCover.ts`, `snowLight.ts` |
+| `string-lights` | LJUSSLINGOR | scene-fx | effects | | `StringLightsFx.ts`, `stringLights.ts` (own store), `StringLightsPanel.tsx` |
 | `underwater-fog` | UNDERVATTENDIS | screen-fx | weather | | `underwaterFog.ts`, `UnderwaterFogOverlay.ts` |
 | `wind` | VIND | environment | weather | | `wind.ts`, `WindAudio.ts`, `WindPanel.tsx` |
 
@@ -161,7 +162,13 @@ interface AppRuntime<S> {
   frame?(frame: FrameContext, settings: Readonly<S>): void;
   dispose(): void;
 }
-type FrameContext = { dt: number; camera: THREE.Camera; night: number; underwater: number };
+type FrameContext = {
+  time: number; dt: number; camera: THREE.PerspectiveCamera;
+  night: number; underwater: number; waterLevel: number; eyeAboveWater: number;
+  model: THREE.Object3D | null; lowEnd: boolean;
+  pixelRatio: number; pixelHeight: number; audioOn: boolean;
+  light: { skyColor; horizonColor; waterColor; sunColor; sunDir };
+};
 ```
 
 `createRuntime({ scene })` is called once when the 3D scene is built. The
@@ -171,18 +178,37 @@ settings into whatever its classes need. Values the host needs back (for
 example `AuroraRuntime.glow`, which the ocean shader reflects) are exposed as
 getters.
 
-The settings slice reaches the render loop through one ref per app, updated
-from React state:
+The host builds one `FrameContext` per frame (`appFrame` in
+`routes/index.tsx`) and passes it to every runtime. When an app needs more
+from the host, add a field to `FrameContext` instead of reaching into
+`index.tsx`.
+
+The settings slice reaches the render loop through one ref per app,
+refreshed on every render:
 
 ```ts
-const auroraSettingsRef = useRef<AuroraSettings>({ auroraOn, /* ... */ });
-useEffect(() => { auroraSettingsRef.current = { auroraOn, /* ... */ }; }, [auroraOn, /* ... */]);
+const snowSettings: SnowSettings = { snowOn, snowAmount, /* ... */ };
+const snowSettingsRef = useRef(snowSettings);
+snowSettingsRef.current = snowSettings;
 // in the frame:
-aurora.frame({ dt, camera, night, underwater }, auroraSettingsRef.current);
+snow.frame(appFrame, snowSettingsRef.current);
 ```
 
-`aurora` is the first app migrated this way (`AuroraRuntime.ts`). The others
-still construct their classes directly in `routes/index.tsx`.
+Runtimes so far:
+
+| app | runtime | extra surface the host uses |
+| --- | --- | --- |
+| `aurora` | `AuroraRuntime` | `glow`, `glowElevation` (water reflection) |
+| `snow` | `SnowRuntime` | `updateCover()` early in the frame, `cover` (backdrop dome uniforms) |
+| `confetti` | `ConfettiRuntime` | |
+| `fireworks` | `FireworksRuntime` | `lightPos`, `lightCol` (ocean shader lights) |
+| `neon` | `NeonRuntime` | `setResolution()` on resize |
+| `hood` | `HoodRuntime` | |
+
+Still constructed directly in `routes/index.tsx`: `wind` (WindField,
+WindAudio), `open-drift`, `underwater-fog`, `string-lights`, `decorations`,
+and the `retro` pass. Wind and open drift feed the physics step, not just
+the frame, so they need a `step()` hook first.
 
 ## Adding a new app
 
@@ -207,11 +233,11 @@ The refactor goes in small, behavior-preserving steps, so open feature work
 can keep merging.
 
 - [x] **Step 1:** the `core/apps` contract, registry and tests; 12 features
-  moved to `src/apps/`, one class per file; each app owns its settings
+  moved to `src/apps/` (13 with string lights), one class per file; each app owns its settings
   type, defaults and preset keys; `aurora` runs through `AppRuntime`.
-- [ ] **Step 2:** move the remaining apps' frame code out of
-  `routes/index.tsx` into runtimes (snow, confetti, fireworks, neon, hood,
-  underwater fog, open drift, wind), one PR per app or two.
+- [ ] **Step 2:** move the apps' frame code out of `routes/index.tsx` into
+  runtimes. Done: aurora, snow, confetti, fireworks, neon, hood. Left: wind,
+  open drift, underwater fog, string lights, decorations, retro.
 - [ ] **Step 3:** a generic host loop that creates every registered runtime
   and calls `frame()` in registry order, plus a per-app settings hook
   (`useAppSettings(app)`) to replace the per-key `useState` lines.
@@ -222,6 +248,5 @@ can keep merging.
 - [ ] **Step 6:** load app runtimes with dynamic `import()` so each one is
   its own chunk (keeps the main bundle under the PWA precache limit).
 
-Features still in open pull requests (REGN rain, LJUSSLINGOR string lights)
-add files under `lib/sceneFx/`. When they merge, move them to
-`src/apps/rain/` and `src/apps/string-lights/` (rain depends on `wind`).
+REGN (rain, PR #44) is still open and adds `lib/sceneFx/rain.ts`. When it
+merges, move it to `src/apps/rain/` (it depends on `wind`).
