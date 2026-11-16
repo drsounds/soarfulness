@@ -44,6 +44,11 @@ export default defineConfig({
         // uses (confirmed for both the Cloudflare Workers default and the
         // node-server preset the Dockerfile builds with).
         outDir: ".output/public",
+        // The main app chunk grew past vite-plugin-pwa's default 2 MiB
+        // precache limit (index-*.js was 2.12 MB after the GLB decorations
+        // landed), which fails the whole build. Raise it so the app shell
+        // stays precached for offline use.
+        injectManifest: { maximumFileSizeToCacheInBytes: 8 * 1024 * 1024 },
         manifest: {
           name: "Aquafulness",
           short_name: "Aquafulness",
