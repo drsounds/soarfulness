@@ -5,6 +5,7 @@ import { saveFileToDevice } from "@/lib/deviceFiles";
 import { pickJsonFile, readJsonFile } from "@/lib/presets";
 import { limitMax, useExtremeLimits } from "@/lib/extremeLimits";
 import {
+  HOOD_CUFF_MATERIALS,
   HOOD_MAX_LAYERS,
   HOOD_PADDED_STYLES,
   HOOD_STYLES,
@@ -231,6 +232,46 @@ export function HoodSettings({
               {toggle("cuffTop", t("dial.camera.hoodCuffTop"))}
               {pct("cuffHeight", t("dial.camera.hoodCuffHeight"))}
               {pct("cuffSize", t("dial.camera.hoodCuffSize"))}
+              {toggle("cuffCustom", t("dial.camera.hoodCuffCustom"))}
+              {layer.cuffCustom && (
+                <>
+                  <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
+                    <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
+                      {t("dial.camera.hoodCuffColor")}
+                    </span>
+                    <input
+                      type="color"
+                      value={layer.cuffColor}
+                      onChange={(e) => patch({ cuffColor: e.target.value })}
+                      className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
+                    />
+                  </label>
+                  {pct("cuffMetallic", t("dial.camera.hoodCuffMetallic"))}
+                  <SettingRow
+                    label={t("dial.camera.hoodCuffMaterial")}
+                    value={t(`dial.camera.hoodCuffMaterial_${layer.cuffMaterial}`)}
+                    onDec={() =>
+                      patch({
+                        cuffMaterial:
+                          HOOD_CUFF_MATERIALS[
+                            (HOOD_CUFF_MATERIALS.indexOf(layer.cuffMaterial) - 1 +
+                              HOOD_CUFF_MATERIALS.length) %
+                              HOOD_CUFF_MATERIALS.length
+                          ],
+                      })
+                    }
+                    onInc={() =>
+                      patch({
+                        cuffMaterial:
+                          HOOD_CUFF_MATERIALS[
+                            (HOOD_CUFF_MATERIALS.indexOf(layer.cuffMaterial) + 1) %
+                              HOOD_CUFF_MATERIALS.length
+                          ],
+                      })
+                    }
+                  />
+                </>
+              )}
             </>
           )}
           {pct("metallic", t("dial.camera.hoodMetallic"))}

@@ -1476,6 +1476,10 @@ const DEFAULTS: Persisted = {
   hoodCuffOn: false,
   hoodCuffHeight: 0.3,
   hoodCuffSize: 0.5,
+  hoodCuffCustom: false,
+  hoodCuffColor: "#1f2a40",
+  hoodCuffMetallic: 0.15,
+  hoodCuffMaterial: "knit",
   hoodHanging: true,
   hoodWaterCalm: 0.6,
   hoodCuffTop: true,
@@ -2192,6 +2196,10 @@ export function Aquafulness() {
   const [hoodCuffOn, setHoodCuffOn] = useState(initial.hoodCuffOn);
   const [hoodCuffHeight, setHoodCuffHeight] = useState(initial.hoodCuffHeight);
   const [hoodCuffSize, setHoodCuffSize] = useState(initial.hoodCuffSize);
+  const [hoodCuffCustom, setHoodCuffCustom] = useState(initial.hoodCuffCustom);
+  const [hoodCuffColor, setHoodCuffColor] = useState(initial.hoodCuffColor);
+  const [hoodCuffMetallic, setHoodCuffMetallic] = useState(initial.hoodCuffMetallic);
+  const [hoodCuffMaterial, setHoodCuffMaterial] = useState(initial.hoodCuffMaterial);
   const [hoodHanging, setHoodHanging] = useState(initial.hoodHanging);
   const [hoodWaterCalm, setHoodWaterCalm] = useState(initial.hoodWaterCalm);
   const [hoodCuffTop, setHoodCuffTop] = useState(initial.hoodCuffTop);
@@ -3153,6 +3161,10 @@ export function Aquafulness() {
     hoodCuffOn,
     hoodCuffHeight,
     hoodCuffSize,
+    hoodCuffCustom,
+    hoodCuffColor,
+    hoodCuffMetallic,
+    hoodCuffMaterial,
     hoodHanging,
     hoodWaterCalm,
     hoodCuffTop,
@@ -3500,6 +3512,10 @@ export function Aquafulness() {
     hoodCuffOn,
     hoodCuffHeight,
     hoodCuffSize,
+    hoodCuffCustom,
+    hoodCuffColor,
+    hoodCuffMetallic,
+    hoodCuffMaterial,
     hoodHanging,
     hoodWaterCalm,
     hoodCuffTop,
@@ -4055,6 +4071,10 @@ export function Aquafulness() {
   const hoodCuffOnRef = useRef(hoodCuffOn);
   const hoodCuffHeightRef = useRef(hoodCuffHeight);
   const hoodCuffSizeRef = useRef(hoodCuffSize);
+  const hoodCuffCustomRef = useRef(hoodCuffCustom);
+  const hoodCuffColorRef = useRef(hoodCuffColor);
+  const hoodCuffMetallicRef = useRef(hoodCuffMetallic);
+  const hoodCuffMaterialRef = useRef(hoodCuffMaterial);
   const hoodHangingRef = useRef(hoodHanging);
   const hoodWaterCalmRef = useRef(hoodWaterCalm);
   const hoodCuffTopRef = useRef(hoodCuffTop);
@@ -4898,6 +4918,10 @@ export function Aquafulness() {
     hoodCuffOnRef.current = hoodCuffOn;
     hoodCuffHeightRef.current = hoodCuffHeight;
     hoodCuffSizeRef.current = hoodCuffSize;
+    hoodCuffCustomRef.current = hoodCuffCustom;
+    hoodCuffColorRef.current = hoodCuffColor;
+    hoodCuffMetallicRef.current = hoodCuffMetallic;
+    hoodCuffMaterialRef.current = hoodCuffMaterial;
     hoodHangingRef.current = hoodHanging;
     hoodWaterCalmRef.current = hoodWaterCalm;
     hoodCuffTopRef.current = hoodCuffTop;
@@ -4931,6 +4955,10 @@ export function Aquafulness() {
     hoodCuffOn,
     hoodCuffHeight,
     hoodCuffSize,
+    hoodCuffCustom,
+    hoodCuffColor,
+    hoodCuffMetallic,
+    hoodCuffMaterial,
     hoodHanging,
     hoodWaterCalm,
     hoodCuffTop,
@@ -5476,6 +5504,10 @@ export function Aquafulness() {
     setHoodCuffOn(DEFAULTS.hoodCuffOn);
     setHoodCuffHeight(DEFAULTS.hoodCuffHeight);
     setHoodCuffSize(DEFAULTS.hoodCuffSize);
+    setHoodCuffCustom(DEFAULTS.hoodCuffCustom);
+    setHoodCuffColor(DEFAULTS.hoodCuffColor);
+    setHoodCuffMetallic(DEFAULTS.hoodCuffMetallic);
+    setHoodCuffMaterial(DEFAULTS.hoodCuffMaterial);
     setHoodHanging(DEFAULTS.hoodHanging);
     setHoodWaterCalm(DEFAULTS.hoodWaterCalm);
     setHoodCuffTop(DEFAULTS.hoodCuffTop);
@@ -5821,6 +5853,10 @@ export function Aquafulness() {
     if (patch.hoodCuffOn !== undefined) setHoodCuffOn(patch.hoodCuffOn);
     if (patch.hoodCuffHeight !== undefined) setHoodCuffHeight(patch.hoodCuffHeight);
     if (patch.hoodCuffSize !== undefined) setHoodCuffSize(patch.hoodCuffSize);
+    if (patch.hoodCuffCustom !== undefined) setHoodCuffCustom(patch.hoodCuffCustom);
+    if (patch.hoodCuffColor !== undefined) setHoodCuffColor(patch.hoodCuffColor);
+    if (patch.hoodCuffMetallic !== undefined) setHoodCuffMetallic(patch.hoodCuffMetallic);
+    if (patch.hoodCuffMaterial !== undefined) setHoodCuffMaterial(patch.hoodCuffMaterial);
     if (patch.hoodHanging !== undefined) setHoodHanging(patch.hoodHanging);
     if (patch.hoodWaterCalm !== undefined) setHoodWaterCalm(patch.hoodWaterCalm);
     if (patch.hoodCuffTop !== undefined) setHoodCuffTop(patch.hoodCuffTop);
@@ -12228,6 +12264,10 @@ export function Aquafulness() {
                 cuff: hoodCuffOnRef.current,
                 cuffHeight: hoodCuffHeightRef.current,
                 cuffSize: hoodCuffSizeRef.current,
+                cuffCustom: hoodCuffCustomRef.current,
+                cuffColor: hoodCuffColorRef.current,
+                cuffMetallic: hoodCuffMetallicRef.current,
+                cuffMaterial: hoodCuffMaterialRef.current,
                 hanging: hoodHangingRef.current,
                 waterCalm: hoodWaterCalmRef.current,
                 cuffTop: hoodCuffTopRef.current,
@@ -12269,6 +12309,10 @@ export function Aquafulness() {
             cuff: l.cuff,
             cuffHeight: l.cuffHeight,
             cuffSize: l.cuffSize,
+            cuffCustom: l.cuffCustom,
+            cuffColor: l.cuffColor,
+            cuffMetallic: l.cuffMetallic,
+            cuffMaterial: l.cuffMaterial,
             hanging: l.hanging,
             waterCalm: l.waterCalm,
             cuffTop: l.cuffTop,
@@ -13172,6 +13216,10 @@ export function Aquafulness() {
     hoodCuffHeight,
     setHoodCuffHeight,
     hoodCuffSize,
+    hoodCuffCustom,
+    hoodCuffColor,
+    hoodCuffMetallic,
+    hoodCuffMaterial,
     hoodHanging,
     hoodWaterCalm,
     hoodCuffTop,
@@ -13181,6 +13229,10 @@ export function Aquafulness() {
     hoodPuffThickness,
     hoodPuffInflate,
     setHoodCuffSize,
+    setHoodCuffCustom,
+    setHoodCuffColor,
+    setHoodCuffMetallic,
+    setHoodCuffMaterial,
     setHoodHanging,
     setHoodWaterCalm,
     setHoodCuffTop,
