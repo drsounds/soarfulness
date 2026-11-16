@@ -460,6 +460,9 @@ export type Persisted = {
   hoodCuffOn: boolean;
   hoodCuffHeight: number;
   hoodCuffSize: number;
+  hoodReflectLight: boolean;
+  hoodPuffThickness: number;
+  hoodPuffInflate: number;
   hoodExtraLayers: HoodLayer[];
   targetFps: number;
   resolutionScale: number;
@@ -1151,6 +1154,9 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "hoodCuffOn",
     "hoodCuffHeight",
     "hoodCuffSize",
+    "hoodReflectLight",
+    "hoodPuffThickness",
+    "hoodPuffInflate",
     "hoodExtraLayers",
     "targetFps",
     "resolutionScale",

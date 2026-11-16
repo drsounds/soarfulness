@@ -803,7 +803,13 @@ export type SettingsPanelProps = {
   hoodCuffHeight: number;
   setHoodCuffHeight: Dispatch<SetStateAction<number>>;
   hoodCuffSize: number;
+  hoodReflectLight: boolean;
+  hoodPuffThickness: number;
+  hoodPuffInflate: number;
   setHoodCuffSize: Dispatch<SetStateAction<number>>;
+  setHoodReflectLight: Dispatch<SetStateAction<boolean>>;
+  setHoodPuffThickness: Dispatch<SetStateAction<number>>;
+  setHoodPuffInflate: Dispatch<SetStateAction<number>>;
   hoodExtraLayers: HoodLayer[];
   setHoodExtraLayers: Dispatch<SetStateAction<HoodLayer[]>>;
   // General performance controls (independent of SIMGLASÖGON): caps the
@@ -1949,7 +1955,13 @@ export function SettingsPanel(props: SettingsPanelProps) {
     hoodCuffHeight,
     setHoodCuffHeight,
     hoodCuffSize,
+    hoodReflectLight,
+    hoodPuffThickness,
+    hoodPuffInflate,
     setHoodCuffSize,
+    setHoodReflectLight,
+    setHoodPuffThickness,
+    setHoodPuffInflate,
     hoodExtraLayers,
     setHoodExtraLayers,
     targetFps,
@@ -4265,6 +4277,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     cuff: hoodCuffOn,
                     cuffHeight: hoodCuffHeight,
                     cuffSize: hoodCuffSize,
+                    reflectLight: hoodReflectLight,
+                    puffThickness: hoodPuffThickness,
+                    puffInflate: hoodPuffInflate,
                   }}
                   setLayer1={(p) => {
                     if (p.height !== undefined) setHoodHeight(p.height);
@@ -4289,6 +4304,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     if (p.cuff !== undefined) setHoodCuffOn(p.cuff);
                     if (p.cuffHeight !== undefined) setHoodCuffHeight(p.cuffHeight);
                     if (p.cuffSize !== undefined) setHoodCuffSize(p.cuffSize);
+                    if (p.reflectLight !== undefined) setHoodReflectLight(p.reflectLight);
+                    if (p.puffThickness !== undefined) setHoodPuffThickness(p.puffThickness);
+                    if (p.puffInflate !== undefined) setHoodPuffInflate(p.puffInflate);
                   }}
                   extraLayers={hoodExtraLayers}
                   setExtraLayers={setHoodExtraLayers}
