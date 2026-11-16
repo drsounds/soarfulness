@@ -1,98 +1,121 @@
 ---
-title: Add a scene effect
-description: How to build a self-contained three.js effect in src/lib/sceneFx and wire it into the mount effect and the render loop.
+title: Add a feature app
+description: How to build a new feature as an app in src/apps/<id> with a manifest, settings slice and runtime, and wire it into the host.
 ---
 
-# Add a scene effect
+# Add a feature app
 
-Most features since November 2026 follow the same pattern: a class in
-`src/lib/sceneFx/<name>.ts` that owns its three.js objects, plus a few anchor
-lines in `index.tsx`. Use `snow.ts` (GPU particles), `aurora.ts` (sky
-ribbons), `fireworks.ts` (CPU particles + lights + WebAudio), `hood.ts`
-(full-screen pass) or `underwaterFog.ts` (DOM overlay) as a template.
+Since soarfulness #52, new features go in a **new app folder**,
+`src/apps/<id>/`, never in the old `src/lib/sceneFx/` (repo `CLAUDE.md`). The
+contract is in [Apps: the plugin architecture](../architecture/plugin-refactor.md);
+this page is the practical walk-through. Good templates: `snow` (GPU particles
++ material patching), `rain` (depends on `wind`), `aurora` (sky ribbons),
+`fireworks` (CPU particles + lights + WebAudio), `hood` (full-screen pass),
+`underwater-fog` (DOM overlay).
 
-## The class
+We'll add a rainbow, app id `rainbow`, UI name REGNBÅGE.
+
+## 1. The folder
+
+```text
+src/apps/rainbow/
+  manifest.json       { id, name: "REGNBÅGE", title, version, kind, settingsGroup, dependencies… }
+  settings.ts         RainbowSettings, RAINBOW_DEFAULTS, RAINBOW_SETTING_KEYS
+  app.ts              export default defineApp({ manifest, settings, createRuntime })
+  Rainbow.ts          the three.js class (one class per file)
+  RainbowRuntime.ts   AppRuntime: turns the settings slice into what Rainbow needs
+  rainbowMath.ts      pure functions, with rainbowMath.test.ts next to it
+```
+
+`core/apps/catalog.ts` discovers `app.ts` with `import.meta.glob`;
+`registry.test.ts` checks the manifest (dependencies, ranges, cycles,
+duplicate settings keys, a valid `settingsGroup`).
+
+## 2. Settings slice
 
 ```ts
-// src/lib/sceneFx/rainbow.ts
-// REGNBÅGE: a rainbow arc opposite the sun. <Explain the technique here:
-// what is drawn, how, and which uniforms it reads. Future readers rely on it.>
-import * as THREE from "three";
-
-export type RainbowConfig = {
-  /** 0..~4: brightness (REGNBÅGSSTYRKA). */
-  strength: number;
-  /** 0 = day only … 1 = always (from nightBackdropMix). */
-  night: number;
+// src/apps/rainbow/settings.ts
+export type RainbowSettings = {
+  // REGNBÅGE: a rainbow arc opposite the sun. rainbowStrength 0..~4.
+  rainbowOn: boolean;
+  rainbowStrength: number;
 };
+export const RAINBOW_DEFAULTS: RainbowSettings = { rainbowOn: false, rainbowStrength: 1 };
+export const RAINBOW_SETTING_KEYS = Object.keys(RAINBOW_DEFAULTS) as (keyof RainbowSettings)[];
+```
 
+Prefix every key with the app name; keys are a public format (saves, presets,
+links). Don't import runtime code from `lib/settingsShared.ts` here.
+
+## 3. The class and the runtime
+
+```ts
+// src/apps/rainbow/Rainbow.ts
+// REGNBÅGE: <explain the technique: what is drawn, how, which uniforms it reads>.
 export class Rainbow {
-  private mesh: THREE.Mesh;
-  constructor(scene: THREE.Scene) {
-    // allocate geometry/material ONCE at max size; hide until used
-    this.mesh = new THREE.Mesh(/* … */);
-    this.mesh.visible = false;
-    scene.add(this.mesh);
+  constructor(scene: THREE.Scene) { /* allocate once at max size; hidden */ }
+  update(/* … */) { /* write uniforms only */ }
+  hide() { /* … */ }
+  dispose() { /* remove from scene, dispose geometry/material/textures */ }
+}
+
+// src/apps/rainbow/RainbowRuntime.ts
+export class RainbowRuntime implements AppRuntime<RainbowSettings> {
+  private rainbow: Rainbow;
+  constructor({ scene }: { scene: THREE.Scene }) { this.rainbow = new Rainbow(scene); }
+  frame(f: FrameContext, s: Readonly<RainbowSettings>) {
+    if (!s.rainbowOn) return this.rainbow.hide();
+    this.rainbow.update(f.time, f.dt, f.camera, { strength: s.rainbowStrength, night: f.night });
   }
-  update(time: number, dt: number, camera: THREE.Camera, cfg: RainbowConfig) {
-    this.mesh.visible = cfg.strength > 0;
-    // write uniforms only; don't rebuild geometry per frame
-  }
-  hide() { this.mesh.visible = false; }
-  dispose() { /* remove from scene, dispose geometry, material, textures */ }
+  dispose() { this.rainbow.dispose(); }
 }
 ```
 
-Conventions the existing effects follow:
+If the runtime needs something from the host that `FrameContext` doesn't
+carry, add a field to `FrameContext` (and to `appFrame` in `index.tsx`)
+rather than reaching into `index.tsx`. Values the host needs back (like
+`AuroraRuntime.glow` or `FireworksRuntime.lightPos`) are getters.
 
-- **Header comment** with the Swedish UI name and an explanation of the
-  technique. These comments are the main documentation of the code.
-- **Allocate once.** Particle effects allocate their maximum buffer and use
-  `setDrawRange` for the amount. Lights are created lazily on first use and
-  kept, so lit materials don't recompile.
-- **Camera-following boxes** make particle fields endless at no CPU cost:
-  positions are computed in the vertex shader from a seed, the time and the
-  camera, then wrapped.
-- **Hide under water** with the `uUnderwater` uniform value, and respect
-  `lowEnd` (halve counts, skip expensive passes).
-- **Sound** gets its own small `AudioContext`, created lazily, suspended when
-  silent, and gated on `audioOn` (LJUD) as well as the feature's own toggle.
-- **Pure logic** that can be tested (curves, sanitizers) goes in a plain
-  module with a `*.test.ts` next to it (`openDrift.ts`, `wind.ts`,
-  `underwaterFog.ts`).
+Conventions the existing apps follow:
 
-## Wiring it in `index.tsx`
+- **Header comment** with the Swedish UI name and the technique.
+- **Allocate once**: max-size buffers + `setDrawRange`; lights created lazily
+  once so lit materials don't recompile.
+- **Camera-following boxes** for endless particle fields (positions from seed +
+  time + camera in the vertex shader).
+- **Hide under water** (`f.underwater`) and honour `f.lowEnd`.
+- **Sound** in its own lazily created `AudioContext`, gated on `f.audioOn` and
+  the app's own toggle.
 
-1. **Import** next to the other `sceneFx` imports.
-2. **Construct** in the mount effect next to the others
-   (`const rainbow = new Rainbow(scene);` after `new Confetti(scene)`).
-3. **Update** in `animate()` near related effects, reading refs only:
+## 4. Wire it into the host (`src/routes/index.tsx` and friends)
 
-   ```ts
-   // REGNBÅGE: <one line on what happens here>.
-   if (rainbowOnRef.current) {
-     rainbow.update(now / 1000, dt, camera, {
-       strength: rainbowStrengthRef.current,
-       night: nightBackdropMix(todRef.current),
-     });
-   } else {
-     rainbow.hide();
-   }
-   ```
+Until the generic host loop (migration step 3) exists:
 
-4. **Dispose** in the mount effect's cleanup (`rainbow.dispose();`).
-5. If it **changes the water**, add uniforms to the ocean shader. If it
-   **changes the env backdrop**, add it to the `useEnvDome` condition.
-6. If it is a **DOM overlay**, render a `div` in the JSX at the right layer
-   (above the canvas, below the HUD) and style it imperatively from the loop.
+1. `& RainbowSettings` in `Persisted` (`lib/settingsShared.ts`),
+   `...RAINBOW_SETTING_KEYS` in the right `PRESET_TAB_FIELDS` tab,
+   `...RAINBOW_DEFAULTS` in `DEFAULTS`.
+2. The per-setting host plumbing from [Add a setting](add-a-setting.md)
+   (state, snapshot, autosave deps, reset, `applySettingsPatch`, panel props,
+   EXTREME, locales).
+3. Build the slice and its ref:
+   `const rainbowSettings: RainbowSettings = { rainbowOn, rainbowStrength };`
+   `const rainbowSettingsRef = useRef(rainbowSettings); rainbowSettingsRef.current = rainbowSettings;`
+4. In the mount effect: `const rainbow = new RainbowRuntime({ scene });`, in
+   `animate()`: `rainbow.frame(appFrame, rainbowSettingsRef.current);`, in the
+   cleanup: `rainbow.dispose();`.
+5. If it **changes the water**, add ocean shader uniforms; if it **changes
+   the env backdrop**, add it to the `useEnvDome` condition; if it is a **DOM
+   overlay**, render a `div` between the canvas and the HUD and style it from
+   the loop.
+6. Put its dials in `src/apps/rainbow/RainbowPanel.tsx` and render that inside
+   the right `<G id="…">` in `SettingsPanel.tsx`.
+7. Run `bun test` and `npx tsc --noEmit`, add a row to the
+   [feature index](../reference/feature-index.md) and a feature page here.
 
-Then do the settings with [Add a setting](add-a-setting.md).
+## Apps that own their store
 
-## Effects that own their settings
-
-If the effect's state shouldn't travel in presets or links, or is a list
-edited per scene, give it an external store like LJUSSLINGOR
-(`lib/stringLights.ts` with `useSyncExternalStore` and its own key), a
-prop-free settings component, and only construct/update/dispose in
-`index.tsx`. This keeps `index.tsx` and `SettingsPanelProps` untouched and is
-closest to the coming plugin structure.
+If the state shouldn't travel in presets or links, or is a per-scene list,
+give the app an external store like `string-lights`
+(`src/apps/string-lights/stringLights.ts`, `useSyncExternalStore`, its own
+localStorage key) and a prop-free panel. Then the host only constructs,
+updates and disposes it.

@@ -25,9 +25,9 @@ blows **toward**, same convention as `waveDir` and STRÖM (x = sin, z = cos);
 the UI also shows the "from" side and MOT MIG / MED MIG. `speed` is m/s at
 10 m above the water. Arrays are cleaned with `sanitizeWinds`.
 
-**Files:** `src/lib/wind.ts` (`WindField`, `getWindVector()`,
-`getWindAt(height)`, `sanitizeWinds`), `src/lib/windSound.ts` (`WindAudio`),
-`src/components/WindPanel.tsx`, `src/lib/wind.test.ts`.
+**Files:** `src/apps/wind/wind.ts` (`WindField`, `getWindVector()`,
+`getWindAt(height)`, `sanitizeWinds`), `src/apps/wind/WindAudio.ts` (`WindAudio`),
+`src/apps/wind/WindPanel.tsx`, `src/apps/wind/wind.test.ts`.
 
 **How it works:**
 

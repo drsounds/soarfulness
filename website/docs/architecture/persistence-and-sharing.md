@@ -15,8 +15,8 @@ description: Autosave, camera pose, presets, full state files, scenery presets, 
 | Named full states (settings + runtime) | `aquafulness:states:v1` | `lib/presets.ts`, `buildFullStateSnapshot` / `applyFullState` |
 | Scenery presets (scene + environment + era + time + surface) | `aquafulness:sceneryPresets:v1`, plus shipped ones in `public/apps/<app>/scenary/manifest.json` | `lib/sceneryPresets.ts`, `ScenerySelectorDialog.tsx` |
 | Imported `.glb` scenes (EGNA SCENER) | IndexedDB `aquafulness-user-scenes` | `lib/userScenes.ts` |
-| Decoration models (DEKORATIONER) | IndexedDB `aquafulness-decorations` | `createGlbLibrary` in `lib/userScenes.ts`, used by `lib/decorations.ts` |
-| Hood layer sets | `aquafulness:hoodLayerSets:v1` | `lib/hoodLayers.ts` |
+| Decoration models (DEKORATIONER) | IndexedDB `aquafulness-decorations` | `createGlbLibrary` in `lib/userScenes.ts`, used by `src/apps/decorations/decorations.ts` |
+| Hood layer sets | `aquafulness:hoodLayerSets:v1` | `src/apps/hood/hoodLayers.ts` |
 | Watercraft builds (FARKOST) | exported/imported as `.glb` files tagged `kind: "aquafulness-watercraft"` | `lib/watercraft/glbIO.ts` |
 
 The full list of keys is in [Storage keys](../reference/storage-keys.md).

@@ -5,7 +5,11 @@ description: Step-by-step checklist for adding a persisted setting so it autosav
 
 # Add a setting
 
-Follow this for every new `Persisted` field. Each step names the exact list
+Follow this for every new `Persisted` field. If the setting belongs to a
+feature **app** (`src/apps/<id>/`), steps 1–3 happen in the app's
+`settings.ts` (type, `<ID>_DEFAULTS`, `<ID>_SETTING_KEYS`), which are spread
+into `Persisted`, `DEFAULTS` and `PRESET_TAB_FIELDS`; see
+[Add a feature app](add-a-scene-effect.md). Steps 4–15 are the same. Each step names the exact list
 to extend; missing one gives a quiet bug. Background:
 [The settings pipeline](../architecture/settings-pipeline.md).
 
@@ -55,7 +59,7 @@ list for that feature.
 13. **Locales** — the label (and option labels) in all five
     `src/locales/*.json`, usually under `dial.env.*`.
 14. **Render loop** — read `rainbowOnRef.current` in `animate()` (see
-    [Add a scene effect](add-a-scene-effect.md)).
+    [Add a feature app](add-a-scene-effect.md)).
 15. **aqua-wave-dream** — repeat in the twin PR. If the setting belongs to an
     advanced mode, gate its UI on the experimental flag there.
 
@@ -65,7 +69,7 @@ list for that feature.
   store it. Rename only the UI string.
 - Don't put visitor preferences (theme, accessibility, EXTREME-like switches)
   in `Persisted`. Use an external store with its own key, like
-  `lib/uiTheme.ts` or `lib/stringLights.ts`.
+  `lib/uiTheme.ts` or `src/apps/string-lights/stringLights.ts`.
 - Don't run prettier on the whole of `index.tsx`.
 
 ## Self-check

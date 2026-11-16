@@ -25,22 +25,28 @@ uniform set above, a near wave tier of `OCEAN_BASE_SIZE` = 1200 m plus a flat
 far ring sized by `waterPlaneExtent()`), the seafloor (`floorMat`), mid, sky
 and tornado cloud decks, 3D cloud layers (`lib/clouds3d.ts`), sky puffs, the
 sky dome, the environment dome (`envDomeMat`, for skybox photos), and then
-the scene effects:
+the feature apps (`src/apps/<id>/`):
 
 ```ts
-const aurora = new Aurora(scene);
-const windField = new WindField();
+const aurora = new AuroraRuntime({ scene });
+const windField = new WindField();          // wind: not a runtime yet (feeds physics)
 const windAudio = new WindAudio();
 const underwaterFog = new UnderwaterFogOverlay();
-const openDrift = new OpenDrift();
-const neonEdges = new NeonEdges(scene);
+const openDrift = new OpenDrift();          // open-drift: not a runtime yet
+const neon = new NeonRuntime({ scene });
 const stringLights = new StringLightsFx(scene);
-const snowfall = new Snowfall(scene);
-const snowCover = new SnowCover();
-const fireworks = new Fireworks(scene);
-const confetti = new Confetti(scene);
-const hoods = Array.from({ length: HOOD_MAX_LAYERS }, (_, i) => new Hood(scene, i));
+const snow = new SnowRuntime({ scene });
+const rain = new RainRuntime({ scene });
+const fireworks = new FireworksRuntime({ scene });
+const confetti = new ConfettiRuntime({ scene });
+const hood = new HoodRuntime({ scene });
 ```
+
+Each frame the host builds one `FrameContext` (`appFrame`: time, dt, camera,
+night mix, underwater, water level, eye height, loaded model, `lowEnd`, pixel
+ratio, audio flag and the light colours) and calls
+`runtime.frame(appFrame, <app>SettingsRef.current)`. See
+[the app contract](/theory/architecture/apps#runtimes-an-app-in-the-render-loop).
 
 Then `animate()` runs every frame through `requestAnimationFrame`. The
 cleanup function cancels the frame, saves the camera pose and disposes
@@ -78,7 +84,7 @@ UI name in capitals, so grep for the name. The rough order is:
 9. **Camera pose**: buoyancy on the wave, sway, surge, lean, look target.
 10. **Audio**: HÖJDLJUD (altitude fade of the water track), wind sound.
 11. **Scene effects**: NORRSKEN, UNDERVATTENDIS, sky puffs, string lights,
-    snow, confetti, fireworks, hoods, neon edges.
+    snow, rain, confetti, fireworks, hood, neon (app runtimes, via `frame(appFrame, …)`).
 12. **Render**: `composer.render()` when a post pass (chromatic aberration,
     RETRO) is on, otherwise `renderer.render(scene, camera)`.
 

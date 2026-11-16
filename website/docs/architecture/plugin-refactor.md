@@ -284,4 +284,6 @@ can keep merging.
 | [Settings UI](settings-ui.md) | Each app's dials in its own `<Name>Panel.tsx` (step 4) |
 | [Add a setting](../guides/add-a-setting.md), [Add a scene effect](../guides/add-a-scene-effect.md) | Point to "Adding a new app" |
 | [Content apps](content-apps.md) | Content packs in `public/apps/` are a different thing from code apps in `src/apps/` |
-| [Feature index](../reference/feature-index.md) | Add each feature's app id |
+
+When a migration step lands, update `docs/architecture/apps.md` first, then
+the table above and the pages it names.

@@ -18,7 +18,7 @@ Most features ship as twin PRs with the same branch name in
 
 ## 2. Copy the self-contained files
 
-New files under `src/lib/`, `src/lib/sceneFx/`, `src/components/` usually
+New files under `src/apps/<id>/`, `src/lib/`, `src/components/` usually
 copy over byte for byte (`rain.ts` is identical in both repos). Keep it that
 way, so later fixes also copy.
 

@@ -40,13 +40,13 @@ gated on experimental mode.
 
 Layer 1 is the flat `hood*` fields (so old saves keep working). Layers 2+
 are `hoodExtraLayers: HoodLayer[]` (max 4, sanitized), defined in
-`src/lib/hoodLayers.ts` with per-layer keys (`openingWidth`, `roundness`,
+`src/apps/hood/hoodLayers.ts` with per-layer keys (`openingWidth`, `roundness`,
 `style`, `cuff`, `reflectLight`, `waterCalm`, `hanging`, …). The UI is
-`src/components/HoodSettings.tsx` (+ LAGER, TA BORT LAGER). Saved layer sets
+`src/apps/hood/HoodPanel.tsx` (+ LAGER, TA BORT LAGER). Saved layer sets
 live in `aquafulness:hoodLayerSets:v1` and export as `aquafulness-hood-layers`
 files. One `Hood` object per layer, `renderOrder` 1e6 + i.
 
-### How it renders (`src/lib/sceneFx/hood.ts`)
+### How it renders (`src/apps/hood/Hood.ts`)
 
 - A single **clip-space quad** drawn last in the 3D scene: depth test off,
   highest render order. It is over water and sky, under every DOM control, and

@@ -12,10 +12,10 @@ one port (soarfulness #7), via a `git format-patch` file.
 | --- | --- | --- | --- | --- |
 | Better light | `betterLightingOn`, `lightingReflStrength` | BÄTTRE LJUS, REFLEKTIONSSTYRKA | on | IBL for glTF materials from the sky or skybox through `PMREMGenerator`, plus the skybox reflected in the water |
 | Shadows | `shadowsOn` | SKUGGOR | on | Sun shadow map fitted around the loaded model each frame (`SHADOW_MAX_HALF_SIZE`). Low graphics mode forces it off. |
-| Neon edges | `neonOn`, `neonMode` (`NEON_MODES` solid / alternate / fade / hue), `neonPrimary`, `neonSecondary`, `neonTint`, `neonTintAmount`, `neonStrength`, `neonWidth`, `neonFrequency` | NEONKANTER, NEONLÄGE, PRIMÄRFÄRG, … | off | `lib/sceneFx/NeonEdges.ts`: `EdgesGeometry` (creases sharper than `EDGE_THRESHOLD_DEG`) drawn as `LineSegments2` with one additive material, in their own group that copies each mesh's world matrix |
-| Neon accent | `neonAccentColor` | NEONACCENT | `#ff2bd6` | `lib/sceneFx/neonAccent.ts`: every scene material whose name ends in `-neon` (Blender `.001` suffix allowed) takes the colour as tint and emission at intensity 1 |
+| Neon edges | `neonOn`, `neonMode` (`NEON_MODES` solid / alternate / fade / hue), `neonPrimary`, `neonSecondary`, `neonTint`, `neonTintAmount`, `neonStrength`, `neonWidth`, `neonFrequency` | NEONKANTER, NEONLÄGE, PRIMÄRFÄRG, … | off | `src/apps/neon/NeonEdges.ts`: `EdgesGeometry` (creases sharper than `EDGE_THRESHOLD_DEG`) drawn as `LineSegments2` with one additive material, in their own group that copies each mesh's world matrix |
+| Neon accent | `neonAccentColor` | NEONACCENT | `#ff2bd6` | `src/apps/neon/neonAccent.ts`: every scene material whose name ends in `-neon` (Blender `.001` suffix allowed) takes the colour as tint and emission at intensity 1 |
 | Water glow | `waterGlow*` | VATTENGLÖD | off | see [Waves and water](waves-and-water.md) |
-| Retro 90s | `retroOn`, `retroPalette` (`rgb332` / `websafe` / `ega` / `gray`), `retroPixelSize`, `retroDither`, `retroScanlines` | RETRO 90-TAL, RETROPALETT, … | off | `lib/sceneFx/retroShader.ts`: pixelate, Bayer dither, snap to palette, scanlines. A post pass in the `EffectComposer`. |
+| Retro 90s | `retroOn`, `retroPalette` (`rgb332` / `websafe` / `ega` / `gray`), `retroPixelSize`, `retroDither`, `retroScanlines` | RETRO 90-TAL, RETROPALETT, … | off | `src/apps/retro/retroShader.ts`: pixelate, Bayer dither, snap to palette, scanlines. A post pass in the `EffectComposer`. |
 | Chromatic aberration | `chromaticAberrationOn`, `chromaticAberrationAmount` | KROMATISK ABERRATION | off | `CHROMATIC_ABERRATION_SHADER` in `index.tsx`, a post pass |
 
 When a post pass is on, the frame goes through `composer.render()`; otherwise

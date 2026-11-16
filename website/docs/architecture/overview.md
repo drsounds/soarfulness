@@ -6,14 +6,19 @@ description: The folder map, the routes, and how the one big Aquafulness compone
 # Architecture overview
 
 :::note Describes `main` as of 2026-11-16
-This page documents the current structure. The plugin-based `apps/` refactor
-will move a lot of it; see [Apps: the plugin architecture](plugin-refactor.md) (PR #52).
+Features live in `src/apps/<id>/` since soarfulness #52; the host is still
+`routes/index.tsx`. The app contract is in
+[Apps: the plugin architecture](plugin-refactor.md).
 :::
 
 ## Folder map
 
 ```text
 src/
+  core/apps/              the plugin system: types (defineApp, AppRuntime, FrameContext), registry, catalog, manifest schema
+  apps/<id>/              one folder per feature app: manifest.json, settings.ts, app.ts, one class per file
+                          (aurora, confetti, day-night, decorations, fireworks, hood, neon, open-drift,
+                           rain, retro, snow, string-lights, underwater-fog, wind)
   routes/                 TanStack file routes (one .tsx per URL)
     index.tsx             "/" — the whole app: SplashScreen + Aquafulness() (~16 000 lines)
     bathing.$payload*.tsx bath links: decode, preview, and "bathe" (seed + mount the app)
@@ -27,20 +32,16 @@ src/
     Joystick.tsx          on-screen sticks (NAV wheel, levers, KROPP…)
     HudControls.tsx       HudIconButton for the right-hand mode column
     VirtualPhone.tsx      the in-scene phone ("bathOS") with Fjärrkontroll and Inställningar apps
-    WindPanel.tsx, HoodSettings.tsx, DecorationPanel.tsx, StringLightsSettings.tsx
-                          feature UIs split out of SettingsPanel
+    SkyLookSettings.tsx   sky look controls
     GogglesOverlay.tsx, ShareBathDialog.tsx, TimeTravelDialog.tsx, ScenerySelectorDialog.tsx, …
     ui/                   shadcn/ui primitives
   lib/
     settingsShared.ts     Persisted type, option lists, PRESET_TAB_FIELDS
-    sceneFx/              self-contained scene effects (snow, aurora, fireworks, hood, …)
     ocean/                FFT ocean spectrum (REALISTISKA VÅGOR)
     raytracedWater/       RAYTRACED water material (port of Evan Wallace's WebGL Water)
     torusRings/           BADRINGAR (floating bath rings)
     watercraft/           FARKOST raft with voxel/clay building
     tv/                   CSS3D TV/phone panels placed in the scene
-    wind.ts, windSound.ts, openDrift.ts, stringLights.ts, decorations.ts, hoodLayers.ts
-                          feature logic that isn't a three.js object
     presets.ts, sceneryPresets.ts, shareState.ts, userScenes.ts
                           saving, loading, exporting and sharing
     appCatalog.ts         discovers content under public/apps/
@@ -51,7 +52,7 @@ src/
                           Capacitor bridges
     offlineAssets.ts, register-sw.ts  offline precache
     i18n.ts
-  hooks/                  use-decorations, use-spacify-sync, use-offline-precache, …
+  hooks/                  use-spacify-sync, use-offline-precache, use-online-status, …
   locales/                sv, en, no, da, fi
   sw.ts                   service worker (Workbox, injectManifest)
 public/apps/              content packs: scenes (.glb), skyboxes, surfaces, audio + manifests
@@ -96,7 +97,7 @@ order it contains:
    import and export, scene/environment/surface loaders.
 5. **The mount effect** (`useEffect(…, [])`, starting around
    `new THREE.WebGLRenderer`): builds the renderer, scene, camera, ocean,
-   floor, clouds, sky, environment dome and every `sceneFx` object, then runs
+   floor, clouds, sky, environment dome and every app runtime, then runs
    `animate()` until unmount, where everything is disposed.
 6. **JSX**: the canvas mount, overlays (underwater fog, goggles), the HUD
    (sticks, mode column, camera drawer), the settings dialog
@@ -116,7 +117,7 @@ flowchart LR
   UI[SettingsPanel / HUD / phone] -->|setters| S
   S -->|useEffect sync| R[useRef per setting]
   R -->|read every frame| Loop[animate loop]
-  Loop --> FX[sceneFx objects<br/>update]
+  Loop --> FX[app runtimes<br/>frame]
   Loop --> Shaders[ocean / sky / env uniforms]
   S -->|buildPersistedSnapshot| LS
 ```

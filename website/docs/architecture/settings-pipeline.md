@@ -14,18 +14,31 @@ checklist.
 
 We'll follow `snowAmount` (SNÖMÄNGD) through the code.
 
-## 1. Type: `Persisted` in `src/lib/settingsShared.ts`
+## 1. Type: the app's slice, intersected into `Persisted`
+
+For a feature app, the settings type lives in `src/apps/<id>/settings.ts`:
 
 ```ts
-export type Persisted = {
-  waveAmp: number;
-  // …
-  // SNÖ: falling snow (lib/sceneFx/snow.ts). snowAmount = number of flakes, …
+// src/apps/snow/settings.ts
+export type SnowSettings = {
   snowOn: boolean;
   snowAmount: number;
   // …
 };
+export const SNOW_DEFAULTS: SnowSettings = { snowOn: false, snowAmount: 4000, /* … */ };
+export const SNOW_SETTING_KEYS = Object.keys(SNOW_DEFAULTS) as (keyof SnowSettings)[];
 ```
+
+`Persisted` in `src/lib/settingsShared.ts` is the core app's own keys
+intersected with every app's slice:
+
+```ts
+export type Persisted = { waveAmp: number; /* …core keys… */ } &
+  SnowSettings & AuroraSettings & HoodSettings & /* … */;
+```
+
+Settings that belong to the core app (waves, water, camera modes, clouds…)
+are still declared directly in `Persisted`.
 
 `Persisted` is the full shape stored under `aquafulness:settings:v1` and what
 presets, state files and bath links carry. Option lists for enum-like
@@ -39,12 +52,15 @@ other.
 
 ```ts
 const DEFAULTS: Persisted = {
-  // …
-  snowOn: false,
-  snowAmount: 4000,
+  // …core defaults…
+  ...SNOW_DEFAULTS,
+  ...AURORA_DEFAULTS,
   // …
 };
 ```
+
+App defaults are spread in from each `settings.ts`; core defaults are written
+inline.
 
 `DEFAULTS` mirrors the owner's exported "Strandpark" state (see
 [Defaults](../features/defaults.md)). New features are **off by default**
@@ -61,35 +77,27 @@ values, not `DEFAULTS`, so changing a default later doesn't rewrite old saves.
 ```ts
 const [snowAmount, setSnowAmount] = useState(initial.snowAmount);
 // …
-const snowAmountRef = useRef(snowAmount);
-// …
-useEffect(() => {
-  snowOnRef.current = snowOn;
-  snowAmountRef.current = snowAmount;
-  // …
-}, [snowOn, snowAmount, snowIntensity, snowCoverOn, snowCoverStrength, snowGrayBackdropOn]);
+const snowSettings: SnowSettings = {
+  snowOn, snowAmount, snowIntensity, snowCoverOn, snowCoverStrength, snowGrayBackdropOn,
+};
+const snowSettingsRef = useRef(snowSettings);
+snowSettingsRef.current = snowSettings;   // refreshed on every render
 ```
 
-The three.js scene is built once in a mount effect with `[]` deps, so the
-render loop can't see React state directly. Every value it needs is mirrored
-into a ref. Some newer features group their values into one ref object
-instead (for example `underwaterFogSettingsRef`).
+Each setting is still its own `useState` in the host (a per-app settings hook
+is migration step 3). The three.js scene is built once in a mount effect with
+`[]` deps, so the render loop can't see React state directly: an app's whole
+slice is handed to it through one ref. Core settings still use one ref per
+value (`fooRef` + a sync `useEffect`).
 
 ## 4. The render loop reads the ref
 
 ```ts
-if (snowOnRef.current) {
-  snowfall.setPixelRatio(renderer.getPixelRatio());
-  snowfall.update(now / 1000, dt, camera.position, {
-    amount: snowAmountRef.current * (lowEnd ? 0.5 : 1),
-    intensity: snowIntensityRef.current,
-    waterLevel: ocean.position.y,
-    underwater: uniforms.uUnderwater.value,
-  });
-} else {
-  snowfall.hide();
-}
+snow.frame(appFrame, snowSettingsRef.current);   // snow = new SnowRuntime({ scene })
 ```
+
+The runtime turns the slice into what its classes need (`Snowfall`,
+`SnowCover`), including hiding itself when `snowOn` is false.
 
 See [The render loop](render-loop.md).
 
@@ -187,7 +195,7 @@ own key:
 | UI chrome theme, blur, Liquid Glass | `lib/uiTheme.ts` | `aquafulness:ui-theme:v1` |
 | EXTREME | `lib/extremeLimits.ts` | `aquafulness:extremeLimits:v1` |
 | EXPERIMENTELLT LÄGE (aqua only) | `lib/experimentalModes.ts` | `aquafulness:experimentalModes:v1` |
-| LJUSSLINGOR string lights | `lib/stringLights.ts` | `aquafulness:stringLights:v1` |
+| LJUSSLINGOR string lights | `src/apps/string-lights/stringLights.ts` | `aquafulness:stringLights:v1` |
 | Settings layout list/tabs | `components/settingsNav.tsx` | `aquafulness:settingsLayout:v1` |
 | Language | `lib/i18n.ts` | `aquafulness:lang:v1` |
 

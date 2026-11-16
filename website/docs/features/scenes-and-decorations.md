@@ -53,10 +53,10 @@ decorations over the visitor's other scenes.
 
 | File | Role |
 | --- | --- |
-| `src/lib/decorations.ts` | Types, sanitizer, link helpers, limits |
-| `src/lib/sceneFx/decorations.ts` | `DecorationLayer`: a group per decoration with repeated copies, three.js `TransformControls` gizmo (move / rotate / scale) |
-| `src/hooks/use-decorations.ts` | Wires the layer to React state and the scene |
-| `src/components/DecorationPanel.tsx` | `DecorationSettings` and the PLACERA HUD bar |
+| `src/apps/decorations/decorations.ts` | Types, sanitizer, link helpers, limits |
+| `src/apps/decorations/DecorationLayer.ts` | `DecorationLayer`: a group per decoration with repeated copies, three.js `TransformControls` gizmo (move / rotate / scale) |
+| `src/apps/decorations/useDecorations.ts` | Wires the layer to React state and the scene |
+| `src/apps/decorations/DecorationPanel.tsx` | `DecorationSettings` and the PLACERA HUD bar |
 
 `index.tsx` is touched only at a few anchor points. `resetToDefaults()` does
 **not** clear decorations, on purpose.

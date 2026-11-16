@@ -1,14 +1,13 @@
 ---
 title: Rain (REGN)
-description: Instanced rain streaks, splash rings on the water and a synthesized rain sound. Open PR in both repos.
+description: Instanced rain streaks, splash rings on the water and a synthesized rain sound. Merged in soarfulness, open in aqua-wave-dream.
 ---
 
 # Rain (REGN)
 
-:::info Not on `main` yet
-Rain is in soarfulness PR #44 and aqua-wave-dream PR #244 (branch
-`claude/project-thread-uwup1m`), both open on 2026-11-16. `rain.ts` is
-identical in both.
+:::info Status
+Merged in soarfulness (#44) and moved into the `rain` app by #52.
+aqua-wave-dream #244 is still open.
 :::
 
 | Setting | UI | Default |
@@ -24,8 +23,7 @@ identical in both.
 
 UI sits right after the snow rows (the `weather` group).
 
-**Files:** `src/lib/sceneFx/rain.ts`: `Rainfall`, `RainAudio`,
-`rainLightColor()`, `RainConfig`.
+**Files:** `src/apps/rain/`: `Rainfall.ts` (`Rainfall`, `rainLightColor()`, `RainConfig`), `RainAudio.ts`, `RainRuntime.ts`, `settings.ts` (`RAIN_DEFAULTS`, `RAIN_COLORS`), `manifest.json`.
 
 **How it works:**
 
@@ -36,7 +34,7 @@ UI sits right after the snow rows (the `weather` group).
 - Splashes are `Points` rings at the water level near the camera.
 - `RainAudio` has its own `AudioContext` with a hiss and a patter.
 - Brightness follows daylight `1 - nightBackdropMix(tod)`.
-- **Wind:** `Rainfall.update` takes `cfg.wind {x, z}` (m/s). soarfulness
-  passes `getWindVector()` from `lib/wind.ts` while any VIND wind is on, so
+- **Wind:** the `rain` app depends on `wind`. `RainRuntime` passes `getWindVector()` (from `src/apps/wind/wind.ts`) as `RainConfig.wind`, so drops slant with the combined VIND winds; with no wind on, the rain makes its own gentle turning wind.
+  passes `getWindVector()` from `src/apps/wind/wind.ts` while any VIND wind is on, so
   the drops slant with it; with no wind on (and in aqua until VIND lands
   there) it passes `null` and the rain makes its own gentle turning wind.

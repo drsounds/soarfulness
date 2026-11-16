@@ -19,7 +19,7 @@ description: A DOM gradient overlay docked to the on-screen waterline that fills
 | `underwaterFogSubmergedOnly` | BARA UNDER YTAN | off |
 | `underwaterFogBlend` | BLANDNINGSLÄGE: `UNDERWATER_FOG_BLENDS` | normal |
 
-**Files:** `src/lib/sceneFx/underwaterFog.ts` (`UnderwaterFogOverlay`),
+**Files:** `src/apps/underwater-fog/underwaterFog.ts` (`UnderwaterFogOverlay`),
 `underwaterFog.test.ts`.
 
 **How it works:**

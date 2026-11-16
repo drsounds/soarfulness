@@ -14,7 +14,7 @@ description: CPU-simulated rockets and bursts with synthesized sound and coloure
 | `fireworksLightsOn`, `fireworksLightStrength` | FYRVERKERILJUS, LJUSSTYRKA | on, 1 |
 | `fireworksSoundOn`, `fireworksVolume` | FYRVERKERILJUD, LJUDVOLYM (also needs LJUD) | on, 0.7 |
 
-**Files:** `src/lib/sceneFx/fireworks.ts` (`Fireworks`, `FireworksAudio`).
+**Files:** `src/apps/fireworks/Fireworks.ts` (`Fireworks`, `FireworksAudio`).
 
 **How it works:**
 
