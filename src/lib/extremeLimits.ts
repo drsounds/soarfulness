@@ -37,6 +37,8 @@ export const EXTREME_MAX = {
   openDriftRadius: 2000, // HAVSDRIFT CIRKELRADIE (m)
   snowAmount: 40000, // SNÖMÄNGD (flingor)
   snowIntensity: 4, // SNÖSTYRKA
+  rainAmount: 40000, // REGNMÄNGD (droppar)
+  rainIntensity: 4, // REGNSTYRKA
   fireworksIntensity: 4, // FYRVERKERI INTENSITET
   fireworksRate: 240, // FYRVERKERI RAKETER/MIN
   confettiAmount: 40000, // KONFETTIMÄNGD (bitar)

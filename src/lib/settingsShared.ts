@@ -213,6 +213,14 @@ export const UNDERWATER_FOG_BLENDS: UnderwaterFogBlend[] = [
 export type NeonMode = "solid" | "alternate" | "fade" | "hue";
 export const NEON_MODES: NeonMode[] = ["solid", "alternate", "fade", "hue"];
 
+// REGNFÄRG: the tint of the falling rain (REGN, lib/sceneFx/rain.ts).
+//  - "silver" cool gray-blue, like rain against a bright sky
+//  - "white"  bright, very visible streaks
+//  - "blue"   bluish water
+//  - "gray"   dull, dark rain
+export type RainColor = "silver" | "white" | "blue" | "gray";
+export const RAIN_COLORS: RainColor[] = ["silver", "white", "blue", "gray"];
+
 // KONFETTIFÄRGER: which colors the falling confetti (KONFETTI) is cut from.
 //  - "rainbow"  colorful mix (FÄRGGLAD)
 //  - "pastel"   soft pastels
@@ -816,6 +824,21 @@ export type Persisted = {
   snowIntensity: number;
   snowCoverOn: boolean;
   snowCoverStrength: number;
+  // REGN: falling rain (lib/sceneFx/rain.ts). rainAmount = number of drops,
+  // rainIntensity = how hard it rains (fall speed, its own wind, sound),
+  // rainDropLength/rainDropSize scale the streaks, rainOpacity 0..1,
+  // rainSplashesOn = splash rings on the water (STÄNK), rainSoundOn plays
+  // synthesized rain (only while LJUD is on) at rainVolume.
+  rainOn: boolean;
+  rainAmount: number;
+  rainIntensity: number;
+  rainDropLength: number;
+  rainDropSize: number;
+  rainOpacity: number;
+  rainColor: RainColor;
+  rainSplashesOn: boolean;
+  rainSoundOn: boolean;
+  rainVolume: number;
   // FYRVERKERI (lib/sceneFx/fireworks.ts): intensity = burst size/brightness,
   // rate = rockets per minute, distance = to the launch site (m). The light
   // and synthesized sound each have their own toggle and level.
@@ -1331,6 +1354,16 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "snowIntensity",
     "snowCoverOn",
     "snowCoverStrength",
+    "rainOn",
+    "rainAmount",
+    "rainIntensity",
+    "rainDropLength",
+    "rainDropSize",
+    "rainOpacity",
+    "rainColor",
+    "rainSplashesOn",
+    "rainSoundOn",
+    "rainVolume",
     "fireworksOn",
     "fireworksIntensity",
     "fireworksRate",

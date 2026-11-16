@@ -34,6 +34,7 @@ import {
   WindField,
   altitudeMix,
   getWindAt,
+  getWindVector,
   hearWind,
   sanitizeWinds,
   steerWaveDir,
@@ -44,6 +45,7 @@ import { WindHudPanel, type WindControls } from "@/components/WindPanel";
 import { UnderwaterFogOverlay, waterlineScreenFraction } from "@/lib/sceneFx/underwaterFog";
 import { OpenDrift } from "@/lib/openDrift";
 import { SnowCover, Snowfall } from "@/lib/sceneFx/snow";
+import { Rainfall } from "@/lib/sceneFx/rain";
 import { Fireworks, FIREWORKS_LIGHTS } from "@/lib/sceneFx/fireworks";
 import { Confetti } from "@/lib/sceneFx/confetti";
 import { Hood } from "@/lib/sceneFx/hood";
@@ -1697,6 +1699,19 @@ const DEFAULTS: Persisted = {
   snowIntensity: 0.5,
   snowCoverOn: false,
   snowCoverStrength: 0.8,
+  // REGN: falling rain around the camera (lib/sceneFx/rain.ts), off by
+  // default. rainAmount is the number of drops, rainIntensity how hard it
+  // rains; the streak look, splashes and sound have their own settings.
+  rainOn: false,
+  rainAmount: 8000,
+  rainIntensity: 0.6,
+  rainDropLength: 1,
+  rainDropSize: 1,
+  rainOpacity: 0.5,
+  rainColor: "silver",
+  rainSplashesOn: true,
+  rainSoundOn: true,
+  rainVolume: 0.6,
   // FYRVERKERI: rockets launched from the water in front of the camera
   // (lib/sceneFx/fireworks.ts). fireworksIntensity scales burst size, star
   // count and brightness; fireworksRate is rockets per minute and
@@ -2487,6 +2502,16 @@ export function Aquafulness() {
   const [snowIntensity, setSnowIntensity] = useState(initial.snowIntensity);
   const [snowCoverOn, setSnowCoverOn] = useState(initial.snowCoverOn);
   const [snowCoverStrength, setSnowCoverStrength] = useState(initial.snowCoverStrength);
+  const [rainOn, setRainOn] = useState(initial.rainOn);
+  const [rainAmount, setRainAmount] = useState(initial.rainAmount);
+  const [rainIntensity, setRainIntensity] = useState(initial.rainIntensity);
+  const [rainDropLength, setRainDropLength] = useState(initial.rainDropLength);
+  const [rainDropSize, setRainDropSize] = useState(initial.rainDropSize);
+  const [rainOpacity, setRainOpacity] = useState(initial.rainOpacity);
+  const [rainColor, setRainColor] = useState(initial.rainColor);
+  const [rainSplashesOn, setRainSplashesOn] = useState(initial.rainSplashesOn);
+  const [rainSoundOn, setRainSoundOn] = useState(initial.rainSoundOn);
+  const [rainVolume, setRainVolume] = useState(initial.rainVolume);
   const [fireworksOn, setFireworksOn] = useState(initial.fireworksOn);
   const [fireworksIntensity, setFireworksIntensity] = useState(initial.fireworksIntensity);
   const [fireworksRate, setFireworksRate] = useState(initial.fireworksRate);
@@ -2681,12 +2706,16 @@ export function Aquafulness() {
     clamp("openDriftRadius", openDriftRadius, setOpenDriftRadius);
     clamp("snowAmount", snowAmount, setSnowAmount);
     clamp("snowIntensity", snowIntensity, setSnowIntensity);
+    clamp("rainAmount", rainAmount, setRainAmount);
+    clamp("rainIntensity", rainIntensity, setRainIntensity);
     clamp("fireworksIntensity", fireworksIntensity, setFireworksIntensity);
     clamp("fireworksRate", fireworksRate, setFireworksRate);
     clamp("confettiAmount", confettiAmount, setConfettiAmount);
     clamp("confettiIntensity", confettiIntensity, setConfettiIntensity);
   }, [
     extremeLimits,
+    rainAmount,
+    rainIntensity,
     openDriftMagnitude,
     openDriftRadius,
     auroraIntensity,
@@ -3085,6 +3114,17 @@ export function Aquafulness() {
   const snowIntensityRef = useRef(snowIntensity);
   const snowCoverOnRef = useRef(snowCoverOn);
   const snowCoverStrengthRef = useRef(snowCoverStrength);
+  const rainOnRef = useRef(rainOn);
+  const rainAmountRef = useRef(rainAmount);
+  const rainIntensityRef = useRef(rainIntensity);
+  const rainDropLengthRef = useRef(rainDropLength);
+  const rainDropSizeRef = useRef(rainDropSize);
+  const rainOpacityRef = useRef(rainOpacity);
+  const rainColorRef = useRef(rainColor);
+  const rainSplashesOnRef = useRef(rainSplashesOn);
+  const rainSoundOnRef = useRef(rainSoundOn);
+  const rainVolumeRef = useRef(rainVolume);
+  const rainAudioOnRef = useRef(audioOn);
   const fireworksOnRef = useRef(fireworksOn);
   const fireworksIntensityRef = useRef(fireworksIntensity);
   const fireworksRateRef = useRef(fireworksRate);
@@ -3358,6 +3398,16 @@ export function Aquafulness() {
     snowIntensity,
     snowCoverOn,
     snowCoverStrength,
+    rainOn,
+    rainAmount,
+    rainIntensity,
+    rainDropLength,
+    rainDropSize,
+    rainOpacity,
+    rainColor,
+    rainSplashesOn,
+    rainSoundOn,
+    rainVolume,
     snowGrayBackdropOn,
     confettiOn,
     confettiAmount,
@@ -3712,6 +3762,16 @@ export function Aquafulness() {
     snowIntensity,
     snowCoverOn,
     snowCoverStrength,
+    rainOn,
+    rainAmount,
+    rainIntensity,
+    rainDropLength,
+    rainDropSize,
+    rainOpacity,
+    rainColor,
+    rainSplashesOn,
+    rainSoundOn,
+    rainVolume,
     snowGrayBackdropOn,
     confettiOn,
     confettiAmount,
@@ -4896,6 +4956,31 @@ export function Aquafulness() {
     snowGrayBackdropOnRef.current = snowGrayBackdropOn;
   }, [snowOn, snowAmount, snowIntensity, snowCoverOn, snowCoverStrength, snowGrayBackdropOn]);
   useEffect(() => {
+    rainOnRef.current = rainOn;
+    rainAmountRef.current = rainAmount;
+    rainIntensityRef.current = rainIntensity;
+    rainDropLengthRef.current = rainDropLength;
+    rainDropSizeRef.current = rainDropSize;
+    rainOpacityRef.current = rainOpacity;
+    rainColorRef.current = rainColor;
+    rainSplashesOnRef.current = rainSplashesOn;
+    rainSoundOnRef.current = rainSoundOn;
+    rainVolumeRef.current = rainVolume;
+    rainAudioOnRef.current = audioOn;
+  }, [
+    rainOn,
+    rainAmount,
+    rainIntensity,
+    rainDropLength,
+    rainDropSize,
+    rainOpacity,
+    rainColor,
+    rainSplashesOn,
+    rainSoundOn,
+    rainVolume,
+    audioOn,
+  ]);
+  useEffect(() => {
     fireworksOnRef.current = fireworksOn;
     fireworksIntensityRef.current = fireworksIntensity;
     fireworksRateRef.current = fireworksRate;
@@ -5707,6 +5792,16 @@ export function Aquafulness() {
     setSnowIntensity(DEFAULTS.snowIntensity);
     setSnowCoverOn(DEFAULTS.snowCoverOn);
     setSnowCoverStrength(DEFAULTS.snowCoverStrength);
+    setRainOn(DEFAULTS.rainOn);
+    setRainAmount(DEFAULTS.rainAmount);
+    setRainIntensity(DEFAULTS.rainIntensity);
+    setRainDropLength(DEFAULTS.rainDropLength);
+    setRainDropSize(DEFAULTS.rainDropSize);
+    setRainOpacity(DEFAULTS.rainOpacity);
+    setRainColor(DEFAULTS.rainColor);
+    setRainSplashesOn(DEFAULTS.rainSplashesOn);
+    setRainSoundOn(DEFAULTS.rainSoundOn);
+    setRainVolume(DEFAULTS.rainVolume);
     setFireworksOn(DEFAULTS.fireworksOn);
     setFireworksIntensity(DEFAULTS.fireworksIntensity);
     setFireworksRate(DEFAULTS.fireworksRate);
@@ -6080,6 +6175,16 @@ export function Aquafulness() {
     if (patch.snowIntensity !== undefined) setSnowIntensity(patch.snowIntensity);
     if (patch.snowCoverOn !== undefined) setSnowCoverOn(patch.snowCoverOn);
     if (patch.snowCoverStrength !== undefined) setSnowCoverStrength(patch.snowCoverStrength);
+    if (patch.rainOn !== undefined) setRainOn(patch.rainOn);
+    if (patch.rainAmount !== undefined) setRainAmount(patch.rainAmount);
+    if (patch.rainIntensity !== undefined) setRainIntensity(patch.rainIntensity);
+    if (patch.rainDropLength !== undefined) setRainDropLength(patch.rainDropLength);
+    if (patch.rainDropSize !== undefined) setRainDropSize(patch.rainDropSize);
+    if (patch.rainOpacity !== undefined) setRainOpacity(patch.rainOpacity);
+    if (patch.rainColor !== undefined) setRainColor(patch.rainColor);
+    if (patch.rainSplashesOn !== undefined) setRainSplashesOn(patch.rainSplashesOn);
+    if (patch.rainSoundOn !== undefined) setRainSoundOn(patch.rainSoundOn);
+    if (patch.rainVolume !== undefined) setRainVolume(patch.rainVolume);
     if (patch.fireworksOn !== undefined) setFireworksOn(patch.fireworksOn);
     if (patch.fireworksIntensity !== undefined) setFireworksIntensity(patch.fireworksIntensity);
     if (patch.fireworksRate !== undefined) setFireworksRate(patch.fireworksRate);
@@ -9397,6 +9502,8 @@ export function Aquafulness() {
     // loaded scene (see lib/sceneFx/snow.ts).
     const snowfall = new Snowfall(scene);
     const snowCover = new SnowCover();
+    // REGN: rain streaks, splashes and sound (see lib/sceneFx/rain.ts).
+    const rainfall = new Rainfall(scene);
     // FYRVERKERI (see lib/sceneFx/fireworks.ts).
     const fireworks = new Fireworks(scene);
     envDomeUniforms.uSnowLight = snowCover.uLight;
@@ -12415,6 +12522,41 @@ export function Aquafulness() {
         viewportHeight: mount.clientHeight,
       });
 
+      // REGN: drops follow the camera like the snowflakes; the sound keeps
+      // playing (muffled) under water.
+      if (rainOnRef.current) {
+        rainfall.setViewport(renderer.getPixelRatio(), renderer.domElement.height);
+        rainfall.update(
+          now / 1000,
+          dt,
+          camera.position,
+          {
+            amount: rainAmountRef.current * (lowEnd ? 0.5 : 1),
+            intensity: rainIntensityRef.current,
+            dropLength: rainDropLengthRef.current,
+            dropSize: rainDropSizeRef.current,
+            opacity: rainOpacityRef.current,
+            color: rainColorRef.current,
+            daylight: 1 - nightBackdropMix(todRef.current),
+            splashes: rainSplashesOnRef.current,
+            waterLevel: ocean.position.y,
+            underwater: uniforms.uUnderwater.value,
+            // VIND: the drops slant with the scene's combined wind; with no
+            // winds on, the rain makes its own gentle wind.
+            wind: (() => {
+              const w = getWindVector();
+              return w.speed > 0.01 ? w : null;
+            })(),
+          },
+          {
+            on: rainSoundOnRef.current && rainAudioOnRef.current,
+            volume: rainVolumeRef.current,
+          },
+        );
+      } else {
+        rainfall.hide();
+      }
+
       // SNÖ: flakes follow the camera; SNÖTÄCKE patches the loaded scene's
       // materials once per model (the shared uniform does the rest).
       {
@@ -12660,6 +12802,7 @@ export function Aquafulness() {
       windAudio.dispose();
       windField.reset();
       snowfall.dispose();
+      rainfall.dispose();
       fireworks.dispose();
       confetti.dispose();
       for (const h of hoods) h.dispose();
@@ -13540,6 +13683,26 @@ export function Aquafulness() {
     setSnowCoverOn,
     snowCoverStrength,
     setSnowCoverStrength,
+    rainOn,
+    setRainOn,
+    rainAmount,
+    setRainAmount,
+    rainIntensity,
+    setRainIntensity,
+    rainDropLength,
+    setRainDropLength,
+    rainDropSize,
+    setRainDropSize,
+    rainOpacity,
+    setRainOpacity,
+    rainColor,
+    setRainColor,
+    rainSplashesOn,
+    setRainSplashesOn,
+    rainSoundOn,
+    setRainSoundOn,
+    rainVolume,
+    setRainVolume,
     snowGrayBackdropOn,
     setSnowGrayBackdropOn,
     confettiOn,

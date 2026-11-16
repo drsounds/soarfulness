@@ -36,6 +36,7 @@ UI sits right after the snow rows (the `weather` group).
 - Splashes are `Points` rings at the water level near the camera.
 - `RainAudio` has its own `AudioContext` with a hiss and a patter.
 - Brightness follows daylight `1 - nightBackdropMix(tod)`.
-- **Wind hook:** `Rainfall.update` takes `cfg.wind {x, z}` (m/s). The PR
-  passes `null`, so rain makes its own gentle turning wind. Now that VIND is
-  merged in soarfulness, pass `getWindVector()` from `lib/wind.ts` in.
+- **Wind:** `Rainfall.update` takes `cfg.wind {x, z}` (m/s). soarfulness
+  passes `getWindVector()` from `lib/wind.ts` while any VIND wind is on, so
+  the drops slant with it; with no wind on (and in aqua until VIND lands
+  there) it passes `null` and the rain makes its own gentle turning wind.
