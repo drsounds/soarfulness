@@ -1,3 +1,4 @@
+# Installed / built inside the image
 node_modules
 dist
 dist-ssr
@@ -5,16 +6,26 @@ dist-ssr
 .vinxi
 .tanstack
 .nitro
+
+# Not part of the web app
 .git
 .github
 .vscode
 .idea
 .lovable
+android
 native
+website
+docs
 *.log
 npm-debug.log*
+README.md
+
+# Secrets and local env: never copy these into an image
 .env
 .env.*
 .dev.vars
 .wrangler
-README.md
+*.keystore
+*.keystore.password.txt
+*.jks

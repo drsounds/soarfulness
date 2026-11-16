@@ -1,12 +1,33 @@
+# Production:  docker compose up --build            -> http://localhost:3000
+# Dev server:  docker compose up --build dev        -> http://localhost:8080
 services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile
-    image: aquafulness:local
+      target: runtime
+    image: soarfulness:local
     ports:
-      - "3000:3000"
+      - "${PORT:-3000}:3000"
     environment:
       PORT: "3000"
       HOST: "0.0.0.0"
     restart: unless-stopped
+
+  # Vite dev server with hot reload. Your checkout is mounted into the
+  # container, so edits on the host reload in the browser.
+  dev:
+    profiles: ["dev"]
+    build:
+      context: .
+      target: dev
+    image: soarfulness:dev
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
+      # Keep the container's own node_modules instead of the host's.
+      - /app/node_modules
+    environment:
+      # File change events don't always cross Docker Desktop's mount on
+      # macOS/Windows; polling makes hot reload work there too.
+      CHOKIDAR_USEPOLLING: "true"

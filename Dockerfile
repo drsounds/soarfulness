@@ -1,25 +1,48 @@
 # syntax=docker/dockerfile:1
 
-# Aquafulness — production container image.
+# Soarfulness — container image.
 #
-# Builds the TanStack Start app with Nitro's "node-server" preset (rather
-# than the Cloudflare Workers target this repo's vite config defaults to)
-# so the result is a plain Node.js HTTP server that runs anywhere Docker
-# does. NITRO_PRESET is read directly by nitro and takes priority over the
-# vite config's Cloudflare default, so no vite.config.ts changes are needed.
+# Mirrors the self-hosted deploy (.github/workflows/deploy.yml and
+# soarfulness.service) so the container behaves like
+# soarfulness.app.spacify.se:
+#   - dependencies come from bun.lock (`bun install --frozen-lockfile`), the
+#     lockfile CI and the deploy use; there is no package-lock.json here.
+#   - the app builds with `bun run build:prod` (Nitro's "standard" preset).
+#     This is a server-rendered TanStack Start app, not a static site, so it
+#     needs a server process, not just a static file server.
+#   - serve.mjs runs under Bun: it serves the built client assets with the
+#     right content types and cache headers, falls back to the SSR handler,
+#     and adds the robots / AI-bot blocking the live site has.
+#
+# Targets:
+#   runtime (default)  production image, `docker compose up app`
+#   dev                Vite dev server with hot reload, `docker compose up dev`
 
-ARG NODE_VERSION=22-alpine
+ARG NODE_VERSION=22
+ARG BUN_VERSION=1
 
-# ---- dependencies -----------------------------------------------------
-FROM node:${NODE_VERSION} AS deps
+FROM oven/bun:${BUN_VERSION}-slim AS bun
+
+# ---- dependencies -------------------------------------------------------
+# Node is installed alongside Bun on purpose (as in CI): vite and the build
+# scripts run on Node, Bun only installs packages and runs scripts.
+FROM node:${NODE_VERSION}-bookworm-slim AS deps
+COPY --from=bun /usr/local/bin/bun /usr/local/bin/bun
+RUN ln -s /usr/local/bin/bun /usr/local/bin/bunx
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
+COPY package.json bun.lock bunfig.toml ./
+RUN bun install --frozen-lockfile
 
-# ---- build --------------------------------------------------------------
-FROM node:${NODE_VERSION} AS build
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
+# ---- dev server (hot reload) -------------------------------------------
+# The source is bind-mounted over /app by docker-compose.yml; node_modules
+# stays the one installed above (anonymous volume).
+FROM deps AS dev
+ENV NODE_ENV=development
+EXPOSE 8080
+CMD ["bun", "run", "dev", "--host", "0.0.0.0", "--port", "8080"]
+
+# ---- build ---------------------------------------------------------------
+FROM deps AS build
 COPY . .
 
 # Optional: bakes in the Lovable Google Analytics measurement ID at build
@@ -28,23 +51,22 @@ COPY . .
 ARG VITE_LOVABLE_CONNECTOR_GOOGLE_ANALYTICS_API_KEY=""
 ENV VITE_LOVABLE_CONNECTOR_GOOGLE_ANALYTICS_API_KEY=${VITE_LOVABLE_CONNECTOR_GOOGLE_ANALYTICS_API_KEY}
 
-ENV NITRO_PRESET=node-server
-RUN npm run build
+RUN bun run build:prod
 
-# ---- runtime ------------------------------------------------------------
-FROM node:${NODE_VERSION} AS runtime
+# ---- runtime -------------------------------------------------------------
+FROM oven/bun:${BUN_VERSION}-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOST=0.0.0.0
 
-RUN addgroup -S app && adduser -S app -G app
-COPY --from=build --chown=app:app /app/.output ./.output
-USER app
+COPY --from=build --chown=bun:bun /app/.output ./.output
+COPY --chown=bun:bun serve.mjs ./
+USER bun
 
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+  CMD ["bun", "-e", "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
 
-CMD ["node", ".output/server/index.mjs"]
+CMD ["bun", "serve.mjs"]

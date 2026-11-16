@@ -94,26 +94,34 @@ commit. The Capacitor app pulls its live updates from this instance (see
 
 ## Running in a container
 
-The app builds to a plain Node.js server via Nitro's `node-server` preset
-(instead of this repo's default Cloudflare Workers target), so it runs
-anywhere Docker does.
+The image matches the self-hosted deploy: dependencies install from
+`bun.lock`, the app builds with `bun run build:prod`, and `serve.mjs` serves
+it under Bun (server-side rendering, cached static assets, and the same
+robots/AI-bot rules as the live site).
 
 ```sh
+# Production server on http://localhost:3000
 docker compose up --build
-# or
-docker build -t aquafulness .
-docker run -p 3000:3000 aquafulness
+
+# Dev server with hot reload on http://localhost:8080 (mounts your checkout)
+docker compose up --build dev
+
+# Without compose
+docker build -t soarfulness .
+docker run -p 3000:3000 soarfulness
 ```
 
 The server listens on `PORT` (default `3000`) and `HOST` (default
-`0.0.0.0`). On every push to `main` and on version tags (`vX.Y.Z`), CI
-builds and publishes a multi-arch (amd64/arm64) image to
-[GitHub Container Registry](https://github.com/drsounds/aqua-wave-dream/pkgs/container/aqua-wave-dream):
+`0.0.0.0`); with compose, `PORT=8000 docker compose up` publishes it on
+another host port. To bake the Google Analytics ID into a build, pass
+`--build-arg VITE_LOVABLE_CONNECTOR_GOOGLE_ANALYTICS_API_KEY=...`.
+
+The [Docker image workflow](.github/workflows/docker-image.yml) is
+manual (Actions tab, "Run workflow"). It smoke-tests the image and publishes
+a multi-arch (amd64/arm64) image with an SBOM and build provenance to
+[GitHub Container Registry](https://github.com/drsounds/soarfulness/pkgs/container/soarfulness):
 
 ```sh
-docker run -p 3000:3000 ghcr.io/drsounds/aqua-wave-dream:latest
+docker run -p 3000:3000 ghcr.io/drsounds/soarfulness:latest
 ```
 
-See [`.github/workflows/docker-image.yml`](.github/workflows/docker-image.yml)
-for the build/publish pipeline, which also attaches an SBOM and signed build
-provenance attestation to each release.
