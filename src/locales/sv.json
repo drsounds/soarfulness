@@ -890,6 +890,17 @@
       "title": "Vetenskapliga referenser"
     }
   },
+  "edgeFilter": {
+    "dir": {
+      "x": "KANTER LÄNGS X",
+      "y": "KANTER LÄNGS Y (LODRÄTA)",
+      "z": "KANTER LÄNGS Z",
+      "other": "ÖVRIGA KANTER (SNEDA)"
+    },
+    "range": "BEGRÄNSA TILL OMRÅDE",
+    "min": "{{axis}} FRÅN",
+    "max": "{{axis}} TILL"
+  },
   "hud": {
     "audioMuteAria": "Stäng av ljud",
     "audioOffTitle": "Ljud av",
@@ -1384,6 +1395,13 @@
       "pulse": "PULSERA",
       "alternate": "VÄXLA",
       "colorshift": "FÄRGVANDRING"
+    },
+    "edge": {
+      "title": "FÄST I KANTER",
+      "includeImported": "ÄVEN IMPORTERADE GLB",
+      "spacing": "AVSTÅND MELLAN LAMPOR",
+      "maxBulbs": "MAX ANTAL LAMPOR",
+      "radius": "RÄCKVIDD (0 = HELA SCENEN)"
     }
   },
   "swing": {

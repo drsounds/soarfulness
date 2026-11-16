@@ -1,4 +1,10 @@
 import { useSyncExternalStore } from "react";
+import {
+  EDGE_FILTER_DEFAULT,
+  cloneEdgeFilter,
+  sanitizeEdgeFilter,
+  type EdgeFilter,
+} from "@/lib/edgeSelect";
 
 // LJUSSLINGOR: decorative string / festoon lights hung over the scene, the
 // bulb counterpart of NEON (which outlines the loaded scene's edges).
@@ -105,8 +111,97 @@ export type StringLight = {
   emitLight: boolean;
 };
 
+/**
+ * KANTLJUS: bulbs along the loaded scene's mesh edges (and, optionally,
+ * imported .glb files), instead of / in addition to hanging strings. On by
+ * default once LJUSSLINGOR itself is on; the edge filter picks which edges
+ * (by direction and x/y/z range) — see lib/edgeSelect.ts.
+ */
+export type EdgeLights = Pick<
+  StringLight,
+  | "bulbSize"
+  | "bulbStyle"
+  | "brightness"
+  | "glow"
+  | "glowSize"
+  | "palette"
+  | "customColors"
+  | "pattern"
+  | "blockSize"
+  | "anim"
+  | "speed"
+  | "animDepth"
+  | "direction"
+> & {
+  on: boolean;
+  /** Also light imported .glb files (EGNA SCENER scenes, DEKORATIONER). */
+  includeImported: boolean;
+  filter: EdgeFilter;
+  /** Metres between bulbs along an edge. */
+  spacing: number;
+  /** Cap on bulbs over all edges; the spacing widens to stay under it. */
+  maxBulbs: number;
+  /** Only edges within this many metres of the camera get bulbs (0 = whole scene). */
+  radius: number;
+};
+
+export const EDGE_LIGHTS_MAX_BULBS = 4000;
+
+export const EDGE_LIGHTS_DEFAULTS: EdgeLights = {
+  on: true,
+  includeImported: true,
+  filter: cloneEdgeFilter(EDGE_FILTER_DEFAULT),
+  spacing: 0.5,
+  maxBulbs: 800,
+  radius: 40,
+  bulbSize: 0.06,
+  bulbStyle: "fairy",
+  brightness: 1.2,
+  glow: 0.8,
+  glowSize: 1,
+  palette: "warm",
+  customColors: ["#ffb347", "#ff6f91", "#6fd3ff"],
+  pattern: "repeat",
+  blockSize: 3,
+  anim: "twinkle",
+  speed: 1,
+  animDepth: 0.4,
+  direction: 1,
+};
+
+export function sanitizeEdgeLights(raw: unknown): EdgeLights {
+  const d = EDGE_LIGHTS_DEFAULTS;
+  const r = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  return {
+    on: typeof r.on === "boolean" ? r.on : d.on,
+    includeImported: typeof r.includeImported === "boolean" ? r.includeImported : d.includeImported,
+    filter: sanitizeEdgeFilter(r.filter),
+    spacing: num(r.spacing, d.spacing, 0.05, 20),
+    maxBulbs: int(r.maxBulbs, d.maxBulbs, 10, EDGE_LIGHTS_MAX_BULBS),
+    radius: num(r.radius, d.radius, 0, 1000),
+    bulbSize: num(r.bulbSize, d.bulbSize, 0.01, 0.6),
+    bulbStyle: oneOf(STRING_LIGHT_BULBS, r.bulbStyle, d.bulbStyle),
+    brightness: num(r.brightness, d.brightness, 0, 4),
+    glow: num(r.glow, d.glow, 0, 3),
+    glowSize: num(r.glowSize, d.glowSize, 0.2, 4),
+    palette: oneOf(STRING_LIGHT_PALETTE_IDS, r.palette, d.palette),
+    customColors: Array.isArray(r.customColors)
+      ? r.customColors
+          .filter((c): c is string => typeof c === "string" && HEX.test(c))
+          .slice(0, STRING_LIGHT_MAX_CUSTOM_COLORS)
+      : [...d.customColors],
+    pattern: oneOf(STRING_LIGHT_PATTERNS, r.pattern, d.pattern),
+    blockSize: int(r.blockSize, d.blockSize, 1, 20),
+    anim: oneOf(STRING_LIGHT_ANIMS, r.anim, d.anim),
+    speed: num(r.speed, d.speed, 0, 10),
+    animDepth: num(r.animDepth, d.animDepth, 0, 1),
+    direction: r.direction === -1 ? -1 : 1,
+  };
+}
+
 export type StringLightsState = {
   on: boolean;
+  edge: EdgeLights;
   /** LJUSKÄLLOR: how many real point lights all strings may use together. */
   emitters: number;
   /** Shrinks glow by day (1 = same as at night). */
@@ -144,6 +239,7 @@ export const STRING_LIGHT_DEFAULTS: Omit<StringLight, "id" | "x" | "z" | "yaw"> 
 
 export const STRING_LIGHTS_DEFAULT_STATE: StringLightsState = {
   on: false,
+  edge: EDGE_LIGHTS_DEFAULTS,
   emitters: 4,
   dayGlow: 0.35,
   scenes: {},
@@ -223,6 +319,7 @@ export function sanitizeStringLightsState(raw: unknown): StringLightsState {
   }
   return {
     on: typeof r.on === "boolean" ? r.on : d.on,
+    edge: sanitizeEdgeLights(r.edge),
     emitters: int(r.emitters, d.emitters, 0, STRING_LIGHTS_MAX_EMITTERS),
     dayGlow: num(r.dayGlow, d.dayGlow, 0, 1),
     scenes,
@@ -296,6 +393,10 @@ export function setStringLightsSceneKey(key: string) {
 
 export function stringsForScene(s: StringLightsState, key: string): StringLight[] {
   return s.scenes[key] ?? [];
+}
+
+export function setEdgeLights(update: (e: EdgeLights) => EdgeLights) {
+  setStringLights((s) => ({ ...s, edge: update(s.edge) }));
 }
 
 export function setSceneStrings(key: string, update: (list: StringLight[]) => StringLight[]) {

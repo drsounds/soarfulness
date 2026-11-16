@@ -92,6 +92,8 @@ export type FrameContext = {
   /** The loaded .glb scene and its id, if any. */
   model: THREE.Object3D | null;
   sceneId: string | null;
+  /** Additional imported content roots that scene effects may follow. */
+  extraRoots: THREE.Object3D[];
   /** LOW GRAPHICS MODE: apps should halve particle counts and skip extras. */
   lowEnd: boolean;
   /** Renderer pixel ratio and drawing-buffer height (px). */

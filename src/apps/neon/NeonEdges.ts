@@ -3,10 +3,20 @@ import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeometry.js";
 import type { NeonMode } from "./settings";
+import {
+  EDGE_FILTER_DEFAULT,
+  cloneEdgeFilter,
+  collectEdgeMeshes,
+  edgeFilterKey,
+  filterSegmentsLocal,
+  getEdgePositions,
+  type EdgeFilter,
+} from "@/lib/edgeSelect";
+import { WATER_PASS_BEHIND_ORDER, applyWaterPass } from "@/lib/waterPass";
 
 // NEON: glowing tubes along the hard edges of every mesh in a loaded scene.
 // Edges come from THREE.EdgesGeometry (only creases sharper than
-// EDGE_THRESHOLD_DEG, so smooth surfaces don't turn into a wireframe) and are
+// the edge threshold in lib/edgeSelect.ts, so smooth surfaces don't turn into a wireframe) and are
 // drawn as screen-space-wide LineSegments2 with one shared additive
 // material, so the whole effect recolors with a single uniform write.
 //
@@ -14,8 +24,6 @@ import type { NeonMode } from "./settings";
 // children of the model's meshes) and copy each source mesh's world matrix
 // every frame: the scene loader's disposeObject() walks the model subtree,
 // and must never free these lines' geometry or the shared material.
-
-const EDGE_THRESHOLD_DEG = 30;
 
 export type NeonConfig = {
   mode: NeonMode;
@@ -30,23 +38,40 @@ export type NeonConfig = {
 
 export class NeonEdges {
   readonly group = new THREE.Group();
+  // Two materials, one per water pass (see lib/waterPass.ts): fragments
+  // behind the water surface draw before the ocean, the rest after it.
   private readonly material: LineMaterial;
+  private readonly materialBehind: LineMaterial;
   private root: THREE.Object3D | null = null;
-  private pairs: { src: THREE.Mesh; line: LineSegments2 }[] = [];
+  private filter: EdgeFilter = cloneEdgeFilter(EDGE_FILTER_DEFAULT);
+  private filterKey = edgeFilterKey(EDGE_FILTER_DEFAULT);
+  private pairs: { src: THREE.Mesh; lines: LineSegments2[] }[] = [];
   private readonly cPrimary = new THREE.Color();
   private readonly cSecondary = new THREE.Color();
   private readonly cTint = new THREE.Color();
   private readonly hsl = { h: 0, s: 0, l: 0 };
 
   constructor(scene: THREE.Scene) {
-    this.material = new LineMaterial({
-      color: 0xffffff,
-      linewidth: 3,
-      transparent: true,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-      fog: true,
-    });
+    const make = (behind: boolean) => {
+      const m = new LineMaterial({
+        color: 0xffffff,
+        linewidth: 3,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        fog: true,
+      });
+      applyWaterPass(
+        m,
+        behind,
+        "((position.y < 0.5) ? (modelMatrix * vec4(instanceStart, 1.0)).y : (modelMatrix * vec4(instanceEnd, 1.0)).y)",
+        "float aspect = resolution.x / resolution.y;",
+        "void main() {",
+      );
+      return m;
+    };
+    this.material = make(false);
+    this.materialBehind = make(true);
     this.group.name = "neonEdges";
     scene.add(this.group);
   }
@@ -55,42 +80,45 @@ export class NeonEdges {
     return this.root;
   }
 
+  /** Which edges get lines (direction + x/y/z range); rebuilds when it changes. */
+  setFilter(f: EdgeFilter) {
+    const key = edgeFilterKey(f);
+    if (key === this.filterKey) return;
+    this.filter = cloneEdgeFilter(f);
+    this.filterKey = key;
+    const root = this.root;
+    if (root) this.attach(root);
+  }
+
   /** Builds edge lines for every mesh under `root`, replacing any previous. */
   attach(root: THREE.Object3D) {
     this.detach();
     this.root = root;
-    root.updateMatrixWorld(true);
-    const meshes: THREE.Mesh[] = [];
-    root.traverse((o) => {
-      const mesh = o as THREE.Mesh;
-      const instanced = (mesh as THREE.InstancedMesh).isInstancedMesh;
-      if (mesh.isMesh && !instanced && mesh.geometry?.attributes.position) {
-        meshes.push(mesh);
-      }
-    });
-    for (const src of meshes) {
-      const edges = new THREE.EdgesGeometry(src.geometry, EDGE_THRESHOLD_DEG);
-      if (edges.attributes.position.count === 0) {
-        edges.dispose();
-        continue;
-      }
-      const geo = new LineSegmentsGeometry().fromEdgesGeometry(edges);
-      edges.dispose();
-      const line = new LineSegments2(geo, this.material);
-      line.matrixAutoUpdate = false;
-      line.matrix.copy(src.matrixWorld);
-      line.renderOrder = 10;
-      // Purely decorative — never pickable by the watercraft/TV raycasts.
-      line.raycast = () => {};
-      this.group.add(line);
-      this.pairs.push({ src, line });
+    for (const src of collectEdgeMeshes([root])) {
+      const all = getEdgePositions(src.geometry);
+      if (!all || all.length === 0) continue;
+      const kept = filterSegmentsLocal(all, src.matrixWorld, this.filter);
+      if (kept.length === 0) continue;
+      const geo = new LineSegmentsGeometry();
+      geo.setPositions(kept);
+      const lines = [this.material, this.materialBehind].map((mat, i) => {
+        const line = new LineSegments2(geo, mat);
+        line.matrixAutoUpdate = false;
+        line.matrix.copy(src.matrixWorld);
+        line.renderOrder = i === 0 ? 10 : WATER_PASS_BEHIND_ORDER;
+        // Purely decorative — never pickable by the watercraft/TV raycasts.
+        line.raycast = () => {};
+        this.group.add(line);
+        return line;
+      });
+      this.pairs.push({ src, lines });
     }
   }
 
   detach() {
-    for (const { line } of this.pairs) {
-      this.group.remove(line);
-      line.geometry.dispose();
+    for (const { lines } of this.pairs) {
+      for (const line of lines) this.group.remove(line);
+      lines[0].geometry.dispose();
     }
     this.pairs = [];
     this.root = null;
@@ -98,6 +126,7 @@ export class NeonEdges {
 
   setResolution(w: number, h: number) {
     this.material.resolution.set(w, h);
+    this.materialBehind.resolution.set(w, h);
   }
 
   /** Recolors the shared material for time `t` (seconds) and re-syncs every
@@ -130,11 +159,16 @@ export class NeonEdges {
     // Additive blending: strength past 1 keeps brightening toward white
     // instead of saturating at the base color.
     c.multiplyScalar(Math.max(0, cfg.strength));
-    this.material.opacity = Math.min(1, Math.max(0, cfg.strength));
-    this.material.linewidth = Math.max(0.5, cfg.width);
-    for (const { src, line } of this.pairs) {
-      line.matrix.copy(src.matrixWorld);
-      line.visible = src.visible;
+    this.materialBehind.color.copy(c);
+    for (const m of [this.material, this.materialBehind]) {
+      m.opacity = Math.min(1, Math.max(0, cfg.strength));
+      m.linewidth = Math.max(0.5, cfg.width);
+    }
+    for (const { src, lines } of this.pairs) {
+      for (const line of lines) {
+        line.matrix.copy(src.matrixWorld);
+        line.visible = src.visible;
+      }
     }
   }
 
@@ -142,5 +176,6 @@ export class NeonEdges {
     this.detach();
     this.group.removeFromParent();
     this.material.dispose();
+    this.materialBehind.dispose();
   }
 }

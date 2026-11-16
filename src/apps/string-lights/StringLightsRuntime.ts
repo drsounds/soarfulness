@@ -1,4 +1,5 @@
 import type { AppRuntime, FrameContext, SceneAppContext } from "@/core/apps/types";
+import { isUserSceneId } from "@/lib/userScenes";
 import { StringLightsFx } from "./StringLightsFx";
 
 /**
@@ -19,6 +20,9 @@ export class StringLightsRuntime implements AppRuntime {
       waterY: f.waterLevel,
       night: f.night,
       viewportHeight: f.viewportHeight,
+      model: f.model,
+      modelImported: isUserSceneId(f.sceneId),
+      extraRoots: f.extraRoots,
     });
   }
 

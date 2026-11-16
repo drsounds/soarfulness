@@ -890,6 +890,17 @@
       "title": "Vitenskapelige referanser"
     }
   },
+  "edgeFilter": {
+    "dir": {
+      "x": "KANTER LANGS X",
+      "y": "KANTER LANGS Y (LODDRETTE)",
+      "z": "KANTER LANGS Z",
+      "other": "ØVRIGE KANTER (SKRÅ)"
+    },
+    "range": "BEGRENS TIL OMRÅDE",
+    "min": "{{axis}} FRA",
+    "max": "{{axis}} TIL"
+  },
   "hud": {
     "audioMuteAria": "Slå av lyd",
     "audioOffTitle": "Lyd av",
@@ -1384,6 +1395,13 @@
       "pulse": "PULSERE",
       "alternate": "VEKSLE",
       "colorshift": "FARGEVANDRING"
+    },
+    "edge": {
+      "title": "FESTET I KANTER",
+      "includeImported": "OGSÅ IMPORTERTE GLB",
+      "spacing": "AVSTAND MELLOM PÆRER",
+      "maxBulbs": "MAKS ANTALL PÆRER",
+      "radius": "REKKEVIDDE (0 = HELE SCENEN)"
     }
   },
   "swing": {

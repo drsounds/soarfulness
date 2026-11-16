@@ -29,6 +29,7 @@ import { TorusRingField } from "@/lib/torusRings/TorusRingField";
 import { RETRO_PALETTE_INDEX, RETRO_SHADER } from "@/apps/retro/retroShader";
 import { limitMax, useExtremeLimits, type LimitedControl } from "@/lib/extremeLimits";
 import { NeonRuntime } from "@/apps/neon/NeonRuntime";
+import { cloneEdgeFilter, sanitizeEdgeFilter, type EdgeFilter } from "@/lib/edgeSelect";
 import { AuroraRuntime } from "@/apps/aurora/AuroraRuntime";
 import "@/core/apps/catalog";
 import type { FrameContext } from "@/core/apps/types";
@@ -2397,6 +2398,9 @@ export function Aquafulness() {
   const [neonSecondary, setNeonSecondary] = useState(initial.neonSecondary);
   const [neonTint, setNeonTint] = useState(initial.neonTint);
   const [neonTintAmount, setNeonTintAmount] = useState(initial.neonTintAmount);
+  const [neonEdgeFilter, setNeonEdgeFilter] = useState<EdgeFilter>(() =>
+    sanitizeEdgeFilter(initial.neonEdgeFilter),
+  );
   const [neonStrength, setNeonStrength] = useState(initial.neonStrength);
   const [neonWidth, setNeonWidth] = useState(initial.neonWidth);
   const [neonFrequency, setNeonFrequency] = useState(initial.neonFrequency);
@@ -3067,6 +3071,7 @@ export function Aquafulness() {
     neonSecondary,
     neonTint,
     neonTintAmount,
+    neonEdgeFilter,
     neonStrength,
     neonWidth,
     neonFrequency,
@@ -3410,6 +3415,7 @@ export function Aquafulness() {
     neonSecondary,
     neonTint,
     neonTintAmount,
+    neonEdgeFilter,
     neonStrength,
     neonWidth,
     neonFrequency,
@@ -3784,6 +3790,7 @@ export function Aquafulness() {
     neonSecondary,
     neonTint,
     neonTintAmount,
+    neonEdgeFilter,
     neonStrength,
     neonWidth,
     neonFrequency,
@@ -5604,6 +5611,7 @@ export function Aquafulness() {
     setNeonSecondary(DEFAULTS.neonSecondary);
     setNeonTint(DEFAULTS.neonTint);
     setNeonTintAmount(DEFAULTS.neonTintAmount);
+    setNeonEdgeFilter(cloneEdgeFilter(DEFAULTS.neonEdgeFilter));
     setNeonStrength(DEFAULTS.neonStrength);
     setNeonWidth(DEFAULTS.neonWidth);
     setNeonFrequency(DEFAULTS.neonFrequency);
@@ -5998,6 +6006,8 @@ export function Aquafulness() {
     if (patch.neonSecondary !== undefined) setNeonSecondary(patch.neonSecondary);
     if (patch.neonTint !== undefined) setNeonTint(patch.neonTint);
     if (patch.neonTintAmount !== undefined) setNeonTintAmount(patch.neonTintAmount);
+    if (patch.neonEdgeFilter !== undefined)
+      setNeonEdgeFilter(sanitizeEdgeFilter(patch.neonEdgeFilter));
     if (patch.neonStrength !== undefined) setNeonStrength(patch.neonStrength);
     if (patch.neonWidth !== undefined) setNeonWidth(patch.neonWidth);
     if (patch.neonFrequency !== undefined) setNeonFrequency(patch.neonFrequency);
@@ -12014,6 +12024,7 @@ export function Aquafulness() {
 
       // What every app runtime gets to know about this frame (see
       // FrameContext in core/apps/types.ts).
+      const decorationRoot = deco.getRoot();
       const appFrame: FrameContext = {
         time: now / 1000,
         dt,
@@ -12024,6 +12035,7 @@ export function Aquafulness() {
         eyeAboveWater: camY - surfaceY,
         model: modelRef.current,
         sceneId: stringLightsSceneRef.current,
+        extraRoots: decorationRoot ? [decorationRoot] : [],
         lowEnd,
         pixelRatio: renderer.getPixelRatio(),
         pixelHeight: renderer.domElement.height,
@@ -13290,6 +13302,8 @@ export function Aquafulness() {
     setNeonTint,
     neonTintAmount,
     setNeonTintAmount,
+    neonEdgeFilter,
+    setNeonEdgeFilter,
     neonStrength,
     setNeonStrength,
     neonWidth,

@@ -52,12 +52,12 @@ Swedish, like `NORRSKEN`) goes in the manifest's `name`.
 | `decorations` | DEKORATIONER | content | place | | `decorations.ts`, `DecorationLayer.ts`, `DecorationPanel.tsx`, `useDecorations.ts` |
 | `fireworks` | FYRVERKERI | scene-fx | events | | `Fireworks.ts`, `FireworksAudio.ts` |
 | `hood` | HUVA | bather | bather | | `Hood.ts`, `hoodLayers.ts`, `HoodPanel.tsx` |
-| `neon` | NEON | scene-fx | effects | | `NeonEdges.ts`, `neonAccent.ts` |
+| `neon` | NEON | scene-fx | effects | | `NeonEdges.ts`, `neonAccent.ts` (edge filter: `lib/edgeSelect.ts`) |
 | `open-drift` | HAVSDRIFT | motion | drift | | `OpenDrift.ts` |
 | `retro` | RETRO | screen-fx | graphics | | `retroShader.ts` |
 | `rain` | REGN | scene-fx | weather | day-night, wind | `Rainfall.ts`, `RainAudio.ts` |
 | `snow` | SNÖ | scene-fx | weather | day-night | `Snowfall.ts`, `SnowCover.ts`, `snowLight.ts` |
-| `string-lights` | LJUSSLINGOR | scene-fx | effects | | `StringLightsFx.ts`, `stringLights.ts` (own store), `StringLightsPanel.tsx` |
+| `string-lights` | LJUSSLINGOR | scene-fx | effects | | `StringLightsFx.ts`, `EdgeLightsFx.ts`, `stringLights.ts` (own store), `StringLightsPanel.tsx`, `EdgeLightsPanel.tsx` |
 | `underwater-fog` | UNDERVATTENDIS | screen-fx | weather | | `underwaterFog.ts`, `UnderwaterFogOverlay.ts` |
 | `wind` | VIND | environment | weather | | `wind.ts`, `WindAudio.ts`, `WindPanel.tsx` |
 
@@ -171,7 +171,8 @@ interface AppRuntime<S> {
 type FrameContext = {
   time: number; dt: number; camera: THREE.PerspectiveCamera;
   night: number; underwater: number; waterLevel: number; eyeAboveWater: number;
-  model: THREE.Object3D | null; sceneId: string | null; lowEnd: boolean;
+  model: THREE.Object3D | null; sceneId: string | null;
+  extraRoots: THREE.Object3D[]; lowEnd: boolean;
   pixelRatio: number; pixelHeight: number; viewportHeight: number; audioOn: boolean;
   light: { skyColor; horizonColor; waterColor; waterShallowColor; sunColor; sunDir };
 };
@@ -223,6 +224,16 @@ instead of a single `frame()`.
 
 Still constructed directly in `routes/index.tsx`: `decorations` (a React
 hook, `useDecorations`) and the `retro` post-processing pass.
+
+## Shared helpers for light effects
+
+- `lib/edgeSelect.ts` detects and caches mesh edges, filters them by direction
+  and clips them to an x/y/z range. NEON and LJUSSLINGOR's KANTLJUS use it with
+  `components/EdgeFilterSettings.tsx` as their shared UI.
+- `lib/waterPass.ts` splits additive glows into passes on either side of the
+  water surface, preventing the ocean's depth write from clipping them when
+  seen through the waves. Use `applyWaterPass` / `GlowPoints` for similar
+  effects that can sit above or below the water.
 
 ## Adding a new app
 

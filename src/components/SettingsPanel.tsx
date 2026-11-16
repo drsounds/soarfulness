@@ -21,6 +21,8 @@ import {
 } from "@/apps/open-drift/OpenDrift";
 import { Link } from "@tanstack/react-router";
 import { SettingRow } from "@/components/SettingRow";
+import { EdgeFilterSettings } from "@/components/EdgeFilterSettings";
+import type { EdgeFilter } from "@/lib/edgeSelect";
 import { SkyLookSettings } from "@/components/SkyLookSettings";
 import { DecorationSettings, type DecorationControls } from "@/apps/decorations/DecorationPanel";
 import { Findable, G, SETTINGS_GROUPS, SettingsNavigator } from "@/components/settingsNav";
@@ -1074,6 +1076,8 @@ export type SettingsPanelProps = {
   setNeonTint: Dispatch<SetStateAction<string>>;
   neonTintAmount: number;
   setNeonTintAmount: Dispatch<SetStateAction<number>>;
+  neonEdgeFilter: EdgeFilter;
+  setNeonEdgeFilter: Dispatch<SetStateAction<EdgeFilter>>;
   neonStrength: number;
   setNeonStrength: Dispatch<SetStateAction<number>>;
   neonWidth: number;
@@ -2175,6 +2179,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setNeonTint,
     neonTintAmount,
     setNeonTintAmount,
+    neonEdgeFilter,
+    setNeonEdgeFilter,
     neonStrength,
     setNeonStrength,
     neonWidth,
@@ -6328,6 +6334,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onDec={() => setNeonTintAmount((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
               onInc={() => setNeonTintAmount((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
             />
+            <EdgeFilterSettings value={neonEdgeFilter} onChange={setNeonEdgeFilter} />
           </>
         )}
         <Findable label={t("dial.env.neonAccent")}>
