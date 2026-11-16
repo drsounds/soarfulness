@@ -1258,5 +1258,40 @@
       "legacy": "LEGACY",
       "standard": "STANDARD"
     }
+  },
+  "wind": {
+    "title": "VIND",
+    "openAria": "Åpne vindpanelet",
+    "add": "+ LEGG TIL VIND",
+    "empty": "Ingen vinder ennå. Trykk på LEGG TIL VIND — en ny vind blåser rett mot deg, så kan du vri den.",
+    "total": "TOTALT",
+    "windN": "VIND {{n}}",
+    "direction": "RETNING",
+    "speed": "VINDSTYRKE",
+    "gust": "BYIGHET",
+    "headwind": "MOT MEG",
+    "tailwind": "MED MEG",
+    "remove": "FJERN",
+    "waves": "VIND → BØLGERETNING",
+    "wavesStrength": "BØLGESTYRING",
+    "sway": "VIND → SVAI",
+    "swayStrength": "SVAISTYRKE",
+    "current": "VIND → STRØM",
+    "currentStrength": "STRØMSTYRKE",
+    "sound": "VINDLYD",
+    "altitudeAudio": "HØYDELYD",
+    "soundVolume": "VINDVOLUM",
+    "soundHint": "Vindlyden følger vindens styrke og retning og hvor fort du beveger deg mot den. HØYDELYD: over vannet toner vannlyden ut i støy, som toner ut høyere opp der vinden blåser sterkere. Krever LYD.",
+    "compass": {
+      "n": "N",
+      "ne": "NØ",
+      "e": "Ø",
+      "se": "SØ",
+      "s": "S",
+      "sw": "SV",
+      "w": "V",
+      "nw": "NV"
+    },
+    "from": "FRA"
   }
 }

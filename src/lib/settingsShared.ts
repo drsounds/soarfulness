@@ -1,6 +1,7 @@
 import vanernBackdrop from "@/assets/vanern-backdrop.png.asset.json";
 import sandTextureAsset from "@/assets/sand_cc0_512.jpg.asset.json";
 import waterAsset from "@/assets/water.mp3.asset.json";
+import type { WindSource } from "@/lib/wind";
 import type { OpenDriftCurve, OpenDriftDirection } from "@/lib/openDrift";
 import type { HoodLayer, HoodStyle } from "@/lib/hoodLayers";
 
@@ -658,6 +659,22 @@ export type Persisted = {
   surgeSpeed: number;
   surgeRotationMode: SurgeRotationMode;
   surgeRotationSpeed: number;
+  // VIND (lib/wind.ts): any number of winds, each with its own direction,
+  // speed and gusts, added from the VIND button in the main view. They can
+  // steer the wave direction, add to the sway and push a surface current
+  // (each optional), and drive the wind sound. windAltitudeAudioOn
+  // (HÖJDLJUD, on by default) fades the water sound into surface noise and
+  // then wind as the camera rises above the water.
+  winds: WindSource[];
+  windWavesOn: boolean;
+  windWaveStrength: number;
+  windSwayOn: boolean;
+  windSwayStrength: number;
+  windCurrentOn: boolean;
+  windCurrentStrength: number;
+  windSoundOn: boolean;
+  windSoundVolume: number;
+  windAltitudeAudioOn: boolean;
   // HAVSDRIFT: an endless open-water drift that keeps carrying the
   // player around with every stick at rest (lib/openDrift.ts): a
   // circle of openDriftRadius m (openDriftDirection) or a random
@@ -1230,6 +1247,16 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "waterGlowEveningOnly",
   ],
   miljo: [
+    "winds",
+    "windWavesOn",
+    "windWaveStrength",
+    "windSwayOn",
+    "windSwayStrength",
+    "windCurrentOn",
+    "windCurrentStrength",
+    "windSoundOn",
+    "windSoundVolume",
+    "windAltitudeAudioOn",
     "timeOfDay",
     "midCloudsOn",
     "midCloudsHeight",
