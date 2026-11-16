@@ -63,7 +63,7 @@ manifests.
 :::caution A refactor is under way
 A separate piece of work is moving features into a plugin-based `apps/`
 folder with per-app manifests. When it lands, the architecture pages here
-change. See [Plugin refactor](architecture/plugin-refactor.md) for the status.
+change. See [Apps: the plugin architecture](architecture/plugin-refactor.md) for the new structure (soarfulness PR #52, aqua-wave-dream PR #250).
 :::
 
 ## Naming conventions you will see everywhere
