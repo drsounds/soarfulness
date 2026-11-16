@@ -12,6 +12,13 @@ import {
 import { useTranslation } from "react-i18next";
 import * as THREE from "three";
 import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { DecorationHudBar } from "@/components/DecorationPanel";
+import { useDecorations } from "@/hooks/use-decorations";
+import {
+  decorationsForLink,
+  sanitizeDecorations,
+  type DecorationsByScene,
+} from "@/lib/decorations";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
@@ -1387,6 +1394,8 @@ const WAVE_PRESETS: Record<
 };
 
 const DEFAULTS: Persisted = {
+  // DEKORATIONER: per-scene placed .glb decorations (src/lib/decorations.ts).
+  decorations: {} as DecorationsByScene,
   ...WAVE_PRESETS.standard,
   wavePreset: "standard",
   // Overrides on top of the "standard" wave preset — the app's default
@@ -2362,6 +2371,18 @@ export function Aquafulness() {
     [catalogScenes, userScenes],
   );
   const [sceneId, setSceneId] = useState<string | null>(initial.sceneId);
+  // DEKORATIONER: the player's own .glb models placed in the current scene
+  // (src/hooks/use-decorations.ts, src/components/DecorationPanel.tsx).
+  const deco = useDecorations({
+    initial: initial.decorations,
+    sceneId,
+    sceneName: sceneId
+      ? (scenes.find((s) => s.id === sceneId)?.name ?? sceneId)
+      : t("decorations.noScene"),
+    onPlacingStart: () => setSettingsOpen(false),
+    extraKeptSrcs: () =>
+      JSON.stringify([savedPresets, savedStates]).match(/local:deco:[\w-]+/g) ?? [],
+  });
   // Named respawn points for the current scene, from its manifest's
   // "locations"/"places" list (see resolveSpawnLocations) — always at least
   // one entry (the {0,0,0} fallback when the manifest defines none).
@@ -3102,6 +3123,7 @@ export function Aquafulness() {
   // place that enumerates every field.
   const buildPersistedSnapshot = (): Persisted => ({
     waveAmp,
+    decorations: deco.decorations,
     timeOfDay,
     waveSpeed,
     waveFreq,
@@ -3453,6 +3475,7 @@ export function Aquafulness() {
     }
   }, [
     waveAmp,
+    deco.decorations,
     timeOfDay,
     waveSpeed,
     waveFreq,
@@ -5793,6 +5816,8 @@ export function Aquafulness() {
   // (reset only restores sceneId/spawnLocationId), since a preset is meant to
   // fully recreate a saved look.
   const applySettingsPatch = (patch: Partial<Persisted>) => {
+    if (patch.decorations !== undefined)
+      deco.setDecorations(sanitizeDecorations(patch.decorations));
     if (patch.waveAmp !== undefined) setWaveAmp(patch.waveAmp);
     if (patch.timeOfDay !== undefined) setTimeOfDay(patch.timeOfDay);
     if (patch.waveSpeed !== undefined) setWaveSpeed(patch.waveSpeed);
@@ -6435,7 +6460,12 @@ export function Aquafulness() {
   const buildBathLink = async (title: string, description: string): Promise<string> => {
     const payload: BathPayload = {
       v: 1,
-      s: pickFields(buildPersistedSnapshot(), PRESET_ALL_FIELDS) as Record<string, unknown>,
+      s: {
+        ...(pickFields(buildPersistedSnapshot(), PRESET_ALL_FIELDS) as Record<string, unknown>),
+        // DEKORATIONER: only this scene's embedded models — a model stored
+        // on this device ("local:") can't open anywhere else.
+        decorations: decorationsForLink(deco.decorations, deco.sceneKey).decorations,
+      },
       c: {
         x: posRef.current.x,
         y: posRef.current.y,
@@ -7238,6 +7268,9 @@ export function Aquafulness() {
       fadeDistance: initial.torusFadeDistance,
     });
     torusRingFieldRef.current = torusRingField;
+
+    // DEKORATIONER: placed .glb decorations + their move/rotate/scale gizmo.
+    const detachDecorations = deco.attach(scene, camera, renderer.domElement);
 
     // "Watercraft" camera mode's raft — see WatercraftRig. Built once here
     // (hidden by default; setVisible(true) only while cameraMode ===
@@ -12500,6 +12533,7 @@ export function Aquafulness() {
       tvManagerRef.current = null;
       torusRingField.dispose();
       torusRingFieldRef.current = null;
+      detachDecorations();
       renderer.domElement.removeEventListener("pointerdown", onWatercraftPointerDown);
       renderer.domElement.removeEventListener("pointermove", onWatercraftPointerMove);
       renderer.domElement.removeEventListener("pointerup", onWatercraftPointerUp);
@@ -13555,6 +13589,7 @@ export function Aquafulness() {
     sceneId,
     setSceneId,
     cycleScene,
+    decorations: deco.controls,
     userSceneIds: (userScenes ?? []).map((u) => u.id),
     userSceneBusy,
     pickUserSceneFile,
@@ -13821,6 +13856,9 @@ export function Aquafulness() {
       {/* Fake live-broadcast overlay — hidden by default, toggled via LIVE dial. */}
       {liveMode && <LiveBroadcast />}
 
+      {/* DEKORATIONER placement bar — outside the fading HUD so it stays up
+          while the gizmo is used. */}
+      {deco.controls.placing && !settingsOpen && <DecorationHudBar c={deco.controls} />}
       {/* HUD overlay — fades out on inactivity, back in on any touch. Always
           pointer-events-none on this wrapper itself (every interactive
           descendant below — buttons, the settings panel, joysticks — already

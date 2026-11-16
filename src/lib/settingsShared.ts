@@ -1,3 +1,4 @@
+import type { DecorationsByScene } from "@/lib/decorations";
 import vanernBackdrop from "@/assets/vanern-backdrop.png.asset.json";
 import sandTextureAsset from "@/assets/sand_cc0_512.jpg.asset.json";
 import waterAsset from "@/assets/water.mp3.asset.json";
@@ -474,6 +475,9 @@ export type Persisted = {
   hoodPuffThickness: number;
   hoodPuffInflate: number;
   hoodExtraLayers: HoodLayer[];
+  // DEKORATIONER: scene key → that scene's placed .glb decorations
+  // (src/lib/decorations.ts).
+  decorations: DecorationsByScene;
   targetFps: number;
   resolutionScale: number;
   // LOW GRAPHICS MODE: a single opt-in "everything cheap" switch for lower-
@@ -1353,6 +1357,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "auroraColorMain",
     "auroraColorTop",
     "auroraDaylightOn",
+    "decorations",
     "underwaterFogOn",
     "underwaterFogColor",
     "underwaterFogOpacity",

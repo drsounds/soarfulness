@@ -21,6 +21,7 @@ import {
 } from "@/lib/openDrift";
 import { Link } from "@tanstack/react-router";
 import { SettingRow } from "@/components/SettingRow";
+import { DecorationSettings, type DecorationControls } from "@/components/DecorationPanel";
 import { Findable, G, SETTINGS_GROUPS, SettingsNavigator } from "@/components/settingsNav";
 import { WindSettings, type WindControls } from "@/components/WindPanel";
 import { HoodSettings } from "@/components/HoodSettings";
@@ -482,6 +483,9 @@ type EnvOption = NamedOption & { eras: EnvEraOption[] };
 // own local state — this component owns none of it, so both hosts always
 // stay in sync (there is only one wave simulation, one camera, etc).
 export type SettingsPanelProps = {
+  // DEKORATIONER: the current scene's placed .glb models
+  // (components/DecorationPanel.tsx).
+  decorations: DecorationControls;
   // VIND: the wind list, its effects and sound (components/WindPanel.tsx).
   wind: WindControls;
   restoreCameraPosition: () => void;
@@ -5196,6 +5200,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
               </button>
             )}
           </div>
+        </Findable>
+        <Findable label={t("decorations.title")}>
+          <DecorationSettings c={props.decorations} />
         </Findable>
         {spawnLocations.length > 1 && (
           <SettingRow
