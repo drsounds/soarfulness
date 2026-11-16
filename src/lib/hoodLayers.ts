@@ -6,8 +6,10 @@
 // sanitizer for imported data, and the saved layer sets (SPARA / LADDA /
 // EXPORTERA / IMPORTERA in the HUVA settings).
 
-export type HoodStyle = "classic" | "puffy" | "quilted";
-export const HOOD_STYLES: HoodStyle[] = ["classic", "puffy", "quilted"];
+export type HoodStyle = "classic" | "puffy" | "quilted" | "shell" | "down";
+export const HOOD_STYLES: HoodStyle[] = ["classic", "puffy", "quilted", "shell", "down"];
+/** The styles with padding (PUFFSTORLEK, PUFFHÖJD, PUFFTJOCKLEK, UPPBLÅSNING). */
+export const HOOD_PADDED_STYLES: HoodStyle[] = ["puffy", "quilted", "down"];
 
 export type HoodLayer = {
   /** Only used for layers 2+; layer 1 follows the HUVA master toggle. */
@@ -45,11 +47,23 @@ export type HoodLayer = {
   darkness: number;
   /** RUNDHET: the opening's shape, boxy (0) .. round (1). */
   roundness: number;
-  /** STIL: classic cloth, or winter-coat padding (puffy channels / quilted diamonds). */
+  /**
+   * STIL: classic cloth, winter-coat padding (puffy channels / quilted
+   * diamonds / big down baffles), or a smooth, taut shell jacket.
+   */
   style: HoodStyle;
   /** PUFFSTORLEK / PUFFHÖJD: padding size and how much it bulges. */
   puffSize: number;
   puffHeight: number;
+  /** PUFFTJOCKLEK: how full the padding is, flat seams (0) .. fat round puffs (1). */
+  puffThickness: number;
+  /** UPPBLÅSNING I VATTEN: how much the puffs swell once the hood is in the water. */
+  puffInflate: number;
+  /**
+   * REFLEKTERAR LJUS: the wet sheen reflects the bright sky and light, like
+   * wet clothes, instead of mostly the dark water (which reads as black).
+   */
+  reflectLight: boolean;
   /** MUDD: ribbed cuff along the bottom; MUDDHÖJD / RIBBSTORLEK. */
   cuff: boolean;
   cuffHeight: number;
@@ -81,6 +95,9 @@ export const HOOD_LAYER_DEFAULTS: HoodLayer = {
   style: "classic",
   puffSize: 0.4,
   puffHeight: 0.5,
+  puffThickness: 0.5,
+  puffInflate: 0,
+  reflectLight: true,
   cuff: false,
   cuffHeight: 0.3,
   cuffSize: 0.5,
@@ -100,10 +117,12 @@ const NUMBER_KEYS = [
   "roundness",
   "puffSize",
   "puffHeight",
+  "puffThickness",
+  "puffInflate",
   "cuffHeight",
   "cuffSize",
 ] as const;
-const BOOL_KEYS = ["on", "lowerOn", "zipperOn", "waterOn", "cuff"] as const;
+const BOOL_KEYS = ["on", "lowerOn", "zipperOn", "waterOn", "cuff", "reflectLight"] as const;
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 

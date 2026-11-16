@@ -1465,6 +1465,9 @@ const DEFAULTS: Persisted = {
   hoodCuffOn: false,
   hoodCuffHeight: 0.3,
   hoodCuffSize: 0.5,
+  hoodReflectLight: true,
+  hoodPuffThickness: 0.5,
+  hoodPuffInflate: 0,
   hoodExtraLayers: [] as HoodLayer[],
   // General performance controls, independent of SIMGLASÖGON: targetFps caps
   // renderer.render() calls at all times (not just while goggles are on —
@@ -2160,6 +2163,9 @@ export function Aquafulness() {
   const [hoodCuffOn, setHoodCuffOn] = useState(initial.hoodCuffOn);
   const [hoodCuffHeight, setHoodCuffHeight] = useState(initial.hoodCuffHeight);
   const [hoodCuffSize, setHoodCuffSize] = useState(initial.hoodCuffSize);
+  const [hoodReflectLight, setHoodReflectLight] = useState(initial.hoodReflectLight);
+  const [hoodPuffThickness, setHoodPuffThickness] = useState(initial.hoodPuffThickness);
+  const [hoodPuffInflate, setHoodPuffInflate] = useState(initial.hoodPuffInflate);
   const [hoodExtraLayers, setHoodExtraLayers] = useState<HoodLayer[]>(() =>
     sanitizeHoodLayers(initial.hoodExtraLayers),
   );
@@ -3102,6 +3108,9 @@ export function Aquafulness() {
     hoodCuffOn,
     hoodCuffHeight,
     hoodCuffSize,
+    hoodReflectLight,
+    hoodPuffThickness,
+    hoodPuffInflate,
     hoodExtraLayers,
     targetFps,
     resolutionScale,
@@ -3431,6 +3440,9 @@ export function Aquafulness() {
     hoodCuffOn,
     hoodCuffHeight,
     hoodCuffSize,
+    hoodReflectLight,
+    hoodPuffThickness,
+    hoodPuffInflate,
     hoodExtraLayers,
     targetFps,
     resolutionScale,
@@ -3968,6 +3980,9 @@ export function Aquafulness() {
   const hoodCuffOnRef = useRef(hoodCuffOn);
   const hoodCuffHeightRef = useRef(hoodCuffHeight);
   const hoodCuffSizeRef = useRef(hoodCuffSize);
+  const hoodReflectLightRef = useRef(hoodReflectLight);
+  const hoodPuffThicknessRef = useRef(hoodPuffThickness);
+  const hoodPuffInflateRef = useRef(hoodPuffInflate);
   const hoodExtraLayersRef = useRef(hoodExtraLayers);
   // General performance controls — read every frame by the animate() loop
   // below (targetFps: caps renderer.render() calls whenever SIMGLASÖGON is
@@ -4776,6 +4791,9 @@ export function Aquafulness() {
     hoodCuffOnRef.current = hoodCuffOn;
     hoodCuffHeightRef.current = hoodCuffHeight;
     hoodCuffSizeRef.current = hoodCuffSize;
+    hoodReflectLightRef.current = hoodReflectLight;
+    hoodPuffThicknessRef.current = hoodPuffThickness;
+    hoodPuffInflateRef.current = hoodPuffInflate;
     hoodExtraLayersRef.current = hoodExtraLayers;
   }, [
     hoodOn,
@@ -4801,6 +4819,9 @@ export function Aquafulness() {
     hoodCuffOn,
     hoodCuffHeight,
     hoodCuffSize,
+    hoodReflectLight,
+    hoodPuffThickness,
+    hoodPuffInflate,
     hoodExtraLayers,
   ]);
   useEffect(() => {
@@ -5338,6 +5359,9 @@ export function Aquafulness() {
     setHoodCuffOn(DEFAULTS.hoodCuffOn);
     setHoodCuffHeight(DEFAULTS.hoodCuffHeight);
     setHoodCuffSize(DEFAULTS.hoodCuffSize);
+    setHoodReflectLight(DEFAULTS.hoodReflectLight);
+    setHoodPuffThickness(DEFAULTS.hoodPuffThickness);
+    setHoodPuffInflate(DEFAULTS.hoodPuffInflate);
     setHoodExtraLayers(DEFAULTS.hoodExtraLayers);
     setTargetFps(DEFAULTS.targetFps);
     setResolutionScale(DEFAULTS.resolutionScale);
@@ -5665,6 +5689,9 @@ export function Aquafulness() {
     if (patch.hoodCuffOn !== undefined) setHoodCuffOn(patch.hoodCuffOn);
     if (patch.hoodCuffHeight !== undefined) setHoodCuffHeight(patch.hoodCuffHeight);
     if (patch.hoodCuffSize !== undefined) setHoodCuffSize(patch.hoodCuffSize);
+    if (patch.hoodReflectLight !== undefined) setHoodReflectLight(patch.hoodReflectLight);
+    if (patch.hoodPuffThickness !== undefined) setHoodPuffThickness(patch.hoodPuffThickness);
+    if (patch.hoodPuffInflate !== undefined) setHoodPuffInflate(patch.hoodPuffInflate);
     if (patch.hoodExtraLayers !== undefined)
       setHoodExtraLayers(sanitizeHoodLayers(patch.hoodExtraLayers));
     if (patch.targetFps !== undefined) setTargetFps(patch.targetFps);
@@ -11958,6 +11985,9 @@ export function Aquafulness() {
                 cuff: hoodCuffOnRef.current,
                 cuffHeight: hoodCuffHeightRef.current,
                 cuffSize: hoodCuffSizeRef.current,
+                reflectLight: hoodReflectLightRef.current,
+                puffThickness: hoodPuffThicknessRef.current,
+                puffInflate: hoodPuffInflateRef.current,
               },
               ...hoodExtraLayersRef.current,
             ]
@@ -11991,6 +12021,9 @@ export function Aquafulness() {
             cuff: l.cuff,
             cuffHeight: l.cuffHeight,
             cuffSize: l.cuffSize,
+            reflectLight: l.reflectLight,
+            puffThickness: l.puffThickness,
+            puffInflate: l.puffInflate,
             eyeAboveWater: camY - surfaceY,
             skyColor: uniforms.uSkyColor.value,
             horizonColor: uniforms.uHorizonColor.value,
@@ -12860,7 +12893,13 @@ export function Aquafulness() {
     hoodCuffHeight,
     setHoodCuffHeight,
     hoodCuffSize,
+    hoodReflectLight,
+    hoodPuffThickness,
+    hoodPuffInflate,
     setHoodCuffSize,
+    setHoodReflectLight,
+    setHoodPuffThickness,
+    setHoodPuffInflate,
     hoodExtraLayers,
     setHoodExtraLayers,
     targetFps,

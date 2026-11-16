@@ -45,11 +45,17 @@ export type HoodConfig = {
   darkness: number;
   /** 0..1: opening shape, boxy (0) .. round (1) (RUNDHET). */
   roundness: number;
-  /** Winter-coat style (STIL). */
-  style: "classic" | "puffy" | "quilted";
+  /** Coat style (STIL). */
+  style: "classic" | "puffy" | "quilted" | "shell" | "down";
   /** 0..1: padding size and bulge (PUFFSTORLEK, PUFFHÖJD). */
   puffSize: number;
   puffHeight: number;
+  /** 0..1: how full the padding is, flat seams .. fat puffs (PUFFTJOCKLEK). */
+  puffThickness: number;
+  /** 0..1: how much the puffs swell once the hood is in the water (UPPBLÅSNING I VATTEN). */
+  puffInflate: number;
+  /** The wet sheen reflects the bright sky and light rather than the dark water (REFLEKTERAR LJUS). */
+  reflectLight: boolean;
   /** Ribbed cuff along the bottom (MUDD), its height and rib size (MUDDHÖJD, RIBBSTORLEK). */
   cuff: boolean;
   cuffHeight: number;
@@ -105,6 +111,9 @@ const FRAG = /* glsl */ `
   uniform float uStyle;
   uniform float uPuffSize;
   uniform float uPuffHeight;
+  uniform float uPuffThick;
+  uniform float uInflate;
+  uniform float uReflLight;
   uniform float uCuff;
   uniform float uCuffHeight;
   uniform float uCuffSize;
@@ -186,20 +195,50 @@ const FRAG = /* glsl */ `
     float h = hem + curve + g * 0.022 * gatherMask + wr;
 
     // STIL: winter-coat padding. PUFFIG = channels running around the
-    // opening, VADDERAD = diamond quilting. PUFFSTORLEK sets their size and
-    // PUFFHÖJD how much they bulge; the stiffer padding also folds less.
-    if (uStyle > 0.5) {
-      float sp = mix(0.07, 0.26, clamp(uPuffSize, 0.0, 1.0));
-      float amp = mix(0.0, 0.07, clamp(uPuffHeight, 0.0, 1.0));
+    // opening, VADDERAD = diamond quilting, DUN = big, uneven down baffles.
+    // PUFFSTORLEK sets their size, PUFFHÖJD how much they bulge and
+    // PUFFTJOCKLEK how full they are (flat with wide seams .. fat and round,
+    // pinched only at the stitching). UPPBLÅSNING I VATTEN (uInflate, already
+    // scaled by how deep the hood is in the water) swells them further. The
+    // stiffer padding also folds less.
+    if ((uStyle > 0.5 && uStyle < 2.5) || uStyle > 3.5) {
+      float inf = clamp(uInflate, 0.0, 1.0);
+      float th = clamp(uPuffThick, 0.0, 1.0);
+      // Profile exponent: 1 at the default thickness, < 1 is fuller.
+      float ex = (th < 0.5 ? mix(2.2, 1.0, th * 2.0) : mix(1.0, 0.35, th * 2.0 - 1.0)) * mix(1.0, 0.5, inf);
+      float sp = mix(0.07, 0.26, clamp(uPuffSize, 0.0, 1.0)) * (1.0 + 0.12 * inf);
+      float amp = mix(0.0, 0.07, clamp(uPuffHeight, 0.0, 1.0)) * mix(0.7, 1.3, th) * (1.0 + 1.4 * inf);
       float puff;
       if (uStyle < 1.5) {
         float fu = 2.0 * fract(tc / sp) - 1.0;
-        puff = sqrt(max(0.0, 1.0 - fu * fu));
-      } else {
+        puff = pow(max(0.0, 1.0 - fu * fu), 0.5 * ex);
+      } else if (uStyle < 2.5) {
         vec2 fd = 2.0 * fract(vec2(p.x + p.y, p.x - p.y) / (sp * 1.4)) - 1.0;
-        puff = sqrt(max(0.0, 1.0 - fd.x * fd.x)) * sqrt(max(0.0, 1.0 - fd.y * fd.y));
+        puff = pow(max(0.0, 1.0 - fd.x * fd.x) * max(0.0, 1.0 - fd.y * fd.y), 0.5 * ex);
+      } else {
+        // DUN: wider baffles that each bulge a little differently along
+        // their length, with a sharp stitched crease between them.
+        float spD = sp * 1.45;
+        float cell = floor(tc / spD);
+        float fu = 2.0 * fract(tc / spD) - 1.0;
+        float lump = 0.82 + 0.18 * sin(ang * (5.0 + mod(cell, 3.0)) + cell * 1.9)
+                          + 0.06 * sin(ang * 13.0 - cell * 2.7);
+        puff = pow(max(0.0, 1.0 - fu * fu), 0.4 * ex) * lump;
+        amp *= 1.25;
       }
       h += amp * puff * smoothstep(HEM, HEM + 0.04, t) - g * 0.015 * gatherMask;
+    } else if (uStyle > 2.5) {
+      // SKALJACKA: a taut, smooth shell: hardly any gathers, a few welded
+      // panel seams (around the opening and running back over the head)
+      // and a fine crinkle in the coated nylon.
+      h -= g * 0.017 * gatherMask;
+      float on = smoothstep(HEM, HEM + 0.03, t);
+      float ringD = abs(tc - 0.2);
+      float seam = exp(-ringD * ringD / 0.00006);
+      float rad = abs(sin(ang * 2.0 + 0.35));
+      seam += exp(-rad * rad / 0.0025) * smoothstep(0.05, 0.12, tc);
+      float crinkle = sin(p.x * 61.0 + sin(p.y * 37.0) * 2.0) * sin(p.y * 53.0 - p.x * 21.0);
+      h += (-0.0045 * min(seam, 1.0) + 0.0007 * crinkle) * on;
     }
 
     // HÖJD FRÅN BOTTEN: the sides end at this screen height, curling up
@@ -297,24 +336,44 @@ const FRAG = /* glsl */ `
     float hemLight = 1.0 - 0.35 * smoothstep(0.0, HEM, t);
 
     float m = clamp(uMetal, 0.0, 1.0);
+    // SKALJACKA: coated nylon always has some gloss.
+    if (uStyle > 2.5 && uStyle < 3.5) m = max(m, 0.3);
     m = mix(m, m * 0.3, cuffMask); // knit cuffs stay mostly matte
-    vec3 base = uColor * mix(1.0, 0.55, m) * mix(1.0, 0.82, cuffMask); // wet cloth reads darker
+    // REFLEKTERAR LJUS: wet cloth is darker but still lit; it doesn't go
+    // nearly as dark as a mirror would.
+    float wetDark = uReflLight > 0.5 ? 0.8 : 0.55;
+    vec3 base = uColor * mix(1.0, wetDark, m) * mix(1.0, 0.82, cuffMask); // wet cloth reads darker
     // MÖRKHET: darker lighting overall, for really dark fabric.
     float light = mix(1.0, 0.18, clamp(uDark, 0.0, 1.0));
     vec3 ambient = (mix(uHorizon, uSky, 0.5 + 0.5 * N.y) * 0.6 + 0.1) * light;
     float sunUp = clamp(L.y + 0.15, 0.0, 1.0);
     float diff = (0.35 + 0.65 * max(dot(N, L), 0.0)) * sunUp;
-    vec3 col = base * (ambient * ao + uSunCol * diff * ao * 0.7 * light) * mix(1.0, 0.55, m);
+    vec3 col = base * (ambient * ao + uSunCol * diff * ao * 0.7 * light) * mix(1.0, wetDark, m);
 
     vec3 F0 = mix(vec3(0.04), max(uColor, vec3(0.15)), m * 0.75);
     float ndv = clamp(dot(N, V), 0.0, 1.0);
     vec3 fres = F0 + (1.0 - F0) * pow(1.0 - ndv, 5.0);
-    col += env(R) * fres * (0.25 + 1.1 * m) * mix(0.5, 1.0, ao) * mix(1.0, 0.45, uDark);
+    // The hood's folds mostly face the camera, so a plain mirror reflects
+    // the dark water below and the sheen reads as black. REFLEKTERAR LJUS
+    // reflects a soft, bright mix of sky and light instead (a wet fabric's
+    // film of water scatters light, it's not a mirror), plus a broad, soft
+    // glint around the sun.
+    vec3 envR = env(R);
+    if (uReflLight > 0.5) {
+      vec3 skyLit = mix(uHorizon, uSky, 0.35 + 0.35 * clamp(R.y + 0.5, 0.0, 1.0)) * 0.95
+        + uSunCol * 0.18 * sunUp + 0.06;
+      envR = mix(envR, skyLit, 0.75);
+    }
+    col += envR * fres * (0.25 + 1.1 * m) * mix(0.5, 1.0, ao) * mix(1.0, 0.45, uDark);
     float shin = mix(10.0, 140.0, m);
     float spec = pow(max(dot(R, L), 0.0), shin) * (0.15 + 2.2 * m) * sunUp;
     col += uSunCol * spec * mix(0.6, 1.0, ao);
+    if (uReflLight > 0.5) {
+      float broad = pow(max(dot(R, L), 0.0), mix(4.0, 18.0, m));
+      col += uSunCol * broad * 0.35 * m * sunUp * mix(0.5, 1.0, ao) * mix(1.0, 0.5, uDark);
+    }
     // A soft broad sheen along the gathers' crests, the wet-fabric look.
-    col += env(N) * m * 0.18 * smoothstep(0.55, 1.0, ndv) * ao * light;
+    col += (uReflLight > 0.5 ? mix(uHorizon, uSky, 0.6) * 0.9 + 0.05 : env(N)) * m * 0.18 * smoothstep(0.55, 1.0, ndv) * ao * light;
     col *= hemLight + 0.35;
 
     // BLIXTLÅS: a zipper down the middle of the mouth/neck cover, with the
@@ -409,6 +468,9 @@ export class Hood {
     uStyle: { value: number };
     uPuffSize: { value: number };
     uPuffHeight: { value: number };
+    uPuffThick: { value: number };
+    uInflate: { value: number };
+    uReflLight: { value: number };
     uCuff: { value: number };
     uCuffHeight: { value: number };
     uCuffSize: { value: number };
@@ -429,6 +491,8 @@ export class Hood {
   private readonly lastPos = new THREE.Vector3();
   private hasLast = false;
   private colorHex = "";
+  /** 0..1: how soaked (and so how swollen) the padding is right now. */
+  private soak = 0;
   private readonly tmpQ = new THREE.Quaternion();
   private readonly tmpV = new THREE.Vector3();
   private readonly tmpE = new THREE.Euler();
@@ -457,6 +521,9 @@ export class Hood {
       uStyle: { value: 0 },
       uPuffSize: { value: 0.4 },
       uPuffHeight: { value: 0.5 },
+      uPuffThick: { value: 0.5 },
+      uInflate: { value: 0 },
+      uReflLight: { value: 1 },
       uCuff: { value: 0 },
       uCuffHeight: { value: 0.3 },
       uCuffSize: { value: 0.5 },
@@ -504,9 +571,22 @@ export class Hood {
     u.uWrinkle.value = THREE.MathUtils.clamp(cfg.wrinkles, 0, 1);
     u.uDark.value = THREE.MathUtils.clamp(cfg.darkness, 0, 1);
     u.uRound.value = THREE.MathUtils.clamp(cfg.roundness, 0, 1);
-    u.uStyle.value = cfg.style === "puffy" ? 1 : cfg.style === "quilted" ? 2 : 0;
+    u.uStyle.value =
+      cfg.style === "puffy" ? 1 : cfg.style === "quilted" ? 2 : cfg.style === "shell" ? 3 : cfg.style === "down" ? 4 : 0;
     u.uPuffSize.value = THREE.MathUtils.clamp(cfg.puffSize, 0, 1);
     u.uPuffHeight.value = THREE.MathUtils.clamp(cfg.puffHeight, 0, 1);
+    u.uPuffThick.value = THREE.MathUtils.clamp(cfg.puffThickness ?? 0.5, 0, 1);
+    u.uReflLight.value = cfg.reflectLight === false ? 0 : 1;
+    // UPPBLÅSNING I VATTEN: the hood hangs down around the neck, so it is in
+    // the water while swimming with the head up and fully once the head goes
+    // under. The puffs swell in a second or two and slowly sag back after.
+    {
+      const eye = Number.isFinite(cfg.eyeAboveWater) ? cfg.eyeAboveWater : 1;
+      const target = 1 - THREE.MathUtils.smoothstep(eye, -0.05, 0.45);
+      const k = target > this.soak ? 1.2 : 0.25;
+      this.soak += (target - this.soak) * (1 - Math.exp(-k * Math.min(Math.max(dt, 0), 0.1)));
+      u.uInflate.value = THREE.MathUtils.clamp(cfg.puffInflate ?? 0, 0, 1) * this.soak;
+    }
     u.uCuff.value = cfg.cuff ? 1 : 0;
     u.uCuffHeight.value = THREE.MathUtils.clamp(cfg.cuffHeight, 0, 1);
     u.uCuffSize.value = THREE.MathUtils.clamp(cfg.cuffSize, 0, 1);

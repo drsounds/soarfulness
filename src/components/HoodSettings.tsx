@@ -6,6 +6,7 @@ import { pickJsonFile, readJsonFile } from "@/lib/presets";
 import { limitMax, useExtremeLimits } from "@/lib/extremeLimits";
 import {
   HOOD_MAX_LAYERS,
+  HOOD_PADDED_STYLES,
   HOOD_STYLES,
   hoodLayersFromFile,
   hoodLayersToFile,
@@ -205,10 +206,12 @@ export function HoodSettings({
               })
             }
           />
-          {layer.style !== "classic" && (
+          {HOOD_PADDED_STYLES.includes(layer.style) && (
             <>
               {pct("puffSize", t("dial.camera.hoodPuffSize"))}
               {pct("puffHeight", t("dial.camera.hoodPuffHeight"))}
+              {pct("puffThickness", t("dial.camera.hoodPuffThickness"))}
+              {pct("puffInflate", t("dial.camera.hoodPuffInflate"))}
             </>
           )}
           {toggle("cuff", t("dial.camera.hoodCuff"))}
@@ -219,6 +222,7 @@ export function HoodSettings({
             </>
           )}
           {pct("metallic", t("dial.camera.hoodMetallic"))}
+          {toggle("reflectLight", t("dial.camera.hoodReflectLight"))}
           {pct("wrinkles", t("dial.camera.hoodWrinkles"))}
           {pct("motion", t("dial.camera.hoodMotion"))}
           {pct("weight", t("dial.camera.hoodWeight"))}
