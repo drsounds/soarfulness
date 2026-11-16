@@ -6,6 +6,7 @@ import { pickJsonFile, readJsonFile } from "@/lib/presets";
 import { limitMax, useExtremeLimits } from "@/lib/extremeLimits";
 import {
   HOOD_MAX_LAYERS,
+  HOOD_STYLES,
   hoodLayersFromFile,
   hoodLayersToFile,
   loadSavedHoodLayerSets,
@@ -139,6 +140,7 @@ export function HoodSettings({
           {pct("drop", t("dial.camera.hoodDrop"))}
           {!layer.lowerOn && pct("height", t("dial.camera.hoodHeight"))}
           {layer.openingWidth <= 0 && pct("opening", t("dial.camera.hoodOpening"))}
+          {pct("roundness", t("dial.camera.hoodRoundness"))}
           <SettingRow
             label={t("dial.camera.hoodOpeningWidth")}
             mode="number"
@@ -186,6 +188,36 @@ export function HoodSettings({
             />
           </label>
           {pct("darkness", t("dial.camera.hoodDarkness"))}
+          <SettingRow
+            label={t("dial.camera.hoodStyle")}
+            value={t(`dial.camera.hoodStyle_${layer.style}`)}
+            onDec={() =>
+              patch({
+                style:
+                  HOOD_STYLES[
+                    (HOOD_STYLES.indexOf(layer.style) - 1 + HOOD_STYLES.length) % HOOD_STYLES.length
+                  ],
+              })
+            }
+            onInc={() =>
+              patch({
+                style: HOOD_STYLES[(HOOD_STYLES.indexOf(layer.style) + 1) % HOOD_STYLES.length],
+              })
+            }
+          />
+          {layer.style !== "classic" && (
+            <>
+              {pct("puffSize", t("dial.camera.hoodPuffSize"))}
+              {pct("puffHeight", t("dial.camera.hoodPuffHeight"))}
+            </>
+          )}
+          {toggle("cuff", t("dial.camera.hoodCuff"))}
+          {layer.cuff && (
+            <>
+              {pct("cuffHeight", t("dial.camera.hoodCuffHeight"))}
+              {pct("cuffSize", t("dial.camera.hoodCuffSize"))}
+            </>
+          )}
           {pct("metallic", t("dial.camera.hoodMetallic"))}
           {pct("wrinkles", t("dial.camera.hoodWrinkles"))}
           {pct("motion", t("dial.camera.hoodMotion"))}
