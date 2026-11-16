@@ -1448,6 +1448,7 @@ const DEFAULTS: Persisted = {
   hoodZipperOn: false,
   hoodWaterOn: false,
   hoodWaterLevel: 0.3,
+  hoodOpeningWidth: 0,
   hoodDrop: 0,
   hoodWeight: 0.4,
   hoodWrinkles: 0,
@@ -2135,6 +2136,7 @@ export function Aquafulness() {
   const [hoodZipperOn, setHoodZipperOn] = useState(initial.hoodZipperOn);
   const [hoodWaterOn, setHoodWaterOn] = useState(initial.hoodWaterOn);
   const [hoodWaterLevel, setHoodWaterLevel] = useState(initial.hoodWaterLevel);
+  const [hoodOpeningWidth, setHoodOpeningWidth] = useState(initial.hoodOpeningWidth);
   const [hoodDrop, setHoodDrop] = useState(initial.hoodDrop);
   const [hoodWeight, setHoodWeight] = useState(initial.hoodWeight);
   const [hoodWrinkles, setHoodWrinkles] = useState(initial.hoodWrinkles);
@@ -3069,6 +3071,7 @@ export function Aquafulness() {
     hoodZipperOn,
     hoodWaterOn,
     hoodWaterLevel,
+    hoodOpeningWidth,
     hoodDrop,
     hoodWeight,
     hoodWrinkles,
@@ -3390,6 +3393,7 @@ export function Aquafulness() {
     hoodZipperOn,
     hoodWaterOn,
     hoodWaterLevel,
+    hoodOpeningWidth,
     hoodDrop,
     hoodWeight,
     hoodWrinkles,
@@ -3919,6 +3923,7 @@ export function Aquafulness() {
   const hoodZipperOnRef = useRef(hoodZipperOn);
   const hoodWaterOnRef = useRef(hoodWaterOn);
   const hoodWaterLevelRef = useRef(hoodWaterLevel);
+  const hoodOpeningWidthRef = useRef(hoodOpeningWidth);
   const hoodDropRef = useRef(hoodDrop);
   const hoodWeightRef = useRef(hoodWeight);
   const hoodWrinklesRef = useRef(hoodWrinkles);
@@ -4719,6 +4724,7 @@ export function Aquafulness() {
     hoodZipperOnRef.current = hoodZipperOn;
     hoodWaterOnRef.current = hoodWaterOn;
     hoodWaterLevelRef.current = hoodWaterLevel;
+    hoodOpeningWidthRef.current = hoodOpeningWidth;
     hoodDropRef.current = hoodDrop;
     hoodWeightRef.current = hoodWeight;
     hoodWrinklesRef.current = hoodWrinkles;
@@ -4736,6 +4742,7 @@ export function Aquafulness() {
     hoodZipperOn,
     hoodWaterOn,
     hoodWaterLevel,
+    hoodOpeningWidth,
     hoodDrop,
     hoodWeight,
     hoodWrinkles,
@@ -5265,6 +5272,7 @@ export function Aquafulness() {
     setHoodZipperOn(DEFAULTS.hoodZipperOn);
     setHoodWaterOn(DEFAULTS.hoodWaterOn);
     setHoodWaterLevel(DEFAULTS.hoodWaterLevel);
+    setHoodOpeningWidth(DEFAULTS.hoodOpeningWidth);
     setHoodDrop(DEFAULTS.hoodDrop);
     setHoodWeight(DEFAULTS.hoodWeight);
     setHoodWrinkles(DEFAULTS.hoodWrinkles);
@@ -5584,6 +5592,7 @@ export function Aquafulness() {
     if (patch.hoodZipperOn !== undefined) setHoodZipperOn(patch.hoodZipperOn);
     if (patch.hoodWaterOn !== undefined) setHoodWaterOn(patch.hoodWaterOn);
     if (patch.hoodWaterLevel !== undefined) setHoodWaterLevel(patch.hoodWaterLevel);
+    if (patch.hoodOpeningWidth !== undefined) setHoodOpeningWidth(patch.hoodOpeningWidth);
     if (patch.hoodDrop !== undefined) setHoodDrop(patch.hoodDrop);
     if (patch.hoodWeight !== undefined) setHoodWeight(patch.hoodWeight);
     if (patch.hoodWrinkles !== undefined) setHoodWrinkles(patch.hoodWrinkles);
@@ -11861,6 +11870,7 @@ export function Aquafulness() {
                 on: true,
                 height: hoodHeightRef.current,
                 opening: hoodOpeningRef.current,
+                openingWidth: hoodOpeningWidthRef.current,
                 color: hoodColorRef.current,
                 metallic: hoodMetallicRef.current,
                 motion: hoodMotionRef.current,
@@ -11886,6 +11896,7 @@ export function Aquafulness() {
           h.update(now / 1000, dt, camera, {
             height: l.height,
             opening: l.opening,
+            openingWidth: l.openingWidth,
             color: l.color,
             metallic: l.metallic,
             motion: l.motion,
@@ -12744,6 +12755,8 @@ export function Aquafulness() {
     setHoodWaterOn,
     hoodWaterLevel,
     setHoodWaterLevel,
+    hoodOpeningWidth,
+    setHoodOpeningWidth,
     hoodDrop,
     setHoodDrop,
     hoodWeight,

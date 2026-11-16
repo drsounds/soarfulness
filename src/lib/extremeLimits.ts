@@ -41,6 +41,7 @@ export const EXTREME_MAX = {
   fireworksRate: 240, // FYRVERKERI RAKETER/MIN
   confettiAmount: 40000, // KONFETTIMÄNGD (bitar)
   confettiIntensity: 4, // KONFETTISTYRKA
+  hoodOpeningWidth: 12, // HUVA ÖPPNINGSBREDD (skärmbredder)
 } as const;
 
 export type LimitedControl = keyof typeof EXTREME_MAX;

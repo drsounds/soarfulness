@@ -23,6 +23,8 @@ export type HoodConfig = {
   height: number;
   /** 0..1: size of the face opening, tight (0) .. wide (1) (ÖPPNING). */
   opening: number;
+  /** Opening width in screen widths (1 = edge to edge, > 1 wider); 0 = follow ÖPPNING (ÖPPNINGSBREDD). */
+  openingWidth: number;
   /** Also cover the mouth and neck, closing the hood under the face (MUN OCH HALS). */
   lower: boolean;
   /** 0..1: how high up the view the mouth/neck cover reaches (TÄCKHÖJD). */
@@ -78,6 +80,7 @@ const FRAG = /* glsl */ `
   uniform float uMotion;
   uniform float uHeight;
   uniform float uOpening;
+  uniform float uOpenWidth;
   uniform float uLower;
   uniform float uLowerHeight;
   uniform float uZipper;
@@ -112,7 +115,10 @@ const FRAG = /* glsl */ `
       0.012 * sin(ang * 7.0 + uTime * 1.7) +
       0.008 * sin(ang * 13.0 - uTime * 2.3 + 1.3)
     );
-    float a = uAspect * mix(0.55, 0.95, uOpening) + 0.06;
+    // ÖPPNINGSBREDD: when set (> 0) the opening's half-width is that many
+    // half-screen-widths (1 = the screen's edges, above 1 = wider than the
+    // screen); 0 (AUTO) follows ÖPPNING.
+    float a = uOpenWidth > 0.0 ? uAspect * uOpenWidth : uAspect * mix(0.55, 0.95, uOpening) + 0.06;
     float b = mix(0.6, 0.98, uOpening) * (1.0 - uDrop * 0.3);
     float r;
     if (q.y > 0.0) {
@@ -332,6 +338,7 @@ export class Hood {
     uMotion: { value: number };
     uHeight: { value: number };
     uOpening: { value: number };
+    uOpenWidth: { value: number };
     uLower: { value: number };
     uLowerHeight: { value: number };
     uZipper: { value: number };
@@ -372,6 +379,7 @@ export class Hood {
       uMotion: { value: 0.5 },
       uHeight: { value: 0.3 },
       uOpening: { value: 0.5 },
+      uOpenWidth: { value: 0 },
       uLower: { value: 0 },
       uLowerHeight: { value: 0.45 },
       uZipper: { value: 0 },
@@ -417,6 +425,7 @@ export class Hood {
     u.uTanHalfFov.value = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
     u.uHeight.value = THREE.MathUtils.clamp(cfg.height, 0, 1);
     u.uOpening.value = THREE.MathUtils.clamp(cfg.opening, 0, 1);
+    u.uOpenWidth.value = Math.max(0, Number.isFinite(cfg.openingWidth) ? cfg.openingWidth : 0);
     u.uLower.value = cfg.lower ? 1 : 0;
     u.uZipper.value = cfg.zipper ? 1 : 0;
     u.uWaterIn.value = cfg.waterInside ? 1 : 0;

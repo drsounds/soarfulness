@@ -445,6 +445,8 @@ export type Persisted = {
   // HUVHÖJD (hoodDrop), TYNGD (hoodWeight), VÅTA VECK (hoodWrinkles) and
   // MÖRKHET (hoodDarkness) for layer 1, all 0..1; layers 2+ live in
   // hoodExtraLayers (lib/hoodLayers.ts).
+  // ÖPPNINGSBREDD for layer 1, in screen widths; 0 = AUTO (follow ÖPPNING).
+  hoodOpeningWidth: number;
   hoodDrop: number;
   hoodWeight: number;
   hoodWrinkles: number;
@@ -1128,6 +1130,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "hoodZipperOn",
     "hoodWaterOn",
     "hoodWaterLevel",
+    "hoodOpeningWidth",
     "hoodDrop",
     "hoodWeight",
     "hoodWrinkles",
