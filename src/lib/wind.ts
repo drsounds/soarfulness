@@ -55,7 +55,7 @@ export function sanitizeWinds(raw: unknown): WindSource[] {
     out.push({
       id: typeof o.id === "string" && o.id ? o.id : newWindId(),
       bearing: ((num(o.bearing, 0) % 360) + 360) % 360,
-      speed: clamp(num(o.speed, 8), 0, WIND_MAX_SPEED),
+      speed: Math.max(0, num(o.speed, 8)),
       gust: clamp(num(o.gust, 0.35), 0, 1),
       on: o.on !== false,
     });
@@ -153,7 +153,7 @@ export function sumWinds(winds: readonly WindSource[]): WindVector {
 export function steerWaveDir(waveDirDeg: number, wind: WindVector, strength: number) {
   const base = (waveDirDeg * Math.PI) / 180;
   if (strength <= 0 || wind.speed < 0.05) return base;
-  const w = clamp(strength, 0, 1) * clamp(wind.speed / 6, 0, 1);
+  const w = Math.max(0, strength) * clamp(wind.speed / 6, 0, 1);
   const wr = (wind.bearing * Math.PI) / 180;
   const x = Math.sin(base) * (1 - w) + Math.sin(wr) * w;
   const z = Math.cos(base) * (1 - w) + Math.cos(wr) * w;
@@ -218,7 +218,7 @@ export class WindField {
    * spring's target, so it keeps the same floating inertia.
    */
   sway(dt: number, on: boolean, strength: number) {
-    this.swayK += ((on ? clamp(strength, 0, 4) : 0) - this.swayK) * (1 - Math.exp(-dt / 1.2));
+    this.swayK += ((on ? Math.max(0, strength) : 0) - this.swayK) * (1 - Math.exp(-dt / 1.2));
     if (this.swayK < 1e-4) return { x: 0, z: 0 };
     const breathe = 0.75 + 0.5 * gustNoise(this.t * 1.6, 3.3);
     const m = 0.12 * this.swayK * breathe;
@@ -230,7 +230,7 @@ export class WindField {
    * displacement (m) for this frame.
    */
   current(dt: number, on: boolean, strength: number) {
-    this.currentK += ((on ? clamp(strength, 0, 4) : 0) - this.currentK) * (1 - Math.exp(-dt / 1.5));
+    this.currentK += ((on ? Math.max(0, strength) : 0) - this.currentK) * (1 - Math.exp(-dt / 1.5));
     if (this.currentK < 1e-4) return { dx: 0, dz: 0 };
     const m = 0.035 * this.currentK * dt;
     return { dx: this.wind.x * m, dz: this.wind.z * m };

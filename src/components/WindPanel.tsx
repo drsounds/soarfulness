@@ -170,7 +170,7 @@ export function WindSettings({ c }: { c: WindControls }) {
             mode="number"
             value={`${wind.speed.toFixed(1)} m/s`}
             rawValue={wind.speed}
-            onSet={(v) => patch({ speed: Math.max(0, Math.min(WIND_MAX_SPEED, v)) })}
+            onSet={(v) => patch({ speed: v })}
             min={0}
             max={WIND_MAX_SPEED}
             step={0.5}
@@ -182,7 +182,7 @@ export function WindSettings({ c }: { c: WindControls }) {
             mode="number"
             value={pct(wind.gust)}
             rawValue={wind.gust}
-            onSet={(v) => patch({ gust: Math.max(0, Math.min(1, v)) })}
+            onSet={(v) => patch({ gust: v })}
             min={0}
             max={1}
             step={0.05}
@@ -227,7 +227,7 @@ export function WindSettings({ c }: { c: WindControls }) {
           mode="number"
           value={pct(c.windWaveStrength)}
           rawValue={c.windWaveStrength}
-          onSet={(v) => c.setWindWaveStrength(Math.max(0, Math.min(1, v)))}
+          onSet={(v) => c.setWindWaveStrength(v)}
           min={0}
           max={1}
           step={0.05}
@@ -247,7 +247,7 @@ export function WindSettings({ c }: { c: WindControls }) {
           mode="number"
           value={pct(c.windSwayStrength)}
           rawValue={c.windSwayStrength}
-          onSet={(v) => c.setWindSwayStrength(Math.max(0, Math.min(4, v)))}
+          onSet={(v) => c.setWindSwayStrength(v)}
           min={0}
           max={4}
           step={0.05}
@@ -267,7 +267,7 @@ export function WindSettings({ c }: { c: WindControls }) {
           mode="number"
           value={pct(c.windCurrentStrength)}
           rawValue={c.windCurrentStrength}
-          onSet={(v) => c.setWindCurrentStrength(Math.max(0, Math.min(4, v)))}
+          onSet={(v) => c.setWindCurrentStrength(v)}
           min={0}
           max={4}
           step={0.05}
@@ -293,7 +293,7 @@ export function WindSettings({ c }: { c: WindControls }) {
           mode="number"
           value={pct(c.windSoundVolume)}
           rawValue={c.windSoundVolume}
-          onSet={(v) => c.setWindSoundVolume(Math.max(0, Math.min(1, v)))}
+          onSet={(v) => c.setWindSoundVolume(v)}
           min={0}
           max={1}
           step={0.05}

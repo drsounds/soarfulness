@@ -75,7 +75,7 @@ export function HoodSettings({
       mode="number"
       value={`${Math.round(layer[key] * 100)}%`}
       rawValue={layer[key]}
-      onSet={(v) => patch({ [key]: Math.max(0, Math.min(1, v)) })}
+      onSet={(v) => patch({ [key]: v })}
       min={0}
       max={1}
       step={0.05}
@@ -152,7 +152,7 @@ export function HoodSettings({
                 : t("common.auto")
             }
             rawValue={layer.openingWidth}
-            onSet={(v) => patch({ openingWidth: Math.max(0, Math.min(widthMax, v)) })}
+            onSet={(v) => patch({ openingWidth: v })}
             min={0}
             max={widthMax}
             step={0.05}

@@ -104,6 +104,8 @@
     "cancel": "AVBRYT",
     "close": "LUKK",
     "decreaseAria": "{{label}} reduser",
+    "typeToOverride": "Trykk på verdien for å skrive inn din egen, også utenfor glidebryteren",
+    "typedOutOfRange": "Egen verdi utenfor glidebryterens område",
     "high": "HØY",
     "increaseAria": "{{label}} øk",
     "low": "LAV",

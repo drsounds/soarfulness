@@ -2529,7 +2529,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   mode="number"
                   value={`${waveFreq.toFixed(2)}×`}
                   rawValue={waveFreq}
-                  onSet={(v) => setWaveFreq(Math.max(WAVE_FREQ_MIN, Math.min(WAVE_FREQ_MAX, v)))}
+                  onSet={(v) => setWaveFreq(v)}
                   min={WAVE_FREQ_MIN}
                   max={WAVE_FREQ_MAX}
                   step={0.05}
@@ -2787,9 +2787,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                           mode="number"
                           value={`${openDriftRadius.toFixed(openDriftRadius < 10 ? 1 : 0)}m`}
                           rawValue={openDriftRadius}
-                          onSet={(v) =>
-                            setOpenDriftRadius(Math.max(1, Math.min(mx("openDriftRadius"), v)))
-                          }
+                          onSet={(v) => setOpenDriftRadius(v)}
                           min={1}
                           max={mx("openDriftRadius")}
                           step={1}
@@ -2820,7 +2818,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${openDriftCycleSpeed.toFixed(2)}/min`}
                       rawValue={openDriftCycleSpeed}
-                      onSet={(v) => setOpenDriftCycleSpeed(Math.max(0, Math.min(10, v)))}
+                      onSet={(v) => setOpenDriftCycleSpeed(v)}
                       min={0}
                       max={10}
                       step={0.05}
@@ -2832,9 +2830,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${Math.round(openDriftMagnitude * 100)}%`}
                       rawValue={openDriftMagnitude}
-                      onSet={(v) =>
-                        setOpenDriftMagnitude(Math.max(0, Math.min(mx("openDriftMagnitude"), v)))
-                      }
+                      onSet={(v) => setOpenDriftMagnitude(v)}
                       min={0}
                       max={mx("openDriftMagnitude")}
                       step={0.05}
@@ -2987,7 +2983,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   mode="number"
                   value={trochoid <= 0.001 ? t("common.off") : `${Math.round(trochoid * 100)}%`}
                   rawValue={trochoid}
-                  onSet={(v) => setTrochoid(Math.max(0, Math.min(1, v)))}
+                  onSet={(v) => setTrochoid(v)}
                   min={0}
                   max={1}
                   step={0.05}
@@ -2999,7 +2995,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   mode="number"
                   value={heaveSkew <= 0.001 ? t("common.off") : `${Math.round(heaveSkew * 100)}%`}
                   rawValue={heaveSkew}
-                  onSet={(v) => setHeaveSkew(Math.max(0, Math.min(0.9, v)))}
+                  onSet={(v) => setHeaveSkew(v)}
                   min={0}
                   max={0.9}
                   step={0.05}
@@ -3073,7 +3069,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     mode="number"
                     value={`${noclipSpeed.toFixed(1)}x`}
                     rawValue={noclipSpeed}
-                    onSet={(v) => setNoclipSpeed(Math.max(0.2, Math.min(6, v)))}
+                    onSet={(v) => setNoclipSpeed(v)}
                     min={0.2}
                     max={6}
                     step={0.1}
@@ -3088,9 +3084,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${bodyflightAirflow.toFixed(0)}m/s`}
                       rawValue={bodyflightAirflow}
-                      onSet={(v) =>
-                        setBodyflightAirflow(Math.max(0, Math.min(BODYFLIGHT_AIRFLOW_MAX, v)))
-                      }
+                      onSet={(v) => setBodyflightAirflow(v)}
                       min={0}
                       max={BODYFLIGHT_AIRFLOW_MAX}
                       step={1}
@@ -3106,9 +3100,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${bodyflightGravity.toFixed(2)}g`}
                       rawValue={bodyflightGravity}
-                      onSet={(v) =>
-                        setBodyflightGravity(Math.max(0, Math.min(BODYFLIGHT_GRAVITY_MAX, v)))
-                      }
+                      onSet={(v) => setBodyflightGravity(v)}
                       min={0}
                       max={BODYFLIGHT_GRAVITY_MAX}
                       step={0.05}
@@ -3124,11 +3116,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${bodyflightHoverHeight.toFixed(1)}m`}
                       rawValue={bodyflightHoverHeight}
-                      onSet={(v) =>
-                        setBodyflightHoverHeight(
-                          Math.max(BODYFLIGHT_HOVER_MIN, Math.min(BODYFLIGHT_HOVER_MAX, v)),
-                        )
-                      }
+                      onSet={(v) => setBodyflightHoverHeight(v)}
                       min={BODYFLIGHT_HOVER_MIN}
                       max={BODYFLIGHT_HOVER_MAX}
                       step={0.5}
@@ -3151,7 +3139,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     mode="number"
                     value={`${noclipFallRiseSpeed.toFixed(0)}m/s`}
                     rawValue={noclipFallRiseSpeed}
-                    onSet={(v) => setNoclipFallRiseSpeed(Math.max(2, Math.min(300, v)))}
+                    onSet={(v) => setNoclipFallRiseSpeed(v)}
                     min={2}
                     max={300}
                     step={2}
@@ -3165,7 +3153,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     mode="number"
                     value={`${noclipVertEaseTime.toFixed(2)}s`}
                     rawValue={noclipVertEaseTime}
-                    onSet={(v) => setNoclipVertEaseTime(Math.max(0.05, Math.min(3, v)))}
+                    onSet={(v) => setNoclipVertEaseTime(v)}
                     min={0.05}
                     max={3}
                     step={0.05}
@@ -3189,7 +3177,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     mode="number"
                     value={`${noclipAutoAlternateInterval.toFixed(0)}s`}
                     rawValue={noclipAutoAlternateInterval}
-                    onSet={(v) => setNoclipAutoAlternateInterval(Math.max(1, Math.min(120, v)))}
+                    onSet={(v) => setNoclipAutoAlternateInterval(v)}
                     min={1}
                     max={120}
                     step={1}
@@ -3217,7 +3205,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${freakOutSwingAxis.toFixed(0)}°`}
                       rawValue={freakOutSwingAxis}
-                      onSet={(v) => setFreakOutSwingAxis(Math.max(0, Math.min(180, v)))}
+                      onSet={(v) => setFreakOutSwingAxis(v)}
                       min={0}
                       max={180}
                       step={5}
@@ -3229,7 +3217,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${freakOutSwingAngle.toFixed(0)}°`}
                       rawValue={freakOutSwingAngle}
-                      onSet={(v) => setFreakOutSwingAngle(Math.max(0, Math.min(180, v)))}
+                      onSet={(v) => setFreakOutSwingAngle(v)}
                       min={0}
                       max={180}
                       step={5}
@@ -3241,9 +3229,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${freakOutSwingSpeed.toFixed(2)}x`}
                       rawValue={freakOutSwingSpeed}
-                      onSet={(v) =>
-                        setFreakOutSwingSpeed(Math.max(0, Math.min(mx("freakOutSwingSpeed"), v)))
-                      }
+                      onSet={(v) => setFreakOutSwingSpeed(v)}
                       min={0}
                       max={mx("freakOutSwingSpeed")}
                       step={0.05}
@@ -3261,9 +3247,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${freakOutSwingLength.toFixed(1)}m`}
                       rawValue={freakOutSwingLength}
-                      onSet={(v) =>
-                        setFreakOutSwingLength(Math.max(0, Math.min(mx("freakOutSwingLength"), v)))
-                      }
+                      onSet={(v) => setFreakOutSwingLength(v)}
                       min={0}
                       max={mx("freakOutSwingLength")}
                       step={0.5}
@@ -3281,11 +3265,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${freakOutFloatYOffset.toFixed(1)}m`}
                       rawValue={freakOutFloatYOffset}
-                      onSet={(v) =>
-                        setFreakOutFloatYOffset(
-                          Math.max(0, Math.min(mx("freakOutFloatYOffset"), v)),
-                        )
-                      }
+                      onSet={(v) => setFreakOutFloatYOffset(v)}
                       min={0}
                       max={mx("freakOutFloatYOffset")}
                       step={0.5}
@@ -3309,9 +3289,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${freakOutRingRadius.toFixed(1)}m`}
                       rawValue={freakOutRingRadius}
-                      onSet={(v) =>
-                        setFreakOutRingRadius(Math.max(0, Math.min(mx("freakOutRingRadius"), v)))
-                      }
+                      onSet={(v) => setFreakOutRingRadius(v)}
                       min={0}
                       max={mx("freakOutRingRadius")}
                       step={0.5}
@@ -3358,11 +3336,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                           mode="number"
                           value={`${freakOutRotationSpeed.toFixed(2)}x`}
                           rawValue={freakOutRotationSpeed}
-                          onSet={(v) =>
-                            setFreakOutRotationSpeed(
-                              Math.max(0, Math.min(mx("freakOutRotationSpeed"), v)),
-                            )
-                          }
+                          onSet={(v) => setFreakOutRotationSpeed(v)}
                           min={0}
                           max={mx("freakOutRotationSpeed")}
                           step={0.05}
@@ -3380,9 +3354,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                           mode="number"
                           value={`${Math.round(freakOutRotationPeakSpeed * 100)}%`}
                           rawValue={freakOutRotationPeakSpeed}
-                          onSet={(v) =>
-                            setFreakOutRotationPeakSpeed(Math.max(0, Math.min(1, v / 100)))
-                          }
+                          onSet={(v) => setFreakOutRotationPeakSpeed(v / 100)}
                           min={0}
                           max={1}
                           step={0.05}
@@ -3398,7 +3370,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                           mode="number"
                           value={`${freakOutRotationRecovery.toFixed(2)}×`}
                           rawValue={freakOutRotationRecovery}
-                          onSet={(v) => setFreakOutRotationRecovery(Math.max(0.25, Math.min(4, v)))}
+                          onSet={(v) => setFreakOutRotationRecovery(v)}
                           min={0.25}
                           max={4}
                           step={0.05}
@@ -3423,11 +3395,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                             mode="number"
                             value={`${freakOutRotationKick.toFixed(2)}×`}
                             rawValue={freakOutRotationKick}
-                            onSet={(v) =>
-                              setFreakOutRotationKick(
-                                Math.max(0, Math.min(mx("freakOutRotationKick"), v)),
-                              )
-                            }
+                            onSet={(v) => setFreakOutRotationKick(v)}
                             min={0}
                             max={mx("freakOutRotationKick")}
                             step={0.05}
@@ -3470,9 +3438,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                             mode="number"
                             value={`${freakOutRotationOscillateSpeed.toFixed(2)}x`}
                             rawValue={freakOutRotationOscillateSpeed}
-                            onSet={(v) =>
-                              setFreakOutRotationOscillateSpeed(Math.max(0.05, Math.min(5, v)))
-                            }
+                            onSet={(v) => setFreakOutRotationOscillateSpeed(v)}
                             min={0.05}
                             max={5}
                             step={0.05}
@@ -3548,9 +3514,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                           mode="number"
                           value={`${freakOutSeatCount}`}
                           rawValue={freakOutSeatCount}
-                          onSet={(v) =>
-                            setFreakOutSeatCount(Math.max(1, Math.min(32, Math.round(v))))
-                          }
+                          onSet={(v) => setFreakOutSeatCount(Math.max(1, Math.round(v)))}
                           min={1}
                           max={32}
                           step={1}
@@ -3563,9 +3527,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                           value={`${Math.min(freakOutCameraSeat, freakOutSeatCount)} / ${freakOutSeatCount}`}
                           rawValue={Math.min(freakOutCameraSeat, freakOutSeatCount)}
                           onSet={(v) =>
-                            setFreakOutCameraSeat(
-                              Math.max(1, Math.min(freakOutSeatCount, Math.round(v))),
-                            )
+                            setFreakOutCameraSeat(Math.max(1, Math.min(freakOutSeatCount, Math.round(v))))
                           }
                           min={1}
                           max={freakOutSeatCount}
@@ -3586,7 +3548,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                           mode="number"
                           value={`${freakOutSeatPostLength.toFixed(1)}m`}
                           rawValue={freakOutSeatPostLength}
-                          onSet={(v) => setFreakOutSeatPostLength(Math.max(0.5, Math.min(30, v)))}
+                          onSet={(v) => setFreakOutSeatPostLength(v)}
                           min={0.5}
                           max={30}
                           step={0.1}
@@ -3674,9 +3636,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                         mode="number"
                         value={`${tornadoRadius.toFixed(0)}m`}
                         rawValue={tornadoRadius}
-                        onSet={(v) =>
-                          setTornadoRadius(Math.max(0, Math.min(mx("tornadoRadius"), v)))
-                        }
+                        onSet={(v) => setTornadoRadius(v)}
                         min={0}
                         max={mx("tornadoRadius")}
                         step={5}
@@ -3692,7 +3652,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                         mode="number"
                         value={`${tornadoSpeed.toFixed(2)}x`}
                         rawValue={tornadoSpeed}
-                        onSet={(v) => setTornadoSpeed(Math.max(0, Math.min(mx("tornadoSpeed"), v)))}
+                        onSet={(v) => setTornadoSpeed(v)}
                         min={0}
                         max={mx("tornadoSpeed")}
                         step={0.1}
@@ -3720,7 +3680,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                           mode="number"
                           value={`${tornadoOpening.toFixed(1)}m`}
                           rawValue={tornadoOpening}
-                          onSet={(v) => setTornadoOpening(Math.max(3, Math.min(60, v)))}
+                          onSet={(v) => setTornadoOpening(v)}
                           min={3}
                           max={60}
                           step={0.5}
@@ -3748,7 +3708,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                           mode="number"
                           value={`${tornadoCloudYOffset.toFixed(0)}m`}
                           rawValue={tornadoCloudYOffset}
-                          onSet={(v) => setTornadoCloudYOffset(Math.max(-200, Math.min(200, v)))}
+                          onSet={(v) => setTornadoCloudYOffset(v)}
                           min={-200}
                           max={200}
                           step={5}
@@ -3773,9 +3733,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                             mode="number"
                             value={`${tornadoSequenceDragSpeed.toFixed(0)}m/s`}
                             rawValue={tornadoSequenceDragSpeed}
-                            onSet={(v) =>
-                              setTornadoSequenceDragSpeed(Math.max(1, Math.min(100, v)))
-                            }
+                            onSet={(v) => setTornadoSequenceDragSpeed(v)}
                             min={1}
                             max={100}
                             step={1}
@@ -3791,9 +3749,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                             mode="number"
                             value={`${tornadoSequenceDragDuration.toFixed(1)}s`}
                             rawValue={tornadoSequenceDragDuration}
-                            onSet={(v) =>
-                              setTornadoSequenceDragDuration(Math.max(0.5, Math.min(30, v)))
-                            }
+                            onSet={(v) => setTornadoSequenceDragDuration(v)}
                             min={0.5}
                             max={30}
                             step={0.5}
@@ -3813,9 +3769,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                             mode="number"
                             value={`${tornadoSequenceStayDuration.toFixed(1)}s`}
                             rawValue={tornadoSequenceStayDuration}
-                            onSet={(v) =>
-                              setTornadoSequenceStayDuration(Math.max(0, Math.min(60, v)))
-                            }
+                            onSet={(v) => setTornadoSequenceStayDuration(v)}
                             min={0}
                             max={60}
                             step={0.5}
@@ -3852,9 +3806,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                             mode="number"
                             value={`${tornadoSequenceExitSpeed.toFixed(0)}m/s`}
                             rawValue={tornadoSequenceExitSpeed}
-                            onSet={(v) =>
-                              setTornadoSequenceExitSpeed(Math.max(1, Math.min(100, v)))
-                            }
+                            onSet={(v) => setTornadoSequenceExitSpeed(v)}
                             min={1}
                             max={100}
                             step={1}
@@ -3872,9 +3824,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                                 mode="number"
                                 value={`${tornadoSequenceLiftHeight.toFixed(0)}m`}
                                 rawValue={tornadoSequenceLiftHeight}
-                                onSet={(v) =>
-                                  setTornadoSequenceLiftHeight(Math.max(5, Math.min(500, v)))
-                                }
+                                onSet={(v) => setTornadoSequenceLiftHeight(v)}
                                 min={5}
                                 max={500}
                                 step={5}
@@ -3894,9 +3844,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                                 mode="number"
                                 value={`${tornadoSequencePauseDuration.toFixed(1)}s`}
                                 rawValue={tornadoSequencePauseDuration}
-                                onSet={(v) =>
-                                  setTornadoSequencePauseDuration(Math.max(0, Math.min(30, v)))
-                                }
+                                onSet={(v) => setTornadoSequencePauseDuration(v)}
                                 min={0}
                                 max={30}
                                 step={0.5}
@@ -3933,7 +3881,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${swingPositionY.toFixed(0)}m`}
                       rawValue={swingPositionY}
-                      onSet={(v) => setSwingPositionY(Math.max(0, Math.min(100000, v)))}
+                      onSet={(v) => setSwingPositionY(v)}
                       min={0}
                       max={100000}
                       step={100}
@@ -3947,9 +3895,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${swingIntensity.toFixed(4)}x`}
                       rawValue={swingIntensity}
-                      onSet={(v) =>
-                        setSwingIntensity(Math.max(0.0001, Math.min(mx("swingIntensity"), v)))
-                      }
+                      onSet={(v) => setSwingIntensity(v)}
                       min={0.0001}
                       max={mx("swingIntensity")}
                       step={0.05}
@@ -3967,7 +3913,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${swingSpeed.toFixed(2)}x`}
                       rawValue={swingSpeed}
-                      onSet={(v) => setSwingSpeed(Math.max(0.1, Math.min(mx("swingSpeed"), v)))}
+                      onSet={(v) => setSwingSpeed(v)}
                       min={0.1}
                       max={mx("swingSpeed")}
                       step={0.1}
@@ -3983,7 +3929,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                         swingXFactor <= 0.001 ? t("common.off") : `${swingXFactor.toFixed(2)}x`
                       }
                       rawValue={swingXFactor}
-                      onSet={(v) => setSwingXFactor(Math.max(0, Math.min(2, v)))}
+                      onSet={(v) => setSwingXFactor(v)}
                       min={0}
                       max={2}
                       step={0.1}
@@ -3995,7 +3941,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${swingHeight.toFixed(0)}m`}
                       rawValue={swingHeight}
-                      onSet={(v) => setSwingHeight(Math.max(0, Math.min(mx("swingHeight"), v)))}
+                      onSet={(v) => setSwingHeight(v)}
                       min={0}
                       max={mx("swingHeight")}
                       step={100}
@@ -4057,7 +4003,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                           mode="number"
                           value={`${swingCordThickness.toFixed(2)}m`}
                           rawValue={swingCordThickness}
-                          onSet={(v) => setSwingCordThickness(Math.max(0, Math.min(2, v)))}
+                          onSet={(v) => setSwingCordThickness(v)}
                           min={0}
                           max={2}
                           step={0.02}
@@ -4073,7 +4019,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                           mode="number"
                           value={`${Math.round(swingCordSoftness * 100)}%`}
                           rawValue={swingCordSoftness}
-                          onSet={(v) => setSwingCordSoftness(Math.max(0, Math.min(1, v)))}
+                          onSet={(v) => setSwingCordSoftness(v)}
                           min={0}
                           max={1}
                           step={0.05}
@@ -4099,7 +4045,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   mode="number"
                   value={formatClock(intervalDuration)}
                   rawValue={intervalDuration}
-                  onSet={(v) => setIntervalDuration(Math.max(5, Math.min(3600, Math.round(v))))}
+                  onSet={(v) => setIntervalDuration(Math.max(1, Math.round(v)))}
                   min={5}
                   max={3600}
                   step={5}
@@ -4127,7 +4073,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     mode="number"
                     value={`${intervalCount}`}
                     rawValue={intervalCount}
-                    onSet={(v) => setIntervalCount(Math.max(1, Math.min(50, Math.round(v))))}
+                    onSet={(v) => setIntervalCount(Math.max(1, Math.round(v)))}
                     min={1}
                     max={50}
                     step={1}
@@ -4194,7 +4140,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   mode="number"
                   value={`${camFov.toFixed(0)}°`}
                   rawValue={camFov}
-                  onSet={(v) => setCamFov(Math.max(20, Math.min(140, v)))}
+                  onSet={(v) => setCamFov(v)}
                   min={20}
                   max={140}
                   step={1}
@@ -4206,7 +4152,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   mode="number"
                   value={`${camNear.toFixed(3)}`}
                   rawValue={camNear}
-                  onSet={(v) => setCamNear(Math.max(0.001, Math.min(10, v)))}
+                  onSet={(v) => setCamNear(Math.max(0.0001, v))}
                   min={0.001}
                   max={10}
                   step={0.01}
@@ -4218,7 +4164,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   mode="number"
                   value={`${camFar.toFixed(0)}`}
                   rawValue={camFar}
-                  onSet={(v) => setCamFar(Math.max(100, Math.min(300000, v)))}
+                  onSet={(v) => setCamFar(Math.max(1, v))}
                   min={100}
                   max={300000}
                   step={100}
@@ -4252,7 +4198,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   mode="number"
                   value={`${Math.round(gogglesBlur * 100)}%`}
                   rawValue={gogglesBlur}
-                  onSet={(v) => setGogglesBlur(Math.max(0, Math.min(1, v)))}
+                  onSet={(v) => setGogglesBlur(v)}
                   min={0}
                   max={1}
                   step={0.05}
@@ -4270,7 +4216,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   mode="number"
                   value={`${Math.round(gogglesIntensity * 100)}%`}
                   rawValue={gogglesIntensity}
-                  onSet={(v) => setGogglesIntensity(Math.max(0, Math.min(1, v)))}
+                  onSet={(v) => setGogglesIntensity(v)}
                   min={0}
                   max={1}
                   step={0.05}
@@ -4282,7 +4228,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   mode="number"
                   value={`${gogglesFpsCap} fps`}
                   rawValue={gogglesFpsCap}
-                  onSet={(v) => setGogglesFpsCap(Math.max(10, Math.min(60, Math.round(v))))}
+                  onSet={(v) => setGogglesFpsCap(Math.max(1, Math.round(v)))}
                   min={10}
                   max={60}
                   step={5}
@@ -4379,7 +4325,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   mode="number"
                   value={`${targetFps} fps`}
                   rawValue={targetFps}
-                  onSet={(v) => setTargetFps(Math.max(10, Math.min(120, Math.round(v))))}
+                  onSet={(v) => setTargetFps(Math.max(1, Math.round(v)))}
                   min={10}
                   max={120}
                   step={5}
@@ -4391,7 +4337,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   mode="number"
                   value={`${Math.round(resolutionScale * 100)}%`}
                   rawValue={resolutionScale}
-                  onSet={(v) => setResolutionScale(Math.max(0.25, Math.min(1.5, v)))}
+                  onSet={(v) => setResolutionScale(Math.max(0.05, v))}
                   min={0.25}
                   max={1.5}
                   step={0.05}
@@ -4409,7 +4355,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   mode="number"
                   value={`${Math.round(chromaticAberrationAmount * 100)}%`}
                   rawValue={chromaticAberrationAmount}
-                  onSet={(v) => setChromaticAberrationAmount(Math.max(0, Math.min(1, v)))}
+                  onSet={(v) => setChromaticAberrationAmount(v)}
                   min={0}
                   max={1}
                   step={0.05}
@@ -4433,7 +4379,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${Math.round(lightingReflStrength * 100)}%`}
                       rawValue={lightingReflStrength}
-                      onSet={(v) => setLightingReflStrength(Math.max(0, Math.min(2, v)))}
+                      onSet={(v) => setLightingReflStrength(v)}
                       min={0}
                       max={2}
                       step={0.1}
@@ -4487,7 +4433,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${retroPixelSize}px`}
                       rawValue={retroPixelSize}
-                      onSet={(v) => setRetroPixelSize(Math.max(1, Math.min(8, v)))}
+                      onSet={(v) => setRetroPixelSize(Math.max(1, v))}
                       min={1}
                       max={8}
                       step={1}
@@ -4499,7 +4445,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${Math.round(retroDither * 100)}%`}
                       rawValue={retroDither}
-                      onSet={(v) => setRetroDither(Math.max(0, Math.min(1, v)))}
+                      onSet={(v) => setRetroDither(v)}
                       min={0}
                       max={1}
                       step={0.05}
@@ -4511,7 +4457,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${Math.round(retroScanlines * 100)}%`}
                       rawValue={retroScanlines}
-                      onSet={(v) => setRetroScanlines(Math.max(0, Math.min(1, v)))}
+                      onSet={(v) => setRetroScanlines(v)}
                       min={0}
                       max={1}
                       step={0.05}
@@ -4570,7 +4516,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     mode="number"
                     value={`${Math.round(reflStrength * 100)}%`}
                     rawValue={reflStrength}
-                    onSet={(v) => setReflStrength(Math.max(0, Math.min(3, v)))}
+                    onSet={(v) => setReflStrength(v)}
                     min={0}
                     max={3}
                     step={0.05}
@@ -4614,7 +4560,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     mode="number"
                     value={`${Math.round(raytracedStrength * 100)}%`}
                     rawValue={raytracedStrength}
-                    onSet={(v) => setRaytracedStrength(Math.max(0, Math.min(1, v)))}
+                    onSet={(v) => setRaytracedStrength(v)}
                     min={0}
                     max={1}
                     step={0.05}
@@ -4628,7 +4574,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     mode="number"
                     value={`${Math.round(sphereStrength * 100)}%`}
                     rawValue={sphereStrength}
-                    onSet={(v) => setSphereStrength(Math.max(0, Math.min(1, v)))}
+                    onSet={(v) => setSphereStrength(v)}
                     min={0}
                     max={1}
                     step={0.05}
@@ -4680,7 +4626,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   mode="number"
                   value={`${Math.round(waveBgOpacity * 100)}%`}
                   rawValue={waveBgOpacity}
-                  onSet={(v) => setWaveBgOpacity(Math.max(0, Math.min(1, v)))}
+                  onSet={(v) => setWaveBgOpacity(v)}
                   min={0}
                   max={1}
                   step={0.05}
@@ -4692,7 +4638,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   mode="number"
                   value={`${Math.round(foamAmount * 100)}%`}
                   rawValue={foamAmount}
-                  onSet={(v) => setFoamAmount(Math.max(0, Math.min(2, v)))}
+                  onSet={(v) => setFoamAmount(v)}
                   min={0}
                   max={2}
                   step={0.05}
@@ -4706,7 +4652,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${Math.round(foamCoverage * 100)}%`}
                       rawValue={foamCoverage}
-                      onSet={(v) => setFoamCoverage(Math.max(0, Math.min(1, v)))}
+                      onSet={(v) => setFoamCoverage(v)}
                       min={0}
                       max={1}
                       step={0.05}
@@ -4718,7 +4664,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${foamScale.toFixed(2)}x`}
                       rawValue={foamScale}
-                      onSet={(v) => setFoamScale(Math.max(0.25, Math.min(4, v)))}
+                      onSet={(v) => setFoamScale(v)}
                       min={0.25}
                       max={4}
                       step={0.05}
@@ -4743,7 +4689,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   mode="number"
                   value={`${Math.round(detailWaves * 100)}%`}
                   rawValue={detailWaves}
-                  onSet={(v) => setDetailWaves(Math.max(0, Math.min(1.5, v)))}
+                  onSet={(v) => setDetailWaves(v)}
                   min={0}
                   max={1.5}
                   step={0.05}
@@ -4756,7 +4702,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     mode="number"
                     value={`${detailScale.toFixed(2)}x`}
                     rawValue={detailScale}
-                    onSet={(v) => setDetailScale(Math.max(0.25, Math.min(4, v)))}
+                    onSet={(v) => setDetailScale(v)}
                     min={0.25}
                     max={4}
                     step={0.05}
@@ -4802,7 +4748,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   mode="number"
                   value={`${surfBright.toFixed(2)}x`}
                   rawValue={surfBright}
-                  onSet={(v) => setSurfBright(Math.max(0.1, Math.min(3, v)))}
+                  onSet={(v) => setSurfBright(v)}
                   min={0.1}
                   max={3}
                   step={0.05}
@@ -4814,7 +4760,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   mode="number"
                   value={`${surfSat.toFixed(2)}x`}
                   rawValue={surfSat}
-                  onSet={(v) => setSurfSat(Math.max(0, Math.min(2, v)))}
+                  onSet={(v) => setSurfSat(v)}
                   min={0}
                   max={2}
                   step={0.05}
@@ -4826,7 +4772,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   mode="number"
                   value={turbidity <= 0.001 ? t("common.off") : `${Math.round(turbidity * 100)}%`}
                   rawValue={turbidity}
-                  onSet={(v) => setTurbidity(Math.max(0, Math.min(1, v)))}
+                  onSet={(v) => setTurbidity(v)}
                   min={0}
                   max={1}
                   step={0.05}
@@ -4870,7 +4816,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   mode="number"
                   value={`${floorDepth.toFixed(1)}m`}
                   rawValue={floorDepth}
-                  onSet={(v) => setFloorDepth(Math.max(1, Math.min(60, v)))}
+                  onSet={(v) => setFloorDepth(v)}
                   min={1}
                   max={60}
                   step={0.5}
@@ -4903,7 +4849,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   mode="number"
                   value={`${depthSineAmp.toFixed(2)}m`}
                   rawValue={depthSineAmp}
-                  onSet={(v) => setDepthSineAmp(Math.max(0, Math.min(90, v)))}
+                  onSet={(v) => setDepthSineAmp(v)}
                   min={0}
                   max={90}
                   step={0.25}
@@ -4915,7 +4861,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   mode="number"
                   value={`${depthSineFreq.toFixed(2)}Hz`}
                   rawValue={depthSineFreq}
-                  onSet={(v) => setDepthSineFreq(Math.max(0.001, Math.min(2, v)))}
+                  onSet={(v) => setDepthSineFreq(v)}
                   min={0.001}
                   max={2}
                   step={0.01}
@@ -4927,7 +4873,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   mode="number"
                   value={`${depthSineSpeed.toFixed(2)}x`}
                   rawValue={depthSineSpeed}
-                  onSet={(v) => setDepthSineSpeed(Math.max(0.1, Math.min(5, v)))}
+                  onSet={(v) => setDepthSineSpeed(v)}
                   min={0.1}
                   max={5}
                   step={0.05}
@@ -4939,7 +4885,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   mode="number"
                   value={`${depthSineInterval.toFixed(1)}s`}
                   rawValue={depthSineInterval}
-                  onSet={(v) => setDepthSineInterval(Math.max(0.2, Math.min(20, v)))}
+                  onSet={(v) => setDepthSineInterval(v)}
                   min={0.2}
                   max={20}
                   step={0.1}
@@ -4951,7 +4897,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   mode="number"
                   value={depthSinePeak.toFixed(2)}
                   rawValue={depthSinePeak}
-                  onSet={(v) => setDepthSinePeak(Math.max(1, Math.min(6, v)))}
+                  onSet={(v) => setDepthSinePeak(v)}
                   min={1}
                   max={6}
                   step={0.1}
@@ -4963,7 +4909,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   mode="number"
                   value={`${depthDriftSpeed.toFixed(2)}m/s`}
                   rawValue={depthDriftSpeed}
-                  onSet={(v) => setDepthDriftSpeed(Math.max(-20, Math.min(20, v)))}
+                  onSet={(v) => setDepthDriftSpeed(v)}
                   min={-20}
                   max={20}
                   step={0.1}
@@ -4983,7 +4929,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${depthDriftSineAmp.toFixed(2)}m/s`}
                       rawValue={depthDriftSineAmp}
-                      onSet={(v) => setDepthDriftSineAmp(Math.max(0, Math.min(20, v)))}
+                      onSet={(v) => setDepthDriftSineAmp(v)}
                       min={0}
                       max={20}
                       step={0.1}
@@ -4995,7 +4941,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${depthDriftSineSpeed.toFixed(2)}Hz`}
                       rawValue={depthDriftSineSpeed}
-                      onSet={(v) => setDepthDriftSineSpeed(Math.max(0.01, Math.min(2, v)))}
+                      onSet={(v) => setDepthDriftSineSpeed(v)}
                       min={0.01}
                       max={2}
                       step={0.01}
@@ -5060,7 +5006,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${Math.round(waterGlowStrength * 100)}%`}
                       rawValue={waterGlowStrength}
-                      onSet={(v) => setWaterGlowStrength(Math.max(0, Math.min(2, v)))}
+                      onSet={(v) => setWaterGlowStrength(v)}
                       min={0}
                       max={2}
                       step={0.05}
@@ -5112,7 +5058,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   mode="number"
                   value={`${Math.round(midCloudsHeight * 100)}%`}
                   rawValue={midCloudsHeight}
-                  onSet={(v) => setMidCloudsHeight(Math.max(0.05, Math.min(0.95, v)))}
+                  onSet={(v) => setMidCloudsHeight(v)}
                   min={0.05}
                   max={0.95}
                   step={0.05}
@@ -5130,14 +5076,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   mode="number"
                   value={`${Math.round(skyCloudsAltitude)} m`}
                   rawValue={skyCloudsAltitude}
-                  onSet={(v) =>
-                    setSkyCloudsAltitude(
-                      Math.max(
-                        SKY_CLOUDS_ALTITUDE_MIN,
-                        Math.min(SKY_CLOUDS_ALTITUDE_MAX, Math.round(v)),
-                      ),
-                    )
-                  }
+                  onSet={(v) => setSkyCloudsAltitude(Math.round(v))}
                   min={SKY_CLOUDS_ALTITUDE_MIN}
                   max={SKY_CLOUDS_ALTITUDE_MAX}
                   step={50}
@@ -5171,9 +5110,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   mode="number"
                   value={`${bottomCloudsScale.toFixed(2)}x`}
                   rawValue={bottomCloudsScale}
-                  onSet={(v) =>
-                    setBottomCloudsScale(Math.max(CLOUD_SCALE_MIN, Math.min(CLOUD_SCALE_MAX, v)))
-                  }
+                  onSet={(v) => setBottomCloudsScale(v)}
                   min={CLOUD_SCALE_MIN}
                   max={CLOUD_SCALE_MAX}
                   step={0.25}
@@ -5189,9 +5126,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   mode="number"
                   value={`${skyCloudsScale.toFixed(2)}x`}
                   rawValue={skyCloudsScale}
-                  onSet={(v) =>
-                    setSkyCloudsScale(Math.max(CLOUD_SCALE_MIN, Math.min(CLOUD_SCALE_MAX, v)))
-                  }
+                  onSet={(v) => setSkyCloudsScale(v)}
                   min={CLOUD_SCALE_MIN}
                   max={CLOUD_SCALE_MAX}
                   step={0.25}
@@ -5207,7 +5142,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   mode="number"
                   value={`${cloudFadeSpeed.toFixed(1)}x`}
                   rawValue={cloudFadeSpeed}
-                  onSet={(v) => setCloudFadeSpeed(Math.max(0.2, Math.min(12, v)))}
+                  onSet={(v) => setCloudFadeSpeed(v)}
                   min={0.2}
                   max={12}
                   step={0.2}
@@ -5227,7 +5162,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${skyPuffsCount}`}
                       rawValue={skyPuffsCount}
-                      onSet={(v) => setSkyPuffsCount(Math.max(1, Math.min(20, Math.round(v))))}
+                      onSet={(v) => setSkyPuffsCount(Math.max(1, Math.round(v)))}
                       min={1}
                       max={20}
                       step={1}
@@ -5239,7 +5174,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${skyPuffsSize.toFixed(0)}m`}
                       rawValue={skyPuffsSize}
-                      onSet={(v) => setSkyPuffsSize(Math.max(100, Math.min(3000, v)))}
+                      onSet={(v) => setSkyPuffsSize(v)}
                       min={100}
                       max={3000}
                       step={50}
@@ -5251,7 +5186,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${skyPuffsFreq.toFixed(2)}x`}
                       rawValue={skyPuffsFreq}
-                      onSet={(v) => setSkyPuffsFreq(Math.max(0.2, Math.min(5, v)))}
+                      onSet={(v) => setSkyPuffsFreq(v)}
                       min={0.2}
                       max={5}
                       step={0.1}
@@ -5263,7 +5198,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${Math.round(skyPuffsOpacity * 100)}%`}
                       rawValue={skyPuffsOpacity}
-                      onSet={(v) => setSkyPuffsOpacity(Math.max(0.05, Math.min(1, v)))}
+                      onSet={(v) => setSkyPuffsOpacity(v)}
                       min={0.05}
                       max={1}
                       step={0.05}
@@ -5287,7 +5222,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${worldBoundarySize.toFixed(0)}m`}
                       rawValue={worldBoundarySize}
-                      onSet={(v) => setWorldBoundarySize(Math.max(200, Math.min(500000, v)))}
+                      onSet={(v) => setWorldBoundarySize(v)}
                       min={200}
                       max={500000}
                       step={500}
@@ -5303,7 +5238,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${worldBoundaryHeight.toFixed(0)}m`}
                       rawValue={worldBoundaryHeight}
-                      onSet={(v) => setWorldBoundaryHeight(Math.max(200, Math.min(500000, v)))}
+                      onSet={(v) => setWorldBoundaryHeight(v)}
                       min={200}
                       max={500000}
                       step={200}
@@ -5333,7 +5268,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   mode="number"
                   value={`${surfaceArea.toFixed(0)}m`}
                   rawValue={surfaceArea}
-                  onSet={(v) => setSurfaceArea(Math.max(200, Math.min(700000, v)))}
+                  onSet={(v) => setSurfaceArea(v)}
                   min={200}
                   max={700000}
                   step={1000}
@@ -5462,7 +5397,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                           mode="number"
                           value={`${Math.round(envDaylightTintStrength * 100)}%`}
                           rawValue={envDaylightTintStrength}
-                          onSet={(v) => setEnvDaylightTintStrength(Math.max(0, Math.min(1, v)))}
+                          onSet={(v) => setEnvDaylightTintStrength(v)}
                           min={0}
                           max={1}
                           step={0.05}
@@ -5490,7 +5425,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${Math.round(auroraIntensity * 100)}%`}
                       rawValue={auroraIntensity}
-                      onSet={(v) => setAuroraIntensity(Math.max(0, Math.min(mx("auroraIntensity"), v)))}
+                      onSet={(v) => setAuroraIntensity(v)}
                       min={0}
                       max={mx("auroraIntensity")}
                       step={0.05}
@@ -5502,7 +5437,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${Math.round(auroraAmount * 100)}%`}
                       rawValue={auroraAmount}
-                      onSet={(v) => setAuroraAmount(Math.max(0, Math.min(1, v)))}
+                      onSet={(v) => setAuroraAmount(v)}
                       min={0}
                       max={1}
                       step={0.05}
@@ -5514,7 +5449,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${Math.round(auroraSpeed * 100)}%`}
                       rawValue={auroraSpeed}
-                      onSet={(v) => setAuroraSpeed(Math.max(0, Math.min(3, v)))}
+                      onSet={(v) => setAuroraSpeed(v)}
                       min={0}
                       max={3}
                       step={0.05}
@@ -5526,7 +5461,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${Math.round(auroraHeight * 100)}%`}
                       rawValue={auroraHeight}
-                      onSet={(v) => setAuroraHeight(Math.max(0, Math.min(1, v)))}
+                      onSet={(v) => setAuroraHeight(v)}
                       min={0}
                       max={1}
                       step={0.05}
@@ -5615,7 +5550,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${Math.round(underwaterFogOpacity * 100)}%`}
                       rawValue={underwaterFogOpacity}
-                      onSet={(v) => setUnderwaterFogOpacity(Math.max(0, Math.min(1, v)))}
+                      onSet={(v) => setUnderwaterFogOpacity(v)}
                       min={0}
                       max={1}
                       step={0.05}
@@ -5650,7 +5585,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${Math.round(underwaterFogWaterOpacity * 100)}%`}
                       rawValue={underwaterFogWaterOpacity}
-                      onSet={(v) => setUnderwaterFogWaterOpacity(Math.max(0, Math.min(1, v)))}
+                      onSet={(v) => setUnderwaterFogWaterOpacity(v)}
                       min={0}
                       max={1}
                       step={0.05}
@@ -5662,7 +5597,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${Math.round(underwaterFogIntensity * 100)}%`}
                       rawValue={underwaterFogIntensity}
-                      onSet={(v) => setUnderwaterFogIntensity(Math.max(0, Math.min(1, v)))}
+                      onSet={(v) => setUnderwaterFogIntensity(v)}
                       min={0}
                       max={1}
                       step={0.05}
@@ -5674,7 +5609,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${Math.round(underwaterFogSpread * 100)}%`}
                       rawValue={underwaterFogSpread}
-                      onSet={(v) => setUnderwaterFogSpread(Math.max(0.05, Math.min(1, v)))}
+                      onSet={(v) => setUnderwaterFogSpread(v)}
                       min={0.05}
                       max={1}
                       step={0.05}
@@ -5686,7 +5621,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={underwaterFogCurve.toFixed(1)}
                       rawValue={underwaterFogCurve}
-                      onSet={(v) => setUnderwaterFogCurve(Math.max(0.2, Math.min(4, v)))}
+                      onSet={(v) => setUnderwaterFogCurve(v)}
                       min={0.2}
                       max={4}
                       step={0.1}
@@ -5698,7 +5633,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${Math.round(underwaterFogFeather * 100)}%`}
                       rawValue={underwaterFogFeather}
-                      onSet={(v) => setUnderwaterFogFeather(Math.max(0, Math.min(0.3, v)))}
+                      onSet={(v) => setUnderwaterFogFeather(v)}
                       min={0}
                       max={0.3}
                       step={0.01}
@@ -5710,7 +5645,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${Math.round(underwaterFogDistance)} m`}
                       rawValue={underwaterFogDistance}
-                      onSet={(v) => setUnderwaterFogDistance(Math.max(2, Math.min(500, v)))}
+                      onSet={(v) => setUnderwaterFogDistance(v)}
                       min={2}
                       max={500}
                       step={1}
@@ -5722,7 +5657,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${Math.round(underwaterFogOffset * 100)}%`}
                       rawValue={underwaterFogOffset}
-                      onSet={(v) => setUnderwaterFogOffset(Math.max(-0.5, Math.min(0.5, v)))}
+                      onSet={(v) => setUnderwaterFogOffset(v)}
                       min={-0.5}
                       max={0.5}
                       step={0.01}
@@ -5769,9 +5704,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${Math.round(snowAmount)}`}
                       rawValue={snowAmount}
-                      onSet={(v) =>
-                        setSnowAmount(Math.max(0, Math.min(mx("snowAmount"), Math.round(v))))
-                      }
+                      onSet={(v) => setSnowAmount(Math.max(0, Math.round(v)))}
                       min={0}
                       max={mx("snowAmount")}
                       step={500}
@@ -5785,7 +5718,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${Math.round(snowIntensity * 100)}%`}
                       rawValue={snowIntensity}
-                      onSet={(v) => setSnowIntensity(Math.max(0, Math.min(mx("snowIntensity"), v)))}
+                      onSet={(v) => setSnowIntensity(v)}
                       min={0}
                       max={mx("snowIntensity")}
                       step={0.05}
@@ -5818,7 +5751,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     mode="number"
                     value={`${Math.round(snowCoverStrength * 100)}%`}
                     rawValue={snowCoverStrength}
-                    onSet={(v) => setSnowCoverStrength(Math.max(0, Math.min(1, v)))}
+                    onSet={(v) => setSnowCoverStrength(v)}
                     min={0}
                     max={1}
                     step={0.05}
@@ -5839,11 +5772,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${Math.round(confettiAmount)}`}
                       rawValue={confettiAmount}
-                      onSet={(v) =>
-                        setConfettiAmount(
-                          Math.max(0, Math.min(mx("confettiAmount"), Math.round(v))),
-                        )
-                      }
+                      onSet={(v) => setConfettiAmount(Math.round(v))}
                       min={0}
                       max={mx("confettiAmount")}
                       step={500}
@@ -5859,9 +5788,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${Math.round(confettiIntensity * 100)}%`}
                       rawValue={confettiIntensity}
-                      onSet={(v) =>
-                        setConfettiIntensity(Math.max(0, Math.min(mx("confettiIntensity"), v)))
-                      }
+                      onSet={(v) => setConfettiIntensity(v)}
                       min={0}
                       max={mx("confettiIntensity")}
                       step={0.05}
@@ -5906,7 +5833,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${Math.round(confettiFlutter * 100)}%`}
                       rawValue={confettiFlutter}
-                      onSet={(v) => setConfettiFlutter(Math.max(0, Math.min(2, v)))}
+                      onSet={(v) => setConfettiFlutter(v)}
                       min={0}
                       max={2}
                       step={0.05}
@@ -5928,9 +5855,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${Math.round(fireworksIntensity * 100)}%`}
                       rawValue={fireworksIntensity}
-                      onSet={(v) =>
-                        setFireworksIntensity(Math.max(0, Math.min(mx("fireworksIntensity"), v)))
-                      }
+                      onSet={(v) => setFireworksIntensity(v)}
                       min={0}
                       max={mx("fireworksIntensity")}
                       step={0.05}
@@ -5948,9 +5873,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${Math.round(fireworksRate)}`}
                       rawValue={fireworksRate}
-                      onSet={(v) =>
-                        setFireworksRate(Math.max(1, Math.min(mx("fireworksRate"), Math.round(v))))
-                      }
+                      onSet={(v) => setFireworksRate(Math.round(v))}
                       min={1}
                       max={mx("fireworksRate")}
                       step={1}
@@ -5964,7 +5887,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${Math.round(fireworksDistance)} m`}
                       rawValue={fireworksDistance}
-                      onSet={(v) => setFireworksDistance(Math.max(50, Math.min(1500, Math.round(v))))}
+                      onSet={(v) => setFireworksDistance(Math.round(v))}
                       min={50}
                       max={1500}
                       step={25}
@@ -5983,7 +5906,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                         mode="number"
                         value={`${Math.round(fireworksLightStrength * 100)}%`}
                         rawValue={fireworksLightStrength}
-                        onSet={(v) => setFireworksLightStrength(Math.max(0, Math.min(3, v)))}
+                        onSet={(v) => setFireworksLightStrength(v)}
                         min={0}
                         max={3}
                         step={0.1}
@@ -6007,7 +5930,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                         mode="number"
                         value={`${Math.round(fireworksVolume * 100)}%`}
                         rawValue={fireworksVolume}
-                        onSet={(v) => setFireworksVolume(Math.max(0, Math.min(1, v)))}
+                        onSet={(v) => setFireworksVolume(v)}
                         min={0}
                         max={1}
                         step={0.05}
@@ -6045,7 +5968,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${torusRadius.toFixed(2)}m`}
                       rawValue={torusRadius}
-                      onSet={(v) => setTorusRadius(Math.max(0.1, Math.min(5, v)))}
+                      onSet={(v) => setTorusRadius(v)}
                       min={0.1}
                       max={5}
                       step={0.05}
@@ -6057,7 +5980,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${torusTube.toFixed(2)}m`}
                       rawValue={torusTube}
-                      onSet={(v) => setTorusTube(Math.max(0.01, Math.min(1, v)))}
+                      onSet={(v) => setTorusTube(v)}
                       min={0.01}
                       max={1}
                       step={0.01}
@@ -6069,7 +5992,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${torusScale.toFixed(2)}x`}
                       rawValue={torusScale}
-                      onSet={(v) => setTorusScale(Math.max(0.1, Math.min(20, v)))}
+                      onSet={(v) => setTorusScale(v)}
                       min={0.1}
                       max={20}
                       step={0.1}
@@ -6081,7 +6004,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${Math.round(torusOpacity * 100)}%`}
                       rawValue={torusOpacity}
-                      onSet={(v) => setTorusOpacity(Math.max(0, Math.min(1, v)))}
+                      onSet={(v) => setTorusOpacity(v)}
                       min={0}
                       max={1}
                       step={0.05}
@@ -6103,7 +6026,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${torusCellSize.toFixed(1)}m`}
                       rawValue={torusCellSize}
-                      onSet={(v) => setTorusCellSize(Math.max(0, Math.min(60, v)))}
+                      onSet={(v) => setTorusCellSize(v)}
                       min={0}
                       max={60}
                       step={0.5}
@@ -6115,7 +6038,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${torusVerticalSpacing.toFixed(1)}m`}
                       rawValue={torusVerticalSpacing}
-                      onSet={(v) => setTorusVerticalSpacing(Math.max(0, Math.min(20, v)))}
+                      onSet={(v) => setTorusVerticalSpacing(v)}
                       min={0}
                       max={20}
                       step={0.1}
@@ -6131,7 +6054,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${torusVerticalCount}`}
                       rawValue={torusVerticalCount}
-                      onSet={(v) => setTorusVerticalCount(Math.max(1, Math.min(21, Math.round(v))))}
+                      onSet={(v) => setTorusVerticalCount(Math.max(1, Math.round(v)))}
                       min={1}
                       max={21}
                       step={2}
@@ -6143,7 +6066,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${torusViewDistance.toFixed(0)}m`}
                       rawValue={torusViewDistance}
-                      onSet={(v) => setTorusViewDistance(Math.max(4, Math.min(400, v)))}
+                      onSet={(v) => setTorusViewDistance(v)}
                       min={4}
                       max={400}
                       step={2}
@@ -6155,7 +6078,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${torusFadeDistance.toFixed(1)}m`}
                       rawValue={torusFadeDistance}
-                      onSet={(v) => setTorusFadeDistance(Math.max(0.5, Math.min(100, v)))}
+                      onSet={(v) => setTorusFadeDistance(v)}
                       min={0.5}
                       max={100}
                       step={0.5}
@@ -6229,7 +6152,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                           mode="number"
                           value={`${neonFrequency.toFixed(2)} Hz`}
                           rawValue={neonFrequency}
-                          onSet={(v) => setNeonFrequency(Math.max(0.05, Math.min(10, v)))}
+                          onSet={(v) => setNeonFrequency(v)}
                           min={0.05}
                           max={10}
                           step={0.05}
@@ -6247,7 +6170,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${Math.round(neonStrength * 100)}%`}
                       rawValue={neonStrength}
-                      onSet={(v) => setNeonStrength(Math.max(0, Math.min(3, v)))}
+                      onSet={(v) => setNeonStrength(v)}
                       min={0}
                       max={3}
                       step={0.1}
@@ -6259,7 +6182,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${neonWidth.toFixed(1)}px`}
                       rawValue={neonWidth}
-                      onSet={(v) => setNeonWidth(Math.max(0.5, Math.min(12, v)))}
+                      onSet={(v) => setNeonWidth(v)}
                       min={0.5}
                       max={12}
                       step={0.5}
@@ -6282,7 +6205,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                       mode="number"
                       value={`${Math.round(neonTintAmount * 100)}%`}
                       rawValue={neonTintAmount}
-                      onSet={(v) => setNeonTintAmount(Math.max(0, Math.min(1, v)))}
+                      onSet={(v) => setNeonTintAmount(v)}
                       min={0}
                       max={1}
                       step={0.05}
