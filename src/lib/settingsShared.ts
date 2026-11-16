@@ -3,7 +3,7 @@ import sandTextureAsset from "@/assets/sand_cc0_512.jpg.asset.json";
 import waterAsset from "@/assets/water.mp3.asset.json";
 import type { WindSource } from "@/lib/wind";
 import type { OpenDriftCurve, OpenDriftDirection } from "@/lib/openDrift";
-import type { HoodLayer, HoodStyle } from "@/lib/hoodLayers";
+import type { HoodCuffMaterial, HoodLayer, HoodStyle } from "@/lib/hoodLayers";
 
 // Shared between the main HUD's settings dialog (routes/index.tsx) and its
 // clone rendered as the "Inställningar" app inside the virtual phone's bathOS
@@ -461,6 +461,10 @@ export type Persisted = {
   hoodCuffOn: boolean;
   hoodCuffHeight: number;
   hoodCuffSize: number;
+  hoodCuffCustom: boolean;
+  hoodCuffColor: string;
+  hoodCuffMetallic: number;
+  hoodCuffMaterial: HoodCuffMaterial;
   hoodHanging: boolean;
   hoodWaterCalm: number;
   hoodCuffTop: boolean;
@@ -1176,6 +1180,10 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "hoodCuffOn",
     "hoodCuffHeight",
     "hoodCuffSize",
+    "hoodCuffCustom",
+    "hoodCuffColor",
+    "hoodCuffMetallic",
+    "hoodCuffMaterial",
     "hoodHanging",
     "hoodWaterCalm",
     "hoodCuffTop",

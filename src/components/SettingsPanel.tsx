@@ -24,7 +24,7 @@ import { Save } from "lucide-react";
 import { SettingRow } from "@/components/SettingRow";
 import { WindSettings, type WindControls } from "@/components/WindPanel";
 import { HoodSettings } from "@/components/HoodSettings";
-import type { HoodLayer, HoodStyle } from "@/lib/hoodLayers";
+import type { HoodCuffMaterial, HoodLayer, HoodStyle } from "@/lib/hoodLayers";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { hsvToRgb, tintToCss } from "@/lib/waterTint";
 import {
@@ -806,6 +806,10 @@ export type SettingsPanelProps = {
   hoodCuffHeight: number;
   setHoodCuffHeight: Dispatch<SetStateAction<number>>;
   hoodCuffSize: number;
+  hoodCuffCustom: boolean;
+  hoodCuffColor: string;
+  hoodCuffMetallic: number;
+  hoodCuffMaterial: HoodCuffMaterial;
   hoodHanging: boolean;
   hoodWaterCalm: number;
   hoodCuffTop: boolean;
@@ -815,6 +819,10 @@ export type SettingsPanelProps = {
   hoodPuffThickness: number;
   hoodPuffInflate: number;
   setHoodCuffSize: Dispatch<SetStateAction<number>>;
+  setHoodCuffCustom: Dispatch<SetStateAction<boolean>>;
+  setHoodCuffColor: Dispatch<SetStateAction<string>>;
+  setHoodCuffMetallic: Dispatch<SetStateAction<number>>;
+  setHoodCuffMaterial: Dispatch<SetStateAction<HoodCuffMaterial>>;
   setHoodHanging: Dispatch<SetStateAction<boolean>>;
   setHoodWaterCalm: Dispatch<SetStateAction<number>>;
   setHoodCuffTop: Dispatch<SetStateAction<boolean>>;
@@ -1968,6 +1976,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
     hoodCuffHeight,
     setHoodCuffHeight,
     hoodCuffSize,
+    hoodCuffCustom,
+    hoodCuffColor,
+    hoodCuffMetallic,
+    hoodCuffMaterial,
     hoodHanging,
     hoodWaterCalm,
     hoodCuffTop,
@@ -1977,6 +1989,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
     hoodPuffThickness,
     hoodPuffInflate,
     setHoodCuffSize,
+    setHoodCuffCustom,
+    setHoodCuffColor,
+    setHoodCuffMetallic,
+    setHoodCuffMaterial,
     setHoodHanging,
     setHoodWaterCalm,
     setHoodCuffTop,
@@ -4300,6 +4316,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     cuff: hoodCuffOn,
                     cuffHeight: hoodCuffHeight,
                     cuffSize: hoodCuffSize,
+                    cuffCustom: hoodCuffCustom,
+                    cuffColor: hoodCuffColor,
+                    cuffMetallic: hoodCuffMetallic,
+                    cuffMaterial: hoodCuffMaterial,
                     hanging: hoodHanging,
                     waterCalm: hoodWaterCalm,
                     cuffTop: hoodCuffTop,
@@ -4332,6 +4352,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     if (p.cuff !== undefined) setHoodCuffOn(p.cuff);
                     if (p.cuffHeight !== undefined) setHoodCuffHeight(p.cuffHeight);
                     if (p.cuffSize !== undefined) setHoodCuffSize(p.cuffSize);
+                    if (p.cuffCustom !== undefined) setHoodCuffCustom(p.cuffCustom);
+                    if (p.cuffColor !== undefined) setHoodCuffColor(p.cuffColor);
+                    if (p.cuffMetallic !== undefined) setHoodCuffMetallic(p.cuffMetallic);
+                    if (p.cuffMaterial !== undefined) setHoodCuffMaterial(p.cuffMaterial);
                     if (p.hanging !== undefined) setHoodHanging(p.hanging);
                     if (p.waterCalm !== undefined) setHoodWaterCalm(p.waterCalm);
                     if (p.cuffTop !== undefined) setHoodCuffTop(p.cuffTop);

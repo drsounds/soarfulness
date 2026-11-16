@@ -73,6 +73,14 @@ export type HoodConfig = {
    */
   cuffTop: boolean;
   /**
+   * EGEN MUDD: the cuff gets its own look instead of the hood's:
+   * MUDDFÄRG, MUDDGLANS and MUDDMATERIAL (ribbed knit, smooth stretch, rubber).
+   */
+  cuffCustom: boolean;
+  cuffColor: string;
+  cuffMetallic: number;
+  cuffMaterial: "knit" | "smooth" | "rubber";
+  /**
    * HÄNGER FRÅN TOPPEN: the hood hangs from the top of the head. The top
    * follows you, the bottom lags (more with TYNGD) and twists like wet
    * cloth in the water. Off: the whole hood sways as one piece (the old look).
@@ -143,6 +151,10 @@ const FRAG = /* glsl */ `
   uniform float uCuffHeight;
   uniform float uCuffSize;
   uniform float uCuffTop;
+  uniform float uCuffCustom;
+  uniform vec3 uCuffColor;
+  uniform float uCuffMetal;
+  uniform float uCuffMat;
   uniform float uZipFixed;
   uniform float uZipPullOut;
   uniform float uMetal;
@@ -158,6 +170,9 @@ const FRAG = /* glsl */ `
   const float HEM = 0.075;
   // Set by hoodField(): 1 inside the MUDD (cuff) band.
   float gCuff = 0.0;
+  // MUDD VID HALSKANT: the rib (0 groove .. 1 crest) and how far down the band.
+  float gCuffRib = 0.5;
+  float gCuffX = 0.0;
 
   // x: how far into the fabric (0 at the opening's edge, < 0 in the opening),
   // y: fabric height, z: bottom-cut distance (> 0 where the fabric exists).
@@ -278,18 +293,38 @@ const FRAG = /* glsl */ `
     // MUDDHÖJD sets the band's height, RIBBSTORLEK the ribs' width.
     gCuff = 0.0;
     if (uCuff > 0.5 && uCuffTop > 0.5) {
-      // MUDD VID HALSKANT: a ribbed band along the opening's lower edge (the
-      // top of the funnel neck), hanging down from it into the cloth. It is
-      // laid out around the opening's center, so it moves with the cloth;
-      // it tapers off where the sides turn up into the hood.
-      float H = mix(0.06, 0.45, clamp(uCuffHeight, 0.0, 1.0));
-      float Hq = H * (1.0 - smoothstep(-0.4, -0.02, q.y));
-      float x = clamp(t / max(Hq, 1e-3), 0.0, 1.0);
-      float mask = (1.0 - smoothstep(Hq - 0.006, Hq, t)) * step(0.0, t) * step(0.002, Hq);
-      float freq = mix(240.0, 50.0, clamp(uCuffSize, 0.0, 1.0));
-      float ribs = 0.011 * (0.5 + 0.5 * cos(ang * freq * 0.35));
-      // The band keeps the cloth's own curve, with a rolled, ribbed bulge.
-      h += (sin(3.14159 * x) * 0.03 + ribs) * mask;
+      // MUDD VID HALSKANT, fixed to the cloth (laid out from the opening's
+      // center, which sways with the hood). With MUN OCH HALS the cuff is
+      // the top of the funnel neck: a knit band starting right at the neck
+      // cover's top edge (the opening's lower edge) and running down from
+      // it. Without the cover it is the hem band along the hood's bottom
+      // edge. MUDDHÖJD sets the band's height, RIBBSTORLEK the ribs' width.
+      float H = mix(0.08, 0.6, clamp(uCuffHeight, 0.0, 1.0));
+      float v;
+      float Hq;
+      float s;
+      if (uLower > 0.5) {
+        v = t;
+        // Full height under the face, narrowing to nothing where the edge
+        // turns up into the hood's sides.
+        Hq = H * (1.0 - smoothstep(-0.3, 0.0, q.y));
+        s = ang * 1.25;
+      } else {
+        v = cut;
+        Hq = H;
+        s = q.x;
+      }
+      float x = clamp(v / max(Hq, 1e-3), 0.0, 1.0);
+      float aa = 0.006;
+      float mask = (1.0 - smoothstep(Hq - aa, Hq, v)) * smoothstep(-0.002, 0.004, v) * step(0.004, Hq);
+      float freq = mix(300.0, 70.0, clamp(uCuffSize, 0.0, 1.0));
+      float rib = 0.5 + 0.5 * cos(s * freq);
+      // MUDDMATERIAL: smooth stretch and rubber have no ribs.
+      if (uCuffCustom > 0.5 && uCuffMat > 0.5) rib = 0.5;
+      gCuffRib = rib;
+      gCuffX = x;
+      // A rolled, ribbed band on the cloth's own curve.
+      h += (sin(3.14159 * x) * 0.03 + 0.012 * rib) * mask;
       gCuff = mask;
     } else if (uCuff > 0.5) {
       float cuffV = uLower > 0.5 ? p.y + 1.0 - uSway.y * 0.5 : cut;
@@ -347,6 +382,8 @@ const FRAG = /* glsl */ `
     vec2 p = hangWarp(vec2(vNdc.x * uAspect, vNdc.y));
     vec3 f = hoodField(p);
     float cuffMask = gCuff;
+    float cuffRib = gCuffRib;
+    float cuffX = gCuffX;
     float t = f.x;
     float cut = f.z;
     float aaT = max(fwidth(t), 1e-4) * 1.5;
@@ -398,11 +435,19 @@ const FRAG = /* glsl */ `
     float m = clamp(uMetal, 0.0, 1.0);
     // SKALJACKA: coated nylon always has some gloss.
     if (uStyle > 2.5 && uStyle < 3.5) m = max(m, 0.3);
-    m = mix(m, m * 0.3, cuffMask); // knit cuffs stay mostly matte
+    // Knit cuffs stay mostly matte; EGEN MUDD sets its own gloss (rubber is
+    // always fairly glossy).
+    float cuffM = m * 0.3;
+    if (uCuffCustom > 0.5) {
+      cuffM = clamp(uCuffMetal, 0.0, 1.0);
+      if (uCuffMat > 1.5) cuffM = max(cuffM, 0.6);
+    }
+    m = mix(m, cuffM, cuffMask);
     // REFLEKTERAR LJUS: wet cloth is darker but still lit; it doesn't go
     // nearly as dark as a mirror would.
     float wetDark = uReflLight > 0.5 ? 0.8 : 0.55;
-    vec3 base = uColor * mix(1.0, wetDark, m) * mix(1.0, 0.82, cuffMask); // wet cloth reads darker
+    vec3 fabric = uCuffCustom > 0.5 ? mix(uColor, uCuffColor, cuffMask) : uColor;
+    vec3 base = fabric * mix(1.0, wetDark, m) * mix(1.0, uCuffCustom > 0.5 ? 0.95 : 0.82, cuffMask); // wet cloth reads darker
     // MÖRKHET: darker lighting overall, for really dark fabric.
     float light = mix(1.0, 0.18, clamp(uDark, 0.0, 1.0));
     vec3 ambient = (mix(uHorizon, uSky, 0.5 + 0.5 * N.y) * 0.6 + 0.1) * light;
@@ -410,7 +455,7 @@ const FRAG = /* glsl */ `
     float diff = (0.35 + 0.65 * max(dot(N, L), 0.0)) * sunUp;
     vec3 col = base * (ambient * ao + uSunCol * diff * ao * 0.7 * light) * mix(1.0, wetDark, m);
 
-    vec3 F0 = mix(vec3(0.04), max(uColor, vec3(0.15)), m * 0.75);
+    vec3 F0 = mix(vec3(0.04), max(fabric, vec3(0.15)), m * 0.75);
     float ndv = clamp(dot(N, V), 0.0, 1.0);
     vec3 fres = F0 + (1.0 - F0) * pow(1.0 - ndv, 5.0);
     // The hood's folds mostly face the camera, so a plain mirror reflects
@@ -435,6 +480,15 @@ const FRAG = /* glsl */ `
     // A soft broad sheen along the gathers' crests, the wet-fabric look.
     col += (uReflLight > 0.5 ? mix(uHorizon, uSky, 0.6) * 0.9 + 0.05 : env(N)) * m * 0.18 * smoothstep(0.55, 1.0, ndv) * ao * light;
     col *= hemLight + 0.35;
+    if (uCuffTop > 0.5 && cuffMask > 0.0 && !(uCuffCustom > 0.5 && uCuffMat > 0.5)) {
+      // Knit ribs: dark grooves between lit crests, a fold line where the
+      // band starts and a stitched seam where it ends, so it reads clearly
+      // as a separate cuff from inside.
+      float shade = mix(0.7, 1.25, smoothstep(0.15, 0.85, cuffRib));
+      shade *= mix(0.8, 1.0, smoothstep(0.0, 0.12, cuffX));
+      shade *= mix(0.55, 1.0, smoothstep(0.86, 0.97, 1.0 - cuffX));
+      col = mix(col, col * shade, cuffMask);
+    }
 
     // BLIXTLÅS: a zipper down the middle of the mouth/neck cover, with the
     // slider and its pull tab at the top.
@@ -548,6 +602,10 @@ export class Hood {
     uCuffHeight: { value: number };
     uCuffSize: { value: number };
     uCuffTop: { value: number };
+    uCuffCustom: { value: number };
+    uCuffColor: { value: THREE.Color };
+    uCuffMetal: { value: number };
+    uCuffMat: { value: number };
     uZipFixed: { value: number };
     uZipPullOut: { value: number };
     uMetal: { value: number };
@@ -574,6 +632,7 @@ export class Hood {
   private waterVel = 0;
   private hasWater = false;
   private colorHex = "";
+  private cuffColorHex = "";
   /** 0..1: how soaked (and so how swollen) the padding is right now. */
   private soak = 0;
   private readonly tmpQ = new THREE.Quaternion();
@@ -614,6 +673,10 @@ export class Hood {
       uCuffHeight: { value: 0.3 },
       uCuffSize: { value: 0.5 },
       uCuffTop: { value: 1 },
+      uCuffCustom: { value: 0 },
+      uCuffColor: { value: new THREE.Color() },
+      uCuffMetal: { value: 0.15 },
+      uCuffMat: { value: 0 },
       uZipFixed: { value: 1 },
       uZipPullOut: { value: 1 },
       uMetal: { value: 0.5 },
@@ -680,6 +743,14 @@ export class Hood {
     u.uCuffHeight.value = THREE.MathUtils.clamp(cfg.cuffHeight, 0, 1);
     u.uCuffSize.value = THREE.MathUtils.clamp(cfg.cuffSize, 0, 1);
     u.uCuffTop.value = cfg.cuffTop === false ? 0 : 1;
+    u.uCuffCustom.value = cfg.cuffCustom ? 1 : 0;
+    u.uCuffMetal.value = THREE.MathUtils.clamp(cfg.cuffMetallic ?? 0.15, 0, 1);
+    u.uCuffMat.value = cfg.cuffMaterial === "smooth" ? 1 : cfg.cuffMaterial === "rubber" ? 2 : 0;
+    if (cfg.cuffColor && cfg.cuffColor !== this.cuffColorHex) {
+      this.cuffColorHex = cfg.cuffColor;
+      const hex = parseInt(cfg.cuffColor.replace("#", ""), 16);
+      u.uCuffColor.value.setHex(Number.isFinite(hex) ? hex : 0x1f2a40, THREE.LinearSRGBColorSpace);
+    }
     u.uZipFixed.value = cfg.zipperFixed === false ? 0 : 1;
     u.uZipPullOut.value = cfg.zipperPullOut === false ? 0 : 1;
     u.uWaterLevelIn.value = THREE.MathUtils.clamp(cfg.waterInsideLevel, 0, 1);
