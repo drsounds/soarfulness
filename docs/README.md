@@ -34,3 +34,9 @@ notes specific to its Godot implementation.
    Real, peer-reviewed studies on optic flow, vection, rocking/vestibular
    stimulation and watching water, with Harvard citations and PubMed/DOI
    links, that the design reasoning above draws on.
+
+## Code structure
+
+- **[Apps: the plugin architecture](architecture/apps.md)**
+  How features are organized as apps under `src/apps/`, the manifest and
+  settings contract, the registry, and the migration plan.

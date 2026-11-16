@@ -18,16 +18,16 @@ import {
   type OpenDriftDirection,
   OPEN_DRIFT_CURVES,
   OPEN_DRIFT_DIRECTIONS,
-} from "@/lib/openDrift";
+} from "@/apps/open-drift/OpenDrift";
 import { Link } from "@tanstack/react-router";
 import { SettingRow } from "@/components/SettingRow";
 import { SkyLookSettings } from "@/components/SkyLookSettings";
-import { DecorationSettings, type DecorationControls } from "@/components/DecorationPanel";
+import { DecorationSettings, type DecorationControls } from "@/apps/decorations/DecorationPanel";
 import { Findable, G, SETTINGS_GROUPS, SettingsNavigator } from "@/components/settingsNav";
-import { WindSettings, type WindControls } from "@/components/WindPanel";
-import { HoodSettings } from "@/components/HoodSettings";
-import { StringLightsSettings } from "@/components/StringLightsSettings";
-import type { HoodCuffMaterial, HoodLayer, HoodStyle } from "@/lib/hoodLayers";
+import { WindSettings, type WindControls } from "@/apps/wind/WindPanel";
+import { HoodPanel } from "@/apps/hood/HoodPanel";
+import type { HoodCuffMaterial, HoodLayer, HoodStyle } from "@/apps/hood/hoodLayers";
+import { StringLightsPanel } from "@/apps/string-lights/StringLightsPanel";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { hsvToRgb, tintToCss } from "@/lib/waterTint";
 import {
@@ -488,9 +488,9 @@ type EnvOption = NamedOption & { eras: EnvEraOption[] };
 // stay in sync (there is only one wave simulation, one camera, etc).
 export type SettingsPanelProps = {
   // DEKORATIONER: the current scene's placed .glb models
-  // (components/DecorationPanel.tsx).
+  // (apps/decorations/DecorationPanel.tsx).
   decorations: DecorationControls;
-  // VIND: the wind list, its effects and sound (components/WindPanel.tsx).
+  // VIND: the wind list, its effects and sound (apps/wind/WindPanel.tsx).
   wind: WindControls;
   restoreCameraPosition: () => void;
   resetToDefaults: () => void;
@@ -859,7 +859,7 @@ export type SettingsPanelProps = {
   setGogglesIntensity: Dispatch<SetStateAction<number>>;
   gogglesFpsCap: number;
   setGogglesFpsCap: Dispatch<SetStateAction<number>>;
-  // HUVA (lib/sceneFx/hood.ts).
+  // HUVA (apps/hood/Hood.ts).
   hoodOn: boolean;
   setHoodOn: Dispatch<SetStateAction<boolean>>;
   hoodHeight: number;
@@ -3613,7 +3613,6 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
                   />
                 </label>
-                <StringLightsSettings />
               </>
             )}
           </>
@@ -4198,7 +4197,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
           onDec={() => setGogglesFpsCap((v) => Math.max(10, v - 5))}
           onInc={() => setGogglesFpsCap((v) => Math.min(60, v + 5))}
         />
-        <HoodSettings
+        <HoodPanel
           hoodOn={hoodOn}
           setHoodOn={setHoodOn}
           layer1={{
@@ -6280,6 +6279,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
               className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
             />
           </label>
+        </Findable>
+        <Findable label={t("stringLights.title")}>
+          <StringLightsPanel />
         </Findable>
       </G>
       {/* ── ljud ── */}

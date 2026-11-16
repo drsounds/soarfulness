@@ -1,0 +1,15 @@
+{
+  "$schema": "../../core/apps/manifest.schema.json",
+  "id": "rain",
+  "name": "REGN",
+  "title": "Rain",
+  "version": "1.0.0",
+  "description": "Rain streaks around the camera that slant with the wind, splash rings on the water and synthesized rain sound.",
+  "kind": "scene-fx",
+  "settingsGroup": "weather",
+  "defaultEnabled": false,
+  "dependencies": {
+    "day-night": "^1.0.0",
+    "wind": "^1.0.0"
+  }
+}

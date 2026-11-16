@@ -1,0 +1,12 @@
+{
+  "$schema": "../../core/apps/manifest.schema.json",
+  "id": "retro",
+  "name": "RETRO",
+  "title": "Retro look",
+  "version": "1.0.0",
+  "description": "Full-screen 1990s post-process: pixelation, palette quantization, Bayer dither and scanlines.",
+  "kind": "screen-fx",
+  "settingsGroup": "graphics",
+  "defaultEnabled": false,
+  "dependencies": {}
+}

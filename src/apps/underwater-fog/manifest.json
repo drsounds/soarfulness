@@ -1,0 +1,12 @@
+{
+  "$schema": "../../core/apps/manifest.schema.json",
+  "id": "underwater-fog",
+  "name": "UNDERVATTENDIS",
+  "title": "Underwater fog",
+  "version": "1.0.0",
+  "description": "A screen gradient from a fog color to the water color, docked to the on-screen waterline.",
+  "kind": "screen-fx",
+  "settingsGroup": "weather",
+  "defaultEnabled": false,
+  "dependencies": {}
+}
