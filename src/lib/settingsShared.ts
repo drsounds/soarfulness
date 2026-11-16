@@ -1,3 +1,4 @@
+import type { SkyLook } from "@/lib/skyLook";
 import vanernBackdrop from "@/assets/vanern-backdrop.png.asset.json";
 import sandTextureAsset from "@/assets/sand_cc0_512.jpg.asset.json";
 import waterAsset from "@/assets/water.mp3.asset.json";
@@ -684,6 +685,9 @@ export type Persisted = {
   waterGlowColor: string;
   waterGlowStrength: number;
   waterGlowEveningOnly: boolean;
+  // HIMMELSLJUS: SOLTONING options, skybox rotation, sun in the sky and
+  // scene light levels (lib/skyLook.ts), kept as one object.
+  skyLook: SkyLook;
   cameraMode: CameraMode;
   noclipSpeed: number;
   // FRITT FALL/OMVÄND STIGNING's terminal vertical speed in m/s (at
@@ -1077,6 +1081,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "torusViewDistance",
     "torusFadeDistance",
     ...DAY_NIGHT_SETTING_KEYS,
+    "skyLook",
     ...SNOW_SETTING_KEYS,
     ...FIREWORKS_SETTING_KEYS,
     ...CONFETTI_SETTING_KEYS,

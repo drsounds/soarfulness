@@ -1544,5 +1544,23 @@
       "local": "LOCAL",
       "world": "WORLD"
     }
+  },
+  "skyLook": {
+    "tintStrength": "SÄVYN VOIMAKKUUS",
+    "tintWidth": "KULTAISEN TUNNIN PITUUS",
+    "tintSpread": "SÄVYN LAAJUUS",
+    "tintColorMode": "SÄVYN VÄRI",
+    "tintColorModeValue": {
+      "sun": "AURINKO",
+      "sky": "TAIVAALTA",
+      "custom": "OMA"
+    },
+    "tintColor": "VÄRI",
+    "rotation": "TAIVAAN KIERTO",
+    "sunDisc": "AURINKO TAIVAALLA",
+    "sunDiscSize": "AURINGON KOKO",
+    "sunDiscGlow": "AURINGON HEHKU",
+    "sceneSunLight": "AURINGONVALO KOHTAUKSESSA",
+    "sceneSkyLight": "TAIVAANVALO KOHTAUKSESSA"
   }
 }

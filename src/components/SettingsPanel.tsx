@@ -21,6 +21,7 @@ import {
 } from "@/apps/open-drift/OpenDrift";
 import { Link } from "@tanstack/react-router";
 import { SettingRow } from "@/components/SettingRow";
+import { SkyLookSettings } from "@/components/SkyLookSettings";
 import { DecorationSettings, type DecorationControls } from "@/apps/decorations/DecorationPanel";
 import { Findable, G, SETTINGS_GROUPS, SettingsNavigator } from "@/components/settingsNav";
 import { WindSettings, type WindControls } from "@/apps/wind/WindPanel";
@@ -4307,6 +4308,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
           onDec={() => setShadowsOn(false)}
           onInc={() => setShadowsOn(true)}
         />
+        <SkyLookSettings part="light" />
         <SettingRow
           label={t("dial.camera.retro")}
           value={onOff(retroOn)}
@@ -5268,6 +5270,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onDec={() => setEnvSunTintOn(false)}
               onInc={() => setEnvSunTintOn(true)}
             />
+            {envSunTintOn && <SkyLookSettings part="tint" />}
+            <SkyLookSettings part="skybox" />
             <SettingRow
               label={t("dial.env.dayNightAuto")}
               value={onOff(envDayNightAutoOn)}
