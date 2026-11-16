@@ -42,6 +42,8 @@ export type HoodSettings = {
   hoodCuffOn: boolean;
   hoodCuffHeight: number;
   hoodCuffSize: number;
+  hoodTopPart: boolean;
+  hoodCollarUp: boolean;
   // SKUGGA PÅ VYN: the hood shades the view behind it (off by default).
   hoodViewShadow: boolean;
   hoodCuffCustom: boolean;
@@ -84,6 +86,8 @@ export const HOOD_DEFAULTS: HoodSettings = {
   hoodCuffOn: false,
   hoodCuffHeight: 0.3,
   hoodCuffSize: 0.5,
+  hoodTopPart: true,
+  hoodCollarUp: false,
   hoodViewShadow: false,
   hoodCuffCustom: false,
   hoodCuffColor: "#1f2a40",

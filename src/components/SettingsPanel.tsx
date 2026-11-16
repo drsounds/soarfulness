@@ -905,6 +905,8 @@ export type SettingsPanelProps = {
   hoodCuffHeight: number;
   setHoodCuffHeight: Dispatch<SetStateAction<number>>;
   hoodCuffSize: number;
+  hoodTopPart: boolean;
+  hoodCollarUp: boolean;
   hoodViewShadow: boolean;
   hoodCuffCustom: boolean;
   hoodCuffColor: string;
@@ -919,6 +921,8 @@ export type SettingsPanelProps = {
   hoodPuffThickness: number;
   hoodPuffInflate: number;
   setHoodCuffSize: Dispatch<SetStateAction<number>>;
+  setHoodTopPart: Dispatch<SetStateAction<boolean>>;
+  setHoodCollarUp: Dispatch<SetStateAction<boolean>>;
   setHoodViewShadow: Dispatch<SetStateAction<boolean>>;
   setHoodCuffCustom: Dispatch<SetStateAction<boolean>>;
   setHoodCuffColor: Dispatch<SetStateAction<string>>;
@@ -1994,6 +1998,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     hoodCuffHeight,
     setHoodCuffHeight,
     hoodCuffSize,
+    hoodTopPart,
+    hoodCollarUp,
     hoodViewShadow,
     hoodCuffCustom,
     hoodCuffColor,
@@ -2008,6 +2014,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     hoodPuffThickness,
     hoodPuffInflate,
     setHoodCuffSize,
+    setHoodTopPart,
+    setHoodCollarUp,
     setHoodViewShadow,
     setHoodCuffCustom,
     setHoodCuffColor,
@@ -4224,6 +4232,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
             cuff: hoodCuffOn,
             cuffHeight: hoodCuffHeight,
             cuffSize: hoodCuffSize,
+            hoodTop: hoodTopPart,
+            collarUp: hoodCollarUp,
             viewShadow: hoodViewShadow,
             cuffCustom: hoodCuffCustom,
             cuffColor: hoodCuffColor,
@@ -4261,6 +4271,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
             if (p.cuff !== undefined) setHoodCuffOn(p.cuff);
             if (p.cuffHeight !== undefined) setHoodCuffHeight(p.cuffHeight);
             if (p.cuffSize !== undefined) setHoodCuffSize(p.cuffSize);
+            if (p.hoodTop !== undefined) setHoodTopPart(p.hoodTop);
+            if (p.collarUp !== undefined) setHoodCollarUp(p.collarUp);
             if (p.viewShadow !== undefined) setHoodViewShadow(p.viewShadow);
             if (p.cuffCustom !== undefined) setHoodCuffCustom(p.cuffCustom);
             if (p.cuffColor !== undefined) setHoodCuffColor(p.cuffColor);
