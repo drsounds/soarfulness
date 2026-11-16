@@ -42,6 +42,7 @@ import { UNDERWATER_FOG_DEFAULTS } from "@/apps/underwater-fog/settings";
 import { OPEN_DRIFT_DEFAULTS } from "@/apps/open-drift/settings";
 import { WIND_DEFAULTS } from "@/apps/wind/settings";
 import { DECORATIONS_DEFAULTS } from "@/apps/decorations/settings";
+import { StringLightsFx } from "@/apps/string-lights/StringLightsFx";
 import {
   WindField,
   altitudeMix,
@@ -2952,6 +2953,11 @@ export function Aquafulness() {
   const confettiPaletteRef = useRef(confettiPalette);
   const confettiFlutterRef = useRef(confettiFlutter);
   const neonOnRef = useRef(neonOn);
+  // LJUSSLINGOR are kept per scene (see apps/string-lights/stringLights.ts).
+  const stringLightsSceneRef = useRef(sceneId);
+  useEffect(() => {
+    stringLightsSceneRef.current = sceneId;
+  }, [sceneId]);
   const neonModeRef = useRef(neonMode);
   const neonPrimaryRef = useRef(neonPrimary);
   const neonSecondaryRef = useRef(neonSecondary);
@@ -9195,6 +9201,8 @@ export function Aquafulness() {
     // NEON edge lines along the loaded scene's meshes — see NeonEdges.
     const neonEdges = new NeonEdges(scene);
     neonEdges.setResolution(mount.clientWidth, mount.clientHeight);
+    // LJUSSLINGOR: decorative string lights (see apps/string-lights/StringLightsFx.ts).
+    const stringLights = new StringLightsFx(scene);
     // SNÖ: falling flakes around the camera, and SNÖTÄCKE whitening of the
     // loaded scene (see apps/snow/Snowfall.ts).
     const snowfall = new Snowfall(scene);
@@ -12085,6 +12093,14 @@ export function Aquafulness() {
         }
       }
 
+      // LJUSSLINGOR: the current scene's string lights, animated.
+      stringLights.update(now / 1000, camera, {
+        sceneId: stringLightsSceneRef.current,
+        waterY: ocean.position.y,
+        night: nightBackdropMix(todRef.current),
+        viewportHeight: mount.clientHeight,
+      });
+
       // SNÖ: flakes follow the camera; SNÖTÄCKE patches the loaded scene's
       // materials once per model (the shared uniform does the rest).
       {
@@ -12323,6 +12339,7 @@ export function Aquafulness() {
       retroPass.dispose();
       composer.dispose();
       neonEdges.dispose();
+      stringLights.dispose();
       aurora.dispose();
       windAudio.dispose();
       windField.reset();

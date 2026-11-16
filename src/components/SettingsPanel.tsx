@@ -26,6 +26,7 @@ import { Findable, G, SETTINGS_GROUPS, SettingsNavigator } from "@/components/se
 import { WindSettings, type WindControls } from "@/apps/wind/WindPanel";
 import { HoodPanel } from "@/apps/hood/HoodPanel";
 import type { HoodCuffMaterial, HoodLayer, HoodStyle } from "@/apps/hood/hoodLayers";
+import { StringLightsPanel } from "@/apps/string-lights/StringLightsPanel";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { hsvToRgb, tintToCss } from "@/lib/waterTint";
 import {
@@ -6106,6 +6107,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
               className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
             />
           </label>
+        </Findable>
+        <Findable label={t("stringLights.title")}>
+          <StringLightsPanel />
         </Findable>
       </G>
       {/* ── ljud ── */}
