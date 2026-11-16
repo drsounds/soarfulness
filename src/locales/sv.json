@@ -1220,7 +1220,19 @@
     "light": "LJUST",
     "dark": "MÖRKT",
     "blur": "GLASEFFEKT (BLUR)",
-    "blurHint": "Suddighetseffekten bakom paneler. Avstängd som standard för bättre prestanda."
+    "blurHint": "Suddighetseffekten bakom paneler. Avstängd som standard för bättre prestanda.",
+    "glass": "LIQUID GLASS",
+    "glassDescription": "Flytande, brytande glas med ljusa kanter — anpassa oskärpa, brytning, tonfärg, opacitet och hörn nedan. Drar mer GPU än övriga teman.",
+    "glass_tintHue": "TONFÄRG",
+    "glass_blur": "OSKÄRPA",
+    "glass_refraction": "BRYTNING",
+    "glass_saturation": "MÄTTNAD",
+    "glass_tintStrength": "TONSTYRKA",
+    "glass_opacity": "OPACITET",
+    "glass_highlight": "KANTLJUS",
+    "glass_radius": "HÖRNRADIE",
+    "glass_reset": "ÅTERSTÄLL GLAS",
+    "glass_hint": "Liquid Glass har alltid sin egen oskärpa (sätt OSKÄRPA till av för att spara energi). Brytning visas i Chrome, Edge och Android-appen."
   },
   "timeTravel": {
     "applyButton": "Res i tiden",

@@ -1220,7 +1220,19 @@
     "light": "LYST",
     "dark": "MØRKT",
     "blur": "GLASEFFEKT (BLUR)",
-    "blurHint": "Sløringseffekten bag paneler. Slået fra som standard for bedre ydeevne."
+    "blurHint": "Sløringseffekten bag paneler. Slået fra som standard for bedre ydeevne.",
+    "glass": "LIQUID GLASS",
+    "glassDescription": "Flydende, lysbrydende glas med lyse kanter — justér sløring, brydning, tonefarve, opacitet og hjørner nedenfor. Bruger mere GPU end de andre temaer.",
+    "glass_tintHue": "TONEFARVE",
+    "glass_blur": "SLØRING",
+    "glass_refraction": "BRYDNING",
+    "glass_saturation": "MÆTNING",
+    "glass_tintStrength": "TONESTYRKE",
+    "glass_opacity": "OPACITET",
+    "glass_highlight": "KANTLYS",
+    "glass_radius": "HJØRNERADIUS",
+    "glass_reset": "NULSTIL GLAS",
+    "glass_hint": "Liquid Glass har altid sin egen sløring (sæt SLØRING til fra for at spare energi). Brydning vises i Chrome, Edge og Android-appen."
   },
   "timeTravel": {
     "applyButton": "Rejs i tiden",
