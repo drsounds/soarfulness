@@ -232,14 +232,19 @@ function NumberControl({
   const [editing, setEditing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // A typed value is taken as-is, even past the slider's min/max (and past
+  // the EXTREME maximums): the slider is only the everyday range, typing is
+  // the override. Empty, NaN or infinite input is ignored and the old value
+  // kept.
   const commit = () => {
     const input = inputRef.current;
     if (input) {
-      const parsed = parseFloat(input.value.replace(/,/g, "."));
-      if (!Number.isNaN(parsed)) onSet(Math.max(min, Math.min(max, parsed)));
+      const parsed = parseTypedNumber(input.value);
+      if (parsed !== null) onSet(parsed);
     }
     setEditing(false);
   };
+  const outOfRange = rawValue < min || rawValue > max;
 
   return (
     <div className="flex flex-col gap-4">
@@ -269,12 +274,18 @@ function NumberControl({
           </button>
         )}
       </div>
+      {outOfRange ? (
+        <p className="ui-ink-muted -mt-2 text-center text-xs">{t("common.typedOutOfRange")}</p>
+      ) : (
+        <p className="ui-ink-faint -mt-2 text-center text-xs">{t("common.typeToOverride")}</p>
+      )}
       <input
         type="range"
         min={min}
         max={max}
         step={step}
-        value={rawValue}
+        // Pinned at the nearest end while a typed value is outside the range.
+        value={Math.max(min, Math.min(max, rawValue))}
         onChange={(e) => onSet(Number(e.target.value))}
         aria-label={label}
         aria-valuetext={value}
@@ -340,4 +351,16 @@ function StepperControl({
       </button>
     </div>
   );
+}
+
+/**
+ * Parses a number typed into a setting's readout. Accepts a decimal comma,
+ * spaces and a leading "+"; returns null for empty, NaN or infinite input so
+ * callers keep the previous value instead of storing garbage.
+ */
+export function parseTypedNumber(text: string): number | null {
+  const cleaned = text.replace(/\s+/g, "").replace(/,/g, ".");
+  if (cleaned === "") return null;
+  const parsed = Number(cleaned);
+  return Number.isFinite(parsed) ? parsed : null;
 }
