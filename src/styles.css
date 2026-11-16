@@ -593,3 +593,20 @@ button:not(:disabled):active,
     animation: none !important;
   }
 }
+
+
+/* Settings search (src/components/settingsNav.tsx): SettingRow/Findable mark
+   the matches with data-srow; hide result groups with none, and anything in
+   a group's body that isn't a match and doesn't contain one (hints, section
+   titles, stray buttons). A group whose own name matched (data-sall) shows
+   everything. */
+.sp-results .sp-group:not([data-sall]):not(:has([data-srow])) {
+  display: none;
+}
+.sp-results .sp-group:not([data-sall]) .sp-group-body > :not([data-srow]):not(:has([data-srow])) {
+  display: none;
+}
+.sp-results:has([data-srow]) .sp-empty,
+.sp-results:has([data-sall]) .sp-empty {
+  display: none;
+}

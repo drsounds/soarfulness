@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { matchesQuery, useSettingsQuery } from "@/components/settingsNav";
 
 // Android-Settings-style replacement for the old compact PadDial pill
 // (src/components/PadDial.tsx): each setting renders as a full-width list
@@ -72,10 +73,17 @@ export function SettingRow({
     }
   };
 
+  // Settings search (components/settingsNav.tsx): while a query is active,
+  // rows whose label doesn't match drop out; data-srow marks the ones left so
+  // empty groups and stray non-row controls can be hidden by CSS.
+  const query = useSettingsQuery();
+  if (query && !matchesQuery(label, query)) return null;
+
   return (
     <>
       <button
         type="button"
+        data-srow=""
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
         className="ui-focus-line ui-focus-surface flex w-full items-center justify-between gap-3 border-b px-1 py-3.5 text-left outline-none transition active:opacity-70"
