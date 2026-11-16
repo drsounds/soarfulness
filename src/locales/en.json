@@ -878,6 +878,17 @@
       "title": "Scientific References"
     }
   },
+  "edgeFilter": {
+    "dir": {
+      "x": "EDGES ALONG X",
+      "y": "EDGES ALONG Y (VERTICAL)",
+      "z": "EDGES ALONG Z",
+      "other": "OTHER EDGES (DIAGONAL)"
+    },
+    "range": "LIMIT TO AREA",
+    "min": "{{axis}} FROM",
+    "max": "{{axis}} TO"
+  },
   "hud": {
     "audioMuteAria": "Mute sound",
     "audioOffTitle": "Sound off",
@@ -1372,6 +1383,13 @@
       "pulse": "PULSE",
       "alternate": "ALTERNATE",
       "colorshift": "COLOR SHIFT"
+    },
+    "edge": {
+      "title": "TIED TO EDGES",
+      "includeImported": "ALSO IMPORTED GLB",
+      "spacing": "BULB SPACING",
+      "maxBulbs": "MAX BULBS",
+      "radius": "RANGE FROM YOU (0 = WHOLE SCENE)"
     }
   },
   "swing": {

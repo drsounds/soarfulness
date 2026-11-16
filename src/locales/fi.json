@@ -878,6 +878,17 @@
       "title": "Tieteelliset lähteet"
     }
   },
+  "edgeFilter": {
+    "dir": {
+      "x": "REUNAT X-SUUNTAAN",
+      "y": "REUNAT Y-SUUNTAAN (PYSTY)",
+      "z": "REUNAT Z-SUUNTAAN",
+      "other": "MUUT REUNAT (VINOT)"
+    },
+    "range": "RAJAA ALUEESEEN",
+    "min": "{{axis}} ALKAEN",
+    "max": "{{axis}} ASTI"
+  },
   "hud": {
     "audioMuteAria": "Mykistä ääni",
     "audioOffTitle": "Ääni pois",
@@ -1372,6 +1383,13 @@
       "pulse": "SYKE",
       "alternate": "VUOROTTELU",
       "colorshift": "VÄRIVAELLUS"
+    },
+    "edge": {
+      "title": "KIINNITETTY REUNOIHIN",
+      "includeImported": "MYÖS TUODUT GLB",
+      "spacing": "LAMPPUJEN VÄLI",
+      "maxBulbs": "LAMPPUJA ENINTÄÄN",
+      "radius": "KANTAMA (0 = KOKO NÄKYMÄ)"
     }
   },
   "swing": {

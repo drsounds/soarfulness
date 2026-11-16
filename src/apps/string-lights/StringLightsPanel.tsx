@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SettingRow } from "@/components/SettingRow";
+import { EdgeLightsPanel } from "./EdgeLightsPanel";
 import {
   STRING_LIGHTS_MAX_EMITTERS,
   STRING_LIGHTS_MAX_BULBS,
@@ -361,6 +362,7 @@ export function StringLightsPanel() {
               )}
             </>
           )}
+          <EdgeLightsPanel />
           <SettingRow
             label={t("stringLights.emitters")}
             mode="number"

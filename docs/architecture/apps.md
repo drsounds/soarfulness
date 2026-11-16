@@ -47,11 +47,11 @@ Swedish, like `NORRSKEN`) goes in the manifest's `name`.
 | `decorations` | DEKORATIONER | content | place | | `decorations.ts`, `DecorationLayer.ts`, `DecorationPanel.tsx`, `useDecorations.ts` |
 | `fireworks` | FYRVERKERI | scene-fx | events | | `Fireworks.ts`, `FireworksAudio.ts` |
 | `hood` | HUVA | bather | bather | | `Hood.ts`, `hoodLayers.ts`, `HoodPanel.tsx` |
-| `neon` | NEON | scene-fx | effects | | `NeonEdges.ts`, `neonAccent.ts` |
+| `neon` | NEON | scene-fx | effects | | `NeonEdges.ts`, `neonAccent.ts` (edge filter: `lib/edgeSelect.ts`) |
 | `open-drift` | HAVSDRIFT | motion | drift | | `OpenDrift.ts` |
 | `retro` | RETRO | screen-fx | graphics | | `retroShader.ts` |
 | `snow` | SNÖ | scene-fx | weather | day-night | `Snowfall.ts`, `SnowCover.ts`, `snowLight.ts` |
-| `string-lights` | LJUSSLINGOR | scene-fx | effects | | `StringLightsFx.ts`, `stringLights.ts` (own store), `StringLightsPanel.tsx` |
+| `string-lights` | LJUSSLINGOR | scene-fx | effects | | `StringLightsFx.ts`, `EdgeLightsFx.ts`, `stringLights.ts` (own store), `StringLightsPanel.tsx`, `EdgeLightsPanel.tsx` |
 | `underwater-fog` | UNDERVATTENDIS | screen-fx | weather | | `underwaterFog.ts`, `UnderwaterFogOverlay.ts` |
 | `wind` | VIND | environment | weather | | `wind.ts`, `WindAudio.ts`, `WindPanel.tsx` |
 
@@ -209,6 +209,17 @@ Still constructed directly in `routes/index.tsx`: `wind` (WindField,
 WindAudio), `open-drift`, `underwater-fog`, `string-lights`, `decorations`,
 and the `retro` pass. Wind and open drift feed the physics step, not just
 the frame, so they need a `step()` hook first.
+
+## Shared helpers for light effects
+
+- `lib/edgeSelect.ts`: which mesh edges a light effect follows. Detection
+  (cached per geometry), direction filter (X / Y / Z / other) and an x/y/z range
+  that clips edges. NEON and the string lights' edge mode (KANTLJUS) both use
+  it, with `components/EdgeFilterSettings.tsx` as the shared UI.
+- `lib/waterPass.ts`: additive glows (neon lines, bulb glow) must be drawn in
+  two passes split by which side of the water they are on, or the ocean's depth
+  write clips them when seen through the waves. Use `applyWaterPass` /
+  `GlowPoints` for any new additive effect that can sit above or below the water.
 
 ## Adding a new app
 
