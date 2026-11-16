@@ -1,3 +1,4 @@
+import type { SkyLook } from "@/lib/skyLook";
 import type { DecorationsByScene } from "@/lib/decorations";
 import vanernBackdrop from "@/assets/vanern-backdrop.png.asset.json";
 import sandTextureAsset from "@/assets/sand_cc0_512.jpg.asset.json";
@@ -803,6 +804,9 @@ export type Persisted = {
   // SOLTONING: sunrise/sunset colors the backdrop (environment skybox, its
   // water reflection and the flat backdrop image) warm around the sun.
   envSunTintOn: boolean;
+  // HIMMELSLJUS: SOLTONING options, skybox rotation, sun in the sky and
+  // scene light levels (lib/skyLook.ts), kept as one object.
+  skyLook: SkyLook;
   // SNÖ: falling snow (lib/sceneFx/snow.ts). snowAmount = number of flakes,
   // snowIntensity = how hard it snows. SNÖTÄCKE (snowCoverOn) whitens the
   // loaded scene and environment backdrop by snowCoverStrength 0..1.
@@ -1319,6 +1323,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "envDaylightTintStrength",
     "envDayNightAutoOn",
     "envSunTintOn",
+    "skyLook",
     "snowOn",
     "snowAmount",
     "snowIntensity",

@@ -1544,5 +1544,23 @@
       "local": "LOCAL",
       "world": "WORLD"
     }
+  },
+  "skyLook": {
+    "tintStrength": "TONINGSSTYRKE",
+    "tintWidth": "DEN GYLDNE TIMES LÆNGDE",
+    "tintSpread": "TONINGENS RÆKKEVIDDE",
+    "tintColorMode": "TONINGSFARVE",
+    "tintColorModeValue": {
+      "sun": "SOL",
+      "sky": "FRA HIMLEN",
+      "custom": "EGEN"
+    },
+    "tintColor": "FARVE",
+    "rotation": "HIMLENS ROTATION",
+    "sunDisc": "SOL PÅ HIMLEN",
+    "sunDiscSize": "SOLENS STØRRELSE",
+    "sunDiscGlow": "SOLENS GLØD",
+    "sceneSunLight": "SOLLYS PÅ SCENEN",
+    "sceneSkyLight": "HIMMELLYS PÅ SCENEN"
   }
 }
