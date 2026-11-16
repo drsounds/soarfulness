@@ -6,6 +6,9 @@
 // sanitizer for imported data, and the saved layer sets (SPARA / LADDA /
 // EXPORTERA / IMPORTERA in the HUVA settings).
 
+export type HoodCuffMaterial = "knit" | "smooth" | "rubber";
+export const HOOD_CUFF_MATERIALS: HoodCuffMaterial[] = ["knit", "smooth", "rubber"];
+
 export type HoodStyle = "classic" | "puffy" | "quilted" | "shell" | "down";
 export const HOOD_STYLES: HoodStyle[] = ["classic", "puffy", "quilted", "shell", "down"];
 /** The styles with padding (PUFFSTORLEK, PUFFHÖJD, PUFFTJOCKLEK, UPPBLÅSNING). */
@@ -72,6 +75,15 @@ export type HoodLayer = {
   cuffSize: number;
   /** MUDD VID HALSKANT: cuff along the funnel neck's top edge, on the cloth (off = old bottom band). */
   cuffTop: boolean;
+  /** EGEN MUDD: the cuff's own MUDDFÄRG, MUDDGLANS and MUDDMATERIAL (off = same as the hood). */
+  cuffCustom: boolean;
+  cuffColor: string;
+  cuffMetallic: number;
+  cuffMaterial: HoodCuffMaterial;
+  /** HÄNGER FRÅN TOPPEN: top follows you, heavy bottom lags and twists (off = rigid sway, the old look). */
+  hanging: boolean;
+  /** SKUGGA PÅ VYN: the old soft shadow on the view inside the opening (off by default). */
+  viewShadow: boolean;
   /** BLIXTLÅS FÄST I TYGET: zipper teeth follow the cloth (off = fixed to the view, the old look). */
   zipperFixed: boolean;
   /** DRAGARE PÅ UTSIDAN: pull tab on the outside (off = pull hanging inside, the old look). */
@@ -111,6 +123,12 @@ export const HOOD_LAYER_DEFAULTS: HoodLayer = {
   cuffHeight: 0.3,
   cuffSize: 0.5,
   cuffTop: true,
+  cuffCustom: false,
+  cuffColor: "#1f2a40",
+  cuffMetallic: 0.15,
+  cuffMaterial: "knit",
+  hanging: true,
+  viewShadow: false,
   zipperFixed: true,
   zipperPullOut: true,
 };
@@ -134,8 +152,9 @@ const NUMBER_KEYS = [
   "puffInflate",
   "cuffHeight",
   "cuffSize",
+  "cuffMetallic",
 ] as const;
-const BOOL_KEYS = ["on", "lowerOn", "zipperOn", "waterOn", "cuff", "reflectLight", "cuffTop", "zipperFixed", "zipperPullOut"] as const;
+const BOOL_KEYS = ["on", "lowerOn", "zipperOn", "waterOn", "cuff", "reflectLight", "cuffTop", "cuffCustom", "hanging", "viewShadow", "zipperFixed", "zipperPullOut"] as const;
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 
@@ -155,6 +174,10 @@ export function sanitizeHoodLayer(raw: unknown): HoodLayer {
   if (typeof w === "number" && Number.isFinite(w))
     out.openingWidth = Math.max(0, Math.min(HOOD_OPENING_WIDTH_MAX, w));
   if (typeof src.color === "string" && /^#[0-9a-fA-F]{6}$/.test(src.color)) out.color = src.color;
+  if (typeof src.cuffColor === "string" && /^#[0-9a-fA-F]{6}$/.test(src.cuffColor))
+    out.cuffColor = src.cuffColor;
+  if (HOOD_CUFF_MATERIALS.includes(src.cuffMaterial as HoodCuffMaterial))
+    out.cuffMaterial = src.cuffMaterial as HoodCuffMaterial;
   return out;
 }
 

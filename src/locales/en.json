@@ -104,6 +104,8 @@
     "cancel": "CANCEL",
     "close": "CLOSE",
     "decreaseAria": "{{label}} decrease",
+    "typeToOverride": "Tap the value to type your own, even beyond the slider",
+    "typedOutOfRange": "Custom value outside the slider's range",
     "high": "HÖG",
     "increaseAria": "{{label}} increase",
     "low": "LÅG",
@@ -172,6 +174,15 @@
       "hoodStyle_classic": "CLASSIC",
       "hoodStyle_puffy": "PUFFY",
       "hoodStyle_quilted": "QUILTED",
+      "hoodViewShadow": "SHADOW ON VIEW",
+      "hoodCuffCustom": "CUSTOM CUFF",
+      "hoodCuffColor": "CUFF COLOR",
+      "hoodCuffMetallic": "CUFF GLOSS",
+      "hoodCuffMaterial": "CUFF MATERIAL",
+      "hoodCuffMaterial_knit": "KNIT",
+      "hoodCuffMaterial_smooth": "SMOOTH STRETCH",
+      "hoodCuffMaterial_rubber": "RUBBER",
+      "hoodHanging": "HANGS FROM THE TOP",
       "hoodWaterCalm": "WATER CALMNESS",
       "hoodCuffTop": "CUFF AT NECK EDGE",
       "hoodZipperFixed": "ZIPPER FIXED TO CLOTH",
@@ -1135,6 +1146,92 @@
   },
   "settings": {
     "backAriaLabel": "Back to settings sections",
+    "categories": {
+      "bather": "BATHER",
+      "scene": "SCENE",
+      "sea": "SEA",
+      "system": "SYSTEM"
+    },
+    "groups": {
+      "app": {
+        "desc": "Language, theme, extreme limits, about",
+        "label": "General"
+      },
+      "bather": {
+        "desc": "Goggles and hood",
+        "label": "The bather"
+      },
+      "bottom": {
+        "desc": "Bottom, depth and depth swing",
+        "label": "Bottom & depth"
+      },
+      "camera": {
+        "desc": "Position, field of view, rotation, screen lock",
+        "label": "Camera"
+      },
+      "clouds": {
+        "desc": "Cloud layers, 3D clouds, cloud puffs",
+        "label": "Clouds"
+      },
+      "drift": {
+        "desc": "Current direction, sway, surge, open-water drift",
+        "label": "Current & drift"
+      },
+      "effects": {
+        "desc": "Torus rings and neon",
+        "label": "Effects"
+      },
+      "events": {
+        "desc": "Confetti and fireworks",
+        "label": "Events"
+      },
+      "graphics": {
+        "desc": "Performance, resolution, lighting, shadows, retro",
+        "label": "Graphics"
+      },
+      "interval": {
+        "desc": "Sessions, duration, stats",
+        "label": "Interval sessions"
+      },
+      "mode": {
+        "desc": "Float, swing, fly, tornado, freak out",
+        "label": "Movement mode"
+      },
+      "place": {
+        "desc": "Scene, spawn point, world boundary, room size",
+        "label": "Place & world"
+      },
+      "sound": {
+        "desc": "Water sound, volume, spatial audio",
+        "label": "Sound"
+      },
+      "state": {
+        "desc": "Presets, full state, sceneries, share, reset",
+        "label": "Save, load & sceneries"
+      },
+      "time": {
+        "desc": "Time of day, clock, environment and era, backdrop",
+        "label": "Time"
+      },
+      "water": {
+        "desc": "Color, reflection, foam, caustics, glow",
+        "label": "Water"
+      },
+      "waves": {
+        "desc": "Height, speed, frequency, bob, waveform",
+        "label": "Waves"
+      },
+      "weather": {
+        "desc": "Northern lights, underwater fog, wind and snow",
+        "label": "Weather"
+      }
+    },
+    "languageTitle": "Language",
+    "layout": {
+      "toList": "Show as list",
+      "toTabs": "Show as tabs"
+    },
+    "presetsPerGroupTitle": "PRESETS PER CATEGORY",
     "reset": "RESET",
     "resetAriaLabel": "Reset controls to default values",
     "resetConfirm": "This resets all controls to their default values (time of day is not affected).",
@@ -1145,6 +1242,13 @@
     "restoreTitle": "Return to the last saved camera position and heading",
     "saveMenuAriaLabel": "Save and load presets or a full state",
     "saveMenuTitle": "SAVE & LOAD",
+    "sceneryTitle": "SCENERIES",
+    "search": {
+      "clear": "Clear search",
+      "noResults": "No settings match your search.",
+      "placeholder": "Search settings"
+    },
+    "shareAndResetTitle": "SHARE & RESET",
     "tabs": {
       "kamera": "CAMERA",
       "ljud": "SOUND",
@@ -1175,6 +1279,96 @@
     "logoAlt": "Aquafulness",
     "startBath": "Start bath",
     "starting": "Starting…"
+  },
+  "stringLights": {
+    "title": "STRING LIGHTS",
+    "string": "STRING",
+    "addInFront": "ADD IN FRONT OF ME",
+    "duplicate": "DUPLICATE",
+    "moveHere": "MOVE HERE",
+    "remove": "REMOVE",
+    "visible": "VISIBLE",
+    "section": "SETTINGS FOR",
+    "x": "POSITION X",
+    "z": "POSITION Z",
+    "yaw": "DIRECTION",
+    "span": "SPAN",
+    "heightA": "START HEIGHT",
+    "heightB": "END HEIGHT",
+    "curve": "HANGING CURVE",
+    "sag": "SAG",
+    "drapes": "DRAPES",
+    "sway": "WIND SWAY",
+    "wireColor": "WIRE COLOR",
+    "bulbCount": "BULBS",
+    "bulbStyle": "BULB STYLE",
+    "bulbSize": "BULB SIZE",
+    "bulbDrop": "DROP LENGTH",
+    "brightness": "BRIGHTNESS",
+    "glow": "GLOW",
+    "glowSize": "GLOW SIZE",
+    "emitLight": "LIGHTS UP THE SCENE",
+    "palette": "PALETTE",
+    "color": "COLOR",
+    "pattern": "PATTERN",
+    "blockSize": "BULBS PER COLOR",
+    "anim": "ANIMATION",
+    "speed": "SPEED",
+    "animDepth": "DEPTH",
+    "direction": "DIRECTION",
+    "forward": "FORWARD",
+    "backward": "BACKWARD",
+    "emitters": "LIGHT SOURCES (MAX)",
+    "dayGlow": "GLOW BY DAY",
+    "here": "You are at X {{x}}, Z {{z}}",
+    "sections": {
+      "placement": "PLACEMENT",
+      "curve": "HANGING",
+      "bulbs": "BULBS",
+      "colors": "COLORS",
+      "animation": "ANIMATION"
+    },
+    "curves": {
+      "catenary": "CATENARY",
+      "parabola": "PARABOLA",
+      "festoon": "FESTOON",
+      "straight": "TAUT"
+    },
+    "bulbs": {
+      "globe": "GLOBE",
+      "fairy": "FAIRY",
+      "c9": "C9",
+      "lantern": "LANTERN",
+      "star": "STAR"
+    },
+    "palettes": {
+      "warm": "WARM WHITE",
+      "coolwhite": "COOL WHITE",
+      "classic": "CLASSIC COLOR",
+      "christmas": "CHRISTMAS",
+      "candy": "CANDY CANE",
+      "ocean": "OCEAN",
+      "sunset": "SUNSET",
+      "neon": "NEON",
+      "midsummer": "MIDSUMMER",
+      "custom": "CUSTOM"
+    },
+    "patterns": {
+      "repeat": "REPEAT",
+      "mirror": "MIRROR",
+      "blocks": "BLOCKS",
+      "gradient": "GRADIENT",
+      "random": "RANDOM"
+    },
+    "anims": {
+      "steady": "STEADY",
+      "twinkle": "TWINKLE",
+      "chase": "CHASE",
+      "fade": "FADE",
+      "pulse": "PULSE",
+      "alternate": "ALTERNATE",
+      "colorshift": "COLOR SHIFT"
+    }
   },
   "swing": {
     "preset": {
@@ -1228,7 +1422,19 @@
     "light": "LIGHT",
     "dark": "DARK",
     "blur": "GLASS BLUR",
-    "blurHint": "The blur effect behind panels. Off by default for better performance."
+    "blurHint": "The blur effect behind panels. Off by default for better performance.",
+    "glass": "LIQUID GLASS",
+    "glassDescription": "Fluid, refractive glass with lit edges — tune blur, refraction, tint, opacity and corners below. Uses more GPU than the other themes.",
+    "glass_tintHue": "TINT COLOR",
+    "glass_blur": "BLUR",
+    "glass_refraction": "REFRACTION",
+    "glass_saturation": "SATURATION",
+    "glass_tintStrength": "TINT STRENGTH",
+    "glass_opacity": "OPACITY",
+    "glass_highlight": "EDGE HIGHLIGHT",
+    "glass_radius": "CORNER RADIUS",
+    "glass_reset": "RESET GLASS",
+    "glass_hint": "Liquid Glass always brings its own blur (set BLUR to off to save energy). Refraction shows in Chrome, Edge and the Android app."
   },
   "timeTravel": {
     "applyButton": "Time travel",
@@ -1274,5 +1480,104 @@
       "legacy": "LEGACY",
       "standard": "STANDARD"
     }
+  },
+  "wind": {
+    "title": "WIND",
+    "openAria": "Open the wind panel",
+    "add": "+ ADD WIND",
+    "empty": "No winds yet. Tap ADD WIND — a new wind blows straight at you, then you can turn it.",
+    "total": "TOTAL",
+    "windN": "WIND {{n}}",
+    "direction": "DIRECTION",
+    "speed": "WIND SPEED",
+    "gust": "GUSTINESS",
+    "headwind": "AT ME",
+    "tailwind": "WITH ME",
+    "remove": "REMOVE",
+    "waves": "WIND → WAVE DIRECTION",
+    "wavesStrength": "WAVE STEERING",
+    "sway": "WIND → SWAY",
+    "swayStrength": "SWAY STRENGTH",
+    "current": "WIND → CURRENT",
+    "currentStrength": "CURRENT STRENGTH",
+    "sound": "WIND SOUND",
+    "altitudeAudio": "ALTITUDE SOUND",
+    "soundVolume": "WIND VOLUME",
+    "soundHint": "The wind sound follows the wind's speed and direction and how fast you move against it. ALTITUDE SOUND: above the water the water sound fades into noise, which fades out higher up where the wind blows stronger. Needs SOUND.",
+    "compass": {
+      "n": "N",
+      "ne": "NE",
+      "e": "E",
+      "se": "SE",
+      "s": "S",
+      "sw": "SW",
+      "w": "W",
+      "nw": "NW"
+    },
+    "from": "FROM"
+  },
+  "decorations": {
+    "title": "DECORATIONS",
+    "import": "IMPORT GLB",
+    "importing": "IMPORTING…",
+    "importHint": "Add your own .glb model as a decoration in this scene. Models up to {{max}} are embedded and travel with links, states and settings; larger ones are stored on this device only.",
+    "empty": "No decorations in {{scene}} yet.",
+    "perScene": "{{count}} in {{scene}} — saved per scene.",
+    "noScene": "THE SEA",
+    "place": "PLACE",
+    "moveToView": "MOVE HERE",
+    "duplicate": "DUPLICATE",
+    "remove": "REMOVE",
+    "removeConfirm": "Remove the decoration \"{{name}}\"?",
+    "visible": "VISIBLE",
+    "transform": "POSITION · ROTATION · SIZE",
+    "position": "POSITION",
+    "rotation": "ROTATION °",
+    "scaleXyz": "SCALE",
+    "size": "SIZE",
+    "turn": "TURN",
+    "repeat": "REPEAT",
+    "copies": "{{count}} COPIES",
+    "repeatCount": "COUNT",
+    "repeatSpacing": "SPACING",
+    "repeatTurn": "TURN PER COPY",
+    "repeatScale": "SCALE PER COPY",
+    "storage": "STORAGE",
+    "embeddedInfo": "Embedded in the settings ({{size}}) — travels with links, states and settings files.",
+    "localInfo": "Stored on this device ({{size}}) — removed from shared links.",
+    "tooLargeToEmbed": "Too large to embed (max {{max}}).",
+    "makeLocal": "STORE LOCALLY",
+    "embed": "EMBED",
+    "localNotInLinks": "{{count}} decoration(s) live only on this device and are removed from links.",
+    "importedLocal": "The model is too large to embed, so it is stored on this device and won't travel in shared links.",
+    "prev": "Previous",
+    "next": "Next",
+    "tapToPick": "TAP A DECORATION",
+    "done": "DONE",
+    "gizmo": {
+      "move": "MOVE",
+      "rotate": "ROTATE",
+      "scale": "SCALE",
+      "local": "LOCAL",
+      "world": "WORLD"
+    }
+  },
+  "skyLook": {
+    "tintStrength": "TINT STRENGTH",
+    "tintWidth": "GOLDEN HOUR LENGTH",
+    "tintSpread": "TINT SPREAD",
+    "tintColorMode": "TINT COLOR",
+    "tintColorModeValue": {
+      "sun": "SUN",
+      "sky": "FROM SKY",
+      "custom": "CUSTOM"
+    },
+    "tintColor": "COLOR",
+    "rotation": "SKYBOX ROTATION",
+    "sunDisc": "SUN IN SKY",
+    "sunDiscSize": "SUN SIZE",
+    "sunDiscGlow": "SUN GLOW",
+    "sceneSunLight": "SUNLIGHT ON SCENE",
+    "sceneSkyLight": "SKYLIGHT ON SCENE"
   }
 }

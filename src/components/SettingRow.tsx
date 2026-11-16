@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { matchesQuery, useSettingsQuery } from "@/components/settingsNav";
 
 // Android-Settings-style replacement for the old compact PadDial pill
 // (src/components/PadDial.tsx): each setting renders as a full-width list
@@ -72,10 +73,17 @@ export function SettingRow({
     }
   };
 
+  // Settings search (components/settingsNav.tsx): while a query is active,
+  // rows whose label doesn't match drop out; data-srow marks the ones left so
+  // empty groups and stray non-row controls can be hidden by CSS.
+  const query = useSettingsQuery();
+  if (query && !matchesQuery(label, query)) return null;
+
   return (
     <>
       <button
         type="button"
+        data-srow=""
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
         className="ui-focus-line ui-focus-surface flex w-full items-center justify-between gap-3 border-b px-1 py-3.5 text-left outline-none transition active:opacity-70"
@@ -232,14 +240,19 @@ function NumberControl({
   const [editing, setEditing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // A typed value is taken as-is, even past the slider's min/max (and past
+  // the EXTREME maximums): the slider is only the everyday range, typing is
+  // the override. Empty, NaN or infinite input is ignored and the old value
+  // kept.
   const commit = () => {
     const input = inputRef.current;
     if (input) {
-      const parsed = parseFloat(input.value.replace(/,/g, "."));
-      if (!Number.isNaN(parsed)) onSet(Math.max(min, Math.min(max, parsed)));
+      const parsed = parseTypedNumber(input.value);
+      if (parsed !== null) onSet(parsed);
     }
     setEditing(false);
   };
+  const outOfRange = rawValue < min || rawValue > max;
 
   return (
     <div className="flex flex-col gap-4">
@@ -269,12 +282,18 @@ function NumberControl({
           </button>
         )}
       </div>
+      {outOfRange ? (
+        <p className="ui-ink-muted -mt-2 text-center text-xs">{t("common.typedOutOfRange")}</p>
+      ) : (
+        <p className="ui-ink-faint -mt-2 text-center text-xs">{t("common.typeToOverride")}</p>
+      )}
       <input
         type="range"
         min={min}
         max={max}
         step={step}
-        value={rawValue}
+        // Pinned at the nearest end while a typed value is outside the range.
+        value={Math.max(min, Math.min(max, rawValue))}
         onChange={(e) => onSet(Number(e.target.value))}
         aria-label={label}
         aria-valuetext={value}
@@ -340,4 +359,16 @@ function StepperControl({
       </button>
     </div>
   );
+}
+
+/**
+ * Parses a number typed into a setting's readout. Accepts a decimal comma,
+ * spaces and a leading "+"; returns null for empty, NaN or infinite input so
+ * callers keep the previous value instead of storing garbage.
+ */
+export function parseTypedNumber(text: string): number | null {
+  const cleaned = text.replace(/\s+/g, "").replace(/,/g, ".");
+  if (cleaned === "") return null;
+  const parsed = Number(cleaned);
+  return Number.isFinite(parsed) ? parsed : null;
 }

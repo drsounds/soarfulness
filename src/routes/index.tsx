@@ -12,6 +12,13 @@ import {
 import { useTranslation } from "react-i18next";
 import * as THREE from "three";
 import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { DecorationHudBar } from "@/components/DecorationPanel";
+import { useDecorations } from "@/hooks/use-decorations";
+import {
+  decorationsForLink,
+  sanitizeDecorations,
+  type DecorationsByScene,
+} from "@/lib/decorations";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
@@ -21,7 +28,20 @@ import { TorusRingField } from "@/lib/torusRings/TorusRingField";
 import { RETRO_PALETTE_INDEX, RETRO_SHADER } from "@/lib/sceneFx/retroShader";
 import { limitMax, useExtremeLimits, type LimitedControl } from "@/lib/extremeLimits";
 import { NeonEdges } from "@/lib/sceneFx/NeonEdges";
+import { StringLightsFx } from "@/lib/sceneFx/stringLights";
 import { Aurora } from "@/lib/sceneFx/aurora";
+import {
+  WindField,
+  altitudeMix,
+  getWindAt,
+  getWindVector,
+  hearWind,
+  sanitizeWinds,
+  steerWaveDir,
+  type WindSource,
+} from "@/lib/wind";
+import { WindAudio } from "@/lib/windSound";
+import { WindHudPanel, type WindControls } from "@/components/WindPanel";
 import { UnderwaterFogOverlay, waterlineScreenFraction } from "@/lib/sceneFx/underwaterFog";
 import { OpenDrift } from "@/lib/openDrift";
 import { SnowCover, Snowfall } from "@/lib/sceneFx/snow";
@@ -42,8 +62,22 @@ import {
   NIGHT_TIME_ID,
   hasDayNightPair,
   nightBackdropMix,
-  sunsetTintAmount,
 } from "@/lib/sceneFx/dayNightBackdrop";
+import {
+  NEUTRAL_TWILIGHT,
+  getSkyLook,
+  goldenHourAmount,
+  SKY_LOOK_DEFAULTS,
+  initSkyLook,
+  resetSkyLook,
+  sanitizeSkyLook,
+  setSkyLook,
+  useSkyLook,
+  sampleSkyColors,
+  sunTintRgb,
+  type SkyLook,
+} from "@/lib/skyLook";
+import { applyNodeVisibility } from "@/lib/gltfVisibility";
 import { WatercraftRig } from "@/lib/watercraft/WatercraftRig";
 import type { BuildAction, SculptAction, ToolMode } from "@/lib/watercraft/types";
 import { WatercraftHud } from "@/components/watercraft/WatercraftHud";
@@ -64,7 +98,7 @@ import {
   type VerticalMode,
 } from "@/components/Joystick";
 import { CameraModeIcon, HudIconButton } from "@/components/HudControls";
-import { FerrisWheel, LifeBuoy, Tornado } from "lucide-react";
+import { FerrisWheel, LifeBuoy, Tornado, Wind } from "lucide-react";
 import { hsvToRgb } from "@/lib/waterTint";
 import AmbientAudio, { resolveNativeAudioSource } from "@/lib/ambientAudio";
 import {
@@ -97,7 +131,6 @@ import {
   PRESET_TAB_FIELDS,
   PRESET_ALL_FIELDS,
   pickFields,
-  type SettingsTab,
   type CameraMode,
   type SwingPreset,
   type SwingYWaveform,
@@ -1378,6 +1411,8 @@ const WAVE_PRESETS: Record<
 };
 
 const DEFAULTS: Persisted = {
+  // DEKORATIONER: per-scene placed .glb decorations (src/lib/decorations.ts).
+  decorations: {} as DecorationsByScene,
   ...WAVE_PRESETS.standard,
   wavePreset: "standard",
   // Overrides on top of the "standard" wave preset — the app's default
@@ -1466,6 +1501,12 @@ const DEFAULTS: Persisted = {
   hoodCuffOn: false,
   hoodCuffHeight: 0.3,
   hoodCuffSize: 0.5,
+  hoodViewShadow: false,
+  hoodCuffCustom: false,
+  hoodCuffColor: "#1f2a40",
+  hoodCuffMetallic: 0.15,
+  hoodCuffMaterial: "knit",
+  hoodHanging: true,
   hoodWaterCalm: 0.6,
   hoodCuffTop: true,
   hoodZipperFixed: true,
@@ -1544,6 +1585,19 @@ const DEFAULTS: Persisted = {
   surgeSpeed: 0.2,
   surgeRotationMode: "cw",
   surgeRotationSpeed: 2,
+  // VIND (lib/wind.ts): no winds until one is added from the VIND button;
+  // its effects and sound are on so a new wind works right away. HÖJDLJUD
+  // is on by default.
+  winds: [],
+  windWavesOn: true,
+  windWaveStrength: 1,
+  windSwayOn: true,
+  windSwayStrength: 1,
+  windCurrentOn: true,
+  windCurrentStrength: 1,
+  windSoundOn: true,
+  windSoundVolume: 0.6,
+  windAltitudeAudioOn: true,
   // HAVSDRIFT: endless open-water drift (lib/openDrift.ts), off by default.
   openDriftOn: false,
   openDriftCurve: "circle",
@@ -1635,6 +1689,7 @@ const DEFAULTS: Persisted = {
   envDayNightAutoOn: true,
   // SOLTONING: sunrise/sunset tints the backdrop warm toward the sun.
   envSunTintOn: true,
+  skyLook: SKY_LOOK_DEFAULTS,
   // SNÖ: falling snow around the camera (lib/sceneFx/snow.ts). snowAmount is
   // the number of flakes, snowIntensity how hard it snows (fall speed, flake
   // size, wind). SNÖTÄCKE (snowCoverOn) whitens the loaded scene and the
@@ -2108,6 +2163,12 @@ export function Aquafulness() {
       })(),
   ).current;
   const initial = useRef<Persisted>(loadSettings()).current;
+  // HIMMELSLJUS lives in its own store (lib/skyLook.ts) so its settings UI
+  // and the render loop stay self-contained; it is seeded from the saved
+  // settings here (bath links and state files land there too) and saved
+  // back with them below.
+  useState(() => initSkyLook(initial.skyLook));
+  const skyLook = useSkyLook();
   // Autosaved free-roam camera pose (see CAMERA_STORAGE_KEY below) — read
   // once at mount so a reload resumes from wherever the camera was left,
   // instead of always snapping back to the origin looking forward.
@@ -2181,6 +2242,12 @@ export function Aquafulness() {
   const [hoodCuffOn, setHoodCuffOn] = useState(initial.hoodCuffOn);
   const [hoodCuffHeight, setHoodCuffHeight] = useState(initial.hoodCuffHeight);
   const [hoodCuffSize, setHoodCuffSize] = useState(initial.hoodCuffSize);
+  const [hoodViewShadow, setHoodViewShadow] = useState(initial.hoodViewShadow);
+  const [hoodCuffCustom, setHoodCuffCustom] = useState(initial.hoodCuffCustom);
+  const [hoodCuffColor, setHoodCuffColor] = useState(initial.hoodCuffColor);
+  const [hoodCuffMetallic, setHoodCuffMetallic] = useState(initial.hoodCuffMetallic);
+  const [hoodCuffMaterial, setHoodCuffMaterial] = useState(initial.hoodCuffMaterial);
+  const [hoodHanging, setHoodHanging] = useState(initial.hoodHanging);
   const [hoodWaterCalm, setHoodWaterCalm] = useState(initial.hoodWaterCalm);
   const [hoodCuffTop, setHoodCuffTop] = useState(initial.hoodCuffTop);
   const [hoodZipperFixed, setHoodZipperFixed] = useState(initial.hoodZipperFixed);
@@ -2264,18 +2331,19 @@ export function Aquafulness() {
   const [midCloudsOn, setMidCloudsOn] = useState(initial.midCloudsOn);
   const [midCloudsHeight, setMidCloudsHeight] = useState(initial.midCloudsHeight);
   const [skyCloudsOn, setSkyCloudsOn] = useState(initial.skyCloudsOn);
-  // Meters above the surface; clamped so a hand-edited preset can't park
-  // the deck underwater or beyond the far plane.
+  // Meters above the surface; only a non-finite saved value falls back to
+  // the default.
   const [skyCloudsAltitude, setSkyCloudsAltitude] = useState(() => {
     const v = initial.skyCloudsAltitude;
     if (!Number.isFinite(v)) return DEFAULTS.skyCloudsAltitude;
-    return Math.max(SKY_CLOUDS_ALTITUDE_MIN, Math.min(SKY_CLOUDS_ALTITUDE_MAX, v));
+    // Not clamped to the slider's range: a typed-in override is kept.
+    return v;
   });
   const [bottomClouds3d, setBottomClouds3d] = useState(initial.bottomClouds3d);
   const [midClouds3d, setMidClouds3d] = useState(initial.midClouds3d);
   const [skyClouds3d, setSkyClouds3d] = useState(initial.skyClouds3d);
   const clampCloudScale = (v: number, fallback: number) =>
-    Number.isFinite(v) ? Math.max(CLOUD_SCALE_MIN, Math.min(CLOUD_SCALE_MAX, v)) : fallback;
+    Number.isFinite(v) ? Math.max(0.01, v) : fallback;
   const [bottomCloudsScale, setBottomCloudsScale] = useState(() =>
     clampCloudScale(initial.bottomCloudsScale, DEFAULTS.bottomCloudsScale),
   );
@@ -2298,6 +2366,17 @@ export function Aquafulness() {
     initial.surgeRotationMode,
   );
   const [surgeRotationSpeed, setSurgeRotationSpeed] = useState(initial.surgeRotationSpeed);
+  const [winds, setWinds] = useState<WindSource[]>(() => sanitizeWinds(initial.winds));
+  const [windWavesOn, setWindWavesOn] = useState(initial.windWavesOn);
+  const [windWaveStrength, setWindWaveStrength] = useState(initial.windWaveStrength);
+  const [windSwayOn, setWindSwayOn] = useState(initial.windSwayOn);
+  const [windSwayStrength, setWindSwayStrength] = useState(initial.windSwayStrength);
+  const [windCurrentOn, setWindCurrentOn] = useState(initial.windCurrentOn);
+  const [windCurrentStrength, setWindCurrentStrength] = useState(initial.windCurrentStrength);
+  const [windSoundOn, setWindSoundOn] = useState(initial.windSoundOn);
+  const [windSoundVolume, setWindSoundVolume] = useState(initial.windSoundVolume);
+  const [windAltitudeAudioOn, setWindAltitudeAudioOn] = useState(initial.windAltitudeAudioOn);
+  const [windPanelOpen, setWindPanelOpen] = useState(false);
   const [openDriftOn, setOpenDriftOn] = useState(initial.openDriftOn);
   const [openDriftCurve, setOpenDriftCurve] = useState(initial.openDriftCurve);
   const [openDriftRadius, setOpenDriftRadius] = useState(initial.openDriftRadius);
@@ -2331,6 +2410,18 @@ export function Aquafulness() {
     [catalogScenes, userScenes],
   );
   const [sceneId, setSceneId] = useState<string | null>(initial.sceneId);
+  // DEKORATIONER: the player's own .glb models placed in the current scene
+  // (src/hooks/use-decorations.ts, src/components/DecorationPanel.tsx).
+  const deco = useDecorations({
+    initial: initial.decorations,
+    sceneId,
+    sceneName: sceneId
+      ? (scenes.find((s) => s.id === sceneId)?.name ?? sceneId)
+      : t("decorations.noScene"),
+    onPlacingStart: () => setSettingsOpen(false),
+    extraKeptSrcs: () =>
+      JSON.stringify([savedPresets, savedStates]).match(/local:deco:[\w-]+/g) ?? [],
+  });
   // Named respawn points for the current scene, from its manifest's
   // "locations"/"places" list (see resolveSpawnLocations) — always at least
   // one entry (the {0,0,0} fallback when the manifest defines none).
@@ -2577,15 +2668,21 @@ export function Aquafulness() {
   const [tornadoSpeed, setTornadoSpeed] = useState(initial.tornadoSpeed);
   // EXTREME (src/lib/extremeLimits.ts): the high maximums on VÅG, SVAJ,
   // SVALL, STRÖM, NAV, TORNADO, GUNGA and FREAK OUT only apply while EXTREME
-  // is on; otherwise every one of them tops out at ~25 %. Whenever they don't apply, anything above the everyday max —
-  // a value set with EXTREME on, a loaded preset/badlänk, SLUMPA VÅGOR — is
-  // clamped down to it.
+  // is on; otherwise every one of them tops out at ~25 %. Whenever they don't apply, anything above the everyday max is
+  // clamped down to it when EXTREME is turned off. Values typed in by hand
+  // (or loaded from a preset/badlänk) are not clamped otherwise.
   const [extremeLimits] = useExtremeLimits();
   const mx = (control: LimitedControl) => limitMax(control, extremeLimits);
   const extremeLimitsRef = useRef(extremeLimits);
   extremeLimitsRef.current = extremeLimits;
+  // Only on the switch from on to off: a value typed in by hand past the
+  // slider's max (SettingRow's typed override) is kept as-is, also after a
+  // reload, as long as EXTREME isn't being turned off right now.
+  const extremeWasOnRef = useRef(extremeLimits);
   useEffect(() => {
-    if (extremeLimits) return;
+    const wasOn = extremeWasOnRef.current;
+    extremeWasOnRef.current = extremeLimits;
+    if (extremeLimits || !wasOn) return;
     const clamp = (control: LimitedControl, value: number, set: (v: number) => void) => {
       const max = limitMax(control, false);
       if (value > max) set(max);
@@ -2776,7 +2873,6 @@ export function Aquafulness() {
   const [noclipHeaveOn, setNoclipHeaveOn] = useState(false);
   const [noclipSwayOn, setNoclipSwayOn] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [settingsTab, setSettingsTab] = useState<SettingsTab>("vagor");
   // Quick per-camera-mode settings live behind their own bottom drawer (like
   // SETTINGS) rather than as always-on sliders, so a stray touch near
   // bottom-center can't accidentally nudge a value mid-session.
@@ -3046,6 +3142,11 @@ export function Aquafulness() {
   const confettiPaletteRef = useRef(confettiPalette);
   const confettiFlutterRef = useRef(confettiFlutter);
   const neonOnRef = useRef(neonOn);
+  // LJUSSLINGOR are kept per scene (see lib/stringLights.ts).
+  const stringLightsSceneRef = useRef(sceneId);
+  useEffect(() => {
+    stringLightsSceneRef.current = sceneId;
+  }, [sceneId]);
   const neonModeRef = useRef(neonMode);
   const neonPrimaryRef = useRef(neonPrimary);
   const neonSecondaryRef = useRef(neonSecondary);
@@ -3091,6 +3192,7 @@ export function Aquafulness() {
   // place that enumerates every field.
   const buildPersistedSnapshot = (): Persisted => ({
     waveAmp,
+    decorations: deco.decorations,
     timeOfDay,
     waveSpeed,
     waveFreq,
@@ -3155,6 +3257,12 @@ export function Aquafulness() {
     hoodCuffOn,
     hoodCuffHeight,
     hoodCuffSize,
+    hoodViewShadow,
+    hoodCuffCustom,
+    hoodCuffColor,
+    hoodCuffMetallic,
+    hoodCuffMaterial,
+    hoodHanging,
     hoodWaterCalm,
     hoodCuffTop,
     hoodZipperFixed,
@@ -3224,6 +3332,16 @@ export function Aquafulness() {
     surgeSpeed,
     surgeRotationMode,
     surgeRotationSpeed,
+    winds,
+    windWavesOn,
+    windWaveStrength,
+    windSwayOn,
+    windSwayStrength,
+    windCurrentOn,
+    windCurrentStrength,
+    windSoundOn,
+    windSoundVolume,
+    windAltitudeAudioOn,
     openDriftOn,
     openDriftCurve,
     openDriftRadius,
@@ -3274,6 +3392,7 @@ export function Aquafulness() {
     envDaylightTintStrength,
     envDayNightAutoOn,
     envSunTintOn,
+    skyLook,
     snowOn,
     snowAmount,
     snowIntensity,
@@ -3437,6 +3556,7 @@ export function Aquafulness() {
     }
   }, [
     waveAmp,
+    deco.decorations,
     timeOfDay,
     waveSpeed,
     waveFreq,
@@ -3501,6 +3621,12 @@ export function Aquafulness() {
     hoodCuffOn,
     hoodCuffHeight,
     hoodCuffSize,
+    hoodViewShadow,
+    hoodCuffCustom,
+    hoodCuffColor,
+    hoodCuffMetallic,
+    hoodCuffMaterial,
+    hoodHanging,
     hoodWaterCalm,
     hoodCuffTop,
     hoodZipperFixed,
@@ -3570,6 +3696,16 @@ export function Aquafulness() {
     surgeSpeed,
     surgeRotationMode,
     surgeRotationSpeed,
+    winds,
+    windWavesOn,
+    windWaveStrength,
+    windSwayOn,
+    windSwayStrength,
+    windCurrentOn,
+    windCurrentStrength,
+    windSoundOn,
+    windSoundVolume,
+    windAltitudeAudioOn,
     openDriftOn,
     openDriftCurve,
     openDriftRadius,
@@ -3620,6 +3756,7 @@ export function Aquafulness() {
     envDaylightTintStrength,
     envDayNightAutoOn,
     envSunTintOn,
+    skyLook,
     snowOn,
     snowAmount,
     snowIntensity,
@@ -4055,6 +4192,12 @@ export function Aquafulness() {
   const hoodCuffOnRef = useRef(hoodCuffOn);
   const hoodCuffHeightRef = useRef(hoodCuffHeight);
   const hoodCuffSizeRef = useRef(hoodCuffSize);
+  const hoodViewShadowRef = useRef(hoodViewShadow);
+  const hoodCuffCustomRef = useRef(hoodCuffCustom);
+  const hoodCuffColorRef = useRef(hoodCuffColor);
+  const hoodCuffMetallicRef = useRef(hoodCuffMetallic);
+  const hoodCuffMaterialRef = useRef(hoodCuffMaterial);
+  const hoodHangingRef = useRef(hoodHanging);
   const hoodWaterCalmRef = useRef(hoodWaterCalm);
   const hoodCuffTopRef = useRef(hoodCuffTop);
   const hoodZipperFixedRef = useRef(hoodZipperFixed);
@@ -4217,6 +4360,21 @@ export function Aquafulness() {
   const surgeSpeedRef = useRef(surgeSpeed);
   const surgeRotationModeRef = useRef(surgeRotationMode);
   const surgeRotationSpeedRef = useRef(surgeRotationSpeed);
+  const windsRef = useRef(winds);
+  const windWavesOnRef = useRef(windWavesOn);
+  const windWaveStrengthRef = useRef(windWaveStrength);
+  const windSwayOnRef = useRef(windSwayOn);
+  const windSwayStrengthRef = useRef(windSwayStrength);
+  const windCurrentOnRef = useRef(windCurrentOn);
+  const windCurrentStrengthRef = useRef(windCurrentStrength);
+  const windSoundOnRef = useRef(windSoundOn);
+  const windSoundVolumeRef = useRef(windSoundVolume);
+  const windAltitudeAudioOnRef = useRef(windAltitudeAudioOn);
+  // Camera yaw read by the VIND panel's arrows and its MOT MIG/MED MIG.
+  const getWindViewBearing = useCallback(
+    () => ((((yawRef.current * 180) / Math.PI + 180) % 360) + 360) % 360,
+    [],
+  );
   const openDriftOnRef = useRef(openDriftOn);
   const openDriftCurveRef = useRef(openDriftCurve);
   const openDriftRadiusRef = useRef(openDriftRadius);
@@ -4642,6 +4800,18 @@ export function Aquafulness() {
     surgeRotationSpeedRef.current = surgeRotationSpeed;
   }, [surgeRotationSpeed]);
   useEffect(() => {
+    windsRef.current = winds;
+    windWavesOnRef.current = windWavesOn;
+    windWaveStrengthRef.current = windWaveStrength;
+    windSwayOnRef.current = windSwayOn;
+    windSwayStrengthRef.current = windSwayStrength;
+    windCurrentOnRef.current = windCurrentOn;
+    windCurrentStrengthRef.current = windCurrentStrength;
+    windSoundOnRef.current = windSoundOn;
+    windSoundVolumeRef.current = windSoundVolume;
+    windAltitudeAudioOnRef.current = windAltitudeAudioOn;
+  }, [winds, windWavesOn, windWaveStrength, windSwayOn, windSwayStrength, windCurrentOn, windCurrentStrength, windSoundOn, windSoundVolume, windAltitudeAudioOn]);
+  useEffect(() => {
     openDriftOnRef.current = openDriftOn;
     openDriftCurveRef.current = openDriftCurve;
     openDriftRadiusRef.current = openDriftRadius;
@@ -4895,6 +5065,12 @@ export function Aquafulness() {
     hoodCuffOnRef.current = hoodCuffOn;
     hoodCuffHeightRef.current = hoodCuffHeight;
     hoodCuffSizeRef.current = hoodCuffSize;
+    hoodViewShadowRef.current = hoodViewShadow;
+    hoodCuffCustomRef.current = hoodCuffCustom;
+    hoodCuffColorRef.current = hoodCuffColor;
+    hoodCuffMetallicRef.current = hoodCuffMetallic;
+    hoodCuffMaterialRef.current = hoodCuffMaterial;
+    hoodHangingRef.current = hoodHanging;
     hoodWaterCalmRef.current = hoodWaterCalm;
     hoodCuffTopRef.current = hoodCuffTop;
     hoodZipperFixedRef.current = hoodZipperFixed;
@@ -4927,6 +5103,12 @@ export function Aquafulness() {
     hoodCuffOn,
     hoodCuffHeight,
     hoodCuffSize,
+    hoodViewShadow,
+    hoodCuffCustom,
+    hoodCuffColor,
+    hoodCuffMetallic,
+    hoodCuffMaterial,
+    hoodHanging,
     hoodWaterCalm,
     hoodCuffTop,
     hoodZipperFixed,
@@ -5471,6 +5653,12 @@ export function Aquafulness() {
     setHoodCuffOn(DEFAULTS.hoodCuffOn);
     setHoodCuffHeight(DEFAULTS.hoodCuffHeight);
     setHoodCuffSize(DEFAULTS.hoodCuffSize);
+    setHoodViewShadow(DEFAULTS.hoodViewShadow);
+    setHoodCuffCustom(DEFAULTS.hoodCuffCustom);
+    setHoodCuffColor(DEFAULTS.hoodCuffColor);
+    setHoodCuffMetallic(DEFAULTS.hoodCuffMetallic);
+    setHoodCuffMaterial(DEFAULTS.hoodCuffMaterial);
+    setHoodHanging(DEFAULTS.hoodHanging);
     setHoodWaterCalm(DEFAULTS.hoodWaterCalm);
     setHoodCuffTop(DEFAULTS.hoodCuffTop);
     setHoodZipperFixed(DEFAULTS.hoodZipperFixed);
@@ -5544,6 +5732,16 @@ export function Aquafulness() {
     setSurgeSpeed(DEFAULTS.surgeSpeed);
     setSurgeRotationMode(DEFAULTS.surgeRotationMode);
     setSurgeRotationSpeed(DEFAULTS.surgeRotationSpeed);
+    setWinds(DEFAULTS.winds);
+    setWindWavesOn(DEFAULTS.windWavesOn);
+    setWindWaveStrength(DEFAULTS.windWaveStrength);
+    setWindSwayOn(DEFAULTS.windSwayOn);
+    setWindSwayStrength(DEFAULTS.windSwayStrength);
+    setWindCurrentOn(DEFAULTS.windCurrentOn);
+    setWindCurrentStrength(DEFAULTS.windCurrentStrength);
+    setWindSoundOn(DEFAULTS.windSoundOn);
+    setWindSoundVolume(DEFAULTS.windSoundVolume);
+    setWindAltitudeAudioOn(DEFAULTS.windAltitudeAudioOn);
     setOpenDriftOn(DEFAULTS.openDriftOn);
     setOpenDriftCurve(DEFAULTS.openDriftCurve);
     setOpenDriftRadius(DEFAULTS.openDriftRadius);
@@ -5588,6 +5786,7 @@ export function Aquafulness() {
     setEnvDaylightTintStrength(DEFAULTS.envDaylightTintStrength);
     setEnvDayNightAutoOn(DEFAULTS.envDayNightAutoOn);
     setEnvSunTintOn(DEFAULTS.envSunTintOn);
+    resetSkyLook();
     setSnowOn(DEFAULTS.snowOn);
     setSnowAmount(DEFAULTS.snowAmount);
     setSnowIntensity(DEFAULTS.snowIntensity);
@@ -5750,6 +5949,8 @@ export function Aquafulness() {
   // (reset only restores sceneId/spawnLocationId), since a preset is meant to
   // fully recreate a saved look.
   const applySettingsPatch = (patch: Partial<Persisted>) => {
+    if (patch.decorations !== undefined)
+      deco.setDecorations(sanitizeDecorations(patch.decorations));
     if (patch.waveAmp !== undefined) setWaveAmp(patch.waveAmp);
     if (patch.timeOfDay !== undefined) setTimeOfDay(patch.timeOfDay);
     if (patch.waveSpeed !== undefined) setWaveSpeed(patch.waveSpeed);
@@ -5815,6 +6016,12 @@ export function Aquafulness() {
     if (patch.hoodCuffOn !== undefined) setHoodCuffOn(patch.hoodCuffOn);
     if (patch.hoodCuffHeight !== undefined) setHoodCuffHeight(patch.hoodCuffHeight);
     if (patch.hoodCuffSize !== undefined) setHoodCuffSize(patch.hoodCuffSize);
+    if (patch.hoodViewShadow !== undefined) setHoodViewShadow(patch.hoodViewShadow);
+    if (patch.hoodCuffCustom !== undefined) setHoodCuffCustom(patch.hoodCuffCustom);
+    if (patch.hoodCuffColor !== undefined) setHoodCuffColor(patch.hoodCuffColor);
+    if (patch.hoodCuffMetallic !== undefined) setHoodCuffMetallic(patch.hoodCuffMetallic);
+    if (patch.hoodCuffMaterial !== undefined) setHoodCuffMaterial(patch.hoodCuffMaterial);
+    if (patch.hoodHanging !== undefined) setHoodHanging(patch.hoodHanging);
     if (patch.hoodWaterCalm !== undefined) setHoodWaterCalm(patch.hoodWaterCalm);
     if (patch.hoodCuffTop !== undefined) setHoodCuffTop(patch.hoodCuffTop);
     if (patch.hoodZipperFixed !== undefined) setHoodZipperFixed(patch.hoodZipperFixed);
@@ -5897,6 +6104,16 @@ export function Aquafulness() {
     if (patch.surgeSpeed !== undefined) setSurgeSpeed(patch.surgeSpeed);
     if (patch.surgeRotationMode !== undefined) setSurgeRotationMode(patch.surgeRotationMode);
     if (patch.surgeRotationSpeed !== undefined) setSurgeRotationSpeed(patch.surgeRotationSpeed);
+    if (patch.winds !== undefined) setWinds(sanitizeWinds(patch.winds));
+    if (patch.windWavesOn !== undefined) setWindWavesOn(patch.windWavesOn);
+    if (patch.windWaveStrength !== undefined) setWindWaveStrength(patch.windWaveStrength);
+    if (patch.windSwayOn !== undefined) setWindSwayOn(patch.windSwayOn);
+    if (patch.windSwayStrength !== undefined) setWindSwayStrength(patch.windSwayStrength);
+    if (patch.windCurrentOn !== undefined) setWindCurrentOn(patch.windCurrentOn);
+    if (patch.windCurrentStrength !== undefined) setWindCurrentStrength(patch.windCurrentStrength);
+    if (patch.windSoundOn !== undefined) setWindSoundOn(patch.windSoundOn);
+    if (patch.windSoundVolume !== undefined) setWindSoundVolume(patch.windSoundVolume);
+    if (patch.windAltitudeAudioOn !== undefined) setWindAltitudeAudioOn(patch.windAltitudeAudioOn);
     if (patch.openDriftOn !== undefined) setOpenDriftOn(patch.openDriftOn);
     if (patch.openDriftCurve !== undefined) setOpenDriftCurve(patch.openDriftCurve);
     if (patch.openDriftRadius !== undefined) setOpenDriftRadius(patch.openDriftRadius);
@@ -5952,6 +6169,7 @@ export function Aquafulness() {
       setEnvDaylightTintStrength(patch.envDaylightTintStrength);
     if (patch.envDayNightAutoOn !== undefined) setEnvDayNightAutoOn(patch.envDayNightAutoOn);
     if (patch.envSunTintOn !== undefined) setEnvSunTintOn(patch.envSunTintOn);
+    if (patch.skyLook !== undefined) setSkyLook(sanitizeSkyLook(patch.skyLook));
     if (patch.snowOn !== undefined) setSnowOn(patch.snowOn);
     if (patch.snowAmount !== undefined) setSnowAmount(patch.snowAmount);
     if (patch.snowIntensity !== undefined) setSnowIntensity(patch.snowIntensity);
@@ -6387,7 +6605,12 @@ export function Aquafulness() {
   const buildBathLink = async (title: string, description: string): Promise<string> => {
     const payload: BathPayload = {
       v: 1,
-      s: pickFields(buildPersistedSnapshot(), PRESET_ALL_FIELDS) as Record<string, unknown>,
+      s: {
+        ...(pickFields(buildPersistedSnapshot(), PRESET_ALL_FIELDS) as Record<string, unknown>),
+        // DEKORATIONER: only this scene's embedded models — a model stored
+        // on this device ("local:") can't open anywhere else.
+        decorations: decorationsForLink(deco.decorations, deco.sceneKey).decorations,
+      },
       c: {
         x: posRef.current.x,
         y: posRef.current.y,
@@ -7191,6 +7414,9 @@ export function Aquafulness() {
     });
     torusRingFieldRef.current = torusRingField;
 
+    // DEKORATIONER: placed .glb decorations + their move/rotate/scale gizmo.
+    const detachDecorations = deco.attach(scene, camera, renderer.domElement);
+
     // "Watercraft" camera mode's raft — see WatercraftRig. Built once here
     // (hidden by default; setVisible(true) only while cameraMode ===
     // "watercraft", driven each frame from the animate loop below) rather
@@ -7362,6 +7588,10 @@ export function Aquafulness() {
       uEnvTintNight: { value: new THREE.Color(1, 1, 1) },
       // SOLTONING: sunrise/sunset glow on the reflected skybox (0 = off).
       uEnvSunTint: { value: 0 },
+      // HIMMELSLJUS: SOLTONING's color (brightest channel 1) and how much of
+      // the sky it covers (0 = toward the sun/horizon, 1 = everywhere).
+      uEnvSunTintColor: { value: new THREE.Color(1, 0.6, 0.4) },
+      uEnvSunTintSpread: { value: 0 },
       // NORRSKEN: the aurora's glow reflected in the water — its color ×
       // brightness (0 = off), the elevation (radians) of the main band and
       // HÖJD (0 = low in the north .. 1 = overhead, all around).
@@ -7755,6 +7985,8 @@ export function Aquafulness() {
       uniform float uEnvRotYNight;
       uniform vec3 uEnvTintNight;
       uniform float uEnvSunTint;
+      uniform vec3 uEnvSunTintColor;
+      uniform float uEnvSunTintSpread;
       uniform vec3 uAuroraGlow;
       uniform float uAuroraElev;
       uniform float uAuroraHeight;
@@ -8046,10 +8278,11 @@ export function Aquafulness() {
             vec3 Rw = normalize(vec3(R.x, max(R.y, 0.0), R.z));
             float toward = max(dot(normalize(Rw.xz + 1e-4), normalize(uSunDir.xz + 1e-4)), 0.0);
             float horizon = 1.0 - Rw.y;
-            float k = uEnvSunTint * (0.35 + 0.65 * toward * toward) * (0.4 + 0.6 * horizon * horizon);
-            vec3 warm = uSunColor / max(max(uSunColor.r, uSunColor.g), max(uSunColor.b, 1e-3));
+            float shape = (0.35 + 0.65 * toward * toward) * (0.4 + 0.6 * horizon * horizon);
+            float k = min(1.0, uEnvSunTint * mix(shape, 1.0, uEnvSunTintSpread));
+            vec3 warm = uEnvSunTintColor;
             envCol *= mix(vec3(1.0), warm, k);
-            envCol += uSunColor * uEnvSunTint * pow(max(dot(Rw, normalize(uSunDir)), 0.0), 12.0) * 0.35;
+            envCol += warm * uEnvSunTint * pow(max(dot(Rw, normalize(uSunDir)), 0.0), mix(12.0, 3.0, uEnvSunTintSpread)) * 0.35;
           }
           skyRef = mix(skyRef, envCol, uEnvReflMix);
         }
@@ -9097,8 +9330,15 @@ export function Aquafulness() {
       uTintNight: { value: new THREE.Color(1, 1, 1) },
       // SOLTONING: sunrise/sunset glow toward the sun (0 = off).
       uSunTint: { value: 0 },
+      uSunTintColor: uniforms.uEnvSunTintColor,
+      uSunTintSpread: uniforms.uEnvSunTintSpread,
       uSunDir: { value: uniforms.uSunDir.value },
       uSunColor: { value: uniforms.uSunColor.value },
+      // SOL I HIMLEN: the sun drawn into the skybox (0 = off), its angular
+      // radius (radians) and halo strength.
+      uSunDisc: { value: 0 },
+      uSunDiscRadius: { value: 0.02 },
+      uSunDiscGlow: { value: 0.6 },
       uSnowCover: { value: 0 },
       // Filled in once snowCover exists below (shared with its materials).
       uSnowLight: { value: new THREE.Color(1, 1, 1) },
@@ -9127,8 +9367,13 @@ export function Aquafulness() {
         uniform float uRotYNight;
         uniform vec3 uTintNight;
         uniform float uSunTint;
+        uniform vec3 uSunTintColor;
+        uniform float uSunTintSpread;
         uniform vec3 uSunDir;
         uniform vec3 uSunColor;
+        uniform float uSunDisc;
+        uniform float uSunDiscRadius;
+        uniform float uSunDiscGlow;
         uniform float uSnowCover;
         uniform vec3 uSnowLight;
         uniform float uSnowGray;
@@ -9157,10 +9402,26 @@ export function Aquafulness() {
           if (uSunTint > 0.001) {
             float toward = max(dot(normalize(d.xz + 1e-4), normalize(uSunDir.xz + 1e-4)), 0.0);
             float horizon = 1.0 - abs(d.y);
-            float k = uSunTint * (0.35 + 0.65 * toward * toward) * (0.4 + 0.6 * horizon * horizon);
-            vec3 warm = uSunColor / max(max(uSunColor.r, uSunColor.g), max(uSunColor.b, 1e-3));
+            // HIMMELSLJUS: uSunTintSpread widens it up to the whole sky.
+            float shape = (0.35 + 0.65 * toward * toward) * (0.4 + 0.6 * horizon * horizon);
+            float k = min(1.0, uSunTint * mix(shape, 1.0, uSunTintSpread));
+            vec3 warm = uSunTintColor;
             col *= mix(vec3(1.0), warm, k);
-            col += uSunColor * uSunTint * pow(max(dot(d, normalize(uSunDir)), 0.0), 12.0) * 0.35;
+            col += warm * uSunTint * pow(max(dot(d, normalize(uSunDir)), 0.0), mix(12.0, 3.0, uSunTintSpread)) * 0.35;
+          }
+          // SOL I HIMLEN: a sun disc plus halo at the time-of-day sun
+          // position, hidden once it's below the horizon line.
+          if (uSunDisc > 0.001) {
+            vec3 sd = normalize(uSunDir);
+            float ang = acos(clamp(dot(d, sd), -1.0, 1.0));
+            float r = max(uSunDiscRadius, 1e-4);
+            float disc = 1.0 - smoothstep(r * 0.8, r, ang);
+            float halo = exp(-ang / (r * 3.0)) * 0.6 + exp(-ang / (r * 14.0)) * 0.25;
+            float vis = smoothstep(-0.015, 0.01, d.y) * smoothstep(-0.12, 0.0, sd.y);
+            vec3 sc = uSunColor / max(max(uSunColor.r, uSunColor.g), max(uSunColor.b, 1e-3));
+            vec3 core = mix(vec3(1.0, 0.98, 0.92), sc, 0.45);
+            col = mix(col, core * 1.4, disc * vis * uSunDisc);
+            col += sc * halo * uSunDiscGlow * vis * uSunDisc;
           }
           if (uSnowCover > 0.001) {
             // SNÖTÄCKE: the ground below the horizon gets snow, keeping
@@ -9196,6 +9457,18 @@ export function Aquafulness() {
     // NORRSKEN: northern lights curtains, at infinity like the sky dome and
     // drawn behind everything in the scene (see lib/sceneFx/aurora.ts).
     const aurora = new Aurora(scene);
+
+    // VIND: the live wind (lib/wind.ts) and its sound (lib/windSound.ts).
+    const windField = new WindField();
+    const windAudio = new WindAudio();
+    const windCamPrev = new THREE.Vector3();
+    let windCamPrevOk = false;
+    const windCamVel = { x: 0, z: 0 };
+    const windFwd = new THREE.Vector3();
+    let windSwayOff = { x: 0, z: 0 };
+    // True while the wave direction is steered by the wind (or still easing
+    // back), so the CPU wave sampling follows the shader's uDir.
+    let windSteersWaves = false;
     // UNDERVATTENDIS: drives the fog gradient overlay element (DOM, not GL).
     const underwaterFog = new UnderwaterFogOverlay();
     let underwaterFogEl: HTMLDivElement | null = null;
@@ -9223,6 +9496,8 @@ export function Aquafulness() {
     // NEON edge lines along the loaded scene's meshes — see NeonEdges.
     const neonEdges = new NeonEdges(scene);
     neonEdges.setResolution(mount.clientWidth, mount.clientHeight);
+    // LJUSSLINGOR: decorative string lights (see lib/sceneFx/stringLights.ts).
+    const stringLights = new StringLightsFx(scene);
     // SNÖ: falling flakes around the camera, and SNÖTÄCKE whitening of the
     // loaded scene (see lib/sceneFx/snow.ts).
     const snowfall = new Snowfall(scene);
@@ -9243,7 +9518,27 @@ export function Aquafulness() {
     const envTintMixed = new THREE.Color(1, 1, 1);
     // Each skybox's panorama rotation (its manifest's rotationY), stamped on
     // the texture by the skybox loader.
-    const envRotOf = (tex: THREE.Texture) => (tex.userData.envRotY as number | undefined) ?? 0;
+    const envRotOf = (tex: THREE.Texture) =>
+      ((tex.userData.envRotY as number | undefined) ?? 0) +
+      (getSkyLook().rotationDeg * Math.PI) / 180;
+    // HIMMELSLJUS "from the sky" color: a skybox's average horizon/upper-sky
+    // colors, sampled once per texture.
+    const skyColorsOfTex = (tex: THREE.Texture | null) => {
+      if (!tex) return null;
+      if (!("skyColors" in tex.userData)) {
+        tex.userData.skyColors = sampleSkyColors(tex.image as CanvasImageSource, true);
+      }
+      return tex.userData.skyColors as ReturnType<typeof sampleSkyColors>;
+    };
+    // Same for the flat backdrop photo (the <img> rendered just before its
+    // SOLTONING overlay), cached per image URL.
+    const flatSkyColors = new Map<string, ReturnType<typeof sampleSkyColors>>();
+    const skyColorsOfFlatBackdrop = () => {
+      const img = backdropSunTintRef.current?.previousElementSibling;
+      if (!(img instanceof HTMLImageElement) || !img.complete || !img.naturalWidth) return null;
+      if (!flatSkyColors.has(img.src)) flatSkyColors.set(img.src, sampleSkyColors(img, false));
+      return flatSkyColors.get(img.src) ?? null;
+    };
 
     // Handle resize
     const handleResize = () => {
@@ -9260,7 +9555,18 @@ export function Aquafulness() {
     window.addEventListener("resize", handleResize);
 
     // Palette for time of day (t: 0..1, 0=night, 0.25=sunrise, 0.5=noon, 0.75=sunset, 1=night)
-    const palette = (t: number) => {
+    // HIMMELSLJUS: `twilight` customizes the sunrise/sunset stops. With a
+    // real backdrop showing (neutral), they're replaced by neutral colors,
+    // so the water and fog follow the backdrop and only turn warm through
+    // SOLTONING (added on top in the render loop, in the same color as the
+    // backdrop's shading). The procedural sky keeps its own sunset colors,
+    // recolored/scaled by the SOLTONING color and strength.
+    type Twilight = {
+      neutral: boolean;
+      look: SkyLook;
+      skyHorizon: [number, number, number] | null;
+    };
+    const palette = (t: number, twilight?: Twilight) => {
       // sun elevation
       const sunElev = Math.sin(t * Math.PI * 2 - Math.PI / 2); // -1..1..-1
       const sunAz = t * Math.PI * 2;
@@ -9275,6 +9581,26 @@ export function Aquafulness() {
       const dawn = { top: [0.35, 0.45, 0.7], bot: [1.0, 0.55, 0.35], sun: [1.0, 0.75, 0.5] };
       const day = { top: [0.4, 0.65, 0.95], bot: [0.75, 0.88, 1.0], sun: [1.0, 0.95, 0.85] };
       const dusk = { top: [0.25, 0.15, 0.4], bot: [1.0, 0.45, 0.3], sun: [1.0, 0.55, 0.35] };
+      let tint: [number, number, number] = [1, 1, 1];
+      if (twilight) {
+        const { look } = twilight;
+        const sunNow = t < 0.5 ? dawn.sun : dusk.sun;
+        tint = sunTintRgb(look, sunNow, twilight.skyHorizon);
+        for (const stop of [dawn, dusk]) {
+          if (twilight.neutral) {
+            stop.top = [...NEUTRAL_TWILIGHT.top];
+            stop.bot = [...NEUTRAL_TWILIGHT.bot];
+            continue;
+          }
+          const s = Math.min(look.tintStrength, 3);
+          const bot = look.tintColorMode === "sun" ? stop.bot : tint;
+          for (let i = 0; i < 3; i++) {
+            stop.top[i] = NEUTRAL_TWILIGHT.top[i] + (stop.top[i] - NEUTRAL_TWILIGHT.top[i]) * s;
+            const nb = NEUTRAL_TWILIGHT.bot[i];
+            stop.bot[i] = Math.max(0, nb + (bot[i] - nb) * s);
+          }
+        }
+      }
 
       let a: typeof night, b: typeof night, k: number;
       if (t < 0.25) {
@@ -9307,7 +9633,7 @@ export function Aquafulness() {
       const waterShallow = [top[0] * 0.4 + 0.1, top[1] * 0.5 + 0.15, top[2] * 0.6 + 0.2];
       const waterDeep = [waterShallow[0] * 0.15, waterShallow[1] * 0.2, waterShallow[2] * 0.35];
 
-      return { top, bot, sun, sunDir, waterShallow, waterDeep };
+      return { top, bot, sun, sunDir, waterShallow, waterDeep, tint, neutral: !!twilight?.neutral };
     };
 
     let raf = 0;
@@ -9432,11 +9758,20 @@ export function Aquafulness() {
       uniforms.uSkew.value += (heaveSkewRef.current - uniforms.uSkew.value) * Math.min(1, dt * 4);
       // Wave direction stored in degrees; smoothly interpolate the shortest
       // angular path so wrapping around 360° doesn't spin the ocean.
+      // VIND: update the live wind first; VÅGRIKTNING steers the waves
+      // toward where it blows (lib/wind.ts steerWaveDir).
       {
-        const targetRad = (waveDirRef.current * Math.PI) / 180;
+        const wind = windField.update(dt, windsRef.current);
+        windSwayOff = windField.sway(dt, windSwayOnRef.current, windSwayStrengthRef.current);
+        const steer = windWavesOnRef.current && wind.speed > 0.05;
+        const targetRad = steer
+          ? steerWaveDir(waveDirRef.current, wind, windWaveStrengthRef.current)
+          : (waveDirRef.current * Math.PI) / 180;
         let delta = targetRad - uniforms.uDir.value;
         delta = Math.atan2(Math.sin(delta), Math.cos(delta));
-        uniforms.uDir.value += delta * Math.min(1, dt * 4);
+        // Wind turns the swell slowly; the dial itself stays snappy.
+        uniforms.uDir.value += delta * Math.min(1, dt * (steer ? 0.6 : 4));
+        windSteersWaves = steer || (windSteersWaves && Math.abs(delta) > 0.002);
       }
 
       // Graceful TORNADO spin-up/spin-down: two continuous blends (0 = fully
@@ -9476,7 +9811,49 @@ export function Aquafulness() {
       uniforms.uVortexCenter.value.set(posRef.current.x, posRef.current.z);
       uniforms.uVortexSpin.value = tornadoDirectionRef.current === "ccw" ? -1 : 1;
 
-      const p = palette(todRef.current);
+      // HIMMELSLJUS (lib/skyLook.ts): SOLTONING color/strength/timing/
+      // spread, skybox rotation, sun disc and scene light levels.
+      const look = getSkyLook();
+      const flatBackdropShown = backdropSunTintRef.current !== null;
+      const skyboxShown = envActiveRef.current && envTextureRef.current !== null;
+      let skyHorizon: [number, number, number] | null = null;
+      if (look.tintColorMode === "sky") {
+        if (skyboxShown) {
+          const dayC = skyColorsOfTex(envTextureRef.current);
+          const nightTex = envNightTextureRef.current;
+          const nightC = nightTex ? skyColorsOfTex(nightTex) : null;
+          const nm = nightC ? nightBackdropMix(todRef.current) : 0;
+          if (dayC) {
+            skyHorizon = [0, 1, 2].map(
+              (i) => dayC.horizon[i] + ((nightC?.horizon[i] ?? 0) - dayC.horizon[i]) * nm,
+            ) as [number, number, number];
+          }
+        } else if (flatBackdropShown) {
+          skyHorizon = skyColorsOfFlatBackdrop()?.horizon ?? null;
+        }
+      }
+      const p = palette(todRef.current, {
+        neutral: skyboxShown || flatBackdropShown,
+        look,
+        skyHorizon,
+      });
+      // SOLTONING: how much sunrise/sunset colors the backdrop right now.
+      const sunTint = envSunTintOnRef.current
+        ? goldenHourAmount(todRef.current, look.tintWidth) * 0.85 * look.tintStrength
+        : 0;
+      uniforms.uEnvSunTintColor.value.setRGB(p.tint[0], p.tint[1], p.tint[2]);
+      uniforms.uEnvSunTintSpread.value = look.tintSpread;
+      if (p.neutral && sunTint > 0.001) {
+        // The water's own sky reflection and the fog take on the same
+        // shading as the backdrop — the horizon most, the sky above less,
+        // all of it evenly at full spread.
+        const kb = Math.min(1, sunTint * (0.6 + 0.4 * look.tintSpread));
+        const kt = Math.min(1, sunTint * (0.25 + 0.75 * look.tintSpread));
+        for (let i = 0; i < 3; i++) {
+          p.bot[i] *= 1 + (p.tint[i] - 1) * kb;
+          p.top[i] *= 1 + (p.tint[i] - 1) * kt;
+        }
+      }
       // Keep the real scene lights (see their creation above) in sync with
       // the same sun direction/color driving the water and sky shaders, so
       // glTF-model materials are lit consistently with the rest of the
@@ -9485,7 +9862,19 @@ export function Aquafulness() {
       // nighttime models stay dimly visible instead of vanishing.
       sunLight.position.copy(p.sunDir).multiplyScalar(100);
       sunLight.color.setRGB(p.sun[0], p.sun[1], p.sun[2]);
-      sunLight.intensity = Math.max(0, p.sunDir.y) * 2.2 + 0.15;
+      // Lit .glb scenes: three.js lights are physically scaled (no π in the
+      // irradiance any more), so a full sun needs ~π to show a texture at
+      // its own brightness — the old 2.2·elevation left sunlit textures
+      // dull. Ramps in around sunrise/sunset; 0.15 of moonlight at night.
+      sunLight.intensity =
+        (Math.PI * 0.95 * THREE.MathUtils.smoothstep(p.sunDir.y, -0.05, 0.15) + 0.15) *
+        look.sceneSunLight;
+      // Sky fill: BÄTTRE LJUS's image-based light does most of it when on;
+      // without it (or in LOW GRAPHICS MODE) the hemisphere light is the
+      // only thing lighting faces turned away from the sun, so it's scaled
+      // up the same way.
+      hemiLight.intensity =
+        0.6 * look.sceneSkyLight * (betterLightingOnRef.current && !lowEnd ? 1 : Math.PI);
       hemiLight.color.setRGB(p.top[0], p.top[1], p.top[2]);
       hemiLight.groundColor.setRGB(p.bot[0] * 0.4, p.bot[1] * 0.4, p.bot[2] * 0.4);
       uniforms.uSunDir.value.copy(p.sunDir);
@@ -9569,8 +9958,6 @@ export function Aquafulness() {
         envTintNight.setRGB(1, 1, 1);
       }
       envTintMixed.copy(envTint).lerp(envTintNight, nightMix);
-      // SOLTONING: how much sunrise/sunset colors the backdrop right now.
-      const sunTint = envSunTintOnRef.current ? sunsetTintAmount(todRef.current) * 0.85 : 0;
       envDomeUniforms.uSunTint.value = sunTint;
       uniforms.uEnvSunTint.value = envTex ? sunTint : 0;
       {
@@ -9579,9 +9966,11 @@ export function Aquafulness() {
           const op = sunTint.toFixed(3);
           if (el.style.opacity !== op) el.style.opacity = op;
           if (sunTint > 0.001) {
-            const m = Math.max(p.sun[0], p.sun[1], p.sun[2], 1e-3);
-            const c = p.sun.map((v) => Math.round((v / m) * 255)).join(",");
-            const bg = `linear-gradient(to top, rgb(${c}) 0%, rgba(${c},0.55) 45%, rgba(${c},0.15) 100%)`;
+            const c = p.tint.map((v) => Math.round(v * 255)).join(",");
+            const sp = look.tintSpread;
+            const mid = (0.55 + 0.45 * sp).toFixed(2);
+            const top = (0.15 + 0.85 * sp).toFixed(2);
+            const bg = `linear-gradient(to top, rgb(${c}) 0%, rgba(${c},${mid}) 45%, rgba(${c},${top}) 100%)`;
             if (el.dataset.bg !== bg) {
               el.dataset.bg = bg;
               el.style.background = bg;
@@ -9595,8 +9984,12 @@ export function Aquafulness() {
       envDomeUniforms.uSnowCover.value = snowCover.cover;
       snowCover.setDaylight(1 - nightBackdropMix(todRef.current));
       envDomeUniforms.uSnowGray.value = snowGrayBackdropOnRef.current ? 1 : 0;
+      envDomeUniforms.uSunDisc.value = look.sunDiscOn ? 1 : 0;
+      envDomeUniforms.uSunDiscRadius.value = ((look.sunDiscSize / 2) * Math.PI) / 180;
+      envDomeUniforms.uSunDiscGlow.value = look.sunDiscGlow;
       const useEnvDome =
-        envTex !== null && (envTintOn || envBlending || sunTint > 0.001 || snowCover.cover > 0.001);
+        envTex !== null &&
+        (envTintOn || envBlending || sunTint > 0.001 || snowCover.cover > 0.001 || look.sunDiscOn);
       envDome.visible = useEnvDome;
       if (useEnvDome && envDayTex) {
         envDomeUniforms.uEnvTex.value = envDayTex;
@@ -9607,8 +10000,9 @@ export function Aquafulness() {
         envDomeUniforms.uRotYNight.value = envNightTex ? envRotOf(envNightTex) : 0;
         envDomeUniforms.uTintNight.value.copy(envTintNight);
         if (scene.background) scene.background = null;
-      } else if (envTex && scene.background !== envTex) {
-        scene.background = envTex;
+      } else if (envTex) {
+        if (scene.background !== envTex) scene.background = envTex;
+        // Every frame: HIMMELSLJUS's rotation can change at any time.
         scene.backgroundRotation.set(0, envRotOf(envTex), 0);
       }
 
@@ -9633,7 +10027,7 @@ export function Aquafulness() {
         scene.environment = iblTarget!.texture;
         scene.environmentRotation.set(0, envTex ? envRotOf(envTex) : 0, 0);
         const tintLum = envTintMixed.r * 0.299 + envTintMixed.g * 0.587 + envTintMixed.b * 0.114;
-        scene.environmentIntensity = reflStrength * (envTex ? tintLum : 1);
+        scene.environmentIntensity = reflStrength * (envTex ? tintLum : 1) * look.sceneSkyLight;
       } else if (scene.environment) {
         scene.environment = null;
         iblTarget?.dispose();
@@ -9908,7 +10302,9 @@ export function Aquafulness() {
       // CLOUD block further down — which runs before that point in the frame
       // — can also sample the real wave height (see tornadoWaterHeightAt
       // there).
-      const dirRad = (waveDirRef.current * Math.PI) / 180;
+      const dirRad = windSteersWaves
+        ? uniforms.uDir.value
+        : (waveDirRef.current * Math.PI) / 180;
       // NAV: m/s at full deflection — 16 with EXTREME, ~25 % (4) without.
       const extremeNow = extremeLimitsRef.current;
       const walkSpeed = limitMax("navSpeed", extremeNow);
@@ -10538,6 +10934,24 @@ export function Aquafulness() {
         }
       }
 
+      // VIND STRÖM: a wind-driven surface current (~3.5 % of the wind
+      // speed, downwind) carrying posRef and the camera together, so it
+      // never turns the view. GUNGA's pendulum owns camX/camZ, so it's
+      // skipped there.
+      {
+        const d = windField.current(
+          physDt,
+          windCurrentOnRef.current && camMode !== "swing",
+          windCurrentStrengthRef.current,
+        );
+        if (d.dx !== 0 || d.dz !== 0) {
+          posRef.current.x += d.dx;
+          posRef.current.z += d.dz;
+          camX += d.dx;
+          camZ += d.dz;
+        }
+      }
+
       // VÄRLDSGRÄNS (world boundary): wrap x/z to the opposite edge once the
       // camera crosses ±worldBoundarySize — invisible below since the ocean/
       // floor/cloud planes recenter on the camera every frame regardless of
@@ -11074,6 +11488,11 @@ export function Aquafulness() {
           swayTargetZ += padAmp * dirZ * heaveNorm;
         }
 
+        // VIND SVAJ: the wind leans the floating body downwind, breathing
+        // with the gusts, through the same sway spring.
+        swayTargetX += windSwayOff.x;
+        swayTargetZ += windSwayOff.z;
+
         // Ease toward the sway target with a light spring instead of snapping
         // straight to it every frame. Without this the horizontal sway was
         // rigidly locked to the analytic wave value — perfectly synced, but
@@ -11135,6 +11554,10 @@ export function Aquafulness() {
             swayTargetX += padAmp * dirX * heaveNorm;
             swayTargetZ += padAmp * dirZ * heaveNorm;
           }
+        }
+        if (stillNow && noclipSwayOnRef.current) {
+          swayTargetX += windSwayOff.x;
+          swayTargetZ += windSwayOff.z;
         }
         const swK = 5 + 20 * Math.max(0.05, swaySpeedRef.current);
         const swZeta = 0.6;
@@ -11627,6 +12050,11 @@ export function Aquafulness() {
       // Sync audio intensity with depth below surface — only when spatial
       // audio is enabled. Default: constant volume with no filtering.
       const depth = surfaceY - camY; // positive when underwater
+      // HÖJDLJUD: above the water the water track fades out as the camera
+      // rises (lib/wind.ts altitudeMix), handing over to surface noise and
+      // then wind (the VIND block below).
+      const windAlt = altitudeMix(-depth);
+      const altWater = windAltitudeAudioOnRef.current ? windAlt.water : 1;
       const a = audioRef.current;
       if (a?.kind === "native") {
         if (now - lastNativeDepthSyncMsRef.current >= 100) {
@@ -11641,7 +12069,7 @@ export function Aquafulness() {
               ? Math.max(18000 - 4000 * depth, 500)
               : 18000
             : 18000;
-          AmbientAudio.setDepth({ gain: depthMult, lowpass: lpFreq }).catch(() => {
+          AmbientAudio.setDepth({ gain: depthMult * altWater, lowpass: lpFreq }).catch(() => {
             /* noop */
           });
         }
@@ -11650,14 +12078,55 @@ export function Aquafulness() {
         if (audioSpatialRef.current) {
           // deeper -> louder (up to ~2.5x), faster ramp
           const depthMult = depth > 0 ? Math.min(1 + 0.35 * depth, 2.5) : 1;
-          a.depthGain.gain.setTargetAtTime(depthMult, audioNow, 0.12);
+          a.depthGain.gain.setTargetAtTime(depthMult * altWater, audioNow, 0.12);
           // deeper -> more muffled (lowpass closes)
           const lpFreq = depth > 0 ? Math.max(18000 - 4000 * depth, 500) : 18000;
           a.lp.frequency.setTargetAtTime(lpFreq, audioNow, 0.15);
         } else {
-          a.depthGain.gain.setTargetAtTime(1, audioNow, 0.2);
+          a.depthGain.gain.setTargetAtTime(altWater, audioNow, 0.2);
           a.lp.frequency.setTargetAtTime(18000, audioNow, 0.2);
         }
+      }
+
+      // VIND sound: the air rushing past the ears — the wind at this height
+      // minus the camera's own motion (running into the wind is louder),
+      // panned and brightened by where it meets the head. HÖJDLJUD adds
+      // the surface noise just above the water and a breeze that grows
+      // with altitude.
+      {
+        const cp = camera.position;
+        if (windCamPrevOk && dt > 0) {
+          const vx = (cp.x - windCamPrev.x) / dt;
+          const vz = (cp.z - windCamPrev.z) / dt;
+          // Ignore teleports (VÄRLDSGRÄNS wrap, respawn).
+          if (Math.hypot(vx, vz) < 400) {
+            const k = 1 - Math.exp(-dt / 0.25);
+            windCamVel.x += (vx - windCamVel.x) * k;
+            windCamVel.z += (vz - windCamVel.z) * k;
+          }
+        }
+        windCamPrev.copy(cp);
+        windCamPrevOk = true;
+        const altOn = windAltitudeAudioOnRef.current;
+        const soundOn = windSoundOnRef.current;
+        const h = -depth;
+        const w = getWindAt(h);
+        camera.getWorldDirection(windFwd);
+        const hearing = hearWind(
+          soundOn ? w : { x: 0, z: 0 },
+          windCamVel,
+          { x: windFwd.x, z: windFwd.z },
+          altOn ? windAlt.breeze : 0,
+        );
+        windAudio.update({
+          enabled: (soundOn || altOn) && fireworksAudioOnRef.current,
+          volume: windSoundVolumeRef.current,
+          hearing,
+          // Own motion alone (no winds, no HÖJDLJUD) makes no wind sound.
+          windLevel: (soundOn && w.speed > 0.05) || (altOn && windAlt.breeze > 0.05) ? 1 : 0,
+          surfaceLevel: altOn ? windAlt.surface : 0,
+          underwater: depth > 0 ? Math.min(1, depth / 0.6) : 0,
+        });
       }
 
       // Underwater tone-down factor: fades color/contrast as camera dips below surface.
@@ -11788,6 +12257,13 @@ export function Aquafulness() {
       // Keep horizon level: no extra pitch/roll from buoyancy.
 
       sky.position.copy(camera.position);
+      // The env skybox dome (DYGNSTONING/DYGNSBYTE/SOLTONING/SNÖTÄCKE) shares
+      // the sky dome's 800-unit geometry, so it has to follow the camera too.
+      // Left at the origin it acted like a nearby room: the panorama drifted
+      // and stretched as the camera climbed or moved away, and only while one
+      // of those effects had switched the backdrop from scene.background to
+      // this dome, which is why it came and went.
+      envDome.position.copy(camera.position);
 
       // NORRSKEN: fades in with the night (DYGNSBYTE's curve) unless SYNS PÅ
       // DAGEN is on, and is reflected in the water.
@@ -12038,6 +12514,14 @@ export function Aquafulness() {
         }
       }
 
+      // LJUSSLINGOR: the current scene's string lights, animated.
+      stringLights.update(now / 1000, camera, {
+        sceneId: stringLightsSceneRef.current,
+        waterY: ocean.position.y,
+        night: nightBackdropMix(todRef.current),
+        viewportHeight: mount.clientHeight,
+      });
+
       // REGN: drops follow the camera like the snowflakes; the sound keeps
       // playing (muffled) under water.
       if (rainOnRef.current) {
@@ -12057,9 +12541,12 @@ export function Aquafulness() {
             splashes: rainSplashesOnRef.current,
             waterLevel: ocean.position.y,
             underwater: uniforms.uUnderwater.value,
-            // A scene-wide wind (m/s, world x/z) goes here once there is one;
-            // until then the rain makes its own.
-            wind: null,
+            // VIND: the drops slant with the scene's combined wind; with no
+            // winds on, the rain makes its own gentle wind.
+            wind: (() => {
+              const w = getWindVector();
+              return w.speed > 0.01 ? w : null;
+            })(),
           },
           {
             on: rainSoundOnRef.current && rainAudioOnRef.current,
@@ -12159,6 +12646,12 @@ export function Aquafulness() {
                 cuff: hoodCuffOnRef.current,
                 cuffHeight: hoodCuffHeightRef.current,
                 cuffSize: hoodCuffSizeRef.current,
+                viewShadow: hoodViewShadowRef.current,
+                cuffCustom: hoodCuffCustomRef.current,
+                cuffColor: hoodCuffColorRef.current,
+                cuffMetallic: hoodCuffMetallicRef.current,
+                cuffMaterial: hoodCuffMaterialRef.current,
+                hanging: hoodHangingRef.current,
                 waterCalm: hoodWaterCalmRef.current,
                 cuffTop: hoodCuffTopRef.current,
                 zipperFixed: hoodZipperFixedRef.current,
@@ -12199,6 +12692,12 @@ export function Aquafulness() {
             cuff: l.cuff,
             cuffHeight: l.cuffHeight,
             cuffSize: l.cuffSize,
+            viewShadow: l.viewShadow,
+            cuffCustom: l.cuffCustom,
+            cuffColor: l.cuffColor,
+            cuffMetallic: l.cuffMetallic,
+            cuffMaterial: l.cuffMaterial,
+            hanging: l.hanging,
             waterCalm: l.waterCalm,
             cuffTop: l.cuffTop,
             zipperFixed: l.zipperFixed,
@@ -12298,7 +12797,10 @@ export function Aquafulness() {
       retroPass.dispose();
       composer.dispose();
       neonEdges.dispose();
+      stringLights.dispose();
       aurora.dispose();
+      windAudio.dispose();
+      windField.reset();
       snowfall.dispose();
       rainfall.dispose();
       fireworks.dispose();
@@ -12379,6 +12881,7 @@ export function Aquafulness() {
       tvManagerRef.current = null;
       torusRingField.dispose();
       torusRingFieldRef.current = null;
+      detachDecorations();
       renderer.domElement.removeEventListener("pointerdown", onWatercraftPointerDown);
       renderer.domElement.removeEventListener("pointermove", onWatercraftPointerMove);
       renderer.domElement.removeEventListener("pointerup", onWatercraftPointerUp);
@@ -12485,6 +12988,7 @@ export function Aquafulness() {
             return;
           }
           const model = gltf.scene;
+          applyNodeVisibility(gltf);
           applyManifest(model, manifest);
           // SKUGGOR: every mesh in the scene casts and receives the sun's
           // shadow — whether any shadow is drawn at all is decided per
@@ -12742,9 +13246,31 @@ export function Aquafulness() {
   // shared with the identical clone rendered as the "Inställningar" app
   // inside the virtual phone (see VirtualPhone.tsx's settingsPanelProps prop
   // and SettingsPanel.tsx, which both hosts render unchanged).
+  const windControls: WindControls = {
+    winds,
+    setWinds,
+    windWavesOn,
+    setWindWavesOn,
+    windWaveStrength,
+    setWindWaveStrength,
+    windSwayOn,
+    setWindSwayOn,
+    windSwayStrength,
+    setWindSwayStrength,
+    windCurrentOn,
+    setWindCurrentOn,
+    windCurrentStrength,
+    setWindCurrentStrength,
+    windSoundOn,
+    setWindSoundOn,
+    windSoundVolume,
+    setWindSoundVolume,
+    windAltitudeAudioOn,
+    setWindAltitudeAudioOn,
+    getViewBearing: getWindViewBearing,
+  };
   const settingsPanelProps: SettingsPanelProps = {
-    settingsTab,
-    setSettingsTab,
+    wind: windControls,
     restoreCameraPosition,
     resetToDefaults,
     savedPresets,
@@ -13076,6 +13602,12 @@ export function Aquafulness() {
     hoodCuffHeight,
     setHoodCuffHeight,
     hoodCuffSize,
+    hoodViewShadow,
+    hoodCuffCustom,
+    hoodCuffColor,
+    hoodCuffMetallic,
+    hoodCuffMaterial,
+    hoodHanging,
     hoodWaterCalm,
     hoodCuffTop,
     hoodZipperFixed,
@@ -13084,6 +13616,12 @@ export function Aquafulness() {
     hoodPuffThickness,
     hoodPuffInflate,
     setHoodCuffSize,
+    setHoodViewShadow,
+    setHoodCuffCustom,
+    setHoodCuffColor,
+    setHoodCuffMetallic,
+    setHoodCuffMaterial,
+    setHoodHanging,
     setHoodWaterCalm,
     setHoodCuffTop,
     setHoodZipperFixed,
@@ -13422,6 +13960,7 @@ export function Aquafulness() {
     sceneId,
     setSceneId,
     cycleScene,
+    decorations: deco.controls,
     userSceneIds: (userScenes ?? []).map((u) => u.id),
     userSceneBusy,
     pickUserSceneFile,
@@ -13688,6 +14227,9 @@ export function Aquafulness() {
       {/* Fake live-broadcast overlay — hidden by default, toggled via LIVE dial. */}
       {liveMode && <LiveBroadcast />}
 
+      {/* DEKORATIONER placement bar — outside the fading HUD so it stays up
+          while the gizmo is used. */}
+      {deco.controls.placing && !settingsOpen && <DecorationHudBar c={deco.controls} />}
       {/* HUD overlay — fades out on inactivity, back in on any touch. Always
           pointer-events-none on this wrapper itself (every interactive
           descendant below — buttons, the settings panel, joysticks — already
@@ -13758,7 +14300,10 @@ export function Aquafulness() {
           </button>
 
           <button
-            onClick={() => setSettingsOpen((s) => !s)}
+            onClick={() => {
+              setWindPanelOpen(false);
+              setSettingsOpen((s) => !s);
+            }}
             className={`pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur-md transition active:scale-95 ${
               settingsOpen ? "ui-line-3 ui-tint-2 ui-ink" : "ui-line-2 ui-surface ui-ink ui-press"
             }`}
@@ -13962,7 +14507,23 @@ export function Aquafulness() {
           >
             <LifeBuoy className="h-5 w-5" strokeWidth={1.6} aria-hidden="true" />
           </HudIconButton>
+          {/* VIND: opens the wind panel, where winds are added, aimed and
+              tuned (components/WindPanel.tsx). Lit while any wind blows. */}
+          <HudIconButton
+            label={t("wind.title")}
+            ariaLabel={t("wind.openAria")}
+            active={windPanelOpen || winds.some((w) => w.on && w.speed > 0)}
+            onClick={() => {
+              setSettingsOpen(false);
+              setWindPanelOpen((v) => !v);
+            }}
+          >
+            <Wind className="h-5 w-5" strokeWidth={1.6} aria-hidden="true" />
+          </HudIconButton>
         </div>
+        {windPanelOpen && (
+          <WindHudPanel c={windControls} onClose={() => setWindPanelOpen(false)} />
+        )}
         <ShareBathDialog
           open={shareBathOpen}
           onClose={() => setShareBathOpen(false)}

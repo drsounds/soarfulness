@@ -104,6 +104,8 @@
     "cancel": "PERUUTA",
     "close": "SULJE",
     "decreaseAria": "{{label}} pienennä",
+    "typeToOverride": "Napauta arvoa kirjoittaaksesi oman, myös liukusäätimen ulkopuolelta",
+    "typedOutOfRange": "Oma arvo liukusäätimen alueen ulkopuolella",
     "high": "KORKEA",
     "increaseAria": "{{label}} suurenna",
     "low": "MATALA",
@@ -172,6 +174,15 @@
       "hoodStyle_classic": "KLASSINEN",
       "hoodStyle_puffy": "TOPPAUS",
       "hoodStyle_quilted": "TIKATTU",
+      "hoodViewShadow": "VARJO NÄKYMÄSSÄ",
+      "hoodCuffCustom": "OMA RESORI",
+      "hoodCuffColor": "RESORIN VÄRI",
+      "hoodCuffMetallic": "RESORIN KIILTO",
+      "hoodCuffMaterial": "RESORIN MATERIAALI",
+      "hoodCuffMaterial_knit": "NEULOTTU",
+      "hoodCuffMaterial_smooth": "SILEÄ STRETCH",
+      "hoodCuffMaterial_rubber": "KUMI",
+      "hoodHanging": "RIIPPUU YLÄOSASTA",
       "hoodWaterCalm": "VEDEN TYYNEYS",
       "hoodCuffTop": "RESORI KAULUKSEN REUNASSA",
       "hoodZipperFixed": "VETOKETJU KIINNI KANKAASSA",
@@ -1135,6 +1146,92 @@
   },
   "settings": {
     "backAriaLabel": "Takaisin asetusosioihin",
+    "categories": {
+      "bather": "UIMARI",
+      "scene": "NÄKYMÄ",
+      "sea": "MERI",
+      "system": "JÄRJESTELMÄ"
+    },
+    "groups": {
+      "app": {
+        "desc": "Kieli, teema, äärirajat, tietoja",
+        "label": "Yleiset"
+      },
+      "bather": {
+        "desc": "Uimalasit ja huppu",
+        "label": "Uimari"
+      },
+      "bottom": {
+        "desc": "Pohja, syvyys ja syvyyden vaihtelu",
+        "label": "Pohja & syvyys"
+      },
+      "camera": {
+        "desc": "Sijainti, näkökenttä, kierto, näytön lukitus",
+        "label": "Kamera"
+      },
+      "clouds": {
+        "desc": "Pilvikerrokset, 3D-pilvet, pilvitupsut",
+        "label": "Pilvet"
+      },
+      "drift": {
+        "desc": "Virran suunta, huojunta, maininki, avomeriajelehtiminen",
+        "label": "Virta & ajelehtiminen"
+      },
+      "effects": {
+        "desc": "Torusrenkaat ja neon",
+        "label": "Efektit"
+      },
+      "events": {
+        "desc": "Konfetti ja ilotulitus",
+        "label": "Tapahtumat"
+      },
+      "graphics": {
+        "desc": "Suorituskyky, resoluutio, valaistus, varjot, retro",
+        "label": "Grafiikka"
+      },
+      "interval": {
+        "desc": "Jaksot, kesto, tilastot",
+        "label": "Intervallijaksot"
+      },
+      "mode": {
+        "desc": "Kellu, keinu, lennä, tornado, freak out",
+        "label": "Liiketila"
+      },
+      "place": {
+        "desc": "Näkymä, aloituspaikka, maailman raja, huoneen koko",
+        "label": "Paikka & maailma"
+      },
+      "sound": {
+        "desc": "Veden ääni, äänenvoimakkuus, tilaääni",
+        "label": "Ääni"
+      },
+      "state": {
+        "desc": "Esiasetukset, koko tila, maisemat, jaa, palauta",
+        "label": "Tallenna, lataa & maisemat"
+      },
+      "time": {
+        "desc": "Vuorokaudenaika, kello, ympäristö ja aikakausi, tausta",
+        "label": "Aika"
+      },
+      "water": {
+        "desc": "Väri, heijastus, vaahto, valokuviot, hehku",
+        "label": "Vesi"
+      },
+      "waves": {
+        "desc": "Korkeus, nopeus, taajuus, keinunta, aaltomuoto",
+        "label": "Aallot"
+      },
+      "weather": {
+        "desc": "Revontulet, vedenalainen sumu, tuuli ja lumi",
+        "label": "Sää"
+      }
+    },
+    "languageTitle": "Kieli",
+    "layout": {
+      "toList": "Näytä luettelona",
+      "toTabs": "Näytä välilehtinä"
+    },
+    "presetsPerGroupTitle": "ESIASETUKSET LUOKITTAIN",
     "reset": "NOLLAA",
     "resetAriaLabel": "Palauta säätimet oletusarvoihin",
     "resetConfirm": "Tämä palauttaa kaikki säätimet oletusarvoihinsa (vuorokaudenaika ei muutu).",
@@ -1145,6 +1242,13 @@
     "restoreTitle": "Palaa viimeksi tallennettuun kameran sijaintiin ja suuntaan",
     "saveMenuAriaLabel": "Tallenna ja lataa esiasetuksia tai koko tila",
     "saveMenuTitle": "TALLENNA JA LATAA",
+    "sceneryTitle": "MAISEMAT",
+    "search": {
+      "clear": "Tyhjennä haku",
+      "noResults": "Mikään asetus ei vastaa hakua.",
+      "placeholder": "Hae asetuksia"
+    },
+    "shareAndResetTitle": "JAA & PALAUTA",
     "tabs": {
       "kamera": "KAMERA",
       "ljud": "ÄÄNI",
@@ -1175,6 +1279,96 @@
     "logoAlt": "Aquafulness",
     "startBath": "Aloita kylpy",
     "starting": "Aloitetaan…"
+  },
+  "stringLights": {
+    "title": "VALOKETJUT",
+    "string": "KETJU",
+    "addInFront": "LISÄÄ ETEENI",
+    "duplicate": "MONISTA",
+    "moveHere": "SIIRRÄ TÄHÄN",
+    "remove": "POISTA",
+    "visible": "NÄKYVISSÄ",
+    "section": "ASETUKSET",
+    "x": "SIJAINTI X",
+    "z": "SIJAINTI Z",
+    "yaw": "SUUNTA",
+    "span": "JÄNNEVÄLI",
+    "heightA": "ALKUKORKEUS",
+    "heightB": "LOPPUKORKEUS",
+    "curve": "RIIPPUMISKÄYRÄ",
+    "sag": "RIIPPUMA",
+    "drapes": "KAARIA",
+    "sway": "HEILUNTA TUULESSA",
+    "wireColor": "JOHDON VÄRI",
+    "bulbCount": "LAMPPUJA",
+    "bulbStyle": "LAMPPUTYYPPI",
+    "bulbSize": "LAMPUN KOKO",
+    "bulbDrop": "RIIPPUPITUUS",
+    "brightness": "KIRKKAUS",
+    "glow": "HEHKU",
+    "glowSize": "HEHKUN KOKO",
+    "emitLight": "VALAISEE NÄKYMÄN",
+    "palette": "PALETTI",
+    "color": "VÄRI",
+    "pattern": "KUVIO",
+    "blockSize": "LAMPPUJA / VÄRI",
+    "anim": "ANIMAATIO",
+    "speed": "NOPEUS",
+    "animDepth": "SYVYYS",
+    "direction": "SUUNTA",
+    "forward": "ETEENPÄIN",
+    "backward": "TAAKSEPÄIN",
+    "emitters": "VALONLÄHTEET (MAKS)",
+    "dayGlow": "HEHKU PÄIVÄLLÄ",
+    "here": "Olet kohdassa X {{x}}, Z {{z}}",
+    "sections": {
+      "placement": "SIJOITUS",
+      "curve": "RIIPPUMINEN",
+      "bulbs": "LAMPUT",
+      "colors": "VÄRIT",
+      "animation": "ANIMAATIO"
+    },
+    "curves": {
+      "catenary": "KETJUKÄYRÄ",
+      "parabola": "PARAABELI",
+      "festoon": "KÖYNNÖS",
+      "straight": "KIREÄ"
+    },
+    "bulbs": {
+      "globe": "PALLO",
+      "fairy": "PIKKUVALOT",
+      "c9": "C9-JOULULAMPPU",
+      "lantern": "LYHTY",
+      "star": "TÄHTI"
+    },
+    "palettes": {
+      "warm": "LÄMMIN VALKOINEN",
+      "coolwhite": "KYLMÄ VALKOINEN",
+      "classic": "KLASSINEN VÄRI",
+      "christmas": "JOULU",
+      "candy": "POLKKA",
+      "ocean": "MERI",
+      "sunset": "AURINGONLASKU",
+      "neon": "NEON",
+      "midsummer": "JUHANNUS",
+      "custom": "OMA"
+    },
+    "patterns": {
+      "repeat": "TOISTA",
+      "mirror": "PEILAA",
+      "blocks": "LOHKOT",
+      "gradient": "LIUKUVÄRI",
+      "random": "SATUNNAINEN"
+    },
+    "anims": {
+      "steady": "TASAINEN",
+      "twinkle": "TUIKE",
+      "chase": "JAHTI",
+      "fade": "HÄIVYTYS",
+      "pulse": "SYKE",
+      "alternate": "VUOROTTELU",
+      "colorshift": "VÄRIVAELLUS"
+    }
   },
   "swing": {
     "preset": {
@@ -1228,7 +1422,19 @@
     "light": "VAALEA",
     "dark": "TUMMA",
     "blur": "LASIEFEKTI (SUMENNUS)",
-    "blurHint": "Paneelien takana näkyvä sumennusefekti. Oletuksena pois päältä paremman suorituskyvyn vuoksi."
+    "blurHint": "Paneelien takana näkyvä sumennusefekti. Oletuksena pois päältä paremman suorituskyvyn vuoksi.",
+    "glass": "LIQUID GLASS",
+    "glassDescription": "Virtaavaa, valoa taittavaa lasia valaistuin reunoin — säädä sumennus, taittuminen, sävy, peittävyys ja kulmat alla. Kuormittaa näytönohjainta enemmän kuin muut teemat.",
+    "glass_tintHue": "SÄVYVÄRI",
+    "glass_blur": "SUMENNUS",
+    "glass_refraction": "TAITTUMINEN",
+    "glass_saturation": "KYLLÄISYYS",
+    "glass_tintStrength": "SÄVYN VAHVUUS",
+    "glass_opacity": "PEITTÄVYYS",
+    "glass_highlight": "REUNAVALO",
+    "glass_radius": "KULMASÄDE",
+    "glass_reset": "PALAUTA LASI",
+    "glass_hint": "Liquid Glassilla on aina oma sumennuksensa (aseta SUMENNUS pois säästääksesi energiaa). Taittuminen näkyy Chromessa, Edgessä ja Android-sovelluksessa."
   },
   "timeTravel": {
     "applyButton": "Matkusta ajassa",
@@ -1274,5 +1480,104 @@
       "legacy": "LEGACY",
       "standard": "STANDARDI"
     }
+  },
+  "wind": {
+    "title": "TUULI",
+    "openAria": "Avaa tuulipaneeli",
+    "add": "+ LISÄÄ TUULI",
+    "empty": "Ei vielä tuulia. Napauta LISÄÄ TUULI — uusi tuuli puhaltaa suoraan sinua kohti, sitten voit kääntää sitä.",
+    "total": "YHTEENSÄ",
+    "windN": "TUULI {{n}}",
+    "direction": "SUUNTA",
+    "speed": "TUULEN NOPEUS",
+    "gust": "PUUSKAISUUS",
+    "headwind": "MINUA KOHTI",
+    "tailwind": "MYÖTÄTUULI",
+    "remove": "POISTA",
+    "waves": "TUULI → AALTOJEN SUUNTA",
+    "wavesStrength": "AALTOJEN OHJAUS",
+    "sway": "TUULI → HUOJUNTA",
+    "swayStrength": "HUOJUNNAN VOIMA",
+    "current": "TUULI → VIRTA",
+    "currentStrength": "VIRRAN VOIMA",
+    "sound": "TUULEN ÄÄNI",
+    "altitudeAudio": "KORKEUSÄÄNI",
+    "soundVolume": "TUULEN VOIMAKKUUS",
+    "soundHint": "Tuulen ääni riippuu tuulen nopeudesta ja suunnasta sekä siitä, kuinka nopeasti liikut sitä vastaan. KORKEUSÄÄNI: veden yläpuolella veden ääni vaihtuu kohinaksi, joka hiipuu ylempänä, missä tuuli puhaltaa voimakkaammin. Vaatii ÄÄNEN.",
+    "compass": {
+      "n": "P",
+      "ne": "KO",
+      "e": "I",
+      "se": "KA",
+      "s": "E",
+      "sw": "LO",
+      "w": "L",
+      "nw": "LU"
+    },
+    "from": "SUUNNASTA"
+  },
+  "decorations": {
+    "title": "KORISTEET",
+    "import": "IMPORT GLB",
+    "importing": "IMPORTING…",
+    "importHint": "Add your own .glb model as a decoration in this scene. Models up to {{max}} are embedded and travel with links, states and settings; larger ones are stored on this device only.",
+    "empty": "No decorations in {{scene}} yet.",
+    "perScene": "{{count}} in {{scene}} — saved per scene.",
+    "noScene": "MERI",
+    "place": "SIJOITA",
+    "moveToView": "MOVE HERE",
+    "duplicate": "MONISTA",
+    "remove": "POISTA",
+    "removeConfirm": "Remove the decoration \"{{name}}\"?",
+    "visible": "VISIBLE",
+    "transform": "POSITION · ROTATION · SIZE",
+    "position": "POSITION",
+    "rotation": "ROTATION °",
+    "scaleXyz": "SCALE",
+    "size": "SIZE",
+    "turn": "TURN",
+    "repeat": "REPEAT",
+    "copies": "{{count}} COPIES",
+    "repeatCount": "COUNT",
+    "repeatSpacing": "SPACING",
+    "repeatTurn": "TURN PER COPY",
+    "repeatScale": "SCALE PER COPY",
+    "storage": "STORAGE",
+    "embeddedInfo": "Embedded in the settings ({{size}}) — travels with links, states and settings files.",
+    "localInfo": "Stored on this device ({{size}}) — removed from shared links.",
+    "tooLargeToEmbed": "Too large to embed (max {{max}}).",
+    "makeLocal": "STORE LOCALLY",
+    "embed": "EMBED",
+    "localNotInLinks": "{{count}} decoration(s) live only on this device and are removed from links.",
+    "importedLocal": "The model is too large to embed, so it is stored on this device and won't travel in shared links.",
+    "prev": "Previous",
+    "next": "Next",
+    "tapToPick": "TAP A DECORATION",
+    "done": "VALMIS",
+    "gizmo": {
+      "move": "MOVE",
+      "rotate": "ROTATE",
+      "scale": "SCALE",
+      "local": "LOCAL",
+      "world": "WORLD"
+    }
+  },
+  "skyLook": {
+    "tintStrength": "SÄVYN VOIMAKKUUS",
+    "tintWidth": "KULTAISEN TUNNIN PITUUS",
+    "tintSpread": "SÄVYN LAAJUUS",
+    "tintColorMode": "SÄVYN VÄRI",
+    "tintColorModeValue": {
+      "sun": "AURINKO",
+      "sky": "TAIVAALTA",
+      "custom": "OMA"
+    },
+    "tintColor": "VÄRI",
+    "rotation": "TAIVAAN KIERTO",
+    "sunDisc": "AURINKO TAIVAALLA",
+    "sunDiscSize": "AURINGON KOKO",
+    "sunDiscGlow": "AURINGON HEHKU",
+    "sceneSunLight": "AURINGONVALO KOHTAUKSESSA",
+    "sceneSkyLight": "TAIVAANVALO KOHTAUKSESSA"
   }
 }

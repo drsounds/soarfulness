@@ -171,6 +171,9 @@ const SPLASH_VERT = `
     vFlat = clamp(abs(toP.y), 0.12, 1.0);
     vec2 rel = abs(p2 - uCamPos.xz) / uHalf;
     vAlpha = (1.0 - smoothstep(0.6, 1.0, max(rel.x, rel.y))) * smoothstep(0.4, 1.5, dist);
+    // Only seen from above: from below the surface (a camera bobbing just
+    // under the mean level) the rings would hang in the air.
+    vAlpha *= 1.0 - smoothstep(-0.06, -0.01, toP.y);
   }
 `;
 

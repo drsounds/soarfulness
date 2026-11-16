@@ -1,8 +1,11 @@
+import type { SkyLook } from "@/lib/skyLook";
+import type { DecorationsByScene } from "@/lib/decorations";
 import vanernBackdrop from "@/assets/vanern-backdrop.png.asset.json";
 import sandTextureAsset from "@/assets/sand_cc0_512.jpg.asset.json";
 import waterAsset from "@/assets/water.mp3.asset.json";
+import type { WindSource } from "@/lib/wind";
 import type { OpenDriftCurve, OpenDriftDirection } from "@/lib/openDrift";
-import type { HoodLayer, HoodStyle } from "@/lib/hoodLayers";
+import type { HoodCuffMaterial, HoodLayer, HoodStyle } from "@/lib/hoodLayers";
 
 // Shared between the main HUD's settings dialog (routes/index.tsx) and its
 // clone rendered as the "Inställningar" app inside the virtual phone's bathOS
@@ -468,6 +471,12 @@ export type Persisted = {
   hoodCuffOn: boolean;
   hoodCuffHeight: number;
   hoodCuffSize: number;
+  hoodViewShadow: boolean;
+  hoodCuffCustom: boolean;
+  hoodCuffColor: string;
+  hoodCuffMetallic: number;
+  hoodCuffMaterial: HoodCuffMaterial;
+  hoodHanging: boolean;
   hoodWaterCalm: number;
   hoodCuffTop: boolean;
   hoodZipperFixed: boolean;
@@ -476,6 +485,9 @@ export type Persisted = {
   hoodPuffThickness: number;
   hoodPuffInflate: number;
   hoodExtraLayers: HoodLayer[];
+  // DEKORATIONER: scene key → that scene's placed .glb decorations
+  // (src/lib/decorations.ts).
+  decorations: DecorationsByScene;
   targetFps: number;
   resolutionScale: number;
   // LOW GRAPHICS MODE: a single opt-in "everything cheap" switch for lower-
@@ -666,6 +678,22 @@ export type Persisted = {
   surgeSpeed: number;
   surgeRotationMode: SurgeRotationMode;
   surgeRotationSpeed: number;
+  // VIND (lib/wind.ts): any number of winds, each with its own direction,
+  // speed and gusts, added from the VIND button in the main view. They can
+  // steer the wave direction, add to the sway and push a surface current
+  // (each optional), and drive the wind sound. windAltitudeAudioOn
+  // (HÖJDLJUD, on by default) fades the water sound into surface noise and
+  // then wind as the camera rises above the water.
+  winds: WindSource[];
+  windWavesOn: boolean;
+  windWaveStrength: number;
+  windSwayOn: boolean;
+  windSwayStrength: number;
+  windCurrentOn: boolean;
+  windCurrentStrength: number;
+  windSoundOn: boolean;
+  windSoundVolume: number;
+  windAltitudeAudioOn: boolean;
   // HAVSDRIFT: an endless open-water drift that keeps carrying the
   // player around with every stick at rest (lib/openDrift.ts): a
   // circle of openDriftRadius m (openDriftDirection) or a random
@@ -785,6 +813,9 @@ export type Persisted = {
   // SOLTONING: sunrise/sunset colors the backdrop (environment skybox, its
   // water reflection and the flat backdrop image) warm around the sun.
   envSunTintOn: boolean;
+  // HIMMELSLJUS: SOLTONING options, skybox rotation, sun in the sky and
+  // scene light levels (lib/skyLook.ts), kept as one object.
+  skyLook: SkyLook;
   // SNÖ: falling snow (lib/sceneFx/snow.ts). snowAmount = number of flakes,
   // snowIntensity = how hard it snows. SNÖTÄCKE (snowCoverOn) whitens the
   // loaded scene and environment backdrop by snowCoverStrength 0..1.
@@ -1181,6 +1212,12 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "hoodCuffOn",
     "hoodCuffHeight",
     "hoodCuffSize",
+    "hoodViewShadow",
+    "hoodCuffCustom",
+    "hoodCuffColor",
+    "hoodCuffMetallic",
+    "hoodCuffMaterial",
+    "hoodHanging",
     "hoodWaterCalm",
     "hoodCuffTop",
     "hoodZipperFixed",
@@ -1253,6 +1290,16 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "waterGlowEveningOnly",
   ],
   miljo: [
+    "winds",
+    "windWavesOn",
+    "windWaveStrength",
+    "windSwayOn",
+    "windSwayStrength",
+    "windCurrentOn",
+    "windCurrentStrength",
+    "windSoundOn",
+    "windSoundVolume",
+    "windAltitudeAudioOn",
     "timeOfDay",
     "midCloudsOn",
     "midCloudsHeight",
@@ -1301,6 +1348,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "envDaylightTintStrength",
     "envDayNightAutoOn",
     "envSunTintOn",
+    "skyLook",
     "snowOn",
     "snowAmount",
     "snowIntensity",
@@ -1349,6 +1397,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "auroraColorMain",
     "auroraColorTop",
     "auroraDaylightOn",
+    "decorations",
     "underwaterFogOn",
     "underwaterFogColor",
     "underwaterFogOpacity",

@@ -318,8 +318,11 @@ button:not(:disabled):active,
    Off by default (see DEFAULT_UI_THEME_SETTINGS in src/lib/uiTheme.ts) —
    the toggle in Tema settings turns it back on. */
 [data-ui-blur="off"] * {
-  backdrop-filter: none !important;
+  /* Prefixed first: the CSS minifier collapses the pair into whichever
+     comes last, and with the unprefixed one first it kept only the
+     -webkit- copy, so Chrome/Android never actually lost the blur. */
   -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
 }
 
 /* ---------- Sci-fi: glowing glass "diode" look ---------- */
@@ -409,6 +412,176 @@ button:not(:disabled):active,
 [data-ui-theme="spa"] .ui-surface-strong,
 [data-ui-theme="spa"] .ui-surface-solid {
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+}
+
+/* ---------- Liquid Glass: customizable refractive glass ----------
+   Opt-in only (the default stays blur-free for CPU/GPU energy). Every
+   --ui-glass-* value comes from the visitor's own settings via
+   liquidGlassCssVars() in src/lib/uiTheme.ts: tint hue/strength, fill
+   opacity, edge highlight, corner radius and the full backdrop-filter
+   chain (refraction url() + blur + saturate, or "none"). <html> carries
+   data-ui-blur="glass" in this theme, so the blur-off kill switch above
+   never matches and this theme's own filter is what applies. */
+[data-ui-theme="glass"] {
+  --ui-glass-hue: 200;
+  --ui-glass-tint: 25%;
+  --ui-glass-alpha: 22%;
+  --ui-glass-hl: 0.65;
+  --ui-glass-radius: 24px;
+  --ui-glass-filter: blur(14px) saturate(170%);
+
+  --ui-accent: hsl(var(--ui-glass-hue) 85% 62%);
+  --ui-glass-tone: color-mix(in oklab, hsl(var(--ui-glass-hue) 70% 45%) var(--ui-glass-tint), rgb(12 16 24));
+  --ui-surface: color-mix(in oklab, var(--ui-glass-tone) var(--ui-glass-alpha), transparent);
+  --ui-surface-strong: color-mix(
+    in oklab,
+    var(--ui-glass-tone) calc(var(--ui-glass-alpha) + 12%),
+    transparent
+  );
+  --ui-surface-solid: color-mix(in oklab, var(--ui-glass-tone) 88%, transparent);
+  --ui-tint-1: rgb(255 255 255 / 0.08);
+  --ui-tint-2: rgb(255 255 255 / 0.2);
+  --ui-tint-solid: rgb(255 255 255 / 0.92);
+  --ui-line-1: rgb(255 255 255 / calc(0.1 + var(--ui-glass-hl) * 0.2));
+  --ui-line-2: rgb(255 255 255 / calc(0.14 + var(--ui-glass-hl) * 0.24));
+  --ui-line-3: rgb(255 255 255 / calc(0.3 + var(--ui-glass-hl) * 0.4));
+  --ui-ink: rgb(255 255 255 / 0.95);
+  --ui-ink-muted: rgb(255 255 255 / 0.72);
+  --ui-ink-faint: rgb(255 255 255 / 0.5);
+  --ui-press: rgb(255 255 255 / 0.18);
+  --ui-glow: rgb(255 255 255 / 0.4);
+  --ui-btn-bg: color-mix(in oklab, var(--ui-accent) 35%, rgb(255 255 255 / 0.12));
+  --ui-btn-border: rgb(255 255 255 / calc(0.2 + var(--ui-glass-hl) * 0.4));
+  --ui-btn-ink: #ffffff;
+  --ui-btn-shadow:
+    inset 0 1px 0 rgb(255 255 255 / calc(var(--ui-glass-hl) * 0.7)),
+    0 6px 18px -8px rgb(0 0 0 / 0.45);
+
+  /* Specular sheen across the top-left of every panel, and the lit/shaded
+     rims that make a flat rectangle read as a thick, curved slab. */
+  --ui-glass-sheen: linear-gradient(
+    135deg,
+    rgb(255 255 255 / calc(var(--ui-glass-hl) * 0.22)) 0%,
+    rgb(255 255 255 / calc(var(--ui-glass-hl) * 0.05)) 35%,
+    transparent 55%,
+    rgb(255 255 255 / calc(var(--ui-glass-hl) * 0.06)) 100%
+  );
+  --ui-glass-rim:
+    inset 1px 1px 0 rgb(255 255 255 / calc(var(--ui-glass-hl) * 0.75)),
+    inset -1px -1px 0 rgb(255 255 255 / calc(var(--ui-glass-hl) * 0.25)),
+    inset 0 0 14px rgb(255 255 255 / calc(var(--ui-glass-hl) * 0.12)),
+    0 10px 30px -12px rgb(0 0 0 / 0.45);
+}
+/* Light variant: milky glass with dark ink, for bright daytime scenes. */
+:root[data-ui-theme="glass"]:not(.dark) {
+  --ui-glass-tone: color-mix(in oklab, hsl(var(--ui-glass-hue) 80% 70%) var(--ui-glass-tint), rgb(250 252 255));
+  --ui-surface-solid: color-mix(in oklab, var(--ui-glass-tone) 92%, transparent);
+  --ui-tint-1: rgb(255 255 255 / 0.3);
+  --ui-tint-2: rgb(255 255 255 / 0.55);
+  --ui-tint-solid: rgb(20 24 32 / 0.9);
+  --ui-ink: rgb(10 14 22 / 0.9);
+  --ui-ink-muted: rgb(10 14 22 / 0.66);
+  --ui-ink-faint: rgb(10 14 22 / 0.45);
+  --ui-press: rgb(0 0 0 / 0.08);
+  --ui-glow: rgb(255 255 255 / 0.6);
+  --ui-btn-ink: rgb(10 14 22 / 0.92);
+  --ui-btn-bg: color-mix(in oklab, var(--ui-accent) 30%, rgb(255 255 255 / 0.55));
+}
+/* Glass panels and floating icon buttons: tinted fill + sheen + rims. */
+[data-ui-theme="glass"] :is(.ui-surface, .ui-surface-strong, .ui-surface-solid, .ui-icon-btn) {
+  background: var(--ui-glass-sheen), var(--ui-surface);
+  box-shadow: var(--ui-glass-rim);
+}
+[data-ui-theme="glass"] .ui-surface-strong {
+  background: var(--ui-glass-sheen), var(--ui-surface-strong);
+}
+[data-ui-theme="glass"] .ui-surface-solid {
+  background: var(--ui-glass-sheen), var(--ui-surface-solid);
+}
+[data-ui-theme="glass"] .ui-icon-btn {
+  background: var(--ui-glass-sheen), var(--ui-surface-strong);
+}
+/* Everything the app already marks as glass (any backdrop-blur-* utility)
+   plus the panel tokens gets this theme's own filter chain, consistently. */
+[data-ui-theme="glass"] :is([class*="backdrop-blur"], .ui-surface, .ui-surface-strong, .ui-icon-btn) {
+  -webkit-backdrop-filter: var(--ui-glass-filter);
+  backdrop-filter: var(--ui-glass-filter);
+}
+[data-ui-theme="glass"] [class*="backdrop-blur"]:not(.ui-surface, .ui-surface-strong, .ui-surface-solid, .ui-icon-btn) {
+  box-shadow: var(--ui-glass-rim);
+}
+/* Panels and dialogs take the chosen corner radius; pills/circles keep
+   their shape. */
+[data-ui-theme="glass"] :is(.ui-surface, .ui-surface-strong, .ui-surface-solid):not(.rounded-full) {
+  border-radius: var(--ui-glass-radius);
+}
+[data-ui-theme="glass"] .ui-ink {
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
+}
+:root[data-ui-theme="glass"]:not(.dark) .ui-ink {
+  text-shadow: 0 1px 0 rgb(255 255 255 / 0.4);
+}
+
+/* Liquid Glass bevels: every button and active tab/toggle gets a glassy
+   bevelled edge whose lit rim, shaded rim and inner glint slide across the
+   control as it scrolls — like a curved glass edge catching a fixed light
+   as it moves past. Driven purely by a CSS scroll-driven animation
+   (animation-timeline: view()), so no JS runs per scroll frame. --ui-bevel
+   goes from 1 (control entering at the bottom of its scroller) to -1
+   (leaving at the top). Where view timelines aren't supported, or the
+   control doesn't scroll (fixed HUD buttons), it keeps a static bevel lit
+   from above. */
+@property --ui-bevel {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0.6;
+}
+@keyframes ui-bevel-scroll {
+  from {
+    --ui-bevel: 1;
+  }
+  to {
+    --ui-bevel: -1;
+  }
+}
+[data-ui-theme="glass"] {
+  --ui-bevel-edge: calc(0.6 + var(--ui-glass-hl) * 0.6);
+}
+[data-ui-theme="glass"] :is(button, [role="button"], [role="tab"], .ui-btn) {
+  --ui-bevel-lit: rgb(255 255 255 / calc(var(--ui-glass-hl) * 0.85));
+  --ui-bevel-shade: rgb(0 0 0 / calc(var(--ui-glass-hl) * 0.35));
+  --ui-bevel-glint: rgb(255 255 255 / calc(var(--ui-glass-hl) * 0.32));
+  box-shadow:
+    inset calc(var(--ui-bevel) * 0.6px) calc(var(--ui-bevel) * 1.6px * var(--ui-bevel-edge)) 0 0
+      var(--ui-bevel-lit),
+    inset calc(var(--ui-bevel) * -0.6px) calc(var(--ui-bevel) * -1.6px * var(--ui-bevel-edge)) 0 0
+      var(--ui-bevel-shade),
+    inset 0 calc(var(--ui-bevel) * 9px) 10px -7px var(--ui-bevel-glint),
+    0 4px 14px -8px rgb(0 0 0 / 0.4);
+}
+/* Active tabs, selected chips and pressed toggles read as raised glass:
+   a thicker, brighter bevel than an idle button. */
+[data-ui-theme="glass"]
+  :is(
+    [aria-pressed="true"],
+    [aria-checked="true"],
+    [aria-selected="true"],
+    [aria-current]:not([aria-current="false"])
+  ) {
+  --ui-bevel-edge: calc(1.1 + var(--ui-glass-hl) * 0.9);
+  --ui-bevel-lit: rgb(255 255 255 / calc(0.25 + var(--ui-glass-hl) * 0.75));
+  --ui-bevel-glint: rgb(255 255 255 / calc(0.1 + var(--ui-glass-hl) * 0.45));
+}
+@supports (animation-timeline: view()) {
+  [data-ui-theme="glass"] :is(button, [role="button"], [role="tab"], .ui-btn) {
+    animation: ui-bevel-scroll linear both;
+    animation-timeline: view();
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-ui-theme="glass"] :is(button, [role="button"], [role="tab"], .ui-btn) {
+    animation: none;
+  }
 }
 
 .aqua-slider {
@@ -592,4 +765,21 @@ button:not(:disabled):active,
   .aq-splash-blob {
     animation: none !important;
   }
+}
+
+
+/* Settings search (src/components/settingsNav.tsx): SettingRow/Findable mark
+   the matches with data-srow; hide result groups with none, and anything in
+   a group's body that isn't a match and doesn't contain one (hints, section
+   titles, stray buttons). A group whose own name matched (data-sall) shows
+   everything. */
+.sp-results .sp-group:not([data-sall]):not(:has([data-srow])) {
+  display: none;
+}
+.sp-results .sp-group:not([data-sall]) .sp-group-body > :not([data-srow]):not(:has([data-srow])) {
+  display: none;
+}
+.sp-results:has([data-srow]) .sp-empty,
+.sp-results:has([data-sall]) .sp-empty {
+  display: none;
 }

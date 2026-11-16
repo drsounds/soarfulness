@@ -101,39 +101,18 @@ export function sceneNameFromFile(filename: string, fallback = "GLB"): string {
 }
 
 // ---- IndexedDB storage ----------------------------------------------------
+//
+// One "GLB library" per IndexedDB database: a `meta` store with the small
+// name/size rows and a `data` store with the model bytes. EGNA SCENER uses
+// the one below; DEKORATIONER (src/lib/decorations.ts) has its own library
+// built from the same factory so the two lists never mix.
 
-const DB_NAME = "aquafulness-user-scenes";
-const DB_VERSION = 1;
-const META_STORE = "meta";
-const DATA_STORE = "data";
-
-let dbPromise: Promise<IDBDatabase> | null = null;
-
-function openDb(): Promise<IDBDatabase> {
-  if (typeof indexedDB === "undefined") {
-    return Promise.reject(new UserSceneError("storageUnavailable"));
-  }
-  if (!dbPromise) {
-    dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
-      const req = indexedDB.open(DB_NAME, DB_VERSION);
-      req.onupgradeneeded = () => {
-        const db = req.result;
-        if (!db.objectStoreNames.contains(META_STORE)) {
-          db.createObjectStore(META_STORE, { keyPath: "id" });
-        }
-        if (!db.objectStoreNames.contains(DATA_STORE)) db.createObjectStore(DATA_STORE);
-      };
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(new UserSceneError("storageUnavailable", String(req.error)));
-      req.onblocked = () => reject(new UserSceneError("storageUnavailable", "blocked"));
-    });
-    // Let a later call retry (e.g. after a private-mode refusal is lifted).
-    dbPromise.catch(() => {
-      dbPromise = null;
-    });
-  }
-  return dbPromise;
-}
+export type GlbLibrary<M extends UserSceneMeta = UserSceneMeta> = {
+  list(): Promise<M[]>;
+  get(id: string): Promise<ArrayBuffer | null>;
+  add(file: File): Promise<M>;
+  remove(id: string): Promise<void>;
+};
 
 function isQuotaError(err: unknown): boolean {
   const name = (err as { name?: string } | null)?.name;
@@ -155,42 +134,17 @@ function request<T>(req: IDBRequest<T>): Promise<T> {
   });
 }
 
-// Every saved user scene, oldest first. Never throws: no storage → empty.
-export async function listUserScenes(): Promise<UserSceneMeta[]> {
-  try {
-    const db = await openDb();
-    const tx = db.transaction(META_STORE, "readonly");
-    const all = await request(tx.objectStore(META_STORE).getAll() as IDBRequest<UserSceneMeta[]>);
-    return all.sort((a, b) => a.addedAt.localeCompare(b.addedAt));
-  } catch (err) {
-    console.warn("Couldn't list imported scenes", err);
-    return [];
-  }
-}
+const META_STORE = "meta";
+const DATA_STORE = "data";
 
-// The stored model bytes, or null if the scene is gone.
-export async function getUserSceneData(id: string): Promise<ArrayBuffer | null> {
-  const db = await openDb();
-  const tx = db.transaction(DATA_STORE, "readonly");
-  const data = await request(tx.objectStore(DATA_STORE).get(id) as IDBRequest<unknown>);
-  if (data instanceof ArrayBuffer) return data;
-  if (data instanceof Blob) return data.arrayBuffer();
-  return null;
-}
-
-function newId(): string {
-  const rand =
-    typeof crypto !== "undefined" && "randomUUID" in crypto
-      ? crypto.randomUUID()
-      : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-  return `${USER_SCENE_ID_PREFIX}${rand}`;
-}
-
-// Validates and stores a picked .glb. Throws a UserSceneError on any problem
-// (too big, not a glTF 2.0 binary, storage full/unavailable).
-export async function addUserScene(file: File): Promise<UserSceneMeta> {
+// Reads a picked file and checks it is a glTF 2.0 binary within `maxBytes`.
+// Throws a UserSceneError with the reason. Shared by every GLB library.
+export async function readGlbFile(
+  file: File,
+  maxBytes = userSceneMaxBytes(),
+): Promise<ArrayBuffer> {
   if (file.size === 0) throw new UserSceneError("empty");
-  if (file.size > userSceneMaxBytes()) throw new UserSceneError("tooLarge");
+  if (file.size > maxBytes) throw new UserSceneError("tooLarge");
 
   // Cheap header check first so a wrong file type fails before reading the
   // whole thing into memory.
@@ -206,44 +160,131 @@ export async function addUserScene(file: File): Promise<UserSceneMeta> {
     throw new UserSceneError("tooLarge", String(err));
   }
   validateGlb(buffer);
+  return buffer;
+}
 
-  // Refuse up front when the browser already says it won't fit, rather than
-  // letting a half-written transaction fail.
-  try {
-    const est = await navigator.storage?.estimate?.();
-    if (est?.quota && est.usage !== undefined && est.usage + buffer.byteLength > est.quota) {
-      throw new UserSceneError("storageFull");
+export function createGlbLibrary(dbName: string, idPrefix: string): GlbLibrary {
+  let dbPromise: Promise<IDBDatabase> | null = null;
+
+  function openDb(): Promise<IDBDatabase> {
+    if (typeof indexedDB === "undefined") {
+      return Promise.reject(new UserSceneError("storageUnavailable"));
     }
-    // Best effort: ask the browser not to evict imported scenes under
-    // storage pressure.
-    void navigator.storage?.persist?.().catch(() => undefined);
-  } catch (err) {
-    if (err instanceof UserSceneError) throw err;
+    if (!dbPromise) {
+      dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
+        const req = indexedDB.open(dbName, 1);
+        req.onupgradeneeded = () => {
+          const db = req.result;
+          if (!db.objectStoreNames.contains(META_STORE)) {
+            db.createObjectStore(META_STORE, { keyPath: "id" });
+          }
+          if (!db.objectStoreNames.contains(DATA_STORE)) db.createObjectStore(DATA_STORE);
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(new UserSceneError("storageUnavailable", String(req.error)));
+        req.onblocked = () => reject(new UserSceneError("storageUnavailable", "blocked"));
+      });
+      // Let a later call retry (e.g. after a private-mode refusal is lifted).
+      dbPromise.catch(() => {
+        dbPromise = null;
+      });
+    }
+    return dbPromise;
   }
 
-  const meta: UserSceneMeta = {
-    id: newId(),
-    name: sceneNameFromFile(file.name),
-    size: buffer.byteLength,
-    addedAt: new Date().toISOString(),
+  function newId(): string {
+    const rand =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+    return `${idPrefix}${rand}`;
+  }
+
+  return {
+    // Every saved model, oldest first. Never throws: no storage → empty.
+    async list() {
+      try {
+        const db = await openDb();
+        const tx = db.transaction(META_STORE, "readonly");
+        const all = await request(
+          tx.objectStore(META_STORE).getAll() as IDBRequest<UserSceneMeta[]>,
+        );
+        return all.sort((a, b) => a.addedAt.localeCompare(b.addedAt));
+      } catch (err) {
+        console.warn(`Couldn't list ${dbName}`, err);
+        return [];
+      }
+    },
+
+    // The stored model bytes, or null if the model is gone.
+    async get(id) {
+      const db = await openDb();
+      const tx = db.transaction(DATA_STORE, "readonly");
+      const data = await request(tx.objectStore(DATA_STORE).get(id) as IDBRequest<unknown>);
+      if (data instanceof ArrayBuffer) return data;
+      if (data instanceof Blob) return data.arrayBuffer();
+      return null;
+    },
+
+    // Validates and stores a picked .glb. Throws a UserSceneError on any
+    // problem (too big, not a glTF 2.0 binary, storage full/unavailable).
+    async add(file) {
+      const buffer = await readGlbFile(file);
+
+      // Refuse up front when the browser already says it won't fit, rather
+      // than letting a half-written transaction fail.
+      try {
+        const est = await navigator.storage?.estimate?.();
+        if (est?.quota && est.usage !== undefined && est.usage + buffer.byteLength > est.quota) {
+          throw new UserSceneError("storageFull");
+        }
+        // Best effort: ask the browser not to evict imported models under
+        // storage pressure.
+        void navigator.storage?.persist?.().catch(() => undefined);
+      } catch (err) {
+        if (err instanceof UserSceneError) throw err;
+      }
+
+      const meta: UserSceneMeta = {
+        id: newId(),
+        name: sceneNameFromFile(file.name),
+        size: buffer.byteLength,
+        addedAt: new Date().toISOString(),
+      };
+      const db = await openDb();
+      try {
+        const tx = db.transaction([META_STORE, DATA_STORE], "readwrite");
+        tx.objectStore(DATA_STORE).put(buffer, meta.id);
+        tx.objectStore(META_STORE).put(meta);
+        await txDone(tx);
+      } catch (err) {
+        if (isQuotaError(err)) throw new UserSceneError("storageFull");
+        throw new UserSceneError("storageUnavailable", String(err));
+      }
+      return meta;
+    },
+
+    async remove(id) {
+      const db = await openDb();
+      const tx = db.transaction([META_STORE, DATA_STORE], "readwrite");
+      tx.objectStore(DATA_STORE).delete(id);
+      tx.objectStore(META_STORE).delete(id);
+      await txDone(tx);
+    },
   };
-  const db = await openDb();
-  try {
-    const tx = db.transaction([META_STORE, DATA_STORE], "readwrite");
-    tx.objectStore(DATA_STORE).put(buffer, meta.id);
-    tx.objectStore(META_STORE).put(meta);
-    await txDone(tx);
-  } catch (err) {
-    if (isQuotaError(err)) throw new UserSceneError("storageFull");
-    throw new UserSceneError("storageUnavailable", String(err));
-  }
-  return meta;
 }
 
-export async function removeUserScene(id: string): Promise<void> {
-  const db = await openDb();
-  const tx = db.transaction([META_STORE, DATA_STORE], "readwrite");
-  tx.objectStore(DATA_STORE).delete(id);
-  tx.objectStore(META_STORE).delete(id);
-  await txDone(tx);
-}
+const userSceneLibrary = createGlbLibrary("aquafulness-user-scenes", USER_SCENE_ID_PREFIX);
+
+// Every saved user scene, oldest first. Never throws: no storage → empty.
+export const listUserScenes = (): Promise<UserSceneMeta[]> => userSceneLibrary.list();
+
+// The stored model bytes, or null if the scene is gone.
+export const getUserSceneData = (id: string): Promise<ArrayBuffer | null> =>
+  userSceneLibrary.get(id);
+
+// Validates and stores a picked .glb. Throws a UserSceneError on any problem
+// (too big, not a glTF 2.0 binary, storage full/unavailable).
+export const addUserScene = (file: File): Promise<UserSceneMeta> => userSceneLibrary.add(file);
+
+export const removeUserScene = (id: string): Promise<void> => userSceneLibrary.remove(id);

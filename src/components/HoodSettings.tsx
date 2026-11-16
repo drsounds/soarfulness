@@ -5,6 +5,7 @@ import { saveFileToDevice } from "@/lib/deviceFiles";
 import { pickJsonFile, readJsonFile } from "@/lib/presets";
 import { limitMax, useExtremeLimits } from "@/lib/extremeLimits";
 import {
+  HOOD_CUFF_MATERIALS,
   HOOD_MAX_LAYERS,
   HOOD_PADDED_STYLES,
   HOOD_STYLES,
@@ -74,7 +75,7 @@ export function HoodSettings({
       mode="number"
       value={`${Math.round(layer[key] * 100)}%`}
       rawValue={layer[key]}
-      onSet={(v) => patch({ [key]: Math.max(0, Math.min(1, v)) })}
+      onSet={(v) => patch({ [key]: v })}
       min={0}
       max={1}
       step={0.05}
@@ -151,7 +152,7 @@ export function HoodSettings({
                 : t("common.auto")
             }
             rawValue={layer.openingWidth}
-            onSet={(v) => patch({ openingWidth: Math.max(0, Math.min(widthMax, v)) })}
+            onSet={(v) => patch({ openingWidth: v })}
             min={0}
             max={widthMax}
             step={0.05}
@@ -231,6 +232,46 @@ export function HoodSettings({
               {toggle("cuffTop", t("dial.camera.hoodCuffTop"))}
               {pct("cuffHeight", t("dial.camera.hoodCuffHeight"))}
               {pct("cuffSize", t("dial.camera.hoodCuffSize"))}
+              {toggle("cuffCustom", t("dial.camera.hoodCuffCustom"))}
+              {layer.cuffCustom && (
+                <>
+                  <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
+                    <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
+                      {t("dial.camera.hoodCuffColor")}
+                    </span>
+                    <input
+                      type="color"
+                      value={layer.cuffColor}
+                      onChange={(e) => patch({ cuffColor: e.target.value })}
+                      className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
+                    />
+                  </label>
+                  {pct("cuffMetallic", t("dial.camera.hoodCuffMetallic"))}
+                  <SettingRow
+                    label={t("dial.camera.hoodCuffMaterial")}
+                    value={t(`dial.camera.hoodCuffMaterial_${layer.cuffMaterial}`)}
+                    onDec={() =>
+                      patch({
+                        cuffMaterial:
+                          HOOD_CUFF_MATERIALS[
+                            (HOOD_CUFF_MATERIALS.indexOf(layer.cuffMaterial) - 1 +
+                              HOOD_CUFF_MATERIALS.length) %
+                              HOOD_CUFF_MATERIALS.length
+                          ],
+                      })
+                    }
+                    onInc={() =>
+                      patch({
+                        cuffMaterial:
+                          HOOD_CUFF_MATERIALS[
+                            (HOOD_CUFF_MATERIALS.indexOf(layer.cuffMaterial) + 1) %
+                              HOOD_CUFF_MATERIALS.length
+                          ],
+                      })
+                    }
+                  />
+                </>
+              )}
             </>
           )}
           {pct("metallic", t("dial.camera.hoodMetallic"))}
@@ -238,6 +279,8 @@ export function HoodSettings({
           {pct("wrinkles", t("dial.camera.hoodWrinkles"))}
           {pct("motion", t("dial.camera.hoodMotion"))}
           {pct("weight", t("dial.camera.hoodWeight"))}
+          {toggle("hanging", t("dial.camera.hoodHanging"))}
+          {toggle("viewShadow", t("dial.camera.hoodViewShadow"))}
 
           {/* Save / export / import the whole set of layers. */}
           <div className="mb-2 flex w-full flex-wrap items-center justify-center gap-1.5">

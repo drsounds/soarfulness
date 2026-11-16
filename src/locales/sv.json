@@ -104,6 +104,8 @@
     "cancel": "AVBRYT",
     "close": "STÄNG",
     "decreaseAria": "{{label}} minska",
+    "typeToOverride": "Tryck på värdet för att skriva ett eget, även utanför reglaget",
+    "typedOutOfRange": "Eget värde utanför reglagets område",
     "high": "HÖG",
     "increaseAria": "{{label}} öka",
     "low": "LÅG",
@@ -172,6 +174,15 @@
       "hoodStyle_classic": "KLASSISK",
       "hoodStyle_puffy": "PUFFIG",
       "hoodStyle_quilted": "VADDERAD",
+      "hoodViewShadow": "SKUGGA PÅ VYN",
+      "hoodCuffCustom": "EGEN MUDD",
+      "hoodCuffColor": "MUDDFÄRG",
+      "hoodCuffMetallic": "MUDDGLANS",
+      "hoodCuffMaterial": "MUDDMATERIAL",
+      "hoodCuffMaterial_knit": "STICKAD",
+      "hoodCuffMaterial_smooth": "SLÄT STRETCH",
+      "hoodCuffMaterial_rubber": "GUMMI",
+      "hoodHanging": "HÄNGER FRÅN TOPPEN",
       "hoodWaterCalm": "VATTENLUGN",
       "hoodCuffTop": "MUDD VID HALSKANT",
       "hoodZipperFixed": "BLIXTLÅS FÄST I TYGET",
@@ -1135,6 +1146,92 @@
   },
   "settings": {
     "backAriaLabel": "Tillbaka till inställningsavsnitten",
+    "categories": {
+      "bather": "BADAREN",
+      "scene": "SCEN",
+      "sea": "HAV",
+      "system": "SYSTEM"
+    },
+    "groups": {
+      "app": {
+        "desc": "Språk, tema, extremlägen, om appen",
+        "label": "Allmänt"
+      },
+      "bather": {
+        "desc": "Simglasögon och huva",
+        "label": "Badaren"
+      },
+      "bottom": {
+        "desc": "Botten, djup och djupsvängning",
+        "label": "Botten & djup"
+      },
+      "camera": {
+        "desc": "Position, synfält, rotation, skärmlås",
+        "label": "Kamera"
+      },
+      "clouds": {
+        "desc": "Molnlager, 3D-moln, molntussar",
+        "label": "Moln"
+      },
+      "drift": {
+        "desc": "Strömriktning, svaj, svall, havsdrift",
+        "label": "Ström & drift"
+      },
+      "effects": {
+        "desc": "Torusringar och neon",
+        "label": "Effekter"
+      },
+      "events": {
+        "desc": "Konfetti och fyrverkerier",
+        "label": "Händelser"
+      },
+      "graphics": {
+        "desc": "Prestanda, upplösning, ljus, skuggor, retro",
+        "label": "Grafik"
+      },
+      "interval": {
+        "desc": "Pass, längd, statistik",
+        "label": "Intervallpass"
+      },
+      "mode": {
+        "desc": "Flyta, gunga, flyg, tornado, freak out",
+        "label": "Rörelseläge"
+      },
+      "place": {
+        "desc": "Scen, startplats, världsgräns, rumsstorlek",
+        "label": "Plats & värld"
+      },
+      "sound": {
+        "desc": "Vattenljud, volym, rumsljud",
+        "label": "Ljud"
+      },
+      "state": {
+        "desc": "Förinställningar, hela läget, scenerier, dela, återställ",
+        "label": "Spara, ladda & scenerier"
+      },
+      "time": {
+        "desc": "Tid på dygnet, klocka, miljö och epok, bakgrund",
+        "label": "Tid"
+      },
+      "water": {
+        "desc": "Färg, reflektion, skum, ljusbrytning, glöd",
+        "label": "Vatten"
+      },
+      "waves": {
+        "desc": "Höjd, fart, frekvens, gupp, vågform",
+        "label": "Vågor"
+      },
+      "weather": {
+        "desc": "Norrsken, undervattensdimma, vind och snö",
+        "label": "Väder"
+      }
+    },
+    "languageTitle": "Språk",
+    "layout": {
+      "toList": "Visa som lista",
+      "toTabs": "Visa som flikar"
+    },
+    "presetsPerGroupTitle": "FÖRINSTÄLLNINGAR PER KATEGORI",
     "reset": "ÅTERSTÄLL",
     "resetAriaLabel": "Återställ reglage till standardvärden",
     "resetConfirm": "Detta återställer alla reglage till standardvärden (tid på dygnet påverkas inte).",
@@ -1145,6 +1242,13 @@
     "restoreTitle": "Återgå till senast sparade kameraposition och riktning",
     "saveMenuAriaLabel": "Spara och läs in förinställningar eller ett helt tillstånd",
     "saveMenuTitle": "SPARA OCH LÄS IN",
+    "sceneryTitle": "SCENERIER",
+    "search": {
+      "clear": "Rensa sökningen",
+      "noResults": "Inga inställningar matchar sökningen.",
+      "placeholder": "Sök inställningar"
+    },
+    "shareAndResetTitle": "DELA & ÅTERSTÄLL",
     "tabs": {
       "kamera": "KAMERA",
       "ljud": "LJUD",
@@ -1175,6 +1279,96 @@
     "logoAlt": "Aquafulness",
     "startBath": "Starta bad",
     "starting": "Startar…"
+  },
+  "stringLights": {
+    "title": "LJUSSLINGOR",
+    "string": "SLINGA",
+    "addInFront": "LÄGG TILL FRAMFÖR MIG",
+    "duplicate": "DUPLICERA",
+    "moveHere": "FLYTTA HIT",
+    "remove": "TA BORT",
+    "visible": "SYNLIG",
+    "section": "INSTÄLLNINGAR FÖR",
+    "x": "POSITION X",
+    "z": "POSITION Z",
+    "yaw": "RIKTNING",
+    "span": "SPÄNNVIDD",
+    "heightA": "HÖJD START",
+    "heightB": "HÖJD SLUT",
+    "curve": "HÄNGKURVA",
+    "sag": "NEDHÄNG",
+    "drapes": "DRAPERINGAR",
+    "sway": "GUNGNING I VINDEN",
+    "wireColor": "SLADDFÄRG",
+    "bulbCount": "ANTAL LAMPOR",
+    "bulbStyle": "LAMPTYP",
+    "bulbSize": "LAMPSTORLEK",
+    "bulbDrop": "HÄNGLÄNGD",
+    "brightness": "LJUSSTYRKA",
+    "glow": "GLÖD",
+    "glowSize": "GLÖDSTORLEK",
+    "emitLight": "LYSER UPP SCENEN",
+    "palette": "PALETT",
+    "color": "FÄRG",
+    "pattern": "MÖNSTER",
+    "blockSize": "LAMPOR PER FÄRG",
+    "anim": "ANIMATION",
+    "speed": "HASTIGHET",
+    "animDepth": "DJUP",
+    "direction": "RIKTNING",
+    "forward": "FRAMÅT",
+    "backward": "BAKÅT",
+    "emitters": "LJUSKÄLLOR (MAX)",
+    "dayGlow": "GLÖD PÅ DAGEN",
+    "here": "Du är vid X {{x}}, Z {{z}}",
+    "sections": {
+      "placement": "PLACERING",
+      "curve": "HÄNGNING",
+      "bulbs": "LAMPOR",
+      "colors": "FÄRGER",
+      "animation": "ANIMATION"
+    },
+    "curves": {
+      "catenary": "KEDJEKURVA",
+      "parabola": "PARABEL",
+      "festoon": "GIRLANG",
+      "straight": "SPÄND"
+    },
+    "bulbs": {
+      "globe": "GLOB",
+      "fairy": "SLINGA (SMÅ)",
+      "c9": "C9 JULLAMPA",
+      "lantern": "LYKTA",
+      "star": "STJÄRNA"
+    },
+    "palettes": {
+      "warm": "VARMVIT",
+      "coolwhite": "KALLVIT",
+      "classic": "KLASSISK FÄRG",
+      "christmas": "JUL",
+      "candy": "POLKAGRIS",
+      "ocean": "HAV",
+      "sunset": "SOLNEDGÅNG",
+      "neon": "NEON",
+      "midsummer": "MIDSOMMAR",
+      "custom": "EGEN"
+    },
+    "patterns": {
+      "repeat": "UPPREPA",
+      "mirror": "SPEGLA",
+      "blocks": "BLOCK",
+      "gradient": "TONING",
+      "random": "SLUMP"
+    },
+    "anims": {
+      "steady": "FAST SKEN",
+      "twinkle": "TINDRA",
+      "chase": "JAGA",
+      "fade": "TONA",
+      "pulse": "PULSERA",
+      "alternate": "VÄXLA",
+      "colorshift": "FÄRGVANDRING"
+    }
   },
   "swing": {
     "preset": {
@@ -1228,7 +1422,19 @@
     "light": "LJUST",
     "dark": "MÖRKT",
     "blur": "GLASEFFEKT (BLUR)",
-    "blurHint": "Suddighetseffekten bakom paneler. Avstängd som standard för bättre prestanda."
+    "blurHint": "Suddighetseffekten bakom paneler. Avstängd som standard för bättre prestanda.",
+    "glass": "LIQUID GLASS",
+    "glassDescription": "Flytande, brytande glas med ljusa kanter — anpassa oskärpa, brytning, tonfärg, opacitet och hörn nedan. Drar mer GPU än övriga teman.",
+    "glass_tintHue": "TONFÄRG",
+    "glass_blur": "OSKÄRPA",
+    "glass_refraction": "BRYTNING",
+    "glass_saturation": "MÄTTNAD",
+    "glass_tintStrength": "TONSTYRKA",
+    "glass_opacity": "OPACITET",
+    "glass_highlight": "KANTLJUS",
+    "glass_radius": "HÖRNRADIE",
+    "glass_reset": "ÅTERSTÄLL GLAS",
+    "glass_hint": "Liquid Glass har alltid sin egen oskärpa (sätt OSKÄRPA till av för att spara energi). Brytning visas i Chrome, Edge och Android-appen."
   },
   "timeTravel": {
     "applyButton": "Res i tiden",
@@ -1274,5 +1480,104 @@
       "legacy": "LEGACY",
       "standard": "STANDARD"
     }
+  },
+  "wind": {
+    "title": "VIND",
+    "openAria": "Öppna vindpanelen",
+    "add": "+ LÄGG TILL VIND",
+    "empty": "Inga vindar än. Tryck på LÄGG TILL VIND — en ny vind blåser rakt mot dig, sedan kan du vrida den.",
+    "total": "TOTALT",
+    "windN": "VIND {{n}}",
+    "direction": "RIKTNING",
+    "speed": "VINDSTYRKA",
+    "gust": "BYIGHET",
+    "headwind": "MOT MIG",
+    "tailwind": "MED MIG",
+    "remove": "TA BORT",
+    "waves": "VIND → VÅGRIKTNING",
+    "wavesStrength": "VÅGSTYRNING",
+    "sway": "VIND → SVAJ",
+    "swayStrength": "SVAJSTYRKA",
+    "current": "VIND → STRÖM",
+    "currentStrength": "STRÖMSTYRKA",
+    "sound": "VINDLJUD",
+    "altitudeAudio": "HÖJDLJUD",
+    "soundVolume": "VINDVOLYM",
+    "soundHint": "Vindljudet beror på vindens styrka och riktning och på hur fort du rör dig mot den. HÖJDLJUD: ovanför vattnet tonar vattenljudet ut i brus, som i sin tur tonar ut högre upp där vinden blåser starkare. Kräver LJUD.",
+    "compass": {
+      "n": "N",
+      "ne": "NO",
+      "e": "O",
+      "se": "SO",
+      "s": "S",
+      "sw": "SV",
+      "w": "V",
+      "nw": "NV"
+    },
+    "from": "FRÅN"
+  },
+  "decorations": {
+    "title": "DEKORATIONER",
+    "import": "IMPORTERA GLB",
+    "importing": "IMPORTERAR…",
+    "importHint": "Lägg till en egen .glb-modell som dekoration i den här scenen. Modeller upp till {{max}} bäddas in och följer med i länkar, tillstånd och inställningar; större sparas bara på den här enheten.",
+    "empty": "Inga dekorationer i {{scene}} än.",
+    "perScene": "{{count}} st i {{scene}} — sparas per scen.",
+    "noScene": "HAVET",
+    "place": "PLACERA",
+    "moveToView": "FLYTTA HIT",
+    "duplicate": "DUPLICERA",
+    "remove": "TA BORT",
+    "removeConfirm": "Ta bort dekorationen \"{{name}}\"?",
+    "visible": "SYNLIG",
+    "transform": "POSITION · ROTATION · STORLEK",
+    "position": "POSITION",
+    "rotation": "ROTATION °",
+    "scaleXyz": "SKALA",
+    "size": "STORLEK",
+    "turn": "VRID",
+    "repeat": "REPETERA",
+    "copies": "{{count}} KOPIOR",
+    "repeatCount": "ANTAL",
+    "repeatSpacing": "AVSTÅND",
+    "repeatTurn": "VRID PER KOPIA",
+    "repeatScale": "SKALA PER KOPIA",
+    "storage": "LAGRING",
+    "embeddedInfo": "Inbäddad i inställningarna ({{size}}) — följer med i länkar, tillstånd och inställningsfiler.",
+    "localInfo": "Sparad på den här enheten ({{size}}) — tas bort ur delade länkar.",
+    "tooLargeToEmbed": "För stor för att bäddas in (max {{max}}).",
+    "makeLocal": "SPARA LOKALT",
+    "embed": "BÄDDA IN",
+    "localNotInLinks": "{{count}} dekoration(er) finns bara på den här enheten och tas bort ur länkar.",
+    "importedLocal": "Modellen är för stor för att bäddas in, så den sparas på den här enheten och följer inte med i delade länkar.",
+    "prev": "Föregående",
+    "next": "Nästa",
+    "tapToPick": "TRYCK PÅ EN DEKORATION",
+    "done": "KLAR",
+    "gizmo": {
+      "move": "FLYTTA",
+      "rotate": "ROTERA",
+      "scale": "SKALA",
+      "local": "LOKAL",
+      "world": "VÄRLD"
+    }
+  },
+  "skyLook": {
+    "tintStrength": "TONINGSSTYRKA",
+    "tintWidth": "GYLLENE TIMMENS LÄNGD",
+    "tintSpread": "TONINGENS RÄCKVIDD",
+    "tintColorMode": "TONINGSFÄRG",
+    "tintColorModeValue": {
+      "sun": "SOL",
+      "sky": "FRÅN HIMLEN",
+      "custom": "EGEN"
+    },
+    "tintColor": "FÄRG",
+    "rotation": "HIMLENS ROTATION",
+    "sunDisc": "SOL I HIMLEN",
+    "sunDiscSize": "SOLENS STORLEK",
+    "sunDiscGlow": "SOLENS GLÖD",
+    "sceneSunLight": "SOLLJUS PÅ SCENEN",
+    "sceneSkyLight": "HIMMELSLJUS PÅ SCENEN"
   }
 }

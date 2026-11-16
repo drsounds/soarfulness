@@ -104,6 +104,8 @@
     "cancel": "ANNULLÉR",
     "close": "LUK",
     "decreaseAria": "{{label}} formindsk",
+    "typeToOverride": "Tryk på værdien for at skrive din egen, også uden for skyderen",
+    "typedOutOfRange": "Egen værdi uden for skyderens område",
     "high": "HØJ",
     "increaseAria": "{{label}} forøg",
     "low": "LAV",
@@ -172,6 +174,15 @@
       "hoodStyle_classic": "KLASSISK",
       "hoodStyle_puffy": "PUFFET",
       "hoodStyle_quilted": "VATTERET",
+      "hoodViewShadow": "SKYGGE PÅ UDSIGTEN",
+      "hoodCuffCustom": "EGEN RIB",
+      "hoodCuffColor": "RIBFARVE",
+      "hoodCuffMetallic": "RIBGLANS",
+      "hoodCuffMaterial": "RIBMATERIALE",
+      "hoodCuffMaterial_knit": "STRIKKET",
+      "hoodCuffMaterial_smooth": "GLAT STRETCH",
+      "hoodCuffMaterial_rubber": "GUMMI",
+      "hoodHanging": "HÆNGER FRA TOPPEN",
       "hoodWaterCalm": "VANDRO",
       "hoodCuffTop": "RIB VED HALSKANT",
       "hoodZipperFixed": "LYNLÅS FAST I STOFFET",
@@ -1135,6 +1146,92 @@
   },
   "settings": {
     "backAriaLabel": "Tilbage til indstillingsafsnit",
+    "categories": {
+      "bather": "DEN BADENDE",
+      "scene": "SCENE",
+      "sea": "HAV",
+      "system": "SYSTEM"
+    },
+    "groups": {
+      "app": {
+        "desc": "Sprog, tema, ekstreme grænser, om appen",
+        "label": "Generelt"
+      },
+      "bather": {
+        "desc": "Svømmebriller og hætte",
+        "label": "Den badende"
+      },
+      "bottom": {
+        "desc": "Bund, dybde og dybdesving",
+        "label": "Bund & dybde"
+      },
+      "camera": {
+        "desc": "Position, synsfelt, rotation, skærmlås",
+        "label": "Kamera"
+      },
+      "clouds": {
+        "desc": "Skylag, 3D-skyer, skytotter",
+        "label": "Skyer"
+      },
+      "drift": {
+        "desc": "Strømretning, svaj, dønning, havdrift",
+        "label": "Strøm & drift"
+      },
+      "effects": {
+        "desc": "Torusringe og neon",
+        "label": "Effekter"
+      },
+      "events": {
+        "desc": "Konfetti og fyrværkeri",
+        "label": "Begivenheder"
+      },
+      "graphics": {
+        "desc": "Ydeevne, opløsning, lys, skygger, retro",
+        "label": "Grafik"
+      },
+      "interval": {
+        "desc": "Pas, længde, statistik",
+        "label": "Intervalpas"
+      },
+      "mode": {
+        "desc": "Flyde, gynge, flyve, tornado, freak out",
+        "label": "Bevægelsestilstand"
+      },
+      "place": {
+        "desc": "Scene, startsted, verdensgrænse, rumstørrelse",
+        "label": "Sted & verden"
+      },
+      "sound": {
+        "desc": "Vandlyd, lydstyrke, rumlyd",
+        "label": "Lyd"
+      },
+      "state": {
+        "desc": "Forudindstillinger, hele tilstanden, scenerier, del, nulstil",
+        "label": "Gem, indlæs & scenerier"
+      },
+      "time": {
+        "desc": "Tid på døgnet, ur, miljø og epoke, baggrund",
+        "label": "Tid"
+      },
+      "water": {
+        "desc": "Farve, refleksion, skum, lysbrydning, glød",
+        "label": "Vand"
+      },
+      "waves": {
+        "desc": "Højde, fart, frekvens, gyngen, bølgeform",
+        "label": "Bølger"
+      },
+      "weather": {
+        "desc": "Nordlys, undervandståge, vind og sne",
+        "label": "Vejr"
+      }
+    },
+    "languageTitle": "Sprog",
+    "layout": {
+      "toList": "Vis som liste",
+      "toTabs": "Vis som faner"
+    },
+    "presetsPerGroupTitle": "FORUDINDSTILLINGER PR. KATEGORI",
     "reset": "NULSTIL",
     "resetAriaLabel": "Nulstil kontroller til standardværdier",
     "resetConfirm": "Dette nulstiller alle kontroller til deres standardværdier (tidspunkt på dagen påvirkes ikke).",
@@ -1145,6 +1242,13 @@
     "restoreTitle": "Vend tilbage til senest gemte kameraposition og retning",
     "saveMenuAriaLabel": "Gem og indlæs forudindstillinger eller en fuld tilstand",
     "saveMenuTitle": "GEM OG INDLÆS",
+    "sceneryTitle": "SCENERIER",
+    "search": {
+      "clear": "Ryd søgning",
+      "noResults": "Ingen indstillinger matcher søgningen.",
+      "placeholder": "Søg i indstillinger"
+    },
+    "shareAndResetTitle": "DEL & NULSTIL",
     "tabs": {
       "kamera": "KAMERA",
       "ljud": "LYD",
@@ -1175,6 +1279,96 @@
     "logoAlt": "Aquafulness",
     "startBath": "Start bad",
     "starting": "Starter…"
+  },
+  "stringLights": {
+    "title": "LYSKÆDER",
+    "string": "KÆDE",
+    "addInFront": "TILFØJ FORAN MIG",
+    "duplicate": "DUPLIKÉR",
+    "moveHere": "FLYT HERTIL",
+    "remove": "FJERN",
+    "visible": "SYNLIG",
+    "section": "INDSTILLINGER FOR",
+    "x": "POSITION X",
+    "z": "POSITION Z",
+    "yaw": "RETNING",
+    "span": "SPÆNDVIDDE",
+    "heightA": "HØJDE START",
+    "heightB": "HØJDE SLUT",
+    "curve": "HÆNGEKURVE",
+    "sag": "NEDHÆNG",
+    "drapes": "DRAPERINGER",
+    "sway": "SVAJ I VINDEN",
+    "wireColor": "LEDNINGSFARVE",
+    "bulbCount": "ANTAL PÆRER",
+    "bulbStyle": "PÆRETYPE",
+    "bulbSize": "PÆRESTØRRELSE",
+    "bulbDrop": "HÆNGELÆNGDE",
+    "brightness": "LYSSTYRKE",
+    "glow": "GLØD",
+    "glowSize": "GLØDSTØRRELSE",
+    "emitLight": "LYSER SCENEN OP",
+    "palette": "PALET",
+    "color": "FARVE",
+    "pattern": "MØNSTER",
+    "blockSize": "PÆRER PR. FARVE",
+    "anim": "ANIMATION",
+    "speed": "HASTIGHED",
+    "animDepth": "DYBDE",
+    "direction": "RETNING",
+    "forward": "FREMAD",
+    "backward": "BAGUD",
+    "emitters": "LYSKILDER (MAKS)",
+    "dayGlow": "GLØD OM DAGEN",
+    "here": "Du er ved X {{x}}, Z {{z}}",
+    "sections": {
+      "placement": "PLACERING",
+      "curve": "OPHÆNG",
+      "bulbs": "PÆRER",
+      "colors": "FARVER",
+      "animation": "ANIMATION"
+    },
+    "curves": {
+      "catenary": "KÆDEKURVE",
+      "parabola": "PARABEL",
+      "festoon": "GUIRLANDE",
+      "straight": "STRAM"
+    },
+    "bulbs": {
+      "globe": "GLOBE",
+      "fairy": "SMÅ LYS",
+      "c9": "C9 JULEPÆRE",
+      "lantern": "LYGTE",
+      "star": "STJERNE"
+    },
+    "palettes": {
+      "warm": "VARMHVID",
+      "coolwhite": "KOLDHVID",
+      "classic": "KLASSISK FARVE",
+      "christmas": "JUL",
+      "candy": "BOLSJESTRIBET",
+      "ocean": "HAV",
+      "sunset": "SOLNEDGANG",
+      "neon": "NEON",
+      "midsummer": "SANKTHANS",
+      "custom": "EGEN"
+    },
+    "patterns": {
+      "repeat": "GENTAG",
+      "mirror": "SPEJL",
+      "blocks": "BLOKKE",
+      "gradient": "TONING",
+      "random": "TILFÆLDIG"
+    },
+    "anims": {
+      "steady": "FAST LYS",
+      "twinkle": "TINDRE",
+      "chase": "JAGT",
+      "fade": "TONE",
+      "pulse": "PULSERE",
+      "alternate": "SKIFTE",
+      "colorshift": "FARVEVANDRING"
+    }
   },
   "swing": {
     "preset": {
@@ -1228,7 +1422,19 @@
     "light": "LYST",
     "dark": "MØRKT",
     "blur": "GLASEFFEKT (BLUR)",
-    "blurHint": "Sløringseffekten bag paneler. Slået fra som standard for bedre ydeevne."
+    "blurHint": "Sløringseffekten bag paneler. Slået fra som standard for bedre ydeevne.",
+    "glass": "LIQUID GLASS",
+    "glassDescription": "Flydende, lysbrydende glas med lyse kanter — justér sløring, brydning, tonefarve, opacitet og hjørner nedenfor. Bruger mere GPU end de andre temaer.",
+    "glass_tintHue": "TONEFARVE",
+    "glass_blur": "SLØRING",
+    "glass_refraction": "BRYDNING",
+    "glass_saturation": "MÆTNING",
+    "glass_tintStrength": "TONESTYRKE",
+    "glass_opacity": "OPACITET",
+    "glass_highlight": "KANTLYS",
+    "glass_radius": "HJØRNERADIUS",
+    "glass_reset": "NULSTIL GLAS",
+    "glass_hint": "Liquid Glass har altid sin egen sløring (sæt SLØRING til fra for at spare energi). Brydning vises i Chrome, Edge og Android-appen."
   },
   "timeTravel": {
     "applyButton": "Rejs i tiden",
@@ -1274,5 +1480,104 @@
       "legacy": "LEGACY",
       "standard": "STANDARD"
     }
+  },
+  "wind": {
+    "title": "VIND",
+    "openAria": "Åbn vindpanelet",
+    "add": "+ TILFØJ VIND",
+    "empty": "Ingen vinde endnu. Tryk på TILFØJ VIND — en ny vind blæser lige mod dig, derefter kan du dreje den.",
+    "total": "I ALT",
+    "windN": "VIND {{n}}",
+    "direction": "RETNING",
+    "speed": "VINDSTYRKE",
+    "gust": "BYIGHED",
+    "headwind": "MOD MIG",
+    "tailwind": "MED MIG",
+    "remove": "FJERN",
+    "waves": "VIND → BØLGERETNING",
+    "wavesStrength": "BØLGESTYRING",
+    "sway": "VIND → SVAJ",
+    "swayStrength": "SVAJSTYRKE",
+    "current": "VIND → STRØM",
+    "currentStrength": "STRØMSTYRKE",
+    "sound": "VINDLYD",
+    "altitudeAudio": "HØJDELYD",
+    "soundVolume": "VINDVOLUMEN",
+    "soundHint": "Vindlyden følger vindens styrke og retning og hvor hurtigt du bevæger dig mod den. HØJDELYD: over vandet toner vandlyden ud i støj, som toner ud højere oppe, hvor vinden blæser stærkere. Kræver LYD.",
+    "compass": {
+      "n": "N",
+      "ne": "NØ",
+      "e": "Ø",
+      "se": "SØ",
+      "s": "S",
+      "sw": "SV",
+      "w": "V",
+      "nw": "NV"
+    },
+    "from": "FRA"
+  },
+  "decorations": {
+    "title": "DEKORATIONER",
+    "import": "IMPORT GLB",
+    "importing": "IMPORTING…",
+    "importHint": "Add your own .glb model as a decoration in this scene. Models up to {{max}} are embedded and travel with links, states and settings; larger ones are stored on this device only.",
+    "empty": "No decorations in {{scene}} yet.",
+    "perScene": "{{count}} in {{scene}} — saved per scene.",
+    "noScene": "HAVET",
+    "place": "PLACÉR",
+    "moveToView": "MOVE HERE",
+    "duplicate": "DUPLIKÉR",
+    "remove": "FJERN",
+    "removeConfirm": "Remove the decoration \"{{name}}\"?",
+    "visible": "VISIBLE",
+    "transform": "POSITION · ROTATION · SIZE",
+    "position": "POSITION",
+    "rotation": "ROTATION °",
+    "scaleXyz": "SCALE",
+    "size": "SIZE",
+    "turn": "TURN",
+    "repeat": "REPEAT",
+    "copies": "{{count}} COPIES",
+    "repeatCount": "COUNT",
+    "repeatSpacing": "SPACING",
+    "repeatTurn": "TURN PER COPY",
+    "repeatScale": "SCALE PER COPY",
+    "storage": "STORAGE",
+    "embeddedInfo": "Embedded in the settings ({{size}}) — travels with links, states and settings files.",
+    "localInfo": "Stored on this device ({{size}}) — removed from shared links.",
+    "tooLargeToEmbed": "Too large to embed (max {{max}}).",
+    "makeLocal": "STORE LOCALLY",
+    "embed": "EMBED",
+    "localNotInLinks": "{{count}} decoration(s) live only on this device and are removed from links.",
+    "importedLocal": "The model is too large to embed, so it is stored on this device and won't travel in shared links.",
+    "prev": "Previous",
+    "next": "Next",
+    "tapToPick": "TAP A DECORATION",
+    "done": "FÆRDIG",
+    "gizmo": {
+      "move": "MOVE",
+      "rotate": "ROTATE",
+      "scale": "SCALE",
+      "local": "LOCAL",
+      "world": "WORLD"
+    }
+  },
+  "skyLook": {
+    "tintStrength": "TONINGSSTYRKE",
+    "tintWidth": "DEN GYLDNE TIMES LÆNGDE",
+    "tintSpread": "TONINGENS RÆKKEVIDDE",
+    "tintColorMode": "TONINGSFARVE",
+    "tintColorModeValue": {
+      "sun": "SOL",
+      "sky": "FRA HIMLEN",
+      "custom": "EGEN"
+    },
+    "tintColor": "FARVE",
+    "rotation": "HIMLENS ROTATION",
+    "sunDisc": "SOL PÅ HIMLEN",
+    "sunDiscSize": "SOLENS STØRRELSE",
+    "sunDiscGlow": "SOLENS GLØD",
+    "sceneSunLight": "SOLLYS PÅ SCENEN",
+    "sceneSkyLight": "HIMMELLYS PÅ SCENEN"
   }
 }
