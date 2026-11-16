@@ -2,7 +2,7 @@ import vanernBackdrop from "@/assets/vanern-backdrop.png.asset.json";
 import sandTextureAsset from "@/assets/sand_cc0_512.jpg.asset.json";
 import waterAsset from "@/assets/water.mp3.asset.json";
 import type { OpenDriftCurve, OpenDriftDirection } from "@/lib/openDrift";
-import type { HoodLayer } from "@/lib/hoodLayers";
+import type { HoodLayer, HoodStyle } from "@/lib/hoodLayers";
 
 // Shared between the main HUD's settings dialog (routes/index.tsx) and its
 // clone rendered as the "Inställningar" app inside the virtual phone's bathOS
@@ -451,6 +451,15 @@ export type Persisted = {
   hoodWeight: number;
   hoodWrinkles: number;
   hoodDarkness: number;
+  // RUNDHET, STIL (+ PUFFSTORLEK/PUFFHÖJD) and MUDD (+ MUDDHÖJD/RIBBSTORLEK)
+  // for layer 1 — see HoodLayer in lib/hoodLayers.ts.
+  hoodRoundness: number;
+  hoodStyle: HoodStyle;
+  hoodPuffSize: number;
+  hoodPuffHeight: number;
+  hoodCuffOn: boolean;
+  hoodCuffHeight: number;
+  hoodCuffSize: number;
   hoodExtraLayers: HoodLayer[];
   targetFps: number;
   resolutionScale: number;
@@ -1135,6 +1144,13 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "hoodWeight",
     "hoodWrinkles",
     "hoodDarkness",
+    "hoodRoundness",
+    "hoodStyle",
+    "hoodPuffSize",
+    "hoodPuffHeight",
+    "hoodCuffOn",
+    "hoodCuffHeight",
+    "hoodCuffSize",
     "hoodExtraLayers",
     "targetFps",
     "resolutionScale",

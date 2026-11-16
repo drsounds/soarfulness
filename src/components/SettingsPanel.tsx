@@ -23,7 +23,7 @@ import { Link } from "@tanstack/react-router";
 import { Save } from "lucide-react";
 import { SettingRow } from "@/components/SettingRow";
 import { HoodSettings } from "@/components/HoodSettings";
-import type { HoodLayer } from "@/lib/hoodLayers";
+import type { HoodLayer, HoodStyle } from "@/lib/hoodLayers";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { hsvToRgb, tintToCss } from "@/lib/waterTint";
 import {
@@ -790,6 +790,20 @@ export type SettingsPanelProps = {
   setHoodWrinkles: Dispatch<SetStateAction<number>>;
   hoodDarkness: number;
   setHoodDarkness: Dispatch<SetStateAction<number>>;
+  hoodRoundness: number;
+  setHoodRoundness: Dispatch<SetStateAction<number>>;
+  hoodStyle: HoodStyle;
+  setHoodStyle: Dispatch<SetStateAction<HoodStyle>>;
+  hoodPuffSize: number;
+  setHoodPuffSize: Dispatch<SetStateAction<number>>;
+  hoodPuffHeight: number;
+  setHoodPuffHeight: Dispatch<SetStateAction<number>>;
+  hoodCuffOn: boolean;
+  setHoodCuffOn: Dispatch<SetStateAction<boolean>>;
+  hoodCuffHeight: number;
+  setHoodCuffHeight: Dispatch<SetStateAction<number>>;
+  hoodCuffSize: number;
+  setHoodCuffSize: Dispatch<SetStateAction<number>>;
   hoodExtraLayers: HoodLayer[];
   setHoodExtraLayers: Dispatch<SetStateAction<HoodLayer[]>>;
   // General performance controls (independent of SIMGLASÖGON): caps the
@@ -1922,6 +1936,20 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setHoodWrinkles,
     hoodDarkness,
     setHoodDarkness,
+    hoodRoundness,
+    setHoodRoundness,
+    hoodStyle,
+    setHoodStyle,
+    hoodPuffSize,
+    setHoodPuffSize,
+    hoodPuffHeight,
+    setHoodPuffHeight,
+    hoodCuffOn,
+    setHoodCuffOn,
+    hoodCuffHeight,
+    setHoodCuffHeight,
+    hoodCuffSize,
+    setHoodCuffSize,
     hoodExtraLayers,
     setHoodExtraLayers,
     targetFps,
@@ -4230,6 +4258,13 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     weight: hoodWeight,
                     wrinkles: hoodWrinkles,
                     darkness: hoodDarkness,
+                    roundness: hoodRoundness,
+                    style: hoodStyle,
+                    puffSize: hoodPuffSize,
+                    puffHeight: hoodPuffHeight,
+                    cuff: hoodCuffOn,
+                    cuffHeight: hoodCuffHeight,
+                    cuffSize: hoodCuffSize,
                   }}
                   setLayer1={(p) => {
                     if (p.height !== undefined) setHoodHeight(p.height);
@@ -4247,6 +4282,13 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     if (p.weight !== undefined) setHoodWeight(p.weight);
                     if (p.wrinkles !== undefined) setHoodWrinkles(p.wrinkles);
                     if (p.darkness !== undefined) setHoodDarkness(p.darkness);
+                    if (p.roundness !== undefined) setHoodRoundness(p.roundness);
+                    if (p.style !== undefined) setHoodStyle(p.style);
+                    if (p.puffSize !== undefined) setHoodPuffSize(p.puffSize);
+                    if (p.puffHeight !== undefined) setHoodPuffHeight(p.puffHeight);
+                    if (p.cuff !== undefined) setHoodCuffOn(p.cuff);
+                    if (p.cuffHeight !== undefined) setHoodCuffHeight(p.cuffHeight);
+                    if (p.cuffSize !== undefined) setHoodCuffSize(p.cuffSize);
                   }}
                   extraLayers={hoodExtraLayers}
                   setExtraLayers={setHoodExtraLayers}

@@ -43,6 +43,17 @@ export type HoodConfig = {
   wrinkles: number;
   /** 0..1: darker lighting (MÖRKHET). */
   darkness: number;
+  /** 0..1: opening shape, boxy (0) .. round (1) (RUNDHET). */
+  roundness: number;
+  /** Winter-coat style (STIL). */
+  style: "classic" | "puffy" | "quilted";
+  /** 0..1: padding size and bulge (PUFFSTORLEK, PUFFHÖJD). */
+  puffSize: number;
+  puffHeight: number;
+  /** Ribbed cuff along the bottom (MUDD), its height and rib size (MUDDHÖJD, RIBBSTORLEK). */
+  cuff: boolean;
+  cuffHeight: number;
+  cuffSize: number;
   /** Eye height above the water surface at the bather (m, negative under water). */
   eyeAboveWater: number;
   /** "#rrggbb" fabric color (FÄRG). */
@@ -90,6 +101,13 @@ const FRAG = /* glsl */ `
   uniform float uDrop;
   uniform float uWrinkle;
   uniform float uDark;
+  uniform float uRound;
+  uniform float uStyle;
+  uniform float uPuffSize;
+  uniform float uPuffHeight;
+  uniform float uCuff;
+  uniform float uCuffHeight;
+  uniform float uCuffSize;
   uniform float uMetal;
   uniform vec3 uColor;
   uniform vec3 uSky;
@@ -101,6 +119,8 @@ const FRAG = /* glsl */ `
   uniform mat3 uViewToWorld;
 
   const float HEM = 0.075;
+  // Set by hoodField(): 1 inside the MUDD (cuff) band.
+  float gCuff = 0.0;
 
   // x: how far into the fabric (0 at the opening's edge, < 0 in the opening),
   // y: fabric height, z: bottom-cut distance (> 0 where the fabric exists).
@@ -120,17 +140,20 @@ const FRAG = /* glsl */ `
     // screen); 0 (AUTO) follows ÖPPNING.
     float a = uOpenWidth > 0.0 ? uAspect * uOpenWidth : uAspect * mix(0.55, 0.95, uOpening) + 0.06;
     float b = mix(0.6, 0.98, uOpening) * (1.0 - uDrop * 0.3);
+    // RUNDHET: the opening's corner shape, from boxy (0) to round (1).
+    float n = mix(6.0, 2.0, clamp(uRound, 0.0, 1.0));
     float r;
     if (q.y > 0.0) {
       vec2 e = abs(vec2(q.x / a, q.y / b));
-      r = pow(pow(e.x, 2.6) + pow(e.y, 2.6), 1.0 / 2.6);
+      r = pow(pow(e.x, n) + pow(e.y, n), 1.0 / n);
     } else if (uLower > 0.5) {
       // MUN OCH HALS: the hood closes under the face, the cover's top edge
       // at this screen height (wider and flatter than the top of the hood).
       float edgeY = mix(-0.92, -0.05, uLowerHeight) + uSway.y;
       float bb = max(c.y - edgeY, 0.05);
       vec2 e = abs(vec2(q.x / a, q.y / bb));
-      r = pow(pow(e.x, 3.2) + pow(e.y, 3.2), 1.0 / 3.2);
+      float nl = n + 0.6;
+      r = pow(pow(e.x, nl) + pow(e.y, nl), 1.0 / nl);
     } else {
       // Below the opening's center the sides hang straight, flaring a little.
       r = abs(q.x) / (a * (1.0 + 0.12 * q.y * q.y));
@@ -162,10 +185,42 @@ const FRAG = /* glsl */ `
     }
     float h = hem + curve + g * 0.022 * gatherMask + wr;
 
+    // STIL: winter-coat padding. PUFFIG = channels running around the
+    // opening, VADDERAD = diamond quilting. PUFFSTORLEK sets their size and
+    // PUFFHÖJD how much they bulge; the stiffer padding also folds less.
+    if (uStyle > 0.5) {
+      float sp = mix(0.07, 0.26, clamp(uPuffSize, 0.0, 1.0));
+      float amp = mix(0.0, 0.07, clamp(uPuffHeight, 0.0, 1.0));
+      float puff;
+      if (uStyle < 1.5) {
+        float fu = 2.0 * fract(tc / sp) - 1.0;
+        puff = sqrt(max(0.0, 1.0 - fu * fu));
+      } else {
+        vec2 fd = 2.0 * fract(vec2(p.x + p.y, p.x - p.y) / (sp * 1.4)) - 1.0;
+        puff = sqrt(max(0.0, 1.0 - fd.x * fd.x)) * sqrt(max(0.0, 1.0 - fd.y * fd.y));
+      }
+      h += amp * puff * smoothstep(HEM, HEM + 0.04, t) - g * 0.015 * gatherMask;
+    }
+
     // HÖJD FRÅN BOTTEN: the sides end at this screen height, curling up
     // toward the opening.
     float yCut = mix(-1.08, 0.8, uHeight) + 0.22 * exp(-max(t, 0.0) * 7.0);
     float cut = p.y - yCut + 0.01 * sin(p.x * 11.0 + uTime * 1.3) * uMotion;
+    // MUDD: a ribbed knit cuff along the bottom of the hood (at the screen's
+    // bottom with MUN OCH HALS, else along the sides' bottom edge).
+    // MUDDHÖJD sets the band's height, RIBBSTORLEK the ribs' width.
+    gCuff = 0.0;
+    if (uCuff > 0.5) {
+      float cuffV = uLower > 0.5 ? p.y + 1.0 - uSway.y * 0.5 : cut;
+      float H = mix(0.06, 0.45, clamp(uCuffHeight, 0.0, 1.0));
+      float x = clamp(cuffV / H, 0.0, 1.0);
+      float mask = (1.0 - smoothstep(H - 0.006, H, cuffV)) * step(-0.02, cuffV);
+      float freq = mix(240.0, 50.0, clamp(uCuffSize, 0.0, 1.0));
+      float ribs = 0.006 * (0.5 + 0.5 * cos(p.x * freq + sin(p.y * 9.0) * 0.4));
+      float hc = 0.34 + sin(3.14159 * x) * 0.035 + ribs;
+      h = mix(h, hc, mask);
+      gCuff = mask;
+    }
     // With MUN OCH HALS on, the fabric runs all the way down.
     if (uLower > 0.5) cut = 1.0;
     return vec3(t, h, cut);
@@ -192,6 +247,7 @@ const FRAG = /* glsl */ `
   void main() {
     vec2 p = vec2(vNdc.x * uAspect, vNdc.y);
     vec3 f = hoodField(p);
+    float cuffMask = gCuff;
     float t = f.x;
     float cut = f.z;
     float aaT = max(fwidth(t), 1e-4) * 1.5;
@@ -241,7 +297,8 @@ const FRAG = /* glsl */ `
     float hemLight = 1.0 - 0.35 * smoothstep(0.0, HEM, t);
 
     float m = clamp(uMetal, 0.0, 1.0);
-    vec3 base = uColor * mix(1.0, 0.55, m); // wet cloth reads darker
+    m = mix(m, m * 0.3, cuffMask); // knit cuffs stay mostly matte
+    vec3 base = uColor * mix(1.0, 0.55, m) * mix(1.0, 0.82, cuffMask); // wet cloth reads darker
     // MÖRKHET: darker lighting overall, for really dark fabric.
     float light = mix(1.0, 0.18, clamp(uDark, 0.0, 1.0));
     vec3 ambient = (mix(uHorizon, uSky, 0.5 + 0.5 * N.y) * 0.6 + 0.1) * light;
@@ -348,6 +405,13 @@ export class Hood {
     uDrop: { value: number };
     uWrinkle: { value: number };
     uDark: { value: number };
+    uRound: { value: number };
+    uStyle: { value: number };
+    uPuffSize: { value: number };
+    uPuffHeight: { value: number };
+    uCuff: { value: number };
+    uCuffHeight: { value: number };
+    uCuffSize: { value: number };
     uMetal: { value: number };
     uColor: { value: THREE.Color };
     uSky: { value: THREE.Color };
@@ -389,6 +453,13 @@ export class Hood {
       uDrop: { value: 0 },
       uWrinkle: { value: 0 },
       uDark: { value: 0 },
+      uRound: { value: 0.85 },
+      uStyle: { value: 0 },
+      uPuffSize: { value: 0.4 },
+      uPuffHeight: { value: 0.5 },
+      uCuff: { value: 0 },
+      uCuffHeight: { value: 0.3 },
+      uCuffSize: { value: 0.5 },
       uMetal: { value: 0.5 },
       uColor: { value: new THREE.Color() },
       uSky: { value: new THREE.Color() },
@@ -432,6 +503,13 @@ export class Hood {
     u.uDrop.value = THREE.MathUtils.clamp(cfg.drop, 0, 1);
     u.uWrinkle.value = THREE.MathUtils.clamp(cfg.wrinkles, 0, 1);
     u.uDark.value = THREE.MathUtils.clamp(cfg.darkness, 0, 1);
+    u.uRound.value = THREE.MathUtils.clamp(cfg.roundness, 0, 1);
+    u.uStyle.value = cfg.style === "puffy" ? 1 : cfg.style === "quilted" ? 2 : 0;
+    u.uPuffSize.value = THREE.MathUtils.clamp(cfg.puffSize, 0, 1);
+    u.uPuffHeight.value = THREE.MathUtils.clamp(cfg.puffHeight, 0, 1);
+    u.uCuff.value = cfg.cuff ? 1 : 0;
+    u.uCuffHeight.value = THREE.MathUtils.clamp(cfg.cuffHeight, 0, 1);
+    u.uCuffSize.value = THREE.MathUtils.clamp(cfg.cuffSize, 0, 1);
     u.uWaterLevelIn.value = THREE.MathUtils.clamp(cfg.waterInsideLevel, 0, 1);
     u.uEyeAbove.value = Number.isFinite(cfg.eyeAboveWater) ? cfg.eyeAboveWater : 1;
     u.uLowerHeight.value = THREE.MathUtils.clamp(cfg.lowerHeight, 0, 1);

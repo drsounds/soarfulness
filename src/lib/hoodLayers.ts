@@ -6,6 +6,9 @@
 // sanitizer for imported data, and the saved layer sets (SPARA / LADDA /
 // EXPORTERA / IMPORTERA in the HUVA settings).
 
+export type HoodStyle = "classic" | "puffy" | "quilted";
+export const HOOD_STYLES: HoodStyle[] = ["classic", "puffy", "quilted"];
+
 export type HoodLayer = {
   /** Only used for layers 2+; layer 1 follows the HUVA master toggle. */
   on: boolean;
@@ -40,6 +43,17 @@ export type HoodLayer = {
   wrinkles: number;
   /** MÖRKHET: darkens the lighting, for really dark fabric. */
   darkness: number;
+  /** RUNDHET: the opening's shape, boxy (0) .. round (1). */
+  roundness: number;
+  /** STIL: classic cloth, or winter-coat padding (puffy channels / quilted diamonds). */
+  style: HoodStyle;
+  /** PUFFSTORLEK / PUFFHÖJD: padding size and how much it bulges. */
+  puffSize: number;
+  puffHeight: number;
+  /** MUDD: ribbed cuff along the bottom; MUDDHÖJD / RIBBSTORLEK. */
+  cuff: boolean;
+  cuffHeight: number;
+  cuffSize: number;
 };
 
 export const HOOD_MAX_LAYERS = 4;
@@ -63,6 +77,13 @@ export const HOOD_LAYER_DEFAULTS: HoodLayer = {
   weight: 0.4,
   wrinkles: 0,
   darkness: 0,
+  roundness: 0.85,
+  style: "classic",
+  puffSize: 0.4,
+  puffHeight: 0.5,
+  cuff: false,
+  cuffHeight: 0.3,
+  cuffSize: 0.5,
 };
 
 const NUMBER_KEYS = [
@@ -76,8 +97,13 @@ const NUMBER_KEYS = [
   "weight",
   "wrinkles",
   "darkness",
+  "roundness",
+  "puffSize",
+  "puffHeight",
+  "cuffHeight",
+  "cuffSize",
 ] as const;
-const BOOL_KEYS = ["on", "lowerOn", "zipperOn", "waterOn"] as const;
+const BOOL_KEYS = ["on", "lowerOn", "zipperOn", "waterOn", "cuff"] as const;
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 
@@ -92,6 +118,7 @@ export function sanitizeHoodLayer(raw: unknown): HoodLayer {
   for (const k of BOOL_KEYS) {
     if (typeof src[k] === "boolean") out[k] = src[k] as boolean;
   }
+  if (HOOD_STYLES.includes(src.style as HoodStyle)) out.style = src.style as HoodStyle;
   const w = src.openingWidth;
   if (typeof w === "number" && Number.isFinite(w))
     out.openingWidth = Math.max(0, Math.min(HOOD_OPENING_WIDTH_MAX, w));
