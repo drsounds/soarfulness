@@ -9,6 +9,7 @@ import {
   type CameraPose,
 } from "@/routes/index";
 import { InvalidBathLink } from "@/components/InvalidBathLink";
+import { mergeLinkedDecorations } from "@/lib/decorations";
 
 // The actual immersive experience behind a "bathing" link — as opposed to
 // `/bathing/$payload` (bathing.$payload.index.tsx), which only shows a
@@ -41,7 +42,21 @@ function BatheRoute() {
         /* unreadable — seed as before */
       }
       if (!seededList.includes(encoded)) {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload.s));
+        // DEKORATIONER: the link's scenes are laid over the visitor's own
+        // decoration layouts instead of wiping them (src/lib/decorations.ts).
+        let stored: unknown;
+        try {
+          stored = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "{}")?.decorations;
+        } catch {
+          stored = undefined;
+        }
+        window.localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({
+            ...payload.s,
+            decorations: mergeLinkedDecorations(stored, payload.s.decorations),
+          }),
+        );
         if (payload.c) {
           const pose: CameraPose = payload.c;
           window.localStorage.setItem(CAMERA_STORAGE_KEY, JSON.stringify(pose));

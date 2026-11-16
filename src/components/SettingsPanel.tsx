@@ -22,6 +22,7 @@ import {
 import { Link } from "@tanstack/react-router";
 import { Save } from "lucide-react";
 import { SettingRow } from "@/components/SettingRow";
+import { DecorationSettings, type DecorationControls } from "@/components/DecorationPanel";
 import { WindSettings, type WindControls } from "@/components/WindPanel";
 import { HoodSettings } from "@/components/HoodSettings";
 import type { HoodCuffMaterial, HoodLayer, HoodStyle } from "@/lib/hoodLayers";
@@ -389,6 +390,9 @@ type EnvOption = NamedOption & { eras: EnvEraOption[] };
 // own local state — this component owns none of it, so both hosts always
 // stay in sync (there is only one wave simulation, one camera, etc).
 export type SettingsPanelProps = {
+  // DEKORATIONER: the current scene's placed .glb models
+  // (components/DecorationPanel.tsx).
+  decorations: DecorationControls;
   // VIND: the wind list, its effects and sound (components/WindPanel.tsx).
   wind: WindControls;
   settingsTab: SettingsTab;
@@ -5377,6 +5381,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     </button>
                   )}
                 </div>
+                <DecorationSettings c={props.decorations} />
                 {spawnLocations.length > 1 && (
                   <SettingRow
                     label={t("dial.env.spawnLocation")}
