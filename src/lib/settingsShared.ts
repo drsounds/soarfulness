@@ -460,6 +460,7 @@ export type Persisted = {
   hoodCuffOn: boolean;
   hoodCuffHeight: number;
   hoodCuffSize: number;
+  hoodHanging: boolean;
   hoodWaterCalm: number;
   hoodCuffTop: boolean;
   hoodZipperFixed: boolean;
@@ -1158,6 +1159,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "hoodCuffOn",
     "hoodCuffHeight",
     "hoodCuffSize",
+    "hoodHanging",
     "hoodWaterCalm",
     "hoodCuffTop",
     "hoodZipperFixed",
