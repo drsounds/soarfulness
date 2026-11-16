@@ -9,12 +9,10 @@ import { useSyncExternalStore } from "react";
 //  - An optional sun drawn into the skybox, at the time-of-day sun position.
 //  - How strongly the sun and the sky light a loaded .glb scene.
 //
-// Everything here lives in its own localStorage key, not in the big settings
-// object in routes/index.tsx: the settings component
-// (components/SkyLookSettings.tsx) edits this store and the render loop reads
-// it every frame with getSkyLook(), so the two stay self-contained.
-
-export const SKY_LOOK_KEY = "aquafulness:skyLook:v1";
+// The settings component (components/SkyLookSettings.tsx) edits this store
+// and the render loop reads it every frame with getSkyLook(), so both stay
+// self-contained. It's saved as the `skyLook` field of the main settings
+// (see the store below), so bath links, presets and states include it.
 
 export const SUN_TINT_COLOR_MODES = ["sun", "sky", "custom"] as const;
 export type SunTintColorMode = (typeof SUN_TINT_COLOR_MODES)[number];
@@ -184,25 +182,15 @@ export function sampleSkyColors(
 }
 
 // ---------------------------------------------------------------------------
-// Store
+// Store. In memory only: routes/index.tsx seeds it from the saved settings
+// (initSkyLook) and saves it back with them as the `skyLook` field, so bath
+// links, presets and state files carry it like any other setting.
 
 const listeners = new Set<() => void>();
-
-function read(): SkyLook {
-  try {
-    const raw = window.localStorage.getItem(SKY_LOOK_KEY);
-    return sanitizeSkyLook(raw ? JSON.parse(raw) : null);
-  } catch {
-    return { ...SKY_LOOK_DEFAULTS };
-  }
-}
-
-let state: SkyLook | null = null;
+let state: SkyLook = { ...SKY_LOOK_DEFAULTS };
 let version = 0;
 
-/** Current settings (read lazily so SSR never touches localStorage). */
 export function getSkyLook(): SkyLook {
-  if (!state) state = typeof window === "undefined" ? SKY_LOOK_DEFAULTS : read();
   return state;
 }
 
@@ -211,14 +199,15 @@ function emit() {
   listeners.forEach((l) => l());
 }
 
+/** Seeds the store from saved settings without notifying anyone (runs while
+ * the page component is first rendering). */
+export function initSkyLook(raw: unknown) {
+  state = sanitizeSkyLook(raw);
+  version++;
+}
+
 export function setSkyLook(update: Partial<SkyLook> | ((s: SkyLook) => SkyLook)) {
-  const cur = getSkyLook();
-  state = typeof update === "function" ? update(cur) : { ...cur, ...update };
-  try {
-    window.localStorage.setItem(SKY_LOOK_KEY, JSON.stringify(state));
-  } catch {
-    /* storage unavailable: still applies for this session */
-  }
+  state = typeof update === "function" ? update(state) : { ...state, ...update };
   emit();
 }
 
@@ -228,15 +217,8 @@ export function resetSkyLook() {
 
 function subscribe(listener: () => void) {
   listeners.add(listener);
-  const onStorage = (e: StorageEvent) => {
-    if (e.key !== SKY_LOOK_KEY) return;
-    state = read();
-    emit();
-  };
-  window.addEventListener("storage", onStorage);
   return () => {
     listeners.delete(listener);
-    window.removeEventListener("storage", onStorage);
   };
 }
 

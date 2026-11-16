@@ -65,7 +65,12 @@ import {
   NEUTRAL_TWILIGHT,
   getSkyLook,
   goldenHourAmount,
+  SKY_LOOK_DEFAULTS,
+  initSkyLook,
   resetSkyLook,
+  sanitizeSkyLook,
+  setSkyLook,
+  useSkyLook,
   sampleSkyColors,
   sunTintRgb,
   type SkyLook,
@@ -1681,6 +1686,7 @@ const DEFAULTS: Persisted = {
   envDayNightAutoOn: true,
   // SOLTONING: sunrise/sunset tints the backdrop warm toward the sun.
   envSunTintOn: true,
+  skyLook: SKY_LOOK_DEFAULTS,
   // SNÖ: falling snow around the camera (lib/sceneFx/snow.ts). snowAmount is
   // the number of flakes, snowIntensity how hard it snows (fall speed, flake
   // size, wind). SNÖTÄCKE (snowCoverOn) whitens the loaded scene and the
@@ -2141,6 +2147,12 @@ export function Aquafulness() {
       })(),
   ).current;
   const initial = useRef<Persisted>(loadSettings()).current;
+  // HIMMELSLJUS lives in its own store (lib/skyLook.ts) so its settings UI
+  // and the render loop stay self-contained; it is seeded from the saved
+  // settings here (bath links and state files land there too) and saved
+  // back with them below.
+  useState(() => initSkyLook(initial.skyLook));
+  const skyLook = useSkyLook();
   // Autosaved free-roam camera pose (see CAMERA_STORAGE_KEY below) — read
   // once at mount so a reload resumes from wherever the camera was left,
   // instead of always snapping back to the origin looking forward.
@@ -3337,6 +3349,7 @@ export function Aquafulness() {
     envDaylightTintStrength,
     envDayNightAutoOn,
     envSunTintOn,
+    skyLook,
     snowOn,
     snowAmount,
     snowIntensity,
@@ -3689,6 +3702,7 @@ export function Aquafulness() {
     envDaylightTintStrength,
     envDayNightAutoOn,
     envSunTintOn,
+    skyLook,
     snowOn,
     snowAmount,
     snowIntensity,
@@ -6051,6 +6065,7 @@ export function Aquafulness() {
       setEnvDaylightTintStrength(patch.envDaylightTintStrength);
     if (patch.envDayNightAutoOn !== undefined) setEnvDayNightAutoOn(patch.envDayNightAutoOn);
     if (patch.envSunTintOn !== undefined) setEnvSunTintOn(patch.envSunTintOn);
+    if (patch.skyLook !== undefined) setSkyLook(sanitizeSkyLook(patch.skyLook));
     if (patch.snowOn !== undefined) setSnowOn(patch.snowOn);
     if (patch.snowAmount !== undefined) setSnowAmount(patch.snowAmount);
     if (patch.snowIntensity !== undefined) setSnowIntensity(patch.snowIntensity);
