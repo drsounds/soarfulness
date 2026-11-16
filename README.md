@@ -47,6 +47,7 @@ original Godot-based [`drsounds/aquafulness-2028`](https://github.com/drsounds/a
 
 | Document | Contents |
 |---|---|
+| [Developer docs](https://drsounds.github.io/soarfulness/) ([`website/`](website/)) | Architecture, every feature, how-to guides and reference for people and agents changing the code (Docusaurus, published to GitHub Pages) |
 | [`docs/README.md`](docs/README.md) | Documentation index |
 | [`docs/01-background-and-purpose.md`](docs/01-background-and-purpose.md) | Digital bathing, the case study, seeding, and the "aquaful" state |
 | [`docs/02-optic-flow-and-kinesthetics.md`](docs/02-optic-flow-and-kinesthetics.md) | The perceptual design: optic flow, vection and kinesthetic movement |
