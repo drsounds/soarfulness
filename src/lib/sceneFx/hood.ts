@@ -86,6 +86,12 @@ export type HoodConfig = {
    * cloth in the water. Off: the whole hood sways as one piece (the old look).
    */
   hanging: boolean;
+  /**
+   * SKUGGA PÅ VYN: a soft contact shadow the hood casts onto the view just
+   * inside the opening (the old look). Off by default: it made the world
+   * read like a screen seen through a frame.
+   */
+  viewShadow: boolean;
   /** BLIXTLÅS FÄST I TYGET: the zipper's teeth move with the cloth, not the view. */
   zipperFixed: boolean;
   /** DRAGARE PÅ UTSIDAN: the pull tab sits on the outside; from inside only the slider's back shows. */
@@ -125,6 +131,7 @@ const FRAG = /* glsl */ `
   uniform float uTime;
   uniform vec2 uSway;
   uniform float uHang;
+  uniform float uViewShadow;
   uniform float uHangHeavy;
   uniform float uTwist;
   uniform float uMotion;
@@ -390,7 +397,7 @@ const FRAG = /* glsl */ `
     float aaC = max(fwidth(cut), 1e-4) * 1.5;
     float inside = smoothstep(0.0, aaT, t) * smoothstep(0.0, aaC, cut);
     // Contact shadow the hood throws onto the view just inside the opening.
-    float rim = smoothstep(-0.04, 0.0, t) * (1.0 - smoothstep(0.0, aaT, t)) * smoothstep(-0.03, 0.05, cut);
+    float rim = smoothstep(-0.04, 0.0, t) * (1.0 - smoothstep(0.0, aaT, t)) * smoothstep(-0.03, 0.05, cut) * uViewShadow;
     if (inside <= 0.0 && rim <= 0.0) discard;
 
     // Height-field normal (view space, +z toward the eye).
@@ -576,6 +583,7 @@ export class Hood {
     uTime: { value: number };
     uSway: { value: THREE.Vector2 };
     uHang: { value: number };
+    uViewShadow: { value: number };
     uHangHeavy: { value: number };
     uTwist: { value: number };
     uMotion: { value: number };
@@ -647,6 +655,7 @@ export class Hood {
       uTime: { value: 0 },
       uSway: { value: new THREE.Vector2() },
       uHang: { value: 1 },
+      uViewShadow: { value: 0 },
       uHangHeavy: { value: 0.4 },
       uTwist: { value: 0 },
       uMotion: { value: 0.5 },
@@ -855,6 +864,7 @@ export class Hood {
     }
     u.uSway.value.copy(this.sway);
     u.uHang.value = cfg.hanging === false ? 0 : 1;
+    u.uViewShadow.value = cfg.viewShadow ? 1 : 0;
     u.uHangHeavy.value = weight;
     u.uTwist.value = cfg.hanging === false ? 0 : this.twist;
   }

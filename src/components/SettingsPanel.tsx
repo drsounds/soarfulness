@@ -903,6 +903,7 @@ export type SettingsPanelProps = {
   hoodCuffHeight: number;
   setHoodCuffHeight: Dispatch<SetStateAction<number>>;
   hoodCuffSize: number;
+  hoodViewShadow: boolean;
   hoodCuffCustom: boolean;
   hoodCuffColor: string;
   hoodCuffMetallic: number;
@@ -916,6 +917,7 @@ export type SettingsPanelProps = {
   hoodPuffThickness: number;
   hoodPuffInflate: number;
   setHoodCuffSize: Dispatch<SetStateAction<number>>;
+  setHoodViewShadow: Dispatch<SetStateAction<boolean>>;
   setHoodCuffCustom: Dispatch<SetStateAction<boolean>>;
   setHoodCuffColor: Dispatch<SetStateAction<string>>;
   setHoodCuffMetallic: Dispatch<SetStateAction<number>>;
@@ -1970,6 +1972,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
     hoodCuffHeight,
     setHoodCuffHeight,
     hoodCuffSize,
+    hoodViewShadow,
     hoodCuffCustom,
     hoodCuffColor,
     hoodCuffMetallic,
@@ -1983,6 +1986,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
     hoodPuffThickness,
     hoodPuffInflate,
     setHoodCuffSize,
+    setHoodViewShadow,
     setHoodCuffCustom,
     setHoodCuffColor,
     setHoodCuffMetallic,
@@ -4179,6 +4183,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
             cuff: hoodCuffOn,
             cuffHeight: hoodCuffHeight,
             cuffSize: hoodCuffSize,
+            viewShadow: hoodViewShadow,
             cuffCustom: hoodCuffCustom,
             cuffColor: hoodCuffColor,
             cuffMetallic: hoodCuffMetallic,
@@ -4215,6 +4220,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
             if (p.cuff !== undefined) setHoodCuffOn(p.cuff);
             if (p.cuffHeight !== undefined) setHoodCuffHeight(p.cuffHeight);
             if (p.cuffSize !== undefined) setHoodCuffSize(p.cuffSize);
+            if (p.viewShadow !== undefined) setHoodViewShadow(p.viewShadow);
             if (p.cuffCustom !== undefined) setHoodCuffCustom(p.cuffCustom);
             if (p.cuffColor !== undefined) setHoodCuffColor(p.cuffColor);
             if (p.cuffMetallic !== undefined) setHoodCuffMetallic(p.cuffMetallic);
