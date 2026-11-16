@@ -87,6 +87,16 @@ export type HoodConfig = {
    */
   hanging: boolean;
   /**
+   * HUVDEL: the hood above the face. Off (with MUN OCH HALS on) leaves only
+   * the funnel neck, as a separate collar with no hood above it.
+   */
+  hoodTop: boolean;
+  /**
+   * KRAGE UPPÅT: the neck cover's edge bends up in the middle instead of
+   * dipping, like a collar pulled up over the mouth on a cold day.
+   */
+  collarUp: boolean;
+  /**
    * SKUGGA PÅ VYN: a soft contact shadow the hood casts onto the view just
    * inside the opening (the old look). Off by default: it made the world
    * read like a screen seen through a frame.
@@ -139,6 +149,8 @@ const FRAG = /* glsl */ `
   uniform float uOpening;
   uniform float uOpenWidth;
   uniform float uLower;
+  uniform float uTopOff;
+  uniform float uCollarUp;
   uniform float uLowerHeight;
   uniform float uZipper;
   uniform float uWaterIn;
@@ -175,6 +187,8 @@ const FRAG = /* glsl */ `
   uniform mat3 uViewToWorld;
 
   const float HEM = 0.075;
+  // KRAGE UPPÅT: how far up the middle of the neck cover's edge is pulled.
+  const float COLLAR_UP = 0.24;
   // Set by hoodField(): 1 inside the MUDD (cuff) band.
   float gCuff = 0.0;
   // MUDD VID HALSKANT: the rib (0 groove .. 1 crest) and how far down the band.
@@ -202,17 +216,35 @@ const FRAG = /* glsl */ `
     // RUNDHET: the opening's corner shape, from boxy (0) to round (1).
     float n = mix(6.0, 2.0, clamp(uRound, 0.0, 1.0));
     float r;
+    bool funnelOnly = uLower > 0.5 && uTopOff > 0.5;
     if (q.y > 0.0) {
       vec2 e = abs(vec2(q.x / a, q.y / b));
       r = pow(pow(e.x, n) + pow(e.y, n), 1.0 / n);
+      // HUVDEL off: nothing above the funnel neck.
+      if (funnelOnly) r = 0.0;
     } else if (uLower > 0.5) {
       // MUN OCH HALS: the hood closes under the face, the cover's top edge
       // at this screen height (wider and flatter than the top of the hood).
+      // On its own (HUVDEL off) the funnel neck is a wider U that stays
+      // low at the sides instead of running up into the hood.
       float edgeY = mix(-0.92, -0.05, uLowerHeight) + uSway.y;
       float bb = max(c.y - edgeY, 0.05);
-      vec2 e = abs(vec2(q.x / a, q.y / bb));
+      float aL = funnelOnly ? a * 1.5 : a;
+      vec2 e = abs(vec2(q.x / aL, q.y / bb));
       float nl = n + 0.6;
       r = pow(pow(e.x, nl) + pow(e.y, nl), 1.0 / nl);
+      if (uCollarUp > 0.5) {
+        // KRAGE UPPÅT: the middle of the edge is pulled up over the mouth,
+        // falling away to the usual edge toward the sides.
+        float xx = q.x / (aL * 0.62);
+        float bump = COLLAR_UP * (1.0 - smoothstep(0.0, 1.0, abs(xx)));
+        float rUp = 1.0 + (edgeY + bump - p.y) / min(a, b);
+        // Smooth union, so the edge and the cuff band curve into the bump
+        // instead of meeting it at a sharp corner.
+        float kS = 0.35;
+        float hS = clamp(0.5 + 0.5 * (rUp - r) / kS, 0.0, 1.0);
+        r = mix(r, rUp, hS) + kS * hS * (1.0 - hS);
+      }
     } else {
       // Below the opening's center the sides hang straight, flaring a little.
       r = abs(q.x) / (a * (1.0 + 0.12 * q.y * q.y));
@@ -506,7 +538,10 @@ const FRAG = /* glsl */ `
       // (it sways with the hood) instead of the screen's.
       float zy = uZipFixed > 0.5 ? p.y - uSway.y : p.y;
       float zx = p.x - zc.x - 0.005 * sin(zy * 5.0 + uTime * 0.8) * uMotion;
-      float top = edgeY - HEM * 0.35;
+      // The zipper runs right up to the cover's edge (pulled up in the
+      // middle with KRAGE UPPÅT); the fabric's own edge clips the tape.
+      float edgeTop = edgeY + (uCollarUp > 0.5 ? COLLAR_UP : 0.0);
+      float top = edgeTop + 0.03;
       float aa = max(fwidth(p.x), 1e-4);
       if (p.y < top + 0.01) {
         float below = 1.0 - smoothstep(top - aa, top, p.y);
@@ -527,11 +562,11 @@ const FRAG = /* glsl */ `
       // Slider body just under the cover's top edge, and the pull hanging off
       // it. DRAGARE PÅ UTSIDAN: the pull is on the outside of the cloth, so
       // from inside only the slider's plain back plate shows.
-      vec2 sp = vec2(zx, p.y - (top - 0.05));
+      vec2 sp = vec2(zx, p.y - (edgeTop - 0.05));
       vec2 sd = abs(sp) - (uZipPullOut > 0.5 ? vec2(0.03, 0.042) : vec2(0.036, 0.05));
       float slider = 1.0 - smoothstep(-aa, aa, length(max(sd, 0.0)) + min(max(sd.x, sd.y), 0.0) - 0.006);
       float swing = uSway.x * 2.0 + 0.06 * sin(uTime * 1.4) * uMotion;
-      vec2 pp = vec2(zx + (p.y - (top - 0.1)) * swing, p.y - (top - 0.19));
+      vec2 pp = vec2(zx + (p.y - (edgeTop - 0.1)) * swing, p.y - (edgeTop - 0.19));
       vec2 pd = abs(pp) - vec2(0.018, 0.075);
       float pull = 1.0 - smoothstep(-aa, aa, length(max(pd, 0.0)) + min(max(pd.x, pd.y), 0.0) - 0.008);
       float hole = 1.0 - smoothstep(-aa, aa, length(pp + vec2(0.0, 0.045)) - 0.009);
@@ -591,6 +626,8 @@ export class Hood {
     uOpening: { value: number };
     uOpenWidth: { value: number };
     uLower: { value: number };
+    uTopOff: { value: number };
+    uCollarUp: { value: number };
     uLowerHeight: { value: number };
     uZipper: { value: number };
     uWaterIn: { value: number };
@@ -663,6 +700,8 @@ export class Hood {
       uOpening: { value: 0.5 },
       uOpenWidth: { value: 0 },
       uLower: { value: 0 },
+      uTopOff: { value: 0 },
+      uCollarUp: { value: 0 },
       uLowerHeight: { value: 0.45 },
       uZipper: { value: 0 },
       uWaterIn: { value: 0 },
@@ -726,6 +765,8 @@ export class Hood {
     u.uOpening.value = THREE.MathUtils.clamp(cfg.opening, 0, 1);
     u.uOpenWidth.value = Math.max(0, Number.isFinite(cfg.openingWidth) ? cfg.openingWidth : 0);
     u.uLower.value = cfg.lower ? 1 : 0;
+    u.uTopOff.value = cfg.hoodTop === false ? 1 : 0;
+    u.uCollarUp.value = cfg.collarUp ? 1 : 0;
     u.uZipper.value = cfg.zipper ? 1 : 0;
     u.uWaterIn.value = cfg.waterInside ? 1 : 0;
     u.uDrop.value = THREE.MathUtils.clamp(cfg.drop, 0, 1);

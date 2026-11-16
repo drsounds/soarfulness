@@ -2103,6 +2103,8 @@ export function Aquafulness() {
   const [hoodCuffOn, setHoodCuffOn] = useState(initial.hoodCuffOn);
   const [hoodCuffHeight, setHoodCuffHeight] = useState(initial.hoodCuffHeight);
   const [hoodCuffSize, setHoodCuffSize] = useState(initial.hoodCuffSize);
+  const [hoodTopPart, setHoodTopPart] = useState(initial.hoodTopPart);
+  const [hoodCollarUp, setHoodCollarUp] = useState(initial.hoodCollarUp);
   const [hoodViewShadow, setHoodViewShadow] = useState(initial.hoodViewShadow);
   const [hoodCuffCustom, setHoodCuffCustom] = useState(initial.hoodCuffCustom);
   const [hoodCuffColor, setHoodCuffColor] = useState(initial.hoodCuffColor);
@@ -3072,6 +3074,8 @@ export function Aquafulness() {
     hoodCuffOn,
     hoodCuffHeight,
     hoodCuffSize,
+    hoodTopPart,
+    hoodCollarUp,
     hoodViewShadow,
     hoodCuffCustom,
     hoodCuffColor,
@@ -3193,6 +3197,8 @@ export function Aquafulness() {
     hoodCuffOn,
     hoodCuffHeight,
     hoodCuffSize,
+    hoodTopPart,
+    hoodCollarUp,
     hoodViewShadow,
     hoodCuffCustom,
     hoodCuffColor,
@@ -3557,6 +3563,8 @@ export function Aquafulness() {
     hoodCuffOn,
     hoodCuffHeight,
     hoodCuffSize,
+    hoodTopPart,
+    hoodCollarUp,
     hoodViewShadow,
     hoodCuffCustom,
     hoodCuffColor,
@@ -5423,6 +5431,8 @@ export function Aquafulness() {
     setHoodCuffOn(DEFAULTS.hoodCuffOn);
     setHoodCuffHeight(DEFAULTS.hoodCuffHeight);
     setHoodCuffSize(DEFAULTS.hoodCuffSize);
+    setHoodTopPart(DEFAULTS.hoodTopPart);
+    setHoodCollarUp(DEFAULTS.hoodCollarUp);
     setHoodViewShadow(DEFAULTS.hoodViewShadow);
     setHoodCuffCustom(DEFAULTS.hoodCuffCustom);
     setHoodCuffColor(DEFAULTS.hoodCuffColor);
@@ -5786,6 +5796,8 @@ export function Aquafulness() {
     if (patch.hoodCuffOn !== undefined) setHoodCuffOn(patch.hoodCuffOn);
     if (patch.hoodCuffHeight !== undefined) setHoodCuffHeight(patch.hoodCuffHeight);
     if (patch.hoodCuffSize !== undefined) setHoodCuffSize(patch.hoodCuffSize);
+    if (patch.hoodTopPart !== undefined) setHoodTopPart(patch.hoodTopPart);
+    if (patch.hoodCollarUp !== undefined) setHoodCollarUp(patch.hoodCollarUp);
     if (patch.hoodViewShadow !== undefined) setHoodViewShadow(patch.hoodViewShadow);
     if (patch.hoodCuffCustom !== undefined) setHoodCuffCustom(patch.hoodCuffCustom);
     if (patch.hoodCuffColor !== undefined) setHoodCuffColor(patch.hoodCuffColor);
@@ -13197,6 +13209,8 @@ export function Aquafulness() {
     hoodCuffHeight,
     setHoodCuffHeight,
     hoodCuffSize,
+    hoodTopPart,
+    hoodCollarUp,
     hoodViewShadow,
     hoodCuffCustom,
     hoodCuffColor,
@@ -13211,6 +13225,8 @@ export function Aquafulness() {
     hoodPuffThickness,
     hoodPuffInflate,
     setHoodCuffSize,
+    setHoodTopPart,
+    setHoodCollarUp,
     setHoodViewShadow,
     setHoodCuffCustom,
     setHoodCuffColor,

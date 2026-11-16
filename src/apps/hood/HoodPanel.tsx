@@ -54,12 +54,16 @@ export function HoodPanel({
   const [extremeLimits] = useExtremeLimits();
   const widthMax = limitMax("hoodOpeningWidth", extremeLimits);
 
+  // Layers are stored outermost first (layer 1 = the flat settings, drawn
+  // first, so later layers draw over it, closer to the face) but listed
+  // innermost first: picker position `sel` 0 is the layer closest to you.
   const layers = [layer1, ...extraLayers];
   const sel = Math.min(selRaw, layers.length - 1);
-  const layer = layers[sel];
+  const act = layers.length - 1 - sel;
+  const layer = layers[act];
   const patch = (p: Partial<HoodLayer>) => {
-    if (sel === 0) setLayer1(p);
-    else setExtraLayers((ls) => ls.map((l, i) => (i === sel - 1 ? { ...l, ...p } : l)));
+    if (act === 0) setLayer1(p);
+    else setExtraLayers((ls) => ls.map((l, i) => (i === act - 1 ? { ...l, ...p } : l)));
   };
   const applyLayers = (ls: HoodLayer[]) => {
     setLayer1(ls[0]);
@@ -109,7 +113,17 @@ export function HoodPanel({
         <>
           <SettingRow
             label={t("dial.camera.hoodLayer")}
-            value={`${sel + 1} / ${layers.length}`}
+            value={`${sel + 1} / ${layers.length}${
+              layers.length > 1
+                ? ` · ${
+                    sel === 0
+                      ? t("dial.camera.hoodLayerInnermost")
+                      : sel === layers.length - 1
+                        ? t("dial.camera.hoodLayerOutermost")
+                        : ""
+                  }`
+                : ""
+            }`.replace(/ · $/, "")}
             onDec={() => setSel((sel - 1 + layers.length) % layers.length)}
             onInc={() => setSel((sel + 1) % layers.length)}
           />
@@ -118,27 +132,27 @@ export function HoodPanel({
               disabled={layers.length >= HOOD_MAX_LAYERS}
               onClick={() => {
                 // A new layer starts as a copy of the picked one, with a
-                // tighter opening so it shows inside it.
+                // tighter opening so it shows inside it: the new innermost.
                 const next = { ...layer, on: true, opening: Math.max(0, layer.opening - 0.15) };
                 setExtraLayers((ls) => [...ls, next]);
-                setSel(layers.length);
+                setSel(0);
               }}
               className={btnClass}
             >
               {t("dial.camera.hoodAddLayer")}
             </button>
             <button
-              disabled={sel === 0}
+              disabled={act === 0}
               onClick={() => {
-                setExtraLayers((ls) => ls.filter((_, i) => i !== sel - 1));
-                setSel(sel - 1);
+                setExtraLayers((ls) => ls.filter((_, i) => i !== act - 1));
+                setSel(Math.max(0, sel - 1));
               }}
               className={btnClass}
             >
               {t("dial.camera.hoodRemoveLayer")}
             </button>
           </div>
-          {sel > 0 && toggle("on", t("dial.camera.hoodLayerOn"))}
+          {act > 0 && toggle("on", t("dial.camera.hoodLayerOn"))}
           {pct("drop", t("dial.camera.hoodDrop"))}
           {!layer.lowerOn && pct("height", t("dial.camera.hoodHeight"))}
           {layer.openingWidth <= 0 && pct("opening", t("dial.camera.hoodOpening"))}
@@ -171,6 +185,8 @@ export function HoodPanel({
           {layer.lowerOn && (
             <>
               {pct("lowerHeight", t("dial.camera.hoodLowerHeight"))}
+              {toggle("hoodTop", t("dial.camera.hoodTop"))}
+              {toggle("collarUp", t("dial.camera.hoodCollarUp"))}
               {toggle("zipperOn", t("dial.camera.hoodZipper"))}
               {layer.zipperOn && (
                 <>
