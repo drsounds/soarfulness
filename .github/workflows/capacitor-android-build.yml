@@ -232,7 +232,27 @@ jobs:
           name: soarfulness-capacitor-release-aab
           path: android/app/build/outputs/bundle/release
 
+      # Play sometimes rejects the edit commit with "Some of the Android App
+      # Bundle uploads are not completed yet" when it is still processing a
+      # large AAB right after the upload (hit on run 43863836620: the upload
+      # succeeded, the commit failed). The uncommitted edit is discarded, so
+      # waiting and submitting again with the same AAB is safe.
       - name: Submit to Play Console
+        id: submit
+        continue-on-error: true
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: se.soarfulness.app.gen8
+          releaseFiles: android/app/build/outputs/bundle/release/app-release.aab
+          track: ${{ github.event.inputs.track || 'internal' }}
+
+      - name: Wait for Play to finish processing
+        if: steps.submit.outcome == 'failure'
+        run: sleep 120
+
+      - name: Submit to Play Console (retry)
+        if: steps.submit.outcome == 'failure'
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}

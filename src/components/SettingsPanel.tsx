@@ -76,6 +76,8 @@ import {
   AURORA_PALETTES,
   UNDERWATER_FOG_BLENDS,
   NEON_MODES,
+  RAIN_COLORS,
+  type RainColor,
   CONFETTI_PALETTES,
   SKY_CLOUDS_ALTITUDE_MIN,
   SKY_CLOUDS_ALTITUDE_MAX,
@@ -903,6 +905,7 @@ export type SettingsPanelProps = {
   hoodCuffHeight: number;
   setHoodCuffHeight: Dispatch<SetStateAction<number>>;
   hoodCuffSize: number;
+  hoodViewShadow: boolean;
   hoodCuffCustom: boolean;
   hoodCuffColor: string;
   hoodCuffMetallic: number;
@@ -916,6 +919,7 @@ export type SettingsPanelProps = {
   hoodPuffThickness: number;
   hoodPuffInflate: number;
   setHoodCuffSize: Dispatch<SetStateAction<number>>;
+  setHoodViewShadow: Dispatch<SetStateAction<boolean>>;
   setHoodCuffCustom: Dispatch<SetStateAction<boolean>>;
   setHoodCuffColor: Dispatch<SetStateAction<string>>;
   setHoodCuffMetallic: Dispatch<SetStateAction<number>>;
@@ -990,6 +994,26 @@ export type SettingsPanelProps = {
   setSnowCoverOn: Dispatch<SetStateAction<boolean>>;
   snowCoverStrength: number;
   setSnowCoverStrength: Dispatch<SetStateAction<number>>;
+  rainOn: boolean;
+  setRainOn: Dispatch<SetStateAction<boolean>>;
+  rainAmount: number;
+  setRainAmount: Dispatch<SetStateAction<number>>;
+  rainIntensity: number;
+  setRainIntensity: Dispatch<SetStateAction<number>>;
+  rainDropLength: number;
+  setRainDropLength: Dispatch<SetStateAction<number>>;
+  rainDropSize: number;
+  setRainDropSize: Dispatch<SetStateAction<number>>;
+  rainOpacity: number;
+  setRainOpacity: Dispatch<SetStateAction<number>>;
+  rainColor: RainColor;
+  setRainColor: Dispatch<SetStateAction<RainColor>>;
+  rainSplashesOn: boolean;
+  setRainSplashesOn: Dispatch<SetStateAction<boolean>>;
+  rainSoundOn: boolean;
+  setRainSoundOn: Dispatch<SetStateAction<boolean>>;
+  rainVolume: number;
+  setRainVolume: Dispatch<SetStateAction<number>>;
   fireworksOn: boolean;
   setFireworksOn: Dispatch<SetStateAction<boolean>>;
   fireworksIntensity: number;
@@ -1970,6 +1994,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
     hoodCuffHeight,
     setHoodCuffHeight,
     hoodCuffSize,
+    hoodViewShadow,
     hoodCuffCustom,
     hoodCuffColor,
     hoodCuffMetallic,
@@ -1983,6 +2008,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
     hoodPuffThickness,
     hoodPuffInflate,
     setHoodCuffSize,
+    setHoodViewShadow,
     setHoodCuffCustom,
     setHoodCuffColor,
     setHoodCuffMetallic,
@@ -2049,6 +2075,26 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setSnowCoverOn,
     snowCoverStrength,
     setSnowCoverStrength,
+    rainOn,
+    setRainOn,
+    rainAmount,
+    setRainAmount,
+    rainIntensity,
+    setRainIntensity,
+    rainDropLength,
+    setRainDropLength,
+    rainDropSize,
+    setRainDropSize,
+    rainOpacity,
+    setRainOpacity,
+    rainColor,
+    setRainColor,
+    rainSplashesOn,
+    setRainSplashesOn,
+    rainSoundOn,
+    setRainSoundOn,
+    rainVolume,
+    setRainVolume,
     fireworksOn,
     setFireworksOn,
     fireworksIntensity,
@@ -4178,6 +4224,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
             cuff: hoodCuffOn,
             cuffHeight: hoodCuffHeight,
             cuffSize: hoodCuffSize,
+            viewShadow: hoodViewShadow,
             cuffCustom: hoodCuffCustom,
             cuffColor: hoodCuffColor,
             cuffMetallic: hoodCuffMetallic,
@@ -4214,6 +4261,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
             if (p.cuff !== undefined) setHoodCuffOn(p.cuff);
             if (p.cuffHeight !== undefined) setHoodCuffHeight(p.cuffHeight);
             if (p.cuffSize !== undefined) setHoodCuffSize(p.cuffSize);
+            if (p.viewShadow !== undefined) setHoodViewShadow(p.viewShadow);
             if (p.cuffCustom !== undefined) setHoodCuffCustom(p.cuffCustom);
             if (p.cuffColor !== undefined) setHoodCuffColor(p.cuffColor);
             if (p.cuffMetallic !== undefined) setHoodCuffMetallic(p.cuffMetallic);
@@ -5666,6 +5714,126 @@ export function SettingsPanel(props: SettingsPanelProps) {
             onDec={() => setSnowCoverStrength((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
             onInc={() => setSnowCoverStrength((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
           />
+        )}
+        <SettingRow
+          label={t("dial.env.rain")}
+          value={onOff(rainOn)}
+          onDec={() => setRainOn(false)}
+          onInc={() => setRainOn(true)}
+        />
+        {rainOn && (
+          <>
+            <SettingRow
+              label={t("dial.env.rainAmount")}
+              mode="number"
+              value={`${Math.round(rainAmount)}`}
+              rawValue={rainAmount}
+              onSet={(v) => setRainAmount(Math.max(0, Math.min(mx("rainAmount"), Math.round(v))))}
+              min={0}
+              max={mx("rainAmount")}
+              step={500}
+              onDec={() => setRainAmount((v) => Math.max(0, Math.round(v - 500)))}
+              onInc={() => setRainAmount((v) => Math.min(mx("rainAmount"), Math.round(v + 500)))}
+            />
+            <SettingRow
+              label={t("dial.env.rainIntensity")}
+              mode="number"
+              value={`${Math.round(rainIntensity * 100)}%`}
+              rawValue={rainIntensity}
+              onSet={(v) => setRainIntensity(Math.max(0, Math.min(mx("rainIntensity"), v)))}
+              min={0}
+              max={mx("rainIntensity")}
+              step={0.05}
+              onDec={() => setRainIntensity((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+              onInc={() =>
+                setRainIntensity((v) => Math.min(mx("rainIntensity"), +(v + 0.05).toFixed(2)))
+              }
+            />
+            <SettingRow
+              label={t("dial.env.rainDropLength")}
+              mode="number"
+              value={`${Math.round(rainDropLength * 100)}%`}
+              rawValue={rainDropLength}
+              onSet={(v) => setRainDropLength(Math.max(0.1, Math.min(4, v)))}
+              min={0.1}
+              max={4}
+              step={0.1}
+              onDec={() => setRainDropLength((v) => Math.max(0.1, +(v - 0.1).toFixed(2)))}
+              onInc={() => setRainDropLength((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
+            />
+            <SettingRow
+              label={t("dial.env.rainDropSize")}
+              mode="number"
+              value={`${Math.round(rainDropSize * 100)}%`}
+              rawValue={rainDropSize}
+              onSet={(v) => setRainDropSize(Math.max(0.1, Math.min(4, v)))}
+              min={0.1}
+              max={4}
+              step={0.1}
+              onDec={() => setRainDropSize((v) => Math.max(0.1, +(v - 0.1).toFixed(2)))}
+              onInc={() => setRainDropSize((v) => Math.min(4, +(v + 0.1).toFixed(2)))}
+            />
+            <SettingRow
+              label={t("dial.env.rainOpacity")}
+              mode="number"
+              value={`${Math.round(rainOpacity * 100)}%`}
+              rawValue={rainOpacity}
+              onSet={(v) => setRainOpacity(Math.max(0, Math.min(1, v)))}
+              min={0}
+              max={1}
+              step={0.05}
+              onDec={() => setRainOpacity((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+              onInc={() => setRainOpacity((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+            />
+            <SettingRow
+              label={t("dial.env.rainColor")}
+              value={t(`dial.env.rainColorValue.${rainColor}`)}
+              options={RAIN_COLORS.map((c) => t(`dial.env.rainColorValue.${c}`))}
+              selectedIndex={Math.max(0, RAIN_COLORS.indexOf(rainColor))}
+              onSelectIndex={(i) => setRainColor(RAIN_COLORS[i])}
+              onDec={() =>
+                setRainColor(
+                  (c) =>
+                    RAIN_COLORS[
+                      (Math.max(0, RAIN_COLORS.indexOf(c)) - 1 + RAIN_COLORS.length) %
+                        RAIN_COLORS.length
+                    ],
+                )
+              }
+              onInc={() =>
+                setRainColor(
+                  (c) =>
+                    RAIN_COLORS[(Math.max(0, RAIN_COLORS.indexOf(c)) + 1) % RAIN_COLORS.length],
+                )
+              }
+            />
+            <SettingRow
+              label={t("dial.env.rainSplashes")}
+              value={onOff(rainSplashesOn)}
+              onDec={() => setRainSplashesOn(false)}
+              onInc={() => setRainSplashesOn(true)}
+            />
+            <SettingRow
+              label={t("dial.env.rainSound")}
+              value={onOff(rainSoundOn)}
+              onDec={() => setRainSoundOn(false)}
+              onInc={() => setRainSoundOn(true)}
+            />
+            {rainSoundOn && (
+              <SettingRow
+                label={t("dial.env.rainVolume")}
+                mode="number"
+                value={`${Math.round(rainVolume * 100)}%`}
+                rawValue={rainVolume}
+                onSet={(v) => setRainVolume(Math.max(0, Math.min(1, v)))}
+                min={0}
+                max={1}
+                step={0.05}
+                onDec={() => setRainVolume((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
+                onInc={() => setRainVolume((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
+              />
+            )}
+          </>
         )}
       </G>
       <G id="events">

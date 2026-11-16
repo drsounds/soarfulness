@@ -5,6 +5,7 @@ import waterAsset from "@/assets/water.mp3.asset.json";
 import type { AuroraSettings } from "@/apps/aurora/settings";
 import type { HoodSettings } from "@/apps/hood/settings";
 import type { SnowSettings } from "@/apps/snow/settings";
+import type { RainSettings } from "@/apps/rain/settings";
 import type { ConfettiSettings } from "@/apps/confetti/settings";
 import type { FireworksSettings } from "@/apps/fireworks/settings";
 import type { NeonSettings } from "@/apps/neon/settings";
@@ -20,6 +21,7 @@ import { RETRO_SETTING_KEYS } from "@/apps/retro/settings";
 import { WIND_SETTING_KEYS } from "@/apps/wind/settings";
 import { DAY_NIGHT_SETTING_KEYS } from "@/apps/day-night/settings";
 import { SNOW_SETTING_KEYS } from "@/apps/snow/settings";
+import { RAIN_SETTING_KEYS } from "@/apps/rain/settings";
 import { FIREWORKS_SETTING_KEYS } from "@/apps/fireworks/settings";
 import { CONFETTI_SETTING_KEYS } from "@/apps/confetti/settings";
 import { NEON_SETTING_KEYS } from "@/apps/neon/settings";
@@ -200,6 +202,8 @@ export { UNDERWATER_FOG_BLENDS, type UnderwaterFogBlend } from "@/apps/underwate
 export { NEON_MODES, type NeonMode } from "@/apps/neon/settings";
 
 export { CONFETTI_PALETTES, type ConfettiPalette } from "@/apps/confetti/settings";
+
+export { RAIN_COLORS, type RainColor } from "@/apps/rain/settings";
 
 // BODYFLIGHT dial ranges: the updraft's speed at the ground (m/s), the
 // gravity multiplier (1 = Earth) and the height (m) the air cushion holds
@@ -830,6 +834,7 @@ export type Persisted = {
   AuroraSettings &
   HoodSettings &
   SnowSettings &
+  RainSettings &
   ConfettiSettings &
   FireworksSettings &
   NeonSettings &
@@ -1083,6 +1088,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     ...DAY_NIGHT_SETTING_KEYS,
     "skyLook",
     ...SNOW_SETTING_KEYS,
+    ...RAIN_SETTING_KEYS,
     ...FIREWORKS_SETTING_KEYS,
     ...CONFETTI_SETTING_KEYS,
     ...NEON_SETTING_KEYS,

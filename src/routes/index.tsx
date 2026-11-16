@@ -59,6 +59,8 @@ import { waterlineScreenFraction } from "@/apps/underwater-fog/underwaterFog";
 import { UnderwaterFogOverlay } from "@/apps/underwater-fog/UnderwaterFogOverlay";
 import { OpenDrift } from "@/apps/open-drift/OpenDrift";
 import { SnowRuntime } from "@/apps/snow/SnowRuntime";
+import { RainRuntime } from "@/apps/rain/RainRuntime";
+import { RAIN_DEFAULTS, type RainSettings } from "@/apps/rain/settings";
 import { FIREWORKS_LIGHTS } from "@/apps/fireworks/Fireworks";
 import { FireworksRuntime } from "@/apps/fireworks/FireworksRuntime";
 import { ConfettiRuntime } from "@/apps/confetti/ConfettiRuntime";
@@ -1631,6 +1633,7 @@ const DEFAULTS: Persisted = {
   ...DAY_NIGHT_DEFAULTS,
   skyLook: SKY_LOOK_DEFAULTS,
   ...SNOW_DEFAULTS,
+  ...RAIN_DEFAULTS,
   ...FIREWORKS_DEFAULTS,
   ...CONFETTI_DEFAULTS,
   ...NEON_DEFAULTS,
@@ -2100,6 +2103,7 @@ export function Aquafulness() {
   const [hoodCuffOn, setHoodCuffOn] = useState(initial.hoodCuffOn);
   const [hoodCuffHeight, setHoodCuffHeight] = useState(initial.hoodCuffHeight);
   const [hoodCuffSize, setHoodCuffSize] = useState(initial.hoodCuffSize);
+  const [hoodViewShadow, setHoodViewShadow] = useState(initial.hoodViewShadow);
   const [hoodCuffCustom, setHoodCuffCustom] = useState(initial.hoodCuffCustom);
   const [hoodCuffColor, setHoodCuffColor] = useState(initial.hoodCuffColor);
   const [hoodCuffMetallic, setHoodCuffMetallic] = useState(initial.hoodCuffMetallic);
@@ -2359,6 +2363,16 @@ export function Aquafulness() {
   const [snowIntensity, setSnowIntensity] = useState(initial.snowIntensity);
   const [snowCoverOn, setSnowCoverOn] = useState(initial.snowCoverOn);
   const [snowCoverStrength, setSnowCoverStrength] = useState(initial.snowCoverStrength);
+  const [rainOn, setRainOn] = useState(initial.rainOn);
+  const [rainAmount, setRainAmount] = useState(initial.rainAmount);
+  const [rainIntensity, setRainIntensity] = useState(initial.rainIntensity);
+  const [rainDropLength, setRainDropLength] = useState(initial.rainDropLength);
+  const [rainDropSize, setRainDropSize] = useState(initial.rainDropSize);
+  const [rainOpacity, setRainOpacity] = useState(initial.rainOpacity);
+  const [rainColor, setRainColor] = useState(initial.rainColor);
+  const [rainSplashesOn, setRainSplashesOn] = useState(initial.rainSplashesOn);
+  const [rainSoundOn, setRainSoundOn] = useState(initial.rainSoundOn);
+  const [rainVolume, setRainVolume] = useState(initial.rainVolume);
   const [fireworksOn, setFireworksOn] = useState(initial.fireworksOn);
   const [fireworksIntensity, setFireworksIntensity] = useState(initial.fireworksIntensity);
   const [fireworksRate, setFireworksRate] = useState(initial.fireworksRate);
@@ -2563,12 +2577,16 @@ export function Aquafulness() {
     clamp("openDriftRadius", openDriftRadius, setOpenDriftRadius);
     clamp("snowAmount", snowAmount, setSnowAmount);
     clamp("snowIntensity", snowIntensity, setSnowIntensity);
+    clamp("rainAmount", rainAmount, setRainAmount);
+    clamp("rainIntensity", rainIntensity, setRainIntensity);
     clamp("fireworksIntensity", fireworksIntensity, setFireworksIntensity);
     clamp("fireworksRate", fireworksRate, setFireworksRate);
     clamp("confettiAmount", confettiAmount, setConfettiAmount);
     clamp("confettiIntensity", confettiIntensity, setConfettiIntensity);
   }, [
     extremeLimits,
+    rainAmount,
+    rainIntensity,
     openDriftMagnitude,
     openDriftRadius,
     auroraIntensity,
@@ -2981,6 +2999,20 @@ export function Aquafulness() {
   };
   const snowSettingsRef = useRef(snowSettings);
   snowSettingsRef.current = snowSettings;
+  const rainSettings: RainSettings = {
+    rainOn,
+    rainAmount,
+    rainIntensity,
+    rainDropLength,
+    rainDropSize,
+    rainOpacity,
+    rainColor,
+    rainSplashesOn,
+    rainSoundOn,
+    rainVolume,
+  };
+  const rainSettingsRef = useRef(rainSettings);
+  rainSettingsRef.current = rainSettings;
   const confettiSettings: ConfettiSettings = {
     confettiOn,
     confettiAmount,
@@ -3040,6 +3072,7 @@ export function Aquafulness() {
     hoodCuffOn,
     hoodCuffHeight,
     hoodCuffSize,
+    hoodViewShadow,
     hoodCuffCustom,
     hoodCuffColor,
     hoodCuffMetallic,
@@ -3160,6 +3193,7 @@ export function Aquafulness() {
     hoodCuffOn,
     hoodCuffHeight,
     hoodCuffSize,
+    hoodViewShadow,
     hoodCuffCustom,
     hoodCuffColor,
     hoodCuffMetallic,
@@ -3300,6 +3334,16 @@ export function Aquafulness() {
     snowIntensity,
     snowCoverOn,
     snowCoverStrength,
+    rainOn,
+    rainAmount,
+    rainIntensity,
+    rainDropLength,
+    rainDropSize,
+    rainOpacity,
+    rainColor,
+    rainSplashesOn,
+    rainSoundOn,
+    rainVolume,
     snowGrayBackdropOn,
     confettiOn,
     confettiAmount,
@@ -3513,6 +3557,7 @@ export function Aquafulness() {
     hoodCuffOn,
     hoodCuffHeight,
     hoodCuffSize,
+    hoodViewShadow,
     hoodCuffCustom,
     hoodCuffColor,
     hoodCuffMetallic,
@@ -3653,6 +3698,16 @@ export function Aquafulness() {
     snowIntensity,
     snowCoverOn,
     snowCoverStrength,
+    rainOn,
+    rainAmount,
+    rainIntensity,
+    rainDropLength,
+    rainDropSize,
+    rainOpacity,
+    rainColor,
+    rainSplashesOn,
+    rainSoundOn,
+    rainVolume,
     snowGrayBackdropOn,
     confettiOn,
     confettiAmount,
@@ -5368,6 +5423,7 @@ export function Aquafulness() {
     setHoodCuffOn(DEFAULTS.hoodCuffOn);
     setHoodCuffHeight(DEFAULTS.hoodCuffHeight);
     setHoodCuffSize(DEFAULTS.hoodCuffSize);
+    setHoodViewShadow(DEFAULTS.hoodViewShadow);
     setHoodCuffCustom(DEFAULTS.hoodCuffCustom);
     setHoodCuffColor(DEFAULTS.hoodCuffColor);
     setHoodCuffMetallic(DEFAULTS.hoodCuffMetallic);
@@ -5506,6 +5562,16 @@ export function Aquafulness() {
     setSnowIntensity(DEFAULTS.snowIntensity);
     setSnowCoverOn(DEFAULTS.snowCoverOn);
     setSnowCoverStrength(DEFAULTS.snowCoverStrength);
+    setRainOn(DEFAULTS.rainOn);
+    setRainAmount(DEFAULTS.rainAmount);
+    setRainIntensity(DEFAULTS.rainIntensity);
+    setRainDropLength(DEFAULTS.rainDropLength);
+    setRainDropSize(DEFAULTS.rainDropSize);
+    setRainOpacity(DEFAULTS.rainOpacity);
+    setRainColor(DEFAULTS.rainColor);
+    setRainSplashesOn(DEFAULTS.rainSplashesOn);
+    setRainSoundOn(DEFAULTS.rainSoundOn);
+    setRainVolume(DEFAULTS.rainVolume);
     setFireworksOn(DEFAULTS.fireworksOn);
     setFireworksIntensity(DEFAULTS.fireworksIntensity);
     setFireworksRate(DEFAULTS.fireworksRate);
@@ -5720,6 +5786,7 @@ export function Aquafulness() {
     if (patch.hoodCuffOn !== undefined) setHoodCuffOn(patch.hoodCuffOn);
     if (patch.hoodCuffHeight !== undefined) setHoodCuffHeight(patch.hoodCuffHeight);
     if (patch.hoodCuffSize !== undefined) setHoodCuffSize(patch.hoodCuffSize);
+    if (patch.hoodViewShadow !== undefined) setHoodViewShadow(patch.hoodViewShadow);
     if (patch.hoodCuffCustom !== undefined) setHoodCuffCustom(patch.hoodCuffCustom);
     if (patch.hoodCuffColor !== undefined) setHoodCuffColor(patch.hoodCuffColor);
     if (patch.hoodCuffMetallic !== undefined) setHoodCuffMetallic(patch.hoodCuffMetallic);
@@ -5878,6 +5945,16 @@ export function Aquafulness() {
     if (patch.snowIntensity !== undefined) setSnowIntensity(patch.snowIntensity);
     if (patch.snowCoverOn !== undefined) setSnowCoverOn(patch.snowCoverOn);
     if (patch.snowCoverStrength !== undefined) setSnowCoverStrength(patch.snowCoverStrength);
+    if (patch.rainOn !== undefined) setRainOn(patch.rainOn);
+    if (patch.rainAmount !== undefined) setRainAmount(patch.rainAmount);
+    if (patch.rainIntensity !== undefined) setRainIntensity(patch.rainIntensity);
+    if (patch.rainDropLength !== undefined) setRainDropLength(patch.rainDropLength);
+    if (patch.rainDropSize !== undefined) setRainDropSize(patch.rainDropSize);
+    if (patch.rainOpacity !== undefined) setRainOpacity(patch.rainOpacity);
+    if (patch.rainColor !== undefined) setRainColor(patch.rainColor);
+    if (patch.rainSplashesOn !== undefined) setRainSplashesOn(patch.rainSplashesOn);
+    if (patch.rainSoundOn !== undefined) setRainSoundOn(patch.rainSoundOn);
+    if (patch.rainVolume !== undefined) setRainVolume(patch.rainVolume);
     if (patch.fireworksOn !== undefined) setFireworksOn(patch.fireworksOn);
     if (patch.fireworksIntensity !== undefined) setFireworksIntensity(patch.fireworksIntensity);
     if (patch.fireworksRate !== undefined) setFireworksRate(patch.fireworksRate);
@@ -9209,6 +9286,8 @@ export function Aquafulness() {
     // SNÖ: falling flakes around the camera, and SNÖTÄCKE whitening of the
     // loaded scene (see apps/snow/Snowfall.ts).
     const snow = new SnowRuntime({ scene });
+    // REGN: rain streaks, splashes and sound (apps/rain).
+    const rain = new RainRuntime({ scene });
     const snowCover = snow.cover;
     // FYRVERKERI (see apps/fireworks/Fireworks.ts).
     const fireworks = new FireworksRuntime({ scene });
@@ -12215,6 +12294,9 @@ export function Aquafulness() {
       // loaded scene's materials.
       snow.frame(appFrame, snowSettingsRef.current);
 
+      // REGN (apps/rain): drops slant with VIND; splashes and sound.
+      rain.frame(appFrame, rainSettingsRef.current);
+
       // FYRVERKERI (apps/fireworks): runs the show, then its flashes are fed
       // to the ocean shader (the scene lights are its own).
       fireworks.frame(appFrame, fireworksSettingsRef.current);
@@ -12315,6 +12397,7 @@ export function Aquafulness() {
       windAudio.dispose();
       windField.reset();
       snow.dispose();
+      rain.dispose();
       fireworks.dispose();
       confetti.dispose();
       hood.dispose();
@@ -13114,6 +13197,7 @@ export function Aquafulness() {
     hoodCuffHeight,
     setHoodCuffHeight,
     hoodCuffSize,
+    hoodViewShadow,
     hoodCuffCustom,
     hoodCuffColor,
     hoodCuffMetallic,
@@ -13127,6 +13211,7 @@ export function Aquafulness() {
     hoodPuffThickness,
     hoodPuffInflate,
     setHoodCuffSize,
+    setHoodViewShadow,
     setHoodCuffCustom,
     setHoodCuffColor,
     setHoodCuffMetallic,
@@ -13193,6 +13278,26 @@ export function Aquafulness() {
     setSnowCoverOn,
     snowCoverStrength,
     setSnowCoverStrength,
+    rainOn,
+    setRainOn,
+    rainAmount,
+    setRainAmount,
+    rainIntensity,
+    setRainIntensity,
+    rainDropLength,
+    setRainDropLength,
+    rainDropSize,
+    setRainDropSize,
+    rainOpacity,
+    setRainOpacity,
+    rainColor,
+    setRainColor,
+    rainSplashesOn,
+    setRainSplashesOn,
+    rainSoundOn,
+    setRainSoundOn,
+    rainVolume,
+    setRainVolume,
     snowGrayBackdropOn,
     setSnowGrayBackdropOn,
     confettiOn,
