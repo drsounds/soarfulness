@@ -1,5 +1,6 @@
 import type { AppRuntime, FrameContext, SceneAppContext } from "@/core/apps/types";
 import { NeonEdges } from "./NeonEdges";
+import { setWaterPass } from "@/lib/waterPass";
 import type { NeonSettings } from "./settings";
 
 /**
@@ -21,6 +22,8 @@ export class NeonRuntime implements AppRuntime<NeonSettings> {
 
   frame(f: FrameContext, s: Readonly<NeonSettings>) {
     const model = s.neonOn ? f.model : null;
+    this.edges.setFilter(s.neonEdgeFilter);
+    setWaterPass(f.waterLevel, f.camera.position.y);
     if (model !== this.edges.attachedTo) {
       if (model) this.edges.attach(model);
       else this.edges.detach();

@@ -1,12 +1,15 @@
 import type { AppRuntime, FrameContext, SceneAppContext } from "@/core/apps/types";
-import { Hood, type HoodConfig } from "./Hood";
+import * as THREE from "three";
+import { setClothingBuoyancyOffset } from "./buoyancy";
+import { FloatSuit } from "./FloatSuit";
+import { Hood, HOOD_STYLE_AIR, type HoodConfig } from "./Hood";
 import { HOOD_MAX_LAYERS, type HoodLayer } from "./hoodLayers";
 import type { HoodSettings } from "./settings";
 
 /** Layer 1 of the hood, from the flat hood* settings. */
 export function hoodLayerFromSettings(s: Readonly<HoodSettings>): HoodLayer {
   return {
-    on: true,
+    on: s.hoodLayer1On,
     height: s.hoodHeight,
     opening: s.hoodOpening,
     openingWidth: s.hoodOpeningWidth,
@@ -29,6 +32,10 @@ export function hoodLayerFromSettings(s: Readonly<HoodSettings>): HoodLayer {
     cuff: s.hoodCuffOn,
     cuffHeight: s.hoodCuffHeight,
     cuffSize: s.hoodCuffSize,
+    zipperOpen: s.hoodZipperOpen,
+    floating: s.hoodFloating,
+    hoodTop: s.hoodTopPart,
+    collarUp: s.hoodCollarUp,
     viewShadow: s.hoodViewShadow,
     cuffCustom: s.hoodCuffCustom,
     cuffColor: s.hoodCuffColor,
@@ -45,9 +52,15 @@ export function hoodLayerFromSettings(s: Readonly<HoodSettings>): HoodLayer {
   };
 }
 
+/** Hood-wide values every layer's HoodConfig shares this frame. */
+export type HoodShared = { lookDown: number; floatThreshold: number; suitColor: string };
+
 /** What one Hood mesh needs this frame to draw layer `l`. */
-export function hoodConfigFromLayer(l: HoodLayer, f: FrameContext): HoodConfig {
+export function hoodConfigFromLayer(l: HoodLayer, f: FrameContext, g: HoodShared): HoodConfig {
   return {
+    lookDown: g.lookDown,
+    floatThreshold: g.floatThreshold,
+    suitColor: g.suitColor,
     height: l.height,
     opening: l.opening,
     openingWidth: l.openingWidth,
@@ -70,6 +83,10 @@ export function hoodConfigFromLayer(l: HoodLayer, f: FrameContext): HoodConfig {
     cuff: l.cuff,
     cuffHeight: l.cuffHeight,
     cuffSize: l.cuffSize,
+    zipperOpen: l.zipperOpen,
+    floating: l.floating,
+    hoodTop: l.hoodTop,
+    collarUp: l.collarUp,
     viewShadow: l.viewShadow,
     cuffCustom: l.cuffCustom,
     cuffColor: l.cuffColor,
@@ -100,21 +117,66 @@ export function hoodConfigFromLayer(l: HoodLayer, f: FrameContext): HoodConfig {
  */
 export class HoodRuntime implements AppRuntime<HoodSettings> {
   readonly hoods: Hood[];
+  /** FLYTDRÄKT: always worn innermost while HUVA is on. */
+  readonly suit: FloatSuit;
+  private buoy = 0;
+  private readonly fwd = new THREE.Vector3();
 
   constructor(ctx: SceneAppContext) {
+    this.suit = new FloatSuit(ctx.scene);
     this.hoods = Array.from({ length: HOOD_MAX_LAYERS }, (_, i) => new Hood(ctx.scene, i));
   }
 
   frame(f: FrameContext, s: Readonly<HoodSettings>) {
     const layers: HoodLayer[] = s.hoodOn ? [hoodLayerFromSettings(s), ...s.hoodExtraLayers] : [];
+    // TITTA NER: how far the head looks down (the body stays level).
+    let lookDown = 0;
+    if (s.hoodOn && s.hoodLookDown) {
+      this.fwd.set(0, 0, -1).applyQuaternion(f.camera.quaternion);
+      lookDown = Math.min(1.3, Math.max(0, -Math.asin(THREE.MathUtils.clamp(this.fwd.y, -1, 1))));
+    }
+    const shared: HoodShared = {
+      lookDown,
+      floatThreshold: s.hoodFloatThreshold,
+      suitColor: s.hoodSuitColor,
+    };
     this.hoods.forEach((h, i) => {
       const l = layers[i];
       if (!l || !l.on) h.hide();
-      else h.update(f.time, f.dt, f.camera, hoodConfigFromLayer(l, f));
+      else h.update(f.time, f.dt, f.camera, hoodConfigFromLayer(l, f, shared));
     });
+    if (s.hoodOn) {
+      this.suit.update(f.camera, {
+        color: s.hoodSuitColor,
+        leg: s.hoodSuitLeg,
+        lookDown,
+        skyColor: f.light.skyColor,
+        horizonColor: f.light.horizonColor,
+        sunColor: f.light.sunColor,
+        waterColor: f.light.waterColor,
+        underwater: f.underwater,
+      });
+    } else this.suit.hide();
+
+    // KLÄDER PÅVERKAR FLYTFÖRMÅGA: the float suit lifts, each worn layer
+    // drags down by its weight (more with water inside), padded styles hold
+    // a little air. Eased so changes settle in over a couple of seconds.
+    let target = 0;
+    if (s.hoodOn && s.hoodClothesBuoyancy) {
+      target = 0.03;
+      for (const l of layers) {
+        if (!l.on) continue;
+        const air = HOOD_STYLE_AIR[l.style] ?? 0.35;
+        target -= 0.012 + 0.035 * l.weight - 0.02 * air + (l.waterOn ? 0.01 : 0);
+      }
+    }
+    this.buoy += (target - this.buoy) * (1 - Math.exp(-Math.max(f.dt, 0) / 1.5));
+    setClothingBuoyancyOffset(this.buoy);
   }
 
   dispose() {
     for (const h of this.hoods) h.dispose();
+    this.suit.dispose();
+    setClothingBuoyancyOffset(0);
   }
 }

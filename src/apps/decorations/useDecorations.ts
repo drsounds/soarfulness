@@ -236,5 +236,13 @@ export function useDecorations({
     setGizmoSpace,
   };
 
-  return { decorations, setDecorations, sceneKey, controls, attach };
+  return {
+    decorations,
+    setDecorations,
+    sceneKey,
+    controls,
+    attach,
+    /** The group holding every placed decoration (null before attach). */
+    getRoot: () => layerRef.current?.root ?? null,
+  };
 }

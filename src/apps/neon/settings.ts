@@ -2,6 +2,8 @@
 // (lib/settingsShared.ts `Persisted` is the intersection of every app's
 // slice). The defaults are spread into DEFAULTS in routes/index.tsx.
 
+import { EDGE_FILTER_DEFAULT, cloneEdgeFilter, type EdgeFilter } from "@/lib/edgeSelect";
+
 // NEON color animation:
 //  - "solid"     always neonPrimary
 //  - "alternate" hard switch between neonPrimary and neonSecondary,
@@ -25,6 +27,9 @@ export type NeonSettings = {
   neonStrength: number;
   neonWidth: number;
   neonFrequency: number;
+  // Which edges get lines: by direction (X / Y / Z / other) and an optional
+  // world-space x/y/z range (lib/edgeSelect.ts).
+  neonEdgeFilter: EdgeFilter;
   // NEONACCENT: tint + emission (intensity 1.00) for every scene material
   // whose name ends in "-neon" — see apps/neon/neonAccent.ts.
   neonAccentColor: string;
@@ -42,6 +47,7 @@ export const NEON_DEFAULTS: NeonSettings = {
   neonStrength: 1,
   neonWidth: 3,
   neonFrequency: 0.5,
+  neonEdgeFilter: cloneEdgeFilter(EDGE_FILTER_DEFAULT),
   // NEONACCENT: color of every "-neon" scene material (tint + emission at
   // 1.00) — see apps/neon/neonAccent.ts.
   neonAccentColor: "#ff2bd6",

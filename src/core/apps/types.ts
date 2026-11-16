@@ -63,7 +63,9 @@ export type SceneAppContext = {
 export type FrameLight = {
   skyColor: THREE.Color;
   horizonColor: THREE.Color;
+  /** Deep-water color. */
   waterColor: THREE.Color;
+  waterShallowColor: THREE.Color;
   sunColor: THREE.Color;
   sunDir: THREE.Vector3;
 };
@@ -87,19 +89,29 @@ export type FrameContext = {
   waterLevel: number;
   /** Camera height above the wave surface right under it (m, negative below). */
   eyeAboveWater: number;
-  /** The loaded .glb scene, if any. */
+  /** The loaded .glb scene and its id, if any. */
   model: THREE.Object3D | null;
+  sceneId: string | null;
+  /** Additional imported content roots that scene effects may follow. */
+  extraRoots: THREE.Object3D[];
   /** LOW GRAPHICS MODE: apps should halve particle counts and skip extras. */
   lowEnd: boolean;
   /** Renderer pixel ratio and drawing-buffer height (px). */
   pixelRatio: number;
   pixelHeight: number;
+  /** Viewport height in CSS px. */
+  viewportHeight: number;
   /** The master sound switch (LJUD); apps with sound must respect it. */
   audioOn: boolean;
   light: FrameLight;
 };
 
 /** The live part of an app inside the render loop. */
+//
+// frame() covers apps that only draw. Apps that feed the host's physics or
+// run at a specific point of the frame expose their own extra methods
+// (WindRuntime.current(), OpenDriftRuntime.step(), SnowRuntime.updateCover())
+// that the host calls where they belong.
 export interface AppRuntime<S extends object = object> {
   frame?(frame: FrameContext, settings: Readonly<S>): void;
   dispose(): void;
@@ -108,6 +120,7 @@ export interface AppRuntime<S extends object = object> {
 export type AppDefinition<S extends object = object, R extends AppRuntime<S> = AppRuntime<S>> = {
   manifest: AppManifest;
   settings?: AppSettingsSlice<S>;
+  /** Not every runtime needs the scene (wind, drift, fog overlay). */
   createRuntime?: (ctx: SceneAppContext) => R;
 };
 

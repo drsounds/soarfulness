@@ -29,9 +29,20 @@ type BoolKey = {
   [K in keyof HoodLayer]: HoodLayer[K] extends boolean ? K : never;
 }[keyof HoodLayer];
 
+/** Hood-wide settings: the float suit, TITTA NER, FLYTGRÄNS, buoyancy. */
+export type HoodSharedSettings = {
+  floatThreshold: number;
+  lookDown: boolean;
+  suitColor: string;
+  suitLeg: number;
+  clothesBuoyancy: boolean;
+};
+
 export function HoodPanel({
   hoodOn,
   setHoodOn,
+  shared,
+  setShared,
   layer1,
   setLayer1,
   extraLayers,
@@ -39,6 +50,8 @@ export function HoodPanel({
 }: {
   hoodOn: boolean;
   setHoodOn: Dispatch<SetStateAction<boolean>>;
+  shared: HoodSharedSettings;
+  setShared: (patch: Partial<HoodSharedSettings>) => void;
   layer1: HoodLayer;
   setLayer1: (patch: Partial<HoodLayer>) => void;
   extraLayers: HoodLayer[];
@@ -54,18 +67,33 @@ export function HoodPanel({
   const [extremeLimits] = useExtremeLimits();
   const widthMax = limitMax("hoodOpeningWidth", extremeLimits);
 
+  // Layers are stored outermost first (layer 1 = the flat settings, drawn
+  // first, so later layers draw over it, closer to the face) but listed
+  // innermost first: picker position `sel` 0 is the layer closest to you.
   const layers = [layer1, ...extraLayers];
   const sel = Math.min(selRaw, layers.length - 1);
-  const layer = layers[sel];
+  const act = layers.length - 1 - sel;
+  const layer = layers[act];
   const patch = (p: Partial<HoodLayer>) => {
-    if (sel === 0) setLayer1(p);
-    else setExtraLayers((ls) => ls.map((l, i) => (i === sel - 1 ? { ...l, ...p } : l)));
+    if (act === 0) setLayer1(p);
+    else setExtraLayers((ls) => ls.map((l, i) => (i === act - 1 ? { ...l, ...p } : l)));
   };
   const applyLayers = (ls: HoodLayer[]) => {
     setLayer1(ls[0]);
     setExtraLayers(ls.slice(1, HOOD_MAX_LAYERS).map((l) => ({ ...l })));
     setSel(0);
     setHoodOn(true);
+  };
+  // Swap the picked layer with its neighbor and keep it picked. `dir` -1
+  // moves it inward (toward you, up the innermost-first list).
+  const moveLayer = (dir: -1 | 1) => {
+    const to = act - dir;
+    if (to < 0 || to >= layers.length) return;
+    const ls = layers.map((l) => ({ ...l }));
+    [ls[act], ls[to]] = [ls[to], ls[act]];
+    setLayer1(ls[0]);
+    setExtraLayers(ls.slice(1, HOOD_MAX_LAYERS));
+    setSel(sel + dir);
   };
 
   const pct = (key: NumKey, label: string) => (
@@ -109,7 +137,17 @@ export function HoodPanel({
         <>
           <SettingRow
             label={t("dial.camera.hoodLayer")}
-            value={`${sel + 1} / ${layers.length}`}
+            value={`${sel + 1} / ${layers.length}${
+              layers.length > 1
+                ? ` · ${
+                    sel === 0
+                      ? t("dial.camera.hoodLayerInnermost")
+                      : sel === layers.length - 1
+                        ? t("dial.camera.hoodLayerOutermost")
+                        : ""
+                  }`
+                : ""
+            }`.replace(/ · $/, "")}
             onDec={() => setSel((sel - 1 + layers.length) % layers.length)}
             onInc={() => setSel((sel + 1) % layers.length)}
           />
@@ -118,27 +156,39 @@ export function HoodPanel({
               disabled={layers.length >= HOOD_MAX_LAYERS}
               onClick={() => {
                 // A new layer starts as a copy of the picked one, with a
-                // tighter opening so it shows inside it.
+                // tighter opening so it shows inside it: the new innermost.
                 const next = { ...layer, on: true, opening: Math.max(0, layer.opening - 0.15) };
                 setExtraLayers((ls) => [...ls, next]);
-                setSel(layers.length);
+                setSel(0);
               }}
               className={btnClass}
             >
               {t("dial.camera.hoodAddLayer")}
             </button>
             <button
-              disabled={sel === 0}
+              disabled={layers.length <= 1}
               onClick={() => {
-                setExtraLayers((ls) => ls.filter((_, i) => i !== sel - 1));
-                setSel(sel - 1);
+                const ls = layers.filter((_, i) => i !== act).map((l) => ({ ...l }));
+                setLayer1(ls[0]);
+                setExtraLayers(ls.slice(1, HOOD_MAX_LAYERS));
+                setSel(Math.max(0, sel - 1));
               }}
               className={btnClass}
             >
               {t("dial.camera.hoodRemoveLayer")}
             </button>
+            <button disabled={sel === 0} onClick={() => moveLayer(-1)} className={btnClass}>
+              {t("dial.camera.hoodLayerMoveIn")}
+            </button>
+            <button
+              disabled={sel >= layers.length - 1}
+              onClick={() => moveLayer(1)}
+              className={btnClass}
+            >
+              {t("dial.camera.hoodLayerMoveOut")}
+            </button>
           </div>
-          {sel > 0 && toggle("on", t("dial.camera.hoodLayerOn"))}
+          {toggle("on", t("dial.camera.hoodLayerOn"))}
           {pct("drop", t("dial.camera.hoodDrop"))}
           {!layer.lowerOn && pct("height", t("dial.camera.hoodHeight"))}
           {layer.openingWidth <= 0 && pct("opening", t("dial.camera.hoodOpening"))}
@@ -171,9 +221,12 @@ export function HoodPanel({
           {layer.lowerOn && (
             <>
               {pct("lowerHeight", t("dial.camera.hoodLowerHeight"))}
+              {toggle("hoodTop", t("dial.camera.hoodTop"))}
+              {toggle("collarUp", t("dial.camera.hoodCollarUp"))}
               {toggle("zipperOn", t("dial.camera.hoodZipper"))}
               {layer.zipperOn && (
                 <>
+                  {pct("zipperOpen", t("dial.camera.hoodZipperOpen"))}
                   {toggle("zipperFixed", t("dial.camera.hoodZipperFixed"))}
                   {toggle("zipperPullOut", t("dial.camera.hoodZipperPullOut"))}
                 </>
@@ -280,6 +333,70 @@ export function HoodPanel({
           {pct("weight", t("dial.camera.hoodWeight"))}
           {toggle("hanging", t("dial.camera.hoodHanging"))}
           {toggle("viewShadow", t("dial.camera.hoodViewShadow"))}
+          {pct("floating", t("dial.camera.hoodFloating"))}
+
+          {/* Hood-wide: the float suit (always worn innermost), TITTA NER,
+              FLYTGRÄNS and how the clothes change the bather's buoyancy. */}
+          <div className="mt-2 mb-1 text-center text-[9px] font-light tracking-[0.28em] ui-ink-faint">
+            {t("dial.camera.hoodSuit")}
+          </div>
+          <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
+            <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
+              {t("dial.camera.hoodSuitColor")}
+            </span>
+            <input
+              type="color"
+              value={shared.suitColor}
+              onChange={(e) => setShared({ suitColor: e.target.value })}
+              className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
+            />
+          </label>
+          <SettingRow
+            label={t("dial.camera.hoodSuitLeg")}
+            mode="number"
+            value={
+              shared.suitLeg < -0.02
+                ? `${t("dial.camera.hoodSuitLeotard")} ${Math.round(-shared.suitLeg * 100)}%`
+                : shared.suitLeg > 0.02
+                  ? `${t("dial.camera.hoodSuitTrunks")} ${Math.round(shared.suitLeg * 100)}%`
+                  : "0"
+            }
+            rawValue={shared.suitLeg}
+            onSet={(v) => setShared({ suitLeg: Math.max(-1, Math.min(1, v)) })}
+            min={-1}
+            max={1}
+            step={0.1}
+            onDec={() => setShared({ suitLeg: Math.max(-1, +(shared.suitLeg - 0.1).toFixed(2)) })}
+            onInc={() => setShared({ suitLeg: Math.min(1, +(shared.suitLeg + 0.1).toFixed(2)) })}
+          />
+          <SettingRow
+            label={t("dial.camera.hoodLookDown")}
+            value={onOff(shared.lookDown)}
+            onDec={() => setShared({ lookDown: false })}
+            onInc={() => setShared({ lookDown: true })}
+          />
+          <SettingRow
+            label={t("dial.camera.hoodFloatThreshold")}
+            mode="number"
+            value={`${Math.round(shared.floatThreshold * 100)}%`}
+            rawValue={shared.floatThreshold}
+            onSet={(v) => setShared({ floatThreshold: Math.max(0, Math.min(1, v)) })}
+            min={0}
+            max={1}
+            step={0.05}
+            onDec={() =>
+              setShared({ floatThreshold: Math.max(0, +(shared.floatThreshold - 0.05).toFixed(2)) })
+            }
+            onInc={() =>
+              setShared({ floatThreshold: Math.min(1, +(shared.floatThreshold + 0.05).toFixed(2)) })
+            }
+          />
+          <SettingRow
+            label={t("dial.camera.hoodClothesBuoyancy")}
+            value={onOff(shared.clothesBuoyancy)}
+            onDec={() => setShared({ clothesBuoyancy: false })}
+            onInc={() => setShared({ clothesBuoyancy: true })}
+          />
 
           {/* Save / export / import the whole set of layers. */}
           <div className="mb-2 flex w-full flex-wrap items-center justify-center gap-1.5">

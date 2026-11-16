@@ -42,6 +42,16 @@ export type HoodSettings = {
   hoodCuffOn: boolean;
   hoodCuffHeight: number;
   hoodCuffSize: number;
+  hoodLayer1On: boolean;
+  hoodFloatThreshold: number;
+  hoodLookDown: boolean;
+  hoodSuitColor: string;
+  hoodSuitLeg: number;
+  hoodClothesBuoyancy: boolean;
+  hoodZipperOpen: number;
+  hoodFloating: number;
+  hoodTopPart: boolean;
+  hoodCollarUp: boolean;
   // SKUGGA PÅ VYN: the hood shades the view behind it (off by default).
   hoodViewShadow: boolean;
   hoodCuffCustom: boolean;
@@ -84,6 +94,16 @@ export const HOOD_DEFAULTS: HoodSettings = {
   hoodCuffOn: false,
   hoodCuffHeight: 0.3,
   hoodCuffSize: 0.5,
+  hoodLayer1On: true,
+  hoodFloatThreshold: 0.35,
+  hoodLookDown: false,
+  hoodSuitColor: "#e0602a",
+  hoodSuitLeg: 0,
+  hoodClothesBuoyancy: true,
+  hoodZipperOpen: 0,
+  hoodFloating: 0,
+  hoodTopPart: true,
+  hoodCollarUp: false,
   hoodViewShadow: false,
   hoodCuffCustom: false,
   hoodCuffColor: "#1f2a40",

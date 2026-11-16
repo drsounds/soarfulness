@@ -87,6 +87,30 @@ export type HoodConfig = {
    */
   hanging: boolean;
   /**
+   * HUVDEL: the hood above the face. Off (with MUN OCH HALS on) leaves only
+   * the funnel neck, as a separate collar with no hood above it.
+   */
+  hoodTop: boolean;
+  /**
+   * KRAGE UPPÅT: the neck cover's edge bends up in the middle instead of
+   * dipping, like a collar pulled up over the mouth on a cold day.
+   */
+  collarUp: boolean;
+  /** 0..1: DRA NER BLIXTLÅS, how far the zipper is pulled down (0 = closed). */
+  zipperOpen: number;
+  /**
+   * 0..1: FLYTANDE, how much the cloth below FLYTGRÄNS floats and bends
+   * with the waves, lifted and puffed up by trapped air (more for padded
+   * styles, less the heavier the cloth).
+   */
+  floating: number;
+  /** 0..1: FLYTGRÄNS, the screen height below which the cloth floats. */
+  floatThreshold: number;
+  /** Radians the head looks down while TITTA NER is on (0 = off / level). */
+  lookDown: number;
+  /** FLYTDRÄKT color, shown where the cloth opens (zipper pulled down). */
+  suitColor: string;
+  /**
    * SKUGGA PÅ VYN: a soft contact shadow the hood casts onto the view just
    * inside the opening (the old look). Off by default: it made the world
    * read like a screen seen through a frame.
@@ -139,6 +163,15 @@ const FRAG = /* glsl */ `
   uniform float uOpening;
   uniform float uOpenWidth;
   uniform float uLower;
+  uniform float uTopOff;
+  uniform float uCollarUp;
+  uniform float uZipOpen;
+  uniform float uFloatAmt;
+  uniform float uFloatLift;
+  uniform float uFloatInflate;
+  uniform float uFloatLine;
+  uniform float uLookDown;
+  uniform vec3 uSuitColor;
   uniform float uLowerHeight;
   uniform float uZipper;
   uniform float uWaterIn;
@@ -175,6 +208,8 @@ const FRAG = /* glsl */ `
   uniform mat3 uViewToWorld;
 
   const float HEM = 0.075;
+  // KRAGE UPPÅT: how far up the middle of the neck cover's edge is pulled.
+  const float COLLAR_UP = 0.24;
   // Set by hoodField(): 1 inside the MUDD (cuff) band.
   float gCuff = 0.0;
   // MUDD VID HALSKANT: the rib (0 groove .. 1 crest) and how far down the band.
@@ -202,17 +237,35 @@ const FRAG = /* glsl */ `
     // RUNDHET: the opening's corner shape, from boxy (0) to round (1).
     float n = mix(6.0, 2.0, clamp(uRound, 0.0, 1.0));
     float r;
+    bool funnelOnly = uLower > 0.5 && uTopOff > 0.5;
     if (q.y > 0.0) {
       vec2 e = abs(vec2(q.x / a, q.y / b));
       r = pow(pow(e.x, n) + pow(e.y, n), 1.0 / n);
+      // HUVDEL off: nothing above the funnel neck.
+      if (funnelOnly) r = 0.0;
     } else if (uLower > 0.5) {
       // MUN OCH HALS: the hood closes under the face, the cover's top edge
       // at this screen height (wider and flatter than the top of the hood).
+      // On its own (HUVDEL off) the funnel neck is a wider U that stays
+      // low at the sides instead of running up into the hood.
       float edgeY = mix(-0.92, -0.05, uLowerHeight) + uSway.y;
       float bb = max(c.y - edgeY, 0.05);
-      vec2 e = abs(vec2(q.x / a, q.y / bb));
+      float aL = funnelOnly ? a * 1.5 : a;
+      vec2 e = abs(vec2(q.x / aL, q.y / bb));
       float nl = n + 0.6;
       r = pow(pow(e.x, nl) + pow(e.y, nl), 1.0 / nl);
+      if (uCollarUp > 0.5) {
+        // KRAGE UPPÅT: the middle of the edge is pulled up over the mouth,
+        // falling away to the usual edge toward the sides.
+        float xx = q.x / (aL * 0.62);
+        float bump = COLLAR_UP * (1.0 - smoothstep(0.0, 1.0, abs(xx)));
+        float rUp = 1.0 + (edgeY + bump - p.y) / min(a, b);
+        // Smooth union, so the edge and the cuff band curve into the bump
+        // instead of meeting it at a sharp corner.
+        float kS = 0.35;
+        float hS = clamp(0.5 + 0.5 * (rUp - r) / kS, 0.0, 1.0);
+        r = mix(r, rUp, hS) + kS * hS * (1.0 - hS);
+      }
     } else {
       // Below the opening's center the sides hang straight, flaring a little.
       r = abs(q.x) / (a * (1.0 + 0.12 * q.y * q.y));
@@ -243,6 +296,14 @@ const FRAG = /* glsl */ `
       wr *= uWrinkle * 0.008 * smoothstep(HEM * 0.6, HEM * 1.6, t);
     }
     float h = hem + curve + g * 0.022 * gatherMask + wr;
+    // FLYTANDE: below FLYTGRÄNS, trapped air puffs the wet cloth up in
+    // big, soft, slowly drifting bubbles.
+    if (uFloatInflate > 0.001) {
+      float kF = 1.0 - smoothstep(uFloatLine - 0.25, uFloatLine + 0.05, p.y);
+      float bub = sin(p.x * 3.1 + uTime * 0.35) * sin(p.y * 4.3 - uTime * 0.27 + 1.3);
+      bub = 0.5 + 0.5 * bub;
+      h += uFloatInflate * kF * bub * bub * 0.09 * smoothstep(HEM, HEM + 0.1, t);
+    }
 
     // STIL: winter-coat padding. PUFFIG = channels running around the
     // opening, VADDERAD = diamond quilting, DUN = big, uneven down baffles.
@@ -385,8 +446,40 @@ const FRAG = /* glsl */ `
     return anchor + vec2(cs * d.x + sn * d.y, -sn * d.x + cs * d.y);
   }
 
+  // TITTA NER: the lower part of the clothes hangs on the body, not the
+  // head, so when the head tilts down by uLookDown it rises into view (a
+  // pixel at view elevation e shows the body-fixed cloth at e - uLookDown),
+  // while the hood above keeps following the head.
+  vec2 bodyWarp(vec2 p) {
+    if (uLookDown <= 0.0) return p;
+    float e = atan(p.y * uTanHalfFov) - uLookDown;
+    float yb = tan(max(e, -1.45)) / uTanHalfFov;
+    float w = 1.0 - smoothstep(-0.25, 0.3, p.y);
+    return vec2(p.x, mix(p.y, yb, w));
+  }
+
+  // FLYTANDE: below FLYTGRÄNS the cloth floats: lifted (or dragged down
+  // when heavy) and bending in slow waves that grow toward the hem.
+  vec2 floatWarp(vec2 p) {
+    if (uFloatAmt <= 0.001) return p;
+    float kF = 1.0 - smoothstep(uFloatLine - 0.3, uFloatLine + 0.05, p.y);
+    float wv = sin(p.x * 2.3 + uTime * 0.9) * 0.6 + sin(p.x * 4.1 - uTime * 1.3 + 0.7) * 0.4;
+    float dy = (wv * 0.05 + uFloatLift) * uFloatAmt * kF;
+    float dx = sin(p.y * 3.0 + uTime * 0.7) * 0.025 * uFloatAmt * kF;
+    return p - vec2(dx, dy);
+  }
+
+  // FLYTDRÄKT: the padded float suit worn innermost, seen through an open
+  // zipper. Fabric only (thick vertical padding channels), in the shade
+  // inside the clothes.
+  vec3 suitShade(vec2 p, float shade) {
+    float ch = 0.8 + 0.2 * cos(p.x * 38.0);
+    vec3 lit = mix(uHorizon, uSky, 0.5) * 0.55 + uSunCol * 0.12 + 0.08;
+    return uSuitColor * lit * ch * shade;
+  }
+
   void main() {
-    vec2 p = hangWarp(vec2(vNdc.x * uAspect, vNdc.y));
+    vec2 p = floatWarp(bodyWarp(hangWarp(vec2(vNdc.x * uAspect, vNdc.y))));
     vec3 f = hoodField(p);
     float cuffMask = gCuff;
     float cuffRib = gCuffRib;
@@ -506,10 +599,32 @@ const FRAG = /* glsl */ `
       // (it sways with the hood) instead of the screen's.
       float zy = uZipFixed > 0.5 ? p.y - uSway.y : p.y;
       float zx = p.x - zc.x - 0.005 * sin(zy * 5.0 + uTime * 0.8) * uMotion;
-      float top = edgeY - HEM * 0.35;
+      // The zipper runs right up to the cover's edge (pulled up in the
+      // middle with KRAGE UPPÅT); the fabric's own edge clips the tape.
+      float edgeTop = edgeY + (uCollarUp > 0.5 ? COLLAR_UP : 0.0);
+      float top = edgeTop + 0.03;
       float aa = max(fwidth(p.x), 1e-4);
-      if (p.y < top + 0.01) {
-        float below = 1.0 - smoothstep(top - aa, top, p.y);
+      // DRA NER BLIXTLÅS: the slider slides down and the cover opens in a V
+      // above it, showing the float suit underneath.
+      float zo = clamp(uZipOpen, 0.0, 1.0);
+      float sliderTop = edgeTop - zo * (edgeTop + 1.6);
+      float closedTop = zo > 0.0 ? sliderTop : top;
+      float vw = 0.0;
+      if (zo > 0.0 && p.y > sliderTop) {
+        vw = (0.03 + 0.32 * zo) * clamp((p.y - sliderTop) / max(edgeTop - sliderTop, 1e-3), 0.0, 1.0);
+        float vMask = 1.0 - smoothstep(vw - aa, vw + aa, abs(zx));
+        col = mix(col, suitShade(p, 0.55 + 0.2 * smoothstep(0.0, vw + 0.01, abs(zx))), vMask);
+        // The two opened halves: tape and a row of teeth along each edge.
+        float edgeD = abs(abs(zx) - (vw + 0.018));
+        float tapeO = 1.0 - smoothstep(0.022 - aa, 0.022, edgeD);
+        col = mix(col, col * 0.55, tapeO * (1.0 - vMask));
+        float fyO = fract(zy / 0.036);
+        float toothO = (1.0 - smoothstep(0.011 - aa, 0.011, abs(abs(zx) - (vw + 0.012)))) *
+          smoothstep(0.15, 0.25, fyO) * (1.0 - smoothstep(0.75, 0.85, fyO)) * step(p.y, top);
+        col = mix(col, metalShade(normalize(vec3(0.0, (fyO - 0.5) * 1.2, 1.0)), V, L) * 0.9, toothO);
+      }
+      if (p.y < closedTop + 0.01) {
+        float below = 1.0 - smoothstep(closedTop - aa, closedTop, p.y);
         // Tape: a darker strip of fabric the teeth sit on.
         float tape = (1.0 - smoothstep(0.045 - aa, 0.045, abs(zx))) * below;
         col = mix(col, col * 0.55, tape);
@@ -527,11 +642,11 @@ const FRAG = /* glsl */ `
       // Slider body just under the cover's top edge, and the pull hanging off
       // it. DRAGARE PÅ UTSIDAN: the pull is on the outside of the cloth, so
       // from inside only the slider's plain back plate shows.
-      vec2 sp = vec2(zx, p.y - (top - 0.05));
+      vec2 sp = vec2(zx, p.y - (sliderTop - 0.05));
       vec2 sd = abs(sp) - (uZipPullOut > 0.5 ? vec2(0.03, 0.042) : vec2(0.036, 0.05));
       float slider = 1.0 - smoothstep(-aa, aa, length(max(sd, 0.0)) + min(max(sd.x, sd.y), 0.0) - 0.006);
       float swing = uSway.x * 2.0 + 0.06 * sin(uTime * 1.4) * uMotion;
-      vec2 pp = vec2(zx + (p.y - (top - 0.1)) * swing, p.y - (top - 0.19));
+      vec2 pp = vec2(zx + (p.y - (sliderTop - 0.1)) * swing, p.y - (sliderTop - 0.19));
       vec2 pd = abs(pp) - vec2(0.018, 0.075);
       float pull = 1.0 - smoothstep(-aa, aa, length(max(pd, 0.0)) + min(max(pd.x, pd.y), 0.0) - 0.008);
       float hole = 1.0 - smoothstep(-aa, aa, length(pp + vec2(0.0, 0.045)) - 0.009);
@@ -573,6 +688,15 @@ const FRAG = /* glsl */ `
   }
 `;
 
+/** How much air each STIL traps in the water (FLYTANDE lift and puff, and buoyancy). */
+export const HOOD_STYLE_AIR: Record<HoodConfig["style"], number> = {
+  classic: 0.35,
+  shell: 0.5,
+  quilted: 0.65,
+  puffy: 0.8,
+  down: 1,
+};
+
 export class Hood {
   readonly mesh: THREE.Mesh;
   private readonly material: THREE.ShaderMaterial;
@@ -591,6 +715,15 @@ export class Hood {
     uOpening: { value: number };
     uOpenWidth: { value: number };
     uLower: { value: number };
+    uTopOff: { value: number };
+    uZipOpen: { value: number };
+    uFloatAmt: { value: number };
+    uFloatLift: { value: number };
+    uFloatInflate: { value: number };
+    uFloatLine: { value: number };
+    uLookDown: { value: number };
+    uSuitColor: { value: THREE.Color };
+    uCollarUp: { value: number };
     uLowerHeight: { value: number };
     uZipper: { value: number };
     uWaterIn: { value: number };
@@ -643,6 +776,7 @@ export class Hood {
   private cuffColorHex = "";
   /** 0..1: how soaked (and so how swollen) the padding is right now. */
   private soak = 0;
+  private suitColorHex = "";
   private readonly tmpQ = new THREE.Quaternion();
   private readonly tmpV = new THREE.Vector3();
   private readonly tmpE = new THREE.Euler();
@@ -663,6 +797,15 @@ export class Hood {
       uOpening: { value: 0.5 },
       uOpenWidth: { value: 0 },
       uLower: { value: 0 },
+      uTopOff: { value: 0 },
+      uZipOpen: { value: 0 },
+      uFloatAmt: { value: 0 },
+      uFloatLift: { value: 0 },
+      uFloatInflate: { value: 0 },
+      uFloatLine: { value: -0.4 },
+      uLookDown: { value: 0 },
+      uSuitColor: { value: new THREE.Color(0xe0602a) },
+      uCollarUp: { value: 0 },
       uLowerHeight: { value: 0.45 },
       uZipper: { value: 0 },
       uWaterIn: { value: 0 },
@@ -726,6 +869,20 @@ export class Hood {
     u.uOpening.value = THREE.MathUtils.clamp(cfg.opening, 0, 1);
     u.uOpenWidth.value = Math.max(0, Number.isFinite(cfg.openingWidth) ? cfg.openingWidth : 0);
     u.uLower.value = cfg.lower ? 1 : 0;
+    u.uTopOff.value = cfg.hoodTop === false ? 1 : 0;
+    u.uCollarUp.value = cfg.collarUp ? 1 : 0;
+    u.uZipOpen.value = THREE.MathUtils.clamp(cfg.zipperOpen ?? 0, 0, 1);
+    u.uLookDown.value = THREE.MathUtils.clamp(cfg.lookDown ?? 0, 0, 1.3);
+    u.uFloatLine.value = THREE.MathUtils.lerp(
+      -1.0,
+      0.6,
+      THREE.MathUtils.clamp(cfg.floatThreshold ?? 0.35, 0, 1),
+    );
+    if (cfg.suitColor && cfg.suitColor !== this.suitColorHex) {
+      this.suitColorHex = cfg.suitColor;
+      const hex = parseInt(cfg.suitColor.replace("#", ""), 16);
+      u.uSuitColor.value.setHex(Number.isFinite(hex) ? hex : 0xe0602a, THREE.LinearSRGBColorSpace);
+    }
     u.uZipper.value = cfg.zipper ? 1 : 0;
     u.uWaterIn.value = cfg.waterInside ? 1 : 0;
     u.uDrop.value = THREE.MathUtils.clamp(cfg.drop, 0, 1);
@@ -755,6 +912,14 @@ export class Hood {
       const k = target > this.soak ? 1.2 : 0.25;
       this.soak += (target - this.soak) * (1 - Math.exp(-k * Math.min(Math.max(dt, 0), 0.1)));
       u.uInflate.value = THREE.MathUtils.clamp(cfg.puffInflate ?? 0, 0, 1) * this.soak;
+      // FLYTANDE: only while the cloth is in the water. Padded styles trap
+      // more air (they puff up and lift); heavy cloth sinks and drags.
+      const fl = THREE.MathUtils.clamp(cfg.floating ?? 0, 0, 1) * this.soak;
+      const air = HOOD_STYLE_AIR[cfg.style] ?? 0.35;
+      const w = THREE.MathUtils.clamp(cfg.weight, 0, 1);
+      u.uFloatAmt.value = fl;
+      u.uFloatLift.value = air * 0.08 - w * 0.07;
+      u.uFloatInflate.value = fl * air * (1 - w * 0.6);
     }
     u.uCuff.value = cfg.cuff ? 1 : 0;
     u.uCuffHeight.value = THREE.MathUtils.clamp(cfg.cuffHeight, 0, 1);

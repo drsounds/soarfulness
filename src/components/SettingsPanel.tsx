@@ -21,6 +21,8 @@ import {
 } from "@/apps/open-drift/OpenDrift";
 import { Link } from "@tanstack/react-router";
 import { SettingRow } from "@/components/SettingRow";
+import { EdgeFilterSettings } from "@/components/EdgeFilterSettings";
+import type { EdgeFilter } from "@/lib/edgeSelect";
 import { SkyLookSettings } from "@/components/SkyLookSettings";
 import { DecorationSettings, type DecorationControls } from "@/apps/decorations/DecorationPanel";
 import { Findable, G, SETTINGS_GROUPS, SettingsNavigator } from "@/components/settingsNav";
@@ -905,6 +907,16 @@ export type SettingsPanelProps = {
   hoodCuffHeight: number;
   setHoodCuffHeight: Dispatch<SetStateAction<number>>;
   hoodCuffSize: number;
+  hoodLayer1On: boolean;
+  hoodFloatThreshold: number;
+  hoodLookDown: boolean;
+  hoodSuitColor: string;
+  hoodSuitLeg: number;
+  hoodClothesBuoyancy: boolean;
+  hoodZipperOpen: number;
+  hoodFloating: number;
+  hoodTopPart: boolean;
+  hoodCollarUp: boolean;
   hoodViewShadow: boolean;
   hoodCuffCustom: boolean;
   hoodCuffColor: string;
@@ -919,6 +931,16 @@ export type SettingsPanelProps = {
   hoodPuffThickness: number;
   hoodPuffInflate: number;
   setHoodCuffSize: Dispatch<SetStateAction<number>>;
+  setHoodLayer1On: Dispatch<SetStateAction<boolean>>;
+  setHoodFloatThreshold: Dispatch<SetStateAction<number>>;
+  setHoodLookDown: Dispatch<SetStateAction<boolean>>;
+  setHoodSuitColor: Dispatch<SetStateAction<string>>;
+  setHoodSuitLeg: Dispatch<SetStateAction<number>>;
+  setHoodClothesBuoyancy: Dispatch<SetStateAction<boolean>>;
+  setHoodZipperOpen: Dispatch<SetStateAction<number>>;
+  setHoodFloating: Dispatch<SetStateAction<number>>;
+  setHoodTopPart: Dispatch<SetStateAction<boolean>>;
+  setHoodCollarUp: Dispatch<SetStateAction<boolean>>;
   setHoodViewShadow: Dispatch<SetStateAction<boolean>>;
   setHoodCuffCustom: Dispatch<SetStateAction<boolean>>;
   setHoodCuffColor: Dispatch<SetStateAction<string>>;
@@ -1054,6 +1076,8 @@ export type SettingsPanelProps = {
   setNeonTint: Dispatch<SetStateAction<string>>;
   neonTintAmount: number;
   setNeonTintAmount: Dispatch<SetStateAction<number>>;
+  neonEdgeFilter: EdgeFilter;
+  setNeonEdgeFilter: Dispatch<SetStateAction<EdgeFilter>>;
   neonStrength: number;
   setNeonStrength: Dispatch<SetStateAction<number>>;
   neonWidth: number;
@@ -1994,6 +2018,16 @@ export function SettingsPanel(props: SettingsPanelProps) {
     hoodCuffHeight,
     setHoodCuffHeight,
     hoodCuffSize,
+    hoodLayer1On,
+    hoodFloatThreshold,
+    hoodLookDown,
+    hoodSuitColor,
+    hoodSuitLeg,
+    hoodClothesBuoyancy,
+    hoodZipperOpen,
+    hoodFloating,
+    hoodTopPart,
+    hoodCollarUp,
     hoodViewShadow,
     hoodCuffCustom,
     hoodCuffColor,
@@ -2008,6 +2042,16 @@ export function SettingsPanel(props: SettingsPanelProps) {
     hoodPuffThickness,
     hoodPuffInflate,
     setHoodCuffSize,
+    setHoodLayer1On,
+    setHoodFloatThreshold,
+    setHoodLookDown,
+    setHoodSuitColor,
+    setHoodSuitLeg,
+    setHoodClothesBuoyancy,
+    setHoodZipperOpen,
+    setHoodFloating,
+    setHoodTopPart,
+    setHoodCollarUp,
     setHoodViewShadow,
     setHoodCuffCustom,
     setHoodCuffColor,
@@ -2135,6 +2179,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setNeonTint,
     neonTintAmount,
     setNeonTintAmount,
+    neonEdgeFilter,
+    setNeonEdgeFilter,
     neonStrength,
     setNeonStrength,
     neonWidth,
@@ -4200,8 +4246,21 @@ export function SettingsPanel(props: SettingsPanelProps) {
         <HoodPanel
           hoodOn={hoodOn}
           setHoodOn={setHoodOn}
+          shared={{
+            floatThreshold: hoodFloatThreshold,
+            lookDown: hoodLookDown,
+            suitColor: hoodSuitColor,
+            suitLeg: hoodSuitLeg,
+            clothesBuoyancy: hoodClothesBuoyancy,
+          }}
+          setShared={(p) => {
+            if (p.floatThreshold !== undefined) setHoodFloatThreshold(p.floatThreshold);
+            if (p.lookDown !== undefined) setHoodLookDown(p.lookDown);
+            if (p.suitColor !== undefined) setHoodSuitColor(p.suitColor);
+            if (p.suitLeg !== undefined) setHoodSuitLeg(p.suitLeg);
+            if (p.clothesBuoyancy !== undefined) setHoodClothesBuoyancy(p.clothesBuoyancy);
+          }}
           layer1={{
-            on: true,
             height: hoodHeight,
             opening: hoodOpening,
             openingWidth: hoodOpeningWidth,
@@ -4224,6 +4283,11 @@ export function SettingsPanel(props: SettingsPanelProps) {
             cuff: hoodCuffOn,
             cuffHeight: hoodCuffHeight,
             cuffSize: hoodCuffSize,
+            on: hoodLayer1On,
+            zipperOpen: hoodZipperOpen,
+            floating: hoodFloating,
+            hoodTop: hoodTopPart,
+            collarUp: hoodCollarUp,
             viewShadow: hoodViewShadow,
             cuffCustom: hoodCuffCustom,
             cuffColor: hoodCuffColor,
@@ -4261,6 +4325,11 @@ export function SettingsPanel(props: SettingsPanelProps) {
             if (p.cuff !== undefined) setHoodCuffOn(p.cuff);
             if (p.cuffHeight !== undefined) setHoodCuffHeight(p.cuffHeight);
             if (p.cuffSize !== undefined) setHoodCuffSize(p.cuffSize);
+            if (p.on !== undefined) setHoodLayer1On(p.on);
+            if (p.zipperOpen !== undefined) setHoodZipperOpen(p.zipperOpen);
+            if (p.floating !== undefined) setHoodFloating(p.floating);
+            if (p.hoodTop !== undefined) setHoodTopPart(p.hoodTop);
+            if (p.collarUp !== undefined) setHoodCollarUp(p.collarUp);
             if (p.viewShadow !== undefined) setHoodViewShadow(p.viewShadow);
             if (p.cuffCustom !== undefined) setHoodCuffCustom(p.cuffCustom);
             if (p.cuffColor !== undefined) setHoodCuffColor(p.cuffColor);
@@ -6265,6 +6334,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onDec={() => setNeonTintAmount((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
               onInc={() => setNeonTintAmount((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
             />
+            <EdgeFilterSettings value={neonEdgeFilter} onChange={setNeonEdgeFilter} />
           </>
         )}
         <Findable label={t("dial.env.neonAccent")}>

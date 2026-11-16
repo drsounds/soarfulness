@@ -1,19 +1,20 @@
 import * as THREE from "three";
 import {
   STRING_LIGHTS_MAX_EMITTERS,
-  bulbLevel,
   getStringLights,
   getStringLightsVersion,
-  paletteIndex,
   sceneKeyFor,
   setStringLightsSceneKey,
   stringCurvePoints,
-  stringLightColors,
   stringLightsView,
   stringsForScene,
   type StringLight,
-  type StringLightBulb,
 } from "./stringLights";
+import { bulbGeometry } from "./bulbGeometry";
+import { EdgeLightsFx, type EdgeLightsFrame } from "./EdgeLightsFx";
+import { GlowPoints } from "./GlowPoints";
+import { BulbShader } from "./shadeBulbs";
+import { setWaterPass } from "@/lib/waterPass";
 
 // LJUSSLINGOR renderer: draws the current scene's strings (see
 // apps/string-lights/stringLights.ts for the settings and the store this reads).
@@ -46,8 +47,7 @@ type Built = {
   drops: THREE.LineSegments | null;
   bulbs: THREE.InstancedMesh;
   sockets: THREE.InstancedMesh | null;
-  glow: THREE.Points;
-  glowColor: THREE.BufferAttribute;
+  glow: GlowPoints;
   /** Bulb centers in the pivot's frame. */
   centers: THREE.Vector3[];
   seeds: number[];
@@ -56,84 +56,6 @@ type Built = {
   axis: THREE.Vector3;
   phase: number;
 };
-
-const glowVertex = /* glsl */ `
-  attribute vec3 color;
-  uniform float uSize;
-  uniform float uScale;
-  varying vec3 vColor;
-  void main() {
-    vColor = color;
-    vec4 mv = modelViewMatrix * vec4(position, 1.0);
-    gl_Position = projectionMatrix * mv;
-    gl_PointSize = clamp(uSize * uScale / max(0.05, -mv.z), 0.0, 256.0);
-  }
-`;
-const glowFragment = /* glsl */ `
-  varying vec3 vColor;
-  uniform float uStrength;
-  void main() {
-    vec2 p = gl_PointCoord * 2.0 - 1.0;
-    float r2 = dot(p, p);
-    if (r2 > 1.0) discard;
-    // A tight hot core plus a soft halo.
-    float g = exp(-r2 * 9.0) * 0.9 + exp(-r2 * 3.0) * 0.35 * (1.0 - r2);
-    gl_FragColor = vec4(vColor * g * uStrength, 1.0);
-  }
-`;
-
-function starGeometry(): THREE.BufferGeometry {
-  const shape = new THREE.Shape();
-  for (let i = 0; i < 10; i++) {
-    const r = i % 2 === 0 ? 0.5 : 0.22;
-    const a = (i / 10) * Math.PI * 2 + Math.PI / 2;
-    if (i === 0) shape.moveTo(Math.cos(a) * r, Math.sin(a) * r);
-    else shape.lineTo(Math.cos(a) * r, Math.sin(a) * r);
-  }
-  shape.closePath();
-  const geo = new THREE.ExtrudeGeometry(shape, {
-    depth: 0.18,
-    bevelEnabled: true,
-    bevelThickness: 0.04,
-    bevelSize: 0.03,
-    bevelSegments: 1,
-  });
-  geo.center();
-  return geo;
-}
-
-function bulbGeometry(style: StringLightBulb): THREE.BufferGeometry {
-  switch (style) {
-    case "fairy":
-      return new THREE.SphereGeometry(0.5, 8, 6);
-    case "c9": {
-      // Strawberry-shaped bulb, tip pointing down, base at the top (y=0.5).
-      const pts: THREE.Vector2[] = [];
-      for (let i = 0; i <= 12; i++) {
-        const u = i / 12;
-        const y = 0.5 - u * 1.2;
-        const r =
-          0.36 * Math.sin(Math.PI * Math.pow(u, 0.8)) * (1 - 0.15 * u) + (u < 0.05 ? 0.2 : 0);
-        pts.push(new THREE.Vector2(Math.max(0.001, r), y));
-      }
-      const geo = new THREE.LatheGeometry(pts, 12);
-      geo.translate(0, 0.1, 0);
-      return geo;
-    }
-    case "lantern": {
-      const pts: THREE.Vector2[] = [];
-      for (let i = 0; i <= 10; i++) {
-        const u = i / 10;
-        pts.push(new THREE.Vector2(0.1 + 0.42 * Math.sin(Math.PI * u), 0.6 - u * 1.2));
-      }
-      return new THREE.LatheGeometry(pts, 14);
-    }
-    case "star":
-      return starGeometry();
-    default:
-      return new THREE.SphereGeometry(0.5, 14, 10);
-  }
-}
 
 /** Fields that change the built geometry. */
 function shapeKey(s: StringLight): string {
@@ -162,6 +84,11 @@ export type StringLightsUpdate = {
   night: number;
   /** Drawing-buffer height in CSS px, for sizing glow sprites. */
   viewportHeight: number;
+  /** The loaded scene model, and whether it is an imported (EGNA SCENER) .glb. */
+  model: THREE.Object3D | null;
+  modelImported: boolean;
+  /** Other imported .glb roots (DEKORATIONER) the edge lights may follow. */
+  extraRoots: THREE.Object3D[];
 };
 
 export class StringLightsFx {
@@ -174,16 +101,14 @@ export class StringLightsFx {
     roughness: 0.5,
     metalness: 0.4,
   });
-  private readonly glowMat: THREE.ShaderMaterial;
   private readonly wireMats = new Map<string, THREE.MeshStandardMaterial>();
   private readonly dropMat = new THREE.LineBasicMaterial({ color: 0x1b1b1b });
   private lights: THREE.PointLight[] = [];
   private lastVersion = -1;
   private lastKey = "";
   private readonly tmpColor = new THREE.Color();
-  private readonly tmpA = new THREE.Color();
-  private readonly tmpB = new THREE.Color();
-  private readonly palette: THREE.Color[] = [];
+  private readonly shader = new BulbShader();
+  readonly edgeLights: EdgeLightsFx;
   private readonly tmpV = new THREE.Vector3();
   private readonly tmpQ = new THREE.Quaternion();
   private readonly dir = new THREE.Vector3();
@@ -191,15 +116,8 @@ export class StringLightsFx {
   constructor(scene: THREE.Scene) {
     this.scene = scene;
     this.group.name = "stringLights";
-    this.glowMat = new THREE.ShaderMaterial({
-      vertexShader: glowVertex,
-      fragmentShader: glowFragment,
-      uniforms: { uSize: { value: 0.5 }, uScale: { value: 500 }, uStrength: { value: 1 } },
-      transparent: true,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-    });
     scene.add(this.group);
+    this.edgeLights = new EdgeLightsFx(scene);
   }
 
   private wireMat(color: string) {
@@ -295,17 +213,10 @@ export class StringLightsFx {
 
     const gpos = new Float32Array(n * 3);
     centers.forEach((c, i) => gpos.set([c.x, c.y, c.z], i * 3));
-    const ggeo = new THREE.BufferGeometry();
-    ggeo.setAttribute("position", new THREE.BufferAttribute(gpos, 3));
-    const glowColor = new THREE.BufferAttribute(new Float32Array(n * 3), 3);
-    glowColor.setUsage(THREE.DynamicDrawUsage);
-    ggeo.setAttribute("color", glowColor);
-    const glow = new THREE.Points(ggeo, this.glowMat.clone());
-    glow.frustumCulled = false;
-    glow.renderOrder = 11;
-    pivot.add(glow);
+    const glow = new GlowPoints(gpos);
+    glow.addTo(pivot);
 
-    for (const o of [wire, bulbs, glow, ...(sockets ? [sockets] : []), ...(drops ? [drops] : [])]) {
+    for (const o of [wire, bulbs, ...(sockets ? [sockets] : []), ...(drops ? [drops] : [])]) {
       o.raycast = () => {};
     }
 
@@ -327,7 +238,6 @@ export class StringLightsFx {
       bulbs,
       sockets,
       glow,
-      glowColor,
       centers,
       seeds,
       levels: new Float32Array(n),
@@ -346,8 +256,7 @@ export class StringLightsFx {
       b.sockets.geometry.dispose();
       b.sockets.dispose();
     }
-    b.glow.geometry.dispose();
-    (b.glow.material as THREE.Material).dispose();
+    b.glow.dispose();
   }
 
   private sync(strings: StringLight[]) {
@@ -392,6 +301,7 @@ export class StringLightsFx {
     stringLightsView.yaw = Math.atan2(this.dir.z, this.dir.x);
     stringLightsView.waterY = cfg.waterY;
 
+    setWaterPass(cfg.waterY, camera.position.y);
     const key = sceneKeyFor(cfg.sceneId);
     setStringLightsSceneKey(key);
     const state = getStringLights();
@@ -424,38 +334,26 @@ export class StringLightsFx {
         (Math.sin(t * 0.9 + b.phase) * 0.7 + Math.sin(t * 1.73 + b.phase * 1.9) * 0.3);
       b.pivot.quaternion.copy(this.tmpQ.setFromAxisAngle(b.axis, sw));
 
-      const colors = stringLightColors(s);
-      while (this.palette.length < colors.length) this.palette.push(new THREE.Color());
-      for (let c = 0; c < colors.length; c++) this.palette[c].set(colors[c]);
       const n = b.centers.length;
-      const shift =
-        s.anim === "colorshift" ? Math.floor(t * Math.max(0, s.speed) * 2) * s.direction : 0;
-      const glowArr = b.glowColor.array as Float32Array;
-      for (let i = 0; i < n; i++) {
-        const k = (((i - shift) % n) + n) % n;
-        const pi = paletteIndex(s.pattern, k, n, colors.length, s.blockSize);
-        this.tmpColor.copy(this.palette[pi.a]);
-        if (pi.f > 0) this.tmpColor.lerp(this.tmpB.copy(this.palette[pi.b]), pi.f);
-        const lvl = bulbLevel(s.anim, t, i, n, s.speed, s.animDepth, s.direction, b.seeds[i]);
-        b.levels[i] = lvl;
-        // Unlit bulbs keep a glassy tint of their color rather than black.
-        const v = 0.12 + 0.88 * lvl;
-        this.tmpA.copy(this.tmpColor).multiplyScalar(v * Math.max(0.15, s.brightness));
-        b.bulbs.setColorAt(i, this.tmpA);
-        const g = lvl * s.glow * glowMul;
-        glowArr[i * 3] = this.tmpColor.r * g;
-        glowArr[i * 3 + 1] = this.tmpColor.g * g;
-        glowArr[i * 3 + 2] = this.tmpColor.b * g;
-      }
-      if (b.bulbs.instanceColor) b.bulbs.instanceColor.needsUpdate = true;
-      b.glowColor.needsUpdate = true;
-      const gm = b.glow.material as THREE.ShaderMaterial;
-      gm.uniforms.uSize.value =
-        (s.bulbStyle === "fairy" ? s.bulbSize * 0.6 : s.bulbSize) * 6 * s.glowSize;
-      gm.uniforms.uScale.value = scale;
-      gm.uniforms.uStrength.value = 1;
-      b.glow.visible = s.glow > 0.001;
+      this.shader.shade(t, s, n, b.seeds, b.bulbs, b.glow.array, glowMul, b.levels);
+      b.glow.commit();
+      b.glow.setStyle(
+        (s.bulbStyle === "fairy" ? s.bulbSize * 0.6 : s.bulbSize) * 6 * s.glowSize,
+        scale,
+        s.glow > 0.001,
+      );
     }
+
+    // KANTLJUS: bulbs along the scene's (and imported .glb) mesh edges.
+    const edge = state.edge;
+    let edgeFrame: EdgeLightsFrame | null = null;
+    if (state.on && edge.on) {
+      const roots: THREE.Object3D[] = [];
+      if (cfg.model && (edge.includeImported || !cfg.modelImported)) roots.push(cfg.model);
+      if (edge.includeImported) roots.push(...cfg.extraRoots);
+      edgeFrame = { edge, roots, glowMul, scale, center: camera.position };
+    }
+    this.edgeLights.update(t, edgeFrame);
 
     // Real lights: split the pool over the emitting strings.
     if (this.lights.length) {
@@ -476,7 +374,7 @@ export class StringLightsFx {
           let g = 0;
           let bl = 0;
           let lv = 0;
-          const arr = b.glowColor.array as Float32Array;
+          const arr = b.glow.array;
           for (let i = from; i < to; i++) {
             r += arr[i * 3];
             g += arr[i * 3 + 1];
@@ -504,10 +402,10 @@ export class StringLightsFx {
       l.dispose();
     }
     this.lights = [];
+    this.edgeLights.dispose();
     this.group.removeFromParent();
     this.bulbMat.dispose();
     this.socketMat.dispose();
-    this.glowMat.dispose();
     this.dropMat.dispose();
     for (const m of this.wireMats.values()) m.dispose();
   }

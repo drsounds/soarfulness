@@ -83,3 +83,24 @@ describe("sanitizing", () => {
     expect(s.scenes.a[0].customColors).toEqual(["#123456"]);
   });
 });
+
+describe("edge lights", () => {
+  test("are on by default and sanitized", () => {
+    const d = sanitizeStringLightsState(null).edge;
+    expect(d.on).toBe(true);
+    expect(d.includeImported).toBe(true);
+    expect(d.filter.rangeOn).toBe(false);
+    const e = sanitizeStringLightsState({
+      edge: {
+        maxBulbs: 1e9,
+        spacing: -3,
+        filter: { y: false, rangeOn: true, min: [3, 0, 0], max: [1, 1, 1] },
+      },
+    }).edge;
+    expect(e.maxBulbs).toBe(4000);
+    expect(e.spacing).toBe(0.05);
+    expect(e.filter.y).toBe(false);
+    expect(e.filter.min[0]).toBe(1);
+    expect(e.filter.max[0]).toBe(3);
+  });
+});

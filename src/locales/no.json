@@ -162,6 +162,8 @@
       "hoodWaterLevel": "VANNNIVÅ",
       "hoodLayer": "LAG",
       "hoodLayerOn": "LAGET VISES",
+      "hoodLayerMoveIn": "FLYTT INNOVER",
+      "hoodLayerMoveOut": "FLYTT UTOVER",
       "hoodAddLayer": "+ LAG",
       "hoodRemoveLayer": "FJERN LAG",
       "hoodLayers": "HETTELAG",
@@ -174,6 +176,20 @@
       "hoodStyle_classic": "KLASSISK",
       "hoodStyle_puffy": "BOBLETE",
       "hoodStyle_quilted": "VATTERT",
+      "hoodZipperOpen": "DRA NED GLIDELÅS",
+      "hoodFloating": "FLYTENDE",
+      "hoodSuit": "FLYTEDRAKT (ALLTID INNERST)",
+      "hoodSuitColor": "DRAKTFARGE",
+      "hoodSuitLeg": "BENLENGDE",
+      "hoodSuitLeotard": "HØYT BENSNITT",
+      "hoodSuitTrunks": "SHORTS",
+      "hoodLookDown": "SE NED I KLÆRNE",
+      "hoodFloatThreshold": "FLYTEGRENSE",
+      "hoodClothesBuoyancy": "KLÆR PÅVIRKER OPPDRIFT",
+      "hoodTop": "HETTEDEL",
+      "hoodCollarUp": "KRAGE OPP",
+      "hoodLayerInnermost": "INNERST",
+      "hoodLayerOutermost": "YTTERST",
       "hoodViewShadow": "SKYGGE PÅ UTSIKTEN",
       "hoodCuffCustom": "EGEN MUDD",
       "hoodCuffColor": "MUDDFARGE",
@@ -874,6 +890,17 @@
       "title": "Vitenskapelige referanser"
     }
   },
+  "edgeFilter": {
+    "dir": {
+      "x": "KANTER LANGS X",
+      "y": "KANTER LANGS Y (LODDRETTE)",
+      "z": "KANTER LANGS Z",
+      "other": "ØVRIGE KANTER (SKRÅ)"
+    },
+    "range": "BEGRENS TIL OMRÅDE",
+    "min": "{{axis}} FRA",
+    "max": "{{axis}} TIL"
+  },
   "hud": {
     "audioMuteAria": "Slå av lyd",
     "audioOffTitle": "Lyd av",
@@ -1368,6 +1395,13 @@
       "pulse": "PULSERE",
       "alternate": "VEKSLE",
       "colorshift": "FARGEVANDRING"
+    },
+    "edge": {
+      "title": "FESTET I KANTER",
+      "includeImported": "OGSÅ IMPORTERTE GLB",
+      "spacing": "AVSTAND MELLOM PÆRER",
+      "maxBulbs": "MAKS ANTALL PÆRER",
+      "radius": "REKKEVIDDE (0 = HELE SCENEN)"
     }
   },
   "swing": {

@@ -162,6 +162,8 @@
       "hoodWaterLevel": "WATER LEVEL",
       "hoodLayer": "LAYER",
       "hoodLayerOn": "LAYER VISIBLE",
+      "hoodLayerMoveIn": "MOVE INWARD",
+      "hoodLayerMoveOut": "MOVE OUTWARD",
       "hoodAddLayer": "+ LAYER",
       "hoodRemoveLayer": "REMOVE LAYER",
       "hoodLayers": "HOOD LAYERS",
@@ -174,6 +176,20 @@
       "hoodStyle_classic": "CLASSIC",
       "hoodStyle_puffy": "PUFFY",
       "hoodStyle_quilted": "QUILTED",
+      "hoodZipperOpen": "PULL ZIPPER DOWN",
+      "hoodFloating": "FLOATING",
+      "hoodSuit": "FLOAT SUIT (ALWAYS INNERMOST)",
+      "hoodSuitColor": "SUIT COLOR",
+      "hoodSuitLeg": "LEG LENGTH",
+      "hoodSuitLeotard": "LEOTARD CUT",
+      "hoodSuitTrunks": "TRUNKS",
+      "hoodLookDown": "LOOK DOWN INTO CLOTHES",
+      "hoodFloatThreshold": "FLOAT THRESHOLD",
+      "hoodClothesBuoyancy": "CLOTHES AFFECT BUOYANCY",
+      "hoodTop": "HOOD PART",
+      "hoodCollarUp": "COLLAR UP",
+      "hoodLayerInnermost": "INNERMOST",
+      "hoodLayerOutermost": "OUTERMOST",
       "hoodViewShadow": "SHADOW ON VIEW",
       "hoodCuffCustom": "CUSTOM CUFF",
       "hoodCuffColor": "CUFF COLOR",
@@ -874,6 +890,17 @@
       "title": "Scientific References"
     }
   },
+  "edgeFilter": {
+    "dir": {
+      "x": "EDGES ALONG X",
+      "y": "EDGES ALONG Y (VERTICAL)",
+      "z": "EDGES ALONG Z",
+      "other": "OTHER EDGES (DIAGONAL)"
+    },
+    "range": "LIMIT TO AREA",
+    "min": "{{axis}} FROM",
+    "max": "{{axis}} TO"
+  },
   "hud": {
     "audioMuteAria": "Mute sound",
     "audioOffTitle": "Sound off",
@@ -1368,6 +1395,13 @@
       "pulse": "PULSE",
       "alternate": "ALTERNATE",
       "colorshift": "COLOR SHIFT"
+    },
+    "edge": {
+      "title": "TIED TO EDGES",
+      "includeImported": "ALSO IMPORTED GLB",
+      "spacing": "BULB SPACING",
+      "maxBulbs": "MAX BULBS",
+      "radius": "RANGE FROM YOU (0 = WHOLE SCENE)"
     }
   },
   "swing": {
