@@ -28,6 +28,7 @@ import { TorusRingField } from "@/lib/torusRings/TorusRingField";
 import { RETRO_PALETTE_INDEX, RETRO_SHADER } from "@/lib/sceneFx/retroShader";
 import { limitMax, useExtremeLimits, type LimitedControl } from "@/lib/extremeLimits";
 import { NeonEdges } from "@/lib/sceneFx/NeonEdges";
+import { StringLightsFx } from "@/lib/sceneFx/stringLights";
 import { Aurora } from "@/lib/sceneFx/aurora";
 import {
   WindField,
@@ -3078,6 +3079,11 @@ export function Aquafulness() {
   const confettiPaletteRef = useRef(confettiPalette);
   const confettiFlutterRef = useRef(confettiFlutter);
   const neonOnRef = useRef(neonOn);
+  // LJUSSLINGOR are kept per scene (see lib/stringLights.ts).
+  const stringLightsSceneRef = useRef(sceneId);
+  useEffect(() => {
+    stringLightsSceneRef.current = sceneId;
+  }, [sceneId]);
   const neonModeRef = useRef(neonMode);
   const neonPrimaryRef = useRef(neonPrimary);
   const neonSecondaryRef = useRef(neonSecondary);
@@ -9316,6 +9322,8 @@ export function Aquafulness() {
     // NEON edge lines along the loaded scene's meshes — see NeonEdges.
     const neonEdges = new NeonEdges(scene);
     neonEdges.setResolution(mount.clientWidth, mount.clientHeight);
+    // LJUSSLINGOR: decorative string lights (see lib/sceneFx/stringLights.ts).
+    const stringLights = new StringLightsFx(scene);
     // SNÖ: falling flakes around the camera, and SNÖTÄCKE whitening of the
     // loaded scene (see lib/sceneFx/snow.ts).
     const snowfall = new Snowfall(scene);
@@ -12213,6 +12221,14 @@ export function Aquafulness() {
         }
       }
 
+      // LJUSSLINGOR: the current scene's string lights, animated.
+      stringLights.update(now / 1000, camera, {
+        sceneId: stringLightsSceneRef.current,
+        waterY: ocean.position.y,
+        night: nightBackdropMix(todRef.current),
+        viewportHeight: mount.clientHeight,
+      });
+
       // SNÖ: flakes follow the camera; SNÖTÄCKE patches the loaded scene's
       // materials once per model (the shared uniform does the rest).
       {
@@ -12451,6 +12467,7 @@ export function Aquafulness() {
       retroPass.dispose();
       composer.dispose();
       neonEdges.dispose();
+      stringLights.dispose();
       aurora.dispose();
       windAudio.dispose();
       windField.reset();
