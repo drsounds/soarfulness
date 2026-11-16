@@ -1,0 +1,12 @@
+{
+  "$schema": "../../core/apps/manifest.schema.json",
+  "id": "fireworks",
+  "name": "FYRVERKERI",
+  "title": "Fireworks",
+  "version": "1.0.0",
+  "description": "Rockets bursting over the water with colored lights reflected on the waves and synthesized sound.",
+  "kind": "scene-fx",
+  "settingsGroup": "events",
+  "defaultEnabled": false,
+  "dependencies": {}
+}

@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Aquafulness / Soarfulness app manifest",
+  "description": "src/apps/<id>/manifest.json — see src/core/apps/types.ts (AppManifest) and docs/architecture/apps.md.",
+  "type": "object",
+  "required": ["id", "name", "title", "version", "description", "kind"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+      "description": "Equal to the folder name."
+    },
+    "name": { "type": "string", "description": "The in-app (Swedish) label, e.g. NORRSKEN." },
+    "title": { "type": "string", "description": "Plain English title." },
+    "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "description": { "type": "string" },
+    "kind": { "enum": ["scene-fx", "screen-fx", "motion", "environment", "bather", "content"] },
+    "settingsGroup": {
+      "enum": [
+        "state",
+        "time",
+        "place",
+        "weather",
+        "clouds",
+        "events",
+        "effects",
+        "waves",
+        "drift",
+        "water",
+        "bottom",
+        "mode",
+        "camera",
+        "bather",
+        "interval",
+        "graphics",
+        "sound",
+        "app"
+      ]
+    },
+    "defaultEnabled": { "type": "boolean" },
+    "dependencies": { "type": "object", "additionalProperties": { "type": "string" } },
+    "optionalDependencies": { "type": "object", "additionalProperties": { "type": "string" } }
+  }
+}

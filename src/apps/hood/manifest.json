@@ -1,0 +1,12 @@
+{
+  "$schema": "../../core/apps/manifest.schema.json",
+  "id": "hood",
+  "name": "HUVA",
+  "title": "Hoodie hood",
+  "version": "1.0.0",
+  "description": "A hoodie hood around the bather's view: up to several layers, cuffs, zipper, water inside and wet looks.",
+  "kind": "bather",
+  "settingsGroup": "bather",
+  "defaultEnabled": false,
+  "dependencies": {}
+}

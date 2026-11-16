@@ -9,7 +9,7 @@ import {
   type CameraPose,
 } from "@/routes/index";
 import { InvalidBathLink } from "@/components/InvalidBathLink";
-import { mergeLinkedDecorations } from "@/lib/decorations";
+import { mergeLinkedDecorations } from "@/apps/decorations/decorations";
 
 // The actual immersive experience behind a "bathing" link — as opposed to
 // `/bathing/$payload` (bathing.$payload.index.tsx), which only shows a
@@ -43,7 +43,7 @@ function BatheRoute() {
       }
       if (!seededList.includes(encoded)) {
         // DEKORATIONER: the link's scenes are laid over the visitor's own
-        // decoration layouts instead of wiping them (src/lib/decorations.ts).
+        // decoration layouts instead of wiping them (src/apps/decorations/decorations.ts).
         let stored: unknown;
         try {
           stored = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "{}")?.decorations;

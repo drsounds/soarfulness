@@ -12,23 +12,36 @@ import {
 import { useTranslation } from "react-i18next";
 import * as THREE from "three";
 import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { DecorationHudBar } from "@/components/DecorationPanel";
-import { useDecorations } from "@/hooks/use-decorations";
+import { DecorationHudBar } from "@/apps/decorations/DecorationPanel";
+import { useDecorations } from "@/apps/decorations/useDecorations";
 import {
   decorationsForLink,
   sanitizeDecorations,
   type DecorationsByScene,
-} from "@/lib/decorations";
+} from "@/apps/decorations/decorations";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { CSS3DTVManager, type DeviceKind } from "@/lib/tv/CSS3DTVManager";
 import { TorusRingField } from "@/lib/torusRings/TorusRingField";
-import { RETRO_PALETTE_INDEX, RETRO_SHADER } from "@/lib/sceneFx/retroShader";
+import { RETRO_PALETTE_INDEX, RETRO_SHADER } from "@/apps/retro/retroShader";
 import { limitMax, useExtremeLimits, type LimitedControl } from "@/lib/extremeLimits";
-import { NeonEdges } from "@/lib/sceneFx/NeonEdges";
-import { Aurora } from "@/lib/sceneFx/aurora";
+import { NeonEdges } from "@/apps/neon/NeonEdges";
+import { AuroraRuntime } from "@/apps/aurora/AuroraRuntime";
+import "@/core/apps/catalog";
+import { AURORA_DEFAULTS, type AuroraSettings } from "@/apps/aurora/settings";
+import { HOOD_DEFAULTS } from "@/apps/hood/settings";
+import { SNOW_DEFAULTS } from "@/apps/snow/settings";
+import { CONFETTI_DEFAULTS } from "@/apps/confetti/settings";
+import { FIREWORKS_DEFAULTS } from "@/apps/fireworks/settings";
+import { NEON_DEFAULTS } from "@/apps/neon/settings";
+import { RETRO_DEFAULTS } from "@/apps/retro/settings";
+import { DAY_NIGHT_DEFAULTS } from "@/apps/day-night/settings";
+import { UNDERWATER_FOG_DEFAULTS } from "@/apps/underwater-fog/settings";
+import { OPEN_DRIFT_DEFAULTS } from "@/apps/open-drift/settings";
+import { WIND_DEFAULTS } from "@/apps/wind/settings";
+import { DECORATIONS_DEFAULTS } from "@/apps/decorations/settings";
 import {
   WindField,
   altitudeMix,
@@ -37,30 +50,32 @@ import {
   sanitizeWinds,
   steerWaveDir,
   type WindSource,
-} from "@/lib/wind";
-import { WindAudio } from "@/lib/windSound";
-import { WindHudPanel, type WindControls } from "@/components/WindPanel";
-import { UnderwaterFogOverlay, waterlineScreenFraction } from "@/lib/sceneFx/underwaterFog";
-import { OpenDrift } from "@/lib/openDrift";
-import { SnowCover, Snowfall } from "@/lib/sceneFx/snow";
-import { Fireworks, FIREWORKS_LIGHTS } from "@/lib/sceneFx/fireworks";
-import { Confetti } from "@/lib/sceneFx/confetti";
-import { Hood } from "@/lib/sceneFx/hood";
+} from "@/apps/wind/wind";
+import { WindAudio } from "@/apps/wind/WindAudio";
+import { WindHudPanel, type WindControls } from "@/apps/wind/WindPanel";
+import { waterlineScreenFraction } from "@/apps/underwater-fog/underwaterFog";
+import { UnderwaterFogOverlay } from "@/apps/underwater-fog/UnderwaterFogOverlay";
+import { OpenDrift } from "@/apps/open-drift/OpenDrift";
+import { Snowfall } from "@/apps/snow/Snowfall";
+import { SnowCover } from "@/apps/snow/SnowCover";
+import { Fireworks, FIREWORKS_LIGHTS } from "@/apps/fireworks/Fireworks";
+import { Confetti } from "@/apps/confetti/Confetti";
+import { Hood } from "@/apps/hood/Hood";
 import {
   HOOD_MAX_LAYERS,
   sanitizeHoodLayers,
   type HoodLayer,
   type HoodStyle,
-} from "@/lib/hoodLayers";
-import { applyNeonAccent } from "@/lib/sceneFx/neonAccent";
-import { relativeDaylightTint } from "@/lib/sceneFx/daylightTint";
+} from "@/apps/hood/hoodLayers";
+import { applyNeonAccent } from "@/apps/neon/neonAccent";
+import { relativeDaylightTint } from "@/apps/day-night/daylightTint";
 import {
   DAY_TIME_ID,
   NIGHT_TIME_ID,
   hasDayNightPair,
   nightBackdropMix,
   sunsetTintAmount,
-} from "@/lib/sceneFx/dayNightBackdrop";
+} from "@/apps/day-night/dayNightBackdrop";
 import { WatercraftRig } from "@/lib/watercraft/WatercraftRig";
 import type { BuildAction, SculptAction, ToolMode } from "@/lib/watercraft/types";
 import { WatercraftHud } from "@/components/watercraft/WatercraftHud";
@@ -1394,8 +1409,7 @@ const WAVE_PRESETS: Record<
 };
 
 const DEFAULTS: Persisted = {
-  // DEKORATIONER: per-scene placed .glb decorations (src/lib/decorations.ts).
-  decorations: {} as DecorationsByScene,
+  ...DECORATIONS_DEFAULTS,
   ...WAVE_PRESETS.standard,
   wavePreset: "standard",
   // Overrides on top of the "standard" wave preset — the app's default
@@ -1460,43 +1474,7 @@ const DEFAULTS: Persisted = {
   // meaningfully less GPU/thermal load during the effect. Has no effect at
   // all while SIMGLASÖGON is off.
   gogglesFpsCap: 25,
-  // HUVA: off by default — see lib/sceneFx/hood.ts.
-  hoodOn: false,
-  hoodHeight: 0.3,
-  hoodOpening: 0.5,
-  hoodColor: "#2b3a55",
-  hoodMetallic: 0.5,
-  hoodMotion: 0.5,
-  hoodLowerOn: false,
-  hoodLowerHeight: 0.45,
-  hoodZipperOn: false,
-  hoodWaterOn: false,
-  hoodWaterLevel: 0.3,
-  hoodOpeningWidth: 0,
-  hoodDrop: 0,
-  hoodWeight: 0.4,
-  hoodWrinkles: 0,
-  hoodDarkness: 0,
-  hoodRoundness: 0.85,
-  hoodStyle: "classic" as HoodStyle,
-  hoodPuffSize: 0.4,
-  hoodPuffHeight: 0.5,
-  hoodCuffOn: false,
-  hoodCuffHeight: 0.3,
-  hoodCuffSize: 0.5,
-  hoodCuffCustom: false,
-  hoodCuffColor: "#1f2a40",
-  hoodCuffMetallic: 0.15,
-  hoodCuffMaterial: "knit",
-  hoodHanging: true,
-  hoodWaterCalm: 0.6,
-  hoodCuffTop: true,
-  hoodZipperFixed: true,
-  hoodZipperPullOut: true,
-  hoodReflectLight: true,
-  hoodPuffThickness: 0.5,
-  hoodPuffInflate: 0,
-  hoodExtraLayers: [] as HoodLayer[],
+  ...HOOD_DEFAULTS,
   // General performance controls, independent of SIMGLASÖGON: targetFps caps
   // renderer.render() calls at all times (not just while goggles are on —
   // see the fpsCap logic in the animate() loop below), and resolutionScale
@@ -1567,26 +1545,8 @@ const DEFAULTS: Persisted = {
   surgeSpeed: 0.2,
   surgeRotationMode: "cw",
   surgeRotationSpeed: 2,
-  // VIND (lib/wind.ts): no winds until one is added from the VIND button;
-  // its effects and sound are on so a new wind works right away. HÖJDLJUD
-  // is on by default.
-  winds: [],
-  windWavesOn: true,
-  windWaveStrength: 1,
-  windSwayOn: true,
-  windSwayStrength: 1,
-  windCurrentOn: true,
-  windCurrentStrength: 1,
-  windSoundOn: true,
-  windSoundVolume: 0.6,
-  windAltitudeAudioOn: true,
-  // HAVSDRIFT: endless open-water drift (lib/openDrift.ts), off by default.
-  openDriftOn: false,
-  openDriftCurve: "circle",
-  openDriftRadius: 10,
-  openDriftCycleSpeed: 0.5,
-  openDriftMagnitude: 1,
-  openDriftDirection: "cw",
+  ...WIND_DEFAULTS,
+  ...OPEN_DRIFT_DEFAULTS,
   // On by default, generous enough (20km horizontally, 3km up/down) that
   // normal float-mode swimming near origin never brushes it — mainly meant
   // to be discovered by flying far in NOCLIP. worldBoundaryYExtend on means
@@ -1646,106 +1606,20 @@ const DEFAULTS: Persisted = {
   // low-end devices — this also drops the RAYTRACED material's swimmer
   // shadow.
   shadowsOn: true,
-  // RETRO: an opt-in full-screen post-process that quantizes the frame to a
-  // 1990s-style palette with ordered dithering — see RETRO_SHADER in
-  // lib/sceneFx/retroShader.ts.
-  retroOn: false,
-  retroPalette: "rgb332",
-  retroPixelSize: 2,
-  retroDither: 1,
-  retroScanlines: 0.2,
+  ...RETRO_DEFAULTS,
   // VATTENGLÖD: emissive glow from the water body. With
   // waterGlowEveningOnly it fades in as the sun sets and is gone at noon.
   waterGlowOn: false,
   waterGlowColor: "#38d6ff",
   waterGlowStrength: 0.6,
   waterGlowEveningOnly: true,
-  // DYGNSTONING: lets TIMEOFDAY (and the clock's seasonal sync) tint an
-  // environment skybox instead of the skybox snapping TIMEOFDAY to its own
-  // manifest time.
-  envDaylightTintOn: false,
-  envDaylightTintStrength: 1,
-  // DYGNSBYTE: when the environment's era has both a day and a night
-  // skybox, the backdrop follows TIMEOFDAY — night skybox at night, day
-  // skybox by day, cross-faded at dawn and dusk (lib/sceneFx/dayNightBackdrop.ts).
-  envDayNightAutoOn: true,
-  // SOLTONING: sunrise/sunset tints the backdrop warm toward the sun.
-  envSunTintOn: true,
-  // SNÖ: falling snow around the camera (lib/sceneFx/snow.ts). snowAmount is
-  // the number of flakes, snowIntensity how hard it snows (fall speed, flake
-  // size, wind). SNÖTÄCKE (snowCoverOn) whitens the loaded scene and the
-  // environment backdrop as if snow had settled, by snowCoverStrength 0..1.
-  snowOn: false,
-  snowAmount: 4000,
-  snowIntensity: 0.5,
-  snowCoverOn: false,
-  snowCoverStrength: 0.8,
-  // FYRVERKERI: rockets launched from the water in front of the camera
-  // (lib/sceneFx/fireworks.ts). fireworksIntensity scales burst size, star
-  // count and brightness; fireworksRate is rockets per minute and
-  // fireworksDistance the typical distance to the launch site (m).
-  // FYRVERKERILJUS lights the scene and water in each burst's color by
-  // fireworksLightStrength; FYRVERKERILJUD is synthesized (no assets), heard
-  // only while LJUD is on, at fireworksVolume.
-  fireworksOn: false,
-  fireworksIntensity: 1,
-  fireworksRate: 12,
-  fireworksDistance: 250,
-  fireworksLightsOn: true,
-  fireworksLightStrength: 1,
-  fireworksSoundOn: true,
-  fireworksVolume: 0.7,
-  // GRÅ BAKGRUND: with SNÖTÄCKE on, also wash the environment backdrop out to
-  // a cold gray (the old overcast look). Off by default; the backdrop keeps
-  // its colors and only its ground gets snow.
-  snowGrayBackdropOn: false,
-  // KONFETTI: confetti falling like snow (lib/sceneFx/confetti.ts), with
-  // the same amount/intensity dials as SNÖ plus KONFETTIFÄRGER (palette) and
-  // FLADDER (how much the pieces spin, tumble and sway).
-  confettiOn: false,
-  confettiAmount: 3000,
-  confettiIntensity: 0.5,
-  confettiPalette: "rainbow",
-  confettiFlutter: 0.6,
-  // NEON: glowing lines along the loaded scene's mesh edges — see
-  // lib/sceneFx/NeonEdges.ts for how neonMode/neonFrequency animate color.
-  neonOn: false,
-  neonMode: "solid",
-  neonPrimary: "#ff2bd6",
-  neonSecondary: "#22e6ff",
-  neonTint: "#ffffff",
-  neonTintAmount: 0,
-  neonStrength: 1,
-  neonWidth: 3,
-  neonFrequency: 0.5,
-  // NEONACCENT: color of every "-neon" scene material (tint + emission at
-  // 1.00) — see lib/sceneFx/neonAccent.ts.
-  neonAccentColor: "#ff2bd6",
-  // NORRSKEN: northern lights (lib/sceneFx/aurora.ts), off by default.
-  auroraOn: false,
-  auroraIntensity: 1,
-  auroraAmount: 0.5,
-  auroraSpeed: 1,
-  auroraHeight: 0.35,
-  auroraPalette: "classic",
-  auroraColorMain: "#3dff8c",
-  auroraColorTop: "#c23a9e",
-  auroraDaylightOn: false,
-  // UNDERVATTENDIS: underwater fog gradient overlay, off by default.
-  underwaterFogOn: false,
-  underwaterFogColor: "#a8d8e8",
-  underwaterFogOpacity: 0.45,
-  underwaterFogWaterColorAuto: true,
-  underwaterFogWaterColor: "#0e4a6e",
-  underwaterFogWaterOpacity: 0.55,
-  underwaterFogIntensity: 1,
-  underwaterFogSpread: 0.7,
-  underwaterFogCurve: 1,
-  underwaterFogFeather: 0.04,
-  underwaterFogDistance: 12,
-  underwaterFogOffset: 0,
-  underwaterFogSubmergedOnly: false,
-  underwaterFogBlend: "normal",
+  ...DAY_NIGHT_DEFAULTS,
+  ...SNOW_DEFAULTS,
+  ...FIREWORKS_DEFAULTS,
+  ...CONFETTI_DEFAULTS,
+  ...NEON_DEFAULTS,
+  ...AURORA_DEFAULTS,
+  ...UNDERWATER_FOG_DEFAULTS,
   cameraMode: "float",
   noclipSpeed: 1,
   noclipFallRiseSpeed: 48,
@@ -2372,7 +2246,7 @@ export function Aquafulness() {
   );
   const [sceneId, setSceneId] = useState<string | null>(initial.sceneId);
   // DEKORATIONER: the player's own .glb models placed in the current scene
-  // (src/hooks/use-decorations.ts, src/components/DecorationPanel.tsx).
+  // (src/apps/decorations/useDecorations.ts, src/apps/decorations/DecorationPanel.tsx).
   const deco = useDecorations({
     initial: initial.decorations,
     sceneId,
@@ -3087,15 +2961,18 @@ export function Aquafulness() {
   const neonWidthRef = useRef(neonWidth);
   const neonFrequencyRef = useRef(neonFrequency);
   const neonAccentColorRef = useRef(neonAccentColor);
-  const auroraOnRef = useRef(auroraOn);
-  const auroraIntensityRef = useRef(auroraIntensity);
-  const auroraAmountRef = useRef(auroraAmount);
-  const auroraSpeedRef = useRef(auroraSpeed);
-  const auroraHeightRef = useRef(auroraHeight);
-  const auroraPaletteRef = useRef(auroraPalette);
-  const auroraColorMainRef = useRef(auroraColorMain);
-  const auroraColorTopRef = useRef(auroraColorTop);
-  const auroraDaylightOnRef = useRef(auroraDaylightOn);
+  // NORRSKEN (apps/aurora): its settings slice, read by the render loop.
+  const auroraSettingsRef = useRef<AuroraSettings>({
+    auroraOn,
+    auroraIntensity,
+    auroraAmount,
+    auroraSpeed,
+    auroraHeight,
+    auroraPalette,
+    auroraColorMain,
+    auroraColorTop,
+    auroraDaylightOn,
+  });
   // UNDERVATTENDIS settings, read by the render loop every frame.
   const underwaterFogSettings = {
     underwaterFogOn,
@@ -4998,15 +4875,17 @@ export function Aquafulness() {
     hoodExtraLayers,
   ]);
   useEffect(() => {
-    auroraOnRef.current = auroraOn;
-    auroraIntensityRef.current = auroraIntensity;
-    auroraAmountRef.current = auroraAmount;
-    auroraSpeedRef.current = auroraSpeed;
-    auroraHeightRef.current = auroraHeight;
-    auroraPaletteRef.current = auroraPalette;
-    auroraColorMainRef.current = auroraColorMain;
-    auroraColorTopRef.current = auroraColorTop;
-    auroraDaylightOnRef.current = auroraDaylightOn;
+    auroraSettingsRef.current = {
+      auroraOn,
+      auroraIntensity,
+      auroraAmount,
+      auroraSpeed,
+      auroraHeight,
+      auroraPalette,
+      auroraColorMain,
+      auroraColorTop,
+      auroraDaylightOn,
+    };
   }, [
     auroraOn,
     auroraIntensity,
@@ -9275,10 +9154,10 @@ export function Aquafulness() {
     scene.add(envDome);
 
     // NORRSKEN: northern lights curtains, at infinity like the sky dome and
-    // drawn behind everything in the scene (see lib/sceneFx/aurora.ts).
-    const aurora = new Aurora(scene);
+    // drawn behind everything in the scene (see apps/aurora/Aurora.ts).
+    const aurora = new AuroraRuntime({ scene });
 
-    // VIND: the live wind (lib/wind.ts) and its sound (lib/windSound.ts).
+    // VIND: the live wind (apps/wind/wind.ts) and its sound (apps/wind/WindAudio.ts).
     const windField = new WindField();
     const windAudio = new WindAudio();
     const windCamPrev = new THREE.Vector3();
@@ -9293,7 +9172,7 @@ export function Aquafulness() {
     const underwaterFog = new UnderwaterFogOverlay();
     let underwaterFogEl: HTMLDivElement | null = null;
 
-    // HAVSDRIFT: endless open-water drift state (lib/openDrift.ts).
+    // HAVSDRIFT: endless open-water drift state (apps/open-drift/OpenDrift.ts).
     const openDrift = new OpenDrift();
 
     // BÄTTRE LJUS: image-based lighting for glTF materials. scene.environment
@@ -9317,13 +9196,13 @@ export function Aquafulness() {
     const neonEdges = new NeonEdges(scene);
     neonEdges.setResolution(mount.clientWidth, mount.clientHeight);
     // SNÖ: falling flakes around the camera, and SNÖTÄCKE whitening of the
-    // loaded scene (see lib/sceneFx/snow.ts).
+    // loaded scene (see apps/snow/Snowfall.ts).
     const snowfall = new Snowfall(scene);
     const snowCover = new SnowCover();
-    // FYRVERKERI (see lib/sceneFx/fireworks.ts).
+    // FYRVERKERI (see apps/fireworks/Fireworks.ts).
     const fireworks = new Fireworks(scene);
     envDomeUniforms.uSnowLight = snowCover.uLight;
-    // KONFETTI: confetti falling like the snow (see lib/sceneFx/confetti.ts).
+    // KONFETTI: confetti falling like the snow (see apps/confetti/Confetti.ts).
     const confetti = new Confetti(scene);
     // HUVA: the hood framing the view (drawn last, over the 3D scene), one
     // per layer; a later layer draws over an earlier one.
@@ -9524,7 +9403,7 @@ export function Aquafulness() {
       // Wave direction stored in degrees; smoothly interpolate the shortest
       // angular path so wrapping around 360° doesn't spin the ocean.
       // VIND: update the live wind first; VÅGRIKTNING steers the waves
-      // toward where it blows (lib/wind.ts steerWaveDir).
+      // toward where it blows (apps/wind/wind.ts steerWaveDir).
       {
         const wind = windField.update(dt, windsRef.current);
         windSwayOff = windField.sway(dt, windSwayOnRef.current, windSwayStrengthRef.current);
@@ -10618,7 +10497,7 @@ export function Aquafulness() {
       }
 
       // HAVSDRIFT: the open water keeps carrying the player — a circle or a
-      // random wander (lib/openDrift.ts) — on top of NAV/STRÖM in every
+      // random wander (apps/open-drift/OpenDrift.ts) — on top of NAV/STRÖM in every
       // mode. It moves posRef (the whirlpool/ride/pendulum center) and the
       // camera together, so it never turns the view, and it's eased in and
       // out. VÄRLDSGRÄNS's wrap below plus the camera-centred planes make
@@ -11757,7 +11636,7 @@ export function Aquafulness() {
       // audio is enabled. Default: constant volume with no filtering.
       const depth = surfaceY - camY; // positive when underwater
       // HÖJDLJUD: above the water the water track fades out as the camera
-      // rises (lib/wind.ts altitudeMix), handing over to surface noise and
+      // rises (apps/wind/wind.ts altitudeMix), handing over to surface noise and
       // then wind (the VIND block below).
       const windAlt = altitudeMix(-depth);
       const altWater = windAltitudeAudioOnRef.current ? windAlt.water : 1;
@@ -11964,27 +11843,20 @@ export function Aquafulness() {
 
       sky.position.copy(camera.position);
 
-      // NORRSKEN: fades in with the night (DYGNSBYTE's curve) unless SYNS PÅ
-      // DAGEN is on, and is reflected in the water.
-      if (auroraOnRef.current) {
-        aurora.update(dt, camera.position, {
-          intensity: auroraIntensityRef.current,
-          amount: auroraAmountRef.current,
-          speed: auroraSpeedRef.current,
-          height: auroraHeightRef.current,
-          palette: auroraPaletteRef.current,
-          customMain: auroraColorMainRef.current,
-          customTop: auroraColorTopRef.current,
+      // NORRSKEN (apps/aurora): fades in with the night and is reflected in
+      // the water.
+      aurora.frame(
+        {
+          dt,
+          camera,
           night: nightBackdropMix(todRef.current),
-          showInDaylight: auroraDaylightOnRef.current,
           underwater: uniforms.uUnderwater.value,
-        });
-      } else {
-        aurora.hide();
-      }
+        },
+        auroraSettingsRef.current,
+      );
       uniforms.uAuroraGlow.value.copy(aurora.glow);
       uniforms.uAuroraElev.value = aurora.glowElevation;
-      uniforms.uAuroraHeight.value = auroraHeightRef.current;
+      uniforms.uAuroraHeight.value = auroraSettingsRef.current.auroraHeight;
 
       // UNDERVATTENDIS: the fog gradient over the 3D view, its top edge
       // docked to the on-screen waterline VATTENLINJEAVSTÅND meters ahead —
@@ -14137,7 +14009,7 @@ export function Aquafulness() {
             <LifeBuoy className="h-5 w-5" strokeWidth={1.6} aria-hidden="true" />
           </HudIconButton>
           {/* VIND: opens the wind panel, where winds are added, aimed and
-              tuned (components/WindPanel.tsx). Lit while any wind blows. */}
+              tuned (apps/wind/WindPanel.tsx). Lit while any wind blows. */}
           <HudIconButton
             label={t("wind.title")}
             ariaLabel={t("wind.openAria")}

@@ -1,0 +1,14 @@
+{
+  "$schema": "../../core/apps/manifest.schema.json",
+  "id": "aurora",
+  "name": "NORRSKEN",
+  "title": "Northern lights",
+  "version": "1.0.0",
+  "description": "Aurora curtains in the night sky, with color palettes, height and speed, reflected in the water.",
+  "kind": "scene-fx",
+  "settingsGroup": "weather",
+  "defaultEnabled": false,
+  "dependencies": {
+    "day-night": "^1.0.0"
+  }
+}

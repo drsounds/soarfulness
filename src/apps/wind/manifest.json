@@ -1,0 +1,11 @@
+{
+  "$schema": "../../core/apps/manifest.schema.json",
+  "id": "wind",
+  "name": "VIND",
+  "title": "Wind",
+  "version": "1.0.0",
+  "description": "Any number of winds that steer the waves, add sway and current, and drive the wind sound and HÖJDLJUD.",
+  "kind": "environment",
+  "settingsGroup": "weather",
+  "dependencies": {}
+}

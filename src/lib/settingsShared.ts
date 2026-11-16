@@ -1,10 +1,30 @@
-import type { DecorationsByScene } from "@/lib/decorations";
 import vanernBackdrop from "@/assets/vanern-backdrop.png.asset.json";
 import sandTextureAsset from "@/assets/sand_cc0_512.jpg.asset.json";
 import waterAsset from "@/assets/water.mp3.asset.json";
-import type { WindSource } from "@/lib/wind";
-import type { OpenDriftCurve, OpenDriftDirection } from "@/lib/openDrift";
-import type { HoodCuffMaterial, HoodLayer, HoodStyle } from "@/lib/hoodLayers";
+import type { AuroraSettings } from "@/apps/aurora/settings";
+import type { HoodSettings } from "@/apps/hood/settings";
+import type { SnowSettings } from "@/apps/snow/settings";
+import type { ConfettiSettings } from "@/apps/confetti/settings";
+import type { FireworksSettings } from "@/apps/fireworks/settings";
+import type { NeonSettings } from "@/apps/neon/settings";
+import type { RetroSettings } from "@/apps/retro/settings";
+import type { DayNightSettings } from "@/apps/day-night/settings";
+import type { UnderwaterFogSettings } from "@/apps/underwater-fog/settings";
+import type { OpenDriftSettings } from "@/apps/open-drift/settings";
+import type { WindSettings } from "@/apps/wind/settings";
+import type { DecorationsSettings } from "@/apps/decorations/settings";
+import { OPEN_DRIFT_SETTING_KEYS } from "@/apps/open-drift/settings";
+import { HOOD_SETTING_KEYS } from "@/apps/hood/settings";
+import { RETRO_SETTING_KEYS } from "@/apps/retro/settings";
+import { WIND_SETTING_KEYS } from "@/apps/wind/settings";
+import { DAY_NIGHT_SETTING_KEYS } from "@/apps/day-night/settings";
+import { SNOW_SETTING_KEYS } from "@/apps/snow/settings";
+import { FIREWORKS_SETTING_KEYS } from "@/apps/fireworks/settings";
+import { CONFETTI_SETTING_KEYS } from "@/apps/confetti/settings";
+import { NEON_SETTING_KEYS } from "@/apps/neon/settings";
+import { AURORA_SETTING_KEYS } from "@/apps/aurora/settings";
+import { DECORATIONS_SETTING_KEYS } from "@/apps/decorations/settings";
+import { UNDERWATER_FOG_SETTING_KEYS } from "@/apps/underwater-fog/settings";
 
 // Shared between the main HUD's settings dialog (routes/index.tsx) and its
 // clone rendered as the "Inställningar" app inside the virtual phone's bathOS
@@ -170,55 +190,15 @@ export const SETTINGS_TABS: { id: SettingsTab; labelKey: string }[] = [
 export type CameraMode = "float" | "noclip" | "swing" | "watercraft" | "bodyflight";
 export const CAMERA_MODES: CameraMode[] = ["float", "noclip", "swing", "watercraft", "bodyflight"];
 
-// RETRO palettes: "rgb332" is the classic 256-color 3-3-2 bit cube (8 red ×
-// 8 green × 4 blue levels), "websafe" the 216-color 6×6×6 cube, "ega" the
-// 16-color EGA/VGA default palette, "gray" 16 shades of gray.
-export type RetroPalette = "rgb332" | "websafe" | "ega" | "gray";
-export const RETRO_PALETTES: RetroPalette[] = ["rgb332", "websafe", "ega", "gray"];
+export { RETRO_PALETTES, type RetroPalette } from "@/apps/retro/settings";
 
-// NORRSKENSFÄRGER: the aurora's (NORRSKEN) color palette. "classic" is the
-// usual green with a pink lower fringe and a faint red-violet top, "rainbow"
-// runs through the hues along the bands, "custom" uses auroraColorMain /
-// auroraColorTop. The actual colors live in lib/sceneFx/aurora.ts.
-export type AuroraPalette = "classic" | "green" | "red" | "violet" | "blue" | "rainbow" | "custom";
-export const AURORA_PALETTES: AuroraPalette[] = [
-  "classic",
-  "green",
-  "red",
-  "violet",
-  "blue",
-  "rainbow",
-  "custom",
-];
+export { AURORA_PALETTES, type AuroraPalette } from "@/apps/aurora/settings";
 
-// UNDERVATTENDIS: how the underwater fog gradient overlay blends over the 3D
-// view (CSS mix-blend-mode). See lib/sceneFx/underwaterFog.ts.
-export type UnderwaterFogBlend = "normal" | "multiply" | "screen" | "overlay" | "soft-light";
-export const UNDERWATER_FOG_BLENDS: UnderwaterFogBlend[] = [
-  "normal",
-  "multiply",
-  "screen",
-  "overlay",
-  "soft-light",
-];
+export { UNDERWATER_FOG_BLENDS, type UnderwaterFogBlend } from "@/apps/underwater-fog/settings";
 
-// NEON color animation:
-//  - "solid"     always neonPrimary
-//  - "alternate" hard switch between neonPrimary and neonSecondary,
-//                neonFrequency times per second
-//  - "fade"      smooth back-and-forth blend between the two
-//  - "hue"       cycles the full hue wheel starting from neonPrimary's hue,
-//                neonFrequency turns per second
-export type NeonMode = "solid" | "alternate" | "fade" | "hue";
-export const NEON_MODES: NeonMode[] = ["solid", "alternate", "fade", "hue"];
+export { NEON_MODES, type NeonMode } from "@/apps/neon/settings";
 
-// KONFETTIFÄRGER: which colors the falling confetti (KONFETTI) is cut from.
-//  - "rainbow"  colorful mix (FÄRGGLAD)
-//  - "pastel"   soft pastels
-//  - "gold"     gold and silver foil that glints as it turns
-//  - "white"    plain white paper
-export type ConfettiPalette = "rainbow" | "pastel" | "gold" | "white";
-export const CONFETTI_PALETTES: ConfettiPalette[] = ["rainbow", "pastel", "gold", "white"];
+export { CONFETTI_PALETTES, type ConfettiPalette } from "@/apps/confetti/settings";
 
 // BODYFLIGHT dial ranges: the updraft's speed at the ground (m/s), the
 // gravity multiplier (1 = Earth) and the height (m) the air cushion holds
@@ -425,59 +405,6 @@ export type Persisted = {
   gogglesLoop: boolean;
   gogglesIntensity: number;
   gogglesFpsCap: number;
-  // HUVA: a hoodie hood around the bather (lib/sceneFx/hood.ts), off by
-  // default. hoodHeight = where its sides end, from the bottom of the view
-  // up (0..1); hoodOpening = face opening tight..wide (0..1); hoodMetallic =
-  // matte cloth..wet metallic sheen (0..1); hoodMotion = sway/flutter (0..1).
-  hoodOn: boolean;
-  hoodHeight: number;
-  hoodOpening: number;
-  hoodColor: string;
-  hoodMetallic: number;
-  hoodMotion: number;
-  // MUN OCH HALS: also cover the mouth and neck (hoodLowerHeight = how high
-  // up the view that cover reaches, 0..1), optionally with a BLIXTLÅS zipper.
-  hoodLowerOn: boolean;
-  hoodLowerHeight: number;
-  hoodZipperOn: boolean;
-  // VATTEN I HUVAN: water runs in inside the hood below the waterline, like
-  // swimming in clothes; hoodWaterLevel (0..1) raises it above the sea outside.
-  hoodWaterOn: boolean;
-  hoodWaterLevel: number;
-  // HUVHÖJD (hoodDrop), TYNGD (hoodWeight), VÅTA VECK (hoodWrinkles) and
-  // MÖRKHET (hoodDarkness) for layer 1, all 0..1; layers 2+ live in
-  // hoodExtraLayers (lib/hoodLayers.ts).
-  // ÖPPNINGSBREDD for layer 1, in screen widths; 0 = AUTO (follow ÖPPNING).
-  hoodOpeningWidth: number;
-  hoodDrop: number;
-  hoodWeight: number;
-  hoodWrinkles: number;
-  hoodDarkness: number;
-  // RUNDHET, STIL (+ PUFFSTORLEK/PUFFHÖJD) and MUDD (+ MUDDHÖJD/RIBBSTORLEK)
-  // for layer 1 — see HoodLayer in lib/hoodLayers.ts.
-  hoodRoundness: number;
-  hoodStyle: HoodStyle;
-  hoodPuffSize: number;
-  hoodPuffHeight: number;
-  hoodCuffOn: boolean;
-  hoodCuffHeight: number;
-  hoodCuffSize: number;
-  hoodCuffCustom: boolean;
-  hoodCuffColor: string;
-  hoodCuffMetallic: number;
-  hoodCuffMaterial: HoodCuffMaterial;
-  hoodHanging: boolean;
-  hoodWaterCalm: number;
-  hoodCuffTop: boolean;
-  hoodZipperFixed: boolean;
-  hoodZipperPullOut: boolean;
-  hoodReflectLight: boolean;
-  hoodPuffThickness: number;
-  hoodPuffInflate: number;
-  hoodExtraLayers: HoodLayer[];
-  // DEKORATIONER: scene key → that scene's placed .glb decorations
-  // (src/lib/decorations.ts).
-  decorations: DecorationsByScene;
   targetFps: number;
   resolutionScale: number;
   // LOW GRAPHICS MODE: a single opt-in "everything cheap" switch for lower-
@@ -668,33 +595,6 @@ export type Persisted = {
   surgeSpeed: number;
   surgeRotationMode: SurgeRotationMode;
   surgeRotationSpeed: number;
-  // VIND (lib/wind.ts): any number of winds, each with its own direction,
-  // speed and gusts, added from the VIND button in the main view. They can
-  // steer the wave direction, add to the sway and push a surface current
-  // (each optional), and drive the wind sound. windAltitudeAudioOn
-  // (HÖJDLJUD, on by default) fades the water sound into surface noise and
-  // then wind as the camera rises above the water.
-  winds: WindSource[];
-  windWavesOn: boolean;
-  windWaveStrength: number;
-  windSwayOn: boolean;
-  windSwayStrength: number;
-  windCurrentOn: boolean;
-  windCurrentStrength: number;
-  windSoundOn: boolean;
-  windSoundVolume: number;
-  windAltitudeAudioOn: boolean;
-  // HAVSDRIFT: an endless open-water drift that keeps carrying the
-  // player around with every stick at rest (lib/openDrift.ts): a
-  // circle of openDriftRadius m (openDriftDirection) or a random
-  // wander, openDriftCycleSpeed laps / changes of course per minute,
-  // openDriftMagnitude = strength (1 = 100 %). Off by default.
-  openDriftOn: boolean;
-  openDriftCurve: OpenDriftCurve;
-  openDriftRadius: number;
-  openDriftCycleSpeed: number;
-  openDriftMagnitude: number;
-  openDriftDirection: OpenDriftDirection;
   // VÄRLDSGRÄNS (world boundary): once on, the camera's x/z and y wrap to the
   // opposite edge on crossing ±worldBoundarySize/Height — see wrapAxis in
   // routes/index.tsx. worldBoundaryYExtend is the *default* y behavior:
@@ -777,14 +677,6 @@ export type Persisted = {
   // material's swimmer shadow). Off skips the shadow pass completely.
   // LOW GRAPHICS MODE forces this off at runtime.
   shadowsOn: boolean;
-  // RETRO: full-screen 1990s look — the frame is pixelated by
-  // retroPixelSize, quantized to retroPalette with a 4x4 Bayer dither of
-  // strength retroDither (0..1), with optional CRT scanlines (0..1).
-  retroOn: boolean;
-  retroPalette: RetroPalette;
-  retroPixelSize: number;
-  retroDither: number;
-  retroScanlines: number;
   // VATTENGLÖD: emissive glow from the water body in waterGlowColor. With
   // waterGlowEveningOnly it follows how dark the sky is instead of being
   // constant.
@@ -792,97 +684,6 @@ export type Persisted = {
   waterGlowColor: string;
   waterGlowStrength: number;
   waterGlowEveningOnly: boolean;
-  // DYGNSTONING: TIMEOFDAY tints the environment skybox (relative to the
-  // time the skybox was painted at, per its manifest), instead of the
-  // skybox snapping TIMEOFDAY to that time. Strength 0..1.
-  envDaylightTintOn: boolean;
-  envDaylightTintStrength: number;
-  // DYGNSBYTE: an environment with both a day and a night skybox shows the
-  // one matching TIMEOFDAY, cross-fading the two at dawn and dusk.
-  envDayNightAutoOn: boolean;
-  // SOLTONING: sunrise/sunset colors the backdrop (environment skybox, its
-  // water reflection and the flat backdrop image) warm around the sun.
-  envSunTintOn: boolean;
-  // SNÖ: falling snow (lib/sceneFx/snow.ts). snowAmount = number of flakes,
-  // snowIntensity = how hard it snows. SNÖTÄCKE (snowCoverOn) whitens the
-  // loaded scene and environment backdrop by snowCoverStrength 0..1.
-  snowOn: boolean;
-  snowAmount: number;
-  snowIntensity: number;
-  snowCoverOn: boolean;
-  snowCoverStrength: number;
-  // FYRVERKERI (lib/sceneFx/fireworks.ts): intensity = burst size/brightness,
-  // rate = rockets per minute, distance = to the launch site (m). The light
-  // and synthesized sound each have their own toggle and level.
-  fireworksOn: boolean;
-  fireworksIntensity: number;
-  fireworksRate: number;
-  fireworksDistance: number;
-  fireworksLightsOn: boolean;
-  fireworksLightStrength: number;
-  fireworksSoundOn: boolean;
-  fireworksVolume: number;
-  // GRÅ BAKGRUND: SNÖTÄCKE also turns the backdrop a cold gray (off by default).
-  snowGrayBackdropOn: boolean;
-  // KONFETTI: confetti falling like snow (lib/sceneFx/confetti.ts).
-  // confettiAmount = number of pieces, confettiIntensity = fall speed, size
-  // and wind, confettiFlutter = how much the pieces spin, tumble and sway.
-  confettiOn: boolean;
-  confettiAmount: number;
-  confettiIntensity: number;
-  confettiPalette: ConfettiPalette;
-  confettiFlutter: number;
-  // NEON: glowing lines along the loaded scene's mesh edges. neonMode picks
-  // how the color moves over time (see NeonMode); neonFrequency is in
-  // cycles per second. neonTint is mixed over the result by neonTintAmount.
-  neonOn: boolean;
-  neonMode: NeonMode;
-  neonPrimary: string;
-  neonSecondary: string;
-  neonTint: string;
-  neonTintAmount: number;
-  neonStrength: number;
-  neonWidth: number;
-  neonFrequency: number;
-  // NEONACCENT: tint + emission (intensity 1.00) for every scene material
-  // whose name ends in "-neon" — see lib/sceneFx/neonAccent.ts.
-  neonAccentColor: string;
-  // NORRSKEN: northern lights in the sky (lib/sceneFx/aurora.ts), shown at
-  // night (faded with TIMEOFDAY) unless auroraDaylightOn. auroraIntensity =
-  // brightness, auroraAmount = how many bands / how much sky they cover
-  // (0..1), auroraSpeed = how fast they move, auroraHeight = low on the
-  // horizon all around (0) .. a corona overhead (1).
-  auroraOn: boolean;
-  auroraIntensity: number;
-  auroraAmount: number;
-  auroraSpeed: number;
-  auroraHeight: number;
-  auroraPalette: AuroraPalette;
-  auroraColorMain: string;
-  auroraColorTop: string;
-  auroraDaylightOn: boolean;
-  // UNDERVATTENDIS: a screen gradient over the 3D view (below the HUD) from
-  // a fog color at the top to the water color, its top edge docked to the
-  // on-screen waterline VATTENLINJEAVSTÅND meters ahead (so it sinks as you
-  // rise above the water and climbs as you dive). Opacities are 0..1,
-  // intensity multiplies both; spread = share of the way down to the screen
-  // bottom the fade takes; curve = fade shape; feather = soft top edge as a
-  // share of the screen height; offset nudges the edge (share of screen,
-  // + = lower). See lib/sceneFx/underwaterFog.ts.
-  underwaterFogOn: boolean;
-  underwaterFogColor: string;
-  underwaterFogOpacity: number;
-  underwaterFogWaterColorAuto: boolean;
-  underwaterFogWaterColor: string;
-  underwaterFogWaterOpacity: number;
-  underwaterFogIntensity: number;
-  underwaterFogSpread: number;
-  underwaterFogCurve: number;
-  underwaterFogFeather: number;
-  underwaterFogDistance: number;
-  underwaterFogOffset: number;
-  underwaterFogSubmergedOnly: boolean;
-  underwaterFogBlend: UnderwaterFogBlend;
   cameraMode: CameraMode;
   noclipSpeed: number;
   // FRITT FALL/OMVÄND STIGNING's terminal vertical speed in m/s (at
@@ -1020,7 +821,20 @@ export type Persisted = {
   torusVerticalCount: number;
   torusViewDistance: number;
   torusFadeDistance: number;
-};
+} & // Every app's own settings slice (src/apps/<id>/settings.ts) — see
+  // docs/architecture/apps.md. Keys above are the core app's.
+  AuroraSettings &
+  HoodSettings &
+  SnowSettings &
+  ConfettiSettings &
+  FireworksSettings &
+  NeonSettings &
+  RetroSettings &
+  DayNightSettings &
+  UnderwaterFogSettings &
+  OpenDriftSettings &
+  WindSettings &
+  DecorationsSettings;
 
 // Which Persisted fields belong to each settings tab — drives the per-tab
 // save/load/export/import preset controls (SettingsPanel.tsx's
@@ -1045,12 +859,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "surgeSpeed",
     "surgeRotationMode",
     "surgeRotationSpeed",
-    "openDriftOn",
-    "openDriftCurve",
-    "openDriftRadius",
-    "openDriftCycleSpeed",
-    "openDriftMagnitude",
-    "openDriftDirection",
+    ...OPEN_DRIFT_SETTING_KEYS,
     "buoyAmp",
     "bobSpeed",
     "regularWaves",
@@ -1161,42 +970,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "gogglesLoop",
     "gogglesIntensity",
     "gogglesFpsCap",
-    "hoodOn",
-    "hoodHeight",
-    "hoodOpening",
-    "hoodColor",
-    "hoodMetallic",
-    "hoodMotion",
-    "hoodLowerOn",
-    "hoodLowerHeight",
-    "hoodZipperOn",
-    "hoodWaterOn",
-    "hoodWaterLevel",
-    "hoodOpeningWidth",
-    "hoodDrop",
-    "hoodWeight",
-    "hoodWrinkles",
-    "hoodDarkness",
-    "hoodRoundness",
-    "hoodStyle",
-    "hoodPuffSize",
-    "hoodPuffHeight",
-    "hoodCuffOn",
-    "hoodCuffHeight",
-    "hoodCuffSize",
-    "hoodCuffCustom",
-    "hoodCuffColor",
-    "hoodCuffMetallic",
-    "hoodCuffMaterial",
-    "hoodHanging",
-    "hoodWaterCalm",
-    "hoodCuffTop",
-    "hoodZipperFixed",
-    "hoodZipperPullOut",
-    "hoodReflectLight",
-    "hoodPuffThickness",
-    "hoodPuffInflate",
-    "hoodExtraLayers",
+    ...HOOD_SETTING_KEYS,
     "targetFps",
     "resolutionScale",
     "lowGraphicsMode",
@@ -1205,11 +979,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "betterLightingOn",
     "lightingReflStrength",
     "shadowsOn",
-    "retroOn",
-    "retroPalette",
-    "retroPixelSize",
-    "retroDither",
-    "retroScanlines",
+    ...RETRO_SETTING_KEYS,
   ],
   vatten: [
     "waterColorIdx",
@@ -1261,16 +1031,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "waterGlowEveningOnly",
   ],
   miljo: [
-    "winds",
-    "windWavesOn",
-    "windWaveStrength",
-    "windSwayOn",
-    "windSwayStrength",
-    "windCurrentOn",
-    "windCurrentStrength",
-    "windSoundOn",
-    "windSoundVolume",
-    "windAltitudeAudioOn",
+    ...WIND_SETTING_KEYS,
     "timeOfDay",
     "midCloudsOn",
     "midCloudsHeight",
@@ -1315,63 +1076,14 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "torusVerticalCount",
     "torusViewDistance",
     "torusFadeDistance",
-    "envDaylightTintOn",
-    "envDaylightTintStrength",
-    "envDayNightAutoOn",
-    "envSunTintOn",
-    "snowOn",
-    "snowAmount",
-    "snowIntensity",
-    "snowCoverOn",
-    "snowCoverStrength",
-    "fireworksOn",
-    "fireworksIntensity",
-    "fireworksRate",
-    "fireworksDistance",
-    "fireworksLightsOn",
-    "fireworksLightStrength",
-    "fireworksSoundOn",
-    "fireworksVolume",
-    "snowGrayBackdropOn",
-    "confettiOn",
-    "confettiAmount",
-    "confettiIntensity",
-    "confettiPalette",
-    "confettiFlutter",
-    "neonOn",
-    "neonMode",
-    "neonPrimary",
-    "neonSecondary",
-    "neonTint",
-    "neonTintAmount",
-    "neonStrength",
-    "neonWidth",
-    "neonFrequency",
-    "neonAccentColor",
-    "auroraOn",
-    "auroraIntensity",
-    "auroraAmount",
-    "auroraSpeed",
-    "auroraHeight",
-    "auroraPalette",
-    "auroraColorMain",
-    "auroraColorTop",
-    "auroraDaylightOn",
-    "decorations",
-    "underwaterFogOn",
-    "underwaterFogColor",
-    "underwaterFogOpacity",
-    "underwaterFogWaterColorAuto",
-    "underwaterFogWaterColor",
-    "underwaterFogWaterOpacity",
-    "underwaterFogIntensity",
-    "underwaterFogSpread",
-    "underwaterFogCurve",
-    "underwaterFogFeather",
-    "underwaterFogDistance",
-    "underwaterFogOffset",
-    "underwaterFogSubmergedOnly",
-    "underwaterFogBlend",
+    ...DAY_NIGHT_SETTING_KEYS,
+    ...SNOW_SETTING_KEYS,
+    ...FIREWORKS_SETTING_KEYS,
+    ...CONFETTI_SETTING_KEYS,
+    ...NEON_SETTING_KEYS,
+    ...AURORA_SETTING_KEYS,
+    ...DECORATIONS_SETTING_KEYS,
+    ...UNDERWATER_FOG_SETTING_KEYS,
   ],
   ljud: ["audioOn", "audioVol", "audioSyncSpeed", "audioSpatial", "waterSoundIdx"],
   // Tema (UI chrome theme) isn't part of the wave/camera/water/environment/

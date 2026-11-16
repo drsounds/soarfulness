@@ -1,0 +1,12 @@
+{
+  "$schema": "../../core/apps/manifest.schema.json",
+  "id": "confetti",
+  "name": "KONFETTI",
+  "title": "Confetti",
+  "version": "1.0.0",
+  "description": "Confetti falling like snow, with palettes and flutter.",
+  "kind": "scene-fx",
+  "settingsGroup": "events",
+  "defaultEnabled": false,
+  "dependencies": {}
+}

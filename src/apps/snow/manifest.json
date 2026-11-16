@@ -1,0 +1,14 @@
+{
+  "$schema": "../../core/apps/manifest.schema.json",
+  "id": "snow",
+  "name": "SNÖ",
+  "title": "Snow",
+  "version": "1.0.0",
+  "description": "Falling snow around the camera, plus SNÖTÄCKE (snow cover on the scene) and the gray snow backdrop.",
+  "kind": "scene-fx",
+  "settingsGroup": "weather",
+  "defaultEnabled": false,
+  "dependencies": {
+    "day-night": "^1.0.0"
+  }
+}

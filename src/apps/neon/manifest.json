@@ -1,0 +1,12 @@
+{
+  "$schema": "../../core/apps/manifest.schema.json",
+  "id": "neon",
+  "name": "NEON",
+  "title": "Neon edges",
+  "version": "1.0.0",
+  "description": "Glowing animated lines along the loaded scene's mesh edges, and NEONACCENT for '-neon' materials.",
+  "kind": "scene-fx",
+  "settingsGroup": "effects",
+  "defaultEnabled": false,
+  "dependencies": {}
+}

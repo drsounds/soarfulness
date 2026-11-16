@@ -104,7 +104,7 @@ export function sceneNameFromFile(filename: string, fallback = "GLB"): string {
 //
 // One "GLB library" per IndexedDB database: a `meta` store with the small
 // name/size rows and a `data` store with the model bytes. EGNA SCENER uses
-// the one below; DEKORATIONER (src/lib/decorations.ts) has its own library
+// the one below; DEKORATIONER (src/apps/decorations/decorations.ts) has its own library
 // built from the same factory so the two lists never mix.
 
 export type GlbLibrary<M extends UserSceneMeta = UserSceneMeta> = {
