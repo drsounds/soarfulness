@@ -522,6 +522,68 @@ button:not(:disabled):active,
   text-shadow: 0 1px 0 rgb(255 255 255 / 0.4);
 }
 
+/* Liquid Glass bevels: every button and active tab/toggle gets a glassy
+   bevelled edge whose lit rim, shaded rim and inner glint slide across the
+   control as it scrolls — like a curved glass edge catching a fixed light
+   as it moves past. Driven purely by a CSS scroll-driven animation
+   (animation-timeline: view()), so no JS runs per scroll frame. --ui-bevel
+   goes from 1 (control entering at the bottom of its scroller) to -1
+   (leaving at the top). Where view timelines aren't supported, or the
+   control doesn't scroll (fixed HUD buttons), it keeps a static bevel lit
+   from above. */
+@property --ui-bevel {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0.6;
+}
+@keyframes ui-bevel-scroll {
+  from {
+    --ui-bevel: 1;
+  }
+  to {
+    --ui-bevel: -1;
+  }
+}
+[data-ui-theme="glass"] {
+  --ui-bevel-edge: calc(0.6 + var(--ui-glass-hl) * 0.6);
+}
+[data-ui-theme="glass"] :is(button, [role="button"], [role="tab"], .ui-btn) {
+  --ui-bevel-lit: rgb(255 255 255 / calc(var(--ui-glass-hl) * 0.85));
+  --ui-bevel-shade: rgb(0 0 0 / calc(var(--ui-glass-hl) * 0.35));
+  --ui-bevel-glint: rgb(255 255 255 / calc(var(--ui-glass-hl) * 0.32));
+  box-shadow:
+    inset calc(var(--ui-bevel) * 0.6px) calc(var(--ui-bevel) * 1.6px * var(--ui-bevel-edge)) 0 0
+      var(--ui-bevel-lit),
+    inset calc(var(--ui-bevel) * -0.6px) calc(var(--ui-bevel) * -1.6px * var(--ui-bevel-edge)) 0 0
+      var(--ui-bevel-shade),
+    inset 0 calc(var(--ui-bevel) * 9px) 10px -7px var(--ui-bevel-glint),
+    0 4px 14px -8px rgb(0 0 0 / 0.4);
+}
+/* Active tabs, selected chips and pressed toggles read as raised glass:
+   a thicker, brighter bevel than an idle button. */
+[data-ui-theme="glass"]
+  :is(
+    [aria-pressed="true"],
+    [aria-checked="true"],
+    [aria-selected="true"],
+    [aria-current]:not([aria-current="false"])
+  ) {
+  --ui-bevel-edge: calc(1.1 + var(--ui-glass-hl) * 0.9);
+  --ui-bevel-lit: rgb(255 255 255 / calc(0.25 + var(--ui-glass-hl) * 0.75));
+  --ui-bevel-glint: rgb(255 255 255 / calc(0.1 + var(--ui-glass-hl) * 0.45));
+}
+@supports (animation-timeline: view()) {
+  [data-ui-theme="glass"] :is(button, [role="button"], [role="tab"], .ui-btn) {
+    animation: ui-bevel-scroll linear both;
+    animation-timeline: view();
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-ui-theme="glass"] :is(button, [role="button"], [role="tab"], .ui-btn) {
+    animation: none;
+  }
+}
+
 .aqua-slider {
   -webkit-appearance: none;
   appearance: none;
