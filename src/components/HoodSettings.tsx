@@ -173,6 +173,12 @@ export function HoodSettings({
             <>
               {pct("lowerHeight", t("dial.camera.hoodLowerHeight"))}
               {toggle("zipperOn", t("dial.camera.hoodZipper"))}
+              {layer.zipperOn && (
+                <>
+                  {toggle("zipperFixed", t("dial.camera.hoodZipperFixed"))}
+                  {toggle("zipperPullOut", t("dial.camera.hoodZipperPullOut"))}
+                </>
+              )}
             </>
           )}
           {toggle("waterOn", t("dial.camera.hoodWater"))}
@@ -217,6 +223,7 @@ export function HoodSettings({
           {toggle("cuff", t("dial.camera.hoodCuff"))}
           {layer.cuff && (
             <>
+              {toggle("cuffTop", t("dial.camera.hoodCuffTop"))}
               {pct("cuffHeight", t("dial.camera.hoodCuffHeight"))}
               {pct("cuffSize", t("dial.camera.hoodCuffSize"))}
             </>
