@@ -86,6 +86,10 @@ export type HoodLayer = {
   hoodTop: boolean;
   /** KRAGE UPPÅT: the neck cover's edge bends up over the mouth. */
   collarUp: boolean;
+  /** DRA NER BLIXTLÅS: how far the zipper is pulled down (0 = closed). */
+  zipperOpen: number;
+  /** FLYTANDE: how much the cloth below FLYTGRÄNS floats and bends in the waves. */
+  floating: number;
   /** SKUGGA PÅ VYN: the old soft shadow on the view inside the opening (off by default). */
   viewShadow: boolean;
   /** BLIXTLÅS FÄST I TYGET: zipper teeth follow the cloth (off = fixed to the view, the old look). */
@@ -134,6 +138,8 @@ export const HOOD_LAYER_DEFAULTS: HoodLayer = {
   hanging: true,
   hoodTop: true,
   collarUp: false,
+  zipperOpen: 0,
+  floating: 0,
   viewShadow: false,
   zipperFixed: true,
   zipperPullOut: true,
@@ -159,6 +165,8 @@ const NUMBER_KEYS = [
   "cuffHeight",
   "cuffSize",
   "cuffMetallic",
+  "zipperOpen",
+  "floating",
 ] as const;
 const BOOL_KEYS = [
   "on",

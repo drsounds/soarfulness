@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next";
 import * as THREE from "three";
 import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { DecorationHudBar } from "@/apps/decorations/DecorationPanel";
+import { clothingBuoyancyOffset } from "@/apps/hood/buoyancy";
 import { useDecorations } from "@/apps/decorations/useDecorations";
 import {
   decorationsForLink,
@@ -65,11 +66,7 @@ import { FIREWORKS_LIGHTS } from "@/apps/fireworks/Fireworks";
 import { FireworksRuntime } from "@/apps/fireworks/FireworksRuntime";
 import { ConfettiRuntime } from "@/apps/confetti/ConfettiRuntime";
 import { HoodRuntime } from "@/apps/hood/HoodRuntime";
-import {
-  sanitizeHoodLayers,
-  type HoodLayer,
-  type HoodStyle,
-} from "@/apps/hood/hoodLayers";
+import { sanitizeHoodLayers, type HoodLayer, type HoodStyle } from "@/apps/hood/hoodLayers";
 import { applyNeonAccent } from "@/apps/neon/neonAccent";
 import { relativeDaylightTint } from "@/apps/day-night/daylightTint";
 import {
@@ -2103,6 +2100,14 @@ export function Aquafulness() {
   const [hoodCuffOn, setHoodCuffOn] = useState(initial.hoodCuffOn);
   const [hoodCuffHeight, setHoodCuffHeight] = useState(initial.hoodCuffHeight);
   const [hoodCuffSize, setHoodCuffSize] = useState(initial.hoodCuffSize);
+  const [hoodLayer1On, setHoodLayer1On] = useState(initial.hoodLayer1On);
+  const [hoodFloatThreshold, setHoodFloatThreshold] = useState(initial.hoodFloatThreshold);
+  const [hoodLookDown, setHoodLookDown] = useState(initial.hoodLookDown);
+  const [hoodSuitColor, setHoodSuitColor] = useState(initial.hoodSuitColor);
+  const [hoodSuitLeg, setHoodSuitLeg] = useState(initial.hoodSuitLeg);
+  const [hoodClothesBuoyancy, setHoodClothesBuoyancy] = useState(initial.hoodClothesBuoyancy);
+  const [hoodZipperOpen, setHoodZipperOpen] = useState(initial.hoodZipperOpen);
+  const [hoodFloating, setHoodFloating] = useState(initial.hoodFloating);
   const [hoodTopPart, setHoodTopPart] = useState(initial.hoodTopPart);
   const [hoodCollarUp, setHoodCollarUp] = useState(initial.hoodCollarUp);
   const [hoodViewShadow, setHoodViewShadow] = useState(initial.hoodViewShadow);
@@ -3074,6 +3079,14 @@ export function Aquafulness() {
     hoodCuffOn,
     hoodCuffHeight,
     hoodCuffSize,
+    hoodLayer1On,
+    hoodFloatThreshold,
+    hoodLookDown,
+    hoodSuitColor,
+    hoodSuitLeg,
+    hoodClothesBuoyancy,
+    hoodZipperOpen,
+    hoodFloating,
     hoodTopPart,
     hoodCollarUp,
     hoodViewShadow,
@@ -3197,6 +3210,14 @@ export function Aquafulness() {
     hoodCuffOn,
     hoodCuffHeight,
     hoodCuffSize,
+    hoodLayer1On,
+    hoodFloatThreshold,
+    hoodLookDown,
+    hoodSuitColor,
+    hoodSuitLeg,
+    hoodClothesBuoyancy,
+    hoodZipperOpen,
+    hoodFloating,
     hoodTopPart,
     hoodCollarUp,
     hoodViewShadow,
@@ -3563,6 +3584,14 @@ export function Aquafulness() {
     hoodCuffOn,
     hoodCuffHeight,
     hoodCuffSize,
+    hoodLayer1On,
+    hoodFloatThreshold,
+    hoodLookDown,
+    hoodSuitColor,
+    hoodSuitLeg,
+    hoodClothesBuoyancy,
+    hoodZipperOpen,
+    hoodFloating,
     hoodTopPart,
     hoodCollarUp,
     hoodViewShadow,
@@ -5431,6 +5460,14 @@ export function Aquafulness() {
     setHoodCuffOn(DEFAULTS.hoodCuffOn);
     setHoodCuffHeight(DEFAULTS.hoodCuffHeight);
     setHoodCuffSize(DEFAULTS.hoodCuffSize);
+    setHoodLayer1On(DEFAULTS.hoodLayer1On);
+    setHoodFloatThreshold(DEFAULTS.hoodFloatThreshold);
+    setHoodLookDown(DEFAULTS.hoodLookDown);
+    setHoodSuitColor(DEFAULTS.hoodSuitColor);
+    setHoodSuitLeg(DEFAULTS.hoodSuitLeg);
+    setHoodClothesBuoyancy(DEFAULTS.hoodClothesBuoyancy);
+    setHoodZipperOpen(DEFAULTS.hoodZipperOpen);
+    setHoodFloating(DEFAULTS.hoodFloating);
     setHoodTopPart(DEFAULTS.hoodTopPart);
     setHoodCollarUp(DEFAULTS.hoodCollarUp);
     setHoodViewShadow(DEFAULTS.hoodViewShadow);
@@ -5796,6 +5833,14 @@ export function Aquafulness() {
     if (patch.hoodCuffOn !== undefined) setHoodCuffOn(patch.hoodCuffOn);
     if (patch.hoodCuffHeight !== undefined) setHoodCuffHeight(patch.hoodCuffHeight);
     if (patch.hoodCuffSize !== undefined) setHoodCuffSize(patch.hoodCuffSize);
+    if (patch.hoodLayer1On !== undefined) setHoodLayer1On(patch.hoodLayer1On);
+    if (patch.hoodFloatThreshold !== undefined) setHoodFloatThreshold(patch.hoodFloatThreshold);
+    if (patch.hoodLookDown !== undefined) setHoodLookDown(patch.hoodLookDown);
+    if (patch.hoodSuitColor !== undefined) setHoodSuitColor(patch.hoodSuitColor);
+    if (patch.hoodSuitLeg !== undefined) setHoodSuitLeg(patch.hoodSuitLeg);
+    if (patch.hoodClothesBuoyancy !== undefined) setHoodClothesBuoyancy(patch.hoodClothesBuoyancy);
+    if (patch.hoodZipperOpen !== undefined) setHoodZipperOpen(patch.hoodZipperOpen);
+    if (patch.hoodFloating !== undefined) setHoodFloating(patch.hoodFloating);
     if (patch.hoodTopPart !== undefined) setHoodTopPart(patch.hoodTopPart);
     if (patch.hoodCollarUp !== undefined) setHoodCollarUp(patch.hoodCollarUp);
     if (patch.hoodViewShadow !== undefined) setHoodViewShadow(patch.hoodViewShadow);
@@ -11196,7 +11241,10 @@ export function Aquafulness() {
         const rawLift = anticipVelSmoothed * lift * 0.35 * (0.6 + amp * 0.6);
         const diveOffset = Math.min(cap, rawDive);
         const liftOffset = Math.max(-cap, Math.min(cap, rawLift));
-        const targetY = anticipSurf + heightRef.current - diveOffset + liftOffset;
+        // HUVA's KLÄDER PÅVERKAR FLYTFÖRMÅGA: the float suit and the clothes
+        // worn over it move the float line (0 while HUVA is off).
+        const targetY =
+          anticipSurf + heightRef.current - diveOffset + liftOffset + clothingBuoyancyOffset();
 
         if (camYRef.current === null) camYRef.current = targetY;
         // Cutting stiffness in the previous pass fixed the hard bounce but
@@ -13209,6 +13257,14 @@ export function Aquafulness() {
     hoodCuffHeight,
     setHoodCuffHeight,
     hoodCuffSize,
+    hoodLayer1On,
+    hoodFloatThreshold,
+    hoodLookDown,
+    hoodSuitColor,
+    hoodSuitLeg,
+    hoodClothesBuoyancy,
+    hoodZipperOpen,
+    hoodFloating,
     hoodTopPart,
     hoodCollarUp,
     hoodViewShadow,
@@ -13225,6 +13281,14 @@ export function Aquafulness() {
     hoodPuffThickness,
     hoodPuffInflate,
     setHoodCuffSize,
+    setHoodLayer1On,
+    setHoodFloatThreshold,
+    setHoodLookDown,
+    setHoodSuitColor,
+    setHoodSuitLeg,
+    setHoodClothesBuoyancy,
+    setHoodZipperOpen,
+    setHoodFloating,
     setHoodTopPart,
     setHoodCollarUp,
     setHoodViewShadow,
