@@ -114,7 +114,6 @@ import {
   PRESET_TAB_FIELDS,
   PRESET_ALL_FIELDS,
   pickFields,
-  type SettingsTab,
   type CameraMode,
   type SwingPreset,
   type SwingYWaveform,
@@ -2293,18 +2292,19 @@ export function Aquafulness() {
   const [midCloudsOn, setMidCloudsOn] = useState(initial.midCloudsOn);
   const [midCloudsHeight, setMidCloudsHeight] = useState(initial.midCloudsHeight);
   const [skyCloudsOn, setSkyCloudsOn] = useState(initial.skyCloudsOn);
-  // Meters above the surface; clamped so a hand-edited preset can't park
-  // the deck underwater or beyond the far plane.
+  // Meters above the surface; only a non-finite saved value falls back to
+  // the default.
   const [skyCloudsAltitude, setSkyCloudsAltitude] = useState(() => {
     const v = initial.skyCloudsAltitude;
     if (!Number.isFinite(v)) return DEFAULTS.skyCloudsAltitude;
-    return Math.max(SKY_CLOUDS_ALTITUDE_MIN, Math.min(SKY_CLOUDS_ALTITUDE_MAX, v));
+    // Not clamped to the slider's range: a typed-in override is kept.
+    return v;
   });
   const [bottomClouds3d, setBottomClouds3d] = useState(initial.bottomClouds3d);
   const [midClouds3d, setMidClouds3d] = useState(initial.midClouds3d);
   const [skyClouds3d, setSkyClouds3d] = useState(initial.skyClouds3d);
   const clampCloudScale = (v: number, fallback: number) =>
-    Number.isFinite(v) ? Math.max(CLOUD_SCALE_MIN, Math.min(CLOUD_SCALE_MAX, v)) : fallback;
+    Number.isFinite(v) ? Math.max(0.01, v) : fallback;
   const [bottomCloudsScale, setBottomCloudsScale] = useState(() =>
     clampCloudScale(initial.bottomCloudsScale, DEFAULTS.bottomCloudsScale),
   );
@@ -2619,15 +2619,21 @@ export function Aquafulness() {
   const [tornadoSpeed, setTornadoSpeed] = useState(initial.tornadoSpeed);
   // EXTREME (src/lib/extremeLimits.ts): the high maximums on VÅG, SVAJ,
   // SVALL, STRÖM, NAV, TORNADO, GUNGA and FREAK OUT only apply while EXTREME
-  // is on; otherwise every one of them tops out at ~25 %. Whenever they don't apply, anything above the everyday max —
-  // a value set with EXTREME on, a loaded preset/badlänk, SLUMPA VÅGOR — is
-  // clamped down to it.
+  // is on; otherwise every one of them tops out at ~25 %. Whenever they don't apply, anything above the everyday max is
+  // clamped down to it when EXTREME is turned off. Values typed in by hand
+  // (or loaded from a preset/badlänk) are not clamped otherwise.
   const [extremeLimits] = useExtremeLimits();
   const mx = (control: LimitedControl) => limitMax(control, extremeLimits);
   const extremeLimitsRef = useRef(extremeLimits);
   extremeLimitsRef.current = extremeLimits;
+  // Only on the switch from on to off: a value typed in by hand past the
+  // slider's max (SettingRow's typed override) is kept as-is, also after a
+  // reload, as long as EXTREME isn't being turned off right now.
+  const extremeWasOnRef = useRef(extremeLimits);
   useEffect(() => {
-    if (extremeLimits) return;
+    const wasOn = extremeWasOnRef.current;
+    extremeWasOnRef.current = extremeLimits;
+    if (extremeLimits || !wasOn) return;
     const clamp = (control: LimitedControl, value: number, set: (v: number) => void) => {
       const max = limitMax(control, false);
       if (value > max) set(max);
@@ -2814,7 +2820,6 @@ export function Aquafulness() {
   const [noclipHeaveOn, setNoclipHeaveOn] = useState(false);
   const [noclipSwayOn, setNoclipSwayOn] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [settingsTab, setSettingsTab] = useState<SettingsTab>("vagor");
   // Quick per-camera-mode settings live behind their own bottom drawer (like
   // SETTINGS) rather than as always-on sliders, so a stray touch near
   // bottom-center can't accidentally nudge a value mid-session.
@@ -12917,8 +12922,6 @@ export function Aquafulness() {
   };
   const settingsPanelProps: SettingsPanelProps = {
     wind: windControls,
-    settingsTab,
-    setSettingsTab,
     restoreCameraPosition,
     resetToDefaults,
     savedPresets,

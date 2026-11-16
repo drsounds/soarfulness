@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { parseTypedNumber } from "@/components/SettingRow";
 
 // Shared between the main HUD's settings dialog (routes/index.tsx) and its
 // clone rendered as the "Inställningar" app inside the virtual phone's bathOS
@@ -52,12 +53,11 @@ export function PadDial({
       setEditing(false);
       return;
     }
-    const parsed = parseFloat(input.value.replace(/,/g, "."));
-    if (!Number.isNaN(parsed)) {
-      // Manual entry only clamps to [min, max] — it doesn't snap to the
-      // nearest +/- step, so precise values (e.g. well below a coarse step
-      // size) can actually be typed in instead of silently rounding away.
-      onSet(Math.max(min, Math.min(max, parsed)));
+    const parsed = parseTypedNumber(input.value);
+    if (parsed !== null) {
+      // Manual entry is taken as-is: it doesn't snap to the nearest +/- step
+      // and isn't clamped to [min, max], so typing overrides the dial's range.
+      onSet(parsed);
     }
     setEditing(false);
   };

@@ -104,6 +104,8 @@
     "cancel": "CANCEL",
     "close": "CLOSE",
     "decreaseAria": "{{label}} decrease",
+    "typeToOverride": "Tap the value to type your own, even beyond the slider",
+    "typedOutOfRange": "Custom value outside the slider's range",
     "high": "HÖG",
     "increaseAria": "{{label}} increase",
     "low": "LÅG",
@@ -1127,6 +1129,92 @@
   },
   "settings": {
     "backAriaLabel": "Back to settings sections",
+    "categories": {
+      "bather": "BATHER",
+      "scene": "SCENE",
+      "sea": "SEA",
+      "system": "SYSTEM"
+    },
+    "groups": {
+      "app": {
+        "desc": "Language, theme, extreme limits, about",
+        "label": "General"
+      },
+      "bather": {
+        "desc": "Goggles and hood",
+        "label": "The bather"
+      },
+      "bottom": {
+        "desc": "Bottom, depth and depth swing",
+        "label": "Bottom & depth"
+      },
+      "camera": {
+        "desc": "Position, field of view, rotation, screen lock",
+        "label": "Camera"
+      },
+      "clouds": {
+        "desc": "Cloud layers, 3D clouds, cloud puffs",
+        "label": "Clouds"
+      },
+      "drift": {
+        "desc": "Current direction, sway, surge, open-water drift",
+        "label": "Current & drift"
+      },
+      "effects": {
+        "desc": "Torus rings and neon",
+        "label": "Effects"
+      },
+      "events": {
+        "desc": "Confetti and fireworks",
+        "label": "Events"
+      },
+      "graphics": {
+        "desc": "Performance, resolution, lighting, shadows, retro",
+        "label": "Graphics"
+      },
+      "interval": {
+        "desc": "Sessions, duration, stats",
+        "label": "Interval sessions"
+      },
+      "mode": {
+        "desc": "Float, swing, fly, tornado, freak out",
+        "label": "Movement mode"
+      },
+      "place": {
+        "desc": "Scene, spawn point, world boundary, room size",
+        "label": "Place & world"
+      },
+      "sound": {
+        "desc": "Water sound, volume, spatial audio",
+        "label": "Sound"
+      },
+      "state": {
+        "desc": "Presets, full state, sceneries, share, reset",
+        "label": "Save, load & sceneries"
+      },
+      "time": {
+        "desc": "Time of day, clock, environment and era, backdrop",
+        "label": "Time"
+      },
+      "water": {
+        "desc": "Color, reflection, foam, caustics, glow",
+        "label": "Water"
+      },
+      "waves": {
+        "desc": "Height, speed, frequency, bob, waveform",
+        "label": "Waves"
+      },
+      "weather": {
+        "desc": "Northern lights, underwater fog, wind and snow",
+        "label": "Weather"
+      }
+    },
+    "languageTitle": "Language",
+    "layout": {
+      "toList": "Show as list",
+      "toTabs": "Show as tabs"
+    },
+    "presetsPerGroupTitle": "PRESETS PER CATEGORY",
     "reset": "RESET",
     "resetAriaLabel": "Reset controls to default values",
     "resetConfirm": "This resets all controls to their default values (time of day is not affected).",
@@ -1137,6 +1225,13 @@
     "restoreTitle": "Return to the last saved camera position and heading",
     "saveMenuAriaLabel": "Save and load presets or a full state",
     "saveMenuTitle": "SAVE & LOAD",
+    "sceneryTitle": "SCENERIES",
+    "search": {
+      "clear": "Clear search",
+      "noResults": "No settings match your search.",
+      "placeholder": "Search settings"
+    },
+    "shareAndResetTitle": "SHARE & RESET",
     "tabs": {
       "kamera": "CAMERA",
       "ljud": "SOUND",
@@ -1220,7 +1315,19 @@
     "light": "LIGHT",
     "dark": "DARK",
     "blur": "GLASS BLUR",
-    "blurHint": "The blur effect behind panels. Off by default for better performance."
+    "blurHint": "The blur effect behind panels. Off by default for better performance.",
+    "glass": "LIQUID GLASS",
+    "glassDescription": "Fluid, refractive glass with lit edges — tune blur, refraction, tint, opacity and corners below. Uses more GPU than the other themes.",
+    "glass_tintHue": "TINT COLOR",
+    "glass_blur": "BLUR",
+    "glass_refraction": "REFRACTION",
+    "glass_saturation": "SATURATION",
+    "glass_tintStrength": "TINT STRENGTH",
+    "glass_opacity": "OPACITY",
+    "glass_highlight": "EDGE HIGHLIGHT",
+    "glass_radius": "CORNER RADIUS",
+    "glass_reset": "RESET GLASS",
+    "glass_hint": "Liquid Glass always brings its own blur (set BLUR to off to save energy). Refraction shows in Chrome, Edge and the Android app."
   },
   "timeTravel": {
     "applyButton": "Time travel",

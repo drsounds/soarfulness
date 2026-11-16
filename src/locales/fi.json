@@ -104,6 +104,8 @@
     "cancel": "PERUUTA",
     "close": "SULJE",
     "decreaseAria": "{{label}} pienennä",
+    "typeToOverride": "Napauta arvoa kirjoittaaksesi oman, myös liukusäätimen ulkopuolelta",
+    "typedOutOfRange": "Oma arvo liukusäätimen alueen ulkopuolella",
     "high": "KORKEA",
     "increaseAria": "{{label}} suurenna",
     "low": "MATALA",
@@ -1127,6 +1129,92 @@
   },
   "settings": {
     "backAriaLabel": "Takaisin asetusosioihin",
+    "categories": {
+      "bather": "UIMARI",
+      "scene": "NÄKYMÄ",
+      "sea": "MERI",
+      "system": "JÄRJESTELMÄ"
+    },
+    "groups": {
+      "app": {
+        "desc": "Kieli, teema, äärirajat, tietoja",
+        "label": "Yleiset"
+      },
+      "bather": {
+        "desc": "Uimalasit ja huppu",
+        "label": "Uimari"
+      },
+      "bottom": {
+        "desc": "Pohja, syvyys ja syvyyden vaihtelu",
+        "label": "Pohja & syvyys"
+      },
+      "camera": {
+        "desc": "Sijainti, näkökenttä, kierto, näytön lukitus",
+        "label": "Kamera"
+      },
+      "clouds": {
+        "desc": "Pilvikerrokset, 3D-pilvet, pilvitupsut",
+        "label": "Pilvet"
+      },
+      "drift": {
+        "desc": "Virran suunta, huojunta, maininki, avomeriajelehtiminen",
+        "label": "Virta & ajelehtiminen"
+      },
+      "effects": {
+        "desc": "Torusrenkaat ja neon",
+        "label": "Efektit"
+      },
+      "events": {
+        "desc": "Konfetti ja ilotulitus",
+        "label": "Tapahtumat"
+      },
+      "graphics": {
+        "desc": "Suorituskyky, resoluutio, valaistus, varjot, retro",
+        "label": "Grafiikka"
+      },
+      "interval": {
+        "desc": "Jaksot, kesto, tilastot",
+        "label": "Intervallijaksot"
+      },
+      "mode": {
+        "desc": "Kellu, keinu, lennä, tornado, freak out",
+        "label": "Liiketila"
+      },
+      "place": {
+        "desc": "Näkymä, aloituspaikka, maailman raja, huoneen koko",
+        "label": "Paikka & maailma"
+      },
+      "sound": {
+        "desc": "Veden ääni, äänenvoimakkuus, tilaääni",
+        "label": "Ääni"
+      },
+      "state": {
+        "desc": "Esiasetukset, koko tila, maisemat, jaa, palauta",
+        "label": "Tallenna, lataa & maisemat"
+      },
+      "time": {
+        "desc": "Vuorokaudenaika, kello, ympäristö ja aikakausi, tausta",
+        "label": "Aika"
+      },
+      "water": {
+        "desc": "Väri, heijastus, vaahto, valokuviot, hehku",
+        "label": "Vesi"
+      },
+      "waves": {
+        "desc": "Korkeus, nopeus, taajuus, keinunta, aaltomuoto",
+        "label": "Aallot"
+      },
+      "weather": {
+        "desc": "Revontulet, vedenalainen sumu, tuuli ja lumi",
+        "label": "Sää"
+      }
+    },
+    "languageTitle": "Kieli",
+    "layout": {
+      "toList": "Näytä luettelona",
+      "toTabs": "Näytä välilehtinä"
+    },
+    "presetsPerGroupTitle": "ESIASETUKSET LUOKITTAIN",
     "reset": "NOLLAA",
     "resetAriaLabel": "Palauta säätimet oletusarvoihin",
     "resetConfirm": "Tämä palauttaa kaikki säätimet oletusarvoihinsa (vuorokaudenaika ei muutu).",
@@ -1137,6 +1225,13 @@
     "restoreTitle": "Palaa viimeksi tallennettuun kameran sijaintiin ja suuntaan",
     "saveMenuAriaLabel": "Tallenna ja lataa esiasetuksia tai koko tila",
     "saveMenuTitle": "TALLENNA JA LATAA",
+    "sceneryTitle": "MAISEMAT",
+    "search": {
+      "clear": "Tyhjennä haku",
+      "noResults": "Mikään asetus ei vastaa hakua.",
+      "placeholder": "Hae asetuksia"
+    },
+    "shareAndResetTitle": "JAA & PALAUTA",
     "tabs": {
       "kamera": "KAMERA",
       "ljud": "ÄÄNI",
@@ -1220,7 +1315,19 @@
     "light": "VAALEA",
     "dark": "TUMMA",
     "blur": "LASIEFEKTI (SUMENNUS)",
-    "blurHint": "Paneelien takana näkyvä sumennusefekti. Oletuksena pois päältä paremman suorituskyvyn vuoksi."
+    "blurHint": "Paneelien takana näkyvä sumennusefekti. Oletuksena pois päältä paremman suorituskyvyn vuoksi.",
+    "glass": "LIQUID GLASS",
+    "glassDescription": "Virtaavaa, valoa taittavaa lasia valaistuin reunoin — säädä sumennus, taittuminen, sävy, peittävyys ja kulmat alla. Kuormittaa näytönohjainta enemmän kuin muut teemat.",
+    "glass_tintHue": "SÄVYVÄRI",
+    "glass_blur": "SUMENNUS",
+    "glass_refraction": "TAITTUMINEN",
+    "glass_saturation": "KYLLÄISYYS",
+    "glass_tintStrength": "SÄVYN VAHVUUS",
+    "glass_opacity": "PEITTÄVYYS",
+    "glass_highlight": "REUNAVALO",
+    "glass_radius": "KULMASÄDE",
+    "glass_reset": "PALAUTA LASI",
+    "glass_hint": "Liquid Glassilla on aina oma sumennuksensa (aseta SUMENNUS pois säästääksesi energiaa). Taittuminen näkyy Chromessa, Edgessä ja Android-sovelluksessa."
   },
   "timeTravel": {
     "applyButton": "Matkusta ajassa",
