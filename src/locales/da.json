@@ -1127,6 +1127,92 @@
   },
   "settings": {
     "backAriaLabel": "Tilbage til indstillingsafsnit",
+    "categories": {
+      "bather": "DEN BADENDE",
+      "scene": "SCENE",
+      "sea": "HAV",
+      "system": "SYSTEM"
+    },
+    "groups": {
+      "app": {
+        "desc": "Sprog, tema, ekstreme grænser, om appen",
+        "label": "Generelt"
+      },
+      "bather": {
+        "desc": "Svømmebriller og hætte",
+        "label": "Den badende"
+      },
+      "bottom": {
+        "desc": "Bund, dybde og dybdesving",
+        "label": "Bund & dybde"
+      },
+      "camera": {
+        "desc": "Position, synsfelt, rotation, skærmlås",
+        "label": "Kamera"
+      },
+      "clouds": {
+        "desc": "Skylag, 3D-skyer, skytotter",
+        "label": "Skyer"
+      },
+      "drift": {
+        "desc": "Strømretning, svaj, dønning, havdrift",
+        "label": "Strøm & drift"
+      },
+      "effects": {
+        "desc": "Torusringe og neon",
+        "label": "Effekter"
+      },
+      "events": {
+        "desc": "Konfetti og fyrværkeri",
+        "label": "Begivenheder"
+      },
+      "graphics": {
+        "desc": "Ydeevne, opløsning, lys, skygger, retro",
+        "label": "Grafik"
+      },
+      "interval": {
+        "desc": "Pas, længde, statistik",
+        "label": "Intervalpas"
+      },
+      "mode": {
+        "desc": "Flyde, gynge, flyve, tornado, freak out",
+        "label": "Bevægelsestilstand"
+      },
+      "place": {
+        "desc": "Scene, startsted, verdensgrænse, rumstørrelse",
+        "label": "Sted & verden"
+      },
+      "sound": {
+        "desc": "Vandlyd, lydstyrke, rumlyd",
+        "label": "Lyd"
+      },
+      "state": {
+        "desc": "Forudindstillinger, hele tilstanden, scenerier, del, nulstil",
+        "label": "Gem, indlæs & scenerier"
+      },
+      "time": {
+        "desc": "Tid på døgnet, ur, miljø og epoke, baggrund",
+        "label": "Tid"
+      },
+      "water": {
+        "desc": "Farve, refleksion, skum, lysbrydning, glød",
+        "label": "Vand"
+      },
+      "waves": {
+        "desc": "Højde, fart, frekvens, gyngen, bølgeform",
+        "label": "Bølger"
+      },
+      "weather": {
+        "desc": "Nordlys, undervandståge, vind og sne",
+        "label": "Vejr"
+      }
+    },
+    "languageTitle": "Sprog",
+    "layout": {
+      "toList": "Vis som liste",
+      "toTabs": "Vis som faner"
+    },
+    "presetsPerGroupTitle": "FORUDINDSTILLINGER PR. KATEGORI",
     "reset": "NULSTIL",
     "resetAriaLabel": "Nulstil kontroller til standardværdier",
     "resetConfirm": "Dette nulstiller alle kontroller til deres standardværdier (tidspunkt på dagen påvirkes ikke).",
@@ -1137,6 +1223,13 @@
     "restoreTitle": "Vend tilbage til senest gemte kameraposition og retning",
     "saveMenuAriaLabel": "Gem og indlæs forudindstillinger eller en fuld tilstand",
     "saveMenuTitle": "GEM OG INDLÆS",
+    "sceneryTitle": "SCENERIER",
+    "search": {
+      "clear": "Ryd søgning",
+      "noResults": "Ingen indstillinger matcher søgningen.",
+      "placeholder": "Søg i indstillinger"
+    },
+    "shareAndResetTitle": "DEL & NULSTIL",
     "tabs": {
       "kamera": "KAMERA",
       "ljud": "LYD",

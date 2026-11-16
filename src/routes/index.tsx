@@ -107,7 +107,6 @@ import {
   PRESET_TAB_FIELDS,
   PRESET_ALL_FIELDS,
   pickFields,
-  type SettingsTab,
   type CameraMode,
   type SwingPreset,
   type SwingYWaveform,
@@ -2793,7 +2792,6 @@ export function Aquafulness() {
   const [noclipHeaveOn, setNoclipHeaveOn] = useState(false);
   const [noclipSwayOn, setNoclipSwayOn] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [settingsTab, setSettingsTab] = useState<SettingsTab>("vagor");
   // Quick per-camera-mode settings live behind their own bottom drawer (like
   // SETTINGS) rather than as always-on sliders, so a stray touch near
   // bottom-center can't accidentally nudge a value mid-session.
@@ -12883,8 +12881,6 @@ export function Aquafulness() {
   };
   const settingsPanelProps: SettingsPanelProps = {
     wind: windControls,
-    settingsTab,
-    setSettingsTab,
     restoreCameraPosition,
     resetToDefaults,
     savedPresets,

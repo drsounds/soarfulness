@@ -1127,6 +1127,92 @@
   },
   "settings": {
     "backAriaLabel": "Tillbaka till inställningsavsnitten",
+    "categories": {
+      "bather": "BADAREN",
+      "scene": "SCEN",
+      "sea": "HAV",
+      "system": "SYSTEM"
+    },
+    "groups": {
+      "app": {
+        "desc": "Språk, tema, extremlägen, om appen",
+        "label": "Allmänt"
+      },
+      "bather": {
+        "desc": "Simglasögon och huva",
+        "label": "Badaren"
+      },
+      "bottom": {
+        "desc": "Botten, djup och djupsvängning",
+        "label": "Botten & djup"
+      },
+      "camera": {
+        "desc": "Position, synfält, rotation, skärmlås",
+        "label": "Kamera"
+      },
+      "clouds": {
+        "desc": "Molnlager, 3D-moln, molntussar",
+        "label": "Moln"
+      },
+      "drift": {
+        "desc": "Strömriktning, svaj, svall, havsdrift",
+        "label": "Ström & drift"
+      },
+      "effects": {
+        "desc": "Torusringar och neon",
+        "label": "Effekter"
+      },
+      "events": {
+        "desc": "Konfetti och fyrverkerier",
+        "label": "Händelser"
+      },
+      "graphics": {
+        "desc": "Prestanda, upplösning, ljus, skuggor, retro",
+        "label": "Grafik"
+      },
+      "interval": {
+        "desc": "Pass, längd, statistik",
+        "label": "Intervallpass"
+      },
+      "mode": {
+        "desc": "Flyta, gunga, flyg, tornado, freak out",
+        "label": "Rörelseläge"
+      },
+      "place": {
+        "desc": "Scen, startplats, världsgräns, rumsstorlek",
+        "label": "Plats & värld"
+      },
+      "sound": {
+        "desc": "Vattenljud, volym, rumsljud",
+        "label": "Ljud"
+      },
+      "state": {
+        "desc": "Förinställningar, hela läget, scenerier, dela, återställ",
+        "label": "Spara, ladda & scenerier"
+      },
+      "time": {
+        "desc": "Tid på dygnet, klocka, miljö och epok, bakgrund",
+        "label": "Tid"
+      },
+      "water": {
+        "desc": "Färg, reflektion, skum, ljusbrytning, glöd",
+        "label": "Vatten"
+      },
+      "waves": {
+        "desc": "Höjd, fart, frekvens, gupp, vågform",
+        "label": "Vågor"
+      },
+      "weather": {
+        "desc": "Norrsken, undervattensdimma, vind och snö",
+        "label": "Väder"
+      }
+    },
+    "languageTitle": "Språk",
+    "layout": {
+      "toList": "Visa som lista",
+      "toTabs": "Visa som flikar"
+    },
+    "presetsPerGroupTitle": "FÖRINSTÄLLNINGAR PER KATEGORI",
     "reset": "ÅTERSTÄLL",
     "resetAriaLabel": "Återställ reglage till standardvärden",
     "resetConfirm": "Detta återställer alla reglage till standardvärden (tid på dygnet påverkas inte).",
@@ -1137,6 +1223,13 @@
     "restoreTitle": "Återgå till senast sparade kameraposition och riktning",
     "saveMenuAriaLabel": "Spara och läs in förinställningar eller ett helt tillstånd",
     "saveMenuTitle": "SPARA OCH LÄS IN",
+    "sceneryTitle": "SCENERIER",
+    "search": {
+      "clear": "Rensa sökningen",
+      "noResults": "Inga inställningar matchar sökningen.",
+      "placeholder": "Sök inställningar"
+    },
+    "shareAndResetTitle": "DELA & ÅTERSTÄLL",
     "tabs": {
       "kamera": "KAMERA",
       "ljud": "LJUD",
