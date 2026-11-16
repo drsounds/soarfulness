@@ -1465,6 +1465,7 @@ const DEFAULTS: Persisted = {
   hoodCuffOn: false,
   hoodCuffHeight: 0.3,
   hoodCuffSize: 0.5,
+  hoodWaterCalm: 0.6,
   hoodCuffTop: true,
   hoodZipperFixed: true,
   hoodZipperPullOut: true,
@@ -2166,6 +2167,7 @@ export function Aquafulness() {
   const [hoodCuffOn, setHoodCuffOn] = useState(initial.hoodCuffOn);
   const [hoodCuffHeight, setHoodCuffHeight] = useState(initial.hoodCuffHeight);
   const [hoodCuffSize, setHoodCuffSize] = useState(initial.hoodCuffSize);
+  const [hoodWaterCalm, setHoodWaterCalm] = useState(initial.hoodWaterCalm);
   const [hoodCuffTop, setHoodCuffTop] = useState(initial.hoodCuffTop);
   const [hoodZipperFixed, setHoodZipperFixed] = useState(initial.hoodZipperFixed);
   const [hoodZipperPullOut, setHoodZipperPullOut] = useState(initial.hoodZipperPullOut);
@@ -3114,6 +3116,7 @@ export function Aquafulness() {
     hoodCuffOn,
     hoodCuffHeight,
     hoodCuffSize,
+    hoodWaterCalm,
     hoodCuffTop,
     hoodZipperFixed,
     hoodZipperPullOut,
@@ -3449,6 +3452,7 @@ export function Aquafulness() {
     hoodCuffOn,
     hoodCuffHeight,
     hoodCuffSize,
+    hoodWaterCalm,
     hoodCuffTop,
     hoodZipperFixed,
     hoodZipperPullOut,
@@ -3992,6 +3996,7 @@ export function Aquafulness() {
   const hoodCuffOnRef = useRef(hoodCuffOn);
   const hoodCuffHeightRef = useRef(hoodCuffHeight);
   const hoodCuffSizeRef = useRef(hoodCuffSize);
+  const hoodWaterCalmRef = useRef(hoodWaterCalm);
   const hoodCuffTopRef = useRef(hoodCuffTop);
   const hoodZipperFixedRef = useRef(hoodZipperFixed);
   const hoodZipperPullOutRef = useRef(hoodZipperPullOut);
@@ -4806,6 +4811,7 @@ export function Aquafulness() {
     hoodCuffOnRef.current = hoodCuffOn;
     hoodCuffHeightRef.current = hoodCuffHeight;
     hoodCuffSizeRef.current = hoodCuffSize;
+    hoodWaterCalmRef.current = hoodWaterCalm;
     hoodCuffTopRef.current = hoodCuffTop;
     hoodZipperFixedRef.current = hoodZipperFixed;
     hoodZipperPullOutRef.current = hoodZipperPullOut;
@@ -4837,6 +4843,7 @@ export function Aquafulness() {
     hoodCuffOn,
     hoodCuffHeight,
     hoodCuffSize,
+    hoodWaterCalm,
     hoodCuffTop,
     hoodZipperFixed,
     hoodZipperPullOut,
@@ -5380,6 +5387,7 @@ export function Aquafulness() {
     setHoodCuffOn(DEFAULTS.hoodCuffOn);
     setHoodCuffHeight(DEFAULTS.hoodCuffHeight);
     setHoodCuffSize(DEFAULTS.hoodCuffSize);
+    setHoodWaterCalm(DEFAULTS.hoodWaterCalm);
     setHoodCuffTop(DEFAULTS.hoodCuffTop);
     setHoodZipperFixed(DEFAULTS.hoodZipperFixed);
     setHoodZipperPullOut(DEFAULTS.hoodZipperPullOut);
@@ -5713,6 +5721,7 @@ export function Aquafulness() {
     if (patch.hoodCuffOn !== undefined) setHoodCuffOn(patch.hoodCuffOn);
     if (patch.hoodCuffHeight !== undefined) setHoodCuffHeight(patch.hoodCuffHeight);
     if (patch.hoodCuffSize !== undefined) setHoodCuffSize(patch.hoodCuffSize);
+    if (patch.hoodWaterCalm !== undefined) setHoodWaterCalm(patch.hoodWaterCalm);
     if (patch.hoodCuffTop !== undefined) setHoodCuffTop(patch.hoodCuffTop);
     if (patch.hoodZipperFixed !== undefined) setHoodZipperFixed(patch.hoodZipperFixed);
     if (patch.hoodZipperPullOut !== undefined) setHoodZipperPullOut(patch.hoodZipperPullOut);
@@ -12012,6 +12021,7 @@ export function Aquafulness() {
                 cuff: hoodCuffOnRef.current,
                 cuffHeight: hoodCuffHeightRef.current,
                 cuffSize: hoodCuffSizeRef.current,
+                waterCalm: hoodWaterCalmRef.current,
                 cuffTop: hoodCuffTopRef.current,
                 zipperFixed: hoodZipperFixedRef.current,
                 zipperPullOut: hoodZipperPullOutRef.current,
@@ -12051,6 +12061,7 @@ export function Aquafulness() {
             cuff: l.cuff,
             cuffHeight: l.cuffHeight,
             cuffSize: l.cuffSize,
+            waterCalm: l.waterCalm,
             cuffTop: l.cuffTop,
             zipperFixed: l.zipperFixed,
             zipperPullOut: l.zipperPullOut,
@@ -12926,6 +12937,7 @@ export function Aquafulness() {
     hoodCuffHeight,
     setHoodCuffHeight,
     hoodCuffSize,
+    hoodWaterCalm,
     hoodCuffTop,
     hoodZipperFixed,
     hoodZipperPullOut,
@@ -12933,6 +12945,7 @@ export function Aquafulness() {
     hoodPuffThickness,
     hoodPuffInflate,
     setHoodCuffSize,
+    setHoodWaterCalm,
     setHoodCuffTop,
     setHoodZipperFixed,
     setHoodZipperPullOut,
