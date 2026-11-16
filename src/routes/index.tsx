@@ -22,6 +22,17 @@ import { RETRO_PALETTE_INDEX, RETRO_SHADER } from "@/lib/sceneFx/retroShader";
 import { limitMax, useExtremeLimits, type LimitedControl } from "@/lib/extremeLimits";
 import { NeonEdges } from "@/lib/sceneFx/NeonEdges";
 import { Aurora } from "@/lib/sceneFx/aurora";
+import {
+  WindField,
+  altitudeMix,
+  getWindAt,
+  hearWind,
+  sanitizeWinds,
+  steerWaveDir,
+  type WindSource,
+} from "@/lib/wind";
+import { WindAudio } from "@/lib/windSound";
+import { WindHudPanel, type WindControls } from "@/components/WindPanel";
 import { UnderwaterFogOverlay, waterlineScreenFraction } from "@/lib/sceneFx/underwaterFog";
 import { OpenDrift } from "@/lib/openDrift";
 import { SnowCover, Snowfall } from "@/lib/sceneFx/snow";
@@ -63,7 +74,7 @@ import {
   type VerticalMode,
 } from "@/components/Joystick";
 import { CameraModeIcon, HudIconButton } from "@/components/HudControls";
-import { FerrisWheel, LifeBuoy, Tornado } from "lucide-react";
+import { FerrisWheel, LifeBuoy, Tornado, Wind } from "lucide-react";
 import { hsvToRgb } from "@/lib/waterTint";
 import AmbientAudio, { resolveNativeAudioSource } from "@/lib/ambientAudio";
 import {
@@ -1544,6 +1555,19 @@ const DEFAULTS: Persisted = {
   surgeSpeed: 0.2,
   surgeRotationMode: "cw",
   surgeRotationSpeed: 2,
+  // VIND (lib/wind.ts): no winds until one is added from the VIND button;
+  // its effects and sound are on so a new wind works right away. HÖJDLJUD
+  // is on by default.
+  winds: [],
+  windWavesOn: true,
+  windWaveStrength: 1,
+  windSwayOn: true,
+  windSwayStrength: 1,
+  windCurrentOn: true,
+  windCurrentStrength: 1,
+  windSoundOn: true,
+  windSoundVolume: 0.6,
+  windAltitudeAudioOn: true,
   // HAVSDRIFT: endless open-water drift (lib/openDrift.ts), off by default.
   openDriftOn: false,
   openDriftCurve: "circle",
@@ -2286,6 +2310,17 @@ export function Aquafulness() {
     initial.surgeRotationMode,
   );
   const [surgeRotationSpeed, setSurgeRotationSpeed] = useState(initial.surgeRotationSpeed);
+  const [winds, setWinds] = useState<WindSource[]>(() => sanitizeWinds(initial.winds));
+  const [windWavesOn, setWindWavesOn] = useState(initial.windWavesOn);
+  const [windWaveStrength, setWindWaveStrength] = useState(initial.windWaveStrength);
+  const [windSwayOn, setWindSwayOn] = useState(initial.windSwayOn);
+  const [windSwayStrength, setWindSwayStrength] = useState(initial.windSwayStrength);
+  const [windCurrentOn, setWindCurrentOn] = useState(initial.windCurrentOn);
+  const [windCurrentStrength, setWindCurrentStrength] = useState(initial.windCurrentStrength);
+  const [windSoundOn, setWindSoundOn] = useState(initial.windSoundOn);
+  const [windSoundVolume, setWindSoundVolume] = useState(initial.windSoundVolume);
+  const [windAltitudeAudioOn, setWindAltitudeAudioOn] = useState(initial.windAltitudeAudioOn);
+  const [windPanelOpen, setWindPanelOpen] = useState(false);
   const [openDriftOn, setOpenDriftOn] = useState(initial.openDriftOn);
   const [openDriftCurve, setOpenDriftCurve] = useState(initial.openDriftCurve);
   const [openDriftRadius, setOpenDriftRadius] = useState(initial.openDriftRadius);
@@ -3188,6 +3223,16 @@ export function Aquafulness() {
     surgeSpeed,
     surgeRotationMode,
     surgeRotationSpeed,
+    winds,
+    windWavesOn,
+    windWaveStrength,
+    windSwayOn,
+    windSwayStrength,
+    windCurrentOn,
+    windCurrentStrength,
+    windSoundOn,
+    windSoundVolume,
+    windAltitudeAudioOn,
     openDriftOn,
     openDriftCurve,
     openDriftRadius,
@@ -3525,6 +3570,16 @@ export function Aquafulness() {
     surgeSpeed,
     surgeRotationMode,
     surgeRotationSpeed,
+    winds,
+    windWavesOn,
+    windWaveStrength,
+    windSwayOn,
+    windSwayStrength,
+    windCurrentOn,
+    windCurrentStrength,
+    windSoundOn,
+    windSoundVolume,
+    windAltitudeAudioOn,
     openDriftOn,
     openDriftCurve,
     openDriftRadius,
@@ -4163,6 +4218,21 @@ export function Aquafulness() {
   const surgeSpeedRef = useRef(surgeSpeed);
   const surgeRotationModeRef = useRef(surgeRotationMode);
   const surgeRotationSpeedRef = useRef(surgeRotationSpeed);
+  const windsRef = useRef(winds);
+  const windWavesOnRef = useRef(windWavesOn);
+  const windWaveStrengthRef = useRef(windWaveStrength);
+  const windSwayOnRef = useRef(windSwayOn);
+  const windSwayStrengthRef = useRef(windSwayStrength);
+  const windCurrentOnRef = useRef(windCurrentOn);
+  const windCurrentStrengthRef = useRef(windCurrentStrength);
+  const windSoundOnRef = useRef(windSoundOn);
+  const windSoundVolumeRef = useRef(windSoundVolume);
+  const windAltitudeAudioOnRef = useRef(windAltitudeAudioOn);
+  // Camera yaw read by the VIND panel's arrows and its MOT MIG/MED MIG.
+  const getWindViewBearing = useCallback(
+    () => ((((yawRef.current * 180) / Math.PI + 180) % 360) + 360) % 360,
+    [],
+  );
   const openDriftOnRef = useRef(openDriftOn);
   const openDriftCurveRef = useRef(openDriftCurve);
   const openDriftRadiusRef = useRef(openDriftRadius);
@@ -4587,6 +4657,18 @@ export function Aquafulness() {
   useEffect(() => {
     surgeRotationSpeedRef.current = surgeRotationSpeed;
   }, [surgeRotationSpeed]);
+  useEffect(() => {
+    windsRef.current = winds;
+    windWavesOnRef.current = windWavesOn;
+    windWaveStrengthRef.current = windWaveStrength;
+    windSwayOnRef.current = windSwayOn;
+    windSwayStrengthRef.current = windSwayStrength;
+    windCurrentOnRef.current = windCurrentOn;
+    windCurrentStrengthRef.current = windCurrentStrength;
+    windSoundOnRef.current = windSoundOn;
+    windSoundVolumeRef.current = windSoundVolume;
+    windAltitudeAudioOnRef.current = windAltitudeAudioOn;
+  }, [winds, windWavesOn, windWaveStrength, windSwayOn, windSwayStrength, windCurrentOn, windCurrentStrength, windSoundOn, windSoundVolume, windAltitudeAudioOn]);
   useEffect(() => {
     openDriftOnRef.current = openDriftOn;
     openDriftCurveRef.current = openDriftCurve;
@@ -5468,6 +5550,16 @@ export function Aquafulness() {
     setSurgeSpeed(DEFAULTS.surgeSpeed);
     setSurgeRotationMode(DEFAULTS.surgeRotationMode);
     setSurgeRotationSpeed(DEFAULTS.surgeRotationSpeed);
+    setWinds(DEFAULTS.winds);
+    setWindWavesOn(DEFAULTS.windWavesOn);
+    setWindWaveStrength(DEFAULTS.windWaveStrength);
+    setWindSwayOn(DEFAULTS.windSwayOn);
+    setWindSwayStrength(DEFAULTS.windSwayStrength);
+    setWindCurrentOn(DEFAULTS.windCurrentOn);
+    setWindCurrentStrength(DEFAULTS.windCurrentStrength);
+    setWindSoundOn(DEFAULTS.windSoundOn);
+    setWindSoundVolume(DEFAULTS.windSoundVolume);
+    setWindAltitudeAudioOn(DEFAULTS.windAltitudeAudioOn);
     setOpenDriftOn(DEFAULTS.openDriftOn);
     setOpenDriftCurve(DEFAULTS.openDriftCurve);
     setOpenDriftRadius(DEFAULTS.openDriftRadius);
@@ -5812,6 +5904,16 @@ export function Aquafulness() {
     if (patch.surgeSpeed !== undefined) setSurgeSpeed(patch.surgeSpeed);
     if (patch.surgeRotationMode !== undefined) setSurgeRotationMode(patch.surgeRotationMode);
     if (patch.surgeRotationSpeed !== undefined) setSurgeRotationSpeed(patch.surgeRotationSpeed);
+    if (patch.winds !== undefined) setWinds(sanitizeWinds(patch.winds));
+    if (patch.windWavesOn !== undefined) setWindWavesOn(patch.windWavesOn);
+    if (patch.windWaveStrength !== undefined) setWindWaveStrength(patch.windWaveStrength);
+    if (patch.windSwayOn !== undefined) setWindSwayOn(patch.windSwayOn);
+    if (patch.windSwayStrength !== undefined) setWindSwayStrength(patch.windSwayStrength);
+    if (patch.windCurrentOn !== undefined) setWindCurrentOn(patch.windCurrentOn);
+    if (patch.windCurrentStrength !== undefined) setWindCurrentStrength(patch.windCurrentStrength);
+    if (patch.windSoundOn !== undefined) setWindSoundOn(patch.windSoundOn);
+    if (patch.windSoundVolume !== undefined) setWindSoundVolume(patch.windSoundVolume);
+    if (patch.windAltitudeAudioOn !== undefined) setWindAltitudeAudioOn(patch.windAltitudeAudioOn);
     if (patch.openDriftOn !== undefined) setOpenDriftOn(patch.openDriftOn);
     if (patch.openDriftCurve !== undefined) setOpenDriftCurve(patch.openDriftCurve);
     if (patch.openDriftRadius !== undefined) setOpenDriftRadius(patch.openDriftRadius);
@@ -9101,6 +9203,18 @@ export function Aquafulness() {
     // NORRSKEN: northern lights curtains, at infinity like the sky dome and
     // drawn behind everything in the scene (see lib/sceneFx/aurora.ts).
     const aurora = new Aurora(scene);
+
+    // VIND: the live wind (lib/wind.ts) and its sound (lib/windSound.ts).
+    const windField = new WindField();
+    const windAudio = new WindAudio();
+    const windCamPrev = new THREE.Vector3();
+    let windCamPrevOk = false;
+    const windCamVel = { x: 0, z: 0 };
+    const windFwd = new THREE.Vector3();
+    let windSwayOff = { x: 0, z: 0 };
+    // True while the wave direction is steered by the wind (or still easing
+    // back), so the CPU wave sampling follows the shader's uDir.
+    let windSteersWaves = false;
     // UNDERVATTENDIS: drives the fog gradient overlay element (DOM, not GL).
     const underwaterFog = new UnderwaterFogOverlay();
     let underwaterFogEl: HTMLDivElement | null = null;
@@ -9335,11 +9449,20 @@ export function Aquafulness() {
       uniforms.uSkew.value += (heaveSkewRef.current - uniforms.uSkew.value) * Math.min(1, dt * 4);
       // Wave direction stored in degrees; smoothly interpolate the shortest
       // angular path so wrapping around 360° doesn't spin the ocean.
+      // VIND: update the live wind first; VÅGRIKTNING steers the waves
+      // toward where it blows (lib/wind.ts steerWaveDir).
       {
-        const targetRad = (waveDirRef.current * Math.PI) / 180;
+        const wind = windField.update(dt, windsRef.current);
+        windSwayOff = windField.sway(dt, windSwayOnRef.current, windSwayStrengthRef.current);
+        const steer = windWavesOnRef.current && wind.speed > 0.05;
+        const targetRad = steer
+          ? steerWaveDir(waveDirRef.current, wind, windWaveStrengthRef.current)
+          : (waveDirRef.current * Math.PI) / 180;
         let delta = targetRad - uniforms.uDir.value;
         delta = Math.atan2(Math.sin(delta), Math.cos(delta));
-        uniforms.uDir.value += delta * Math.min(1, dt * 4);
+        // Wind turns the swell slowly; the dial itself stays snappy.
+        uniforms.uDir.value += delta * Math.min(1, dt * (steer ? 0.6 : 4));
+        windSteersWaves = steer || (windSteersWaves && Math.abs(delta) > 0.002);
       }
 
       // Graceful TORNADO spin-up/spin-down: two continuous blends (0 = fully
@@ -9811,7 +9934,9 @@ export function Aquafulness() {
       // CLOUD block further down — which runs before that point in the frame
       // — can also sample the real wave height (see tornadoWaterHeightAt
       // there).
-      const dirRad = (waveDirRef.current * Math.PI) / 180;
+      const dirRad = windSteersWaves
+        ? uniforms.uDir.value
+        : (waveDirRef.current * Math.PI) / 180;
       // NAV: m/s at full deflection — 16 with EXTREME, ~25 % (4) without.
       const extremeNow = extremeLimitsRef.current;
       const walkSpeed = limitMax("navSpeed", extremeNow);
@@ -10441,6 +10566,24 @@ export function Aquafulness() {
         }
       }
 
+      // VIND STRÖM: a wind-driven surface current (~3.5 % of the wind
+      // speed, downwind) carrying posRef and the camera together, so it
+      // never turns the view. GUNGA's pendulum owns camX/camZ, so it's
+      // skipped there.
+      {
+        const d = windField.current(
+          physDt,
+          windCurrentOnRef.current && camMode !== "swing",
+          windCurrentStrengthRef.current,
+        );
+        if (d.dx !== 0 || d.dz !== 0) {
+          posRef.current.x += d.dx;
+          posRef.current.z += d.dz;
+          camX += d.dx;
+          camZ += d.dz;
+        }
+      }
+
       // VÄRLDSGRÄNS (world boundary): wrap x/z to the opposite edge once the
       // camera crosses ±worldBoundarySize — invisible below since the ocean/
       // floor/cloud planes recenter on the camera every frame regardless of
@@ -10977,6 +11120,11 @@ export function Aquafulness() {
           swayTargetZ += padAmp * dirZ * heaveNorm;
         }
 
+        // VIND SVAJ: the wind leans the floating body downwind, breathing
+        // with the gusts, through the same sway spring.
+        swayTargetX += windSwayOff.x;
+        swayTargetZ += windSwayOff.z;
+
         // Ease toward the sway target with a light spring instead of snapping
         // straight to it every frame. Without this the horizontal sway was
         // rigidly locked to the analytic wave value — perfectly synced, but
@@ -11038,6 +11186,10 @@ export function Aquafulness() {
             swayTargetX += padAmp * dirX * heaveNorm;
             swayTargetZ += padAmp * dirZ * heaveNorm;
           }
+        }
+        if (stillNow && noclipSwayOnRef.current) {
+          swayTargetX += windSwayOff.x;
+          swayTargetZ += windSwayOff.z;
         }
         const swK = 5 + 20 * Math.max(0.05, swaySpeedRef.current);
         const swZeta = 0.6;
@@ -11530,6 +11682,11 @@ export function Aquafulness() {
       // Sync audio intensity with depth below surface — only when spatial
       // audio is enabled. Default: constant volume with no filtering.
       const depth = surfaceY - camY; // positive when underwater
+      // HÖJDLJUD: above the water the water track fades out as the camera
+      // rises (lib/wind.ts altitudeMix), handing over to surface noise and
+      // then wind (the VIND block below).
+      const windAlt = altitudeMix(-depth);
+      const altWater = windAltitudeAudioOnRef.current ? windAlt.water : 1;
       const a = audioRef.current;
       if (a?.kind === "native") {
         if (now - lastNativeDepthSyncMsRef.current >= 100) {
@@ -11544,7 +11701,7 @@ export function Aquafulness() {
               ? Math.max(18000 - 4000 * depth, 500)
               : 18000
             : 18000;
-          AmbientAudio.setDepth({ gain: depthMult, lowpass: lpFreq }).catch(() => {
+          AmbientAudio.setDepth({ gain: depthMult * altWater, lowpass: lpFreq }).catch(() => {
             /* noop */
           });
         }
@@ -11553,14 +11710,55 @@ export function Aquafulness() {
         if (audioSpatialRef.current) {
           // deeper -> louder (up to ~2.5x), faster ramp
           const depthMult = depth > 0 ? Math.min(1 + 0.35 * depth, 2.5) : 1;
-          a.depthGain.gain.setTargetAtTime(depthMult, audioNow, 0.12);
+          a.depthGain.gain.setTargetAtTime(depthMult * altWater, audioNow, 0.12);
           // deeper -> more muffled (lowpass closes)
           const lpFreq = depth > 0 ? Math.max(18000 - 4000 * depth, 500) : 18000;
           a.lp.frequency.setTargetAtTime(lpFreq, audioNow, 0.15);
         } else {
-          a.depthGain.gain.setTargetAtTime(1, audioNow, 0.2);
+          a.depthGain.gain.setTargetAtTime(altWater, audioNow, 0.2);
           a.lp.frequency.setTargetAtTime(18000, audioNow, 0.2);
         }
+      }
+
+      // VIND sound: the air rushing past the ears — the wind at this height
+      // minus the camera's own motion (running into the wind is louder),
+      // panned and brightened by where it meets the head. HÖJDLJUD adds
+      // the surface noise just above the water and a breeze that grows
+      // with altitude.
+      {
+        const cp = camera.position;
+        if (windCamPrevOk && dt > 0) {
+          const vx = (cp.x - windCamPrev.x) / dt;
+          const vz = (cp.z - windCamPrev.z) / dt;
+          // Ignore teleports (VÄRLDSGRÄNS wrap, respawn).
+          if (Math.hypot(vx, vz) < 400) {
+            const k = 1 - Math.exp(-dt / 0.25);
+            windCamVel.x += (vx - windCamVel.x) * k;
+            windCamVel.z += (vz - windCamVel.z) * k;
+          }
+        }
+        windCamPrev.copy(cp);
+        windCamPrevOk = true;
+        const altOn = windAltitudeAudioOnRef.current;
+        const soundOn = windSoundOnRef.current;
+        const h = -depth;
+        const w = getWindAt(h);
+        camera.getWorldDirection(windFwd);
+        const hearing = hearWind(
+          soundOn ? w : { x: 0, z: 0 },
+          windCamVel,
+          { x: windFwd.x, z: windFwd.z },
+          altOn ? windAlt.breeze : 0,
+        );
+        windAudio.update({
+          enabled: (soundOn || altOn) && fireworksAudioOnRef.current,
+          volume: windSoundVolumeRef.current,
+          hearing,
+          // Own motion alone (no winds, no HÖJDLJUD) makes no wind sound.
+          windLevel: (soundOn && w.speed > 0.05) || (altOn && windAlt.breeze > 0.05) ? 1 : 0,
+          surfaceLevel: altOn ? windAlt.surface : 0,
+          underwater: depth > 0 ? Math.min(1, depth / 0.6) : 0,
+        });
       }
 
       // Underwater tone-down factor: fades color/contrast as camera dips below surface.
@@ -12172,6 +12370,8 @@ export function Aquafulness() {
       composer.dispose();
       neonEdges.dispose();
       aurora.dispose();
+      windAudio.dispose();
+      windField.reset();
       snowfall.dispose();
       fireworks.dispose();
       confetti.dispose();
@@ -12614,7 +12814,31 @@ export function Aquafulness() {
   // shared with the identical clone rendered as the "Inställningar" app
   // inside the virtual phone (see VirtualPhone.tsx's settingsPanelProps prop
   // and SettingsPanel.tsx, which both hosts render unchanged).
+  const windControls: WindControls = {
+    winds,
+    setWinds,
+    windWavesOn,
+    setWindWavesOn,
+    windWaveStrength,
+    setWindWaveStrength,
+    windSwayOn,
+    setWindSwayOn,
+    windSwayStrength,
+    setWindSwayStrength,
+    windCurrentOn,
+    setWindCurrentOn,
+    windCurrentStrength,
+    setWindCurrentStrength,
+    windSoundOn,
+    setWindSoundOn,
+    windSoundVolume,
+    setWindSoundVolume,
+    windAltitudeAudioOn,
+    setWindAltitudeAudioOn,
+    getViewBearing: getWindViewBearing,
+  };
   const settingsPanelProps: SettingsPanelProps = {
+    wind: windControls,
     settingsTab,
     setSettingsTab,
     restoreCameraPosition,
@@ -13612,7 +13836,10 @@ export function Aquafulness() {
           </button>
 
           <button
-            onClick={() => setSettingsOpen((s) => !s)}
+            onClick={() => {
+              setWindPanelOpen(false);
+              setSettingsOpen((s) => !s);
+            }}
             className={`pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur-md transition active:scale-95 ${
               settingsOpen ? "ui-line-3 ui-tint-2 ui-ink" : "ui-line-2 ui-surface ui-ink ui-press"
             }`}
@@ -13816,7 +14043,23 @@ export function Aquafulness() {
           >
             <LifeBuoy className="h-5 w-5" strokeWidth={1.6} aria-hidden="true" />
           </HudIconButton>
+          {/* VIND: opens the wind panel, where winds are added, aimed and
+              tuned (components/WindPanel.tsx). Lit while any wind blows. */}
+          <HudIconButton
+            label={t("wind.title")}
+            ariaLabel={t("wind.openAria")}
+            active={windPanelOpen || winds.some((w) => w.on && w.speed > 0)}
+            onClick={() => {
+              setSettingsOpen(false);
+              setWindPanelOpen((v) => !v);
+            }}
+          >
+            <Wind className="h-5 w-5" strokeWidth={1.6} aria-hidden="true" />
+          </HudIconButton>
         </div>
+        {windPanelOpen && (
+          <WindHudPanel c={windControls} onClose={() => setWindPanelOpen(false)} />
+        )}
         <ShareBathDialog
           open={shareBathOpen}
           onClose={() => setShareBathOpen(false)}

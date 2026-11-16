@@ -1259,5 +1259,40 @@
       "legacy": "LEGACY",
       "standard": "STANDARDI"
     }
+  },
+  "wind": {
+    "title": "TUULI",
+    "openAria": "Avaa tuulipaneeli",
+    "add": "+ LISÄÄ TUULI",
+    "empty": "Ei vielä tuulia. Napauta LISÄÄ TUULI — uusi tuuli puhaltaa suoraan sinua kohti, sitten voit kääntää sitä.",
+    "total": "YHTEENSÄ",
+    "windN": "TUULI {{n}}",
+    "direction": "SUUNTA",
+    "speed": "TUULEN NOPEUS",
+    "gust": "PUUSKAISUUS",
+    "headwind": "MINUA KOHTI",
+    "tailwind": "MYÖTÄTUULI",
+    "remove": "POISTA",
+    "waves": "TUULI → AALTOJEN SUUNTA",
+    "wavesStrength": "AALTOJEN OHJAUS",
+    "sway": "TUULI → HUOJUNTA",
+    "swayStrength": "HUOJUNNAN VOIMA",
+    "current": "TUULI → VIRTA",
+    "currentStrength": "VIRRAN VOIMA",
+    "sound": "TUULEN ÄÄNI",
+    "altitudeAudio": "KORKEUSÄÄNI",
+    "soundVolume": "TUULEN VOIMAKKUUS",
+    "soundHint": "Tuulen ääni riippuu tuulen nopeudesta ja suunnasta sekä siitä, kuinka nopeasti liikut sitä vastaan. KORKEUSÄÄNI: veden yläpuolella veden ääni vaihtuu kohinaksi, joka hiipuu ylempänä, missä tuuli puhaltaa voimakkaammin. Vaatii ÄÄNEN.",
+    "compass": {
+      "n": "P",
+      "ne": "KO",
+      "e": "I",
+      "se": "KA",
+      "s": "E",
+      "sw": "LO",
+      "w": "L",
+      "nw": "LU"
+    },
+    "from": "SUUNNASTA"
   }
 }
