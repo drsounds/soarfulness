@@ -82,6 +82,8 @@ export type HoodLayer = {
   cuffMaterial: HoodCuffMaterial;
   /** HÄNGER FRÅN TOPPEN: top follows you, heavy bottom lags and twists (off = rigid sway, the old look). */
   hanging: boolean;
+  /** SKUGGA PÅ VYN: the old soft shadow on the view inside the opening (off by default). */
+  viewShadow: boolean;
   /** BLIXTLÅS FÄST I TYGET: zipper teeth follow the cloth (off = fixed to the view, the old look). */
   zipperFixed: boolean;
   /** DRAGARE PÅ UTSIDAN: pull tab on the outside (off = pull hanging inside, the old look). */
@@ -126,6 +128,7 @@ export const HOOD_LAYER_DEFAULTS: HoodLayer = {
   cuffMetallic: 0.15,
   cuffMaterial: "knit",
   hanging: true,
+  viewShadow: false,
   zipperFixed: true,
   zipperPullOut: true,
 };
@@ -151,7 +154,7 @@ const NUMBER_KEYS = [
   "cuffSize",
   "cuffMetallic",
 ] as const;
-const BOOL_KEYS = ["on", "lowerOn", "zipperOn", "waterOn", "cuff", "reflectLight", "cuffTop", "cuffCustom", "hanging", "zipperFixed", "zipperPullOut"] as const;
+const BOOL_KEYS = ["on", "lowerOn", "zipperOn", "waterOn", "cuff", "reflectLight", "cuffTop", "cuffCustom", "hanging", "viewShadow", "zipperFixed", "zipperPullOut"] as const;
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 

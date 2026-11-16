@@ -1485,6 +1485,7 @@ const DEFAULTS: Persisted = {
   hoodCuffOn: false,
   hoodCuffHeight: 0.3,
   hoodCuffSize: 0.5,
+  hoodViewShadow: false,
   hoodCuffCustom: false,
   hoodCuffColor: "#1f2a40",
   hoodCuffMetallic: 0.15,
@@ -2205,6 +2206,7 @@ export function Aquafulness() {
   const [hoodCuffOn, setHoodCuffOn] = useState(initial.hoodCuffOn);
   const [hoodCuffHeight, setHoodCuffHeight] = useState(initial.hoodCuffHeight);
   const [hoodCuffSize, setHoodCuffSize] = useState(initial.hoodCuffSize);
+  const [hoodViewShadow, setHoodViewShadow] = useState(initial.hoodViewShadow);
   const [hoodCuffCustom, setHoodCuffCustom] = useState(initial.hoodCuffCustom);
   const [hoodCuffColor, setHoodCuffColor] = useState(initial.hoodCuffColor);
   const [hoodCuffMetallic, setHoodCuffMetallic] = useState(initial.hoodCuffMetallic);
@@ -3194,6 +3196,7 @@ export function Aquafulness() {
     hoodCuffOn,
     hoodCuffHeight,
     hoodCuffSize,
+    hoodViewShadow,
     hoodCuffCustom,
     hoodCuffColor,
     hoodCuffMetallic,
@@ -3546,6 +3549,7 @@ export function Aquafulness() {
     hoodCuffOn,
     hoodCuffHeight,
     hoodCuffSize,
+    hoodViewShadow,
     hoodCuffCustom,
     hoodCuffColor,
     hoodCuffMetallic,
@@ -4105,6 +4109,7 @@ export function Aquafulness() {
   const hoodCuffOnRef = useRef(hoodCuffOn);
   const hoodCuffHeightRef = useRef(hoodCuffHeight);
   const hoodCuffSizeRef = useRef(hoodCuffSize);
+  const hoodViewShadowRef = useRef(hoodViewShadow);
   const hoodCuffCustomRef = useRef(hoodCuffCustom);
   const hoodCuffColorRef = useRef(hoodCuffColor);
   const hoodCuffMetallicRef = useRef(hoodCuffMetallic);
@@ -4952,6 +4957,7 @@ export function Aquafulness() {
     hoodCuffOnRef.current = hoodCuffOn;
     hoodCuffHeightRef.current = hoodCuffHeight;
     hoodCuffSizeRef.current = hoodCuffSize;
+    hoodViewShadowRef.current = hoodViewShadow;
     hoodCuffCustomRef.current = hoodCuffCustom;
     hoodCuffColorRef.current = hoodCuffColor;
     hoodCuffMetallicRef.current = hoodCuffMetallic;
@@ -4989,6 +4995,7 @@ export function Aquafulness() {
     hoodCuffOn,
     hoodCuffHeight,
     hoodCuffSize,
+    hoodViewShadow,
     hoodCuffCustom,
     hoodCuffColor,
     hoodCuffMetallic,
@@ -5538,6 +5545,7 @@ export function Aquafulness() {
     setHoodCuffOn(DEFAULTS.hoodCuffOn);
     setHoodCuffHeight(DEFAULTS.hoodCuffHeight);
     setHoodCuffSize(DEFAULTS.hoodCuffSize);
+    setHoodViewShadow(DEFAULTS.hoodViewShadow);
     setHoodCuffCustom(DEFAULTS.hoodCuffCustom);
     setHoodCuffColor(DEFAULTS.hoodCuffColor);
     setHoodCuffMetallic(DEFAULTS.hoodCuffMetallic);
@@ -5889,6 +5897,7 @@ export function Aquafulness() {
     if (patch.hoodCuffOn !== undefined) setHoodCuffOn(patch.hoodCuffOn);
     if (patch.hoodCuffHeight !== undefined) setHoodCuffHeight(patch.hoodCuffHeight);
     if (patch.hoodCuffSize !== undefined) setHoodCuffSize(patch.hoodCuffSize);
+    if (patch.hoodViewShadow !== undefined) setHoodViewShadow(patch.hoodViewShadow);
     if (patch.hoodCuffCustom !== undefined) setHoodCuffCustom(patch.hoodCuffCustom);
     if (patch.hoodCuffColor !== undefined) setHoodCuffColor(patch.hoodCuffColor);
     if (patch.hoodCuffMetallic !== undefined) setHoodCuffMetallic(patch.hoodCuffMetallic);
@@ -12318,6 +12327,7 @@ export function Aquafulness() {
                 cuff: hoodCuffOnRef.current,
                 cuffHeight: hoodCuffHeightRef.current,
                 cuffSize: hoodCuffSizeRef.current,
+                viewShadow: hoodViewShadowRef.current,
                 cuffCustom: hoodCuffCustomRef.current,
                 cuffColor: hoodCuffColorRef.current,
                 cuffMetallic: hoodCuffMetallicRef.current,
@@ -12363,6 +12373,7 @@ export function Aquafulness() {
             cuff: l.cuff,
             cuffHeight: l.cuffHeight,
             cuffSize: l.cuffSize,
+            viewShadow: l.viewShadow,
             cuffCustom: l.cuffCustom,
             cuffColor: l.cuffColor,
             cuffMetallic: l.cuffMetallic,
@@ -13270,6 +13281,7 @@ export function Aquafulness() {
     hoodCuffHeight,
     setHoodCuffHeight,
     hoodCuffSize,
+    hoodViewShadow,
     hoodCuffCustom,
     hoodCuffColor,
     hoodCuffMetallic,
@@ -13283,6 +13295,7 @@ export function Aquafulness() {
     hoodPuffThickness,
     hoodPuffInflate,
     setHoodCuffSize,
+    setHoodViewShadow,
     setHoodCuffCustom,
     setHoodCuffColor,
     setHoodCuffMetallic,
