@@ -60,6 +60,16 @@ export type HoodConfig = {
   cuff: boolean;
   cuffHeight: number;
   cuffSize: number;
+  /**
+   * MUDD VID HALSKANT: the cuff runs along the top edge of the funnel neck
+   * (the opening's lower edge), pinned to the cloth. Off: the old band along
+   * the bottom of the view.
+   */
+  cuffTop: boolean;
+  /** BLIXTLÅS FÄST I TYGET: the zipper's teeth move with the cloth, not the view. */
+  zipperFixed: boolean;
+  /** DRAGARE PÅ UTSIDAN: the pull tab sits on the outside; from inside only the slider's back shows. */
+  zipperPullOut: boolean;
   /** Eye height above the water surface at the bather (m, negative under water). */
   eyeAboveWater: number;
   /** "#rrggbb" fabric color (FÄRG). */
@@ -117,6 +127,9 @@ const FRAG = /* glsl */ `
   uniform float uCuff;
   uniform float uCuffHeight;
   uniform float uCuffSize;
+  uniform float uCuffTop;
+  uniform float uZipFixed;
+  uniform float uZipPullOut;
   uniform float uMetal;
   uniform vec3 uColor;
   uniform vec3 uSky;
@@ -249,7 +262,21 @@ const FRAG = /* glsl */ `
     // bottom with MUN OCH HALS, else along the sides' bottom edge).
     // MUDDHÖJD sets the band's height, RIBBSTORLEK the ribs' width.
     gCuff = 0.0;
-    if (uCuff > 0.5) {
+    if (uCuff > 0.5 && uCuffTop > 0.5) {
+      // MUDD VID HALSKANT: a ribbed band along the opening's lower edge (the
+      // top of the funnel neck), hanging down from it into the cloth. It is
+      // laid out around the opening's center, so it moves with the cloth;
+      // it tapers off where the sides turn up into the hood.
+      float H = mix(0.06, 0.45, clamp(uCuffHeight, 0.0, 1.0));
+      float Hq = H * (1.0 - smoothstep(-0.4, -0.02, q.y));
+      float x = clamp(t / max(Hq, 1e-3), 0.0, 1.0);
+      float mask = (1.0 - smoothstep(Hq - 0.006, Hq, t)) * step(0.0, t) * step(0.002, Hq);
+      float freq = mix(240.0, 50.0, clamp(uCuffSize, 0.0, 1.0));
+      float ribs = 0.011 * (0.5 + 0.5 * cos(ang * freq * 0.35));
+      // The band keeps the cloth's own curve, with a rolled, ribbed bulge.
+      h += (sin(3.14159 * x) * 0.03 + ribs) * mask;
+      gCuff = mask;
+    } else if (uCuff > 0.5) {
       float cuffV = uLower > 0.5 ? p.y + 1.0 - uSway.y * 0.5 : cut;
       float H = mix(0.06, 0.45, clamp(uCuffHeight, 0.0, 1.0));
       float x = clamp(cuffV / H, 0.0, 1.0);
@@ -381,7 +408,10 @@ const FRAG = /* glsl */ `
     if (uLower > 0.5 && uZipper > 0.5) {
       vec2 zc = vec2(uSway.x, 0.04 + uSway.y);
       float edgeY = mix(-0.92, -0.05, uLowerHeight) + uSway.y;
-      float zx = p.x - zc.x - 0.005 * sin(p.y * 5.0 + uTime * 0.8) * uMotion;
+      // BLIXTLÅS FÄST I TYGET: lay the teeth out in the cloth's own frame
+      // (it sways with the hood) instead of the screen's.
+      float zy = uZipFixed > 0.5 ? p.y - uSway.y : p.y;
+      float zx = p.x - zc.x - 0.005 * sin(zy * 5.0 + uTime * 0.8) * uMotion;
       float top = edgeY - HEM * 0.35;
       float aa = max(fwidth(p.x), 1e-4);
       if (p.y < top + 0.01) {
@@ -391,7 +421,7 @@ const FRAG = /* glsl */ `
         col = mix(col, col * 0.55, tape);
         // Teeth, alternating from each side and interlocking at the middle.
         float period = 0.036;
-        float k = p.y / period;
+        float k = zy / period;
         float side = mod(floor(k), 2.0) * 2.0 - 1.0;
         float fy = fract(k);
         float tooth = (1.0 - smoothstep(0.026 - aa, 0.026, abs(zx))) *
@@ -400,9 +430,11 @@ const FRAG = /* glsl */ `
         vec3 nT = normalize(vec3(zx * 12.0, (fy - 0.5) * 1.2, 1.0));
         col = mix(col, metalShade(nT, V, L) * 0.9, tooth);
       }
-      // Slider body just under the cover's top edge, and the pull hanging off it.
+      // Slider body just under the cover's top edge, and the pull hanging off
+      // it. DRAGARE PÅ UTSIDAN: the pull is on the outside of the cloth, so
+      // from inside only the slider's plain back plate shows.
       vec2 sp = vec2(zx, p.y - (top - 0.05));
-      vec2 sd = abs(sp) - vec2(0.036, 0.05);
+      vec2 sd = abs(sp) - (uZipPullOut > 0.5 ? vec2(0.03, 0.042) : vec2(0.036, 0.05));
       float slider = 1.0 - smoothstep(-aa, aa, length(max(sd, 0.0)) + min(max(sd.x, sd.y), 0.0) - 0.006);
       float swing = uSway.x * 2.0 + 0.06 * sin(uTime * 1.4) * uMotion;
       vec2 pp = vec2(zx + (p.y - (top - 0.1)) * swing, p.y - (top - 0.19));
@@ -412,8 +444,13 @@ const FRAG = /* glsl */ `
       pull *= 1.0 - hole;
       vec3 nS = normalize(vec3(sp.x * 10.0, sp.y * 4.0, 1.0));
       vec3 nP = normalize(vec3(pp.x * 25.0, 0.2, 1.0));
-      col = mix(col, metalShade(nS, V, L), slider);
-      col = mix(col, metalShade(nP, V, L) * 0.95, pull);
+      if (uZipPullOut > 0.5) {
+        vec3 nB = normalize(vec3(sp.x * 4.0, sp.y * 2.0, 1.0));
+        col = mix(col, metalShade(nB, V, L) * 0.8, slider);
+      } else {
+        col = mix(col, metalShade(nS, V, L), slider);
+        col = mix(col, metalShade(nP, V, L) * 0.95, pull);
+      }
     }
 
     if (uWaterIn > 0.5) {
@@ -474,6 +511,9 @@ export class Hood {
     uCuff: { value: number };
     uCuffHeight: { value: number };
     uCuffSize: { value: number };
+    uCuffTop: { value: number };
+    uZipFixed: { value: number };
+    uZipPullOut: { value: number };
     uMetal: { value: number };
     uColor: { value: THREE.Color };
     uSky: { value: THREE.Color };
@@ -527,6 +567,9 @@ export class Hood {
       uCuff: { value: 0 },
       uCuffHeight: { value: 0.3 },
       uCuffSize: { value: 0.5 },
+      uCuffTop: { value: 1 },
+      uZipFixed: { value: 1 },
+      uZipPullOut: { value: 1 },
       uMetal: { value: 0.5 },
       uColor: { value: new THREE.Color() },
       uSky: { value: new THREE.Color() },
@@ -590,6 +633,9 @@ export class Hood {
     u.uCuff.value = cfg.cuff ? 1 : 0;
     u.uCuffHeight.value = THREE.MathUtils.clamp(cfg.cuffHeight, 0, 1);
     u.uCuffSize.value = THREE.MathUtils.clamp(cfg.cuffSize, 0, 1);
+    u.uCuffTop.value = cfg.cuffTop === false ? 0 : 1;
+    u.uZipFixed.value = cfg.zipperFixed === false ? 0 : 1;
+    u.uZipPullOut.value = cfg.zipperPullOut === false ? 0 : 1;
     u.uWaterLevelIn.value = THREE.MathUtils.clamp(cfg.waterInsideLevel, 0, 1);
     u.uEyeAbove.value = Number.isFinite(cfg.eyeAboveWater) ? cfg.eyeAboveWater : 1;
     u.uLowerHeight.value = THREE.MathUtils.clamp(cfg.lowerHeight, 0, 1);

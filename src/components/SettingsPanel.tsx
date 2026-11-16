@@ -803,10 +803,16 @@ export type SettingsPanelProps = {
   hoodCuffHeight: number;
   setHoodCuffHeight: Dispatch<SetStateAction<number>>;
   hoodCuffSize: number;
+  hoodCuffTop: boolean;
+  hoodZipperFixed: boolean;
+  hoodZipperPullOut: boolean;
   hoodReflectLight: boolean;
   hoodPuffThickness: number;
   hoodPuffInflate: number;
   setHoodCuffSize: Dispatch<SetStateAction<number>>;
+  setHoodCuffTop: Dispatch<SetStateAction<boolean>>;
+  setHoodZipperFixed: Dispatch<SetStateAction<boolean>>;
+  setHoodZipperPullOut: Dispatch<SetStateAction<boolean>>;
   setHoodReflectLight: Dispatch<SetStateAction<boolean>>;
   setHoodPuffThickness: Dispatch<SetStateAction<number>>;
   setHoodPuffInflate: Dispatch<SetStateAction<number>>;
@@ -1955,10 +1961,16 @@ export function SettingsPanel(props: SettingsPanelProps) {
     hoodCuffHeight,
     setHoodCuffHeight,
     hoodCuffSize,
+    hoodCuffTop,
+    hoodZipperFixed,
+    hoodZipperPullOut,
     hoodReflectLight,
     hoodPuffThickness,
     hoodPuffInflate,
     setHoodCuffSize,
+    setHoodCuffTop,
+    setHoodZipperFixed,
+    setHoodZipperPullOut,
     setHoodReflectLight,
     setHoodPuffThickness,
     setHoodPuffInflate,
@@ -4277,6 +4289,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     cuff: hoodCuffOn,
                     cuffHeight: hoodCuffHeight,
                     cuffSize: hoodCuffSize,
+                    cuffTop: hoodCuffTop,
+                    zipperFixed: hoodZipperFixed,
+                    zipperPullOut: hoodZipperPullOut,
                     reflectLight: hoodReflectLight,
                     puffThickness: hoodPuffThickness,
                     puffInflate: hoodPuffInflate,
@@ -4304,6 +4319,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     if (p.cuff !== undefined) setHoodCuffOn(p.cuff);
                     if (p.cuffHeight !== undefined) setHoodCuffHeight(p.cuffHeight);
                     if (p.cuffSize !== undefined) setHoodCuffSize(p.cuffSize);
+                    if (p.cuffTop !== undefined) setHoodCuffTop(p.cuffTop);
+                    if (p.zipperFixed !== undefined) setHoodZipperFixed(p.zipperFixed);
+                    if (p.zipperPullOut !== undefined) setHoodZipperPullOut(p.zipperPullOut);
                     if (p.reflectLight !== undefined) setHoodReflectLight(p.reflectLight);
                     if (p.puffThickness !== undefined) setHoodPuffThickness(p.puffThickness);
                     if (p.puffInflate !== undefined) setHoodPuffInflate(p.puffInflate);
