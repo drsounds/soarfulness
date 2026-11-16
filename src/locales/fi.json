@@ -149,6 +149,7 @@
       "hood": "HUPPU",
       "hoodHeight": "KORKEUS ALHAALTA",
       "hoodOpening": "AUKKO",
+      "hoodOpeningWidth": "AUKON LEVEYS",
       "hoodColor": "HUPUN VÄRI",
       "hoodMetallic": "METALLIKIILTO",
       "hoodMotion": "LIIKE",

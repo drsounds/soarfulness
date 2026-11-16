@@ -149,6 +149,7 @@
       "hood": "HOOD",
       "hoodHeight": "HEIGHT FROM BOTTOM",
       "hoodOpening": "OPENING",
+      "hoodOpeningWidth": "OPENING WIDTH",
       "hoodColor": "HOOD COLOR",
       "hoodMetallic": "METALLIC SHEEN",
       "hoodMotion": "MOVEMENT",

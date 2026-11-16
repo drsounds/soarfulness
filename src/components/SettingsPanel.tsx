@@ -780,6 +780,8 @@ export type SettingsPanelProps = {
   setHoodWaterOn: Dispatch<SetStateAction<boolean>>;
   hoodWaterLevel: number;
   setHoodWaterLevel: Dispatch<SetStateAction<number>>;
+  hoodOpeningWidth: number;
+  setHoodOpeningWidth: Dispatch<SetStateAction<number>>;
   hoodDrop: number;
   setHoodDrop: Dispatch<SetStateAction<number>>;
   hoodWeight: number;
@@ -1910,6 +1912,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setHoodWaterOn,
     hoodWaterLevel,
     setHoodWaterLevel,
+    hoodOpeningWidth,
+    setHoodOpeningWidth,
     hoodDrop,
     setHoodDrop,
     hoodWeight,
@@ -4213,6 +4217,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     on: true,
                     height: hoodHeight,
                     opening: hoodOpening,
+                    openingWidth: hoodOpeningWidth,
                     color: hoodColor,
                     metallic: hoodMetallic,
                     motion: hoodMotion,
@@ -4229,6 +4234,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                   setLayer1={(p) => {
                     if (p.height !== undefined) setHoodHeight(p.height);
                     if (p.opening !== undefined) setHoodOpening(p.opening);
+                    if (p.openingWidth !== undefined) setHoodOpeningWidth(p.openingWidth);
                     if (p.color !== undefined) setHoodColor(p.color);
                     if (p.metallic !== undefined) setHoodMetallic(p.metallic);
                     if (p.motion !== undefined) setHoodMotion(p.motion);

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { SettingRow } from "@/components/SettingRow";
 import { saveFileToDevice } from "@/lib/deviceFiles";
 import { pickJsonFile, readJsonFile } from "@/lib/presets";
+import { limitMax, useExtremeLimits } from "@/lib/extremeLimits";
 import {
   HOOD_MAX_LAYERS,
   hoodLayersFromFile,
@@ -47,6 +48,8 @@ export function HoodSettings({
     typeof window === "undefined" ? [] : loadSavedHoodLayerSets(),
   );
   const [savedSel, setSavedSel] = useState("");
+  const [extremeLimits] = useExtremeLimits();
+  const widthMax = limitMax("hoodOpeningWidth", extremeLimits);
 
   const layers = [layer1, ...extraLayers];
   const sel = Math.min(selRaw, layers.length - 1);
@@ -135,7 +138,33 @@ export function HoodSettings({
           {sel > 0 && toggle("on", t("dial.camera.hoodLayerOn"))}
           {pct("drop", t("dial.camera.hoodDrop"))}
           {!layer.lowerOn && pct("height", t("dial.camera.hoodHeight"))}
-          {pct("opening", t("dial.camera.hoodOpening"))}
+          {layer.openingWidth <= 0 && pct("opening", t("dial.camera.hoodOpening"))}
+          <SettingRow
+            label={t("dial.camera.hoodOpeningWidth")}
+            mode="number"
+            value={
+              layer.openingWidth > 0
+                ? `${Math.round(layer.openingWidth * 100)}%`
+                : t("common.auto")
+            }
+            rawValue={layer.openingWidth}
+            onSet={(v) => patch({ openingWidth: Math.max(0, Math.min(widthMax, v)) })}
+            min={0}
+            max={widthMax}
+            step={0.05}
+            onDec={() =>
+              patch({ openingWidth: Math.max(0, +(layer.openingWidth - 0.05).toFixed(2)) })
+            }
+            onInc={() =>
+              patch({
+                // From AUTO, start at about the width ÖPPNING gave.
+                openingWidth:
+                  layer.openingWidth <= 0
+                    ? +(0.6 + layer.opening * 0.4).toFixed(2)
+                    : Math.min(widthMax, +(layer.openingWidth + 0.05).toFixed(2)),
+              })
+            }
+          />
           {toggle("lowerOn", t("dial.camera.hoodLower"))}
           {layer.lowerOn && (
             <>

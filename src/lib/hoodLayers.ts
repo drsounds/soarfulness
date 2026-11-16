@@ -13,6 +13,11 @@ export type HoodLayer = {
   height: number;
   /** ÖPPNING: face opening, tight..wide. */
   opening: number;
+  /**
+   * ÖPPNINGSBREDD: opening width in screen widths (1 = edge to edge, up to
+   * HOOD_OPENING_WIDTH_MAX); 0 = AUTO, follow ÖPPNING.
+   */
+  openingWidth: number;
   /** HUVFÄRG. */
   color: string;
   /** METALLGLANS: matte..wet metallic sheen. */
@@ -38,11 +43,14 @@ export type HoodLayer = {
 };
 
 export const HOOD_MAX_LAYERS = 4;
+// ÖPPNINGSBREDD's EXTREME max (12 screen widths); the everyday max is 3.
+export const HOOD_OPENING_WIDTH_MAX = 12;
 
 export const HOOD_LAYER_DEFAULTS: HoodLayer = {
   on: true,
   height: 0.3,
   opening: 0.5,
+  openingWidth: 0,
   color: "#2b3a55",
   metallic: 0.5,
   motion: 0.5,
@@ -84,6 +92,9 @@ export function sanitizeHoodLayer(raw: unknown): HoodLayer {
   for (const k of BOOL_KEYS) {
     if (typeof src[k] === "boolean") out[k] = src[k] as boolean;
   }
+  const w = src.openingWidth;
+  if (typeof w === "number" && Number.isFinite(w))
+    out.openingWidth = Math.max(0, Math.min(HOOD_OPENING_WIDTH_MAX, w));
   if (typeof src.color === "string" && /^#[0-9a-fA-F]{6}$/.test(src.color)) out.color = src.color;
   return out;
 }
