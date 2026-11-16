@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next";
 import * as THREE from "three";
 import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { DecorationHudBar } from "@/apps/decorations/DecorationPanel";
+import { clothingBuoyancyOffset } from "@/apps/hood/buoyancy";
 import { useDecorations } from "@/apps/decorations/useDecorations";
 import {
   decorationsForLink,
@@ -41,24 +42,19 @@ import { NEON_DEFAULTS, type NeonSettings } from "@/apps/neon/settings";
 import { RETRO_DEFAULTS } from "@/apps/retro/settings";
 import { DAY_NIGHT_DEFAULTS } from "@/apps/day-night/settings";
 import { UNDERWATER_FOG_DEFAULTS } from "@/apps/underwater-fog/settings";
-import { OPEN_DRIFT_DEFAULTS } from "@/apps/open-drift/settings";
-import { WIND_DEFAULTS } from "@/apps/wind/settings";
+import { OPEN_DRIFT_DEFAULTS, type OpenDriftSettings } from "@/apps/open-drift/settings";
+import { WIND_DEFAULTS, type WindSettings } from "@/apps/wind/settings";
 import { DECORATIONS_DEFAULTS } from "@/apps/decorations/settings";
-import { StringLightsFx } from "@/apps/string-lights/StringLightsFx";
+import { StringLightsRuntime } from "@/apps/string-lights/StringLightsRuntime";
 import {
-  WindField,
   altitudeMix,
-  getWindAt,
-  hearWind,
   sanitizeWinds,
-  steerWaveDir,
   type WindSource,
 } from "@/apps/wind/wind";
-import { WindAudio } from "@/apps/wind/WindAudio";
+import { WindRuntime } from "@/apps/wind/WindRuntime";
 import { WindHudPanel, type WindControls } from "@/apps/wind/WindPanel";
-import { waterlineScreenFraction } from "@/apps/underwater-fog/underwaterFog";
-import { UnderwaterFogOverlay } from "@/apps/underwater-fog/UnderwaterFogOverlay";
-import { OpenDrift } from "@/apps/open-drift/OpenDrift";
+import { UnderwaterFogRuntime } from "@/apps/underwater-fog/UnderwaterFogRuntime";
+import { OpenDriftRuntime } from "@/apps/open-drift/OpenDriftRuntime";
 import { SnowRuntime } from "@/apps/snow/SnowRuntime";
 import { RainRuntime } from "@/apps/rain/RainRuntime";
 import { RAIN_DEFAULTS, type RainSettings } from "@/apps/rain/settings";
@@ -66,11 +62,7 @@ import { FIREWORKS_LIGHTS } from "@/apps/fireworks/Fireworks";
 import { FireworksRuntime } from "@/apps/fireworks/FireworksRuntime";
 import { ConfettiRuntime } from "@/apps/confetti/ConfettiRuntime";
 import { HoodRuntime } from "@/apps/hood/HoodRuntime";
-import {
-  sanitizeHoodLayers,
-  type HoodLayer,
-  type HoodStyle,
-} from "@/apps/hood/hoodLayers";
+import { sanitizeHoodLayers, type HoodLayer, type HoodStyle } from "@/apps/hood/hoodLayers";
 import { applyNeonAccent } from "@/apps/neon/neonAccent";
 import { relativeDaylightTint } from "@/apps/day-night/daylightTint";
 import {
@@ -2104,6 +2096,14 @@ export function Aquafulness() {
   const [hoodCuffOn, setHoodCuffOn] = useState(initial.hoodCuffOn);
   const [hoodCuffHeight, setHoodCuffHeight] = useState(initial.hoodCuffHeight);
   const [hoodCuffSize, setHoodCuffSize] = useState(initial.hoodCuffSize);
+  const [hoodLayer1On, setHoodLayer1On] = useState(initial.hoodLayer1On);
+  const [hoodFloatThreshold, setHoodFloatThreshold] = useState(initial.hoodFloatThreshold);
+  const [hoodLookDown, setHoodLookDown] = useState(initial.hoodLookDown);
+  const [hoodSuitColor, setHoodSuitColor] = useState(initial.hoodSuitColor);
+  const [hoodSuitLeg, setHoodSuitLeg] = useState(initial.hoodSuitLeg);
+  const [hoodClothesBuoyancy, setHoodClothesBuoyancy] = useState(initial.hoodClothesBuoyancy);
+  const [hoodZipperOpen, setHoodZipperOpen] = useState(initial.hoodZipperOpen);
+  const [hoodFloating, setHoodFloating] = useState(initial.hoodFloating);
   const [hoodTopPart, setHoodTopPart] = useState(initial.hoodTopPart);
   const [hoodCollarUp, setHoodCollarUp] = useState(initial.hoodCollarUp);
   const [hoodViewShadow, setHoodViewShadow] = useState(initial.hoodViewShadow);
@@ -3005,6 +3005,30 @@ export function Aquafulness() {
   };
   const snowSettingsRef = useRef(snowSettings);
   snowSettingsRef.current = snowSettings;
+  const windSettings: WindSettings = {
+    winds,
+    windWavesOn,
+    windWaveStrength,
+    windSwayOn,
+    windSwayStrength,
+    windCurrentOn,
+    windCurrentStrength,
+    windSoundOn,
+    windSoundVolume,
+    windAltitudeAudioOn,
+  };
+  const windSettingsRef = useRef(windSettings);
+  windSettingsRef.current = windSettings;
+  const openDriftSettings: OpenDriftSettings = {
+    openDriftOn,
+    openDriftCurve,
+    openDriftRadius,
+    openDriftCycleSpeed,
+    openDriftMagnitude,
+    openDriftDirection,
+  };
+  const openDriftSettingsRef = useRef(openDriftSettings);
+  openDriftSettingsRef.current = openDriftSettings;
   const rainSettings: RainSettings = {
     rainOn,
     rainAmount,
@@ -3079,6 +3103,14 @@ export function Aquafulness() {
     hoodCuffOn,
     hoodCuffHeight,
     hoodCuffSize,
+    hoodLayer1On,
+    hoodFloatThreshold,
+    hoodLookDown,
+    hoodSuitColor,
+    hoodSuitLeg,
+    hoodClothesBuoyancy,
+    hoodZipperOpen,
+    hoodFloating,
     hoodTopPart,
     hoodCollarUp,
     hoodViewShadow,
@@ -3202,6 +3234,14 @@ export function Aquafulness() {
     hoodCuffOn,
     hoodCuffHeight,
     hoodCuffSize,
+    hoodLayer1On,
+    hoodFloatThreshold,
+    hoodLookDown,
+    hoodSuitColor,
+    hoodSuitLeg,
+    hoodClothesBuoyancy,
+    hoodZipperOpen,
+    hoodFloating,
     hoodTopPart,
     hoodCollarUp,
     hoodViewShadow,
@@ -3569,6 +3609,14 @@ export function Aquafulness() {
     hoodCuffOn,
     hoodCuffHeight,
     hoodCuffSize,
+    hoodLayer1On,
+    hoodFloatThreshold,
+    hoodLookDown,
+    hoodSuitColor,
+    hoodSuitLeg,
+    hoodClothesBuoyancy,
+    hoodZipperOpen,
+    hoodFloating,
     hoodTopPart,
     hoodCollarUp,
     hoodViewShadow,
@@ -4278,27 +4326,11 @@ export function Aquafulness() {
   const surgeSpeedRef = useRef(surgeSpeed);
   const surgeRotationModeRef = useRef(surgeRotationMode);
   const surgeRotationSpeedRef = useRef(surgeRotationSpeed);
-  const windsRef = useRef(winds);
-  const windWavesOnRef = useRef(windWavesOn);
-  const windWaveStrengthRef = useRef(windWaveStrength);
-  const windSwayOnRef = useRef(windSwayOn);
-  const windSwayStrengthRef = useRef(windSwayStrength);
-  const windCurrentOnRef = useRef(windCurrentOn);
-  const windCurrentStrengthRef = useRef(windCurrentStrength);
-  const windSoundOnRef = useRef(windSoundOn);
-  const windSoundVolumeRef = useRef(windSoundVolume);
-  const windAltitudeAudioOnRef = useRef(windAltitudeAudioOn);
   // Camera yaw read by the VIND panel's arrows and its MOT MIG/MED MIG.
   const getWindViewBearing = useCallback(
     () => ((((yawRef.current * 180) / Math.PI + 180) % 360) + 360) % 360,
     [],
   );
-  const openDriftOnRef = useRef(openDriftOn);
-  const openDriftCurveRef = useRef(openDriftCurve);
-  const openDriftRadiusRef = useRef(openDriftRadius);
-  const openDriftCycleSpeedRef = useRef(openDriftCycleSpeed);
-  const openDriftMagnitudeRef = useRef(openDriftMagnitude);
-  const openDriftDirectionRef = useRef(openDriftDirection);
   const worldBoundaryOnRef = useRef(worldBoundaryOn);
   const worldBoundarySizeRef = useRef(worldBoundarySize);
   const worldBoundaryHeightRef = useRef(worldBoundaryHeight);
@@ -4717,44 +4749,6 @@ export function Aquafulness() {
   useEffect(() => {
     surgeRotationSpeedRef.current = surgeRotationSpeed;
   }, [surgeRotationSpeed]);
-  useEffect(() => {
-    windsRef.current = winds;
-    windWavesOnRef.current = windWavesOn;
-    windWaveStrengthRef.current = windWaveStrength;
-    windSwayOnRef.current = windSwayOn;
-    windSwayStrengthRef.current = windSwayStrength;
-    windCurrentOnRef.current = windCurrentOn;
-    windCurrentStrengthRef.current = windCurrentStrength;
-    windSoundOnRef.current = windSoundOn;
-    windSoundVolumeRef.current = windSoundVolume;
-    windAltitudeAudioOnRef.current = windAltitudeAudioOn;
-  }, [
-    winds,
-    windWavesOn,
-    windWaveStrength,
-    windSwayOn,
-    windSwayStrength,
-    windCurrentOn,
-    windCurrentStrength,
-    windSoundOn,
-    windSoundVolume,
-    windAltitudeAudioOn,
-  ]);
-  useEffect(() => {
-    openDriftOnRef.current = openDriftOn;
-    openDriftCurveRef.current = openDriftCurve;
-    openDriftRadiusRef.current = openDriftRadius;
-    openDriftCycleSpeedRef.current = openDriftCycleSpeed;
-    openDriftMagnitudeRef.current = openDriftMagnitude;
-    openDriftDirectionRef.current = openDriftDirection;
-  }, [
-    openDriftOn,
-    openDriftCurve,
-    openDriftRadius,
-    openDriftCycleSpeed,
-    openDriftMagnitude,
-    openDriftDirection,
-  ]);
   useEffect(() => {
     worldBoundaryOnRef.current = worldBoundaryOn;
   }, [worldBoundaryOn]);
@@ -5438,6 +5432,14 @@ export function Aquafulness() {
     setHoodCuffOn(DEFAULTS.hoodCuffOn);
     setHoodCuffHeight(DEFAULTS.hoodCuffHeight);
     setHoodCuffSize(DEFAULTS.hoodCuffSize);
+    setHoodLayer1On(DEFAULTS.hoodLayer1On);
+    setHoodFloatThreshold(DEFAULTS.hoodFloatThreshold);
+    setHoodLookDown(DEFAULTS.hoodLookDown);
+    setHoodSuitColor(DEFAULTS.hoodSuitColor);
+    setHoodSuitLeg(DEFAULTS.hoodSuitLeg);
+    setHoodClothesBuoyancy(DEFAULTS.hoodClothesBuoyancy);
+    setHoodZipperOpen(DEFAULTS.hoodZipperOpen);
+    setHoodFloating(DEFAULTS.hoodFloating);
     setHoodTopPart(DEFAULTS.hoodTopPart);
     setHoodCollarUp(DEFAULTS.hoodCollarUp);
     setHoodViewShadow(DEFAULTS.hoodViewShadow);
@@ -5804,6 +5806,14 @@ export function Aquafulness() {
     if (patch.hoodCuffOn !== undefined) setHoodCuffOn(patch.hoodCuffOn);
     if (patch.hoodCuffHeight !== undefined) setHoodCuffHeight(patch.hoodCuffHeight);
     if (patch.hoodCuffSize !== undefined) setHoodCuffSize(patch.hoodCuffSize);
+    if (patch.hoodLayer1On !== undefined) setHoodLayer1On(patch.hoodLayer1On);
+    if (patch.hoodFloatThreshold !== undefined) setHoodFloatThreshold(patch.hoodFloatThreshold);
+    if (patch.hoodLookDown !== undefined) setHoodLookDown(patch.hoodLookDown);
+    if (patch.hoodSuitColor !== undefined) setHoodSuitColor(patch.hoodSuitColor);
+    if (patch.hoodSuitLeg !== undefined) setHoodSuitLeg(patch.hoodSuitLeg);
+    if (patch.hoodClothesBuoyancy !== undefined) setHoodClothesBuoyancy(patch.hoodClothesBuoyancy);
+    if (patch.hoodZipperOpen !== undefined) setHoodZipperOpen(patch.hoodZipperOpen);
+    if (patch.hoodFloating !== undefined) setHoodFloating(patch.hoodFloating);
     if (patch.hoodTopPart !== undefined) setHoodTopPart(patch.hoodTopPart);
     if (patch.hoodCollarUp !== undefined) setHoodCollarUp(patch.hoodCollarUp);
     if (patch.hoodViewShadow !== undefined) setHoodViewShadow(patch.hoodViewShadow);
@@ -9265,23 +9275,13 @@ export function Aquafulness() {
     // drawn behind everything in the scene (see apps/aurora/Aurora.ts).
     const aurora = new AuroraRuntime({ scene });
 
-    // VIND: the live wind (apps/wind/wind.ts) and its sound (apps/wind/WindAudio.ts).
-    const windField = new WindField();
-    const windAudio = new WindAudio();
-    const windCamPrev = new THREE.Vector3();
-    let windCamPrevOk = false;
-    const windCamVel = { x: 0, z: 0 };
-    const windFwd = new THREE.Vector3();
-    let windSwayOff = { x: 0, z: 0 };
-    // True while the wave direction is steered by the wind (or still easing
-    // back), so the CPU wave sampling follows the shader's uDir.
-    let windSteersWaves = false;
+    // VIND (apps/wind): the live wind, its current, sway and sound.
+    const wind = new WindRuntime();
     // UNDERVATTENDIS: drives the fog gradient overlay element (DOM, not GL).
-    const underwaterFog = new UnderwaterFogOverlay();
-    let underwaterFogEl: HTMLDivElement | null = null;
+    const underwaterFog = new UnderwaterFogRuntime();
 
     // HAVSDRIFT: endless open-water drift state (apps/open-drift/OpenDrift.ts).
-    const openDrift = new OpenDrift();
+    const openDrift = new OpenDriftRuntime();
 
     // BÄTTRE LJUS: image-based lighting for glTF materials. scene.environment
     // is a PMREM of the environment skybox when one is active, otherwise of
@@ -9304,7 +9304,7 @@ export function Aquafulness() {
     const neon = new NeonRuntime({ scene });
     neon.setResolution(mount.clientWidth, mount.clientHeight);
     // LJUSSLINGOR: decorative string lights (see apps/string-lights/StringLightsFx.ts).
-    const stringLights = new StringLightsFx(scene);
+    const stringLights = new StringLightsRuntime({ scene });
     // SNÖ: falling flakes around the camera, and SNÖTÄCKE whitening of the
     // loaded scene (see apps/snow/Snowfall.ts).
     const snow = new SnowRuntime({ scene });
@@ -9565,21 +9565,15 @@ export function Aquafulness() {
       uniforms.uSkew.value += (heaveSkewRef.current - uniforms.uSkew.value) * Math.min(1, dt * 4);
       // Wave direction stored in degrees; smoothly interpolate the shortest
       // angular path so wrapping around 360° doesn't spin the ocean.
-      // VIND: update the live wind first; VÅGRIKTNING steers the waves
-      // toward where it blows (apps/wind/wind.ts steerWaveDir).
-      {
-        const wind = windField.update(dt, windsRef.current);
-        windSwayOff = windField.sway(dt, windSwayOnRef.current, windSwayStrengthRef.current);
-        const steer = windWavesOnRef.current && wind.speed > 0.05;
-        const targetRad = steer
-          ? steerWaveDir(waveDirRef.current, wind, windWaveStrengthRef.current)
-          : (waveDirRef.current * Math.PI) / 180;
-        let delta = targetRad - uniforms.uDir.value;
-        delta = Math.atan2(Math.sin(delta), Math.cos(delta));
-        // Wind turns the swell slowly; the dial itself stays snappy.
-        uniforms.uDir.value += delta * Math.min(1, dt * (steer ? 0.6 : 4));
-        windSteersWaves = steer || (windSteersWaves && Math.abs(delta) > 0.002);
-      }
+      // VIND (apps/wind): update the live wind first; VÅGRIKTNING steers the
+      // waves toward where it blows.
+      wind.update(dt, windSettingsRef.current);
+      uniforms.uDir.value = wind.waveDirection(
+        dt,
+        waveDirRef.current,
+        uniforms.uDir.value,
+        windSettingsRef.current,
+      );
 
       // Graceful TORNADO spin-up/spin-down: two continuous blends (0 = fully
       // out, 1 = fully in), each eased toward whichever state is actually
@@ -10108,7 +10102,7 @@ export function Aquafulness() {
       // CLOUD block further down — which runs before that point in the frame
       // — can also sample the real wave height (see tornadoWaterHeightAt
       // there).
-      const dirRad = windSteersWaves ? uniforms.uDir.value : (waveDirRef.current * Math.PI) / 180;
+      const dirRad = wind.steersWaves ? uniforms.uDir.value : (waveDirRef.current * Math.PI) / 180;
       // NAV: m/s at full deflection — 16 with EXTREME, ~25 % (4) without.
       const extremeNow = extremeLimitsRef.current;
       const walkSpeed = limitMax("navSpeed", extremeNow);
@@ -10722,14 +10716,11 @@ export function Aquafulness() {
       // out. VÄRLDSGRÄNS's wrap below plus the camera-centred planes make
       // the drift endless in any direction.
       {
-        const d = openDrift.step(physDt, {
-          on: openDriftOnRef.current && !(camMode === "swing" && swingCordActiveRef.current),
-          curve: openDriftCurveRef.current,
-          radius: openDriftRadiusRef.current,
-          cycleSpeed: openDriftCycleSpeedRef.current,
-          magnitude: openDriftMagnitudeRef.current,
-          direction: openDriftDirectionRef.current,
-        });
+        const d = openDrift.step(
+          physDt,
+          !(camMode === "swing" && swingCordActiveRef.current),
+          openDriftSettingsRef.current,
+        );
         if (d.dx !== 0 || d.dz !== 0) {
           posRef.current.x += d.dx;
           posRef.current.z += d.dz;
@@ -10743,11 +10734,7 @@ export function Aquafulness() {
       // never turns the view. GUNGA's pendulum owns camX/camZ, so it's
       // skipped there.
       {
-        const d = windField.current(
-          physDt,
-          windCurrentOnRef.current && camMode !== "swing",
-          windCurrentStrengthRef.current,
-        );
+        const d = wind.current(physDt, camMode !== "swing", windSettingsRef.current);
         if (d.dx !== 0 || d.dz !== 0) {
           posRef.current.x += d.dx;
           posRef.current.z += d.dz;
@@ -11206,7 +11193,10 @@ export function Aquafulness() {
         const rawLift = anticipVelSmoothed * lift * 0.35 * (0.6 + amp * 0.6);
         const diveOffset = Math.min(cap, rawDive);
         const liftOffset = Math.max(-cap, Math.min(cap, rawLift));
-        const targetY = anticipSurf + heightRef.current - diveOffset + liftOffset;
+        // HUVA's KLÄDER PÅVERKAR FLYTFÖRMÅGA: the float suit and the clothes
+        // worn over it move the float line (0 while HUVA is off).
+        const targetY =
+          anticipSurf + heightRef.current - diveOffset + liftOffset + clothingBuoyancyOffset();
 
         if (camYRef.current === null) camYRef.current = targetY;
         // Cutting stiffness in the previous pass fixed the hard bounce but
@@ -11294,8 +11284,8 @@ export function Aquafulness() {
 
         // VIND SVAJ: the wind leans the floating body downwind, breathing
         // with the gusts, through the same sway spring.
-        swayTargetX += windSwayOff.x;
-        swayTargetZ += windSwayOff.z;
+        swayTargetX += wind.swayOffset.x;
+        swayTargetZ += wind.swayOffset.z;
 
         // Ease toward the sway target with a light spring instead of snapping
         // straight to it every frame. Without this the horizontal sway was
@@ -11360,8 +11350,8 @@ export function Aquafulness() {
           }
         }
         if (stillNow && noclipSwayOnRef.current) {
-          swayTargetX += windSwayOff.x;
-          swayTargetZ += windSwayOff.z;
+          swayTargetX += wind.swayOffset.x;
+          swayTargetZ += wind.swayOffset.z;
         }
         const swK = 5 + 20 * Math.max(0.05, swaySpeedRef.current);
         const swZeta = 0.6;
@@ -11858,7 +11848,7 @@ export function Aquafulness() {
       // rises (apps/wind/wind.ts altitudeMix), handing over to surface noise and
       // then wind (the VIND block below).
       const windAlt = altitudeMix(-depth);
-      const altWater = windAltitudeAudioOnRef.current ? windAlt.water : 1;
+      const altWater = windSettingsRef.current.windAltitudeAudioOn ? windAlt.water : 1;
       const a = audioRef.current;
       if (a?.kind === "native") {
         if (now - lastNativeDepthSyncMsRef.current >= 100) {
@@ -11892,46 +11882,9 @@ export function Aquafulness() {
         }
       }
 
-      // VIND sound: the air rushing past the ears — the wind at this height
-      // minus the camera's own motion (running into the wind is louder),
-      // panned and brightened by where it meets the head. HÖJDLJUD adds
-      // the surface noise just above the water and a breeze that grows
-      // with altitude.
-      {
-        const cp = camera.position;
-        if (windCamPrevOk && dt > 0) {
-          const vx = (cp.x - windCamPrev.x) / dt;
-          const vz = (cp.z - windCamPrev.z) / dt;
-          // Ignore teleports (VÄRLDSGRÄNS wrap, respawn).
-          if (Math.hypot(vx, vz) < 400) {
-            const k = 1 - Math.exp(-dt / 0.25);
-            windCamVel.x += (vx - windCamVel.x) * k;
-            windCamVel.z += (vz - windCamVel.z) * k;
-          }
-        }
-        windCamPrev.copy(cp);
-        windCamPrevOk = true;
-        const altOn = windAltitudeAudioOnRef.current;
-        const soundOn = windSoundOnRef.current;
-        const h = -depth;
-        const w = getWindAt(h);
-        camera.getWorldDirection(windFwd);
-        const hearing = hearWind(
-          soundOn ? w : { x: 0, z: 0 },
-          windCamVel,
-          { x: windFwd.x, z: windFwd.z },
-          altOn ? windAlt.breeze : 0,
-        );
-        windAudio.update({
-          enabled: (soundOn || altOn) && fireworksAudioOnRef.current,
-          volume: windSoundVolumeRef.current,
-          hearing,
-          // Own motion alone (no winds, no HÖJDLJUD) makes no wind sound.
-          windLevel: (soundOn && w.speed > 0.05) || (altOn && windAlt.breeze > 0.05) ? 1 : 0,
-          surfaceLevel: altOn ? windAlt.surface : 0,
-          underwater: depth > 0 ? Math.min(1, depth / 0.6) : 0,
-        });
-      }
+      // VIND sound (apps/wind): the air rushing past the ears, plus
+      // HÖJDLJUD's surface noise and altitude breeze.
+      wind.sound(dt, camera, depth, fireworksAudioOnRef.current, windSettingsRef.current);
 
       // Underwater tone-down factor: fades color/contrast as camera dips below surface.
       const uw = depth > 0 ? Math.min(depth / 2.5, 1) : 0;
@@ -12071,6 +12024,7 @@ export function Aquafulness() {
 
       // What every app runtime gets to know about this frame (see
       // FrameContext in core/apps/types.ts).
+      const decorationRoot = deco.getRoot();
       const appFrame: FrameContext = {
         time: now / 1000,
         dt,
@@ -12080,14 +12034,18 @@ export function Aquafulness() {
         waterLevel: ocean.position.y,
         eyeAboveWater: camY - surfaceY,
         model: modelRef.current,
+        sceneId: stringLightsSceneRef.current,
+        extraRoots: decorationRoot ? [decorationRoot] : [],
         lowEnd,
         pixelRatio: renderer.getPixelRatio(),
         pixelHeight: renderer.domElement.height,
+        viewportHeight: mount.clientHeight,
         audioOn: fireworksAudioOnRef.current,
         light: {
           skyColor: uniforms.uSkyColor.value,
           horizonColor: uniforms.uHorizonColor.value,
           waterColor: uniforms.uWaterDeep.value,
+          waterShallowColor: uniforms.uWaterShallow.value,
           sunColor: uniforms.uSunColor.value,
           sunDir: uniforms.uSunDir.value,
         },
@@ -12100,40 +12058,10 @@ export function Aquafulness() {
       uniforms.uAuroraElev.value = aurora.glowElevation;
       uniforms.uAuroraHeight.value = auroraSettingsRef.current.auroraHeight;
 
-      // UNDERVATTENDIS: the fog gradient over the 3D view, its top edge
-      // docked to the on-screen waterline VATTENLINJEAVSTÅND meters ahead —
-      // it sinks as the camera rises above the water and climbs as it dives.
-      {
-        const fog = underwaterFogSettingsRef.current;
-        const el = underwaterFogElRef.current;
-        if (el !== underwaterFogEl) {
-          underwaterFogEl = el;
-          underwaterFog.reset();
-        }
-        if (fog.underwaterFogOn && el) {
-          const topFrac =
-            waterlineScreenFraction(camera, ocean.position.y, fog.underwaterFogDistance) +
-            fog.underwaterFogOffset;
-          const ws = uniforms.uWaterShallow.value;
-          const wd = uniforms.uWaterDeep.value;
-          const waterRgb: [number, number, number] = fog.underwaterFogWaterColorAuto
-            ? [ws.r * 0.45 + wd.r * 0.55, ws.g * 0.45 + wd.g * 0.55, ws.b * 0.45 + wd.b * 0.55]
-            : hexToRgbNorm(fog.underwaterFogWaterColor);
-          underwaterFog.update(el, dt, topFrac, fog.underwaterFogBlend, {
-            fogColor: fog.underwaterFogColor,
-            fogOpacity: fog.underwaterFogOpacity,
-            waterColor: waterRgb,
-            waterOpacity: fog.underwaterFogWaterOpacity,
-            intensity: fog.underwaterFogIntensity,
-            spread: fog.underwaterFogSpread,
-            curve: fog.underwaterFogCurve,
-            feather: fog.underwaterFogFeather,
-            visibility: fog.underwaterFogSubmergedOnly
-              ? Math.min(1, (uniforms.uUnderwater.value as number) * 3)
-              : 1,
-          });
-        }
-      }
+      // UNDERVATTENDIS (apps/underwater-fog): the fog gradient over the 3D
+      // view, docked to the on-screen waterline.
+      underwaterFog.setElement(underwaterFogElRef.current);
+      underwaterFog.frame(appFrame, underwaterFogSettingsRef.current);
 
       // Backdrop / skybox priority:
       //  - A real environment skybox (scene.background) wins: hide the sky dome,
@@ -12304,16 +12232,8 @@ export function Aquafulness() {
       // NEON (apps/neon): edge lines along the loaded scene.
       neon.frame(appFrame, neonSettingsRef.current);
 
-      // LJUSSLINGOR: the current scene's string lights, animated.
-      stringLights.update(now / 1000, camera, {
-        sceneId: stringLightsSceneRef.current,
-        waterY: ocean.position.y,
-        night: nightBackdropMix(todRef.current),
-        viewportHeight: mount.clientHeight,
-        model: modelRef.current,
-        modelImported: isUserSceneId(stringLightsSceneRef.current),
-        extraRoots: ((r) => (r ? [r] : []))(deco.getRoot()),
-      });
+      // LJUSSLINGOR (apps/string-lights): the current scene's string lights.
+      stringLights.frame(appFrame);
 
       // SNÖ (apps/snow): flakes follow the camera; SNÖTÄCKE patches the
       // loaded scene's materials.
@@ -12419,8 +12339,7 @@ export function Aquafulness() {
       neon.dispose();
       stringLights.dispose();
       aurora.dispose();
-      windAudio.dispose();
-      windField.reset();
+      wind.dispose();
       snow.dispose();
       rain.dispose();
       fireworks.dispose();
@@ -13222,6 +13141,14 @@ export function Aquafulness() {
     hoodCuffHeight,
     setHoodCuffHeight,
     hoodCuffSize,
+    hoodLayer1On,
+    hoodFloatThreshold,
+    hoodLookDown,
+    hoodSuitColor,
+    hoodSuitLeg,
+    hoodClothesBuoyancy,
+    hoodZipperOpen,
+    hoodFloating,
     hoodTopPart,
     hoodCollarUp,
     hoodViewShadow,
@@ -13238,6 +13165,14 @@ export function Aquafulness() {
     hoodPuffThickness,
     hoodPuffInflate,
     setHoodCuffSize,
+    setHoodLayer1On,
+    setHoodFloatThreshold,
+    setHoodLookDown,
+    setHoodSuitColor,
+    setHoodSuitLeg,
+    setHoodClothesBuoyancy,
+    setHoodZipperOpen,
+    setHoodFloating,
     setHoodTopPart,
     setHoodCollarUp,
     setHoodViewShadow,

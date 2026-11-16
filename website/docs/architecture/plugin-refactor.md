@@ -1,23 +1,9 @@
 ---
-title: Apps — plugin architecture (PR #52)
-description: The plugin-based src/apps/<id> structure with manifests, settings slices, defineApp and AppRuntime, being introduced by soarfulness PR #52 / aqua-wave-dream PR #250.
+title: Apps — plugin architecture
+description: The plugin-based src/apps/<id> structure with manifests, settings slices, defineApp and AppRuntime.
 ---
 
 # Apps: the plugin architecture
-
-:::caution Not on `main` yet
-This page describes the structure introduced by **soarfulness PR #52** and
-**aqua-wave-dream PR #250** (branch `claude/project-thread-szbtkg`), open on
-2026-11-16. Until they merge, the rest of the Architecture section (which
-describes `main`) is what the code looks like. After they merge, files such as
-`src/lib/sceneFx/aurora.ts` move to `src/apps/aurora/Aurora.ts`, and the
-[Add a setting](../guides/add-a-setting.md) and
-[Add a scene effect](../guides/add-a-scene-effect.md) guides should be read
-together with "Adding a new app" below.
-
-The source of this page is `docs/architecture/apps.md` on that branch; this
-copy is the one to keep up to date once both PRs are merged.
-:::
 
 Every feature you can switch on, tune or leave out is an **app**: a folder
 under `src/apps/<id>/` with its own manifest, its own settings slice, and one
@@ -66,10 +52,12 @@ Swedish, like `NORRSKEN`) goes in the manifest's `name`.
 | `decorations` | DEKORATIONER | content | place | | `decorations.ts`, `DecorationLayer.ts`, `DecorationPanel.tsx`, `useDecorations.ts` |
 | `fireworks` | FYRVERKERI | scene-fx | events | | `Fireworks.ts`, `FireworksAudio.ts` |
 | `hood` | HUVA | bather | bather | | `Hood.ts`, `hoodLayers.ts`, `HoodPanel.tsx` |
-| `neon` | NEON | scene-fx | effects | | `NeonEdges.ts`, `neonAccent.ts` |
+| `neon` | NEON | scene-fx | effects | | `NeonEdges.ts`, `neonAccent.ts` (edge filter: `lib/edgeSelect.ts`) |
 | `open-drift` | HAVSDRIFT | motion | drift | | `OpenDrift.ts` |
 | `retro` | RETRO | screen-fx | graphics | | `retroShader.ts` |
+| `rain` | REGN | scene-fx | weather | day-night, wind | `Rainfall.ts`, `RainAudio.ts` |
 | `snow` | SNÖ | scene-fx | weather | day-night | `Snowfall.ts`, `SnowCover.ts`, `snowLight.ts` |
+| `string-lights` | LJUSSLINGOR | scene-fx | effects | | `StringLightsFx.ts`, `EdgeLightsFx.ts`, `stringLights.ts` (own store), `StringLightsPanel.tsx`, `EdgeLightsPanel.tsx` |
 | `underwater-fog` | UNDERVATTENDIS | screen-fx | weather | | `underwaterFog.ts`, `UnderwaterFogOverlay.ts` |
 | `wind` | VIND | environment | weather | | `wind.ts`, `WindAudio.ts`, `WindPanel.tsx` |
 
@@ -180,7 +168,14 @@ interface AppRuntime<S> {
   frame?(frame: FrameContext, settings: Readonly<S>): void;
   dispose(): void;
 }
-type FrameContext = { dt: number; camera: THREE.Camera; night: number; underwater: number };
+type FrameContext = {
+  time: number; dt: number; camera: THREE.PerspectiveCamera;
+  night: number; underwater: number; waterLevel: number; eyeAboveWater: number;
+  model: THREE.Object3D | null; sceneId: string | null;
+  extraRoots: THREE.Object3D[]; lowEnd: boolean;
+  pixelRatio: number; pixelHeight: number; viewportHeight: number; audioOn: boolean;
+  light: { skyColor; horizonColor; waterColor; waterShallowColor; sunColor; sunDir };
+};
 ```
 
 `createRuntime({ scene })` is called once when the 3D scene is built. The
@@ -190,18 +185,55 @@ settings into whatever its classes need. Values the host needs back (for
 example `AuroraRuntime.glow`, which the ocean shader reflects) are exposed as
 getters.
 
-The settings slice reaches the render loop through one ref per app, updated
-from React state:
+The host builds one `FrameContext` per frame (`appFrame` in
+`routes/index.tsx`) and passes it to every runtime. When an app needs more
+from the host, add a field to `FrameContext` instead of reaching into
+`index.tsx`.
+
+The settings slice reaches the render loop through one ref per app,
+refreshed on every render:
 
 ```ts
-const auroraSettingsRef = useRef<AuroraSettings>({ auroraOn, /* ... */ });
-useEffect(() => { auroraSettingsRef.current = { auroraOn, /* ... */ }; }, [auroraOn, /* ... */]);
+const snowSettings: SnowSettings = { snowOn, snowAmount, /* ... */ };
+const snowSettingsRef = useRef(snowSettings);
+snowSettingsRef.current = snowSettings;
 // in the frame:
-aurora.frame({ dt, camera, night, underwater }, auroraSettingsRef.current);
+snow.frame(appFrame, snowSettingsRef.current);
 ```
 
-`aurora` is the first app migrated this way (`AuroraRuntime.ts`). The others
-still construct their classes directly in `routes/index.tsx`.
+Runtimes so far:
+
+| app | runtime | extra surface the host uses |
+| --- | --- | --- |
+| `aurora` | `AuroraRuntime` | `glow`, `glowElevation` (water reflection) |
+| `snow` | `SnowRuntime` | `updateCover()` early in the frame, `cover` (backdrop dome uniforms) |
+| `confetti` | `ConfettiRuntime` | |
+| `fireworks` | `FireworksRuntime` | `lightPos`, `lightCol` (ocean shader lights) |
+| `neon` | `NeonRuntime` | `setResolution()` on resize |
+| `hood` | `HoodRuntime` | |
+| `rain` | `RainRuntime` | reads the live wind from `apps/wind` |
+| `string-lights` | `StringLightsRuntime` | no settings slice (own store) |
+| `underwater-fog` | `UnderwaterFogRuntime` | `setElement()` with the overlay DOM element |
+| `wind` | `WindRuntime` | `update()`, `waveDirection()`, `current()`, `sound()`, `swayOffset`, `steersWaves` |
+| `open-drift` | `OpenDriftRuntime` | `step()` in the physics step |
+
+`frame()` covers apps that only draw. Wind and open drift feed the host's
+physics (wave heading, sway, player position), so their runtimes expose
+their own methods that the host calls at the right point of the frame
+instead of a single `frame()`.
+
+Still constructed directly in `routes/index.tsx`: `decorations` (a React
+hook, `useDecorations`) and the `retro` post-processing pass.
+
+## Shared helpers for light effects
+
+- `lib/edgeSelect.ts` detects and caches mesh edges, filters them by direction
+  and clips them to an x/y/z range. NEON and LJUSSLINGOR's KANTLJUS use it with
+  `components/EdgeFilterSettings.tsx` as their shared UI.
+- `lib/waterPass.ts` splits additive glows into passes on either side of the
+  water surface, preventing the ocean's depth write from clipping them when
+  seen through the waves. Use `applyWaterPass` / `GlowPoints` for similar
+  effects that can sit above or below the water.
 
 ## Adding a new app
 
@@ -226,11 +258,12 @@ The refactor goes in small, behavior-preserving steps, so open feature work
 can keep merging.
 
 - [x] **Step 1:** the `core/apps` contract, registry and tests; 12 features
-  moved to `src/apps/`, one class per file; each app owns its settings
+  moved to `src/apps/` (14 with string lights and rain), one class per file; each app owns its settings
   type, defaults and preset keys; `aurora` runs through `AppRuntime`.
-- [ ] **Step 2:** move the remaining apps' frame code out of
-  `routes/index.tsx` into runtimes (snow, confetti, fireworks, neon, hood,
-  underwater fog, open drift, wind), one PR per app or two.
+- [x] **Step 2:** the apps' frame code moved out of `routes/index.tsx`
+  into runtimes (aurora, snow, rain, confetti, fireworks, neon, hood, string
+  lights, underwater fog, wind, open drift). Left for step 3: decorations
+  and the retro pass.
 - [ ] **Step 3:** a generic host loop that creates every registered runtime
   and calls `frame()` in registry order, plus a per-app settings hook
   (`useAppSettings(app)`) to replace the per-key `useState` lines.
@@ -241,17 +274,13 @@ can keep merging.
 - [ ] **Step 6:** load app runtimes with dynamic `import()` so each one is
   its own chunk (keeps the main bundle under the PWA precache limit).
 
-Features still in open pull requests (REGN rain, LJUSSLINGOR string lights)
-add files under `lib/sceneFx/`. When they merge, move them to
-`src/apps/rain/` and `src/apps/string-lights/` (rain depends on `wind`).
-
 ## Docs pages to update as the migration proceeds
 
 | Page | What changes |
 | --- | --- |
 | [Overview](overview.md) | Folder map gains `src/core/apps` and `src/apps/<id>` |
 | [Settings pipeline](settings-pipeline.md) | `Persisted` becomes core keys `&` each app's settings type; `DEFAULTS` and `PRESET_TAB_FIELDS` spread each app's defaults and keys |
-| [Render loop](render-loop.md) | Apps run through `AppRuntime.frame()` (aurora first; a generic host loop in step 3) |
+| [Render loop](render-loop.md) | Apps run through `AppRuntime.frame()` (every app except decorations and retro; a generic host loop in step 3) |
 | [Settings UI](settings-ui.md) | Each app's dials in its own `<Name>Panel.tsx` (step 4) |
 | [Add a setting](../guides/add-a-setting.md), [Add a scene effect](../guides/add-a-scene-effect.md) | Point to "Adding a new app" |
 | [Content apps](content-apps.md) | Content packs in `public/apps/` are a different thing from code apps in `src/apps/` |

@@ -907,6 +907,14 @@ export type SettingsPanelProps = {
   hoodCuffHeight: number;
   setHoodCuffHeight: Dispatch<SetStateAction<number>>;
   hoodCuffSize: number;
+  hoodLayer1On: boolean;
+  hoodFloatThreshold: number;
+  hoodLookDown: boolean;
+  hoodSuitColor: string;
+  hoodSuitLeg: number;
+  hoodClothesBuoyancy: boolean;
+  hoodZipperOpen: number;
+  hoodFloating: number;
   hoodTopPart: boolean;
   hoodCollarUp: boolean;
   hoodViewShadow: boolean;
@@ -923,6 +931,14 @@ export type SettingsPanelProps = {
   hoodPuffThickness: number;
   hoodPuffInflate: number;
   setHoodCuffSize: Dispatch<SetStateAction<number>>;
+  setHoodLayer1On: Dispatch<SetStateAction<boolean>>;
+  setHoodFloatThreshold: Dispatch<SetStateAction<number>>;
+  setHoodLookDown: Dispatch<SetStateAction<boolean>>;
+  setHoodSuitColor: Dispatch<SetStateAction<string>>;
+  setHoodSuitLeg: Dispatch<SetStateAction<number>>;
+  setHoodClothesBuoyancy: Dispatch<SetStateAction<boolean>>;
+  setHoodZipperOpen: Dispatch<SetStateAction<number>>;
+  setHoodFloating: Dispatch<SetStateAction<number>>;
   setHoodTopPart: Dispatch<SetStateAction<boolean>>;
   setHoodCollarUp: Dispatch<SetStateAction<boolean>>;
   setHoodViewShadow: Dispatch<SetStateAction<boolean>>;
@@ -2002,6 +2018,14 @@ export function SettingsPanel(props: SettingsPanelProps) {
     hoodCuffHeight,
     setHoodCuffHeight,
     hoodCuffSize,
+    hoodLayer1On,
+    hoodFloatThreshold,
+    hoodLookDown,
+    hoodSuitColor,
+    hoodSuitLeg,
+    hoodClothesBuoyancy,
+    hoodZipperOpen,
+    hoodFloating,
     hoodTopPart,
     hoodCollarUp,
     hoodViewShadow,
@@ -2018,6 +2042,14 @@ export function SettingsPanel(props: SettingsPanelProps) {
     hoodPuffThickness,
     hoodPuffInflate,
     setHoodCuffSize,
+    setHoodLayer1On,
+    setHoodFloatThreshold,
+    setHoodLookDown,
+    setHoodSuitColor,
+    setHoodSuitLeg,
+    setHoodClothesBuoyancy,
+    setHoodZipperOpen,
+    setHoodFloating,
     setHoodTopPart,
     setHoodCollarUp,
     setHoodViewShadow,
@@ -4214,8 +4246,21 @@ export function SettingsPanel(props: SettingsPanelProps) {
         <HoodPanel
           hoodOn={hoodOn}
           setHoodOn={setHoodOn}
+          shared={{
+            floatThreshold: hoodFloatThreshold,
+            lookDown: hoodLookDown,
+            suitColor: hoodSuitColor,
+            suitLeg: hoodSuitLeg,
+            clothesBuoyancy: hoodClothesBuoyancy,
+          }}
+          setShared={(p) => {
+            if (p.floatThreshold !== undefined) setHoodFloatThreshold(p.floatThreshold);
+            if (p.lookDown !== undefined) setHoodLookDown(p.lookDown);
+            if (p.suitColor !== undefined) setHoodSuitColor(p.suitColor);
+            if (p.suitLeg !== undefined) setHoodSuitLeg(p.suitLeg);
+            if (p.clothesBuoyancy !== undefined) setHoodClothesBuoyancy(p.clothesBuoyancy);
+          }}
           layer1={{
-            on: true,
             height: hoodHeight,
             opening: hoodOpening,
             openingWidth: hoodOpeningWidth,
@@ -4238,6 +4283,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
             cuff: hoodCuffOn,
             cuffHeight: hoodCuffHeight,
             cuffSize: hoodCuffSize,
+            on: hoodLayer1On,
+            zipperOpen: hoodZipperOpen,
+            floating: hoodFloating,
             hoodTop: hoodTopPart,
             collarUp: hoodCollarUp,
             viewShadow: hoodViewShadow,
@@ -4277,6 +4325,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
             if (p.cuff !== undefined) setHoodCuffOn(p.cuff);
             if (p.cuffHeight !== undefined) setHoodCuffHeight(p.cuffHeight);
             if (p.cuffSize !== undefined) setHoodCuffSize(p.cuffSize);
+            if (p.on !== undefined) setHoodLayer1On(p.on);
+            if (p.zipperOpen !== undefined) setHoodZipperOpen(p.zipperOpen);
+            if (p.floating !== undefined) setHoodFloating(p.floating);
             if (p.hoodTop !== undefined) setHoodTopPart(p.hoodTop);
             if (p.collarUp !== undefined) setHoodCollarUp(p.collarUp);
             if (p.viewShadow !== undefined) setHoodViewShadow(p.viewShadow);
