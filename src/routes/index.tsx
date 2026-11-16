@@ -12141,6 +12141,13 @@ export function Aquafulness() {
       // Keep horizon level: no extra pitch/roll from buoyancy.
 
       sky.position.copy(camera.position);
+      // The env skybox dome (DYGNSTONING/DYGNSBYTE/SOLTONING/SNÖTÄCKE) shares
+      // the sky dome's 800-unit geometry, so it has to follow the camera too.
+      // Left at the origin it acted like a nearby room: the panorama drifted
+      // and stretched as the camera climbed or moved away, and only while one
+      // of those effects had switched the backdrop from scene.background to
+      // this dome, which is why it came and went.
+      envDome.position.copy(camera.position);
 
       // NORRSKEN: fades in with the night (DYGNSBYTE's curve) unless SYNS PÅ
       // DAGEN is on, and is reflected in the water.
