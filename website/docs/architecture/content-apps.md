@@ -10,7 +10,7 @@ description: How scenes, skyboxes, water surfaces, audio and shipped sceneries a
 reflections, audio tracks and scenery presets. They are a packaging unit
 only; at runtime all their scenes, environments and surfaces are mixed into
 flat lists. (The upcoming code refactor uses the word "apps" for code
-plugins too; see [Plugin refactor](plugin-refactor.md).)
+plugins too; see [Apps: the plugin architecture](plugin-refactor.md) (PR #52).)
 
 ## Layout
 

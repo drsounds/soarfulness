@@ -54,6 +54,9 @@ const config: Config = {
         id: "theory",
         path: "../docs",
         routeBasePath: "theory",
+        // docs/architecture/ (the plugin refactor's write-up) is developer
+        // documentation, mirrored in website/docs/architecture/plugin-refactor.md.
+        exclude: ["architecture/**"],
         sidebarPath: "./sidebarsTheory.ts",
         editUrl: `${REPO}/edit/main/docs/`,
       },

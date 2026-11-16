@@ -7,7 +7,7 @@ description: The folder map, the routes, and how the one big Aquafulness compone
 
 :::note Describes `main` as of 2026-11-16
 This page documents the current structure. The plugin-based `apps/` refactor
-will move a lot of it; see [Plugin refactor](plugin-refactor.md).
+will move a lot of it; see [Apps: the plugin architecture](plugin-refactor.md) (PR #52).
 :::
 
 ## Folder map
