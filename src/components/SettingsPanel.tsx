@@ -28,6 +28,9 @@ import { DecorationSettings, type DecorationControls } from "@/apps/decorations/
 import { Findable, G, SETTINGS_GROUPS, SettingsNavigator } from "@/components/settingsNav";
 import { WindSettings, type WindControls } from "@/apps/wind/WindPanel";
 import { HoodPanel } from "@/apps/hood/HoodPanel";
+import { SnowPanel } from "@/apps/snow/SnowPanel";
+import type { SnowSettings } from "@/apps/snow/settings";
+import type { AppSettingsHandle } from "@/core/apps/useAppSettings";
 import type { HoodCuffMaterial, HoodLayer, HoodStyle } from "@/apps/hood/hoodLayers";
 import { StringLightsPanel } from "@/apps/string-lights/StringLightsPanel";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -494,6 +497,7 @@ export type SettingsPanelProps = {
   decorations: DecorationControls;
   // VIND: the wind list, its effects and sound (apps/wind/WindPanel.tsx).
   wind: WindControls;
+  snow: AppSettingsHandle<SnowSettings>;
   restoreCameraPosition: () => void;
   resetToDefaults: () => void;
 
@@ -1022,16 +1026,6 @@ export type SettingsPanelProps = {
   setEnvDayNightAutoOn: Dispatch<SetStateAction<boolean>>;
   envSunTintOn: boolean;
   setEnvSunTintOn: Dispatch<SetStateAction<boolean>>;
-  snowOn: boolean;
-  setSnowOn: Dispatch<SetStateAction<boolean>>;
-  snowAmount: number;
-  setSnowAmount: Dispatch<SetStateAction<number>>;
-  snowIntensity: number;
-  setSnowIntensity: Dispatch<SetStateAction<number>>;
-  snowCoverOn: boolean;
-  setSnowCoverOn: Dispatch<SetStateAction<boolean>>;
-  snowCoverStrength: number;
-  setSnowCoverStrength: Dispatch<SetStateAction<number>>;
   rainOn: boolean;
   setRainOn: Dispatch<SetStateAction<boolean>>;
   rainAmount: number;
@@ -1068,8 +1062,6 @@ export type SettingsPanelProps = {
   setFireworksSoundOn: Dispatch<SetStateAction<boolean>>;
   fireworksVolume: number;
   setFireworksVolume: Dispatch<SetStateAction<number>>;
-  snowGrayBackdropOn: boolean;
-  setSnowGrayBackdropOn: Dispatch<SetStateAction<boolean>>;
   confettiOn: boolean;
   setConfettiOn: Dispatch<SetStateAction<boolean>>;
   confettiAmount: number;
@@ -2141,16 +2133,6 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setEnvDayNightAutoOn,
     envSunTintOn,
     setEnvSunTintOn,
-    snowOn,
-    setSnowOn,
-    snowAmount,
-    setSnowAmount,
-    snowIntensity,
-    setSnowIntensity,
-    snowCoverOn,
-    setSnowCoverOn,
-    snowCoverStrength,
-    setSnowCoverStrength,
     rainOn,
     setRainOn,
     rainAmount,
@@ -2187,8 +2169,6 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setFireworksSoundOn,
     fireworksVolume,
     setFireworksVolume,
-    snowGrayBackdropOn,
-    setSnowGrayBackdropOn,
     confettiOn,
     setConfettiOn,
     confettiAmount,
@@ -5768,70 +5748,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
           </div>
         </Findable>
         <WindSettings c={props.wind} />
-        <SettingRow
-          label={t("dial.env.snow")}
-          value={onOff(snowOn)}
-          onDec={() => setSnowOn(false)}
-          onInc={() => setSnowOn(true)}
-        />
-        {snowOn && (
-          <>
-            <SettingRow
-              label={t("dial.env.snowAmount")}
-              mode="number"
-              value={`${Math.round(snowAmount)}`}
-              rawValue={snowAmount}
-              onSet={(v) => setSnowAmount(Math.max(0, Math.round(v)))}
-              min={0}
-              max={mx("snowAmount")}
-              step={500}
-              onDec={() => setSnowAmount((v) => Math.max(0, Math.round(v - 500)))}
-              onInc={() => setSnowAmount((v) => Math.min(mx("snowAmount"), Math.round(v + 500)))}
-            />
-            <SettingRow
-              label={t("dial.env.snowIntensity")}
-              mode="number"
-              value={`${Math.round(snowIntensity * 100)}%`}
-              rawValue={snowIntensity}
-              onSet={(v) => setSnowIntensity(v)}
-              min={0}
-              max={mx("snowIntensity")}
-              step={0.05}
-              onDec={() => setSnowIntensity((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
-              onInc={() =>
-                setSnowIntensity((v) => Math.min(mx("snowIntensity"), +(v + 0.05).toFixed(2)))
-              }
-            />
-          </>
-        )}
-        <SettingRow
-          label={t("dial.env.snowCover")}
-          value={onOff(snowCoverOn)}
-          onDec={() => setSnowCoverOn(false)}
-          onInc={() => setSnowCoverOn(true)}
-        />
-        {snowCoverOn && (
-          <SettingRow
-            label={t("dial.env.snowGrayBackdrop")}
-            value={onOff(snowGrayBackdropOn)}
-            onDec={() => setSnowGrayBackdropOn(false)}
-            onInc={() => setSnowGrayBackdropOn(true)}
-          />
-        )}
-        {snowCoverOn && (
-          <SettingRow
-            label={t("dial.env.snowCoverStrength")}
-            mode="number"
-            value={`${Math.round(snowCoverStrength * 100)}%`}
-            rawValue={snowCoverStrength}
-            onSet={(v) => setSnowCoverStrength(v)}
-            min={0}
-            max={1}
-            step={0.05}
-            onDec={() => setSnowCoverStrength((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
-            onInc={() => setSnowCoverStrength((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
-          />
-        )}
+        <SnowPanel snow={props.snow} />
         <SettingRow
           label={t("dial.env.rain")}
           value={onOff(rainOn)}
