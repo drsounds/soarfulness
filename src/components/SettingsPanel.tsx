@@ -907,6 +907,7 @@ export type SettingsPanelProps = {
   hoodCuffHeight: number;
   setHoodCuffHeight: Dispatch<SetStateAction<number>>;
   hoodCuffSize: number;
+  hoodSeparate: boolean;
   hoodWaterTint: number;
   hoodDripping: number;
   hoodPullBack: number;
@@ -938,6 +939,7 @@ export type SettingsPanelProps = {
   hoodPuffThickness: number;
   hoodPuffInflate: number;
   setHoodCuffSize: Dispatch<SetStateAction<number>>;
+  setHoodSeparate: Dispatch<SetStateAction<boolean>>;
   setHoodWaterTint: Dispatch<SetStateAction<number>>;
   setHoodDripping: Dispatch<SetStateAction<number>>;
   setHoodPullBack: Dispatch<SetStateAction<number>>;
@@ -2032,6 +2034,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
     hoodCuffHeight,
     setHoodCuffHeight,
     hoodCuffSize,
+    hoodSeparate,
     hoodWaterTint,
     hoodDripping,
     hoodPullBack,
@@ -2063,6 +2066,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
     hoodPuffThickness,
     hoodPuffInflate,
     setHoodCuffSize,
+    setHoodSeparate,
     setHoodWaterTint,
     setHoodDripping,
     setHoodPullBack,
@@ -4311,6 +4315,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
             cuff: hoodCuffOn,
             cuffHeight: hoodCuffHeight,
             cuffSize: hoodCuffSize,
+            separate: hoodSeparate,
             waterTint: hoodWaterTint,
             dripping: hoodDripping,
             pullBack: hoodPullBack,
@@ -4360,6 +4365,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
             if (p.cuff !== undefined) setHoodCuffOn(p.cuff);
             if (p.cuffHeight !== undefined) setHoodCuffHeight(p.cuffHeight);
             if (p.cuffSize !== undefined) setHoodCuffSize(p.cuffSize);
+            if (p.separate !== undefined) setHoodSeparate(p.separate);
             if (p.waterTint !== undefined) setHoodWaterTint(p.waterTint);
             if (p.dripping !== undefined) setHoodDripping(p.dripping);
             if (p.pullBack !== undefined) setHoodPullBack(p.pullBack);

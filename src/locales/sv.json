@@ -162,6 +162,7 @@
       "hoodWaterLevel": "VATTENNIVÅ",
       "hoodLayer": "LAGER",
       "hoodLayerOn": "LAGRET SYNS",
+      "hoodSeparate": "HUVA SEPARAT FRÅN HALS",
       "hoodPullBack": "HUVA BAKÅT",
       "hoodNeckBack": "HALS NERÅT",
       "hoodWaterTint": "VATTENFÄRG",

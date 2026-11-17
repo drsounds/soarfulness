@@ -42,6 +42,7 @@ export type HoodSettings = {
   hoodCuffOn: boolean;
   hoodCuffHeight: number;
   hoodCuffSize: number;
+  hoodSeparate: boolean;
   hoodWaterTint: number;
   hoodDripping: number;
   hoodPullBack: number;
@@ -101,6 +102,7 @@ export const HOOD_DEFAULTS: HoodSettings = {
   hoodCuffOn: false,
   hoodCuffHeight: 0.3,
   hoodCuffSize: 0.5,
+  hoodSeparate: false,
   hoodWaterTint: 0,
   hoodDripping: 0,
   hoodPullBack: 0,
