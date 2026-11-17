@@ -221,6 +221,7 @@ export function HoodPanel({
             }
           />
           {(!layer.lowerOn || layer.hoodTop) && pct("pullBack", t("dial.camera.hoodPullBack"))}
+          {toggle("real3d", t("dial.camera.hoodReal3d"))}
           {toggle("lowerOn", t("dial.camera.hoodLower"))}
           {layer.lowerOn && (
             <>

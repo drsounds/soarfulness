@@ -114,6 +114,8 @@ export type HoodConfig = {
   neckBack?: number;
   /** HUVA SEPARAT FRÅN HALS: the neck is its own wrap-around collar, the hood mounted separately. */
   separate?: boolean;
+  /** 3D-TYG: this layer is drawn as real geometry (HoodMesh3D) instead. */
+  real3d?: boolean;
   /** EGEN LÄNGD: end the cloth at `length` (MUDD at the hem) instead of running on down. */
   lengthOn?: boolean;
   /**
@@ -242,6 +244,20 @@ const FRAG = /* glsl */ `
   float neckEdgeY() {
     return mix(-0.92, -0.05, uLowerHeight) + uSway.y - uNeckBack * 0.95;
   }
+  // The top hood's rim (the opening's upper edge) at screen x, or -9 where
+  // the opening doesn't reach. Mirrors hoodField()'s opening.
+  float rimTopY(float x) {
+    vec2 c = vec2(uSway.x, 0.04 + uSway.y - uDrop * 0.22);
+    float a0 = uOpenWidth > 0.0 ? uAspect * uOpenWidth : uAspect * mix(0.55, 0.95, uOpening) + 0.06;
+    float b0 = mix(0.6, 0.98, uOpening) * (1.0 - uDrop * 0.3);
+    float pb = clamp(uHoodBack, 0.0, 1.0);
+    float a = a0 * (1.0 + pb * 0.9);
+    float b = b0 * (1.0 + pb * 1.1);
+    float n = mix(6.0, 2.0, clamp(uRound, 0.0, 1.0));
+    float ex = abs(x - c.x) / a;
+    if (ex >= 1.0) return -9.0;
+    return c.y + pb * 0.25 + b * pow(1.0 - pow(ex, n), 1.0 / n);
+  }
   // KRAGE UPPÅT: how far up the middle of the neck cover's edge is pulled.
   const float COLLAR_UP = 0.24;
   // Set by hoodField(): 1 inside the MUDD (cuff) band.
@@ -288,6 +304,10 @@ const FRAG = /* glsl */ `
     bool sep = uSep > 0.5 && uLower > 0.5;
     bool lowerOn = uLower > 0.5 && !sep;
     float isNeck = 0.0;
+    // The funnel neck's true distance from its edge and a continuous
+    // arc coordinate, for a cuff whose band and ribs keep their size.
+    float nDist = 0.0;
+    float nArc = 0.0;
     if (q.y > 0.0) {
       vec2 e = abs(vec2(q.x / a, (q.y - pb * 0.25) / b));
       r = pow(pow(e.x, n) + pow(e.y, n), 1.0 / n);
@@ -304,6 +324,17 @@ const FRAG = /* glsl */ `
       vec2 e = abs(vec2(q.x / aL, q.y / bb));
       float nl = n + 0.6;
       r = pow(pow(e.x, nl) + pow(e.y, nl), 1.0 / nl);
+      {
+        // |grad r| gives the real screen distance from the edge, (r-1) /
+        // |grad r|, instead of the stretched superellipse value (which made
+        // the band swell at the bottom and pinch at the sides), and the
+        // angle from straight down is a seam-free coordinate along it.
+        float rr = max(r, 1e-3);
+        vec2 gv = vec2(pow(max(e.x, 1e-4), nl - 1.0) / aL, pow(max(e.y, 1e-4), nl - 1.0) / bb);
+        float gl = max(pow(rr, 1.0 - nl) * length(gv), 1e-3);
+        nDist = (r - 1.0) / gl;
+        nArc = atan(q.x / aL, -q.y / bb) * 0.9;
+      }
       if (uCollarUp > 0.5) {
         // KRAGE UPPÅT: the middle of the edge is pulled up over the mouth,
         // falling away to the usual edge toward the sides.
@@ -329,7 +360,9 @@ const FRAG = /* glsl */ `
       float xN = (p.x - uSway.x * 0.6) / uAspect;
       float funnel = uCollarUp > 0.5 ? COLLAR_UP : 0.0;
       float yE = neckEdgeY() + funnel + (0.55 - funnel * 1.2) * xN * xN;
-      float tN = yE - p.y + flutter * 0.5;
+      float slopeN = (0.55 - funnel * 1.2) * 2.0 * xN / uAspect;
+      // Vertical distance to the edge, made the real distance across it.
+      float tN = (yE - p.y) * inversesqrt(1.0 + slopeN * slopeN) + flutter * 0.5;
       if (tN > 0.0) {
         t = tN;
         isNeck = 1.0;
@@ -438,11 +471,11 @@ const FRAG = /* glsl */ `
       float Hq;
       float s;
       if (lowerOn) {
-        v = t;
+        v = nDist + flutter;
         // Full height under the face, narrowing to nothing where the edge
         // turns up into the hood's sides.
         Hq = H * (1.0 - smoothstep(-0.3, 0.0, q.y));
-        s = ang * 1.25;
+        s = nArc;
       } else if (sep) {
         v = isNeck > 0.5 ? t : -1.0;
         Hq = H;
@@ -523,6 +556,39 @@ const FRAG = /* glsl */ `
       }
     }
     return vec3(t, h, cut);
+  }
+
+  // One row of drops hanging from an edge: a bead grows, then falls. rim
+  // rows hang from the top hood's rim, others from the lower hem.
+  vec4 dropRow(vec2 pp, float edgeYFlat, bool rim, float seed) {
+    float cw = 0.12;
+    float cell = floor(pp.x / cw);
+    float h1 = fract(sin((cell + seed) * 12.9898) * 43758.5453);
+    float h2 = fract(sin((cell + seed) * 78.233) * 12543.17);
+    float cx = (cell + 0.2 + 0.6 * h1) * cw;
+    float edgeD = edgeYFlat;
+    float clothHere;
+    if (rim) {
+      edgeD = rimTopY(cx);
+      // The cloth is above the rim.
+      clothHere = edgeD > -8.0 ? 1.0 : 0.0;
+    } else {
+      // Only where there is cloth hanging at this column's hem.
+      clothHere = step(0.3, hoodField(vec2(cx, edgeD + 0.04)).x);
+    }
+    float ph = fract(uTime / (2.2 + 2.0 * h2) + h1);
+    float fall = max(ph - 0.25, 0.0);
+    float yd = edgeD - 0.01 - fall * fall * 2.2;
+    float grow = 0.55 + 0.45 * smoothstep(0.0, 0.25, ph);
+    vec2 dd = vec2((pp.x - cx) / (0.0085 * grow), (pp.y - yd) / (0.02 * grow));
+    // A teardrop: pointed on top, round below.
+    dd.y *= dd.y > 0.0 ? 0.7 : 1.0;
+    float body = 1.0 - smoothstep(0.7, 1.0, length(dd));
+    float life = step(h1, uDrip * 1.15 + 0.1) * (1.0 - smoothstep(0.82, 1.0, ph)) * clothHere;
+    float dA = body * life * clamp(uDrip * 2.0, 0.0, 1.0);
+    float spec = smoothstep(0.1, 0.0, length(dd - vec2(-0.3, 0.35)));
+    vec3 dc = mix(uHorizon, uSky, 0.5) * 0.8 + uSunCol * 0.25;
+    return vec4(dc + spec * 0.6, dA * 0.8);
   }
 
   vec3 env(vec3 d) {
@@ -625,29 +691,15 @@ const FRAG = /* glsl */ `
     // DROPPAR: beads of water gather at the wet cloth's hem and fall.
     vec4 drip = vec4(0.0);
     if (uDrip > 0.001) {
+      // From the lower hem (or the hood's bottom edge) ...
       bool hasEdge = uHemY > -900.0 || uLower < 0.5 || uSep > 0.5;
       float edgeD = uHemY > -900.0 ? uHemY : mix(-1.08, 0.8, uHeight);
-      if (hasEdge) {
-        float cw = 0.12;
-        float cell = floor(pDrip.x / cw);
-        float h1 = fract(sin(cell * 12.9898) * 43758.5453);
-        float h2 = fract(sin(cell * 78.233) * 12543.17);
-        float cx = (cell + 0.2 + 0.6 * h1) * cw;
-        // Only where there is cloth hanging at this column's hem.
-        float clothHere = step(0.3, hoodField(vec2(cx, edgeD + 0.04)).x);
-        float ph = fract(uTime / (2.2 + 2.0 * h2) + h1);
-        float fall = max(ph - 0.25, 0.0);
-        float yd = edgeD - 0.01 - fall * fall * 2.2;
-        float grow = 0.55 + 0.45 * smoothstep(0.0, 0.25, ph);
-        vec2 dd = vec2((pDrip.x - cx) / (0.0085 * grow), (pDrip.y - yd) / (0.02 * grow));
-        // A teardrop: pointed on top, round below.
-        dd.y *= dd.y > 0.0 ? 0.7 : 1.0;
-        float body = 1.0 - smoothstep(0.7, 1.0, length(dd));
-        float life = step(h1, uDrip * 1.15 + 0.1) * (1.0 - smoothstep(0.82, 1.0, ph)) * clothHere;
-        float dA = body * life * clamp(uDrip * 2.0, 0.0, 1.0);
-        float spec = smoothstep(0.1, 0.0, length(dd - vec2(-0.3, 0.35)));
-        vec3 dc = mix(uHorizon, uSky, 0.5) * 0.8 + uSunCol * 0.25;
-        drip = vec4(dc + spec * 0.6, dA * 0.8);
+      if (hasEdge) drip = dropRow(pDrip, edgeD, false, 0.0);
+      // ... and from the top hood's rim, falling through the opening.
+      bool hasHood = !(uLower > 0.5 && uTopOff > 0.5);
+      if (hasHood) {
+        vec4 d2 = dropRow(pDrip, 0.0, true, 37.0);
+        drip = d2.a > drip.a ? d2 : drip;
       }
     }
     if (inside <= 0.0 && rim <= 0.0 && drip.a <= 0.0) discard;

@@ -162,6 +162,7 @@
       "hoodWaterLevel": "VATTENNIVÅ",
       "hoodLayer": "LAGER",
       "hoodLayerOn": "LAGRET SYNS",
+      "hoodReal3d": "3D-TYG I SCENEN",
       "hoodSeparate": "HUVA SEPARAT FRÅN HALS",
       "hoodPullBack": "HUVA BAKÅT",
       "hoodNeckBack": "HALS NERÅT",

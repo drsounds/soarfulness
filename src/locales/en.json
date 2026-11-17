@@ -162,6 +162,7 @@
       "hoodWaterLevel": "WATER LEVEL",
       "hoodLayer": "LAYER",
       "hoodLayerOn": "LAYER VISIBLE",
+      "hoodReal3d": "REAL 3D CLOTH",
       "hoodSeparate": "HOOD SEPARATE FROM NECK",
       "hoodPullBack": "HOOD PULLED BACK",
       "hoodNeckBack": "NECK PULLED DOWN",
