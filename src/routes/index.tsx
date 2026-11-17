@@ -27,7 +27,9 @@ import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { CSS3DTVManager, type DeviceKind } from "@/lib/tv/CSS3DTVManager";
-import { TorusRingField } from "@/lib/torusRings/TorusRingField";
+import torusRingsApp from "@/apps/torus-rings/app";
+import { TORUS_RINGS_DEFAULTS } from "@/apps/torus-rings/settings";
+import type { TorusRingsRuntime } from "@/apps/torus-rings/TorusRingsRuntime";
 import { RETRO_PALETTE_INDEX, RETRO_SHADER } from "@/apps/retro/retroShader";
 import { limitMax, useExtremeLimits, type LimitedControl } from "@/lib/extremeLimits";
 import neonApp from "@/apps/neon/app";
@@ -125,7 +127,6 @@ import {
   TORNADO_SEQUENCE_EXIT_MODES,
   TORNADO_SEQUENCE_EXIT_MODE_LABEL_KEYS,
   SWING_PRESETS,
-  TORUS_RING_TEXTURES,
   SWING_Y_WAVEFORMS,
   DEPTH_SINE_WAVEFORMS,
   INTERVAL_SESSION_TYPES,
@@ -1698,25 +1699,7 @@ const DEFAULTS: Persisted = {
   intervalIncludeFloat: true,
   intervalIncludeSwing: true,
   surfaceArea: 1000,
-  // Floating torus "bath rings" field — off by default so existing scenes
-  // look unchanged until explicitly turned on. Defaults per the feature
-  // spec: emissive white, 50% opacity. Scale defaults to 20x (from the
-  // Strandpark default state); see TORUS_SCALE_MIGRATION_KEY below for the
-  // old 1x -> 3x bump.
-  torusRingsOn: false,
-  torusRadius: 0.6,
-  torusTube: 0.02,
-  torusScale: 20,
-  torusOpacity: 0.5,
-  torusTextureIdx: 0,
-  // Edge-to-edge gaps between rings (horizontal XZ / vertical Y), not
-  // center distances — TorusRingField adds the ring's own scaled size on
-  // top, so resizing rings never makes neighbours intersect.
-  torusCellSize: 2,
-  torusVerticalSpacing: 13.58,
-  torusVerticalCount: 5,
-  torusViewDistance: 26,
-  torusFadeDistance: 8,
+  ...TORUS_RINGS_DEFAULTS,
 };
 // One-shot marker for the bath-ring size bump (torusScale default 1 -> 3):
 // a save still sitting on the old 1x default is tripled once, then this key
@@ -2853,17 +2836,34 @@ export function Aquafulness() {
   // shared by the ocean surface and both cloud layers so all three always
   // extend exactly this far before their edge could show.
   const [surfaceArea, setSurfaceArea] = useState(initial.surfaceArea);
-  const [torusRingsOn, setTorusRingsOn] = useState(initial.torusRingsOn);
-  const [torusRadius, setTorusRadius] = useState(initial.torusRadius);
-  const [torusTube, setTorusTube] = useState(initial.torusTube);
-  const [torusScale, setTorusScale] = useState(initial.torusScale);
-  const [torusOpacity, setTorusOpacity] = useState(initial.torusOpacity);
-  const [torusTextureIdx, setTorusTextureIdx] = useState(initial.torusTextureIdx);
-  const [torusCellSize, setTorusCellSize] = useState(initial.torusCellSize);
-  const [torusVerticalSpacing, setTorusVerticalSpacing] = useState(initial.torusVerticalSpacing);
-  const [torusVerticalCount, setTorusVerticalCount] = useState(initial.torusVerticalCount);
-  const [torusViewDistance, setTorusViewDistance] = useState(initial.torusViewDistance);
-  const [torusFadeDistance, setTorusFadeDistance] = useState(initial.torusFadeDistance);
+  const torusRings = useAppSettings(TORUS_RINGS_DEFAULTS, initial);
+  const {
+    torusRingsOn,
+    torusRadius,
+    torusTube,
+    torusScale,
+    torusOpacity,
+    torusTextureIdx,
+    torusCellSize,
+    torusVerticalSpacing,
+    torusVerticalCount,
+    torusViewDistance,
+    torusFadeDistance,
+  } = torusRings.values;
+  const {
+    torusRingsOn: setTorusRingsOn,
+    torusRadius: setTorusRadius,
+    torusTube: setTorusTube,
+    torusScale: setTorusScale,
+    torusOpacity: setTorusOpacity,
+    torusTextureIdx: setTorusTextureIdx,
+    torusCellSize: setTorusCellSize,
+    torusVerticalSpacing: setTorusVerticalSpacing,
+    torusVerticalCount: setTorusVerticalCount,
+    torusViewDistance: setTorusViewDistance,
+    torusFadeDistance: setTorusFadeDistance,
+  } = torusRings.setters;
+  const { reset: resetTorusrings, patch: patchTorusrings } = torusRings;
   const [rotStick, setRotStick] = useState({ x: 0, y: 0 });
   const [driftStick, setDriftStick] = useState({ x: 0, y: 0 });
   const [waveDirStick, setWaveDirStick] = useState({ x: 0, y: 0 });
@@ -2994,7 +2994,7 @@ export function Aquafulness() {
   const tvManagerRef = useRef<CSS3DTVManager | null>(null);
   // Floating torus "bath rings" field, arrayed around the camera on an
   // invisible grid — see TorusRingField for the fade-in/out and grid logic.
-  const torusRingFieldRef = useRef<TorusRingField | null>(null);
+  const torusRingsFxRef = useRef<TorusRingsRuntime | null>(null);
   // Non-null only when the current scene opts into bobbing; drives the model's
   // vertical motion from inside the animation loop.
   const modelBobRef = useRef<{ base: THREE.Vector3; bob: BobConfig } | null>(null);
@@ -5114,36 +5114,8 @@ export function Aquafulness() {
   // WebGL mount effect below has run and constructed it; that effect builds
   // it with these same values as its initial config).
   useEffect(() => {
-    torusRingFieldRef.current?.setConfig({
-      // LOW GRAPHICS MODE turns the whole field off (extra geometry + lit
-      // MeshStandardMaterial draw calls, plus its own optional texture) —
-      // see lowGraphicsMode's doc comment in settingsShared.ts.
-      enabled: torusRingsOn && !lowGraphicsMode,
-      radius: torusRadius,
-      tube: torusTube,
-      scale: torusScale,
-      opacity: torusOpacity,
-      textureUrl: lowGraphicsMode ? null : (TORUS_RING_TEXTURES[torusTextureIdx]?.url ?? null),
-      gapXZ: torusCellSize,
-      gapY: torusVerticalSpacing,
-      verticalCount: torusVerticalCount,
-      viewDistance: torusViewDistance,
-      fadeDistance: torusFadeDistance,
-    });
-  }, [
-    torusRingsOn,
-    torusRadius,
-    torusTube,
-    torusScale,
-    torusOpacity,
-    torusTextureIdx,
-    torusCellSize,
-    torusVerticalSpacing,
-    torusVerticalCount,
-    torusViewDistance,
-    torusFadeDistance,
-    lowGraphicsMode,
-  ]);
+    torusRingsFxRef.current?.configure(torusRings.values, lowGraphicsMode);
+  }, [torusRings.values, lowGraphicsMode]);
   // Mode switch: hand off position/orientation continuity between schemes so
   // switching never teleports the camera. Entering noclip seeds its vertical
   // position from wherever the wave spring last had the camera; entering
@@ -5588,17 +5560,7 @@ export function Aquafulness() {
     setIntervalIncludeSwing(DEFAULTS.intervalIncludeSwing);
     setSurfaceArea(DEFAULTS.surfaceArea);
     setSwingPreset(DEFAULTS.swingPreset);
-    setTorusRingsOn(DEFAULTS.torusRingsOn);
-    setTorusRadius(DEFAULTS.torusRadius);
-    setTorusTube(DEFAULTS.torusTube);
-    setTorusScale(DEFAULTS.torusScale);
-    setTorusOpacity(DEFAULTS.torusOpacity);
-    setTorusTextureIdx(DEFAULTS.torusTextureIdx);
-    setTorusCellSize(DEFAULTS.torusCellSize);
-    setTorusVerticalSpacing(DEFAULTS.torusVerticalSpacing);
-    setTorusVerticalCount(DEFAULTS.torusVerticalCount);
-    setTorusViewDistance(DEFAULTS.torusViewDistance);
-    setTorusFadeDistance(DEFAULTS.torusFadeDistance);
+    resetTorusrings();
     // timeOfDay is intentionally left untouched.
   };
 
@@ -5884,18 +5846,7 @@ export function Aquafulness() {
     if (patch.intervalIncludeSwing !== undefined)
       setIntervalIncludeSwing(patch.intervalIncludeSwing);
     if (patch.surfaceArea !== undefined) setSurfaceArea(patch.surfaceArea);
-    if (patch.torusRingsOn !== undefined) setTorusRingsOn(patch.torusRingsOn);
-    if (patch.torusRadius !== undefined) setTorusRadius(patch.torusRadius);
-    if (patch.torusTube !== undefined) setTorusTube(patch.torusTube);
-    if (patch.torusScale !== undefined) setTorusScale(patch.torusScale);
-    if (patch.torusOpacity !== undefined) setTorusOpacity(patch.torusOpacity);
-    if (patch.torusTextureIdx !== undefined) setTorusTextureIdx(patch.torusTextureIdx);
-    if (patch.torusCellSize !== undefined) setTorusCellSize(patch.torusCellSize);
-    if (patch.torusVerticalSpacing !== undefined)
-      setTorusVerticalSpacing(patch.torusVerticalSpacing);
-    if (patch.torusVerticalCount !== undefined) setTorusVerticalCount(patch.torusVerticalCount);
-    if (patch.torusViewDistance !== undefined) setTorusViewDistance(patch.torusViewDistance);
-    if (patch.torusFadeDistance !== undefined) setTorusFadeDistance(patch.torusFadeDistance);
+    patchTorusrings(patch);
   };
 
   // Which Persisted fields a given preset scope owns — "all" is every field
@@ -6944,24 +6895,6 @@ export function Aquafulness() {
     sunLight.shadow.bias = -0.0004;
     sunLight.shadow.normalBias = 0.04;
     scene.add(sunLight.target);
-
-    const torusRingField = new TorusRingField(scene, {
-      enabled: initial.torusRingsOn && !initial.lowGraphicsMode,
-      radius: initial.torusRadius,
-      tube: initial.torusTube,
-      scale: initial.torusScale,
-      opacity: initial.torusOpacity,
-      color: 0xffffff,
-      textureUrl: initial.lowGraphicsMode
-        ? null
-        : (TORUS_RING_TEXTURES[initial.torusTextureIdx]?.url ?? null),
-      gapXZ: initial.torusCellSize,
-      gapY: initial.torusVerticalSpacing,
-      verticalCount: initial.torusVerticalCount,
-      viewDistance: initial.torusViewDistance,
-      fadeDistance: initial.torusFadeDistance,
-    });
-    torusRingFieldRef.current = torusRingField;
 
     // DEKORATIONER: placed .glb decorations + their move/rotate/scale gizmo.
     const detachDecorations = deco.attach(scene, camera, renderer.domElement);
@@ -8893,6 +8826,9 @@ export function Aquafulness() {
     const neon = apps.runtime(neonApp);
     const snow = apps.runtime(snowApp);
     const clouds3dFx = apps.runtime(clouds3dApp);
+    const torusRingsFx = apps.runtime(torusRingsApp);
+    torusRingsFx.configure(initial, initial.lowGraphicsMode);
+    torusRingsFxRef.current = torusRingsFx;
     const skyPuffsFx = apps.runtime(skyPuffsApp);
     skyPuffsFx.scatterAround(posRef.current.x, posRef.current.z);
     const fireworks = apps.runtime(fireworksApp);
@@ -11767,11 +11703,6 @@ export function Aquafulness() {
         model.position.set(mb.base.x, mb.base.y + h, mb.base.z);
       }
 
-      // Recompute the torus-ring field's active grid cells and their
-      // fade-in/out/distance opacity for this frame, now that the camera's
-      // position is final for the frame.
-      torusRingField.update(camera.position, dt);
-
       // The apps (src/apps/*): every runtime's frame(), in manifest order —
       // aurora, neon, string lights, snow, rain, fireworks, confetti, hood,
       // and the underwater fog overlay.
@@ -11931,8 +11862,7 @@ export function Aquafulness() {
       tornadoCloudMeshRef.current = null;
       tvManager.dispose();
       tvManagerRef.current = null;
-      torusRingField.dispose();
-      torusRingFieldRef.current = null;
+      torusRingsFxRef.current = null;
       detachDecorations();
       renderer.domElement.removeEventListener("pointerdown", onWatercraftPointerDown);
       renderer.domElement.removeEventListener("pointermove", onWatercraftPointerMove);

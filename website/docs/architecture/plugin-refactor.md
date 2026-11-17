@@ -61,6 +61,7 @@ Swedish, like `NORRSKEN`) goes in the manifest's `name`.
 | `sky-puffs` | MOLNPUFFAR | scene-fx | clouds | | `SkyPuffsRuntime.ts` |
 | `snow` | SNÖ | scene-fx | weather | day-night | `Snowfall.ts`, `SnowCover.ts`, `snowLight.ts` |
 | `string-lights` | LJUSSLINGOR | scene-fx | effects | | `StringLightsFx.ts`, `EdgeLightsFx.ts`, `stringLights.ts` (own store), `StringLightsPanel.tsx`, `EdgeLightsPanel.tsx` |
+| `torus-rings` | BADRINGAR | scene-fx | effects | | `TorusRingField.ts`, `TorusRingsRuntime.ts` |
 | `underwater-fog` | UNDERVATTENDIS | screen-fx | weather | | `underwaterFog.ts`, `UnderwaterFogOverlay.ts` |
 | `wind` | VIND | environment | weather | | `wind.ts`, `WindAudio.ts`, `WindPanel.tsx` |
 
@@ -319,6 +320,9 @@ can keep merging.
     `Clouds3dRuntime.update(inputs, settings)`.
   - [x] sky puffs (`apps/sky-puffs`): the puff pool, its shader and its five
     settings, with `SkyPuffsRuntime.update(inputs, settings)` and a unit test.
+  - [x] bath rings (`apps/torus-rings`): the ring field and its eleven
+    settings; the host pushes settings with `configure(settings,
+    lowGraphicsMode)` and the app host runs `frame()`.
   - [ ] the flat cloud decks, waves, water material, camera modes, scenes,
     sound, watercraft.
 - [ ] **Step 6:** code-split the app code (keeps the main bundle small).
