@@ -349,6 +349,13 @@ const FRAG = /* glsl */ `
         float kS = 0.35;
         float hS = clamp(0.5 + 0.5 * (rUp - r) / kS, 0.0, 1.0);
         r = mix(r, rUp, hS) + kS * hS * (1.0 - hS);
+        // The cuff band follows the raised edge, not the old lower one: where
+        // the bump wins, measure the distance from the bump's own edge (made
+        // the real distance across its slope).
+        float uB = clamp(abs(xx), 0.0, 1.0);
+        float slopeB = COLLAR_UP * 6.0 * uB * (1.0 - uB) / (aL * 0.62);
+        float dUp = (edgeY + bump - p.y) * inversesqrt(1.0 + slopeB * slopeB);
+        nDist = mix(nDist, dUp, hS);
       }
     } else {
       // Below the opening's center the sides hang straight, flaring a little.
