@@ -312,8 +312,13 @@ can keep merging.
   daylight tint dials.
 - [ ] **Step 5:** split the core app itself (waves, water material, camera
   modes, clouds, scenes, sound, watercraft) into apps.
-- [ ] **Step 6:** load app runtimes with dynamic `import()` so each one is
-  its own chunk (keeps the main bundle under the PWA precache limit).
+- [ ] **Step 6:** code-split the app code (keeps the main bundle small).
+  - [x] The settings dialog and every app panel in it load as their own
+    chunk (`React.lazy` in `routes/index.tsx`): the main chunk went from
+    1.86 MB to 1.37 MB, and the dialog chunk is 0.49 MB.
+  - [ ] Runtimes with dynamic `import()`: measured and not worth it yet. The
+    app runtimes are small next to three.js and the render code, and loading
+    them asynchronously would make scene setup wait on them.
 
 ## Docs pages to update as the migration proceeds
 
