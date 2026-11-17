@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import type { HoodConfig } from "./Hood";
+import type { Hood, HoodConfig } from "./Hood";
 
 // 3D-TYG: a layer rendered as real geometry in the scene instead of the flat
 // full-screen overlay. The collar (MUN OCH HALS) is a ring of cloth around
@@ -14,8 +14,14 @@ import type { HoodConfig } from "./Hood";
 // around the eye (which leaves the picture unchanged) to keep the cloth
 // beyond the camera's near plane.
 //
-// Not drawn in 3D yet: water running in the cloth, dripping, FLYTANDE and
-// LÄNGD wraps (the flat overlay keeps those).
+// The water features are shared with the flat layer: the waterline inside
+// (VATTEN I HUVAN) and the water's color are shaded per pixel from the
+// fragment's real height above the sea, FLYTANDE bends and puffs the cloth
+// below FLYTGRÄNS in the vertex shader, and a LÄNGD longer than the float
+// suit floats up and wraps out around you at the surface. DROPPAR are still
+// drawn by the flat layer (drops only), so they fall from the 3D cloth's
+// rim and hem too. The flat Hood of each layer keeps running to hold the
+// water and float state.
 
 const NU = 192;
 const NV = 72;
@@ -40,6 +46,32 @@ const COMMON = /* glsl */ `
   uniform float uR;
   uniform float uRh;
   uniform float uBottom;
+  uniform float uTime;
+  uniform float uFloatAmt;
+  uniform float uFloatLift;
+  uniform float uFloatInflate;
+  uniform float uFloatLine;
+  uniform float uWrap;
+  uniform float uWrapRise;
+  uniform float uWrapSpeed;
+  uniform float uEyeAbove;
+
+  // FLYTANDE: (dx, dy, bulge) in meters for a point of the cloth: below
+  // FLYTGRÄNS it is lifted (or dragged down when heavy), sways in slow waves
+  // and puffs up in big bubbles of trapped air.
+  vec3 floatOff(vec3 P) {
+    if (uFloatAmt <= 0.001) return vec3(0.0);
+    float M = uTanHalf * 0.26;
+    float lineY = uFloatLine * uTanHalf * 0.13;
+    float kF = 1.0 - smoothstep(lineY - 0.12, lineY + 0.02, P.y);
+    float wv = sin(P.x * 18.0 + uTime * 0.9) * 0.6 + sin(P.x * 32.0 - uTime * 1.3 + 0.7) * 0.4;
+    float dy = (wv * 0.05 + uFloatLift) * M * uFloatAmt * kF;
+    float dx = sin(P.y * 20.0 + uTime * 0.7) * 0.025 * M * uFloatAmt * kF;
+    float bub = sin(P.x * 22.0 + uTime * 0.35) * sin(P.y * 30.0 - uTime * 0.27 + 1.3);
+    bub = 0.5 + 0.5 * bub;
+    float bulge = uFloatInflate * kF * bub * bub * 0.09 * M * 1.5;
+    return vec3(dx, dy, bulge);
+  }
 
   // The padding's height (m) at c (meters along / across), 0 for classic
   // and shell cloth.
@@ -98,6 +130,21 @@ const VERT_COLLAR = /* glsl */ `
     float R = uR + k * k * uFlare;
     float dEdge = yE - y;
     float p = puffProfile(vec2(th * uR, y));
+    vec3 fo = floatOff(vec3(R * sin(th), y, 0.0));
+    p += fo.z;
+    y += fo.y;
+    // LÄNGD past the float suit, in the water: the lower cloth floats up to
+    // the surface and billows out around you like a dress.
+    float dx = fo.x;
+    if (uWrap > 0.001) {
+      float yS = min(-uEyeAbove, yE - 0.05);
+      float d = yS - y;
+      if (d > 0.0) {
+        float wv = sin(th * 3.0 + uTime * uWrapSpeed) * 0.6 + sin(th * 7.0 - uTime * uWrapSpeed * 1.4 + 1.1) * 0.4;
+        y = yS - d * (1.0 - uWrap * 0.9) + wv * 0.03 * uWrap * smoothstep(0.0, 0.2, d);
+        R += uWrap * uWrapRise * (0.05 + 0.2 * smoothstep(0.0, 0.5, d));
+      }
+    }
     if (uBandH > 0.0) {
       float x = clamp(dEdge / uBandH, 0.0, 1.0);
       p *= smoothstep(uBandH * 0.9, uBandH + 0.012, dEdge);
@@ -105,7 +152,7 @@ const VERT_COLLAR = /* glsl */ `
       p += (sin(PI * x) * 0.010 + 0.004) * (1.0 - step(1.0, x));
     }
     R -= p;
-    return vec3(R * sin(th), y, ${CENTER_Z.toFixed(3)} - R * cos(th));
+    return vec3(R * sin(th) + dx, y, ${CENTER_Z.toFixed(3)} - R * cos(th));
   }
 
   void main() {
@@ -155,7 +202,8 @@ const VERT_HOOD = /* glsl */ `
     float thF = acos(clamp(-D.z, -1.0, 1.0));
     float cu = atan(D.y, D.x) * uRh * sin(thF);
     float p = puffProfile(vec2(cu, thF * uRh));
-    return P - D * p;
+    vec3 fo = floatOff(P);
+    return P - D * (p - fo.z) + vec3(fo.x, fo.y, 0.0);
   }
 
   void main() {
@@ -182,6 +230,12 @@ const FRAG_COMMON = /* glsl */ `
   uniform float uAspect;
   uniform float uTanHalf;
   uniform float uStyle;
+  uniform float uS;
+  uniform float uWaterIn;
+  uniform float uEyeAbove;
+  uniform float uWaterLevelIn;
+  uniform float uWaterTint;
+  uniform float uMotion;
   uniform vec3 uColor;
   uniform float uMetal;
   uniform float uDark;
@@ -193,6 +247,35 @@ const FRAG_COMMON = /* glsl */ `
   uniform vec3 uSunDir;
   uniform float uUnderwater;
   uniform mat3 uViewToWorld;
+
+  // VATTEN I HUVAN: cloth under the water inside is tinted and dimmer, with
+  // a soft caustic shimmer and a bright meniscus along the waterline. The
+  // waterline is where the cloth point's real height above the sea crosses
+  // the water inside, so tilting the head moves it.
+  vec3 waterInside(vec3 col) {
+    if (uWaterIn < 0.5) return col;
+    float distM = length(vView) / uS;
+    vec3 rayW = normalize(uViewToWorld * normalize(vView));
+    float slosh = (0.006 + 0.012 * uMotion) * sin(rayW.x * 9.0 + rayW.z * 5.0 + uTime * 2.1) +
+      (0.004 + 0.008 * uMotion) * sin(rayW.z * 13.0 - rayW.x * 4.0 - uTime * 2.9);
+    float wl = uEyeAbove - uWaterLevelIn * 0.35 + rayW.y * distM - slosh;
+    float aaW = max(fwidth(wl), 1e-4);
+    float wet = 1.0 - smoothstep(-aaW, aaW, wl);
+    vec2 p = vView.xy / max(-vView.z, 0.01) / uTanHalf;
+    float depth = max(-wl, 0.0);
+    vec3 blue = mix(uWater * 1.6 + 0.05, mix(uHorizon, uSky, 0.5) * 0.45, 0.35);
+    vec3 tint = mix(vec3(dot(blue, vec3(0.333))), blue, clamp(uWaterTint, 0.0, 1.0));
+    float shimmer = pow(
+      (0.5 + 0.5 * sin(p.x * 23.0 + uTime * 2.4 + sin(p.y * 17.0 - uTime * 1.9) * 2.0)) *
+      (0.5 + 0.5 * sin(p.y * 29.0 - p.x * 11.0 - uTime * 1.7 + sin(p.x * 13.0 + uTime) * 1.5)),
+      3.0);
+    vec3 under = mix(col, col * 0.5 + tint * 0.6, 0.65 * (1.0 - exp(-depth * 10.0)) + 0.35);
+    under += mix(uHorizon, uSky, 0.5) * shimmer * 0.09 * exp(-depth * 6.0);
+    col = mix(col, under, wet);
+    float meniscus = exp(-abs(wl) / (aaW * 2.5 + 0.004));
+    col += (mix(uHorizon, uSky, 0.5) * 0.45 + uSunCol * 0.15) * meniscus;
+    return col;
+  }
 
   vec3 lightCloth(vec3 nView, vec3 base, float ao, float m) {
     vec3 N = normalize(uViewToWorld * nView);
@@ -209,6 +292,7 @@ const FRAG_COMMON = /* glsl */ `
     vec3 envC = R.y >= 0.0 ? mix(uHorizon, uSky, pow(clamp(R.y, 0.0, 1.0), 0.6)) : uHorizon * 0.7;
     col += envC * m * 0.35 * ao * light;
     col += uSunCol * pow(max(dot(R, L), 0.0), 40.0) * m * 0.8 * sunUp * ao;
+    col = waterInside(col);
     col = mix(col, col * (uWater * 2.2 + 0.25), uUnderwater * 0.6);
     return col;
   }
@@ -404,6 +488,19 @@ export class HoodMesh3D {
       uR: { value: NECK_RADIUS },
       uRh: { value: HOOD_RADIUS },
       uBottom: { value: -0.7 },
+      uFloatAmt: { value: 0 },
+      uFloatLift: { value: 0 },
+      uFloatInflate: { value: 0 },
+      uFloatLine: { value: 0 },
+      uWrap: { value: 0 },
+      uWrapRise: { value: 0.5 },
+      uWrapSpeed: { value: 0.8 },
+      uEyeAbove: { value: 1 },
+      uS: { value: 1 },
+      uWaterIn: { value: 0 },
+      uWaterLevelIn: { value: 0.3 },
+      uWaterTint: { value: 0 },
+      uMotion: { value: 0.5 },
       uFlare: { value: 0.12 },
       uSkirt: { value: 0.5 },
       uColor: { value: c() },
@@ -498,6 +595,7 @@ export class HoodMesh3D {
     camera: THREE.PerspectiveCamera,
     cfg: HoodConfig,
     opts: { bodyFrame: boolean; suitColor: string },
+    flat: Hood,
   ): void {
     const u = this.u;
     const clamp = THREE.MathUtils.clamp;
@@ -530,6 +628,28 @@ export class HoodMesh3D {
     }
 
     u.uTime.value = time;
+    u.uS.value = S;
+    // The flat layer (kept running for the drops) holds the water and float
+    // state; the 3D cloth reads it.
+    for (const key of [
+      "uEyeAbove",
+      "uWaterLevelIn",
+      "uFloatAmt",
+      "uFloatLift",
+      "uFloatInflate",
+      "uFloatLine",
+      "uWrap",
+      "uWrapRise",
+      "uWrapSpeed",
+    ]) {
+      u[key].value = flat.uniformValue(key);
+    }
+    u.uWaterIn.value = cfg.waterInside ? 1 : 0;
+    u.uWaterTint.value = clamp(cfg.waterTint ?? 0, 0, 1);
+    u.uMotion.value = clamp(cfg.motion, 0, 1);
+    u.uBottom.value = cfg.lengthOn
+      ? THREE.MathUtils.lerp(-0.3, -1.25, clamp(cfg.length ?? 0.6, 0, 1))
+      : -0.7;
     u.uAspect.value = camera.aspect;
     u.uTanHalf.value = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
     const style = cfg.style;
