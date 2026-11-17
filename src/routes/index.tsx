@@ -48,6 +48,7 @@ import {
   MODE_APP_ID,
   RIDE_APP_ID,
   TORNADO_APP_ID,
+  fallbackMode,
   isModeEnabled,
   useEnabledModes,
   useRideAppOn,
@@ -2521,7 +2522,7 @@ export function Aquafulness() {
   const setCameraMode = useCallback((v: SetStateAction<CameraMode>) => {
     setCameraModeRaw((cur) => {
       const next = typeof v === "function" ? v(cur) : v;
-      return isModeEnabled(next) ? next : "float";
+      return isModeEnabled(next) ? next : fallbackMode();
     });
   }, []);
   const enabledCameraModes = useEnabledModes();
@@ -6140,6 +6141,7 @@ export function Aquafulness() {
   const cycleCameraMode = (dir: number) => {
     const idx = enabledCameraModes.indexOf(cameraMode);
     const n = enabledCameraModes.length;
+    if (n === 0) return;
     setCameraMode(enabledCameraModes[(idx + dir + n) % n]);
   };
 

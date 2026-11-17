@@ -22,9 +22,15 @@ export function isModeEnabled(m: CameraMode, flags: AppFlags = appFlags): boolea
   return flags.isEnabled(MODE_APP_ID[m]);
 }
 
-/** The camera modes that are on, in CAMERA_MODES order (SIMMARE always is). */
+/** The camera modes that are on, in CAMERA_MODES order. */
 export function enabledModes(flags: AppFlags = appFlags): CameraMode[] {
-  return CAMERA_MODES.filter((m) => m === "float" || isModeEnabled(m, flags));
+  return CAMERA_MODES.filter((m) => isModeEnabled(m, flags));
+}
+
+/** Where the bather goes when their mode is switched off: the first mode that
+ *  is on (SIMMARE if every mode has been switched off). */
+export function fallbackMode(flags: AppFlags = appFlags): CameraMode {
+  return enabledModes(flags)[0] ?? "float";
 }
 
 /** Re-renders when a mode is switched on or off. */
