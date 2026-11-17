@@ -13,12 +13,6 @@ import {
   useSpacify,
 } from "@/lib/spacify";
 import { useTranslation } from "react-i18next";
-import {
-  type OpenDriftCurve,
-  type OpenDriftDirection,
-  OPEN_DRIFT_CURVES,
-  OPEN_DRIFT_DIRECTIONS,
-} from "@/apps/open-drift/OpenDrift";
 import { Link } from "@tanstack/react-router";
 import { SettingRow } from "@/components/SettingRow";
 import { SkyLookSettings } from "@/components/SkyLookSettings";
@@ -27,6 +21,10 @@ import { Findable, G, SETTINGS_GROUPS, SettingsNavigator } from "@/components/se
 import { WindSettings, type WindControls } from "@/apps/wind/WindPanel";
 import { HoodPanel } from "@/apps/hood/HoodPanel";
 import { SnowPanel } from "@/apps/snow/SnowPanel";
+import { RetroPanel } from "@/apps/retro/RetroPanel";
+import type { RetroSettings } from "@/apps/retro/settings";
+import { OpenDriftPanel } from "@/apps/open-drift/OpenDriftPanel";
+import type { OpenDriftSettings } from "@/apps/open-drift/settings";
 import { NeonPanel } from "@/apps/neon/NeonPanel";
 import type { NeonSettings } from "@/apps/neon/settings";
 import { FireworksPanel } from "@/apps/fireworks/FireworksPanel";
@@ -82,8 +80,6 @@ import {
   type TornadoDirection,
   type TornadoSequenceExitMode,
   type SurgeRotationMode,
-  type RetroPalette,
-  RETRO_PALETTES,
   SKY_CLOUDS_ALTITUDE_MIN,
   SKY_CLOUDS_ALTITUDE_MAX,
   CLOUD_SCALE_MIN,
@@ -498,6 +494,8 @@ export type SettingsPanelProps = {
   // VIND: the wind list, its effects and sound (apps/wind/WindPanel.tsx).
   wind: WindControls;
   snow: AppSettingsHandle<SnowSettings>;
+  retro: AppSettingsHandle<RetroSettings>;
+  openDrift: AppSettingsHandle<OpenDriftSettings>;
   neon: AppSettingsHandle<NeonSettings>;
   fireworks: AppSettingsHandle<FireworksSettings>;
   confetti: AppSettingsHandle<ConfettiSettings>;
@@ -592,18 +590,6 @@ export type SettingsPanelProps = {
   setSurgeRotationMode: Dispatch<SetStateAction<SurgeRotationMode>>;
   surgeRotationSpeed: number;
   setSurgeRotationSpeed: Dispatch<SetStateAction<number>>;
-  openDriftOn: boolean;
-  setOpenDriftOn: Dispatch<SetStateAction<boolean>>;
-  openDriftCurve: OpenDriftCurve;
-  setOpenDriftCurve: Dispatch<SetStateAction<OpenDriftCurve>>;
-  openDriftRadius: number;
-  setOpenDriftRadius: Dispatch<SetStateAction<number>>;
-  openDriftCycleSpeed: number;
-  setOpenDriftCycleSpeed: Dispatch<SetStateAction<number>>;
-  openDriftMagnitude: number;
-  setOpenDriftMagnitude: Dispatch<SetStateAction<number>>;
-  openDriftDirection: OpenDriftDirection;
-  setOpenDriftDirection: Dispatch<SetStateAction<OpenDriftDirection>>;
   buoyAmp: number;
   setBuoyAmp: Dispatch<SetStateAction<number>>;
   bobSpeed: number;
@@ -1006,16 +992,6 @@ export type SettingsPanelProps = {
   setLightingReflStrength: Dispatch<SetStateAction<number>>;
   shadowsOn: boolean;
   setShadowsOn: Dispatch<SetStateAction<boolean>>;
-  retroOn: boolean;
-  setRetroOn: Dispatch<SetStateAction<boolean>>;
-  retroPalette: RetroPalette;
-  setRetroPalette: Dispatch<SetStateAction<RetroPalette>>;
-  retroPixelSize: number;
-  setRetroPixelSize: Dispatch<SetStateAction<number>>;
-  retroDither: number;
-  setRetroDither: Dispatch<SetStateAction<number>>;
-  retroScanlines: number;
-  setRetroScanlines: Dispatch<SetStateAction<number>>;
   waterGlowOn: boolean;
   setWaterGlowOn: Dispatch<SetStateAction<boolean>>;
   waterGlowColor: string;
@@ -1641,18 +1617,6 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setSurgeRotationMode,
     surgeRotationSpeed,
     setSurgeRotationSpeed,
-    openDriftOn,
-    setOpenDriftOn,
-    openDriftCurve,
-    setOpenDriftCurve,
-    openDriftRadius,
-    setOpenDriftRadius,
-    openDriftCycleSpeed,
-    setOpenDriftCycleSpeed,
-    openDriftMagnitude,
-    setOpenDriftMagnitude,
-    openDriftDirection,
-    setOpenDriftDirection,
     buoyAmp,
     setBuoyAmp,
     bobSpeed,
@@ -1999,16 +1963,6 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setLightingReflStrength,
     shadowsOn,
     setShadowsOn,
-    retroOn,
-    setRetroOn,
-    retroPalette,
-    setRetroPalette,
-    retroPixelSize,
-    setRetroPixelSize,
-    retroDither,
-    setRetroDither,
-    retroScanlines,
-    setRetroScanlines,
     waterGlowOn,
     setWaterGlowOn,
     waterGlowColor,
@@ -2626,86 +2580,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
           onDec={() => setSurgeRotationSpeed((v) => Math.max(0, +(v - 0.5).toFixed(2)))}
           onInc={() => setSurgeRotationSpeed((v) => Math.min(30, +(v + 0.5).toFixed(2)))}
         />
-        <SettingRow
-          label={t("dial.wave.openDrift")}
-          value={onOff(openDriftOn)}
-          onDec={() => setOpenDriftOn(false)}
-          onInc={() => setOpenDriftOn(true)}
-        />
-        {openDriftOn && (
-          <>
-            <SettingRow
-              label={t("dial.wave.openDriftCurve")}
-              value={t(`dial.wave.openDriftCurveValue.${openDriftCurve}`)}
-              options={OPEN_DRIFT_CURVES.map((c) => t(`dial.wave.openDriftCurveValue.${c}`))}
-              selectedIndex={Math.max(0, OPEN_DRIFT_CURVES.indexOf(openDriftCurve))}
-              onSelectIndex={(i) => setOpenDriftCurve(OPEN_DRIFT_CURVES[i])}
-              onDec={() => setOpenDriftCurve((c) => (c === "circle" ? "wander" : "circle"))}
-              onInc={() => setOpenDriftCurve((c) => (c === "circle" ? "wander" : "circle"))}
-            />
-            {openDriftCurve === "circle" && (
-              <>
-                <SettingRow
-                  label={t("dial.wave.openDriftRadius")}
-                  mode="number"
-                  value={`${openDriftRadius.toFixed(openDriftRadius < 10 ? 1 : 0)}m`}
-                  rawValue={openDriftRadius}
-                  onSet={(v) => setOpenDriftRadius(v)}
-                  min={1}
-                  max={mx("openDriftRadius")}
-                  step={1}
-                  onDec={() =>
-                    setOpenDriftRadius((v) => Math.max(1, +(v - (v > 50 ? 10 : 1)).toFixed(1)))
-                  }
-                  onInc={() =>
-                    setOpenDriftRadius((v) =>
-                      Math.min(mx("openDriftRadius"), +(v + (v >= 50 ? 10 : 1)).toFixed(1)),
-                    )
-                  }
-                />
-                <SettingRow
-                  label={t("dial.wave.openDriftDirection")}
-                  value={t(`dial.wave.openDriftDirectionValue.${openDriftDirection}`)}
-                  options={OPEN_DRIFT_DIRECTIONS.map((d) =>
-                    t(`dial.wave.openDriftDirectionValue.${d}`),
-                  )}
-                  selectedIndex={Math.max(0, OPEN_DRIFT_DIRECTIONS.indexOf(openDriftDirection))}
-                  onSelectIndex={(i) => setOpenDriftDirection(OPEN_DRIFT_DIRECTIONS[i])}
-                  onDec={() => setOpenDriftDirection((d) => (d === "cw" ? "ccw" : "cw"))}
-                  onInc={() => setOpenDriftDirection((d) => (d === "cw" ? "ccw" : "cw"))}
-                />
-              </>
-            )}
-            <SettingRow
-              label={t("dial.wave.openDriftCycleSpeed")}
-              mode="number"
-              value={`${openDriftCycleSpeed.toFixed(2)}/min`}
-              rawValue={openDriftCycleSpeed}
-              onSet={(v) => setOpenDriftCycleSpeed(v)}
-              min={0}
-              max={10}
-              step={0.05}
-              onDec={() => setOpenDriftCycleSpeed((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
-              onInc={() => setOpenDriftCycleSpeed((v) => Math.min(10, +(v + 0.05).toFixed(2)))}
-            />
-            <SettingRow
-              label={t("dial.wave.openDriftMagnitude")}
-              mode="number"
-              value={`${Math.round(openDriftMagnitude * 100)}%`}
-              rawValue={openDriftMagnitude}
-              onSet={(v) => setOpenDriftMagnitude(v)}
-              min={0}
-              max={mx("openDriftMagnitude")}
-              step={0.05}
-              onDec={() => setOpenDriftMagnitude((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
-              onInc={() =>
-                setOpenDriftMagnitude((v) =>
-                  Math.min(mx("openDriftMagnitude"), +(v + 0.05).toFixed(2)),
-                )
-              }
-            />
-          </>
-        )}
+        <OpenDriftPanel openDrift={props.openDrift} />
       </G>
       <G id="waves">
         <SettingRow
@@ -4232,73 +4107,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
           onInc={() => setShadowsOn(true)}
         />
         <SkyLookSettings part="light" />
-        <SettingRow
-          label={t("dial.camera.retro")}
-          value={onOff(retroOn)}
-          onDec={() => setRetroOn(false)}
-          onInc={() => setRetroOn(true)}
-        />
-        {retroOn && (
-          <>
-            <SettingRow
-              label={t("dial.camera.retroPalette")}
-              value={t(`dial.camera.retroPaletteValue.${retroPalette}`)}
-              options={RETRO_PALETTES.map((m) => t(`dial.camera.retroPaletteValue.${m}`))}
-              selectedIndex={Math.max(0, RETRO_PALETTES.indexOf(retroPalette))}
-              onSelectIndex={(i) => setRetroPalette(RETRO_PALETTES[i] as RetroPalette)}
-              onDec={() =>
-                setRetroPalette(
-                  (m) =>
-                    RETRO_PALETTES[
-                      (RETRO_PALETTES.indexOf(m) - 1 + RETRO_PALETTES.length) %
-                        RETRO_PALETTES.length
-                    ],
-                )
-              }
-              onInc={() =>
-                setRetroPalette(
-                  (m) => RETRO_PALETTES[(RETRO_PALETTES.indexOf(m) + 1) % RETRO_PALETTES.length],
-                )
-              }
-            />
-            <SettingRow
-              label={t("dial.camera.retroPixelSize")}
-              mode="number"
-              value={`${retroPixelSize}px`}
-              rawValue={retroPixelSize}
-              onSet={(v) => setRetroPixelSize(Math.max(1, v))}
-              min={1}
-              max={8}
-              step={1}
-              onDec={() => setRetroPixelSize((v) => Math.max(1, +(v - 1).toFixed(0)))}
-              onInc={() => setRetroPixelSize((v) => Math.min(8, +(v + 1).toFixed(0)))}
-            />
-            <SettingRow
-              label={t("dial.camera.retroDither")}
-              mode="number"
-              value={`${Math.round(retroDither * 100)}%`}
-              rawValue={retroDither}
-              onSet={(v) => setRetroDither(v)}
-              min={0}
-              max={1}
-              step={0.05}
-              onDec={() => setRetroDither((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
-              onInc={() => setRetroDither((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
-            />
-            <SettingRow
-              label={t("dial.camera.retroScanlines")}
-              mode="number"
-              value={`${Math.round(retroScanlines * 100)}%`}
-              rawValue={retroScanlines}
-              onSet={(v) => setRetroScanlines(v)}
-              min={0}
-              max={1}
-              step={0.05}
-              onDec={() => setRetroScanlines((v) => Math.max(0, +(v - 0.05).toFixed(2)))}
-              onInc={() => setRetroScanlines((v) => Math.min(1, +(v + 0.05).toFixed(2)))}
-            />
-          </>
-        )}
+        <RetroPanel retro={props.retro} />
       </G>
       {/* ── vatten ── */}
       <G id="state">

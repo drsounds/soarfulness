@@ -307,8 +307,8 @@ can keep merging.
   own `<Name>Panel.tsx`, registered with its `settingsGroup`. A panel takes
   the app's settings handle (`useAppSettings`) as one prop and reads
   `values` and `setters` from it. Done: snow, rain, aurora, underwater fog,
-  confetti, fireworks, neon (`apps/<id>/<Name>Panel.tsx`), plus hood, wind,
-  string lights and decorations. Next: open drift, retro, the water glow and
+  confetti, fireworks, neon, open drift, retro (`apps/<id>/<Name>Panel.tsx`),
+  plus hood, wind, string lights and decorations. Left: the water glow and
   daylight tint dials.
 - [ ] **Step 5:** split the core app itself (waves, water material, camera
   modes, clouds, scenes, sound, watercraft) into apps.
