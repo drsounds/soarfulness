@@ -298,12 +298,17 @@ can keep merging.
   - [x] `AppHost` creates every registered runtime and calls `frame()` in
     manifest order; `index.tsx` no longer constructs or disposes apps one by
     one.
-  - [ ] a per-app settings hook (`useAppSettings(app)`) to replace the
-    per-key `useState` lines, the snapshot/reset/patch lists and the
-    `appSettingsRefs` table.
+  - [x] `core/apps/useAppSettings(defaults, initial, normalize?)` returns
+    `{ values, setters, reset, patch }` and replaces the per-key `useState`
+    lines and the reset/patch lists of an app. Used by every app except wind
+    (its list of winds) and decorations (own hook).
   - [ ] decorations and the retro pass as runtimes.
 - [ ] **Step 4:** move each app's dials out of `SettingsPanel.tsx` into its
-  own `<Name>Panel.tsx`, registered with its `settingsGroup`.
+  own `<Name>Panel.tsx`, registered with its `settingsGroup`. A panel takes
+  the app's settings handle (`useAppSettings`) as one prop and reads
+  `values` and `setters` from it. Done: snow (`apps/snow/SnowPanel.tsx`),
+  hood, wind, string lights, decorations. Next: the rest of the apps with
+  dials in `SettingsPanel.tsx`.
 - [ ] **Step 5:** split the core app itself (waves, water material, camera
   modes, clouds, scenes, sound, watercraft) into apps.
 - [ ] **Step 6:** load app runtimes with dynamic `import()` so each one is
