@@ -112,6 +112,8 @@ export type HoodConfig = {
   pullBack?: number;
   /** 0..1: HALS NERÅT, the funnel neck pulled down. */
   neckBack?: number;
+  /** HUVA SEPARAT FRÅN HALS: the neck is its own wrap-around collar, the hood mounted separately. */
+  separate?: boolean;
   /** EGEN LÄNGD: end the cloth at `length` (MUDD at the hem) instead of running on down. */
   lengthOn?: boolean;
   /**
@@ -190,6 +192,7 @@ const FRAG = /* glsl */ `
   uniform float uFloatLine;
   uniform float uRotateHead;
   uniform float uHemY;
+  uniform float uSep;
   uniform float uWaterTint;
   uniform float uDrip;
   uniform float uHoodBack;
@@ -280,12 +283,17 @@ const FRAG = /* glsl */ `
     float n = mix(6.0, 2.0, clamp(uRound, 0.0, 1.0));
     float r;
     bool funnelOnly = uLower > 0.5 && uTopOff > 0.5;
+    // HUVA SEPARAT FRÅN HALS: the neck is its own collar (below), so the
+    // hood itself is the plain top-and-sides piece.
+    bool sep = uSep > 0.5 && uLower > 0.5;
+    bool lowerOn = uLower > 0.5 && !sep;
+    float isNeck = 0.0;
     if (q.y > 0.0) {
       vec2 e = abs(vec2(q.x / a, (q.y - pb * 0.25) / b));
       r = pow(pow(e.x, n) + pow(e.y, n), 1.0 / n);
       // HUVDEL off: nothing above the funnel neck.
       if (funnelOnly) r = 0.0;
-    } else if (uLower > 0.5) {
+    } else if (lowerOn) {
       // MUN OCH HALS: the hood closes under the face, the cover's top edge
       // at this screen height (wider and flatter than the top of the hood).
       // On its own (HUVDEL off) the funnel neck is a wider U that stays
@@ -313,6 +321,21 @@ const FRAG = /* glsl */ `
       r = abs(q.x) / (a * (1.0 + 0.12 * q.y * q.y));
     }
     float t = (r - 1.0) * min(a, b) + flutter;
+    if (sep) {
+      if (uTopOff > 0.5) t = -1.0; // HUVDEL off: just the collar.
+      // The collar wraps around you: its edge is lowest in front and runs
+      // up toward the sides (toward the back of the neck); KRAGE UPPÅT
+      // makes it a tall funnel that stays high all around.
+      float xN = (p.x - uSway.x * 0.6) / uAspect;
+      float funnel = uCollarUp > 0.5 ? COLLAR_UP : 0.0;
+      float yE = neckEdgeY() + funnel + (0.55 - funnel * 1.2) * xN * xN;
+      float tN = yE - p.y + flutter * 0.5;
+      if (tN > 0.0) {
+        t = tN;
+        isNeck = 1.0;
+        ang = xN * 5.0;
+      }
+    }
 
     // Gathers: soft ridges running outward from the opening, drifting slowly.
     float ph = uTime * (0.35 + 0.9 * uMotion);
@@ -414,12 +437,16 @@ const FRAG = /* glsl */ `
       float v;
       float Hq;
       float s;
-      if (uLower > 0.5) {
+      if (lowerOn) {
         v = t;
         // Full height under the face, narrowing to nothing where the edge
         // turns up into the hood's sides.
         Hq = H * (1.0 - smoothstep(-0.3, 0.0, q.y));
         s = ang * 1.25;
+      } else if (sep) {
+        v = isNeck > 0.5 ? t : -1.0;
+        Hq = H;
+        s = p.x * 5.0;
       } else {
         v = cut;
         Hq = H;
@@ -438,7 +465,7 @@ const FRAG = /* glsl */ `
       h += (sin(3.14159 * x) * 0.03 + 0.012 * rib) * mask;
       gCuff = mask;
     } else if (uCuff > 0.5) {
-      float cuffV = uLower > 0.5 ? p.y + 1.0 - uSway.y * 0.5 : cut;
+      float cuffV = lowerOn ? p.y + 1.0 - uSway.y * 0.5 : cut;
       float H = mix(0.06, 0.45, clamp(uCuffHeight, 0.0, 1.0));
       float x = clamp(cuffV / H, 0.0, 1.0);
       float mask = (1.0 - smoothstep(H - 0.006, H, cuffV)) * step(-0.02, cuffV);
@@ -449,7 +476,7 @@ const FRAG = /* glsl */ `
       gCuff = mask;
     }
     // With MUN OCH HALS on, the fabric runs all the way down.
-    if (uLower > 0.5) cut = 1.0;
+    if (lowerOn || isNeck > 0.5) cut = 1.0;
     // EGEN LÄNGD: the cloth ends at its hem (in the body's frame, so it
     // shows when ROTERA HUVUD looks down), with the MUDD along it.
     if (uHemY > -900.0) {
@@ -598,7 +625,7 @@ const FRAG = /* glsl */ `
     // DROPPAR: beads of water gather at the wet cloth's hem and fall.
     vec4 drip = vec4(0.0);
     if (uDrip > 0.001) {
-      bool hasEdge = uHemY > -900.0 || uLower < 0.5;
+      bool hasEdge = uHemY > -900.0 || uLower < 0.5 || uSep > 0.5;
       float edgeD = uHemY > -900.0 ? uHemY : mix(-1.08, 0.8, uHeight);
       if (hasEdge) {
         float cw = 0.12;
@@ -868,6 +895,7 @@ export class Hood {
     uFloatLine: { value: number };
     uRotateHead: { value: number };
     uHemY: { value: number };
+    uSep: { value: number };
     uWaterTint: { value: number };
     uDrip: { value: number };
     uHoodBack: { value: number };
@@ -961,6 +989,7 @@ export class Hood {
       uFloatLine: { value: -0.4 },
       uRotateHead: { value: 0 },
       uHemY: { value: -1000 },
+      uSep: { value: 0 },
       uWaterTint: { value: 0 },
       uDrip: { value: 0 },
       uHoodBack: { value: 0 },
@@ -1034,6 +1063,7 @@ export class Hood {
     u.uOpening.value = THREE.MathUtils.clamp(cfg.opening, 0, 1);
     u.uOpenWidth.value = Math.max(0, Number.isFinite(cfg.openingWidth) ? cfg.openingWidth : 0);
     u.uLower.value = cfg.lower ? 1 : 0;
+    u.uSep.value = cfg.separate ? 1 : 0;
     u.uTopOff.value = cfg.hoodTop === false ? 1 : 0;
     u.uCollarUp.value = cfg.collarUp ? 1 : 0;
     u.uZipOpen.value = THREE.MathUtils.clamp(cfg.zipperOpen ?? 0, 0, 1);

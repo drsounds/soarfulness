@@ -2092,6 +2092,7 @@ export function Aquafulness() {
   const [hoodCuffOn, setHoodCuffOn] = useState(initial.hoodCuffOn);
   const [hoodCuffHeight, setHoodCuffHeight] = useState(initial.hoodCuffHeight);
   const [hoodCuffSize, setHoodCuffSize] = useState(initial.hoodCuffSize);
+  const [hoodSeparate, setHoodSeparate] = useState(initial.hoodSeparate);
   const [hoodWaterTint, setHoodWaterTint] = useState(initial.hoodWaterTint);
   const [hoodDripping, setHoodDripping] = useState(initial.hoodDripping);
   const [hoodPullBack, setHoodPullBack] = useState(initial.hoodPullBack);
@@ -3106,6 +3107,7 @@ export function Aquafulness() {
     hoodCuffOn,
     hoodCuffHeight,
     hoodCuffSize,
+    hoodSeparate,
     hoodWaterTint,
     hoodDripping,
     hoodPullBack,
@@ -3244,6 +3246,7 @@ export function Aquafulness() {
     hoodCuffOn,
     hoodCuffHeight,
     hoodCuffSize,
+    hoodSeparate,
     hoodWaterTint,
     hoodDripping,
     hoodPullBack,
@@ -3626,6 +3629,7 @@ export function Aquafulness() {
     hoodCuffOn,
     hoodCuffHeight,
     hoodCuffSize,
+    hoodSeparate,
     hoodWaterTint,
     hoodDripping,
     hoodPullBack,
@@ -5456,6 +5460,7 @@ export function Aquafulness() {
     setHoodCuffOn(DEFAULTS.hoodCuffOn);
     setHoodCuffHeight(DEFAULTS.hoodCuffHeight);
     setHoodCuffSize(DEFAULTS.hoodCuffSize);
+    setHoodSeparate(DEFAULTS.hoodSeparate);
     setHoodWaterTint(DEFAULTS.hoodWaterTint);
     setHoodDripping(DEFAULTS.hoodDripping);
     setHoodPullBack(DEFAULTS.hoodPullBack);
@@ -5837,6 +5842,7 @@ export function Aquafulness() {
     if (patch.hoodCuffOn !== undefined) setHoodCuffOn(patch.hoodCuffOn);
     if (patch.hoodCuffHeight !== undefined) setHoodCuffHeight(patch.hoodCuffHeight);
     if (patch.hoodCuffSize !== undefined) setHoodCuffSize(patch.hoodCuffSize);
+    if (patch.hoodSeparate !== undefined) setHoodSeparate(patch.hoodSeparate);
     if (patch.hoodWaterTint !== undefined) setHoodWaterTint(patch.hoodWaterTint);
     if (patch.hoodDripping !== undefined) setHoodDripping(patch.hoodDripping);
     if (patch.hoodPullBack !== undefined) setHoodPullBack(patch.hoodPullBack);
@@ -13179,6 +13185,7 @@ export function Aquafulness() {
     hoodCuffHeight,
     setHoodCuffHeight,
     hoodCuffSize,
+    hoodSeparate,
     hoodWaterTint,
     hoodDripping,
     hoodPullBack,
@@ -13210,6 +13217,7 @@ export function Aquafulness() {
     hoodPuffThickness,
     hoodPuffInflate,
     setHoodCuffSize,
+    setHoodSeparate,
     setHoodWaterTint,
     setHoodDripping,
     setHoodPullBack,

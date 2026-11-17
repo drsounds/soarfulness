@@ -162,6 +162,7 @@
       "hoodWaterLevel": "VEDENPINTA",
       "hoodLayer": "KERROS",
       "hoodLayerOn": "KERROS NÄKYY",
+      "hoodSeparate": "HUPPU ERILLÄÄN KAULASTA",
       "hoodPullBack": "HUPPU TAAKSE",
       "hoodNeckBack": "KAULUS ALAS",
       "hoodWaterTint": "VEDEN VÄRI",

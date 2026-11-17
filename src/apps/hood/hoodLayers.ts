@@ -99,6 +99,13 @@ export type HoodLayer = {
   pullBack: number;
   /** 0..1: HALS NERÅT, the funnel neck (and the lower part of the hood) pulled down. */
   neckBack: number;
+  /**
+   * HUVA SEPARAT FRÅN HALS: with MUN OCH HALS the neck is its own collar
+   * wrapped around you (like a sweater or winter coat, optionally a funnel
+   * with KRAGE UPPÅT) and the hood is mounted separately, pulled back and
+   * over. Off = the old single piece.
+   */
+  separate: boolean;
   lengthOn: boolean;
   /** 0..1: LÄNGD, from a short collar (0) to an ankle-long dress (1); past the float suit it wraps around you in water. */
   length: number;
@@ -160,6 +167,7 @@ export const HOOD_LAYER_DEFAULTS: HoodLayer = {
   dripping: 0,
   pullBack: 0,
   neckBack: 0,
+  separate: false,
   lengthOn: false,
   length: 0.6,
   puff3d: false,
@@ -213,6 +221,7 @@ const BOOL_KEYS = [
   "zipperPullOut",
   "lengthOn",
   "puff3d",
+  "separate",
 ] as const;
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));

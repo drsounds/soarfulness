@@ -191,7 +191,7 @@ export function HoodPanel({
           </div>
           {toggle("on", t("dial.camera.hoodLayerOn"))}
           {pct("drop", t("dial.camera.hoodDrop"))}
-          {!layer.lowerOn && pct("height", t("dial.camera.hoodHeight"))}
+          {(!layer.lowerOn || layer.separate) && pct("height", t("dial.camera.hoodHeight"))}
           {toggle("lengthOn", t("dial.camera.hoodLengthOn"))}
           {layer.lengthOn && pct("length", t("dial.camera.hoodLength"))}
           {layer.openingWidth <= 0 && pct("opening", t("dial.camera.hoodOpening"))}
@@ -225,6 +225,7 @@ export function HoodPanel({
           {layer.lowerOn && (
             <>
               {pct("lowerHeight", t("dial.camera.hoodLowerHeight"))}
+              {toggle("separate", t("dial.camera.hoodSeparate"))}
               {pct("neckBack", t("dial.camera.hoodNeckBack"))}
               {toggle("hoodTop", t("dial.camera.hoodTop"))}
               {toggle("collarUp", t("dial.camera.hoodCollarUp"))}
