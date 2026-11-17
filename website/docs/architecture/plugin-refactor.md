@@ -326,8 +326,10 @@ maps a `CameraMode` to its app and exposes `useEnabledModes()`,
 `useTornadoAppOn()` and `useRideAppOn()`. Switching one off hides its HUD
 button, drawer tab and settings rows; if it is the active mode the bather
 falls back to SIMMARE, and tornado / ride are turned off. Switching it on
-brings the buttons back. Next step: move each mode's and feature's settings
-keys into its app's `settings.ts` (as the other apps do).
+brings the buttons back. Their settings keys live in each app's `settings.ts`
+(`noclip*` in fly, `swing*` in swing, `bodyflight*`, `tornado*`, `freakOut*` in
+ride, `floatLift` in swimmer) and are spread into `Persisted` and `DEFAULTS`
+like every other app's; the settings groups and dials stay where they were.
 
 ## Migration status
 

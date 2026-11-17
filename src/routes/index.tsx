@@ -37,6 +37,12 @@ import { cloneEdgeFilter, sanitizeEdgeFilter, type EdgeFilter } from "@/lib/edge
 import auroraApp from "@/apps/aurora/app";
 import { appFlags, appRegistry } from "@/core/apps/catalog";
 import { useAppEnabled } from "@/core/apps/useAppFlags";
+import { SWIMMER_DEFAULTS } from "@/apps/swimmer/settings";
+import { FLY_DEFAULTS } from "@/apps/fly/settings";
+import { BODYFLIGHT_DEFAULTS } from "@/apps/bodyflight/settings";
+import { SWING_DEFAULTS } from "@/apps/swing/settings";
+import { TORNADO_DEFAULTS } from "@/apps/tornado/settings";
+import { RIDE_DEFAULTS } from "@/apps/ride/settings";
 import { onAppLifecycle } from "@/core/apps/lifecycle";
 import {
   MODE_APP_ID,
@@ -1430,7 +1436,6 @@ const DEFAULTS: Persisted = {
   buoyAmp: 2.8,
   heightOffset: 0,
   submergeAmp: 0,
-  floatLift: 0,
   waveAnticipation: 2,
   camOffX: 0,
   camOffY: -0.1,
@@ -1617,89 +1622,14 @@ const DEFAULTS: Persisted = {
   ...CONFETTI_DEFAULTS,
   ...NEON_DEFAULTS,
   ...AURORA_DEFAULTS,
+  ...SWIMMER_DEFAULTS,
+  ...FLY_DEFAULTS,
+  ...BODYFLIGHT_DEFAULTS,
+  ...SWING_DEFAULTS,
+  ...TORNADO_DEFAULTS,
+  ...RIDE_DEFAULTS,
   ...UNDERWATER_FOG_DEFAULTS,
   cameraMode: "float",
-  noclipSpeed: 1,
-  noclipFallRiseSpeed: 48,
-  noclipVertEaseTime: 0.7,
-  bodyflightAirflow: 120,
-  bodyflightGravity: 1,
-  bodyflightHoverHeight: 2,
-  swingPositionY: 78.4,
-  swingIntensity: 1.47,
-  // GUNGA HASTIGHET: multiplies the pendulum's tempo on top of GUNGA
-  // INTENSITET, so it can cross the water surface faster without also
-  // widening the arc.
-  swingSpeed: 0.22,
-  swingXFactor: 0,
-  swingHeight: 336.4,
-  swingPreset: "water",
-  swingYWaveform: "pendulum",
-  swingHook: "",
-  swingCordColor: "#d8c9a6",
-  swingCordThickness: 0.08,
-  swingCordSoftness: 0.4,
-  // FREAK OUT carousel layered on GUNGA — off by default.
-  freakOutOn: false,
-  freakOutSwingAxis: 114,
-  freakOutSwingAngle: 125,
-  freakOutSwingSpeed: 1.25,
-  freakOutSwingLength: 800,
-  freakOutRingRadius: 3.28,
-  freakOutRotationOn: true,
-  freakOutRotationAxis: "y",
-  freakOutRotationSpeed: 0.26,
-  freakOutRotationPeakSpeed: 1,
-  freakOutRotationRecovery: 0.25,
-  freakOutRotationOscillate: false,
-  freakOutRotationOscillateSpeed: 1,
-  freakOutRotationOscillateEveryOther: true,
-  freakOutRotationKickOn: false,
-  freakOutRotationKick: 1.5,
-  freakOutFloatYOffset: 10,
-  freakOutOverlayOn: true,
-  freakOutRotationDirection: "ccw",
-  freakOutViewFixedHeading: false,
-  freakOutShowArm: false,
-  freakOutShowFrame: false,
-  freakOutShowTopRing: false,
-  freakOutShowHub: false,
-  freakOutRingLevel: false,
-  freakOutSeatsOn: true,
-  freakOutSeatCount: 16,
-  freakOutCameraSeat: 2,
-  freakOutSeatPostLength: 0.77,
-  freakOutSeatColor: "#ff00ff",
-  freakOutRingColor: "#d8dde3",
-  freakOutPostColor: "#d8dde3",
-  freakOutArmColor: "#d8dde3",
-  freakOutFrameColor: "#8b5a2b",
-  swingKeepSpeed: true,
-  swingKeepSpeedRefHeight: 291.6,
-  // Unified TORNADO toggle for GUNGA (swing) and flying (noclip/watercraft):
-  // off by default (plain pendulum arc / plain free flight).
-  tornadoOn: false,
-  tornadoRadius: 66.25,
-  tornadoSpeed: 13.38,
-  tornadoDirection: "ccw",
-  tornadoOpening: 16.5,
-  // On by default: camera eases toward staring at the tornado/whirlpool
-  // center (like the old standalone VIRVEL mode always did) instead of
-  // keeping whatever forward direction NAV/LOOK has it facing.
-  tornadoFollowCenter: true,
-  // TORNADO CLOUD: off by default — purely cosmetic.
-  tornadoCloudOn: false,
-  tornadoCloudYOffset: 0,
-  // TORNADO SEQUENCE: off by default — the automatic drag-in/stay/exit cycle
-  // is opt-in on top of the always-available manual NAV+current radial pull.
-  tornadoSequenceOn: false,
-  tornadoSequenceDragSpeed: 5.45,
-  tornadoSequenceDragDuration: 4,
-  tornadoSequenceStayDuration: 5,
-  tornadoSequenceExitMode: "outer",
-  tornadoSequenceExitSpeed: 15,
-  tornadoSequenceLiftHeight: 60,
-  tornadoSequencePauseDuration: 3,
   // Interval session off by default; a 30s FRI/GUNGA alternation running
   // forever once turned on, until switched to a fixed number of intervals.
   intervalSessionOn: false,
