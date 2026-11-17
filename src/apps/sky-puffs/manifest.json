@@ -6,6 +6,7 @@
   "version": "1.0.0",
   "description": "Individual, randomly placed puffy clouds that fade in and out around the camera.",
   "kind": "scene-fx",
+  "archetype": "weather",
   "settingsGroup": "clouds",
   "defaultEnabled": false,
   "order": 6,

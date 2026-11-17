@@ -6,6 +6,7 @@
   "version": "1.0.0",
   "description": "Volumetric puff clouds on top of the flat cloud decks: the seafloor clouds, the mid-water deck and the sky deck.",
   "kind": "scene-fx",
+  "archetype": "weather",
   "settingsGroup": "clouds",
   "defaultEnabled": false,
   "order": 5,

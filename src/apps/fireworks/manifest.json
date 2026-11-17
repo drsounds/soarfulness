@@ -6,6 +6,7 @@
   "version": "1.0.0",
   "description": "Rockets bursting over the water with colored lights reflected on the waves and synthesized sound.",
   "kind": "scene-fx",
+  "archetype": "celebration",
   "settingsGroup": "events",
   "defaultEnabled": false,
   "order": 60,

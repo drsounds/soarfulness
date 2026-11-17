@@ -6,6 +6,7 @@
   "version": "1.0.0",
   "description": "Full-screen 1990s post-process: pixelation, palette quantization, Bayer dither and scanlines.",
   "kind": "screen-fx",
+  "archetype": "nostalgia",
   "settingsGroup": "graphics",
   "defaultEnabled": false,
   "dependencies": {}

@@ -331,6 +331,38 @@ brings the buttons back. Their settings keys live in each app's `settings.ts`
 ride, `floatLift` in swimmer) and are spread into `Persisted` and `DEFAULTS`
 like every other app's; the settings groups and dials stay where they were.
 
+## Archetypes: apps, features, services, aspects and concepts
+
+Apps are structured in layers, from the most concrete to the most general:
+**app** (a folder under `src/apps`) > **feature** (a switchable part of an
+app, such as `tornado` or `ride`) > **service** (a capability apps share, such
+as the wind field or audio; reserved, nothing declares one yet) > **aspect** >
+**concept**.
+
+An **aspect** is something that *affects* the scene or the bather: weather,
+clothing layers, nostalgia (the 90s retro look), the time of day, celebration
+effects. A **concept** is a sub kind of aspect that stands for *tangible
+things*: a kind of movement or a kind of object. The tree is declared in
+`src/core/apps/archetypes.json` and an app (or feature) names the node it
+implements or inherits with `"archetype"` in its manifest:
+
+| Archetype | Kind | Apps declaring it |
+| --- | --- | --- |
+| `soaring` | concept (movement) | swimmer, swing, fly, bodyflight, ride, watercraft |
+| `ornament` | concept (objects) | neon, string-lights, decorations, torus-rings |
+| `weather` | aspect | rain, snow, wind, clouds-3d, sky-puffs, aurora |
+| `clothing` | aspect | hood |
+| `nostalgia` | aspect | retro |
+| `time` | aspect | day-night |
+| `celebration` | aspect | confetti, fireworks |
+| `water` | aspect | underwater-fog |
+| `camera` | aspect | tornado, open-drift |
+
+For now these are declarations only: no code reads them except the registry
+test, which checks that every app declares a known archetype and that every
+archetype reaches the root `aspect`. They prepare toggling a whole archetype
+at once (for example every `weather` app) and building SKUs from them.
+
 ## Migration status
 
 The refactor goes in small, behavior-preserving steps, so open feature work

@@ -32,6 +32,10 @@
     "kind": {
       "enum": ["scene-fx", "screen-fx", "motion", "environment", "bather", "content", "camera-mode", "feature"]
     },
+    "archetype": {
+      "type": "string",
+      "description": "Id of the archetype (core/apps/archetypes.json) the app implements or inherits, e.g. soaring, weather."
+    },
     "settingsGroup": {
       "enum": [
         "state",

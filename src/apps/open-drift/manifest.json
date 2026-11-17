@@ -6,6 +6,7 @@
   "version": "1.0.0",
   "description": "An endless drift that keeps carrying the bather in a circle or a random wander with the sticks at rest.",
   "kind": "motion",
+  "archetype": "camera",
   "settingsGroup": "drift",
   "defaultEnabled": false,
   "dependencies": {}

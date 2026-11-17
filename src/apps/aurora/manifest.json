@@ -6,6 +6,7 @@
   "version": "1.0.0",
   "description": "Aurora curtains in the night sky, with color palettes, height and speed, reflected in the water.",
   "kind": "scene-fx",
+  "archetype": "weather",
   "settingsGroup": "weather",
   "defaultEnabled": false,
   "order": 10,

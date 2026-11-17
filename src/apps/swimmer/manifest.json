@@ -6,6 +6,7 @@
   "version": "1.0.0",
   "description": "Camera mode: float and swim in the water (the default mode).",
   "kind": "camera-mode",
+  "archetype": "soaring",
   "settingsGroup": "mode",
   "builtIn": true,
   "dependencies": {}
