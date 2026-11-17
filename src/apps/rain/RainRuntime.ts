@@ -44,6 +44,10 @@ export class RainRuntime implements AppRuntime<RainSettings> {
     );
   }
 
+  shutdown() {
+    this.rainfall.hide();
+  }
+
   dispose() {
     this.rainfall.dispose();
   }

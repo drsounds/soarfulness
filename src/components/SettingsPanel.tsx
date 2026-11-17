@@ -5,6 +5,8 @@ import {
   type MutableRefObject,
   type SetStateAction,
 } from "react";
+import { AppsPanel } from "@/core/apps/AppsPanel";
+import { appFlags, appRegistry } from "@/core/apps/catalog";
 import {
   isSpacifyAvailable,
   requestSpacifySync,
@@ -5266,6 +5268,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
           onDec={() => setAudioSpatial(false)}
           onInc={() => setAudioSpatial(true)}
         />
+      </G>
+      <G id="apps">
+        <AppsPanel flags={appFlags} registry={appRegistry} />
       </G>
       <G id="app">
         <ThemeSettingsSection />

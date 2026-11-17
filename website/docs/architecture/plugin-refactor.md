@@ -305,7 +305,12 @@ Runtimes may implement `startup()` and `shutdown()` (see `AppRuntime`).
 when the scene is built, then again on every flag change, and skips `frame()`
 for disabled apps. `shutdown()` hides the app's objects and stops its sound
 and timers; both must be safe to call repeatedly. All runtimes are still
-created, so typed handles keep working. React code reads the flags with
+created, so typed handles keep working. Code the host drives itself (wind,
+open drift, 3D clouds, sky puffs, snow cover, the retro pass) asks
+`apps.isOn(id)` and feeds the app "everything off" settings when it is off.
+The settings group **Apps** (`core/apps/AppsPanel.tsx`) lists one on/off row
+per app; a manifest can opt out with `"switchable": false` (day-night and
+decorations, which core code depends on). React code reads the flags with
 `useAppFlags` / `useAppEnabled` (`core/apps/useAppFlags.ts`).
 
 ## Migration status

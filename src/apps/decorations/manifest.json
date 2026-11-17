@@ -6,6 +6,7 @@
   "version": "1.0.0",
   "description": "Your own .glb models placed per scene with a move/rotate/scale gizmo and repeat grids, embedded in bath links when small.",
   "kind": "content",
+  "switchable": false,
   "settingsGroup": "place",
   "dependencies": {}
 }

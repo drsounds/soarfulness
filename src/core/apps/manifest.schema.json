@@ -57,6 +57,9 @@
     "defaultEnabled": {
       "type": "boolean"
     },
+    "switchable": {
+      "type": "boolean"
+    },
     "dependencies": {
       "type": "object",
       "additionalProperties": {

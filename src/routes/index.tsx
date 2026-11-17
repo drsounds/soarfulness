@@ -36,6 +36,7 @@ import neonApp from "@/apps/neon/app";
 import { cloneEdgeFilter, sanitizeEdgeFilter, type EdgeFilter } from "@/lib/edgeSelect";
 import auroraApp from "@/apps/aurora/app";
 import { appFlags, appRegistry } from "@/core/apps/catalog";
+import { useAppEnabled } from "@/core/apps/useAppFlags";
 import { AppHost } from "@/core/apps/host";
 import type { FrameContext } from "@/core/apps/types";
 import { AURORA_DEFAULTS, type AuroraSettings } from "@/apps/aurora/settings";
@@ -49,7 +50,7 @@ import { RETRO_DEFAULTS } from "@/apps/retro/settings";
 import { DAY_NIGHT_DEFAULTS } from "@/apps/day-night/settings";
 import { UNDERWATER_FOG_DEFAULTS } from "@/apps/underwater-fog/settings";
 import { OPEN_DRIFT_DEFAULTS } from "@/apps/open-drift/settings";
-import { WIND_DEFAULTS, type WindSettings } from "@/apps/wind/settings";
+import { WIND_DEFAULTS, windOff, type WindSettings } from "@/apps/wind/settings";
 import { DECORATIONS_DEFAULTS } from "@/apps/decorations/settings";
 import { altitudeMix, sanitizeWinds, type WindSource } from "@/apps/wind/wind";
 import windApp from "@/apps/wind/app";
@@ -2541,6 +2542,7 @@ export function Aquafulness() {
   } = aurora.setters;
   const { reset: resetAurora, patch: patchAurora } = aurora;
   const underwaterFog = useAppSettings(UNDERWATER_FOG_DEFAULTS, initial);
+  const underwaterFogAppOn = useAppEnabled(appFlags, "underwater-fog");
   const {
     underwaterFogOn,
     underwaterFogColor,
@@ -9114,13 +9116,10 @@ export function Aquafulness() {
       // angular path so wrapping around 360° doesn't spin the ocean.
       // VIND (apps/wind): update the live wind first; VÅGRIKTNING steers the
       // waves toward where it blows.
-      wind.update(dt, windSettingsRef.current);
-      uniforms.uDir.value = wind.waveDirection(
-        dt,
-        waveDirRef.current,
-        uniforms.uDir.value,
-        windSettingsRef.current,
-      );
+      // An app switched off in APPS behaves as if every dial were off.
+      const windS = apps.isOn("wind") ? windSettingsRef.current : windOff(windSettingsRef.current);
+      wind.update(dt, windS);
+      uniforms.uDir.value = wind.waveDirection(dt, waveDirRef.current, uniforms.uDir.value, windS);
 
       // Graceful TORNADO spin-up/spin-down: two continuous blends (0 = fully
       // out, 1 = fully in), each eased toward whichever state is actually
@@ -9328,7 +9327,13 @@ export function Aquafulness() {
       }
       // SNÖTÄCKE settles over a few seconds (SnowCover.update eases it); the
       // backdrop needs the env dome to be whitened at all.
-      snow.updateCover(dt, nightBackdropMix(todRef.current), snowSettingsRef.current);
+      snow.updateCover(
+        dt,
+        nightBackdropMix(todRef.current),
+        apps.isOn("snow")
+          ? snowSettingsRef.current
+          : { ...snowSettingsRef.current, snowCoverOn: false },
+      );
       envDomeUniforms.uSnowCover.value = snowCover.cover;
       envDomeUniforms.uSnowGray.value = snowSettingsRef.current.snowGrayBackdropOn ? 1 : 0;
       envDomeUniforms.uSunDisc.value = look.sunDiscOn ? 1 : 0;
@@ -10266,7 +10271,9 @@ export function Aquafulness() {
         const d = openDrift.step(
           physDt,
           !(camMode === "swing" && swingCordActiveRef.current),
-          openDriftSettingsRef.current,
+          apps.isOn("open-drift")
+            ? openDriftSettingsRef.current
+            : { ...openDriftSettingsRef.current, openDriftOn: false },
         );
         if (d.dx !== 0 || d.dz !== 0) {
           posRef.current.x += d.dx;
@@ -10281,7 +10288,11 @@ export function Aquafulness() {
       // never turns the view. GUNGA's pendulum owns camX/camZ, so it's
       // skipped there.
       {
-        const d = wind.current(physDt, camMode !== "swing", windSettingsRef.current);
+        const d = wind.current(
+          physDt,
+          camMode !== "swing",
+          apps.isOn("wind") ? windSettingsRef.current : windOff(windSettingsRef.current),
+        );
         if (d.dx !== 0 || d.dz !== 0) {
           posRef.current.x += d.dx;
           posRef.current.z += d.dz;
@@ -11431,7 +11442,13 @@ export function Aquafulness() {
 
       // VIND sound (apps/wind): the air rushing past the ears, plus
       // HÖJDLJUD's surface noise and altitude breeze.
-      wind.sound(dt, camera, depth, fireworksAudioOnRef.current, windSettingsRef.current);
+      wind.sound(
+        dt,
+        camera,
+        depth,
+        fireworksAudioOnRef.current,
+        apps.isOn("wind") ? windSettingsRef.current : windOff(windSettingsRef.current),
+      );
 
       // Underwater tone-down factor: fades color/contrast as camera dips below surface.
       const uw = depth > 0 ? Math.min(depth / 2.5, 1) : 0;
@@ -11645,12 +11662,19 @@ export function Aquafulness() {
           underwater: uniforms.uUnderwater.value,
           fogColor: uniforms.uWaterDeep.value,
         },
-        clouds3dSettingsRef.current,
+        apps.isOn("clouds-3d")
+          ? clouds3dSettingsRef.current
+          : { bottomClouds3d: false, midClouds3d: false, skyClouds3d: false },
       );
       renderer.setClearColor(0x032033, envActive ? 1 : 0);
 
       // SKY PUFFS: individual puffy clouds that fade in and out around the camera.
-      skyPuffsFx.update({ dt, camX, camZ, lowEnd }, skyPuffsSettingsRef.current);
+      skyPuffsFx.update(
+        { dt, camX, camZ, lowEnd },
+        apps.isOn("sky-puffs")
+          ? skyPuffsSettingsRef.current
+          : { ...skyPuffsSettingsRef.current, skyPuffsOn: false },
+      );
 
       // Optional model bobbing — static scenes leave modelBobRef null and the
       // loaded model keeps its manifest position untouched.
@@ -11761,7 +11785,7 @@ export function Aquafulness() {
         // not last frame's.
         tvManager.render();
         const chromaticOn = chromaticAberrationOnRef.current && !lowEnd;
-        const retroOn = retroOnRef.current;
+        const retroOn = retroOnRef.current && apps.isOn("retro");
         if (chromaticOn || retroOn) {
           chromaticAberrationPass.enabled = chromaticOn;
           retroPass.enabled = retroOn;
@@ -13001,7 +13025,7 @@ export function Aquafulness() {
       {/* UNDERVATTENDIS: underwater fog gradient (MILJÖ settings), styled
           from the render loop. Above the 3D canvas, below the goggles
           droplets and every HUD control. */}
-      {underwaterFogOn && (
+      {underwaterFogOn && underwaterFogAppOn && (
         <div
           ref={underwaterFogElRef}
           aria-hidden="true"

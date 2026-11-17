@@ -183,9 +183,7 @@ function ScenerySelectorDialog({
                 label={t("dial.env.environment")}
                 value={curEnv ? labelWithApp(apps, curEnv) : t("common.off")}
                 options={[t("common.off"), ...environments.map((e) => labelWithApp(apps, e))]}
-                selectedIndex={
-                  curEnv ? 1 + environments.findIndex((e) => e.id === curEnv.id) : 0
-                }
+                selectedIndex={curEnv ? 1 + environments.findIndex((e) => e.id === curEnv.id) : 0}
                 onSelectIndex={(i) => applyEnv(i === 0 ? null : (environments[i - 1]?.id ?? null))}
                 onDec={() => cycleEnv(-1)}
                 onInc={() => cycleEnv(1)}
@@ -195,7 +193,10 @@ function ScenerySelectorDialog({
                   label={t("dial.env.era")}
                   value={curEra?.name ?? "—"}
                   options={curEnv.eras.map((e) => e.name)}
-                  selectedIndex={Math.max(0, curEnv.eras.findIndex((e) => e.id === curEra?.id))}
+                  selectedIndex={Math.max(
+                    0,
+                    curEnv.eras.findIndex((e) => e.id === curEra?.id),
+                  )}
                   onSelectIndex={(i) => applyEra(curEnv.eras[i].id)}
                   onDec={() => cycleEra(-1)}
                   onInc={() => cycleEra(1)}
@@ -206,7 +207,10 @@ function ScenerySelectorDialog({
                   label={t("dial.env.dayTime")}
                   value={curTime?.name ?? "—"}
                   options={curEra.times.map((tm) => tm.name)}
-                  selectedIndex={Math.max(0, curEra.times.findIndex((tm) => tm.id === curTime?.id))}
+                  selectedIndex={Math.max(
+                    0,
+                    curEra.times.findIndex((tm) => tm.id === curTime?.id),
+                  )}
                   onSelectIndex={(i) => setEnvTime(curEra.times[i].id)}
                   onDec={() => cycleTime(-1)}
                   onInc={() => cycleTime(1)}

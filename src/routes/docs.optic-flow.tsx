@@ -36,7 +36,9 @@ function OpticFlowDocPage() {
 
       <Alert className="border-0 bg-transparent">
         <AlertDescription className="text-muted-foreground">
-          <strong className="text-foreground">{t("docsPhilosophy.opticFlow.disclaimerLabel")}</strong>{" "}
+          <strong className="text-foreground">
+            {t("docsPhilosophy.opticFlow.disclaimerLabel")}
+          </strong>{" "}
           {t("docsPhilosophy.opticFlow.disclaimerBody")}
         </AlertDescription>
       </Alert>

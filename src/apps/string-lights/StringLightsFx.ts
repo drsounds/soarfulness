@@ -394,6 +394,13 @@ export class StringLightsFx {
     }
   }
 
+  /** Hides the strings and silences their lights (APPS: switched off). */
+  hide() {
+    this.group.visible = false;
+    this.edgeLights.update(0, null);
+    for (const l of this.lights) l.intensity = 0;
+  }
+
   dispose() {
     for (const b of this.built.values()) this.disposeBuilt(b);
     this.built.clear();

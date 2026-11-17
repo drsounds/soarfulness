@@ -51,6 +51,11 @@ export type AppManifest = {
    * also settles which of two overlapping transparent effects draws on top.
    */
   order?: number;
+  /**
+   * False for apps the user can't switch off from APPS because other core
+   * code depends on them (default true).
+   */
+  switchable?: boolean;
   /** Off-by-default apps say so; the defaults in settings.ts are the truth. */
   defaultEnabled?: boolean;
 };

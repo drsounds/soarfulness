@@ -41,3 +41,16 @@ export const WIND_DEFAULTS: WindSettings = {
 
 /** Every key WindSettings owns, in declaration order (presets, sharing). */
 export const WIND_SETTING_KEYS = Object.keys(WIND_DEFAULTS) as (keyof WindSettings)[];
+
+/** The settings of a switched-off app: no winds, nothing steered or swayed. */
+export function windOff(s: Readonly<WindSettings>): WindSettings {
+  return {
+    ...s,
+    winds: [],
+    windWavesOn: false,
+    windSwayOn: false,
+    windCurrentOn: false,
+    windSoundOn: false,
+    windAltitudeAudioOn: false,
+  };
+}

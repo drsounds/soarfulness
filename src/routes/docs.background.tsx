@@ -37,7 +37,9 @@ function BackgroundDocPage() {
 
       <Alert className="border-0 bg-transparent">
         <AlertDescription className="text-muted-foreground">
-          <strong className="text-foreground">{t("docsPhilosophy.background.disclaimer.label")}</strong>{" "}
+          <strong className="text-foreground">
+            {t("docsPhilosophy.background.disclaimer.label")}
+          </strong>{" "}
           {t("docsPhilosophy.background.disclaimer.bodyBefore")}{" "}
           <em>{t("docsPhilosophy.background.disclaimer.emphasis")}</em>{" "}
           {t("docsPhilosophy.background.disclaimer.bodyAfter")}

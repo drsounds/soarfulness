@@ -190,6 +190,13 @@ export class HoodRuntime implements AppRuntime<HoodSettings> {
     setClothingBuoyancyOffset(this.buoy);
   }
 
+  shutdown() {
+    for (const h of this.hoods) h.hide();
+    this.suit.hide();
+    this.buoy = 0;
+    setClothingBuoyancyOffset(0);
+  }
+
   dispose() {
     for (const h of this.hoods) h.dispose();
     this.suit.dispose();

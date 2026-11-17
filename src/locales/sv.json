@@ -1192,6 +1192,10 @@
         "desc": "Språk, tema, extremlägen, om appen",
         "label": "Allmänt"
       },
+      "apps": {
+        "desc": "Slå på och av funktioner",
+        "label": "Appar"
+      },
       "bather": {
         "desc": "Simglasögon och huva",
         "label": "Badaren"
@@ -1293,7 +1297,11 @@
       "vatten": "VATTEN"
     },
     "tabsAriaLabel": "Inställningsflikar",
-    "title": "INSTÄLLNINGAR"
+    "title": "INSTÄLLNINGAR",
+    "apps": {
+      "hint": "Slå på eller av funktioner. En avstängd app är dold, tyst och gör inget arbete. Att slå på en app slår också på det den behöver; att stänga av en stänger av det som behöver den.",
+      "needs": "Kräver: {{list}}"
+    }
   },
   "spacify": {
     "hint": "Valfritt: logga in med ditt Spacify-konto för att ha dina sparade lägen, förinställningar och miljöer på alla dina enheter.",

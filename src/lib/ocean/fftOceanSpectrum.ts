@@ -257,7 +257,9 @@ const REFERENCE_TOTAL_AMPLITUDE = 2.6;
 // fixed list of cosine components: height(x,z,t) = Σ A·cos(k·[x,z] − ωt + φ).
 // This is the direct-summation form of linear (Airy) wave theory the source
 // repo's FFT accelerates — see the module header for the full derivation.
-export function generateOceanWaveComponents(random: () => number = Math.random): OceanWaveComponent[] {
+export function generateOceanWaveComponents(
+  random: () => number = Math.random,
+): OceanWaveComponent[] {
   const local = resolveSpectrum(LOCAL_SPECTRUM);
   const swell = resolveSpectrum(SWELL_SPECTRUM);
 
@@ -370,7 +372,9 @@ const DYING_SWELL_SPECTRUM: DisplaySpectrumSettings = {
 const DYING_WAVE_KMAX = 0.12;
 export const DYING_WAVE_COUNT = 10;
 
-export function generateDyingWaveComponents(random: () => number = Math.random): OceanWaveComponent[] {
+export function generateDyingWaveComponents(
+  random: () => number = Math.random,
+): OceanWaveComponent[] {
   const pars = resolveSpectrum(DYING_SWELL_SPECTRUM);
   const components: OceanWaveComponent[] = [];
 
@@ -397,7 +401,10 @@ export function generateDyingWaveComponents(random: () => number = Math.random):
     const directionalSpread = (50 * Math.PI) / 180;
     const theta = pars.angle + (random() * 2 - 1) * directionalSpread;
 
-    const spectrum = jonswap(omega, G, DEPTH, pars) * directionSpectrum(theta, omega, pars) * shortWavesFade(k, pars);
+    const spectrum =
+      jonswap(omega, G, DEPTH, pars) *
+      directionSpectrum(theta, omega, pars) *
+      shortWavesFade(k, pars);
 
     const areaElement = ((2 * Math.PI * k * k) / DYING_WAVE_COUNT) * (lnMax - lnMin);
     const variance = Math.max(0, (2 * spectrum * Math.abs(dOmegaDk) * areaElement) / k);

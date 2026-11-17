@@ -1192,6 +1192,10 @@
         "desc": "Sprog, tema, ekstreme grænser, om appen",
         "label": "Generelt"
       },
+      "apps": {
+        "desc": "Slå funktioner til og fra",
+        "label": "Apps"
+      },
       "bather": {
         "desc": "Svømmebriller og hætte",
         "label": "Den badende"
@@ -1293,7 +1297,11 @@
       "vatten": "VAND"
     },
     "tabsAriaLabel": "Indstillingsfaner",
-    "title": "INDSTILLINGER"
+    "title": "INDSTILLINGER",
+    "apps": {
+      "hint": "Slå funktioner til eller fra. En slukket app er skjult, lydløs og arbejder ikke. At tænde en app tænder også det, den kræver; at slukke en slukker det, der kræver den.",
+      "needs": "Kræver: {{list}}"
+    }
   },
   "spacify": {
     "hint": "Valgfrit: log ind med din Spacify-konto for at have dine gemte tilstande, forudindstillinger og omgivelser på alle dine enheder.",

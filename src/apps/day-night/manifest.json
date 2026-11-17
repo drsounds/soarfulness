@@ -6,6 +6,7 @@
   "version": "1.0.0",
   "description": "Time-of-day helpers: day/night skybox cross-fade, daylight tint and sunset tint of the backdrop.",
   "kind": "environment",
+  "switchable": false,
   "settingsGroup": "time",
   "dependencies": {}
 }

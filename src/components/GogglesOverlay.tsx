@@ -162,8 +162,7 @@ export function GogglesOverlay({
 
       const pitch = pitchRef.current ?? 0;
       const fov = camFovRef.current ?? 65;
-      const underwaterVal =
-        (underwaterRef.current?.uUnderwater?.value as number | undefined) ?? 0;
+      const underwaterVal = (underwaterRef.current?.uUnderwater?.value as number | undefined) ?? 0;
       const globalFade = Math.max(0, 1 - underwaterVal / UNDERWATER_FADE_RANGE);
       const horizonPct = horizonFraction(pitch, fov) * 100;
 

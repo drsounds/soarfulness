@@ -44,6 +44,11 @@ export class SnowRuntime implements AppRuntime<SnowSettings> {
     else if (!f.model && this.cover.attachedTo) this.cover.detach();
   }
 
+  shutdown() {
+    this.snowfall.hide();
+    this.cover.detach();
+  }
+
   dispose() {
     this.snowfall.dispose();
   }

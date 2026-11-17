@@ -41,6 +41,10 @@ export class NeonRuntime implements AppRuntime<NeonSettings> {
     });
   }
 
+  shutdown() {
+    this.edges.detach();
+  }
+
   dispose() {
     this.edges.dispose();
   }
