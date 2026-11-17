@@ -169,11 +169,17 @@ export class HoodRuntime implements AppRuntime<HoodSettings> {
         h.hide();
         mesh.hide();
       } else if (l.real3d) {
-        h.hide();
-        mesh.update(f.time, f.camera, hoodConfigFromLayer(l, f, shared), {
-          bodyFrame: s.hoodRotateHead,
-          suitColor: s.hoodSuitColor,
-        });
+        // The flat layer keeps running for the drops and the water / float
+        // state; the cloth itself is the 3D mesh.
+        const cfg = hoodConfigFromLayer(l, f, shared);
+        h.update(f.time, f.dt, f.camera, { ...cfg, dropsOnly: true });
+        mesh.update(
+          f.time,
+          f.camera,
+          cfg,
+          { bodyFrame: s.hoodRotateHead, suitColor: s.hoodSuitColor },
+          h,
+        );
       } else {
         mesh.hide();
         h.update(f.time, f.dt, f.camera, hoodConfigFromLayer(l, f, shared));

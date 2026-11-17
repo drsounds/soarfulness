@@ -116,6 +116,8 @@ export type HoodConfig = {
   separate?: boolean;
   /** 3D-TYG: this layer is drawn as real geometry (HoodMesh3D) instead. */
   real3d?: boolean;
+  /** Draw only the water drops (the 3D cloth is drawn by HoodMesh3D); this still keeps the water state. */
+  dropsOnly?: boolean;
   /** EGEN LÄNGD: end the cloth at `length` (MUDD at the hem) instead of running on down. */
   lengthOn?: boolean;
   /**
@@ -197,6 +199,7 @@ const FRAG = /* glsl */ `
   uniform float uSep;
   uniform float uWaterTint;
   uniform float uDrip;
+  uniform float uDropsOnly;
   uniform float uHoodBack;
   uniform float uNeckBack;
   uniform float uWrap;
@@ -686,8 +689,10 @@ const FRAG = /* glsl */ `
     float aaT = max(fwidth(t), 1e-4) * 1.5;
     float aaC = max(fwidth(cut), 1e-4) * 1.5;
     float inside = smoothstep(0.0, aaT, t) * smoothstep(0.0, aaC, cut);
+    if (uDropsOnly > 0.5) inside = 0.0;
     // Contact shadow the hood throws onto the view just inside the opening.
     float rim = smoothstep(-0.04, 0.0, t) * (1.0 - smoothstep(0.0, aaT, t)) * smoothstep(-0.03, 0.05, cut) * uViewShadow;
+    if (uDropsOnly > 0.5) rim = 0.0;
     // DROPPAR: beads of water gather at the wet cloth's hem and fall.
     vec4 drip = vec4(0.0);
     if (uDrip > 0.001) {
@@ -950,6 +955,7 @@ export class Hood {
     uSep: { value: number };
     uWaterTint: { value: number };
     uDrip: { value: number };
+    uDropsOnly: { value: number };
     uHoodBack: { value: number };
     uNeckBack: { value: number };
     uWrap: { value: number };
@@ -1044,6 +1050,7 @@ export class Hood {
       uSep: { value: 0 },
       uWaterTint: { value: 0 },
       uDrip: { value: 0 },
+      uDropsOnly: { value: 0 },
       uHoodBack: { value: 0 },
       uNeckBack: { value: 0 },
       uWrap: { value: 0 },
@@ -1103,6 +1110,12 @@ export class Hood {
     this.mesh.visible = false;
     this.mesh.name = "hood";
     scene.add(this.mesh);
+  }
+
+  /** A numeric uniform's current value (the 3D cloth shares this layer's water and float state). */
+  uniformValue(name: string): number {
+    const v = (this.uniforms as Record<string, { value: unknown }>)[name]?.value;
+    return typeof v === "number" ? v : 0;
   }
 
   update(time: number, dt: number, camera: THREE.PerspectiveCamera, cfg: HoodConfig): void {
@@ -1208,6 +1221,7 @@ export class Hood {
     u.uZipFixed.value = cfg.zipperFixed === false ? 0 : 1;
     u.uZipPullOut.value = cfg.zipperPullOut === false ? 0 : 1;
     u.uWaterLevelIn.value = THREE.MathUtils.clamp(cfg.waterInsideLevel, 0, 1);
+    u.uDropsOnly.value = cfg.dropsOnly ? 1 : 0;
     // VATTENLUGN: the water inside lags the sea outside like water with some
     // mass: a critically damped spring with a capped speed, so fast waves
     // give a calm slosh instead of a waterline that flashes up and down.
