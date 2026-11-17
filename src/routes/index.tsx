@@ -2419,21 +2419,30 @@ export function Aquafulness() {
   const [betterLightingOn, setBetterLightingOn] = useState(initial.betterLightingOn);
   const [lightingReflStrength, setLightingReflStrength] = useState(initial.lightingReflStrength);
   const [shadowsOn, setShadowsOn] = useState(initial.shadowsOn);
-  const [retroOn, setRetroOn] = useState(initial.retroOn);
-  const [retroPalette, setRetroPalette] = useState(initial.retroPalette);
-  const [retroPixelSize, setRetroPixelSize] = useState(initial.retroPixelSize);
-  const [retroDither, setRetroDither] = useState(initial.retroDither);
-  const [retroScanlines, setRetroScanlines] = useState(initial.retroScanlines);
+  const retro = useAppSettings(RETRO_DEFAULTS, initial);
+  const { retroOn, retroPalette, retroPixelSize, retroDither, retroScanlines } = retro.values;
+  const {
+    retroOn: setRetroOn,
+    retroPalette: setRetroPalette,
+    retroPixelSize: setRetroPixelSize,
+    retroDither: setRetroDither,
+    retroScanlines: setRetroScanlines,
+  } = retro.setters;
+  const { reset: resetRetro, patch: patchRetro } = retro;
   const [waterGlowOn, setWaterGlowOn] = useState(initial.waterGlowOn);
   const [waterGlowColor, setWaterGlowColor] = useState(initial.waterGlowColor);
   const [waterGlowStrength, setWaterGlowStrength] = useState(initial.waterGlowStrength);
   const [waterGlowEveningOnly, setWaterGlowEveningOnly] = useState(initial.waterGlowEveningOnly);
-  const [envDaylightTintOn, setEnvDaylightTintOn] = useState(initial.envDaylightTintOn);
-  const [envDaylightTintStrength, setEnvDaylightTintStrength] = useState(
-    initial.envDaylightTintStrength,
-  );
-  const [envDayNightAutoOn, setEnvDayNightAutoOn] = useState(initial.envDayNightAutoOn);
-  const [envSunTintOn, setEnvSunTintOn] = useState(initial.envSunTintOn);
+  const dayNight = useAppSettings(DAY_NIGHT_DEFAULTS, initial);
+  const { envDaylightTintOn, envDaylightTintStrength, envDayNightAutoOn, envSunTintOn } =
+    dayNight.values;
+  const {
+    envDaylightTintOn: setEnvDaylightTintOn,
+    envDaylightTintStrength: setEnvDaylightTintStrength,
+    envDayNightAutoOn: setEnvDayNightAutoOn,
+    envSunTintOn: setEnvSunTintOn,
+  } = dayNight.setters;
+  const { reset: resetDaynight, patch: patchDaynight } = dayNight;
   const snow = useAppSettings(SNOW_DEFAULTS, initial);
   const { snowOn, snowAmount, snowIntensity, snowCoverOn, snowCoverStrength, snowGrayBackdropOn } =
     snow.values;
@@ -5538,19 +5547,12 @@ export function Aquafulness() {
     setBetterLightingOn(DEFAULTS.betterLightingOn);
     setLightingReflStrength(DEFAULTS.lightingReflStrength);
     setShadowsOn(DEFAULTS.shadowsOn);
-    setRetroOn(DEFAULTS.retroOn);
-    setRetroPalette(DEFAULTS.retroPalette);
-    setRetroPixelSize(DEFAULTS.retroPixelSize);
-    setRetroDither(DEFAULTS.retroDither);
-    setRetroScanlines(DEFAULTS.retroScanlines);
+    resetRetro();
     setWaterGlowOn(DEFAULTS.waterGlowOn);
     setWaterGlowColor(DEFAULTS.waterGlowColor);
     setWaterGlowStrength(DEFAULTS.waterGlowStrength);
     setWaterGlowEveningOnly(DEFAULTS.waterGlowEveningOnly);
-    setEnvDaylightTintOn(DEFAULTS.envDaylightTintOn);
-    setEnvDaylightTintStrength(DEFAULTS.envDaylightTintStrength);
-    setEnvDayNightAutoOn(DEFAULTS.envDayNightAutoOn);
-    setEnvSunTintOn(DEFAULTS.envSunTintOn);
+    resetDaynight();
     resetSkyLook();
     resetSnow();
     resetRain();
@@ -5822,21 +5824,13 @@ export function Aquafulness() {
     if (patch.lightingReflStrength !== undefined)
       setLightingReflStrength(patch.lightingReflStrength);
     if (patch.shadowsOn !== undefined) setShadowsOn(patch.shadowsOn);
-    if (patch.retroOn !== undefined) setRetroOn(patch.retroOn);
-    if (patch.retroPalette !== undefined) setRetroPalette(patch.retroPalette);
-    if (patch.retroPixelSize !== undefined) setRetroPixelSize(patch.retroPixelSize);
-    if (patch.retroDither !== undefined) setRetroDither(patch.retroDither);
-    if (patch.retroScanlines !== undefined) setRetroScanlines(patch.retroScanlines);
+    patchRetro(patch);
     if (patch.waterGlowOn !== undefined) setWaterGlowOn(patch.waterGlowOn);
     if (patch.waterGlowColor !== undefined) setWaterGlowColor(patch.waterGlowColor);
     if (patch.waterGlowStrength !== undefined) setWaterGlowStrength(patch.waterGlowStrength);
     if (patch.waterGlowEveningOnly !== undefined)
       setWaterGlowEveningOnly(patch.waterGlowEveningOnly);
-    if (patch.envDaylightTintOn !== undefined) setEnvDaylightTintOn(patch.envDaylightTintOn);
-    if (patch.envDaylightTintStrength !== undefined)
-      setEnvDaylightTintStrength(patch.envDaylightTintStrength);
-    if (patch.envDayNightAutoOn !== undefined) setEnvDayNightAutoOn(patch.envDayNightAutoOn);
-    if (patch.envSunTintOn !== undefined) setEnvSunTintOn(patch.envSunTintOn);
+    patchDaynight(patch);
     if (patch.skyLook !== undefined) setSkyLook(sanitizeSkyLook(patch.skyLook));
     patchSnow(patch);
     patchRain(patch);
