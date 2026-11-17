@@ -1,3 +1,4 @@
+import type { AppFlagChange, AppFlags } from "./flags";
 import type { AppRegistry } from "./registry";
 import type {
   AnyAppDefinition,
@@ -17,6 +18,10 @@ type Entry = { id: string; runtime: AppRuntime<object> };
  * when the scene is built, calls frame() on each every rendered frame and
  * disposes them on teardown.
  *
+ * Which apps run is up to an AppFlags store (see flags.ts): runtimes of
+ * disabled apps are created but never framed, and the host calls their
+ * startup() / shutdown() as the flags change.
+ *
  * Order: an app starts and runs after the apps it depends on; otherwise by
  * `manifest.order` (lower first), ties keeping the registry's order.
  *
@@ -28,13 +33,42 @@ type Entry = { id: string; runtime: AppRuntime<object> };
 export class AppHost {
   private readonly entries: Entry[] = [];
   private readonly byId = new Map<string, AppRuntime<object>>();
+  private readonly flags: AppFlags | undefined;
+  private readonly unsubscribe: (() => void) | undefined;
 
-  constructor(registry: AppRegistry, ctx: SceneAppContext) {
+  /**
+   * `flags` says which apps are on (default: all). Every runtime is created
+   * either way, so the host's typed handles always resolve; a disabled app
+   * is just not run: it gets shutdown() once now, and no frame() calls until
+   * it is turned on (which calls its startup()).
+   */
+  constructor(registry: AppRegistry, ctx: SceneAppContext, flags?: AppFlags) {
+    this.flags = flags;
     for (const app of AppHost.startOrder(registry)) {
       if (!app.createRuntime) continue;
       const runtime = app.createRuntime(ctx) as AppRuntime<object>;
       this.entries.push({ id: app.manifest.id, runtime });
       this.byId.set(app.manifest.id, runtime);
+    }
+    // Put every runtime into the state its flag asks for.
+    for (const { id, runtime } of this.entries) {
+      if (this.isOn(id)) runtime.startup?.();
+      else runtime.shutdown?.();
+    }
+    this.unsubscribe = flags?.subscribe((changes) => this.applyChanges(changes));
+  }
+
+  /** True while the app is switched on (apps without a flag store are always on). */
+  isOn(id: string): boolean {
+    return this.flags ? this.flags.isEnabled(id) : true;
+  }
+
+  private applyChanges(changes: readonly AppFlagChange[]) {
+    for (const { id, enabled } of changes) {
+      const runtime = this.byId.get(id);
+      if (!runtime) continue;
+      if (enabled) runtime.startup?.();
+      else runtime.shutdown?.();
     }
   }
 
@@ -84,12 +118,13 @@ export class AppHost {
   /** Calls frame() on every runtime that has one, in order. */
   frame(frame: FrameContext, settings: AppSettingsLookup) {
     for (const { id, runtime } of this.entries) {
-      if (runtime.frame) runtime.frame(frame, settings(id) ?? {});
+      if (runtime.frame && this.isOn(id)) runtime.frame(frame, settings(id) ?? {});
     }
   }
 
   /** Disposes every runtime, last started first. */
   dispose() {
+    this.unsubscribe?.();
     for (let i = this.entries.length - 1; i >= 0; i--) this.entries[i].runtime.dispose();
     this.entries.length = 0;
     this.byId.clear();
