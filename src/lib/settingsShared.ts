@@ -6,6 +6,7 @@ import type { AuroraSettings } from "@/apps/aurora/settings";
 import type { HoodSettings } from "@/apps/hood/settings";
 import type { SnowSettings } from "@/apps/snow/settings";
 import type { Clouds3dSettings } from "@/apps/clouds-3d/settings";
+import type { SkyPuffsSettings } from "@/apps/sky-puffs/settings";
 import type { RainSettings } from "@/apps/rain/settings";
 import type { ConfettiSettings } from "@/apps/confetti/settings";
 import type { FireworksSettings } from "@/apps/fireworks/settings";
@@ -23,6 +24,7 @@ import { WIND_SETTING_KEYS } from "@/apps/wind/settings";
 import { DAY_NIGHT_SETTING_KEYS } from "@/apps/day-night/settings";
 import { SNOW_SETTING_KEYS } from "@/apps/snow/settings";
 import { CLOUDS_3D_SETTING_KEYS } from "@/apps/clouds-3d/settings";
+import { SKY_PUFFS_SETTING_KEYS } from "@/apps/sky-puffs/settings";
 import { RAIN_SETTING_KEYS } from "@/apps/rain/settings";
 import { FIREWORKS_SETTING_KEYS } from "@/apps/fireworks/settings";
 import { CONFETTI_SETTING_KEYS } from "@/apps/confetti/settings";
@@ -565,21 +567,6 @@ export type Persisted = {
   // recycled to a new altitude band, instead of popping visible/invisible —
   // see uOpacity/cloudFadeSpeedRef in routes/index.tsx. Higher = faster.
   cloudFadeSpeed: number;
-  // SKY PUFFS: optional individual, randomly-placed puffy clouds (distinct
-  // from the always-tiled MID-CLOUDS/SKY-CLOUDS deck above) that each drift
-  // through their own fade-in/hold/fade-out cycle and then reappear at a new
-  // random spot — see the skyPuffs* refs and the SKY PUFFS block in
-  // routes/index.tsx's scene setup/animate() for the actual mesh pool.
-  skyPuffsOn: boolean;
-  // How many puffs exist at once.
-  skyPuffsCount: number;
-  // Each puff's diameter in world units.
-  skyPuffsSize: number;
-  // Rate multiplier on each puff's fade-in/hold/fade-out/respawn cycle —
-  // higher means puffs cycle to a new altitude/position more often.
-  skyPuffsFreq: number;
-  // Opacity each puff reaches at the peak of its fade-in.
-  skyPuffsOpacity: number;
   swayAmp: number;
   swaySpeed: number;
   swayBias: number;
@@ -832,6 +819,7 @@ export type Persisted = {
   HoodSettings &
   SnowSettings &
   Clouds3dSettings &
+  SkyPuffsSettings &
   RainSettings &
   ConfettiSettings &
   FireworksSettings &
@@ -1048,11 +1036,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "bottomCloudsScale",
     "skyCloudsScale",
     "cloudFadeSpeed",
-    "skyPuffsOn",
-    "skyPuffsCount",
-    "skyPuffsSize",
-    "skyPuffsFreq",
-    "skyPuffsOpacity",
+    ...SKY_PUFFS_SETTING_KEYS,
     "worldBoundaryOn",
     "worldBoundarySize",
     "worldBoundaryHeight",

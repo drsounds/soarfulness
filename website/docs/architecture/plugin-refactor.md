@@ -58,6 +58,7 @@ Swedish, like `NORRSKEN`) goes in the manifest's `name`.
 | `open-drift` | HAVSDRIFT | motion | drift | | `OpenDrift.ts` |
 | `retro` | RETRO | screen-fx | graphics | | `retroShader.ts` |
 | `rain` | REGN | scene-fx | weather | day-night, wind | `Rainfall.ts`, `RainAudio.ts` |
+| `sky-puffs` | MOLNPUFFAR | scene-fx | clouds | | `SkyPuffsRuntime.ts` |
 | `snow` | SNÖ | scene-fx | weather | day-night | `Snowfall.ts`, `SnowCover.ts`, `snowLight.ts` |
 | `string-lights` | LJUSSLINGOR | scene-fx | effects | | `StringLightsFx.ts`, `EdgeLightsFx.ts`, `stringLights.ts` (own store), `StringLightsPanel.tsx`, `EdgeLightsPanel.tsx` |
 | `underwater-fog` | UNDERVATTENDIS | screen-fx | weather | | `underwaterFog.ts`, `UnderwaterFogOverlay.ts` |
@@ -316,8 +317,10 @@ can keep merging.
   - [x] 3D clouds (`apps/clouds-3d`): the puff layers and their three
     settings. The host feeds them the flat decks' state through
     `Clouds3dRuntime.update(inputs, settings)`.
-  - [ ] the flat cloud decks, sky puffs, waves, water material, camera modes,
-    scenes, sound, watercraft.
+  - [x] sky puffs (`apps/sky-puffs`): the puff pool, its shader and its five
+    settings, with `SkyPuffsRuntime.update(inputs, settings)` and a unit test.
+  - [ ] the flat cloud decks, waves, water material, camera modes, scenes,
+    sound, watercraft.
 - [ ] **Step 6:** code-split the app code (keeps the main bundle small).
   - [x] The settings dialog and every app panel in it load as their own
     chunk (`React.lazy` in `routes/index.tsx`): the main chunk went from

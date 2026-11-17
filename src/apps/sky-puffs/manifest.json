@@ -1,0 +1,13 @@
+{
+  "$schema": "../../core/apps/manifest.schema.json",
+  "id": "sky-puffs",
+  "name": "MOLNPUFFAR",
+  "title": "Sky puffs",
+  "version": "1.0.0",
+  "description": "Individual, randomly placed puffy clouds that fade in and out around the camera.",
+  "kind": "scene-fx",
+  "settingsGroup": "clouds",
+  "defaultEnabled": false,
+  "order": 6,
+  "dependencies": {}
+}
