@@ -82,6 +82,35 @@ function withRobotsHeader(response, publicSite = false) {
   });
 }
 
+// Built client assets have short names, so a path with a segment longer than this can't be
+// one of them. Long paths are still legitimate app routes (bath links carry their settings in
+// /bathing/<payload>), so they skip the disk lookup and go to the app handler instead of
+// hitting the filesystem, which throws ENAMETOOLONG past 255 bytes per segment.
+const MAX_STATIC_SEGMENT = 255;
+const MAX_STATIC_PATH = 1024;
+
+// Returns the built file for this URL path, or null when there is none or the lookup fails,
+// so a bad path (bots, scanners, malformed escapes) falls through instead of throwing.
+async function staticFile(pathname) {
+  if (pathname === "/" || pathname.endsWith("/")) return null;
+  let decoded;
+  try {
+    decoded = decodeURIComponent(pathname);
+  } catch {
+    return null;
+  }
+  if (decoded.length > MAX_STATIC_PATH || decoded.includes("\0")) return null;
+  if (decoded.split("/").some((segment) => Buffer.byteLength(segment) > MAX_STATIC_SEGMENT)) return null;
+  const filePath = join(clientDir, normalize(decoded));
+  if (!filePath.startsWith(clientDir + "/")) return null;
+  try {
+    const file = Bun.file(filePath);
+    return (await file.exists()) ? file : null;
+  } catch {
+    return null;
+  }
+}
+
 const server = Bun.serve({
   port,
   hostname,
@@ -95,20 +124,12 @@ const server = Bun.serve({
     if (publicSite && url.pathname === "/robots.txt") {
       return new Response(publicRobotsTxt(host), { headers: { "Content-Type": "text/plain; charset=utf-8" } });
     }
-    if (url.pathname !== "/" && !url.pathname.endsWith("/")) {
-      let filePath = "";
-      try {
-        filePath = join(clientDir, normalize(decodeURIComponent(url.pathname)));
-      } catch {}
-      if (filePath.startsWith(clientDir + "/")) {
-        const file = Bun.file(filePath);
-        if (await file.exists()) {
-          const headers = url.pathname.startsWith("/assets/")
-            ? { "Cache-Control": "public, max-age=31536000, immutable" }
-            : {};
-          return withRobotsHeader(new Response(file, { headers }), publicSite);
-        }
-      }
+    const file = await staticFile(url.pathname);
+    if (file) {
+      const headers = url.pathname.startsWith("/assets/")
+        ? { "Cache-Control": "public, max-age=31536000, immutable" }
+        : {};
+      return withRobotsHeader(new Response(file, { headers }), publicSite);
     }
     return withRobotsHeader(await handler.fetch(request), publicSite);
   },
