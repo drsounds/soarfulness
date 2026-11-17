@@ -108,6 +108,10 @@ export type HoodConfig = {
   waterTint?: number;
   /** 0..1: DROPPAR, water dripping off the wet cloth's hem. */
   dripping?: number;
+  /** 0..1: DROPPANTAL, how many drops form (default 0.7). */
+  dripAmount?: number;
+  /** 0..1: DROPPTILLVÄXT, how fast the beads grow and fall (default 0.5). */
+  dripGrow?: number;
   /** 0..1: HUVA BAKÅT, the top hood pulled back off the head. */
   pullBack?: number;
   /** 0..1: HALS NERÅT, the funnel neck pulled down. */
@@ -199,6 +203,8 @@ const FRAG = /* glsl */ `
   uniform float uSep;
   uniform float uWaterTint;
   uniform float uDrip;
+  uniform float uDripAmount;
+  uniform float uDripGrow;
   uniform float uDropsOnly;
   uniform float uHoodBack;
   uniform float uNeckBack;
@@ -246,6 +252,29 @@ const FRAG = /* glsl */ `
   // The funnel neck's top edge (screen height); HALS NERÅT pulls it down.
   float neckEdgeY() {
     return mix(-0.92, -0.05, uLowerHeight) + uSway.y - uNeckBack * 0.95;
+  }
+  // The neck cover's top edge at screen x (a lower edge for the old single
+  // piece, the collar's edge when separate), or -9 where there is none.
+  float neckTopY(float x) {
+    float a0 = uOpenWidth > 0.0 ? uAspect * uOpenWidth : uAspect * mix(0.55, 0.95, uOpening) + 0.06;
+    if (uSep > 0.5) {
+      float xN = (x - uSway.x * 0.6) / uAspect;
+      float funnel = uCollarUp > 0.5 ? 0.24 : 0.0;
+      return neckEdgeY() + funnel + (0.55 - funnel * 1.2) * xN * xN;
+    }
+    vec2 c = vec2(uSway.x, 0.04 + uSway.y - uDrop * 0.22);
+    float edgeY = neckEdgeY();
+    float bb = max(c.y - edgeY, 0.05);
+    float aL = uTopOff > 0.5 ? a0 * 1.5 : a0;
+    float n = mix(6.0, 2.0, clamp(uRound, 0.0, 1.0)) + 0.6;
+    float ex = abs(x - c.x) / aL;
+    if (ex >= 1.0) return -9.0;
+    float y = c.y - bb * pow(1.0 - pow(ex, n), 1.0 / n);
+    if (uCollarUp > 0.5) {
+      float xx = (x - c.x) / (aL * 0.62);
+      y = max(y, edgeY + 0.24 * (1.0 - smoothstep(0.0, 1.0, abs(xx))));
+    }
+    return y;
   }
   // The top hood's rim (the opening's upper edge) at screen x, or -9 where
   // the opening doesn't reach. Mirrors hoodField()'s opening.
@@ -349,6 +378,13 @@ const FRAG = /* glsl */ `
         float kS = 0.35;
         float hS = clamp(0.5 + 0.5 * (rUp - r) / kS, 0.0, 1.0);
         r = mix(r, rUp, hS) + kS * hS * (1.0 - hS);
+        // The cuff band follows the raised edge, not the old lower one: where
+        // the bump wins, measure the distance from the bump's own edge (made
+        // the real distance across its slope).
+        float uB = clamp(abs(xx), 0.0, 1.0);
+        float slopeB = COLLAR_UP * 6.0 * uB * (1.0 - uB) / (aL * 0.62);
+        float dUp = (edgeY + bump - p.y) * inversesqrt(1.0 + slopeB * slopeB);
+        nDist = mix(nDist, dUp, hS);
       }
     } else {
       // Below the opening's center the sides hang straight, flaring a little.
@@ -561,17 +597,22 @@ const FRAG = /* glsl */ `
     return vec3(t, h, cut);
   }
 
-  // One row of drops hanging from an edge: a bead grows, then falls. rim
-  // rows hang from the top hood's rim, others from the lower hem.
-  vec4 dropRow(vec2 pp, float edgeYFlat, bool rim, float seed) {
-    float cw = 0.12;
+  // One row of drops hanging from an edge: a bead grows, then falls. Mode 1
+  // rows hang from the top hood's rim, 2 from the neck cover's top edge (and
+  // run down over it), 0 from the lower hem.
+  vec4 dropRow(vec2 pp, float edgeYFlat, float mode, float seed) {
+    float cw = mix(0.22, 0.08, uDripAmount);
     float cell = floor(pp.x / cw);
     float h1 = fract(sin((cell + seed) * 12.9898) * 43758.5453);
     float h2 = fract(sin((cell + seed) * 78.233) * 12543.17);
     float cx = (cell + 0.2 + 0.6 * h1) * cw;
     float edgeD = edgeYFlat;
     float clothHere;
-    if (rim) {
+    if (mode > 1.5) {
+      edgeD = neckTopY(cx);
+      // The cloth is below the neck cover's edge.
+      clothHere = edgeD > -8.0 ? 1.0 : 0.0;
+    } else if (mode > 0.5) {
       edgeD = rimTopY(cx);
       // The cloth is above the rim.
       clothHere = edgeD > -8.0 ? 1.0 : 0.0;
@@ -581,7 +622,7 @@ const FRAG = /* glsl */ `
     }
     // A bead hangs and slowly grows, then lets go and falls like a real
     // drop: gravity (about 0.5 s across the view), stretching as it speeds up.
-    float T = 1.6 + 2.4 * h2;
+    float T = (1.6 + 2.4 * h2) / pow(3.0, (uDripGrow - 0.5) * 2.0);
     float ph = fract(uTime / T + h1);
     float gEnd = clamp(1.0 - 0.55 / T, 0.5, 0.9);
     float tf = max(ph - gEnd, 0.0) * T;
@@ -589,11 +630,13 @@ const FRAG = /* glsl */ `
     float yd = edgeD - 0.006 - 4.8 * tf * tf;
     float grow = 0.5 + 0.5 * smoothstep(0.0, gEnd, ph);
     float stretch = 1.0 + 3.5 * min(tf, 0.5);
-    vec2 dd = vec2((pp.x - cx) / (0.0034 * grow), (pp.y - yd) / (0.0075 * grow * stretch));
+    // MORE intensity: bigger, fuller beads.
+    float sz = mix(0.6, 1.0, clamp(uDrip, 0.0, 1.0));
+    vec2 dd = vec2((pp.x - cx) / (0.0045 * grow * sz), (pp.y - yd) / (0.0105 * grow * stretch * sz));
     // A teardrop: pointed on top, round below.
     dd.y *= dd.y > 0.0 ? 0.7 : 1.0;
     float body = 1.0 - smoothstep(0.7, 1.0, length(dd));
-    float life = step(h1, uDrip * 1.15 + 0.1) * (1.0 - smoothstep(0.85, 1.0, fallT)) * clothHere;
+    float life = step(h1, mix(0.5, 1.0, uDripAmount)) * (1.0 - smoothstep(0.85, 1.0, fallT)) * clothHere;
     float dA = body * life * clamp(uDrip * 2.0, 0.0, 1.0);
     float spec = smoothstep(0.1, 0.0, length(dd - vec2(-0.3, 0.35)));
     vec3 dc = mix(uHorizon, uSky, 0.5) * 0.8 + uSunCol * 0.25;
@@ -705,12 +748,17 @@ const FRAG = /* glsl */ `
       // From the lower hem (or the hood's bottom edge) ...
       bool hasEdge = uHemY > -900.0 || uLower < 0.5 || uSep > 0.5;
       float edgeD = uHemY > -900.0 ? uHemY : mix(-1.08, 0.8, uHeight);
-      if (hasEdge) drip = dropRow(pDrip, edgeD, false, 0.0);
+      if (hasEdge) drip = dropRow(pDrip, edgeD, 0.0, 0.0);
       // ... and from the top hood's rim, falling through the opening.
       bool hasHood = !(uLower > 0.5 && uTopOff > 0.5);
       if (hasHood) {
-        vec4 d2 = dropRow(pDrip, 0.0, true, 37.0);
+        vec4 d2 = dropRow(pDrip, 0.0, 1.0, 37.0);
         drip = d2.a > drip.a ? d2 : drip;
+      }
+      // ... and from the neck cover's top edge, running down over it.
+      if (uLower > 0.5) {
+        vec4 d3 = dropRow(pDrip, 0.0, 2.0, 71.0);
+        drip = d3.a > drip.a ? d3 : drip;
       }
     }
     if (inside <= 0.0 && rim <= 0.0 && drip.a <= 0.0) discard;
@@ -961,6 +1009,8 @@ export class Hood {
     uSep: { value: number };
     uWaterTint: { value: number };
     uDrip: { value: number };
+    uDripAmount: { value: number };
+    uDripGrow: { value: number };
     uDropsOnly: { value: number };
     uHoodBack: { value: number };
     uNeckBack: { value: number };
@@ -1056,6 +1106,8 @@ export class Hood {
       uSep: { value: 0 },
       uWaterTint: { value: 0 },
       uDrip: { value: 0 },
+      uDripAmount: { value: 0.7 },
+      uDripGrow: { value: 0.5 },
       uDropsOnly: { value: 0 },
       uHoodBack: { value: 0 },
       uNeckBack: { value: 0 },
@@ -1228,6 +1280,8 @@ export class Hood {
     u.uZipPullOut.value = cfg.zipperPullOut === false ? 0 : 1;
     u.uWaterLevelIn.value = THREE.MathUtils.clamp(cfg.waterInsideLevel, 0, 1);
     u.uDropsOnly.value = cfg.dropsOnly ? 1 : 0;
+    u.uDripAmount.value = THREE.MathUtils.clamp(cfg.dripAmount ?? 0.7, 0, 1);
+    u.uDripGrow.value = THREE.MathUtils.clamp(cfg.dripGrow ?? 0.5, 0, 1);
     // VATTENLUGN: the water inside lags the sea outside like water with some
     // mass: a critically damped spring with a capped speed, so fast waves
     // give a calm slosh instead of a waterline that flashes up and down.

@@ -344,6 +344,8 @@ export function HoodPanel({
           {toggle("viewShadow", t("dial.camera.hoodViewShadow"))}
           {pct("floating", t("dial.camera.hoodFloating"))}
           {pct("dripping", t("dial.camera.hoodDripping"))}
+          {layer.dripping > 0 && pct("dripAmount", t("dial.camera.hoodDripAmount"))}
+          {layer.dripping > 0 && pct("dripGrow", t("dial.camera.hoodDripGrow"))}
 
           {/* Hood-wide: the float suit (always worn innermost), ROTERA HUVUD,
               FLYTGRÄNS and how the clothes change the bather's buoyancy. */}
