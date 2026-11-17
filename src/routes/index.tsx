@@ -2093,9 +2093,17 @@ export function Aquafulness() {
   const [hoodCuffOn, setHoodCuffOn] = useState(initial.hoodCuffOn);
   const [hoodCuffHeight, setHoodCuffHeight] = useState(initial.hoodCuffHeight);
   const [hoodCuffSize, setHoodCuffSize] = useState(initial.hoodCuffSize);
+  const [hoodSeparate, setHoodSeparate] = useState(initial.hoodSeparate);
+  const [hoodWaterTint, setHoodWaterTint] = useState(initial.hoodWaterTint);
+  const [hoodDripping, setHoodDripping] = useState(initial.hoodDripping);
+  const [hoodPullBack, setHoodPullBack] = useState(initial.hoodPullBack);
+  const [hoodNeckBack, setHoodNeckBack] = useState(initial.hoodNeckBack);
+  const [hoodLengthOn, setHoodLengthOn] = useState(initial.hoodLengthOn);
+  const [hoodLength, setHoodLength] = useState(initial.hoodLength);
+  const [hoodPuff3d, setHoodPuff3d] = useState(initial.hoodPuff3d);
   const [hoodLayer1On, setHoodLayer1On] = useState(initial.hoodLayer1On);
   const [hoodFloatThreshold, setHoodFloatThreshold] = useState(initial.hoodFloatThreshold);
-  const [hoodLookDown, setHoodLookDown] = useState(initial.hoodLookDown);
+  const [hoodRotateHead, setHoodRotateHead] = useState(initial.hoodRotateHead);
   const [hoodSuitColor, setHoodSuitColor] = useState(initial.hoodSuitColor);
   const [hoodSuitLeg, setHoodSuitLeg] = useState(initial.hoodSuitLeg);
   const [hoodClothesBuoyancy, setHoodClothesBuoyancy] = useState(initial.hoodClothesBuoyancy);
@@ -3100,9 +3108,17 @@ export function Aquafulness() {
     hoodCuffOn,
     hoodCuffHeight,
     hoodCuffSize,
+    hoodSeparate,
+    hoodWaterTint,
+    hoodDripping,
+    hoodPullBack,
+    hoodNeckBack,
+    hoodLengthOn,
+    hoodLength,
+    hoodPuff3d,
     hoodLayer1On,
     hoodFloatThreshold,
-    hoodLookDown,
+    hoodRotateHead,
     hoodSuitColor,
     hoodSuitLeg,
     hoodClothesBuoyancy,
@@ -3231,9 +3247,17 @@ export function Aquafulness() {
     hoodCuffOn,
     hoodCuffHeight,
     hoodCuffSize,
+    hoodSeparate,
+    hoodWaterTint,
+    hoodDripping,
+    hoodPullBack,
+    hoodNeckBack,
+    hoodLengthOn,
+    hoodLength,
+    hoodPuff3d,
     hoodLayer1On,
     hoodFloatThreshold,
-    hoodLookDown,
+    hoodRotateHead,
     hoodSuitColor,
     hoodSuitLeg,
     hoodClothesBuoyancy,
@@ -3606,9 +3630,17 @@ export function Aquafulness() {
     hoodCuffOn,
     hoodCuffHeight,
     hoodCuffSize,
+    hoodSeparate,
+    hoodWaterTint,
+    hoodDripping,
+    hoodPullBack,
+    hoodNeckBack,
+    hoodLengthOn,
+    hoodLength,
+    hoodPuff3d,
     hoodLayer1On,
     hoodFloatThreshold,
-    hoodLookDown,
+    hoodRotateHead,
     hoodSuitColor,
     hoodSuitLeg,
     hoodClothesBuoyancy,
@@ -5429,9 +5461,17 @@ export function Aquafulness() {
     setHoodCuffOn(DEFAULTS.hoodCuffOn);
     setHoodCuffHeight(DEFAULTS.hoodCuffHeight);
     setHoodCuffSize(DEFAULTS.hoodCuffSize);
+    setHoodSeparate(DEFAULTS.hoodSeparate);
+    setHoodWaterTint(DEFAULTS.hoodWaterTint);
+    setHoodDripping(DEFAULTS.hoodDripping);
+    setHoodPullBack(DEFAULTS.hoodPullBack);
+    setHoodNeckBack(DEFAULTS.hoodNeckBack);
+    setHoodLengthOn(DEFAULTS.hoodLengthOn);
+    setHoodLength(DEFAULTS.hoodLength);
+    setHoodPuff3d(DEFAULTS.hoodPuff3d);
     setHoodLayer1On(DEFAULTS.hoodLayer1On);
     setHoodFloatThreshold(DEFAULTS.hoodFloatThreshold);
-    setHoodLookDown(DEFAULTS.hoodLookDown);
+    setHoodRotateHead(DEFAULTS.hoodRotateHead);
     setHoodSuitColor(DEFAULTS.hoodSuitColor);
     setHoodSuitLeg(DEFAULTS.hoodSuitLeg);
     setHoodClothesBuoyancy(DEFAULTS.hoodClothesBuoyancy);
@@ -5803,9 +5843,17 @@ export function Aquafulness() {
     if (patch.hoodCuffOn !== undefined) setHoodCuffOn(patch.hoodCuffOn);
     if (patch.hoodCuffHeight !== undefined) setHoodCuffHeight(patch.hoodCuffHeight);
     if (patch.hoodCuffSize !== undefined) setHoodCuffSize(patch.hoodCuffSize);
+    if (patch.hoodSeparate !== undefined) setHoodSeparate(patch.hoodSeparate);
+    if (patch.hoodWaterTint !== undefined) setHoodWaterTint(patch.hoodWaterTint);
+    if (patch.hoodDripping !== undefined) setHoodDripping(patch.hoodDripping);
+    if (patch.hoodPullBack !== undefined) setHoodPullBack(patch.hoodPullBack);
+    if (patch.hoodNeckBack !== undefined) setHoodNeckBack(patch.hoodNeckBack);
+    if (patch.hoodLengthOn !== undefined) setHoodLengthOn(patch.hoodLengthOn);
+    if (patch.hoodLength !== undefined) setHoodLength(patch.hoodLength);
+    if (patch.hoodPuff3d !== undefined) setHoodPuff3d(patch.hoodPuff3d);
     if (patch.hoodLayer1On !== undefined) setHoodLayer1On(patch.hoodLayer1On);
     if (patch.hoodFloatThreshold !== undefined) setHoodFloatThreshold(patch.hoodFloatThreshold);
-    if (patch.hoodLookDown !== undefined) setHoodLookDown(patch.hoodLookDown);
+    if (patch.hoodRotateHead !== undefined) setHoodRotateHead(patch.hoodRotateHead);
     if (patch.hoodSuitColor !== undefined) setHoodSuitColor(patch.hoodSuitColor);
     if (patch.hoodSuitLeg !== undefined) setHoodSuitLeg(patch.hoodSuitLeg);
     if (patch.hoodClothesBuoyancy !== undefined) setHoodClothesBuoyancy(patch.hoodClothesBuoyancy);
@@ -13104,9 +13152,17 @@ export function Aquafulness() {
     hoodCuffHeight,
     setHoodCuffHeight,
     hoodCuffSize,
+    hoodSeparate,
+    hoodWaterTint,
+    hoodDripping,
+    hoodPullBack,
+    hoodNeckBack,
+    hoodLengthOn,
+    hoodLength,
+    hoodPuff3d,
     hoodLayer1On,
     hoodFloatThreshold,
-    hoodLookDown,
+    hoodRotateHead,
     hoodSuitColor,
     hoodSuitLeg,
     hoodClothesBuoyancy,
@@ -13128,9 +13184,17 @@ export function Aquafulness() {
     hoodPuffThickness,
     hoodPuffInflate,
     setHoodCuffSize,
+    setHoodSeparate,
+    setHoodWaterTint,
+    setHoodDripping,
+    setHoodPullBack,
+    setHoodNeckBack,
+    setHoodLengthOn,
+    setHoodLength,
+    setHoodPuff3d,
     setHoodLayer1On,
     setHoodFloatThreshold,
-    setHoodLookDown,
+    setHoodRotateHead,
     setHoodSuitColor,
     setHoodSuitLeg,
     setHoodClothesBuoyancy,

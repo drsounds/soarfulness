@@ -7,6 +7,7 @@ import { limitMax, useExtremeLimits } from "@/lib/extremeLimits";
 import {
   HOOD_CUFF_MATERIALS,
   HOOD_MAX_LAYERS,
+  HOOD_PUFF_HEIGHT_MAX,
   HOOD_PADDED_STYLES,
   HOOD_STYLES,
   hoodLayersFromFile,
@@ -29,10 +30,10 @@ type BoolKey = {
   [K in keyof HoodLayer]: HoodLayer[K] extends boolean ? K : never;
 }[keyof HoodLayer];
 
-/** Hood-wide settings: the float suit, TITTA NER, FLYTGRÄNS, buoyancy. */
+/** Hood-wide settings: the float suit, ROTERA HUVUD, FLYTGRÄNS, buoyancy. */
 export type HoodSharedSettings = {
   floatThreshold: number;
-  lookDown: boolean;
+  rotateHead: boolean;
   suitColor: string;
   suitLeg: number;
   clothesBuoyancy: boolean;
@@ -96,7 +97,7 @@ export function HoodPanel({
     setSel(sel + dir);
   };
 
-  const pct = (key: NumKey, label: string) => (
+  const pct = (key: NumKey, label: string, max = 1) => (
     <SettingRow
       key={key}
       label={label}
@@ -105,10 +106,10 @@ export function HoodPanel({
       rawValue={layer[key]}
       onSet={(v) => patch({ [key]: v })}
       min={0}
-      max={1}
+      max={max}
       step={0.05}
       onDec={() => patch({ [key]: Math.max(0, +(layer[key] - 0.05).toFixed(2)) })}
-      onInc={() => patch({ [key]: Math.min(1, +(layer[key] + 0.05).toFixed(2)) })}
+      onInc={() => patch({ [key]: Math.min(max, +(layer[key] + 0.05).toFixed(2)) })}
     />
   );
   const toggle = (key: BoolKey, label: string) => (
@@ -190,7 +191,9 @@ export function HoodPanel({
           </div>
           {toggle("on", t("dial.camera.hoodLayerOn"))}
           {pct("drop", t("dial.camera.hoodDrop"))}
-          {!layer.lowerOn && pct("height", t("dial.camera.hoodHeight"))}
+          {(!layer.lowerOn || layer.separate) && pct("height", t("dial.camera.hoodHeight"))}
+          {toggle("lengthOn", t("dial.camera.hoodLengthOn"))}
+          {layer.lengthOn && pct("length", t("dial.camera.hoodLength"))}
           {layer.openingWidth <= 0 && pct("opening", t("dial.camera.hoodOpening"))}
           {pct("roundness", t("dial.camera.hoodRoundness"))}
           <SettingRow
@@ -217,10 +220,13 @@ export function HoodPanel({
               })
             }
           />
+          {(!layer.lowerOn || layer.hoodTop) && pct("pullBack", t("dial.camera.hoodPullBack"))}
           {toggle("lowerOn", t("dial.camera.hoodLower"))}
           {layer.lowerOn && (
             <>
               {pct("lowerHeight", t("dial.camera.hoodLowerHeight"))}
+              {toggle("separate", t("dial.camera.hoodSeparate"))}
+              {pct("neckBack", t("dial.camera.hoodNeckBack"))}
               {toggle("hoodTop", t("dial.camera.hoodTop"))}
               {toggle("collarUp", t("dial.camera.hoodCollarUp"))}
               {toggle("zipperOn", t("dial.camera.hoodZipper"))}
@@ -238,6 +244,7 @@ export function HoodPanel({
             <>
               {pct("waterLevel", t("dial.camera.hoodWaterLevel"))}
               {pct("waterCalm", t("dial.camera.hoodWaterCalm"))}
+              {pct("waterTint", t("dial.camera.hoodWaterTint"))}
             </>
           )}
           <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
@@ -272,7 +279,8 @@ export function HoodPanel({
           {HOOD_PADDED_STYLES.includes(layer.style) && (
             <>
               {pct("puffSize", t("dial.camera.hoodPuffSize"))}
-              {pct("puffHeight", t("dial.camera.hoodPuffHeight"))}
+              {pct("puffHeight", t("dial.camera.hoodPuffHeight"), HOOD_PUFF_HEIGHT_MAX)}
+              {toggle("puff3d", t("dial.camera.hoodPuff3d"))}
               {pct("puffThickness", t("dial.camera.hoodPuffThickness"))}
               {pct("puffInflate", t("dial.camera.hoodPuffInflate"))}
             </>
@@ -334,8 +342,9 @@ export function HoodPanel({
           {toggle("hanging", t("dial.camera.hoodHanging"))}
           {toggle("viewShadow", t("dial.camera.hoodViewShadow"))}
           {pct("floating", t("dial.camera.hoodFloating"))}
+          {pct("dripping", t("dial.camera.hoodDripping"))}
 
-          {/* Hood-wide: the float suit (always worn innermost), TITTA NER,
+          {/* Hood-wide: the float suit (always worn innermost), ROTERA HUVUD,
               FLYTGRÄNS and how the clothes change the bather's buoyancy. */}
           <div className="mt-2 mb-1 text-center text-[9px] font-light tracking-[0.28em] ui-ink-faint">
             {t("dial.camera.hoodSuit")}
@@ -370,10 +379,10 @@ export function HoodPanel({
             onInc={() => setShared({ suitLeg: Math.min(1, +(shared.suitLeg + 0.1).toFixed(2)) })}
           />
           <SettingRow
-            label={t("dial.camera.hoodLookDown")}
-            value={onOff(shared.lookDown)}
-            onDec={() => setShared({ lookDown: false })}
-            onInc={() => setShared({ lookDown: true })}
+            label={t("dial.camera.hoodRotateHead")}
+            value={onOff(shared.rotateHead)}
+            onDec={() => setShared({ rotateHead: false })}
+            onInc={() => setShared({ rotateHead: true })}
           />
           <SettingRow
             label={t("dial.camera.hoodFloatThreshold")}

@@ -32,6 +32,14 @@ export function hoodLayerFromSettings(s: Readonly<HoodSettings>): HoodLayer {
     cuff: s.hoodCuffOn,
     cuffHeight: s.hoodCuffHeight,
     cuffSize: s.hoodCuffSize,
+    separate: s.hoodSeparate,
+    waterTint: s.hoodWaterTint,
+    dripping: s.hoodDripping,
+    pullBack: s.hoodPullBack,
+    neckBack: s.hoodNeckBack,
+    lengthOn: s.hoodLengthOn,
+    length: s.hoodLength,
+    puff3d: s.hoodPuff3d,
     zipperOpen: s.hoodZipperOpen,
     floating: s.hoodFloating,
     hoodTop: s.hoodTopPart,
@@ -53,12 +61,12 @@ export function hoodLayerFromSettings(s: Readonly<HoodSettings>): HoodLayer {
 }
 
 /** Hood-wide values every layer's HoodConfig shares this frame. */
-export type HoodShared = { lookDown: number; floatThreshold: number; suitColor: string };
+export type HoodShared = { rotateHead: number; floatThreshold: number; suitColor: string };
 
 /** What one Hood mesh needs this frame to draw layer `l`. */
 export function hoodConfigFromLayer(l: HoodLayer, f: FrameContext, g: HoodShared): HoodConfig {
   return {
-    lookDown: g.lookDown,
+    rotateHead: g.rotateHead,
     floatThreshold: g.floatThreshold,
     suitColor: g.suitColor,
     height: l.height,
@@ -83,6 +91,14 @@ export function hoodConfigFromLayer(l: HoodLayer, f: FrameContext, g: HoodShared
     cuff: l.cuff,
     cuffHeight: l.cuffHeight,
     cuffSize: l.cuffSize,
+    separate: l.separate,
+    waterTint: l.waterTint,
+    dripping: l.dripping,
+    pullBack: l.pullBack,
+    neckBack: l.neckBack,
+    lengthOn: l.lengthOn,
+    length: l.length,
+    puff3d: l.puff3d,
     zipperOpen: l.zipperOpen,
     floating: l.floating,
     hoodTop: l.hoodTop,
@@ -129,14 +145,14 @@ export class HoodRuntime implements AppRuntime<HoodSettings> {
 
   frame(f: FrameContext, s: Readonly<HoodSettings>) {
     const layers: HoodLayer[] = s.hoodOn ? [hoodLayerFromSettings(s), ...s.hoodExtraLayers] : [];
-    // TITTA NER: how far the head looks down (the body stays level).
-    let lookDown = 0;
-    if (s.hoodOn && s.hoodLookDown) {
+    // ROTERA HUVUD: how far the head looks down (the body stays level).
+    let rotateHead = 0;
+    if (s.hoodOn && s.hoodRotateHead) {
       this.fwd.set(0, 0, -1).applyQuaternion(f.camera.quaternion);
-      lookDown = Math.min(1.3, Math.max(0, -Math.asin(THREE.MathUtils.clamp(this.fwd.y, -1, 1))));
+      rotateHead = Math.min(1.3, Math.max(0, -Math.asin(THREE.MathUtils.clamp(this.fwd.y, -1, 1))));
     }
     const shared: HoodShared = {
-      lookDown,
+      rotateHead,
       floatThreshold: s.hoodFloatThreshold,
       suitColor: s.hoodSuitColor,
     };
@@ -149,7 +165,7 @@ export class HoodRuntime implements AppRuntime<HoodSettings> {
       this.suit.update(f.camera, {
         color: s.hoodSuitColor,
         leg: s.hoodSuitLeg,
-        lookDown,
+        rotateHead,
         skyColor: f.light.skyColor,
         horizonColor: f.light.horizonColor,
         sunColor: f.light.sunColor,

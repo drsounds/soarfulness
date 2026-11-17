@@ -90,6 +90,27 @@ export type HoodLayer = {
   zipperOpen: number;
   /** FLYTANDE: how much the cloth below FLYTGRÄNS floats and bends in the waves. */
   floating: number;
+  /** EGEN LÄNGD: the layer ends at LÄNGD (with the MUDD at its hem) instead of running on down. */
+  /** 0..1: VATTENFÄRG, how blue the water inside the cloth looks (0 = neutral grey). */
+  waterTint: number;
+  /** 0..1: DROPPAR, water dripping from the wet cloth's hem (needs the cloth to have been in water). */
+  dripping: number;
+  /** 0..1: HUVA BAKÅT, the top hood pulled back off the head. */
+  pullBack: number;
+  /** 0..1: HALS NERÅT, the funnel neck (and the lower part of the hood) pulled down. */
+  neckBack: number;
+  /**
+   * HUVA SEPARAT FRÅN HALS: with MUN OCH HALS the neck is its own collar
+   * wrapped around you (like a sweater or winter coat, optionally a funnel
+   * with KRAGE UPPÅT) and the hood is mounted separately, pulled back and
+   * over. Off = the old single piece.
+   */
+  separate: boolean;
+  lengthOn: boolean;
+  /** 0..1: LÄNGD, from a short collar (0) to an ankle-long dress (1); past the float suit it wraps around you in water. */
+  length: number;
+  /** 3D-PUFFAR: the padding has real depth: puffs bulge over the opening's edge and over each other. */
+  puff3d: boolean;
   /** SKUGGA PÅ VYN: the old soft shadow on the view inside the opening (off by default). */
   viewShadow: boolean;
   /** BLIXTLÅS FÄST I TYGET: zipper teeth follow the cloth (off = fixed to the view, the old look). */
@@ -100,6 +121,8 @@ export type HoodLayer = {
 
 export const HOOD_MAX_LAYERS = 4;
 // ÖPPNINGSBREDD's EXTREME max (12 screen widths); the everyday max is 3.
+/** PUFFHÖJD goes past 100% (up to this) for extra-fat puffs. */
+export const HOOD_PUFF_HEIGHT_MAX = 2.5;
 export const HOOD_OPENING_WIDTH_MAX = 12;
 
 export const HOOD_LAYER_DEFAULTS: HoodLayer = {
@@ -140,6 +163,14 @@ export const HOOD_LAYER_DEFAULTS: HoodLayer = {
   collarUp: false,
   zipperOpen: 0,
   floating: 0,
+  waterTint: 0,
+  dripping: 0,
+  pullBack: 0,
+  neckBack: 0,
+  separate: false,
+  lengthOn: false,
+  length: 0.6,
+  puff3d: false,
   viewShadow: false,
   zipperFixed: true,
   zipperPullOut: true,
@@ -167,6 +198,11 @@ const NUMBER_KEYS = [
   "cuffMetallic",
   "zipperOpen",
   "floating",
+  "length",
+  "waterTint",
+  "dripping",
+  "pullBack",
+  "neckBack",
 ] as const;
 const BOOL_KEYS = [
   "on",
@@ -183,6 +219,9 @@ const BOOL_KEYS = [
   "viewShadow",
   "zipperFixed",
   "zipperPullOut",
+  "lengthOn",
+  "puff3d",
+  "separate",
 ] as const;
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
@@ -193,7 +232,8 @@ export function sanitizeHoodLayer(raw: unknown): HoodLayer {
   const out: HoodLayer = { ...HOOD_LAYER_DEFAULTS };
   for (const k of NUMBER_KEYS) {
     const v = src[k];
-    if (typeof v === "number" && Number.isFinite(v)) out[k] = clamp01(v);
+    if (typeof v === "number" && Number.isFinite(v))
+      out[k] = k === "puffHeight" ? Math.max(0, Math.min(HOOD_PUFF_HEIGHT_MAX, v)) : clamp01(v);
   }
   for (const k of BOOL_KEYS) {
     if (typeof src[k] === "boolean") out[k] = src[k] as boolean;
