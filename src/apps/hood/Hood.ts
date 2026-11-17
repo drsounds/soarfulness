@@ -579,15 +579,21 @@ const FRAG = /* glsl */ `
       // Only where there is cloth hanging at this column's hem.
       clothHere = step(0.3, hoodField(vec2(cx, edgeD + 0.04)).x);
     }
-    float ph = fract(uTime / (2.2 + 2.0 * h2) + h1);
-    float fall = max(ph - 0.25, 0.0);
-    float yd = edgeD - 0.01 - fall * fall * 2.2;
-    float grow = 0.55 + 0.45 * smoothstep(0.0, 0.25, ph);
-    vec2 dd = vec2((pp.x - cx) / (0.0085 * grow), (pp.y - yd) / (0.02 * grow));
+    // A bead hangs and slowly grows, then lets go and falls like a real
+    // drop: gravity (about 0.5 s across the view), stretching as it speeds up.
+    float T = 1.6 + 2.4 * h2;
+    float ph = fract(uTime / T + h1);
+    float gEnd = clamp(1.0 - 0.55 / T, 0.5, 0.9);
+    float tf = max(ph - gEnd, 0.0) * T;
+    float fallT = clamp((ph - gEnd) / (1.0 - gEnd), 0.0, 1.0);
+    float yd = edgeD - 0.006 - 4.8 * tf * tf;
+    float grow = 0.5 + 0.5 * smoothstep(0.0, gEnd, ph);
+    float stretch = 1.0 + 3.5 * min(tf, 0.5);
+    vec2 dd = vec2((pp.x - cx) / (0.0034 * grow), (pp.y - yd) / (0.0075 * grow * stretch));
     // A teardrop: pointed on top, round below.
     dd.y *= dd.y > 0.0 ? 0.7 : 1.0;
     float body = 1.0 - smoothstep(0.7, 1.0, length(dd));
-    float life = step(h1, uDrip * 1.15 + 0.1) * (1.0 - smoothstep(0.82, 1.0, ph)) * clothHere;
+    float life = step(h1, uDrip * 1.15 + 0.1) * (1.0 - smoothstep(0.85, 1.0, fallT)) * clothHere;
     float dA = body * life * clamp(uDrip * 2.0, 0.0, 1.0);
     float spec = smoothstep(0.1, 0.0, length(dd - vec2(-0.3, 0.35)));
     vec3 dc = mix(uHorizon, uSky, 0.5) * 0.8 + uSunCol * 0.25;
