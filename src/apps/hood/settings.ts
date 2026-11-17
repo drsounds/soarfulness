@@ -42,12 +42,16 @@ export type HoodSettings = {
   hoodCuffOn: boolean;
   hoodCuffHeight: number;
   hoodCuffSize: number;
+  hoodWaterTint: number;
+  hoodDripping: number;
+  hoodPullBack: number;
+  hoodNeckBack: number;
   hoodLengthOn: boolean;
   hoodLength: number;
   hoodPuff3d: boolean;
   hoodLayer1On: boolean;
   hoodFloatThreshold: number;
-  hoodLookDown: boolean;
+  hoodRotateHead: boolean;
   hoodSuitColor: string;
   hoodSuitLeg: number;
   hoodClothesBuoyancy: boolean;
@@ -97,12 +101,16 @@ export const HOOD_DEFAULTS: HoodSettings = {
   hoodCuffOn: false,
   hoodCuffHeight: 0.3,
   hoodCuffSize: 0.5,
+  hoodWaterTint: 0,
+  hoodDripping: 0,
+  hoodPullBack: 0,
+  hoodNeckBack: 0,
   hoodLengthOn: false,
   hoodLength: 0.6,
   hoodPuff3d: false,
   hoodLayer1On: true,
   hoodFloatThreshold: 0.35,
-  hoodLookDown: false,
+  hoodRotateHead: false,
   hoodSuitColor: "#e0602a",
   hoodSuitLeg: 0,
   hoodClothesBuoyancy: true,

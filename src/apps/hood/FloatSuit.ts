@@ -2,7 +2,7 @@ import * as THREE from "three";
 
 // FLYTDRÄKT: the padded float suit the bather always wears innermost under
 // the HUVA layers. It is only ever drawn as a garment: a thick, padded
-// front panel seen from above when TITTA NER tilts the head down, with
+// front panel seen from above when ROTERA HUVUD tilts the head down, with
 // nothing (no body) drawn around it or through its openings.
 //
 // Like the hood it is one full-screen clip-space quad, drawn just before
@@ -13,8 +13,8 @@ export type FloatSuitConfig = {
   color: string;
   /** -1 (leotard cut, high at the sides) .. 0 .. 1 (long trunks). */
   leg: number;
-  /** Radians the head looks down (TITTA NER); the suit only shows when > 0. */
-  lookDown: number;
+  /** Radians the head looks down (ROTERA HUVUD); the suit only shows when > 0. */
+  rotateHead: number;
   skyColor: THREE.Color;
   horizonColor: THREE.Color;
   sunColor: THREE.Color;
@@ -35,7 +35,7 @@ const FRAG = /* glsl */ `
   varying vec2 vNdc;
   uniform float uAspect;
   uniform float uTanHalfFov;
-  uniform float uLookDown;
+  uniform float uRotateHead;
   uniform float uLeg;
   uniform vec3 uColor;
   uniform vec3 uSky;
@@ -48,8 +48,8 @@ const FRAG = /* glsl */ `
     vec2 p = vec2(vNdc.x * uAspect, vNdc.y);
     vec3 d = normalize(vec3(p.x * uTanHalfFov, p.y * uTanHalfFov, -1.0));
     // The view ray in the body's level frame (the head is tilted down).
-    float c = cos(uLookDown);
-    float s = sin(uLookDown);
+    float c = cos(uRotateHead);
+    float s = sin(uRotateHead);
     vec3 db = vec3(d.x, d.y * c + d.z * s, -d.y * s + d.z * c);
     // The suit's front: a plane in front of and below the eyes, leaning
     // back toward them a little.
@@ -98,7 +98,7 @@ export class FloatSuit {
   private readonly u = {
     uAspect: { value: 1 },
     uTanHalfFov: { value: 1 },
-    uLookDown: { value: 0 },
+    uRotateHead: { value: 0 },
     uLeg: { value: 0 },
     uColor: { value: new THREE.Color() },
     uSky: { value: new THREE.Color() },
@@ -129,7 +129,7 @@ export class FloatSuit {
   }
 
   update(camera: THREE.PerspectiveCamera, cfg: FloatSuitConfig): void {
-    if (cfg.lookDown <= 0.02) {
+    if (cfg.rotateHead <= 0.02) {
       this.mesh.visible = false;
       return;
     }
@@ -137,7 +137,7 @@ export class FloatSuit {
     this.mesh.visible = true;
     u.uAspect.value = camera.aspect;
     u.uTanHalfFov.value = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
-    u.uLookDown.value = cfg.lookDown;
+    u.uRotateHead.value = cfg.rotateHead;
     u.uLeg.value = THREE.MathUtils.clamp(cfg.leg, -1, 1);
     if (cfg.color !== this.colorHex) {
       this.colorHex = cfg.color;

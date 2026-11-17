@@ -91,6 +91,14 @@ export type HoodLayer = {
   /** FLYTANDE: how much the cloth below FLYTGRÄNS floats and bends in the waves. */
   floating: number;
   /** EGEN LÄNGD: the layer ends at LÄNGD (with the MUDD at its hem) instead of running on down. */
+  /** 0..1: VATTENFÄRG, how blue the water inside the cloth looks (0 = neutral grey). */
+  waterTint: number;
+  /** 0..1: DROPPAR, water dripping from the wet cloth's hem (needs the cloth to have been in water). */
+  dripping: number;
+  /** 0..1: HUVA BAKÅT, the top hood pulled back off the head. */
+  pullBack: number;
+  /** 0..1: HALS NERÅT, the funnel neck (and the lower part of the hood) pulled down. */
+  neckBack: number;
   lengthOn: boolean;
   /** 0..1: LÄNGD, from a short collar (0) to an ankle-long dress (1); past the float suit it wraps around you in water. */
   length: number;
@@ -148,6 +156,10 @@ export const HOOD_LAYER_DEFAULTS: HoodLayer = {
   collarUp: false,
   zipperOpen: 0,
   floating: 0,
+  waterTint: 0,
+  dripping: 0,
+  pullBack: 0,
+  neckBack: 0,
   lengthOn: false,
   length: 0.6,
   puff3d: false,
@@ -179,6 +191,10 @@ const NUMBER_KEYS = [
   "zipperOpen",
   "floating",
   "length",
+  "waterTint",
+  "dripping",
+  "pullBack",
+  "neckBack",
 ] as const;
 const BOOL_KEYS = [
   "on",
