@@ -47,11 +47,7 @@ import { UNDERWATER_FOG_DEFAULTS } from "@/apps/underwater-fog/settings";
 import { OPEN_DRIFT_DEFAULTS } from "@/apps/open-drift/settings";
 import { WIND_DEFAULTS, type WindSettings } from "@/apps/wind/settings";
 import { DECORATIONS_DEFAULTS } from "@/apps/decorations/settings";
-import {
-  altitudeMix,
-  sanitizeWinds,
-  type WindSource,
-} from "@/apps/wind/wind";
+import { altitudeMix, sanitizeWinds, type WindSource } from "@/apps/wind/wind";
 import windApp from "@/apps/wind/app";
 import { WindHudPanel, type WindControls } from "@/apps/wind/WindPanel";
 import underwaterFogApp from "@/apps/underwater-fog/app";
@@ -2072,7 +2068,63 @@ export function Aquafulness() {
   const [gogglesIntensity, setGogglesIntensity] = useState(initial.gogglesIntensity);
   const [gogglesFpsCap, setGogglesFpsCap] = useState(initial.gogglesFpsCap);
   const hood = useAppSettings(HOOD_DEFAULTS, initial, { hoodExtraLayers: sanitizeHoodLayers });
-  const { hoodOn, hoodHeight, hoodOpening, hoodColor, hoodMetallic, hoodMotion, hoodLowerOn, hoodLowerHeight, hoodZipperOn, hoodWaterOn, hoodWaterLevel, hoodOpeningWidth, hoodDrop, hoodWeight, hoodWrinkles, hoodDarkness, hoodRoundness, hoodStyle, hoodPuffSize, hoodPuffHeight, hoodCuffOn, hoodCuffHeight, hoodCuffSize, hoodSeparate, hoodWaterTint, hoodDripping, hoodPullBack, hoodNeckBack, hoodLengthOn, hoodLength, hoodPuff3d, hoodLayer1On, hoodFloatThreshold, hoodRotateHead, hoodSuitColor, hoodSuitLeg, hoodClothesBuoyancy, hoodZipperOpen, hoodFloating, hoodTopPart, hoodCollarUp, hoodViewShadow, hoodCuffCustom, hoodCuffColor, hoodCuffMetallic, hoodCuffMaterial, hoodHanging, hoodWaterCalm, hoodCuffTop, hoodZipperFixed, hoodZipperPullOut, hoodReflectLight, hoodPuffThickness, hoodPuffInflate, hoodExtraLayers } = hood.values;
+  const {
+    hoodOn,
+    hoodHeight,
+    hoodOpening,
+    hoodColor,
+    hoodMetallic,
+    hoodMotion,
+    hoodLowerOn,
+    hoodLowerHeight,
+    hoodZipperOn,
+    hoodWaterOn,
+    hoodWaterLevel,
+    hoodOpeningWidth,
+    hoodDrop,
+    hoodWeight,
+    hoodWrinkles,
+    hoodDarkness,
+    hoodRoundness,
+    hoodStyle,
+    hoodPuffSize,
+    hoodPuffHeight,
+    hoodCuffOn,
+    hoodCuffHeight,
+    hoodCuffSize,
+    hoodSeparate,
+    hoodWaterTint,
+    hoodDripping,
+    hoodPullBack,
+    hoodNeckBack,
+    hoodLengthOn,
+    hoodLength,
+    hoodPuff3d,
+    hoodLayer1On,
+    hoodFloatThreshold,
+    hoodRotateHead,
+    hoodSuitColor,
+    hoodSuitLeg,
+    hoodClothesBuoyancy,
+    hoodZipperOpen,
+    hoodFloating,
+    hoodTopPart,
+    hoodCollarUp,
+    hoodViewShadow,
+    hoodCuffCustom,
+    hoodCuffColor,
+    hoodCuffMetallic,
+    hoodCuffMaterial,
+    hoodHanging,
+    hoodWaterCalm,
+    hoodCuffTop,
+    hoodZipperFixed,
+    hoodZipperPullOut,
+    hoodReflectLight,
+    hoodPuffThickness,
+    hoodPuffInflate,
+    hoodExtraLayers,
+  } = hood.values;
   const {
     hoodOn: setHoodOn,
     hoodHeight: setHoodHeight,
@@ -2251,7 +2303,14 @@ export function Aquafulness() {
   const [windAltitudeAudioOn, setWindAltitudeAudioOn] = useState(initial.windAltitudeAudioOn);
   const [windPanelOpen, setWindPanelOpen] = useState(false);
   const openDrift = useAppSettings(OPEN_DRIFT_DEFAULTS, initial);
-  const { openDriftOn, openDriftCurve, openDriftRadius, openDriftCycleSpeed, openDriftMagnitude, openDriftDirection } = openDrift.values;
+  const {
+    openDriftOn,
+    openDriftCurve,
+    openDriftRadius,
+    openDriftCycleSpeed,
+    openDriftMagnitude,
+    openDriftDirection,
+  } = openDrift.values;
   const {
     openDriftOn: setOpenDriftOn,
     openDriftCurve: setOpenDriftCurve,
@@ -2388,7 +2447,18 @@ export function Aquafulness() {
   } = snow.setters;
   const { reset: resetSnow, patch: patchSnow } = snow;
   const rain = useAppSettings(RAIN_DEFAULTS, initial);
-  const { rainOn, rainAmount, rainIntensity, rainDropLength, rainDropSize, rainOpacity, rainColor, rainSplashesOn, rainSoundOn, rainVolume } = rain.values;
+  const {
+    rainOn,
+    rainAmount,
+    rainIntensity,
+    rainDropLength,
+    rainDropSize,
+    rainOpacity,
+    rainColor,
+    rainSplashesOn,
+    rainSoundOn,
+    rainVolume,
+  } = rain.values;
   const {
     rainOn: setRainOn,
     rainAmount: setRainAmount,
@@ -2403,7 +2473,16 @@ export function Aquafulness() {
   } = rain.setters;
   const { reset: resetRain, patch: patchRain } = rain;
   const fireworks = useAppSettings(FIREWORKS_DEFAULTS, initial);
-  const { fireworksOn, fireworksIntensity, fireworksRate, fireworksDistance, fireworksLightsOn, fireworksLightStrength, fireworksSoundOn, fireworksVolume } = fireworks.values;
+  const {
+    fireworksOn,
+    fireworksIntensity,
+    fireworksRate,
+    fireworksDistance,
+    fireworksLightsOn,
+    fireworksLightStrength,
+    fireworksSoundOn,
+    fireworksVolume,
+  } = fireworks.values;
   const {
     fireworksOn: setFireworksOn,
     fireworksIntensity: setFireworksIntensity,
@@ -2416,7 +2495,8 @@ export function Aquafulness() {
   } = fireworks.setters;
   const { reset: resetFireworks, patch: patchFireworks } = fireworks;
   const confetti = useAppSettings(CONFETTI_DEFAULTS, initial);
-  const { confettiOn, confettiAmount, confettiIntensity, confettiPalette, confettiFlutter } = confetti.values;
+  const { confettiOn, confettiAmount, confettiIntensity, confettiPalette, confettiFlutter } =
+    confetti.values;
   const {
     confettiOn: setConfettiOn,
     confettiAmount: setConfettiAmount,
@@ -2426,7 +2506,19 @@ export function Aquafulness() {
   } = confetti.setters;
   const { reset: resetConfetti, patch: patchConfetti } = confetti;
   const neon = useAppSettings(NEON_DEFAULTS, initial, { neonEdgeFilter: sanitizeEdgeFilter });
-  const { neonOn, neonMode, neonPrimary, neonSecondary, neonTint, neonTintAmount, neonStrength, neonWidth, neonFrequency, neonEdgeFilter, neonAccentColor } = neon.values;
+  const {
+    neonOn,
+    neonMode,
+    neonPrimary,
+    neonSecondary,
+    neonTint,
+    neonTintAmount,
+    neonStrength,
+    neonWidth,
+    neonFrequency,
+    neonEdgeFilter,
+    neonAccentColor,
+  } = neon.values;
   const {
     neonOn: setNeonOn,
     neonMode: setNeonMode,
@@ -2441,39 +2533,64 @@ export function Aquafulness() {
     neonAccentColor: setNeonAccentColor,
   } = neon.setters;
   const { reset: resetNeon, patch: patchNeon } = neon;
-  const [auroraOn, setAuroraOn] = useState(initial.auroraOn);
-  const [auroraIntensity, setAuroraIntensity] = useState(initial.auroraIntensity);
-  const [auroraAmount, setAuroraAmount] = useState(initial.auroraAmount);
-  const [auroraSpeed, setAuroraSpeed] = useState(initial.auroraSpeed);
-  const [auroraHeight, setAuroraHeight] = useState(initial.auroraHeight);
-  const [auroraPalette, setAuroraPalette] = useState(initial.auroraPalette);
-  const [auroraColorMain, setAuroraColorMain] = useState(initial.auroraColorMain);
-  const [auroraColorTop, setAuroraColorTop] = useState(initial.auroraColorTop);
-  const [auroraDaylightOn, setAuroraDaylightOn] = useState(initial.auroraDaylightOn);
-  const [underwaterFogOn, setUnderwaterFogOn] = useState(initial.underwaterFogOn);
-  const [underwaterFogColor, setUnderwaterFogColor] = useState(initial.underwaterFogColor);
-  const [underwaterFogOpacity, setUnderwaterFogOpacity] = useState(initial.underwaterFogOpacity);
-  const [underwaterFogWaterColorAuto, setUnderwaterFogWaterColorAuto] = useState(
-    initial.underwaterFogWaterColorAuto,
-  );
-  const [underwaterFogWaterColor, setUnderwaterFogWaterColor] = useState(
-    initial.underwaterFogWaterColor,
-  );
-  const [underwaterFogWaterOpacity, setUnderwaterFogWaterOpacity] = useState(
-    initial.underwaterFogWaterOpacity,
-  );
-  const [underwaterFogIntensity, setUnderwaterFogIntensity] = useState(
-    initial.underwaterFogIntensity,
-  );
-  const [underwaterFogSpread, setUnderwaterFogSpread] = useState(initial.underwaterFogSpread);
-  const [underwaterFogCurve, setUnderwaterFogCurve] = useState(initial.underwaterFogCurve);
-  const [underwaterFogFeather, setUnderwaterFogFeather] = useState(initial.underwaterFogFeather);
-  const [underwaterFogDistance, setUnderwaterFogDistance] = useState(initial.underwaterFogDistance);
-  const [underwaterFogOffset, setUnderwaterFogOffset] = useState(initial.underwaterFogOffset);
-  const [underwaterFogSubmergedOnly, setUnderwaterFogSubmergedOnly] = useState(
-    initial.underwaterFogSubmergedOnly,
-  );
-  const [underwaterFogBlend, setUnderwaterFogBlend] = useState(initial.underwaterFogBlend);
+  const aurora = useAppSettings(AURORA_DEFAULTS, initial);
+  const {
+    auroraOn,
+    auroraIntensity,
+    auroraAmount,
+    auroraSpeed,
+    auroraHeight,
+    auroraPalette,
+    auroraColorMain,
+    auroraColorTop,
+    auroraDaylightOn,
+  } = aurora.values;
+  const {
+    auroraOn: setAuroraOn,
+    auroraIntensity: setAuroraIntensity,
+    auroraAmount: setAuroraAmount,
+    auroraSpeed: setAuroraSpeed,
+    auroraHeight: setAuroraHeight,
+    auroraPalette: setAuroraPalette,
+    auroraColorMain: setAuroraColorMain,
+    auroraColorTop: setAuroraColorTop,
+    auroraDaylightOn: setAuroraDaylightOn,
+  } = aurora.setters;
+  const { reset: resetAurora, patch: patchAurora } = aurora;
+  const underwaterFog = useAppSettings(UNDERWATER_FOG_DEFAULTS, initial);
+  const {
+    underwaterFogOn,
+    underwaterFogColor,
+    underwaterFogOpacity,
+    underwaterFogWaterColorAuto,
+    underwaterFogWaterColor,
+    underwaterFogWaterOpacity,
+    underwaterFogIntensity,
+    underwaterFogSpread,
+    underwaterFogCurve,
+    underwaterFogFeather,
+    underwaterFogDistance,
+    underwaterFogOffset,
+    underwaterFogSubmergedOnly,
+    underwaterFogBlend,
+  } = underwaterFog.values;
+  const {
+    underwaterFogOn: setUnderwaterFogOn,
+    underwaterFogColor: setUnderwaterFogColor,
+    underwaterFogOpacity: setUnderwaterFogOpacity,
+    underwaterFogWaterColorAuto: setUnderwaterFogWaterColorAuto,
+    underwaterFogWaterColor: setUnderwaterFogWaterColor,
+    underwaterFogWaterOpacity: setUnderwaterFogWaterOpacity,
+    underwaterFogIntensity: setUnderwaterFogIntensity,
+    underwaterFogSpread: setUnderwaterFogSpread,
+    underwaterFogCurve: setUnderwaterFogCurve,
+    underwaterFogFeather: setUnderwaterFogFeather,
+    underwaterFogDistance: setUnderwaterFogDistance,
+    underwaterFogOffset: setUnderwaterFogOffset,
+    underwaterFogSubmergedOnly: setUnderwaterFogSubmergedOnly,
+    underwaterFogBlend: setUnderwaterFogBlend,
+  } = underwaterFog.setters;
+  const { reset: resetUnderwaterfog, patch: patchUnderwaterfog } = underwaterFog;
   const [cameraMode, setCameraMode] = useState<CameraMode>(initial.cameraMode);
   const [noclipSpeed, setNoclipSpeed] = useState(initial.noclipSpeed);
   const [noclipFallRiseSpeed, setNoclipFallRiseSpeed] = useState(initial.noclipFallRiseSpeed);
@@ -2638,6 +2755,7 @@ export function Aquafulness() {
     snowIntensity,
     setSnowAmount,
     setSnowIntensity,
+    setAuroraIntensity,
     setRainAmount,
     setRainIntensity,
     setOpenDriftMagnitude,
@@ -3070,36 +3188,10 @@ export function Aquafulness() {
   const hoodSettingsRef = useRef(hood.values);
   hoodSettingsRef.current = hood.values;
   // NORRSKEN (apps/aurora): its settings slice, read by the render loop.
-  const auroraSettingsRef = useRef<AuroraSettings>({
-    auroraOn,
-    auroraIntensity,
-    auroraAmount,
-    auroraSpeed,
-    auroraHeight,
-    auroraPalette,
-    auroraColorMain,
-    auroraColorTop,
-    auroraDaylightOn,
-  });
+  const auroraSettingsRef = useRef<AuroraSettings>(aurora.values);
   // UNDERVATTENDIS settings, read by the render loop every frame.
-  const underwaterFogSettings = {
-    underwaterFogOn,
-    underwaterFogColor,
-    underwaterFogOpacity,
-    underwaterFogWaterColorAuto,
-    underwaterFogWaterColor,
-    underwaterFogWaterOpacity,
-    underwaterFogIntensity,
-    underwaterFogSpread,
-    underwaterFogCurve,
-    underwaterFogFeather,
-    underwaterFogDistance,
-    underwaterFogOffset,
-    underwaterFogSubmergedOnly,
-    underwaterFogBlend,
-  };
-  const underwaterFogSettingsRef = useRef(underwaterFogSettings);
-  underwaterFogSettingsRef.current = underwaterFogSettings;
+  const underwaterFogSettingsRef = useRef(underwaterFog.values);
+  underwaterFogSettingsRef.current = underwaterFog.values;
   const underwaterFogElRef = useRef<HTMLDivElement | null>(null);
 
   // A full snapshot of every settings-dialog field, in the exact Persisted
@@ -4851,28 +4943,8 @@ export function Aquafulness() {
     if (modelRef.current) applyNeonAccent(modelRef.current, neonAccentColor);
   }, [neonAccentColor]);
   useEffect(() => {
-    auroraSettingsRef.current = {
-      auroraOn,
-      auroraIntensity,
-      auroraAmount,
-      auroraSpeed,
-      auroraHeight,
-      auroraPalette,
-      auroraColorMain,
-      auroraColorTop,
-      auroraDaylightOn,
-    };
-  }, [
-    auroraOn,
-    auroraIntensity,
-    auroraAmount,
-    auroraSpeed,
-    auroraHeight,
-    auroraPalette,
-    auroraColorMain,
-    auroraColorTop,
-    auroraDaylightOn,
-  ]);
+    auroraSettingsRef.current = aurora.values;
+  }, [aurora.values]);
   useEffect(() => {
     sphereStrengthRef.current = sphereStrength;
   }, [sphereStrength]);
@@ -5485,29 +5557,8 @@ export function Aquafulness() {
     resetFireworks();
     resetConfetti();
     resetNeon();
-    setAuroraOn(DEFAULTS.auroraOn);
-    setAuroraIntensity(DEFAULTS.auroraIntensity);
-    setAuroraAmount(DEFAULTS.auroraAmount);
-    setAuroraSpeed(DEFAULTS.auroraSpeed);
-    setAuroraHeight(DEFAULTS.auroraHeight);
-    setAuroraPalette(DEFAULTS.auroraPalette);
-    setAuroraColorMain(DEFAULTS.auroraColorMain);
-    setAuroraColorTop(DEFAULTS.auroraColorTop);
-    setAuroraDaylightOn(DEFAULTS.auroraDaylightOn);
-    setUnderwaterFogOn(DEFAULTS.underwaterFogOn);
-    setUnderwaterFogColor(DEFAULTS.underwaterFogColor);
-    setUnderwaterFogOpacity(DEFAULTS.underwaterFogOpacity);
-    setUnderwaterFogWaterColorAuto(DEFAULTS.underwaterFogWaterColorAuto);
-    setUnderwaterFogWaterColor(DEFAULTS.underwaterFogWaterColor);
-    setUnderwaterFogWaterOpacity(DEFAULTS.underwaterFogWaterOpacity);
-    setUnderwaterFogIntensity(DEFAULTS.underwaterFogIntensity);
-    setUnderwaterFogSpread(DEFAULTS.underwaterFogSpread);
-    setUnderwaterFogCurve(DEFAULTS.underwaterFogCurve);
-    setUnderwaterFogFeather(DEFAULTS.underwaterFogFeather);
-    setUnderwaterFogDistance(DEFAULTS.underwaterFogDistance);
-    setUnderwaterFogOffset(DEFAULTS.underwaterFogOffset);
-    setUnderwaterFogSubmergedOnly(DEFAULTS.underwaterFogSubmergedOnly);
-    setUnderwaterFogBlend(DEFAULTS.underwaterFogBlend);
+    resetAurora();
+    resetUnderwaterfog();
     setCameraMode(DEFAULTS.cameraMode);
     setNoclipSpeed(DEFAULTS.noclipSpeed);
     setNoclipFallRiseSpeed(DEFAULTS.noclipFallRiseSpeed);
@@ -5792,37 +5843,8 @@ export function Aquafulness() {
     patchFireworks(patch);
     patchConfetti(patch);
     patchNeon(patch);
-    if (patch.auroraOn !== undefined) setAuroraOn(patch.auroraOn);
-    if (patch.auroraIntensity !== undefined) setAuroraIntensity(patch.auroraIntensity);
-    if (patch.auroraAmount !== undefined) setAuroraAmount(patch.auroraAmount);
-    if (patch.auroraSpeed !== undefined) setAuroraSpeed(patch.auroraSpeed);
-    if (patch.auroraHeight !== undefined) setAuroraHeight(patch.auroraHeight);
-    if (patch.auroraPalette !== undefined) setAuroraPalette(patch.auroraPalette);
-    if (patch.auroraColorMain !== undefined) setAuroraColorMain(patch.auroraColorMain);
-    if (patch.auroraColorTop !== undefined) setAuroraColorTop(patch.auroraColorTop);
-    if (patch.auroraDaylightOn !== undefined) setAuroraDaylightOn(patch.auroraDaylightOn);
-    if (patch.underwaterFogOn !== undefined) setUnderwaterFogOn(patch.underwaterFogOn);
-    if (patch.underwaterFogColor !== undefined) setUnderwaterFogColor(patch.underwaterFogColor);
-    if (patch.underwaterFogOpacity !== undefined)
-      setUnderwaterFogOpacity(patch.underwaterFogOpacity);
-    if (patch.underwaterFogWaterColorAuto !== undefined)
-      setUnderwaterFogWaterColorAuto(patch.underwaterFogWaterColorAuto);
-    if (patch.underwaterFogWaterColor !== undefined)
-      setUnderwaterFogWaterColor(patch.underwaterFogWaterColor);
-    if (patch.underwaterFogWaterOpacity !== undefined)
-      setUnderwaterFogWaterOpacity(patch.underwaterFogWaterOpacity);
-    if (patch.underwaterFogIntensity !== undefined)
-      setUnderwaterFogIntensity(patch.underwaterFogIntensity);
-    if (patch.underwaterFogSpread !== undefined) setUnderwaterFogSpread(patch.underwaterFogSpread);
-    if (patch.underwaterFogCurve !== undefined) setUnderwaterFogCurve(patch.underwaterFogCurve);
-    if (patch.underwaterFogFeather !== undefined)
-      setUnderwaterFogFeather(patch.underwaterFogFeather);
-    if (patch.underwaterFogDistance !== undefined)
-      setUnderwaterFogDistance(patch.underwaterFogDistance);
-    if (patch.underwaterFogOffset !== undefined) setUnderwaterFogOffset(patch.underwaterFogOffset);
-    if (patch.underwaterFogSubmergedOnly !== undefined)
-      setUnderwaterFogSubmergedOnly(patch.underwaterFogSubmergedOnly);
-    if (patch.underwaterFogBlend !== undefined) setUnderwaterFogBlend(patch.underwaterFogBlend);
+    patchAurora(patch);
+    patchUnderwaterfog(patch);
     if (patch.cameraMode !== undefined) setCameraMode(patch.cameraMode);
     if (patch.noclipSpeed !== undefined) setNoclipSpeed(patch.noclipSpeed);
     if (patch.noclipFallRiseSpeed !== undefined) setNoclipFallRiseSpeed(patch.noclipFallRiseSpeed);
