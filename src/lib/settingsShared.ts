@@ -1,12 +1,12 @@
 import type { SkyLook } from "@/lib/skyLook";
 import vanernBackdrop from "@/assets/vanern-backdrop.png.asset.json";
-import sandTextureAsset from "@/assets/sand_cc0_512.jpg.asset.json";
 import waterAsset from "@/assets/water.mp3.asset.json";
 import type { AuroraSettings } from "@/apps/aurora/settings";
 import type { HoodSettings } from "@/apps/hood/settings";
 import type { SnowSettings } from "@/apps/snow/settings";
 import type { Clouds3dSettings } from "@/apps/clouds-3d/settings";
 import type { SkyPuffsSettings } from "@/apps/sky-puffs/settings";
+import type { TorusRingsSettings } from "@/apps/torus-rings/settings";
 import type { RainSettings } from "@/apps/rain/settings";
 import type { ConfettiSettings } from "@/apps/confetti/settings";
 import type { FireworksSettings } from "@/apps/fireworks/settings";
@@ -25,6 +25,7 @@ import { DAY_NIGHT_SETTING_KEYS } from "@/apps/day-night/settings";
 import { SNOW_SETTING_KEYS } from "@/apps/snow/settings";
 import { CLOUDS_3D_SETTING_KEYS } from "@/apps/clouds-3d/settings";
 import { SKY_PUFFS_SETTING_KEYS } from "@/apps/sky-puffs/settings";
+import { TORUS_RINGS_SETTING_KEYS } from "@/apps/torus-rings/settings";
 import { RAIN_SETTING_KEYS } from "@/apps/rain/settings";
 import { FIREWORKS_SETTING_KEYS } from "@/apps/fireworks/settings";
 import { CONFETTI_SETTING_KEYS } from "@/apps/confetti/settings";
@@ -123,17 +124,7 @@ export const BACKDROP_LABEL_KEYS: Record<string, string> = {
   vanern: "options.backdrop.vanern",
 };
 
-// Surface presets for the floating torus "bath rings" field (see
-// src/lib/torusRings/TorusRingField.ts) — "off" renders a flat emissive
-// color with no texture map at all.
-export const TORUS_RING_TEXTURES: { id: string; url: string | null }[] = [
-  { id: "off", url: null },
-  { id: "sand", url: sandTextureAsset.url },
-];
-export const TORUS_TEXTURE_LABEL_KEYS: Record<string, string> = {
-  off: "options.torusTexture.off",
-  sand: "options.torusTexture.sand",
-};
+export { TORUS_RING_TEXTURES, TORUS_TEXTURE_LABEL_KEYS } from "@/apps/torus-rings/settings";
 
 // Three available water-sound loops: "simple" is a plain single-take field
 // recording (no processing beyond what the audio graph already applies to
@@ -802,17 +793,6 @@ export type Persisted = {
   intervalCount: number;
   intervalShowStats: boolean;
   surfaceArea: number;
-  torusRingsOn: boolean;
-  torusRadius: number;
-  torusTube: number;
-  torusScale: number;
-  torusOpacity: number;
-  torusTextureIdx: number;
-  torusCellSize: number;
-  torusVerticalSpacing: number;
-  torusVerticalCount: number;
-  torusViewDistance: number;
-  torusFadeDistance: number;
 } & // Every app's own settings slice (src/apps/<id>/settings.ts) — see
   // docs/architecture/apps.md. Keys above are the core app's.
   AuroraSettings &
@@ -820,6 +800,7 @@ export type Persisted = {
   SnowSettings &
   Clouds3dSettings &
   SkyPuffsSettings &
+  TorusRingsSettings &
   RainSettings &
   ConfettiSettings &
   FireworksSettings &
@@ -1054,17 +1035,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "clockOn",
     "backdropIdx",
     "liveMode",
-    "torusRingsOn",
-    "torusRadius",
-    "torusTube",
-    "torusScale",
-    "torusOpacity",
-    "torusTextureIdx",
-    "torusCellSize",
-    "torusVerticalSpacing",
-    "torusVerticalCount",
-    "torusViewDistance",
-    "torusFadeDistance",
+    ...TORUS_RINGS_SETTING_KEYS,
     ...DAY_NIGHT_SETTING_KEYS,
     "skyLook",
     ...SNOW_SETTING_KEYS,

@@ -1,0 +1,13 @@
+{
+  "$schema": "../../core/apps/manifest.schema.json",
+  "id": "torus-rings",
+  "name": "BADRINGAR",
+  "title": "Bath rings",
+  "version": "1.0.0",
+  "description": "A field of floating torus rings on an invisible grid around the camera, fading in and out with distance.",
+  "kind": "scene-fx",
+  "settingsGroup": "effects",
+  "defaultEnabled": false,
+  "order": 15,
+  "dependencies": {}
+}
