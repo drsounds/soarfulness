@@ -48,6 +48,7 @@ Swedish, like `NORRSKEN`) goes in the manifest's `name`.
 | id | name | kind | settings group | depends on | main files |
 | --- | --- | --- | --- | --- | --- |
 | `aurora` | NORRSKEN | scene-fx | weather | day-night | `Aurora.ts`, `AuroraRuntime.ts` |
+| `clouds-3d` | 3D-MOLN | scene-fx | clouds | | `clouds3d.ts`, `Clouds3dRuntime.ts` |
 | `confetti` | KONFETTI | scene-fx | events | | `Confetti.ts` |
 | `day-night` | DYGNSBYTE | environment | time | | `dayNightBackdrop.ts`, `daylightTint.ts` |
 | `decorations` | DEKORATIONER | content | place | | `decorations.ts`, `DecorationLayer.ts`, `DecorationPanel.tsx`, `useDecorations.ts` |
@@ -311,7 +312,12 @@ can keep merging.
   plus hood, wind, string lights and decorations. Left: the water glow and
   daylight tint dials.
 - [ ] **Step 5:** split the core app itself (waves, water material, camera
-  modes, clouds, scenes, sound, watercraft) into apps.
+  modes, clouds, scenes, sound, watercraft) into apps, one subsystem per PR.
+  - [x] 3D clouds (`apps/clouds-3d`): the puff layers and their three
+    settings. The host feeds them the flat decks' state through
+    `Clouds3dRuntime.update(inputs, settings)`.
+  - [ ] the flat cloud decks, sky puffs, waves, water material, camera modes,
+    scenes, sound, watercraft.
 - [ ] **Step 6:** code-split the app code (keeps the main bundle small).
   - [x] The settings dialog and every app panel in it load as their own
     chunk (`React.lazy` in `routes/index.tsx`): the main chunk went from

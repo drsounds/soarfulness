@@ -152,7 +152,8 @@ import {
   CLOUD_SCALE_MIN,
   CLOUD_SCALE_MAX,
 } from "@/lib/settingsShared";
-import { createCloud3DLayer } from "@/lib/clouds3d";
+import clouds3dApp from "@/apps/clouds-3d/app";
+import { CLOUDS_3D_DEFAULTS } from "@/apps/clouds-3d/settings";
 import {
   type PresetScope,
   type SavedPreset,
@@ -1530,9 +1531,7 @@ const DEFAULTS: Persisted = {
   midCloudsHeight: 0.5,
   skyCloudsOn: false,
   skyCloudsAltitude: 1000,
-  bottomClouds3d: false,
-  midClouds3d: false,
-  skyClouds3d: false,
+  ...CLOUDS_3D_DEFAULTS,
   // 8x (the slider's max) so the bottom and sky cloud decks read as big,
   // soft shapes from the first start.
   bottomCloudsScale: 8,
@@ -2271,9 +2270,14 @@ export function Aquafulness() {
     // Not clamped to the slider's range: a typed-in override is kept.
     return v;
   });
-  const [bottomClouds3d, setBottomClouds3d] = useState(initial.bottomClouds3d);
-  const [midClouds3d, setMidClouds3d] = useState(initial.midClouds3d);
-  const [skyClouds3d, setSkyClouds3d] = useState(initial.skyClouds3d);
+  const clouds3d = useAppSettings(CLOUDS_3D_DEFAULTS, initial);
+  const { bottomClouds3d, midClouds3d, skyClouds3d } = clouds3d.values;
+  const {
+    bottomClouds3d: setBottomClouds3d,
+    midClouds3d: setMidClouds3d,
+    skyClouds3d: setSkyClouds3d,
+  } = clouds3d.setters;
+  const { reset: resetClouds3d, patch: patchClouds3d } = clouds3d;
   const clampCloudScale = (v: number, fallback: number) =>
     Number.isFinite(v) ? Math.max(0.01, v) : fallback;
   const [bottomCloudsScale, setBottomCloudsScale] = useState(() =>
@@ -4359,9 +4363,8 @@ export function Aquafulness() {
   const midCloudsHeightRef = useRef(midCloudsHeight);
   const skyCloudsOnRef = useRef(skyCloudsOn);
   const skyCloudsAltitudeRef = useRef(skyCloudsAltitude);
-  const bottomClouds3dRef = useRef(bottomClouds3d);
-  const midClouds3dRef = useRef(midClouds3d);
-  const skyClouds3dRef = useRef(skyClouds3d);
+  const clouds3dSettingsRef = useRef(clouds3d.values);
+  clouds3dSettingsRef.current = clouds3d.values;
   const bottomCloudsScaleRef = useRef(bottomCloudsScale);
   const skyCloudsScaleRef = useRef(skyCloudsScale);
   const cloudFadeSpeedRef = useRef(cloudFadeSpeed);
@@ -4758,15 +4761,6 @@ export function Aquafulness() {
   useEffect(() => {
     skyCloudsAltitudeRef.current = skyCloudsAltitude;
   }, [skyCloudsAltitude]);
-  useEffect(() => {
-    bottomClouds3dRef.current = bottomClouds3d;
-  }, [bottomClouds3d]);
-  useEffect(() => {
-    midClouds3dRef.current = midClouds3d;
-  }, [midClouds3d]);
-  useEffect(() => {
-    skyClouds3dRef.current = skyClouds3d;
-  }, [skyClouds3d]);
   useEffect(() => {
     bottomCloudsScaleRef.current = bottomCloudsScale;
   }, [bottomCloudsScale]);
@@ -5499,9 +5493,7 @@ export function Aquafulness() {
     setMidCloudsHeight(DEFAULTS.midCloudsHeight);
     setSkyCloudsOn(DEFAULTS.skyCloudsOn);
     setSkyCloudsAltitude(DEFAULTS.skyCloudsAltitude);
-    setBottomClouds3d(DEFAULTS.bottomClouds3d);
-    setMidClouds3d(DEFAULTS.midClouds3d);
-    setSkyClouds3d(DEFAULTS.skyClouds3d);
+    resetClouds3d();
     setBottomCloudsScale(DEFAULTS.bottomCloudsScale);
     setSkyCloudsScale(DEFAULTS.skyCloudsScale);
     setCloudFadeSpeed(DEFAULTS.cloudFadeSpeed);
@@ -5765,9 +5757,7 @@ export function Aquafulness() {
           Math.min(SKY_CLOUDS_ALTITUDE_MAX, patch.skyCloudsAltitude),
         ),
       );
-    if (patch.bottomClouds3d !== undefined) setBottomClouds3d(patch.bottomClouds3d);
-    if (patch.midClouds3d !== undefined) setMidClouds3d(patch.midClouds3d);
-    if (patch.skyClouds3d !== undefined) setSkyClouds3d(patch.skyClouds3d);
+    patchClouds3d(patch);
     if (patch.bottomCloudsScale !== undefined)
       setBottomCloudsScale(clampCloudScale(patch.bottomCloudsScale, DEFAULTS.bottomCloudsScale));
     if (patch.skyCloudsScale !== undefined)
@@ -8744,47 +8734,6 @@ export function Aquafulness() {
       opacity: 0,
     }));
 
-    // 3D-MOLN (see lib/clouds3d.ts): volumetric puff layers drawn on top of
-    // the flat decks. The two underwater layers are meter-scale (the water
-    // column is only tens of meters deep); the sky layer is kilometer-scale.
-    const bottomClouds3dLayer = createCloud3DLayer(
-      {
-        tileSize: 600,
-        clusterCount: 260,
-        puffsPerCluster: 9,
-        clusterRadius: [2, 7],
-        puffRadius: [1.2, 3.5],
-        seed: 11,
-      },
-      uniforms.uSunDir.value,
-    );
-    const midClouds3dLayer = createCloud3DLayer(
-      {
-        tileSize: 600,
-        clusterCount: 220,
-        puffsPerCluster: 9,
-        clusterRadius: [2, 6],
-        puffRadius: [1, 3],
-        seed: 23,
-      },
-      uniforms.uSunDir.value,
-    );
-    const skyClouds3dLayer = createCloud3DLayer(
-      {
-        tileSize: 16000,
-        clusterCount: 260,
-        puffsPerCluster: 10,
-        clusterRadius: [120, 420],
-        puffRadius: [45, 150],
-        seed: 37,
-      },
-      uniforms.uSunDir.value,
-    );
-    skyClouds3dLayer.uniforms.uThickness.value = 260;
-    const clouds3dLayers = [bottomClouds3dLayer, midClouds3dLayer, skyClouds3dLayer];
-    const clouds3dFade = [0, 0, 0];
-    for (const layer of clouds3dLayers) scene.add(layer.mesh);
-
     // SKY PUFFS: optional individual, randomly-placed puffy clouds — see
     // MAX_SKY_PUFFS/randomSkyPuffSpot above. A dedicated shader (rather than
     // reusing the mid/sky cloud deck's shader) confines its fbm cloud shape
@@ -9085,6 +9034,7 @@ export function Aquafulness() {
     const underwaterFog = apps.runtime(underwaterFogApp);
     const neon = apps.runtime(neonApp);
     const snow = apps.runtime(snowApp);
+    const clouds3dFx = apps.runtime(clouds3dApp);
     const fireworks = apps.runtime(fireworksApp);
     neon.setResolution(mount.clientWidth, mount.clientHeight);
     // Each app's current settings slice, by app id.
@@ -11880,42 +11830,27 @@ export function Aquafulness() {
       // 3D-MOLN: each puff layer follows its flat deck's altitude and
       // on/off state (bottom only while BOTTEN is MOLN), fading with the
       // same MOLN TONING speed.
-      {
-        const bottomIsClouds = bot.id === "clouds";
-        const targets = [
-          bottomIsClouds && bottomClouds3dRef.current,
-          midCloudsOnRef.current && midClouds3dRef.current,
-          skyCloudsTargetOn && skyClouds3dRef.current,
-        ];
-        const fadeStep = Math.min(1, dt * cloudFadeSpeedRef.current);
-        // Underwater puffs: base on the floor / mid deck, height a fraction
-        // of the water column so they never poke through the surface.
-        const midFrac = Math.max(0.05, Math.min(0.95, midCloudsHeightRef.current));
-        bottomClouds3dLayer.uniforms.uCenter.value.set(camX, -effectiveDepth + levelY, camZ);
-        bottomClouds3dLayer.uniforms.uThickness.value = effectiveDepth * 0.25;
-        bottomClouds3dLayer.uniforms.uRadiusScale.value = Math.min(1, effectiveDepth / 20);
-        midClouds3dLayer.uniforms.uCenter.value.set(
+      clouds3dFx.update(
+        {
+          time: t,
+          dt,
+          fadeSpeed: cloudFadeSpeedRef.current,
           camX,
-          -effectiveDepth + effectiveDepth * midFrac - effectiveDepth * 0.06 + levelY,
           camZ,
-        );
-        midClouds3dLayer.uniforms.uThickness.value = effectiveDepth * 0.12;
-        midClouds3dLayer.uniforms.uRadiusScale.value = Math.min(1, effectiveDepth / 20);
-        skyClouds3dLayer.uniforms.uCenter.value.set(camX, skyClouds.position.y - 60, camZ);
-        bottomClouds3dLayer.uniforms.uScroll.value.set(t * 0.6, t * 0.4);
-        midClouds3dLayer.uniforms.uScroll.value.set(t * 1.6, t * 1.0);
-        skyClouds3dLayer.uniforms.uScroll.value.set(t * 0.8, t * 0.52);
-        for (let i = 0; i < clouds3dLayers.length; i++) {
-          const layer = clouds3dLayers[i];
-          clouds3dFade[i] += ((targets[i] ? 1 : 0) - clouds3dFade[i]) * fadeStep;
-          const lu = layer.uniforms;
-          lu.uOpacity.value = clouds3dFade[i];
-          lu.uTurbidity.value = floorUniforms.uTurbidity.value;
-          lu.uUnderwater.value = uniforms.uUnderwater.value;
-          lu.uFogColor.value.copy(uniforms.uWaterDeep.value);
-          layer.mesh.visible = clouds3dFade[i] > 0.003;
-        }
-      }
+          effectiveDepth,
+          levelY,
+          midHeight: midCloudsHeightRef.current,
+          skyY: skyClouds.position.y,
+          bottomDeckOn: bot.id === "clouds",
+          midDeckOn: midCloudsOnRef.current,
+          skyDeckOn: skyCloudsTargetOn,
+          sunDir: uniforms.uSunDir.value,
+          turbidity: floorUniforms.uTurbidity.value,
+          underwater: uniforms.uUnderwater.value,
+          fogColor: uniforms.uWaterDeep.value,
+        },
+        clouds3dSettingsRef.current,
+      );
       renderer.setClearColor(0x032033, envActive ? 1 : 0);
 
       // SKY PUFFS: each active puff runs its own fade-in/hold/fade-out timer
@@ -12141,10 +12076,6 @@ export function Aquafulness() {
       }
       extendCloudLayersRef.current = [];
       extendCloudLayerStateRef.current = [];
-      for (const layer of clouds3dLayers) {
-        scene.remove(layer.mesh);
-        layer.dispose();
-      }
       for (const puffMesh of skyPuffMeshesRef.current) {
         (puffMesh.material as THREE.Material).dispose();
       }

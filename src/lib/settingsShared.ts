@@ -5,6 +5,7 @@ import waterAsset from "@/assets/water.mp3.asset.json";
 import type { AuroraSettings } from "@/apps/aurora/settings";
 import type { HoodSettings } from "@/apps/hood/settings";
 import type { SnowSettings } from "@/apps/snow/settings";
+import type { Clouds3dSettings } from "@/apps/clouds-3d/settings";
 import type { RainSettings } from "@/apps/rain/settings";
 import type { ConfettiSettings } from "@/apps/confetti/settings";
 import type { FireworksSettings } from "@/apps/fireworks/settings";
@@ -21,6 +22,7 @@ import { RETRO_SETTING_KEYS } from "@/apps/retro/settings";
 import { WIND_SETTING_KEYS } from "@/apps/wind/settings";
 import { DAY_NIGHT_SETTING_KEYS } from "@/apps/day-night/settings";
 import { SNOW_SETTING_KEYS } from "@/apps/snow/settings";
+import { CLOUDS_3D_SETTING_KEYS } from "@/apps/clouds-3d/settings";
 import { RAIN_SETTING_KEYS } from "@/apps/rain/settings";
 import { FIREWORKS_SETTING_KEYS } from "@/apps/fireworks/settings";
 import { CONFETTI_SETTING_KEYS } from "@/apps/confetti/settings";
@@ -554,11 +556,6 @@ export type Persisted = {
   skyCloudsOn: boolean;
   // Sky cloud deck altitude in meters above the water surface.
   skyCloudsAltitude: number;
-  // 3D-MOLN: volumetric puff clouds on top of each flat layer — bottom
-  // (only when BOTTEN is MOLN), mid-water and sky. See lib/clouds3d.ts.
-  bottomClouds3d: boolean;
-  midClouds3d: boolean;
-  skyClouds3d: boolean;
   // Cloud texture scale (1 = original size; higher = bigger cloud features),
   // separately for the underwater decks (bottom + mid) and the sky decks.
   bottomCloudsScale: number;
@@ -834,6 +831,7 @@ export type Persisted = {
   AuroraSettings &
   HoodSettings &
   SnowSettings &
+  Clouds3dSettings &
   RainSettings &
   ConfettiSettings &
   FireworksSettings &
@@ -1046,9 +1044,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "midCloudsHeight",
     "skyCloudsOn",
     "skyCloudsAltitude",
-    "bottomClouds3d",
-    "midClouds3d",
-    "skyClouds3d",
+    ...CLOUDS_3D_SETTING_KEYS,
     "bottomCloudsScale",
     "skyCloudsScale",
     "cloudFadeSpeed",
