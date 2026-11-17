@@ -8,6 +8,5 @@
   "kind": "camera-mode",
   "settingsGroup": "mode",
   "builtIn": true,
-  "switchable": false,
   "dependencies": {}
 }

@@ -317,7 +317,7 @@ decorations, which core code depends on). React code reads the flags with
 
 Some apps only declare a feature whose code stays in the core. They are marked
 `"builtIn": true` in the manifest and have no settings slice or scene object:
-`swimmer` (SIMMARE, not switchable), `fly`, `swing`, `bodyflight`,
+`swimmer` (SIMMARE, on by default), `fly`, `swing`, `bodyflight`,
 `watercraft` (kind `camera-mode`) and `tornado`, `ride` (kind `feature`, one
 level below the modes). Their runtime is `BuiltInRuntime`
 (`core/apps/lifecycle.ts`): it only announces `startup` / `shutdown`, and the
@@ -325,9 +325,11 @@ core subscribes with `onAppLifecycle(id, handler)`. `lib/cameraModeApps.ts`
 maps a `CameraMode` to its app and exposes `useEnabledModes()`,
 `useTornadoAppOn()` and `useRideAppOn()`. Switching one off hides its HUD
 button, drawer tab and settings rows; if it is the active mode the bather
-falls back to SIMMARE, and tornado / ride are turned off. Switching it on
-brings the buttons back. Next step: move each mode's and feature's settings
-keys into its app's `settings.ts` (as the other apps do).
+moves to the first mode that is on (SIMMARE if none is), and tornado / ride are turned off. Switching it on
+brings the buttons back. Their settings keys live in each app's `settings.ts`
+(`noclip*` in fly, `swing*` in swing, `bodyflight*`, `tornado*`, `freakOut*` in
+ride, `floatLift` in swimmer) and are spread into `Persisted` and `DEFAULTS`
+like every other app's; the settings groups and dials stay where they were.
 
 ## Migration status
 
