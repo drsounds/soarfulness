@@ -1,6 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Capacitor } from "@capacitor/core";
 import {
+  Suspense,
+  lazy,
   useCallback,
   useEffect,
   useMemo,
@@ -86,7 +88,7 @@ import { WatercraftHud } from "@/components/watercraft/WatercraftHud";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ScenerySelectorButton } from "@/components/ScenerySelectorDialog";
 import { VirtualPhone, type RemoteControllerProps } from "@/components/VirtualPhone";
-import { SettingsPanel, type SettingsPanelProps } from "@/components/SettingsPanel";
+import type { SettingsPanelProps } from "@/components/SettingsPanel";
 import { ShareBathDialog } from "@/components/ShareBathDialog";
 import { GogglesOverlay } from "@/components/GogglesOverlay";
 import { TimeTravelDialog } from "@/components/TimeTravelDialog";
@@ -243,6 +245,11 @@ import {
 // Capacitor app, where only files shipped in the APK resolve.
 import appIconUrl from "@/assets/AppIconBlack.png";
 
+// The settings dialog (and every app panel in it) is only needed once it is
+// opened, so it loads as its own chunk instead of weighing on the first paint.
+const SettingsPanel = lazy(() =>
+  import("@/components/SettingsPanel").then((m) => ({ default: m.SettingsPanel })),
+);
 export const Route = createFileRoute("/")({
   component: SplashScreen,
   head: () => ({
@@ -13758,7 +13765,9 @@ export function Aquafulness() {
                 </button>
               </div>
               <div className="overflow-y-auto p-4">
-                <SettingsPanel {...settingsPanelProps} />
+                <Suspense fallback={null}>
+                  <SettingsPanel {...settingsPanelProps} />
+                </Suspense>
               </div>
             </div>
           </div>
