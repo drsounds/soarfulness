@@ -44,6 +44,13 @@ export type AppManifest = {
   dependencies?: Record<string, string>;
   /** Apps it works with when present but doesn't need. */
   optionalDependencies?: Record<string, string>;
+  /**
+   * Where the app's runtime sits in the host's start and frame order (lower
+   * first, default 0). Dependencies always come first; among the rest, ties
+   * keep the registry's order. Scene objects are added in this order, so it
+   * also settles which of two overlapping transparent effects draws on top.
+   */
+  order?: number;
   /** Off-by-default apps say so; the defaults in settings.ts are the truth. */
   defaultEnabled?: boolean;
 };

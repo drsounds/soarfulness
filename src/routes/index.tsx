@@ -28,10 +28,11 @@ import { CSS3DTVManager, type DeviceKind } from "@/lib/tv/CSS3DTVManager";
 import { TorusRingField } from "@/lib/torusRings/TorusRingField";
 import { RETRO_PALETTE_INDEX, RETRO_SHADER } from "@/apps/retro/retroShader";
 import { limitMax, useExtremeLimits, type LimitedControl } from "@/lib/extremeLimits";
-import { NeonRuntime } from "@/apps/neon/NeonRuntime";
+import neonApp from "@/apps/neon/app";
 import { cloneEdgeFilter, sanitizeEdgeFilter, type EdgeFilter } from "@/lib/edgeSelect";
-import { AuroraRuntime } from "@/apps/aurora/AuroraRuntime";
-import "@/core/apps/catalog";
+import auroraApp from "@/apps/aurora/app";
+import { appRegistry } from "@/core/apps/catalog";
+import { AppHost } from "@/core/apps/host";
 import type { FrameContext } from "@/core/apps/types";
 import { AURORA_DEFAULTS, type AuroraSettings } from "@/apps/aurora/settings";
 import { HOOD_DEFAULTS, type HoodSettings } from "@/apps/hood/settings";
@@ -45,19 +46,19 @@ import { UNDERWATER_FOG_DEFAULTS } from "@/apps/underwater-fog/settings";
 import { OPEN_DRIFT_DEFAULTS, type OpenDriftSettings } from "@/apps/open-drift/settings";
 import { WIND_DEFAULTS, type WindSettings } from "@/apps/wind/settings";
 import { DECORATIONS_DEFAULTS } from "@/apps/decorations/settings";
-import { StringLightsRuntime } from "@/apps/string-lights/StringLightsRuntime";
-import { altitudeMix, sanitizeWinds, type WindSource } from "@/apps/wind/wind";
-import { WindRuntime } from "@/apps/wind/WindRuntime";
+import {
+  altitudeMix,
+  sanitizeWinds,
+  type WindSource,
+} from "@/apps/wind/wind";
+import windApp from "@/apps/wind/app";
 import { WindHudPanel, type WindControls } from "@/apps/wind/WindPanel";
-import { UnderwaterFogRuntime } from "@/apps/underwater-fog/UnderwaterFogRuntime";
-import { OpenDriftRuntime } from "@/apps/open-drift/OpenDriftRuntime";
-import { SnowRuntime } from "@/apps/snow/SnowRuntime";
-import { RainRuntime } from "@/apps/rain/RainRuntime";
+import underwaterFogApp from "@/apps/underwater-fog/app";
+import openDriftApp from "@/apps/open-drift/app";
+import snowApp from "@/apps/snow/app";
 import { RAIN_DEFAULTS, type RainSettings } from "@/apps/rain/settings";
 import { FIREWORKS_LIGHTS } from "@/apps/fireworks/Fireworks";
-import { FireworksRuntime } from "@/apps/fireworks/FireworksRuntime";
-import { ConfettiRuntime } from "@/apps/confetti/ConfettiRuntime";
-import { HoodRuntime } from "@/apps/hood/HoodRuntime";
+import fireworksApp from "@/apps/fireworks/app";
 import { sanitizeHoodLayers, type HoodLayer, type HoodStyle } from "@/apps/hood/hoodLayers";
 import { applyNeonAccent } from "@/apps/neon/neonAccent";
 import { relativeDaylightTint } from "@/apps/day-night/daylightTint";
@@ -9315,17 +9316,31 @@ export function Aquafulness() {
     envDome.visible = false;
     scene.add(envDome);
 
-    // NORRSKEN: northern lights curtains, at infinity like the sky dome and
-    // drawn behind everything in the scene (see apps/aurora/Aurora.ts).
-    const aurora = new AuroraRuntime({ scene });
-
-    // VIND (apps/wind): the live wind, its current, sway and sound.
-    const wind = new WindRuntime();
-    // UNDERVATTENDIS: drives the fog gradient overlay element (DOM, not GL).
-    const underwaterFog = new UnderwaterFogRuntime();
-
-    // HAVSDRIFT: endless open-water drift state (apps/open-drift/OpenDrift.ts).
-    const openDrift = new OpenDriftRuntime();
+    // The apps (src/apps/*): every registered app's runtime is created here,
+    // in manifest order, and run each frame by `apps.frame()` below. The
+    // handles are for what is more than a plain frame(): values read back
+    // into the ocean shader and hooks into the physics step.
+    const apps = new AppHost(appRegistry, { scene });
+    const aurora = apps.runtime(auroraApp);
+    const wind = apps.runtime(windApp);
+    const openDrift = apps.runtime(openDriftApp);
+    const underwaterFog = apps.runtime(underwaterFogApp);
+    const neon = apps.runtime(neonApp);
+    const snow = apps.runtime(snowApp);
+    const fireworks = apps.runtime(fireworksApp);
+    neon.setResolution(mount.clientWidth, mount.clientHeight);
+    // Each app's current settings slice, by app id.
+    const appSettingsRefs: Record<string, { current: object }> = {
+      aurora: auroraSettingsRef,
+      "underwater-fog": underwaterFogSettingsRef,
+      neon: neonSettingsRef,
+      snow: snowSettingsRef,
+      rain: rainSettingsRef,
+      fireworks: fireworksSettingsRef,
+      confetti: confettiSettingsRef,
+      hood: hoodSettingsRef,
+    };
+    const appSettings = (id: string) => appSettingsRefs[id]?.current;
 
     // BÄTTRE LJUS: image-based lighting for glTF materials. scene.environment
     // is a PMREM of the environment skybox when one is active, otherwise of
@@ -9344,25 +9359,9 @@ export function Aquafulness() {
     let shadowFitModel: THREE.Object3D | null = null;
     const shadowSphere = new THREE.Sphere();
 
-    // NEON edge lines along the loaded scene's meshes (apps/neon).
-    const neon = new NeonRuntime({ scene });
-    neon.setResolution(mount.clientWidth, mount.clientHeight);
-    // LJUSSLINGOR: decorative string lights (see apps/string-lights/StringLightsFx.ts).
-    const stringLights = new StringLightsRuntime({ scene });
-    // SNÖ: falling flakes around the camera, and SNÖTÄCKE whitening of the
-    // loaded scene (see apps/snow/Snowfall.ts).
-    const snow = new SnowRuntime({ scene });
-    // REGN: rain streaks, splashes and sound (apps/rain).
-    const rain = new RainRuntime({ scene });
+    // SNÖTÄCKE (apps/snow) also whitens the backdrop dome.
     const snowCover = snow.cover;
-    // FYRVERKERI (see apps/fireworks/Fireworks.ts).
-    const fireworks = new FireworksRuntime({ scene });
     envDomeUniforms.uSnowLight = snowCover.uLight;
-    // KONFETTI: confetti falling like the snow (see apps/confetti/Confetti.ts).
-    const confetti = new ConfettiRuntime({ scene });
-    // HUVA: the hood framing the view (drawn last, over the 3D scene), one
-    // per layer; a later layer draws over an earlier one.
-    const hood = new HoodRuntime({ scene });
     const envTint = new THREE.Color(1, 1, 1);
     const envTintScratch = new THREE.Color();
     const envTintNight = new THREE.Color(1, 1, 1);
@@ -12095,18 +12094,6 @@ export function Aquafulness() {
         },
       };
 
-      // NORRSKEN (apps/aurora): fades in with the night and is reflected in
-      // the water.
-      aurora.frame(appFrame, auroraSettingsRef.current);
-      uniforms.uAuroraGlow.value.copy(aurora.glow);
-      uniforms.uAuroraElev.value = aurora.glowElevation;
-      uniforms.uAuroraHeight.value = auroraSettingsRef.current.auroraHeight;
-
-      // UNDERVATTENDIS (apps/underwater-fog): the fog gradient over the 3D
-      // view, docked to the on-screen waterline.
-      underwaterFog.setElement(underwaterFogElRef.current);
-      underwaterFog.frame(appFrame, underwaterFogSettingsRef.current);
-
       // Backdrop / skybox priority:
       //  - A real environment skybox (scene.background) wins: hide the sky dome,
       //    ignore the flat DOM backdrop, keep an opaque clear behind it. A
@@ -12273,32 +12260,20 @@ export function Aquafulness() {
       // position is final for the frame.
       torusRingField.update(camera.position, dt);
 
-      // NEON (apps/neon): edge lines along the loaded scene.
-      neon.frame(appFrame, neonSettingsRef.current);
-
-      // LJUSSLINGOR (apps/string-lights): the current scene's string lights.
-      stringLights.frame(appFrame);
-
-      // SNÖ (apps/snow): flakes follow the camera; SNÖTÄCKE patches the
-      // loaded scene's materials.
-      snow.frame(appFrame, snowSettingsRef.current);
-
-      // REGN (apps/rain): drops slant with VIND; splashes and sound.
-      rain.frame(appFrame, rainSettingsRef.current);
-
-      // FYRVERKERI (apps/fireworks): runs the show, then its flashes are fed
-      // to the ocean shader (the scene lights are its own).
-      fireworks.frame(appFrame, fireworksSettingsRef.current);
+      // The apps (src/apps/*): every runtime's frame(), in manifest order —
+      // aurora, neon, string lights, snow, rain, fireworks, confetti, hood,
+      // and the underwater fog overlay.
+      underwaterFog.setElement(underwaterFogElRef.current);
+      apps.frame(appFrame, appSettings);
+      // NORRSKEN is reflected in the water.
+      uniforms.uAuroraGlow.value.copy(aurora.glow);
+      uniforms.uAuroraElev.value = aurora.glowElevation;
+      uniforms.uAuroraHeight.value = auroraSettingsRef.current.auroraHeight;
+      // FYRVERKERI's flashes light the water (the scene lights are its own).
       for (let i = 0; i < FIREWORKS_LIGHTS; i++) {
         uniforms.uFwLightPos.value[i].copy(fireworks.lightPos[i]);
         uniforms.uFwLightCol.value[i].copy(fireworks.lightCol[i]);
       }
-
-      // KONFETTI (apps/confetti): pieces follow the camera like the snow.
-      confetti.frame(appFrame, confettiSettingsRef.current);
-
-      // HUVA (apps/hood): the hood layers around the bather, framing the view.
-      hood.frame(appFrame, hoodSettingsRef.current);
 
       // Cap actual GPU renders to targetFps (gogglesFpsCap instead while
       // SIMGLASÖGON is on, for its own lower thermal-friendly ceiling) —
@@ -12380,15 +12355,7 @@ export function Aquafulness() {
       chromaticAberrationPass.dispose();
       retroPass.dispose();
       composer.dispose();
-      neon.dispose();
-      stringLights.dispose();
-      aurora.dispose();
-      wind.dispose();
-      snow.dispose();
-      rain.dispose();
-      fireworks.dispose();
-      confetti.dispose();
-      hood.dispose();
+      apps.dispose();
       scene.environment = null;
       iblTarget?.dispose();
       pmrem.dispose();

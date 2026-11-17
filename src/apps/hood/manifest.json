@@ -8,5 +8,6 @@
   "kind": "bather",
   "settingsGroup": "bather",
   "defaultEnabled": false,
+  "order": 80,
   "dependencies": {}
 }

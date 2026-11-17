@@ -23,6 +23,7 @@ src/
     registry.ts              AppRegistry: validate, dependency order, settings ownership
     semver.ts                tiny semver range check for manifest dependencies
     catalog.ts               appRegistry: every src/apps/*/app.ts via import.meta.glob
+    host.ts                  AppHost: starts every app's runtime, runs frame(), disposes
     manifest.schema.json     JSON schema for manifest.json (editor validation)
     registry.test.ts         bun test: registry rules + checks every installed app
   apps/
@@ -93,6 +94,7 @@ scenes, sound, the settings panel itself) is still the **core app**, in
 | `dependencies` | apps it needs, `id → range` (`^1.0.0`, `~1.2.0`, `1.x`, `*`) |
 | `optionalDependencies` | apps it works with when present |
 | `defaultEnabled` | `false` for features that are off on a fresh install |
+| `order` | where the runtime sits in the start and frame order (lower first, default 0); dependencies always come first |
 
 `registry.test.ts` fails when a dependency is missing, a version range is not
 met, there is a dependency cycle, two apps claim the same settings key, or a
@@ -185,6 +187,33 @@ settings into whatever its classes need. Values the host needs back (for
 example `AuroraRuntime.glow`, which the ocean shader reflects) are exposed as
 getters.
 
+### The app host
+
+`AppHost` (`core/apps/host.ts`) runs the registered apps inside the scene.
+`routes/index.tsx` creates it once when the scene is built:
+
+```ts
+const apps = new AppHost(appRegistry, { scene });   // createRuntime() for every app
+// each frame:
+apps.frame(appFrame, appSettings);                  // frame() on every runtime
+// on teardown:
+apps.dispose();
+```
+
+Runtimes start and run in `manifest.order` (lower first), with an app's
+dependencies always before it. Scene objects are added in that order too,
+so it also decides which of two overlapping transparent effects draws on
+top (the hood is last, at 80).
+
+An app that only draws needs nothing in `index.tsx` beyond an entry in
+`appSettingsRefs` for its settings slice. For the rest, the host takes a
+typed handle:
+
+```ts
+const wind = apps.runtime(windApp);        // WindRuntime
+const aurora = apps.runtime(auroraApp);    // AuroraRuntime
+```
+
 The host builds one `FrameContext` per frame (`appFrame` in
 `routes/index.tsx`) and passes it to every runtime. When an app needs more
 from the host, add a field to `FrameContext` instead of reaching into
@@ -244,9 +273,10 @@ hook, `useDecorations`) and the `retro` post-processing pass.
 3. Add `& <Name>Settings` to `Persisted` in `lib/settingsShared.ts`,
    `...<ID>_DEFAULTS` to `DEFAULTS` in `routes/index.tsx`, and
    `...<ID>_SETTING_KEYS` to the right `PRESET_TAB_FIELDS` tab.
-4. Implement an `AppRuntime` and call it from the render loop, or, until the
-   host has a generic loop, construct your class next to the others in
-   `routes/index.tsx`.
+4. Implement an `AppRuntime` and return it from `createRuntime` in `app.ts`.
+   The `AppHost` starts it and calls `frame()`; add the app's settings ref to
+   `appSettingsRefs` in `routes/index.tsx` and set `order` in the manifest if
+   draw order matters.
 5. Put the dials in a `<Name>Panel.tsx` in the app folder and render it
    inside the right `<G id="...">` in `components/SettingsPanel.tsx`.
 6. Add `settings.groups.*` / dial labels to all five locales (`src/locales/`).
@@ -264,9 +294,14 @@ can keep merging.
   into runtimes (aurora, snow, rain, confetti, fireworks, neon, hood, string
   lights, underwater fog, wind, open drift). Left for step 3: decorations
   and the retro pass.
-- [ ] **Step 3:** a generic host loop that creates every registered runtime
-  and calls `frame()` in registry order, plus a per-app settings hook
-  (`useAppSettings(app)`) to replace the per-key `useState` lines.
+- [ ] **Step 3:** a generic host loop and per-app settings.
+  - [x] `AppHost` creates every registered runtime and calls `frame()` in
+    manifest order; `index.tsx` no longer constructs or disposes apps one by
+    one.
+  - [ ] a per-app settings hook (`useAppSettings(app)`) to replace the
+    per-key `useState` lines, the snapshot/reset/patch lists and the
+    `appSettingsRefs` table.
+  - [ ] decorations and the retro pass as runtimes.
 - [ ] **Step 4:** move each app's dials out of `SettingsPanel.tsx` into its
   own `<Name>Panel.tsx`, registered with its `settingsGroup`.
 - [ ] **Step 5:** split the core app itself (waves, water material, camera
