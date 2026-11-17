@@ -36,7 +36,8 @@ import { AppHost } from "@/core/apps/host";
 import type { FrameContext } from "@/core/apps/types";
 import { AURORA_DEFAULTS, type AuroraSettings } from "@/apps/aurora/settings";
 import { HOOD_DEFAULTS, type HoodSettings } from "@/apps/hood/settings";
-import { SNOW_DEFAULTS, type SnowSettings } from "@/apps/snow/settings";
+import { SNOW_DEFAULTS } from "@/apps/snow/settings";
+import { useAppSettings } from "@/core/apps/useAppSettings";
 import { CONFETTI_DEFAULTS, type ConfettiSettings } from "@/apps/confetti/settings";
 import { FIREWORKS_DEFAULTS, type FireworksSettings } from "@/apps/fireworks/settings";
 import { NEON_DEFAULTS, type NeonSettings } from "@/apps/neon/settings";
@@ -2366,11 +2367,18 @@ export function Aquafulness() {
   );
   const [envDayNightAutoOn, setEnvDayNightAutoOn] = useState(initial.envDayNightAutoOn);
   const [envSunTintOn, setEnvSunTintOn] = useState(initial.envSunTintOn);
-  const [snowOn, setSnowOn] = useState(initial.snowOn);
-  const [snowAmount, setSnowAmount] = useState(initial.snowAmount);
-  const [snowIntensity, setSnowIntensity] = useState(initial.snowIntensity);
-  const [snowCoverOn, setSnowCoverOn] = useState(initial.snowCoverOn);
-  const [snowCoverStrength, setSnowCoverStrength] = useState(initial.snowCoverStrength);
+  const snow = useAppSettings(SNOW_DEFAULTS, initial);
+  const { snowOn, snowAmount, snowIntensity, snowCoverOn, snowCoverStrength, snowGrayBackdropOn } =
+    snow.values;
+  const {
+    snowOn: setSnowOn,
+    snowAmount: setSnowAmount,
+    snowIntensity: setSnowIntensity,
+    snowCoverOn: setSnowCoverOn,
+    snowCoverStrength: setSnowCoverStrength,
+    snowGrayBackdropOn: setSnowGrayBackdropOn,
+  } = snow.setters;
+  const { reset: resetSnow, patch: patchSnow } = snow;
   const [rainOn, setRainOn] = useState(initial.rainOn);
   const [rainAmount, setRainAmount] = useState(initial.rainAmount);
   const [rainIntensity, setRainIntensity] = useState(initial.rainIntensity);
@@ -2391,7 +2399,6 @@ export function Aquafulness() {
   );
   const [fireworksSoundOn, setFireworksSoundOn] = useState(initial.fireworksSoundOn);
   const [fireworksVolume, setFireworksVolume] = useState(initial.fireworksVolume);
-  const [snowGrayBackdropOn, setSnowGrayBackdropOn] = useState(initial.snowGrayBackdropOn);
   const [confettiOn, setConfettiOn] = useState(initial.confettiOn);
   const [confettiAmount, setConfettiAmount] = useState(initial.confettiAmount);
   const [confettiIntensity, setConfettiIntensity] = useState(initial.confettiIntensity);
@@ -2605,6 +2612,8 @@ export function Aquafulness() {
     fireworksRate,
     snowAmount,
     snowIntensity,
+    setSnowAmount,
+    setSnowIntensity,
     confettiAmount,
     confettiIntensity,
     waveAmp,
@@ -3000,16 +3009,8 @@ export function Aquafulness() {
   }, [sceneId]);
   // One settings-slice ref per app (apps/<id>/settings.ts), read by the
   // render loop and refreshed after every render.
-  const snowSettings: SnowSettings = {
-    snowOn,
-    snowAmount,
-    snowIntensity,
-    snowCoverOn,
-    snowCoverStrength,
-    snowGrayBackdropOn,
-  };
-  const snowSettingsRef = useRef(snowSettings);
-  snowSettingsRef.current = snowSettings;
+  const snowSettingsRef = useRef(snow.values);
+  snowSettingsRef.current = snow.values;
   const windSettings: WindSettings = {
     winds,
     windWavesOn,
@@ -5613,11 +5614,7 @@ export function Aquafulness() {
     setEnvDayNightAutoOn(DEFAULTS.envDayNightAutoOn);
     setEnvSunTintOn(DEFAULTS.envSunTintOn);
     resetSkyLook();
-    setSnowOn(DEFAULTS.snowOn);
-    setSnowAmount(DEFAULTS.snowAmount);
-    setSnowIntensity(DEFAULTS.snowIntensity);
-    setSnowCoverOn(DEFAULTS.snowCoverOn);
-    setSnowCoverStrength(DEFAULTS.snowCoverStrength);
+    resetSnow();
     setRainOn(DEFAULTS.rainOn);
     setRainAmount(DEFAULTS.rainAmount);
     setRainIntensity(DEFAULTS.rainIntensity);
@@ -5636,7 +5633,6 @@ export function Aquafulness() {
     setFireworksLightStrength(DEFAULTS.fireworksLightStrength);
     setFireworksSoundOn(DEFAULTS.fireworksSoundOn);
     setFireworksVolume(DEFAULTS.fireworksVolume);
-    setSnowGrayBackdropOn(DEFAULTS.snowGrayBackdropOn);
     setConfettiOn(DEFAULTS.confettiOn);
     setConfettiAmount(DEFAULTS.confettiAmount);
     setConfettiIntensity(DEFAULTS.confettiIntensity);
@@ -6015,11 +6011,7 @@ export function Aquafulness() {
     if (patch.envDayNightAutoOn !== undefined) setEnvDayNightAutoOn(patch.envDayNightAutoOn);
     if (patch.envSunTintOn !== undefined) setEnvSunTintOn(patch.envSunTintOn);
     if (patch.skyLook !== undefined) setSkyLook(sanitizeSkyLook(patch.skyLook));
-    if (patch.snowOn !== undefined) setSnowOn(patch.snowOn);
-    if (patch.snowAmount !== undefined) setSnowAmount(patch.snowAmount);
-    if (patch.snowIntensity !== undefined) setSnowIntensity(patch.snowIntensity);
-    if (patch.snowCoverOn !== undefined) setSnowCoverOn(patch.snowCoverOn);
-    if (patch.snowCoverStrength !== undefined) setSnowCoverStrength(patch.snowCoverStrength);
+    patchSnow(patch);
     if (patch.rainOn !== undefined) setRainOn(patch.rainOn);
     if (patch.rainAmount !== undefined) setRainAmount(patch.rainAmount);
     if (patch.rainIntensity !== undefined) setRainIntensity(patch.rainIntensity);
@@ -6039,7 +6031,6 @@ export function Aquafulness() {
       setFireworksLightStrength(patch.fireworksLightStrength);
     if (patch.fireworksSoundOn !== undefined) setFireworksSoundOn(patch.fireworksSoundOn);
     if (patch.fireworksVolume !== undefined) setFireworksVolume(patch.fireworksVolume);
-    if (patch.snowGrayBackdropOn !== undefined) setSnowGrayBackdropOn(patch.snowGrayBackdropOn);
     if (patch.confettiOn !== undefined) setConfettiOn(patch.confettiOn);
     if (patch.confettiAmount !== undefined) setConfettiAmount(patch.confettiAmount);
     if (patch.confettiIntensity !== undefined) setConfettiIntensity(patch.confettiIntensity);
