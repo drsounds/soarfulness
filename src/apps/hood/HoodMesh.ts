@@ -117,6 +117,7 @@ const VERT_COLLAR = /* glsl */ `
   varying vec3 vView;
   varying vec3 vN;
   varying float vArc;
+  varying float vSlope;
   varying float vY;
   varying float vEdge;
   varying float vTh;
@@ -169,6 +170,7 @@ const VERT_COLLAR = /* glsl */ `
     float th = (g.x * 2.0 - 1.0) * PI;
     vTh = th;
     vArc = th * uR;
+    vSlope = (edgeYAt(th + 0.01) - edgeYAt(th - 0.01)) / (0.02 * uR);
     vY = p0.y;
     vEdge = edgeYAt(th) - p0.y;
     gl_Position = projectionMatrix * mv;
@@ -350,6 +352,7 @@ const FRAG_HOOD = /* glsl */ `
 const FRAG_COLLAR = /* glsl */ `
   ${FRAG_COMMON}
   varying float vArc;
+  varying float vSlope;
   varying float vY;
   varying float vEdge;
   varying float vTh;
@@ -376,7 +379,7 @@ const FRAG_COLLAR = /* glsl */ `
       float band = 1.0 - smoothstep(uBandH - 0.002, uBandH, vEdge);
       float x = clamp(vEdge / uBandH, 0.0, 1.0);
       float freq = mix(1500.0, 500.0, clamp(uCuffSize, 0.0, 1.0));
-      float rib = 0.5 + 0.5 * cos(vArc * freq);
+      float rib = 0.5 + 0.5 * cos((vArc - vSlope * vEdge * inversesqrt(1.0 + vSlope * vSlope)) * freq);
       if (uCuffCustom > 0.5 && uCuffMat > 0.5) rib = 0.5;
       vec3 cc = uCuffCustom > 0.5 ? uCuffColor : uColor * 0.9;
       float mm = uCuffCustom > 0.5 ? clamp(uCuffMetal, 0.0, 1.0) : m * 0.3;
