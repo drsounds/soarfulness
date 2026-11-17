@@ -6,6 +6,7 @@
   "version": "1.0.0",
   "description": "A hoodie hood around the bather's view: up to several layers, cuffs, zipper, water inside and wet looks.",
   "kind": "bather",
+  "archetype": "clothing",
   "settingsGroup": "bather",
   "defaultEnabled": false,
   "order": 80,

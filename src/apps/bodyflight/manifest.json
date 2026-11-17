@@ -6,6 +6,7 @@
   "version": "1.0.0",
   "description": "Camera mode: indoor-skydiving style updraft flight.",
   "kind": "camera-mode",
+  "archetype": "soaring",
   "settingsGroup": "mode",
   "builtIn": true,
   "dependencies": {}

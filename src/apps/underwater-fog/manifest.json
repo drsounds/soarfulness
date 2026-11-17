@@ -6,6 +6,7 @@
   "version": "1.0.0",
   "description": "A screen gradient from a fog color to the water color, docked to the on-screen waterline.",
   "kind": "screen-fx",
+  "archetype": "water",
   "settingsGroup": "weather",
   "defaultEnabled": false,
   "dependencies": {}

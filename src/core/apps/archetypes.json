@@ -1,0 +1,61 @@
+{
+  "$schema": "./archetypes.schema.json",
+  "description": "The archetype tree apps are declared against. Declarations only: nothing in the code reads it yet except the registry test. The layers are app > feature > service > aspect > concept; this file holds the two lowest ones.",
+  "archetypes": {
+    "aspect": {
+      "title": "Aspect",
+      "description": "Root archetype. Something that affects the scene or the bather without being a thing you can point at: weather, clothing, a nostalgic filter, the time of day.",
+      "parent": null
+    },
+    "concept": {
+      "title": "Concept",
+      "description": "A sub kind of aspect: a tangible thing, a declaration of a kind of movement or object (soaring, ornaments). Apps implement or inherit a concept.",
+      "parent": "aspect"
+    },
+    "soaring": {
+      "title": "Soaring",
+      "description": "The concept of moving through the world: swimming, swinging, flying, bodyflight and the ride are inheritances of it.",
+      "parent": "concept"
+    },
+    "ornament": {
+      "title": "Ornament",
+      "description": "The concept of decorative objects: lights (neon edges, string lights), decorations and floating rings implement it.",
+      "parent": "concept"
+    },
+    "weather": {
+      "title": "Weather",
+      "description": "Aspect: what the sky and air do (rain, snow, wind, clouds, aurora).",
+      "parent": "aspect"
+    },
+    "time": {
+      "title": "Time",
+      "description": "Aspect: the time of day and its light.",
+      "parent": "aspect"
+    },
+    "clothing": {
+      "title": "Clothing",
+      "description": "Aspect: layers the bather wears (the hood and float suit).",
+      "parent": "aspect"
+    },
+    "nostalgia": {
+      "title": "Nostalgia",
+      "description": "Aspect: looks borrowed from the past, such as the 90s retro filter.",
+      "parent": "aspect"
+    },
+    "celebration": {
+      "title": "Celebration",
+      "description": "Aspect: festive effects (confetti, fireworks).",
+      "parent": "aspect"
+    },
+    "water": {
+      "title": "Water",
+      "description": "Aspect: how the water itself looks and behaves for the viewer (the underwater fog).",
+      "parent": "aspect"
+    },
+    "camera": {
+      "title": "Camera",
+      "description": "Aspect: settings that move or shape the camera (drift, tornado spin). No app declares only this yet.",
+      "parent": "aspect"
+    }
+  }
+}

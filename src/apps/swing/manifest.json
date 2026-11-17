@@ -6,6 +6,7 @@
   "version": "1.0.0",
   "description": "Camera mode: a swinging pendulum ride with cord and hook.",
   "kind": "camera-mode",
+  "archetype": "soaring",
   "settingsGroup": "mode",
   "builtIn": true,
   "dependencies": {}

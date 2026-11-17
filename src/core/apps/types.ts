@@ -42,6 +42,12 @@ export type AppManifest = {
   version: string;
   description: string;
   kind: AppKind;
+  /**
+   * The archetype the app implements or inherits (core/apps/archetypes.json):
+   * a concept such as "soaring" or "ornament", or an aspect such as
+   * "weather" or "nostalgia". Declaration only for now.
+   */
+  archetype?: string;
   /** Settings sub view the app's dials live in (SETTINGS_GROUPS id). */
   settingsGroup?: string;
   /** Other apps this one needs, id → semver range ("^1.0.0", "1.x", "*"). */

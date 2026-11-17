@@ -6,6 +6,7 @@
   "version": "1.0.0",
   "description": "Feature: the tornado / whirlpool that spins the camera round a vortex, in every mode.",
   "kind": "feature",
+  "archetype": "camera",
   "settingsGroup": "camera",
   "builtIn": true,
   "dependencies": {}

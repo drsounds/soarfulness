@@ -6,6 +6,7 @@
   "version": "1.0.0",
   "description": "Glowing animated lines along the loaded scene's mesh edges, and NEONACCENT for '-neon' materials.",
   "kind": "scene-fx",
+  "archetype": "ornament",
   "settingsGroup": "effects",
   "defaultEnabled": false,
   "order": 20,

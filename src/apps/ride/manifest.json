@@ -6,6 +6,7 @@
   "version": "1.0.0",
   "description": "Feature: the carousel ride rig (seats, rotation, peak spin-up).",
   "kind": "feature",
+  "archetype": "soaring",
   "settingsGroup": "camera",
   "builtIn": true,
   "dependencies": {}

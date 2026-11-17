@@ -6,6 +6,7 @@
   "version": "1.0.0",
   "description": "Falling snow around the camera, plus SNÖTÄCKE (snow cover on the scene) and the gray snow backdrop.",
   "kind": "scene-fx",
+  "archetype": "weather",
   "settingsGroup": "weather",
   "defaultEnabled": false,
   "order": 40,

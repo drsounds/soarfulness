@@ -130,6 +130,22 @@ describe("installed apps (src/apps)", () => {
     }
   });
 
+  test("every app's archetype exists in archetypes.json and the tree reaches aspect", () => {
+    const tree = JSON.parse(readFileSync(join(import.meta.dir, "archetypes.json"), "utf8"))
+      .archetypes as Record<string, { parent: string | null }>;
+    for (const [name, a] of Object.entries(tree)) {
+      let cur: string | null = name;
+      for (let i = 0; cur && i < 10; i++) cur = tree[cur]?.parent ?? null;
+      expect(cur, `${name} must reach the root aspect`).toBeNull();
+      if (a.parent) expect(tree[a.parent], `${name}: parent ${a.parent}`).toBeDefined();
+    }
+    for (const id of ids) {
+      const m = JSON.parse(readFileSync(join(APPS_DIR, id, "manifest.json"), "utf8"));
+      expect(m.archetype, `${id} declares an archetype`).toBeDefined();
+      expect(tree[m.archetype], `${id}: ${m.archetype}`).toBeDefined();
+    }
+  });
+
   test("the installed set is valid", async () => {
     const defs = await Promise.all(
       ids.map(async (id) => (await import(join(APPS_DIR, id, "app.ts"))).default),

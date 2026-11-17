@@ -6,6 +6,7 @@
   "version": "1.0.0",
   "description": "Camera mode: drive a watercraft (build mode).",
   "kind": "camera-mode",
+  "archetype": "soaring",
   "settingsGroup": "mode",
   "builtIn": true,
   "dependencies": {}
