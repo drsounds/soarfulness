@@ -162,6 +162,7 @@
       "hoodWaterLevel": "VANDSTAND",
       "hoodLayer": "LAG",
       "hoodLayerOn": "LAGET VISES",
+      "hoodReal3d": "ÆGTE 3D-STOF",
       "hoodSeparate": "HUE ADSKILT FRA HALS",
       "hoodPullBack": "HUE BAGUD",
       "hoodNeckBack": "HALS NEDAD",

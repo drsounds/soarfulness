@@ -905,6 +905,7 @@ export type SettingsPanelProps = {
   hoodCuffHeight: number;
   setHoodCuffHeight: Dispatch<SetStateAction<number>>;
   hoodCuffSize: number;
+  hoodReal3d: boolean;
   hoodSeparate: boolean;
   hoodWaterTint: number;
   hoodDripping: number;
@@ -937,6 +938,7 @@ export type SettingsPanelProps = {
   hoodPuffThickness: number;
   hoodPuffInflate: number;
   setHoodCuffSize: Dispatch<SetStateAction<number>>;
+  setHoodReal3d: Dispatch<SetStateAction<boolean>>;
   setHoodSeparate: Dispatch<SetStateAction<boolean>>;
   setHoodWaterTint: Dispatch<SetStateAction<number>>;
   setHoodDripping: Dispatch<SetStateAction<number>>;
@@ -1884,6 +1886,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
     hoodCuffHeight,
     setHoodCuffHeight,
     hoodCuffSize,
+    hoodReal3d,
     hoodSeparate,
     hoodWaterTint,
     hoodDripping,
@@ -1916,6 +1919,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
     hoodPuffThickness,
     hoodPuffInflate,
     setHoodCuffSize,
+    setHoodReal3d,
     setHoodSeparate,
     setHoodWaterTint,
     setHoodDripping,
@@ -3956,6 +3960,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
             cuff: hoodCuffOn,
             cuffHeight: hoodCuffHeight,
             cuffSize: hoodCuffSize,
+            real3d: hoodReal3d,
             separate: hoodSeparate,
             waterTint: hoodWaterTint,
             dripping: hoodDripping,
@@ -4006,6 +4011,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
             if (p.cuff !== undefined) setHoodCuffOn(p.cuff);
             if (p.cuffHeight !== undefined) setHoodCuffHeight(p.cuffHeight);
             if (p.cuffSize !== undefined) setHoodCuffSize(p.cuffSize);
+            if (p.real3d !== undefined) setHoodReal3d(p.real3d);
             if (p.separate !== undefined) setHoodSeparate(p.separate);
             if (p.waterTint !== undefined) setHoodWaterTint(p.waterTint);
             if (p.dripping !== undefined) setHoodDripping(p.dripping);

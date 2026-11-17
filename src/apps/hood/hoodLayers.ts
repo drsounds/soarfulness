@@ -106,6 +106,12 @@ export type HoodLayer = {
    * over. Off = the old single piece.
    */
   separate: boolean;
+  /**
+   * 3D-TYG: draw this layer as real geometry in the scene (a collar and a
+   * hood with real padding) instead of the flat overlay. Water inside,
+   * dripping, floating and LÄNGD stay with the flat overlay.
+   */
+  real3d: boolean;
   lengthOn: boolean;
   /** 0..1: LÄNGD, from a short collar (0) to an ankle-long dress (1); past the float suit it wraps around you in water. */
   length: number;
@@ -168,6 +174,7 @@ export const HOOD_LAYER_DEFAULTS: HoodLayer = {
   pullBack: 0,
   neckBack: 0,
   separate: false,
+  real3d: false,
   lengthOn: false,
   length: 0.6,
   puff3d: false,
@@ -222,6 +229,7 @@ const BOOL_KEYS = [
   "lengthOn",
   "puff3d",
   "separate",
+  "real3d",
 ] as const;
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));

@@ -162,6 +162,7 @@
       "hoodWaterLevel": "VEDENPINTA",
       "hoodLayer": "KERROS",
       "hoodLayerOn": "KERROS NÄKYY",
+      "hoodReal3d": "OIKEA 3D-KANGAS",
       "hoodSeparate": "HUPPU ERILLÄÄN KAULASTA",
       "hoodPullBack": "HUPPU TAAKSE",
       "hoodNeckBack": "KAULUS ALAS",

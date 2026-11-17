@@ -3,6 +3,7 @@ import * as THREE from "three";
 import { setClothingBuoyancyOffset } from "./buoyancy";
 import { FloatSuit } from "./FloatSuit";
 import { Hood, HOOD_STYLE_AIR, type HoodConfig } from "./Hood";
+import { HoodMesh3D } from "./HoodMesh";
 import { HOOD_MAX_LAYERS, type HoodLayer } from "./hoodLayers";
 import type { HoodSettings } from "./settings";
 
@@ -32,6 +33,7 @@ export function hoodLayerFromSettings(s: Readonly<HoodSettings>): HoodLayer {
     cuff: s.hoodCuffOn,
     cuffHeight: s.hoodCuffHeight,
     cuffSize: s.hoodCuffSize,
+    real3d: s.hoodReal3d,
     separate: s.hoodSeparate,
     waterTint: s.hoodWaterTint,
     dripping: s.hoodDripping,
@@ -91,6 +93,7 @@ export function hoodConfigFromLayer(l: HoodLayer, f: FrameContext, g: HoodShared
     cuff: l.cuff,
     cuffHeight: l.cuffHeight,
     cuffSize: l.cuffSize,
+    real3d: l.real3d,
     separate: l.separate,
     waterTint: l.waterTint,
     dripping: l.dripping,
@@ -133,6 +136,8 @@ export function hoodConfigFromLayer(l: HoodLayer, f: FrameContext, g: HoodShared
  */
 export class HoodRuntime implements AppRuntime<HoodSettings> {
   readonly hoods: Hood[];
+  /** 3D-TYG: the same layers as real geometry, used instead of the flat Hood. */
+  readonly meshes: HoodMesh3D[];
   /** FLYTDRÄKT: always worn innermost while HUVA is on. */
   readonly suit: FloatSuit;
   private buoy = 0;
@@ -141,6 +146,7 @@ export class HoodRuntime implements AppRuntime<HoodSettings> {
   constructor(ctx: SceneAppContext) {
     this.suit = new FloatSuit(ctx.scene);
     this.hoods = Array.from({ length: HOOD_MAX_LAYERS }, (_, i) => new Hood(ctx.scene, i));
+    this.meshes = Array.from({ length: HOOD_MAX_LAYERS }, (_, i) => new HoodMesh3D(ctx.scene, i));
   }
 
   frame(f: FrameContext, s: Readonly<HoodSettings>) {
@@ -158,8 +164,20 @@ export class HoodRuntime implements AppRuntime<HoodSettings> {
     };
     this.hoods.forEach((h, i) => {
       const l = layers[i];
-      if (!l || !l.on) h.hide();
-      else h.update(f.time, f.dt, f.camera, hoodConfigFromLayer(l, f, shared));
+      const mesh = this.meshes[i];
+      if (!l || !l.on) {
+        h.hide();
+        mesh.hide();
+      } else if (l.real3d) {
+        h.hide();
+        mesh.update(f.time, f.camera, hoodConfigFromLayer(l, f, shared), {
+          bodyFrame: s.hoodRotateHead,
+          suitColor: s.hoodSuitColor,
+        });
+      } else {
+        mesh.hide();
+        h.update(f.time, f.dt, f.camera, hoodConfigFromLayer(l, f, shared));
+      }
     });
     if (s.hoodOn) {
       this.suit.update(f.camera, {
@@ -192,6 +210,7 @@ export class HoodRuntime implements AppRuntime<HoodSettings> {
 
   shutdown() {
     for (const h of this.hoods) h.hide();
+    for (const m of this.meshes) m.hide();
     this.suit.hide();
     this.buoy = 0;
     setClothingBuoyancyOffset(0);
@@ -199,6 +218,7 @@ export class HoodRuntime implements AppRuntime<HoodSettings> {
 
   dispose() {
     for (const h of this.hoods) h.dispose();
+    for (const m of this.meshes) m.dispose();
     this.suit.dispose();
     setClothingBuoyancyOffset(0);
   }
