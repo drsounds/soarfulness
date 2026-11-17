@@ -1192,6 +1192,10 @@
         "desc": "Språk, tema, ekstreme grenser, om appen",
         "label": "Generelt"
       },
+      "apps": {
+        "desc": "Slå funksjoner av og på",
+        "label": "Apper"
+      },
       "bather": {
         "desc": "Svømmebriller og hette",
         "label": "Den badende"
@@ -1293,7 +1297,11 @@
       "vatten": "VANN"
     },
     "tabsAriaLabel": "Innstillingsfaner",
-    "title": "INNSTILLINGER"
+    "title": "INNSTILLINGER",
+    "apps": {
+      "hint": "Slå funksjoner av eller på. En avslått app er skjult, stille og gjør ikke noe arbeid. Å slå på en app slår også på det den trenger; å slå av en slår av det som trenger den.",
+      "needs": "Krever: {{list}}"
+    }
   },
   "spacify": {
     "hint": "Valgfritt: logg inn med Spacify-kontoen din for å ha lagrede tilstander, forhåndsinnstillinger og omgivelser på alle enhetene dine.",

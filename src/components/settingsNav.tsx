@@ -12,6 +12,7 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  Blocks,
   Camera,
   Clock,
   Cloud,
@@ -75,6 +76,7 @@ export type SettingsGroupId =
   | "interval"
   | "graphics"
   | "sound"
+  | "apps"
   | "app";
 
 export type SettingsCategoryId = "top" | "scene" | "sea" | "bather" | "system";
@@ -105,6 +107,7 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
   { id: "interval", category: "bather", icon: Timer },
   { id: "graphics", category: "system", icon: Monitor },
   { id: "sound", category: "system", icon: Volume2 },
+  { id: "apps", category: "system", icon: Blocks },
   { id: "app", category: "system", icon: Settings2 },
 ];
 

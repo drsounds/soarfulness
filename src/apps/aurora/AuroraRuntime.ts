@@ -45,6 +45,10 @@ export class AuroraRuntime implements AppRuntime<AuroraSettings> {
     });
   }
 
+  shutdown() {
+    this.aurora.hide();
+  }
+
   dispose() {
     this.aurora.dispose();
   }

@@ -9,6 +9,8 @@ import { TORUS_RING_TEXTURES, type TorusRingsSettings } from "./settings";
  */
 export class TorusRingsRuntime implements AppRuntime<TorusRingsSettings> {
   private readonly field: TorusRingField;
+  private on = true;
+  private last: { s: Readonly<TorusRingsSettings>; low: boolean } | null = null;
 
   constructor(ctx: SceneAppContext) {
     // Placeholder config: the host calls configure() right after creation.
@@ -33,8 +35,9 @@ export class TorusRingsRuntime implements AppRuntime<TorusRingsSettings> {
    * MeshStandardMaterial draw calls, plus its own optional texture).
    */
   configure(s: Readonly<TorusRingsSettings>, lowGraphicsMode: boolean) {
+    this.last = { s, low: lowGraphicsMode };
     this.field.setConfig({
-      enabled: s.torusRingsOn && !lowGraphicsMode,
+      enabled: this.on && s.torusRingsOn && !lowGraphicsMode,
       radius: s.torusRadius,
       tube: s.torusTube,
       scale: s.torusScale,
@@ -46,6 +49,16 @@ export class TorusRingsRuntime implements AppRuntime<TorusRingsSettings> {
       viewDistance: s.torusViewDistance,
       fadeDistance: s.torusFadeDistance,
     });
+  }
+
+  startup() {
+    this.on = true;
+    if (this.last) this.configure(this.last.s, this.last.low);
+  }
+
+  shutdown() {
+    this.on = false;
+    if (this.last) this.configure(this.last.s, this.last.low);
   }
 
   frame(f: FrameContext) {

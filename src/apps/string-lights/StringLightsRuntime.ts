@@ -26,6 +26,10 @@ export class StringLightsRuntime implements AppRuntime {
     });
   }
 
+  shutdown() {
+    this.fx.hide();
+  }
+
   dispose() {
     this.fx.dispose();
   }

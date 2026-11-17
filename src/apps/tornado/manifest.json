@@ -1,0 +1,12 @@
+{
+  "$schema": "../../core/apps/manifest.schema.json",
+  "id": "tornado",
+  "name": "VIRVEL",
+  "title": "Tornado",
+  "version": "1.0.0",
+  "description": "Feature: the tornado / whirlpool that spins the camera round a vortex, in every mode.",
+  "kind": "feature",
+  "settingsGroup": "camera",
+  "builtIn": true,
+  "dependencies": {}
+}

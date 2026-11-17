@@ -1192,6 +1192,10 @@
         "desc": "Kieli, teema, äärirajat, tietoja",
         "label": "Yleiset"
       },
+      "apps": {
+        "desc": "Ota ominaisuuksia käyttöön tai pois",
+        "label": "Sovellukset"
+      },
       "bather": {
         "desc": "Uimalasit ja huppu",
         "label": "Uimari"
@@ -1293,7 +1297,11 @@
       "vatten": "VESI"
     },
     "tabsAriaLabel": "Asetusvälilehdet",
-    "title": "ASETUKSET"
+    "title": "ASETUKSET",
+    "apps": {
+      "hint": "Ota ominaisuuksia käyttöön tai pois. Pois päältä oleva sovellus on piilossa, hiljaa eikä tee työtä. Päälle kytkeminen kytkee myös sen tarvitsemat; pois kytkeminen kytkee pois ne, jotka sitä tarvitsevat.",
+      "needs": "Vaatii: {{list}}"
+    }
   },
   "spacify": {
     "hint": "Valinnainen: kirjaudu Spacify-tililläsi, niin tallennetut tilasi, esiasetuksesi ja maisemasi ovat kaikilla laitteillasi.",

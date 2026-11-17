@@ -26,6 +26,10 @@ export class ConfettiRuntime implements AppRuntime<ConfettiSettings> {
     });
   }
 
+  shutdown() {
+    this.confetti.hide();
+  }
+
   dispose() {
     this.confetti.dispose();
   }

@@ -45,6 +45,11 @@ export class FireworksRuntime implements AppRuntime<FireworksSettings> {
     });
   }
 
+  shutdown() {
+    this.fireworks.clear();
+    this.fireworks.audio.update(false, 0, 0);
+  }
+
   dispose() {
     this.fireworks.dispose();
   }

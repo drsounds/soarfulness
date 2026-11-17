@@ -117,14 +117,12 @@ function loadPhoneState(): PhoneState {
     const apps = Array.isArray(p.apps)
       ? (p.apps as unknown[])
           .filter((a): a is Record<string, unknown> => !!a && typeof a === "object")
-          .map(
-            (a): BathApp => ({
-              id: typeof a.id === "string" ? a.id : Math.random().toString(36).slice(2),
-              name: typeof a.name === "string" ? a.name : "App",
-              url: typeof a.url === "string" ? a.url : "",
-              icon: a.icon === "youtube" || a.icon === "browser" ? a.icon : "link",
-            }),
-          )
+          .map((a): BathApp => ({
+            id: typeof a.id === "string" ? a.id : Math.random().toString(36).slice(2),
+            name: typeof a.name === "string" ? a.name : "App",
+            url: typeof a.url === "string" ? a.url : "",
+            icon: a.icon === "youtube" || a.icon === "browser" ? a.icon : "link",
+          }))
       : fallback.apps;
     return {
       x: num(p.x, fallback.x),

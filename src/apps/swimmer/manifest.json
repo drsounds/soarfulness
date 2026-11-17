@@ -1,0 +1,13 @@
+{
+  "$schema": "../../core/apps/manifest.schema.json",
+  "id": "swimmer",
+  "name": "SIMMARE",
+  "title": "Swimmer",
+  "version": "1.0.0",
+  "description": "Camera mode: float and swim in the water (the default mode).",
+  "kind": "camera-mode",
+  "settingsGroup": "mode",
+  "builtIn": true,
+  "switchable": false,
+  "dependencies": {}
+}

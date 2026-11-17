@@ -1192,6 +1192,10 @@
         "desc": "Language, theme, extreme limits, about",
         "label": "General"
       },
+      "apps": {
+        "desc": "Switch features on or off",
+        "label": "Apps"
+      },
       "bather": {
         "desc": "Goggles and hood",
         "label": "The bather"
@@ -1293,7 +1297,11 @@
       "vatten": "WATER"
     },
     "tabsAriaLabel": "Settings tabs",
-    "title": "SETTINGS"
+    "title": "SETTINGS",
+    "apps": {
+      "hint": "Switch features on or off. An app that is off is hidden, silent and does no work. Turning one on also turns on what it needs; turning one off turns off what needs it.",
+      "needs": "Needs: {{list}}"
+    }
   },
   "spacify": {
     "hint": "Optional: sign in with your Spacify account to keep your saved states, presets and scenery on all your devices.",
