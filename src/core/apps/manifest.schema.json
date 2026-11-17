@@ -6,17 +6,32 @@
   "required": ["id", "name", "title", "version", "description", "kind"],
   "additionalProperties": false,
   "properties": {
-    "$schema": { "type": "string" },
+    "$schema": {
+      "type": "string"
+    },
     "id": {
       "type": "string",
       "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
       "description": "Equal to the folder name."
     },
-    "name": { "type": "string", "description": "The in-app (Swedish) label, e.g. NORRSKEN." },
-    "title": { "type": "string", "description": "Plain English title." },
-    "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
-    "description": { "type": "string" },
-    "kind": { "enum": ["scene-fx", "screen-fx", "motion", "environment", "bather", "content"] },
+    "name": {
+      "type": "string",
+      "description": "The in-app (Swedish) label, e.g. NORRSKEN."
+    },
+    "title": {
+      "type": "string",
+      "description": "Plain English title."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "description": {
+      "type": "string"
+    },
+    "kind": {
+      "enum": ["scene-fx", "screen-fx", "motion", "environment", "bather", "content"]
+    },
     "settingsGroup": {
       "enum": [
         "state",
@@ -39,8 +54,24 @@
         "app"
       ]
     },
-    "defaultEnabled": { "type": "boolean" },
-    "dependencies": { "type": "object", "additionalProperties": { "type": "string" } },
-    "optionalDependencies": { "type": "object", "additionalProperties": { "type": "string" } }
+    "defaultEnabled": {
+      "type": "boolean"
+    },
+    "dependencies": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "optionalDependencies": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "order": {
+      "type": "number",
+      "description": "Start and frame order of the app's runtime (lower first, default 0)."
+    }
   }
 }

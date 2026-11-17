@@ -7,5 +7,6 @@
   "description": "Decorative string lights per scene with hanging curves, bulb shapes, palettes and animation. Keeps its own localStorage store (stringLights.ts) instead of a slice of the persisted settings.",
   "kind": "scene-fx",
   "settingsGroup": "effects",
+  "order": 30,
   "dependencies": {}
 }

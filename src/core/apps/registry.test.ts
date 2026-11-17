@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readdirSync, readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
+import { AppHost } from "./host";
 import { AppRegistry } from "./registry";
 import { satisfies } from "./semver";
 import type { AnyAppDefinition, AppManifest } from "./types";
@@ -66,6 +67,41 @@ describe("AppRegistry", () => {
 
   test("rejects duplicate ids", () => {
     expect(() => new AppRegistry([app("x"), app("x")])).toThrow();
+  });
+});
+
+describe("AppHost", () => {
+  const log: string[] = [];
+  const withRuntime = (def: AnyAppDefinition, frame = true): AnyAppDefinition => ({
+    ...def,
+    createRuntime: () => ({
+      ...(frame ? { frame: () => void log.push(`frame:${def.manifest.id}`) } : {}),
+      dispose: () => void log.push(`dispose:${def.manifest.id}`),
+    }),
+  });
+
+  test("starts by order with dependencies first, frames and disposes", () => {
+    log.length = 0;
+    const r = new AppRegistry([
+      withRuntime(app("hood", { order: 80 })),
+      withRuntime(app("aurora", { order: 10 })),
+      withRuntime(app("rain", { order: 5, dependencies: { wind: "^1.0.0" } })),
+      withRuntime(app("wind"), false),
+      app("day-night"),
+    ]);
+    const host = new AppHost(r, { scene: {} as never });
+    expect(host.ids()).toEqual(["wind", "rain", "aurora", "hood"]);
+    expect(host.has("day-night")).toBe(false);
+    host.frame({} as never, () => undefined);
+    expect(log).toEqual(["frame:rain", "frame:aurora", "frame:hood"]);
+    host.dispose();
+    expect(log.slice(3)).toEqual([
+      "dispose:hood",
+      "dispose:aurora",
+      "dispose:rain",
+      "dispose:wind",
+    ]);
+    expect(() => host.runtime(app("aurora"))).toThrow();
   });
 });
 

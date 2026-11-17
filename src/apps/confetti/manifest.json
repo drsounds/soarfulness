@@ -8,5 +8,6 @@
   "kind": "scene-fx",
   "settingsGroup": "events",
   "defaultEnabled": false,
+  "order": 70,
   "dependencies": {}
 }

@@ -8,6 +8,7 @@
   "kind": "scene-fx",
   "settingsGroup": "weather",
   "defaultEnabled": false,
+  "order": 50,
   "dependencies": {
     "day-night": "^1.0.0",
     "wind": "^1.0.0"
