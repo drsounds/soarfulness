@@ -35,7 +35,7 @@ import { limitMax, useExtremeLimits, type LimitedControl } from "@/lib/extremeLi
 import neonApp from "@/apps/neon/app";
 import { cloneEdgeFilter, sanitizeEdgeFilter, type EdgeFilter } from "@/lib/edgeSelect";
 import auroraApp from "@/apps/aurora/app";
-import { appRegistry } from "@/core/apps/catalog";
+import { appFlags, appRegistry } from "@/core/apps/catalog";
 import { AppHost } from "@/core/apps/host";
 import type { FrameContext } from "@/core/apps/types";
 import { AURORA_DEFAULTS, type AuroraSettings } from "@/apps/aurora/settings";
@@ -8818,7 +8818,7 @@ export function Aquafulness() {
     // in manifest order, and run each frame by `apps.frame()` below. The
     // handles are for what is more than a plain frame(): values read back
     // into the ocean shader and hooks into the physics step.
-    const apps = new AppHost(appRegistry, { scene });
+    const apps = new AppHost(appRegistry, { scene }, appFlags);
     const aurora = apps.runtime(auroraApp);
     const wind = apps.runtime(windApp);
     const openDrift = apps.runtime(openDriftApp);

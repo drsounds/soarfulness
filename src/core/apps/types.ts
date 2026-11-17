@@ -119,7 +119,20 @@ export type FrameContext = {
 // run at a specific point of the frame expose their own extra methods
 // (WindRuntime.current(), OpenDriftRuntime.step(), SnowRuntime.updateCover())
 // that the host calls where they belong.
+//
+// Lifecycle. The host creates every runtime when the scene is built, then
+// calls startup() on the runtimes of the enabled apps and shutdown() on the
+// disabled ones, so every runtime starts in a known state. After that,
+// turning an app on (AppFlags.setEnabled) calls its startup() and turning it
+// off calls its shutdown(); a disabled app's frame() is not called at all.
+// startup() makes the app's objects visible and starts what it needs to run
+// (sound, timers); shutdown() hides them again and stops them, leaving
+// nothing running or drawn. Both must be safe to call repeatedly in either
+// order. dispose() is the final teardown (scene rebuild), not part of the
+// on/off cycle.
 export interface AppRuntime<S extends object = object> {
+  startup?(): void;
+  shutdown?(): void;
   frame?(frame: FrameContext, settings: Readonly<S>): void;
   dispose(): void;
 }

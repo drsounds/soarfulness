@@ -1,3 +1,4 @@
+import { createAppFlags } from "./appFlags";
 import { AppRegistry } from "./registry";
 import type { AnyAppDefinition } from "./types";
 
@@ -12,6 +13,14 @@ const modules = import.meta.glob<{ default: AnyAppDefinition }>("../../apps/*/ap
 });
 
 export const appRegistry = new AppRegistry(Object.values(modules).map((m) => m.default));
+
+// Which of the installed apps are on: the build's edition (VITE_APP_SKU,
+// VITE_APPS_ENABLED, VITE_APPS_DISABLED) minus what the user switched off.
+export const appFlags = createAppFlags(
+  appRegistry,
+  import.meta.env,
+  typeof window === "undefined" ? undefined : window.localStorage,
+);
 
 if (import.meta.env.DEV) {
   const problems = appRegistry.validate();

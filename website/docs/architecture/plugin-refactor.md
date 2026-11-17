@@ -285,6 +285,29 @@ hook, `useDecorations`) and the `retro` post-processing pass.
 6. Add `settings.groups.*` / dial labels to all five locales (`src/locales/`).
 7. Run `bun test` and `npx tsc --noEmit`.
 
+## Turning apps on and off (feature flags and SKUs)
+
+Every app can be switched on or off. `core/apps/flags.ts` holds the
+`AppFlags` store with two layers:
+
+- **available**: what this build ships. Set by a SKU (`core/apps/skus.ts`)
+  and the env variables `VITE_APP_SKU`, `VITE_APPS_ENABLED` (allow list) and
+  `VITE_APPS_DISABLED` (deny list). An available app also pulls in the apps
+  it depends on.
+- **on**: available apps minus the ones the user switched off. The user's
+  choices are kept in `localStorage` (`aquafulness:apps:disabled`).
+
+Turning an app on turns on its dependencies; turning one off turns off its
+dependents. `setEnabled(id, enabled)` returns the changes, shutdowns first.
+
+Runtimes may implement `startup()` and `shutdown()` (see `AppRuntime`).
+`AppHost` calls `startup()` on enabled and `shutdown()` on disabled runtimes
+when the scene is built, then again on every flag change, and skips `frame()`
+for disabled apps. `shutdown()` hides the app's objects and stops its sound
+and timers; both must be safe to call repeatedly. All runtimes are still
+created, so typed handles keep working. React code reads the flags with
+`useAppFlags` / `useAppEnabled` (`core/apps/useAppFlags.ts`).
+
 ## Migration status
 
 The refactor goes in small, behavior-preserving steps, so open feature work
@@ -323,8 +346,8 @@ can keep merging.
   - [x] bath rings (`apps/torus-rings`): the ring field and its eleven
     settings; the host pushes settings with `configure(settings,
     lowGraphicsMode)` and the app host runs `frame()`.
-  - [ ] the flat cloud decks, waves, water material, camera modes, scenes,
-    sound, watercraft.
+  - The rest (flat cloud decks, waves, water material, camera modes, scenes,
+    sound, watercraft) stays in the core app by decision.
 - [ ] **Step 6:** code-split the app code (keeps the main bundle small).
   - [x] The settings dialog and every app panel in it load as their own
     chunk (`React.lazy` in `routes/index.tsx`): the main chunk went from
