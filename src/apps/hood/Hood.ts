@@ -276,6 +276,17 @@ const FRAG = /* glsl */ `
     }
     return y;
   }
+  // Ribs run along the neck edge's normal: the x of the foot point on the
+  // edge for a pixel at x that lies d below it, so on a raised or slanted
+  // edge the ribs lean with it instead of fanning from a center.
+  float neckRibX(float x, float d) {
+    float h = 0.02;
+    float y1 = neckTopY(x + h);
+    float y0 = neckTopY(x - h);
+    if (y1 < -8.0 || y0 < -8.0) return x;
+    float sl = (y1 - y0) / (2.0 * h);
+    return x - sl * d * inversesqrt(1.0 + sl * sl);
+  }
   // The top hood's rim (the opening's upper edge) at screen x, or -9 where
   // the opening doesn't reach. Mirrors hoodField()'s opening.
   float rimTopY(float x) {
@@ -514,11 +525,11 @@ const FRAG = /* glsl */ `
         // Full height under the face, narrowing to nothing where the edge
         // turns up into the hood's sides.
         Hq = H * (1.0 - smoothstep(-0.3, 0.0, q.y));
-        s = nArc;
+        s = neckRibX(p.x, v) * 2.4;
       } else if (sep) {
         v = isNeck > 0.5 ? t : -1.0;
         Hq = H;
-        s = p.x * 5.0;
+        s = neckRibX(p.x, t) * 5.0;
       } else {
         v = cut;
         Hq = H;
