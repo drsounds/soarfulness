@@ -104,6 +104,14 @@ export type HoodConfig = {
    * styles, less the heavier the cloth).
    */
   floating: number;
+  /** 0..1: VATTENFÄRG, how blue the water inside the cloth is (0 = neutral grey). */
+  waterTint?: number;
+  /** 0..1: DROPPAR, water dripping off the wet cloth's hem. */
+  dripping?: number;
+  /** 0..1: HUVA BAKÅT, the top hood pulled back off the head. */
+  pullBack?: number;
+  /** 0..1: HALS NERÅT, the funnel neck pulled down. */
+  neckBack?: number;
   /** EGEN LÄNGD: end the cloth at `length` (MUDD at the hem) instead of running on down. */
   lengthOn?: boolean;
   /**
@@ -116,8 +124,8 @@ export type HoodConfig = {
   puff3d?: boolean;
   /** 0..1: FLYTGRÄNS, the screen height below which the cloth floats. */
   floatThreshold: number;
-  /** Radians the head looks down while TITTA NER is on (0 = off / level). */
-  lookDown: number;
+  /** Radians the head looks down while ROTERA HUVUD is on (0 = off / level). */
+  rotateHead: number;
   /** FLYTDRÄKT color, shown where the cloth opens (zipper pulled down). */
   suitColor: string;
   /**
@@ -180,8 +188,12 @@ const FRAG = /* glsl */ `
   uniform float uFloatLift;
   uniform float uFloatInflate;
   uniform float uFloatLine;
-  uniform float uLookDown;
+  uniform float uRotateHead;
   uniform float uHemY;
+  uniform float uWaterTint;
+  uniform float uDrip;
+  uniform float uHoodBack;
+  uniform float uNeckBack;
   uniform float uWrap;
   uniform float uWrapRise;
   uniform float uWrapSpeed;
@@ -223,6 +235,10 @@ const FRAG = /* glsl */ `
   uniform mat3 uViewToWorld;
 
   const float HEM = 0.075;
+  // The funnel neck's top edge (screen height); HALS NERÅT pulls it down.
+  float neckEdgeY() {
+    return mix(-0.92, -0.05, uLowerHeight) + uSway.y - uNeckBack * 0.95;
+  }
   // KRAGE UPPÅT: how far up the middle of the neck cover's edge is pulled.
   const float COLLAR_UP = 0.24;
   // Set by hoodField(): 1 inside the MUDD (cuff) band.
@@ -253,14 +269,19 @@ const FRAG = /* glsl */ `
     // ÖPPNINGSBREDD: when set (> 0) the opening's half-width is that many
     // half-screen-widths (1 = the screen's edges, above 1 = wider than the
     // screen); 0 (AUTO) follows ÖPPNING.
-    float a = uOpenWidth > 0.0 ? uAspect * uOpenWidth : uAspect * mix(0.55, 0.95, uOpening) + 0.06;
-    float b = mix(0.6, 0.98, uOpening) * (1.0 - uDrop * 0.3);
+    float a0 = uOpenWidth > 0.0 ? uAspect * uOpenWidth : uAspect * mix(0.55, 0.95, uOpening) + 0.06;
+    float b0 = mix(0.6, 0.98, uOpening) * (1.0 - uDrop * 0.3);
+    // HUVA BAKÅT: the top hood is pulled back off the head, so its rim
+    // opens wide and slides up and out of view. The funnel neck keeps a0.
+    float pb = clamp(uHoodBack, 0.0, 1.0);
+    float a = a0 * (1.0 + pb * 0.9);
+    float b = b0 * (1.0 + pb * 1.1);
     // RUNDHET: the opening's corner shape, from boxy (0) to round (1).
     float n = mix(6.0, 2.0, clamp(uRound, 0.0, 1.0));
     float r;
     bool funnelOnly = uLower > 0.5 && uTopOff > 0.5;
     if (q.y > 0.0) {
-      vec2 e = abs(vec2(q.x / a, q.y / b));
+      vec2 e = abs(vec2(q.x / a, (q.y - pb * 0.25) / b));
       r = pow(pow(e.x, n) + pow(e.y, n), 1.0 / n);
       // HUVDEL off: nothing above the funnel neck.
       if (funnelOnly) r = 0.0;
@@ -269,9 +290,9 @@ const FRAG = /* glsl */ `
       // at this screen height (wider and flatter than the top of the hood).
       // On its own (HUVDEL off) the funnel neck is a wider U that stays
       // low at the sides instead of running up into the hood.
-      float edgeY = mix(-0.92, -0.05, uLowerHeight) + uSway.y;
+      float edgeY = neckEdgeY();
       float bb = max(c.y - edgeY, 0.05);
-      float aL = funnelOnly ? a * 1.5 : a;
+      float aL = funnelOnly ? a0 * 1.5 : a0;
       vec2 e = abs(vec2(q.x / aL, q.y / bb));
       float nl = n + 0.6;
       r = pow(pow(e.x, nl) + pow(e.y, nl), 1.0 / nl);
@@ -430,7 +451,7 @@ const FRAG = /* glsl */ `
     // With MUN OCH HALS on, the fabric runs all the way down.
     if (uLower > 0.5) cut = 1.0;
     // EGEN LÄNGD: the cloth ends at its hem (in the body's frame, so it
-    // shows when TITTA NER looks down), with the MUDD along it.
+    // shows when ROTERA HUVUD looks down), with the MUDD along it.
     if (uHemY > -900.0) {
       float hv = p.y - uHemY + 0.01 * sin(p.x * 9.0 + uTime * 1.1) * uMotion;
       cut = min(cut, hv);
@@ -513,13 +534,13 @@ const FRAG = /* glsl */ `
     return anchor + vec2(cs * d.x + sn * d.y, -sn * d.x + cs * d.y);
   }
 
-  // TITTA NER: the lower part of the clothes hangs on the body, not the
-  // head, so when the head tilts down by uLookDown it rises into view (a
-  // pixel at view elevation e shows the body-fixed cloth at e - uLookDown),
+  // ROTERA HUVUD: the lower part of the clothes hangs on the body, not the
+  // head, so when the head tilts down by uRotateHead it rises into view (a
+  // pixel at view elevation e shows the body-fixed cloth at e - uRotateHead),
   // while the hood above keeps following the head.
   vec2 bodyWarp(vec2 p) {
-    if (uLookDown <= 0.0) return p;
-    float e = atan(p.y * uTanHalfFov) - uLookDown;
+    if (uRotateHead <= 0.0) return p;
+    float e = atan(p.y * uTanHalfFov) - uRotateHead;
     float yb = tan(max(e, -1.45)) / uTanHalfFov;
     float w = 1.0 - smoothstep(-0.25, 0.3, p.y);
     return vec2(p.x, mix(p.y, yb, w));
@@ -547,6 +568,7 @@ const FRAG = /* glsl */ `
 
   void main() {
     vec2 p = floatWarp(bodyWarp(hangWarp(vec2(vNdc.x * uAspect, vNdc.y))));
+    vec2 pDrip = p;
     // 3D-PUFFAR: a bulging puff stands toward the head, so from the eye it
     // is seen shifted in toward the opening; it overhangs the edge and the
     // puffs further out. Find the cloth point that lands on this pixel.
@@ -573,7 +595,35 @@ const FRAG = /* glsl */ `
     float inside = smoothstep(0.0, aaT, t) * smoothstep(0.0, aaC, cut);
     // Contact shadow the hood throws onto the view just inside the opening.
     float rim = smoothstep(-0.04, 0.0, t) * (1.0 - smoothstep(0.0, aaT, t)) * smoothstep(-0.03, 0.05, cut) * uViewShadow;
-    if (inside <= 0.0 && rim <= 0.0) discard;
+    // DROPPAR: beads of water gather at the wet cloth's hem and fall.
+    vec4 drip = vec4(0.0);
+    if (uDrip > 0.001) {
+      bool hasEdge = uHemY > -900.0 || uLower < 0.5;
+      float edgeD = uHemY > -900.0 ? uHemY : mix(-1.08, 0.8, uHeight);
+      if (hasEdge) {
+        float cw = 0.12;
+        float cell = floor(pDrip.x / cw);
+        float h1 = fract(sin(cell * 12.9898) * 43758.5453);
+        float h2 = fract(sin(cell * 78.233) * 12543.17);
+        float cx = (cell + 0.2 + 0.6 * h1) * cw;
+        // Only where there is cloth hanging at this column's hem.
+        float clothHere = step(0.3, hoodField(vec2(cx, edgeD + 0.04)).x);
+        float ph = fract(uTime / (2.2 + 2.0 * h2) + h1);
+        float fall = max(ph - 0.25, 0.0);
+        float yd = edgeD - 0.01 - fall * fall * 2.2;
+        float grow = 0.55 + 0.45 * smoothstep(0.0, 0.25, ph);
+        vec2 dd = vec2((pDrip.x - cx) / (0.0085 * grow), (pDrip.y - yd) / (0.02 * grow));
+        // A teardrop: pointed on top, round below.
+        dd.y *= dd.y > 0.0 ? 0.7 : 1.0;
+        float body = 1.0 - smoothstep(0.7, 1.0, length(dd));
+        float life = step(h1, uDrip * 1.15 + 0.1) * (1.0 - smoothstep(0.82, 1.0, ph)) * clothHere;
+        float dA = body * life * clamp(uDrip * 2.0, 0.0, 1.0);
+        float spec = smoothstep(0.1, 0.0, length(dd - vec2(-0.3, 0.35)));
+        vec3 dc = mix(uHorizon, uSky, 0.5) * 0.8 + uSunCol * 0.25;
+        drip = vec4(dc + spec * 0.6, dA * 0.8);
+      }
+    }
+    if (inside <= 0.0 && rim <= 0.0 && drip.a <= 0.0) discard;
 
     // Height-field normal (view space, +z toward the eye).
     float e = 0.004;
@@ -681,7 +731,7 @@ const FRAG = /* glsl */ `
     // slider and its pull tab at the top.
     if (uLower > 0.5 && uZipper > 0.5) {
       vec2 zc = vec2(uSway.x, 0.04 + uSway.y);
-      float edgeY = mix(-0.92, -0.05, uLowerHeight) + uSway.y;
+      float edgeY = neckEdgeY();
       // BLIXTLÅS FÄST I TYGET: lay the teeth out in the cloth's own frame
       // (it sways with the hood) instead of the screen's.
       float zy = uZipFixed > 0.5 ? p.y - uSway.y : p.y;
@@ -753,7 +803,10 @@ const FRAG = /* glsl */ `
       // Fabric under the water inside the hood: tinted, dimmer, with a soft
       // caustic shimmer, and a bright meniscus along the waterline.
       float depth = max(-wl, 0.0);
-      vec3 tint = mix(uWater * 1.6 + 0.05, mix(uHorizon, uSky, 0.5) * 0.45, 0.35);
+      // VATTENFÄRG: neutral grey water by default; the slider brings back
+      // the ocean's blue.
+      vec3 blue = mix(uWater * 1.6 + 0.05, mix(uHorizon, uSky, 0.5) * 0.45, 0.35);
+      vec3 tint = mix(vec3(dot(blue, vec3(0.333))), blue, clamp(uWaterTint, 0.0, 1.0));
       float shimmer = pow(
         (0.5 + 0.5 * sin(p.x * 23.0 + uTime * 2.4 + sin(p.y * 17.0 - uTime * 1.9) * 2.0)) *
         (0.5 + 0.5 * sin(p.y * 29.0 - p.x * 11.0 - uTime * 1.7 + sin(p.x * 13.0 + uTime) * 1.5)),
@@ -771,6 +824,8 @@ const FRAG = /* glsl */ `
 
     vec3 outCol = mix(vec3(0.0), col, inside);
     float alpha = max(inside, rim * 0.25);
+    outCol = mix(outCol, drip.rgb, drip.a * (1.0 - inside * 0.4));
+    alpha = max(alpha, drip.a);
     gl_FragColor = vec4(outCol, alpha);
   }
 `;
@@ -811,8 +866,12 @@ export class Hood {
     uFloatLift: { value: number };
     uFloatInflate: { value: number };
     uFloatLine: { value: number };
-    uLookDown: { value: number };
+    uRotateHead: { value: number };
     uHemY: { value: number };
+    uWaterTint: { value: number };
+    uDrip: { value: number };
+    uHoodBack: { value: number };
+    uNeckBack: { value: number };
     uWrap: { value: number };
     uWrapRise: { value: number };
     uWrapSpeed: { value: number };
@@ -871,6 +930,8 @@ export class Hood {
   private cuffColorHex = "";
   /** 0..1: how soaked (and so how swollen) the padding is right now. */
   private soak = 0;
+  /** 0..1: how wet the cloth is (slowly dries), for DROPPAR. */
+  private wet = 0;
   private suitColorHex = "";
   private readonly tmpQ = new THREE.Quaternion();
   private readonly tmpV = new THREE.Vector3();
@@ -898,8 +959,12 @@ export class Hood {
       uFloatLift: { value: 0 },
       uFloatInflate: { value: 0 },
       uFloatLine: { value: -0.4 },
-      uLookDown: { value: 0 },
+      uRotateHead: { value: 0 },
       uHemY: { value: -1000 },
+      uWaterTint: { value: 0 },
+      uDrip: { value: 0 },
+      uHoodBack: { value: 0 },
+      uNeckBack: { value: 0 },
       uWrap: { value: 0 },
       uWrapRise: { value: 0.5 },
       uWrapSpeed: { value: 0.8 },
@@ -972,7 +1037,7 @@ export class Hood {
     u.uTopOff.value = cfg.hoodTop === false ? 1 : 0;
     u.uCollarUp.value = cfg.collarUp ? 1 : 0;
     u.uZipOpen.value = THREE.MathUtils.clamp(cfg.zipperOpen ?? 0, 0, 1);
-    u.uLookDown.value = THREE.MathUtils.clamp(cfg.lookDown ?? 0, 0, 1.3);
+    u.uRotateHead.value = THREE.MathUtils.clamp(cfg.rotateHead ?? 0, 0, 1.3);
     u.uFloatLine.value = THREE.MathUtils.lerp(
       -1.0,
       0.6,
@@ -1002,6 +1067,9 @@ export class Hood {
     u.uPuffSize.value = THREE.MathUtils.clamp(cfg.puffSize, 0, 1);
     u.uPuffHeight.value = THREE.MathUtils.clamp(cfg.puffHeight, 0, 2.5);
     u.uPuff3d.value = cfg.puff3d ? 1 : 0;
+    u.uWaterTint.value = THREE.MathUtils.clamp(cfg.waterTint ?? 0, 0, 1);
+    u.uHoodBack.value = THREE.MathUtils.clamp(cfg.pullBack ?? 0, 0, 1);
+    u.uNeckBack.value = THREE.MathUtils.clamp(cfg.neckBack ?? 0, 0, 1);
     u.uPuffThick.value = THREE.MathUtils.clamp(cfg.puffThickness ?? 0.5, 0, 1);
     u.uReflLight.value = cfg.reflectLight === false ? 0 : 1;
     // UPPBLÅSNING I VATTEN: the hood hangs down around the neck, so it is in
@@ -1021,6 +1089,12 @@ export class Hood {
       u.uFloatAmt.value = fl;
       u.uFloatLift.value = air * 0.08 - w * 0.07;
       u.uFloatInflate.value = fl * air * (1 - w * 0.6);
+      // DROPPAR: wet cloth keeps dripping for a good while after the head
+      // leaves the water (it dries far slower than the puffs sag).
+      this.wet +=
+        (target - this.wet) *
+        (1 - Math.exp(-(target > this.wet ? 1.5 : 0.07) * Math.min(Math.max(dt, 0), 0.1)));
+      u.uDrip.value = THREE.MathUtils.clamp(cfg.dripping ?? 0, 0, 1) * this.wet;
       // LÄNGD: the hem in the body's frame (0 = a short collar just under
       // the view .. 1 = ankle-long, straight down), and how much of it
       // reaches past the float suit to wrap around you in the water.

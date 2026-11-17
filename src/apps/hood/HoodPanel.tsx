@@ -30,10 +30,10 @@ type BoolKey = {
   [K in keyof HoodLayer]: HoodLayer[K] extends boolean ? K : never;
 }[keyof HoodLayer];
 
-/** Hood-wide settings: the float suit, TITTA NER, FLYTGRÄNS, buoyancy. */
+/** Hood-wide settings: the float suit, ROTERA HUVUD, FLYTGRÄNS, buoyancy. */
 export type HoodSharedSettings = {
   floatThreshold: number;
-  lookDown: boolean;
+  rotateHead: boolean;
   suitColor: string;
   suitLeg: number;
   clothesBuoyancy: boolean;
@@ -220,10 +220,12 @@ export function HoodPanel({
               })
             }
           />
+          {(!layer.lowerOn || layer.hoodTop) && pct("pullBack", t("dial.camera.hoodPullBack"))}
           {toggle("lowerOn", t("dial.camera.hoodLower"))}
           {layer.lowerOn && (
             <>
               {pct("lowerHeight", t("dial.camera.hoodLowerHeight"))}
+              {pct("neckBack", t("dial.camera.hoodNeckBack"))}
               {toggle("hoodTop", t("dial.camera.hoodTop"))}
               {toggle("collarUp", t("dial.camera.hoodCollarUp"))}
               {toggle("zipperOn", t("dial.camera.hoodZipper"))}
@@ -241,6 +243,7 @@ export function HoodPanel({
             <>
               {pct("waterLevel", t("dial.camera.hoodWaterLevel"))}
               {pct("waterCalm", t("dial.camera.hoodWaterCalm"))}
+              {pct("waterTint", t("dial.camera.hoodWaterTint"))}
             </>
           )}
           <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
@@ -338,8 +341,9 @@ export function HoodPanel({
           {toggle("hanging", t("dial.camera.hoodHanging"))}
           {toggle("viewShadow", t("dial.camera.hoodViewShadow"))}
           {pct("floating", t("dial.camera.hoodFloating"))}
+          {pct("dripping", t("dial.camera.hoodDripping"))}
 
-          {/* Hood-wide: the float suit (always worn innermost), TITTA NER,
+          {/* Hood-wide: the float suit (always worn innermost), ROTERA HUVUD,
               FLYTGRÄNS and how the clothes change the bather's buoyancy. */}
           <div className="mt-2 mb-1 text-center text-[9px] font-light tracking-[0.28em] ui-ink-faint">
             {t("dial.camera.hoodSuit")}
@@ -374,10 +378,10 @@ export function HoodPanel({
             onInc={() => setShared({ suitLeg: Math.min(1, +(shared.suitLeg + 0.1).toFixed(2)) })}
           />
           <SettingRow
-            label={t("dial.camera.hoodLookDown")}
-            value={onOff(shared.lookDown)}
-            onDec={() => setShared({ lookDown: false })}
-            onInc={() => setShared({ lookDown: true })}
+            label={t("dial.camera.hoodRotateHead")}
+            value={onOff(shared.rotateHead)}
+            onDec={() => setShared({ rotateHead: false })}
+            onInc={() => setShared({ rotateHead: true })}
           />
           <SettingRow
             label={t("dial.camera.hoodFloatThreshold")}

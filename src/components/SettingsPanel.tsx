@@ -907,12 +907,16 @@ export type SettingsPanelProps = {
   hoodCuffHeight: number;
   setHoodCuffHeight: Dispatch<SetStateAction<number>>;
   hoodCuffSize: number;
+  hoodWaterTint: number;
+  hoodDripping: number;
+  hoodPullBack: number;
+  hoodNeckBack: number;
   hoodLengthOn: boolean;
   hoodLength: number;
   hoodPuff3d: boolean;
   hoodLayer1On: boolean;
   hoodFloatThreshold: number;
-  hoodLookDown: boolean;
+  hoodRotateHead: boolean;
   hoodSuitColor: string;
   hoodSuitLeg: number;
   hoodClothesBuoyancy: boolean;
@@ -934,12 +938,16 @@ export type SettingsPanelProps = {
   hoodPuffThickness: number;
   hoodPuffInflate: number;
   setHoodCuffSize: Dispatch<SetStateAction<number>>;
+  setHoodWaterTint: Dispatch<SetStateAction<number>>;
+  setHoodDripping: Dispatch<SetStateAction<number>>;
+  setHoodPullBack: Dispatch<SetStateAction<number>>;
+  setHoodNeckBack: Dispatch<SetStateAction<number>>;
   setHoodLengthOn: Dispatch<SetStateAction<boolean>>;
   setHoodLength: Dispatch<SetStateAction<number>>;
   setHoodPuff3d: Dispatch<SetStateAction<boolean>>;
   setHoodLayer1On: Dispatch<SetStateAction<boolean>>;
   setHoodFloatThreshold: Dispatch<SetStateAction<number>>;
-  setHoodLookDown: Dispatch<SetStateAction<boolean>>;
+  setHoodRotateHead: Dispatch<SetStateAction<boolean>>;
   setHoodSuitColor: Dispatch<SetStateAction<string>>;
   setHoodSuitLeg: Dispatch<SetStateAction<number>>;
   setHoodClothesBuoyancy: Dispatch<SetStateAction<boolean>>;
@@ -2024,12 +2032,16 @@ export function SettingsPanel(props: SettingsPanelProps) {
     hoodCuffHeight,
     setHoodCuffHeight,
     hoodCuffSize,
+    hoodWaterTint,
+    hoodDripping,
+    hoodPullBack,
+    hoodNeckBack,
     hoodLengthOn,
     hoodLength,
     hoodPuff3d,
     hoodLayer1On,
     hoodFloatThreshold,
-    hoodLookDown,
+    hoodRotateHead,
     hoodSuitColor,
     hoodSuitLeg,
     hoodClothesBuoyancy,
@@ -2051,12 +2063,16 @@ export function SettingsPanel(props: SettingsPanelProps) {
     hoodPuffThickness,
     hoodPuffInflate,
     setHoodCuffSize,
+    setHoodWaterTint,
+    setHoodDripping,
+    setHoodPullBack,
+    setHoodNeckBack,
     setHoodLengthOn,
     setHoodLength,
     setHoodPuff3d,
     setHoodLayer1On,
     setHoodFloatThreshold,
-    setHoodLookDown,
+    setHoodRotateHead,
     setHoodSuitColor,
     setHoodSuitLeg,
     setHoodClothesBuoyancy,
@@ -4260,14 +4276,14 @@ export function SettingsPanel(props: SettingsPanelProps) {
           setHoodOn={setHoodOn}
           shared={{
             floatThreshold: hoodFloatThreshold,
-            lookDown: hoodLookDown,
+            rotateHead: hoodRotateHead,
             suitColor: hoodSuitColor,
             suitLeg: hoodSuitLeg,
             clothesBuoyancy: hoodClothesBuoyancy,
           }}
           setShared={(p) => {
             if (p.floatThreshold !== undefined) setHoodFloatThreshold(p.floatThreshold);
-            if (p.lookDown !== undefined) setHoodLookDown(p.lookDown);
+            if (p.rotateHead !== undefined) setHoodRotateHead(p.rotateHead);
             if (p.suitColor !== undefined) setHoodSuitColor(p.suitColor);
             if (p.suitLeg !== undefined) setHoodSuitLeg(p.suitLeg);
             if (p.clothesBuoyancy !== undefined) setHoodClothesBuoyancy(p.clothesBuoyancy);
@@ -4295,6 +4311,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
             cuff: hoodCuffOn,
             cuffHeight: hoodCuffHeight,
             cuffSize: hoodCuffSize,
+            waterTint: hoodWaterTint,
+            dripping: hoodDripping,
+            pullBack: hoodPullBack,
+            neckBack: hoodNeckBack,
             lengthOn: hoodLengthOn,
             length: hoodLength,
             puff3d: hoodPuff3d,
@@ -4340,6 +4360,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
             if (p.cuff !== undefined) setHoodCuffOn(p.cuff);
             if (p.cuffHeight !== undefined) setHoodCuffHeight(p.cuffHeight);
             if (p.cuffSize !== undefined) setHoodCuffSize(p.cuffSize);
+            if (p.waterTint !== undefined) setHoodWaterTint(p.waterTint);
+            if (p.dripping !== undefined) setHoodDripping(p.dripping);
+            if (p.pullBack !== undefined) setHoodPullBack(p.pullBack);
+            if (p.neckBack !== undefined) setHoodNeckBack(p.neckBack);
             if (p.lengthOn !== undefined) setHoodLengthOn(p.lengthOn);
             if (p.length !== undefined) setHoodLength(p.length);
             if (p.puff3d !== undefined) setHoodPuff3d(p.puff3d);
