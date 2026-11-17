@@ -35,16 +35,16 @@ import { appRegistry } from "@/core/apps/catalog";
 import { AppHost } from "@/core/apps/host";
 import type { FrameContext } from "@/core/apps/types";
 import { AURORA_DEFAULTS, type AuroraSettings } from "@/apps/aurora/settings";
-import { HOOD_DEFAULTS, type HoodSettings } from "@/apps/hood/settings";
+import { HOOD_DEFAULTS } from "@/apps/hood/settings";
 import { SNOW_DEFAULTS } from "@/apps/snow/settings";
 import { useAppSettings } from "@/core/apps/useAppSettings";
-import { CONFETTI_DEFAULTS, type ConfettiSettings } from "@/apps/confetti/settings";
-import { FIREWORKS_DEFAULTS, type FireworksSettings } from "@/apps/fireworks/settings";
-import { NEON_DEFAULTS, type NeonSettings } from "@/apps/neon/settings";
+import { CONFETTI_DEFAULTS } from "@/apps/confetti/settings";
+import { FIREWORKS_DEFAULTS } from "@/apps/fireworks/settings";
+import { NEON_DEFAULTS } from "@/apps/neon/settings";
 import { RETRO_DEFAULTS } from "@/apps/retro/settings";
 import { DAY_NIGHT_DEFAULTS } from "@/apps/day-night/settings";
 import { UNDERWATER_FOG_DEFAULTS } from "@/apps/underwater-fog/settings";
-import { OPEN_DRIFT_DEFAULTS, type OpenDriftSettings } from "@/apps/open-drift/settings";
+import { OPEN_DRIFT_DEFAULTS } from "@/apps/open-drift/settings";
 import { WIND_DEFAULTS, type WindSettings } from "@/apps/wind/settings";
 import { DECORATIONS_DEFAULTS } from "@/apps/decorations/settings";
 import {
@@ -57,7 +57,7 @@ import { WindHudPanel, type WindControls } from "@/apps/wind/WindPanel";
 import underwaterFogApp from "@/apps/underwater-fog/app";
 import openDriftApp from "@/apps/open-drift/app";
 import snowApp from "@/apps/snow/app";
-import { RAIN_DEFAULTS, type RainSettings } from "@/apps/rain/settings";
+import { RAIN_DEFAULTS } from "@/apps/rain/settings";
 import { FIREWORKS_LIGHTS } from "@/apps/fireworks/Fireworks";
 import fireworksApp from "@/apps/fireworks/app";
 import { sanitizeHoodLayers, type HoodLayer, type HoodStyle } from "@/apps/hood/hoodLayers";
@@ -2071,63 +2071,66 @@ export function Aquafulness() {
   const [gogglesLoop, setGogglesLoop] = useState(initial.gogglesLoop);
   const [gogglesIntensity, setGogglesIntensity] = useState(initial.gogglesIntensity);
   const [gogglesFpsCap, setGogglesFpsCap] = useState(initial.gogglesFpsCap);
-  const [hoodOn, setHoodOn] = useState(initial.hoodOn);
-  const [hoodHeight, setHoodHeight] = useState(initial.hoodHeight);
-  const [hoodOpening, setHoodOpening] = useState(initial.hoodOpening);
-  const [hoodColor, setHoodColor] = useState(initial.hoodColor);
-  const [hoodMetallic, setHoodMetallic] = useState(initial.hoodMetallic);
-  const [hoodMotion, setHoodMotion] = useState(initial.hoodMotion);
-  const [hoodLowerOn, setHoodLowerOn] = useState(initial.hoodLowerOn);
-  const [hoodLowerHeight, setHoodLowerHeight] = useState(initial.hoodLowerHeight);
-  const [hoodZipperOn, setHoodZipperOn] = useState(initial.hoodZipperOn);
-  const [hoodWaterOn, setHoodWaterOn] = useState(initial.hoodWaterOn);
-  const [hoodWaterLevel, setHoodWaterLevel] = useState(initial.hoodWaterLevel);
-  const [hoodOpeningWidth, setHoodOpeningWidth] = useState(initial.hoodOpeningWidth);
-  const [hoodDrop, setHoodDrop] = useState(initial.hoodDrop);
-  const [hoodWeight, setHoodWeight] = useState(initial.hoodWeight);
-  const [hoodWrinkles, setHoodWrinkles] = useState(initial.hoodWrinkles);
-  const [hoodDarkness, setHoodDarkness] = useState(initial.hoodDarkness);
-  const [hoodRoundness, setHoodRoundness] = useState(initial.hoodRoundness);
-  const [hoodStyle, setHoodStyle] = useState<HoodStyle>(initial.hoodStyle);
-  const [hoodPuffSize, setHoodPuffSize] = useState(initial.hoodPuffSize);
-  const [hoodPuffHeight, setHoodPuffHeight] = useState(initial.hoodPuffHeight);
-  const [hoodCuffOn, setHoodCuffOn] = useState(initial.hoodCuffOn);
-  const [hoodCuffHeight, setHoodCuffHeight] = useState(initial.hoodCuffHeight);
-  const [hoodCuffSize, setHoodCuffSize] = useState(initial.hoodCuffSize);
-  const [hoodSeparate, setHoodSeparate] = useState(initial.hoodSeparate);
-  const [hoodWaterTint, setHoodWaterTint] = useState(initial.hoodWaterTint);
-  const [hoodDripping, setHoodDripping] = useState(initial.hoodDripping);
-  const [hoodPullBack, setHoodPullBack] = useState(initial.hoodPullBack);
-  const [hoodNeckBack, setHoodNeckBack] = useState(initial.hoodNeckBack);
-  const [hoodLengthOn, setHoodLengthOn] = useState(initial.hoodLengthOn);
-  const [hoodLength, setHoodLength] = useState(initial.hoodLength);
-  const [hoodPuff3d, setHoodPuff3d] = useState(initial.hoodPuff3d);
-  const [hoodLayer1On, setHoodLayer1On] = useState(initial.hoodLayer1On);
-  const [hoodFloatThreshold, setHoodFloatThreshold] = useState(initial.hoodFloatThreshold);
-  const [hoodRotateHead, setHoodRotateHead] = useState(initial.hoodRotateHead);
-  const [hoodSuitColor, setHoodSuitColor] = useState(initial.hoodSuitColor);
-  const [hoodSuitLeg, setHoodSuitLeg] = useState(initial.hoodSuitLeg);
-  const [hoodClothesBuoyancy, setHoodClothesBuoyancy] = useState(initial.hoodClothesBuoyancy);
-  const [hoodZipperOpen, setHoodZipperOpen] = useState(initial.hoodZipperOpen);
-  const [hoodFloating, setHoodFloating] = useState(initial.hoodFloating);
-  const [hoodTopPart, setHoodTopPart] = useState(initial.hoodTopPart);
-  const [hoodCollarUp, setHoodCollarUp] = useState(initial.hoodCollarUp);
-  const [hoodViewShadow, setHoodViewShadow] = useState(initial.hoodViewShadow);
-  const [hoodCuffCustom, setHoodCuffCustom] = useState(initial.hoodCuffCustom);
-  const [hoodCuffColor, setHoodCuffColor] = useState(initial.hoodCuffColor);
-  const [hoodCuffMetallic, setHoodCuffMetallic] = useState(initial.hoodCuffMetallic);
-  const [hoodCuffMaterial, setHoodCuffMaterial] = useState(initial.hoodCuffMaterial);
-  const [hoodHanging, setHoodHanging] = useState(initial.hoodHanging);
-  const [hoodWaterCalm, setHoodWaterCalm] = useState(initial.hoodWaterCalm);
-  const [hoodCuffTop, setHoodCuffTop] = useState(initial.hoodCuffTop);
-  const [hoodZipperFixed, setHoodZipperFixed] = useState(initial.hoodZipperFixed);
-  const [hoodZipperPullOut, setHoodZipperPullOut] = useState(initial.hoodZipperPullOut);
-  const [hoodReflectLight, setHoodReflectLight] = useState(initial.hoodReflectLight);
-  const [hoodPuffThickness, setHoodPuffThickness] = useState(initial.hoodPuffThickness);
-  const [hoodPuffInflate, setHoodPuffInflate] = useState(initial.hoodPuffInflate);
-  const [hoodExtraLayers, setHoodExtraLayers] = useState<HoodLayer[]>(() =>
-    sanitizeHoodLayers(initial.hoodExtraLayers),
-  );
+  const hood = useAppSettings(HOOD_DEFAULTS, initial, { hoodExtraLayers: sanitizeHoodLayers });
+  const { hoodOn, hoodHeight, hoodOpening, hoodColor, hoodMetallic, hoodMotion, hoodLowerOn, hoodLowerHeight, hoodZipperOn, hoodWaterOn, hoodWaterLevel, hoodOpeningWidth, hoodDrop, hoodWeight, hoodWrinkles, hoodDarkness, hoodRoundness, hoodStyle, hoodPuffSize, hoodPuffHeight, hoodCuffOn, hoodCuffHeight, hoodCuffSize, hoodSeparate, hoodWaterTint, hoodDripping, hoodPullBack, hoodNeckBack, hoodLengthOn, hoodLength, hoodPuff3d, hoodLayer1On, hoodFloatThreshold, hoodRotateHead, hoodSuitColor, hoodSuitLeg, hoodClothesBuoyancy, hoodZipperOpen, hoodFloating, hoodTopPart, hoodCollarUp, hoodViewShadow, hoodCuffCustom, hoodCuffColor, hoodCuffMetallic, hoodCuffMaterial, hoodHanging, hoodWaterCalm, hoodCuffTop, hoodZipperFixed, hoodZipperPullOut, hoodReflectLight, hoodPuffThickness, hoodPuffInflate, hoodExtraLayers } = hood.values;
+  const {
+    hoodOn: setHoodOn,
+    hoodHeight: setHoodHeight,
+    hoodOpening: setHoodOpening,
+    hoodColor: setHoodColor,
+    hoodMetallic: setHoodMetallic,
+    hoodMotion: setHoodMotion,
+    hoodLowerOn: setHoodLowerOn,
+    hoodLowerHeight: setHoodLowerHeight,
+    hoodZipperOn: setHoodZipperOn,
+    hoodWaterOn: setHoodWaterOn,
+    hoodWaterLevel: setHoodWaterLevel,
+    hoodOpeningWidth: setHoodOpeningWidth,
+    hoodDrop: setHoodDrop,
+    hoodWeight: setHoodWeight,
+    hoodWrinkles: setHoodWrinkles,
+    hoodDarkness: setHoodDarkness,
+    hoodRoundness: setHoodRoundness,
+    hoodStyle: setHoodStyle,
+    hoodPuffSize: setHoodPuffSize,
+    hoodPuffHeight: setHoodPuffHeight,
+    hoodCuffOn: setHoodCuffOn,
+    hoodCuffHeight: setHoodCuffHeight,
+    hoodCuffSize: setHoodCuffSize,
+    hoodSeparate: setHoodSeparate,
+    hoodWaterTint: setHoodWaterTint,
+    hoodDripping: setHoodDripping,
+    hoodPullBack: setHoodPullBack,
+    hoodNeckBack: setHoodNeckBack,
+    hoodLengthOn: setHoodLengthOn,
+    hoodLength: setHoodLength,
+    hoodPuff3d: setHoodPuff3d,
+    hoodLayer1On: setHoodLayer1On,
+    hoodFloatThreshold: setHoodFloatThreshold,
+    hoodRotateHead: setHoodRotateHead,
+    hoodSuitColor: setHoodSuitColor,
+    hoodSuitLeg: setHoodSuitLeg,
+    hoodClothesBuoyancy: setHoodClothesBuoyancy,
+    hoodZipperOpen: setHoodZipperOpen,
+    hoodFloating: setHoodFloating,
+    hoodTopPart: setHoodTopPart,
+    hoodCollarUp: setHoodCollarUp,
+    hoodViewShadow: setHoodViewShadow,
+    hoodCuffCustom: setHoodCuffCustom,
+    hoodCuffColor: setHoodCuffColor,
+    hoodCuffMetallic: setHoodCuffMetallic,
+    hoodCuffMaterial: setHoodCuffMaterial,
+    hoodHanging: setHoodHanging,
+    hoodWaterCalm: setHoodWaterCalm,
+    hoodCuffTop: setHoodCuffTop,
+    hoodZipperFixed: setHoodZipperFixed,
+    hoodZipperPullOut: setHoodZipperPullOut,
+    hoodReflectLight: setHoodReflectLight,
+    hoodPuffThickness: setHoodPuffThickness,
+    hoodPuffInflate: setHoodPuffInflate,
+    hoodExtraLayers: setHoodExtraLayers,
+  } = hood.setters;
+  const { reset: resetHood, patch: patchHood } = hood;
   const [targetFps, setTargetFps] = useState(initial.targetFps);
   const [resolutionScale, setResolutionScale] = useState(initial.resolutionScale);
   const [lowGraphicsMode, setLowGraphicsMode] = useState(initial.lowGraphicsMode);
@@ -2247,12 +2250,17 @@ export function Aquafulness() {
   const [windSoundVolume, setWindSoundVolume] = useState(initial.windSoundVolume);
   const [windAltitudeAudioOn, setWindAltitudeAudioOn] = useState(initial.windAltitudeAudioOn);
   const [windPanelOpen, setWindPanelOpen] = useState(false);
-  const [openDriftOn, setOpenDriftOn] = useState(initial.openDriftOn);
-  const [openDriftCurve, setOpenDriftCurve] = useState(initial.openDriftCurve);
-  const [openDriftRadius, setOpenDriftRadius] = useState(initial.openDriftRadius);
-  const [openDriftCycleSpeed, setOpenDriftCycleSpeed] = useState(initial.openDriftCycleSpeed);
-  const [openDriftMagnitude, setOpenDriftMagnitude] = useState(initial.openDriftMagnitude);
-  const [openDriftDirection, setOpenDriftDirection] = useState(initial.openDriftDirection);
+  const openDrift = useAppSettings(OPEN_DRIFT_DEFAULTS, initial);
+  const { openDriftOn, openDriftCurve, openDriftRadius, openDriftCycleSpeed, openDriftMagnitude, openDriftDirection } = openDrift.values;
+  const {
+    openDriftOn: setOpenDriftOn,
+    openDriftCurve: setOpenDriftCurve,
+    openDriftRadius: setOpenDriftRadius,
+    openDriftCycleSpeed: setOpenDriftCycleSpeed,
+    openDriftMagnitude: setOpenDriftMagnitude,
+    openDriftDirection: setOpenDriftDirection,
+  } = openDrift.setters;
+  const { reset: resetOpendrift, patch: patchOpendrift } = openDrift;
   const [worldBoundaryOn, setWorldBoundaryOn] = useState(initial.worldBoundaryOn);
   const [worldBoundarySize, setWorldBoundarySize] = useState(initial.worldBoundarySize);
   const [worldBoundaryHeight, setWorldBoundaryHeight] = useState(initial.worldBoundaryHeight);
@@ -2379,44 +2387,60 @@ export function Aquafulness() {
     snowGrayBackdropOn: setSnowGrayBackdropOn,
   } = snow.setters;
   const { reset: resetSnow, patch: patchSnow } = snow;
-  const [rainOn, setRainOn] = useState(initial.rainOn);
-  const [rainAmount, setRainAmount] = useState(initial.rainAmount);
-  const [rainIntensity, setRainIntensity] = useState(initial.rainIntensity);
-  const [rainDropLength, setRainDropLength] = useState(initial.rainDropLength);
-  const [rainDropSize, setRainDropSize] = useState(initial.rainDropSize);
-  const [rainOpacity, setRainOpacity] = useState(initial.rainOpacity);
-  const [rainColor, setRainColor] = useState(initial.rainColor);
-  const [rainSplashesOn, setRainSplashesOn] = useState(initial.rainSplashesOn);
-  const [rainSoundOn, setRainSoundOn] = useState(initial.rainSoundOn);
-  const [rainVolume, setRainVolume] = useState(initial.rainVolume);
-  const [fireworksOn, setFireworksOn] = useState(initial.fireworksOn);
-  const [fireworksIntensity, setFireworksIntensity] = useState(initial.fireworksIntensity);
-  const [fireworksRate, setFireworksRate] = useState(initial.fireworksRate);
-  const [fireworksDistance, setFireworksDistance] = useState(initial.fireworksDistance);
-  const [fireworksLightsOn, setFireworksLightsOn] = useState(initial.fireworksLightsOn);
-  const [fireworksLightStrength, setFireworksLightStrength] = useState(
-    initial.fireworksLightStrength,
-  );
-  const [fireworksSoundOn, setFireworksSoundOn] = useState(initial.fireworksSoundOn);
-  const [fireworksVolume, setFireworksVolume] = useState(initial.fireworksVolume);
-  const [confettiOn, setConfettiOn] = useState(initial.confettiOn);
-  const [confettiAmount, setConfettiAmount] = useState(initial.confettiAmount);
-  const [confettiIntensity, setConfettiIntensity] = useState(initial.confettiIntensity);
-  const [confettiPalette, setConfettiPalette] = useState(initial.confettiPalette);
-  const [confettiFlutter, setConfettiFlutter] = useState(initial.confettiFlutter);
-  const [neonOn, setNeonOn] = useState(initial.neonOn);
-  const [neonMode, setNeonMode] = useState(initial.neonMode);
-  const [neonPrimary, setNeonPrimary] = useState(initial.neonPrimary);
-  const [neonSecondary, setNeonSecondary] = useState(initial.neonSecondary);
-  const [neonTint, setNeonTint] = useState(initial.neonTint);
-  const [neonTintAmount, setNeonTintAmount] = useState(initial.neonTintAmount);
-  const [neonEdgeFilter, setNeonEdgeFilter] = useState<EdgeFilter>(() =>
-    sanitizeEdgeFilter(initial.neonEdgeFilter),
-  );
-  const [neonStrength, setNeonStrength] = useState(initial.neonStrength);
-  const [neonWidth, setNeonWidth] = useState(initial.neonWidth);
-  const [neonFrequency, setNeonFrequency] = useState(initial.neonFrequency);
-  const [neonAccentColor, setNeonAccentColor] = useState(initial.neonAccentColor);
+  const rain = useAppSettings(RAIN_DEFAULTS, initial);
+  const { rainOn, rainAmount, rainIntensity, rainDropLength, rainDropSize, rainOpacity, rainColor, rainSplashesOn, rainSoundOn, rainVolume } = rain.values;
+  const {
+    rainOn: setRainOn,
+    rainAmount: setRainAmount,
+    rainIntensity: setRainIntensity,
+    rainDropLength: setRainDropLength,
+    rainDropSize: setRainDropSize,
+    rainOpacity: setRainOpacity,
+    rainColor: setRainColor,
+    rainSplashesOn: setRainSplashesOn,
+    rainSoundOn: setRainSoundOn,
+    rainVolume: setRainVolume,
+  } = rain.setters;
+  const { reset: resetRain, patch: patchRain } = rain;
+  const fireworks = useAppSettings(FIREWORKS_DEFAULTS, initial);
+  const { fireworksOn, fireworksIntensity, fireworksRate, fireworksDistance, fireworksLightsOn, fireworksLightStrength, fireworksSoundOn, fireworksVolume } = fireworks.values;
+  const {
+    fireworksOn: setFireworksOn,
+    fireworksIntensity: setFireworksIntensity,
+    fireworksRate: setFireworksRate,
+    fireworksDistance: setFireworksDistance,
+    fireworksLightsOn: setFireworksLightsOn,
+    fireworksLightStrength: setFireworksLightStrength,
+    fireworksSoundOn: setFireworksSoundOn,
+    fireworksVolume: setFireworksVolume,
+  } = fireworks.setters;
+  const { reset: resetFireworks, patch: patchFireworks } = fireworks;
+  const confetti = useAppSettings(CONFETTI_DEFAULTS, initial);
+  const { confettiOn, confettiAmount, confettiIntensity, confettiPalette, confettiFlutter } = confetti.values;
+  const {
+    confettiOn: setConfettiOn,
+    confettiAmount: setConfettiAmount,
+    confettiIntensity: setConfettiIntensity,
+    confettiPalette: setConfettiPalette,
+    confettiFlutter: setConfettiFlutter,
+  } = confetti.setters;
+  const { reset: resetConfetti, patch: patchConfetti } = confetti;
+  const neon = useAppSettings(NEON_DEFAULTS, initial, { neonEdgeFilter: sanitizeEdgeFilter });
+  const { neonOn, neonMode, neonPrimary, neonSecondary, neonTint, neonTintAmount, neonStrength, neonWidth, neonFrequency, neonEdgeFilter, neonAccentColor } = neon.values;
+  const {
+    neonOn: setNeonOn,
+    neonMode: setNeonMode,
+    neonPrimary: setNeonPrimary,
+    neonSecondary: setNeonSecondary,
+    neonTint: setNeonTint,
+    neonTintAmount: setNeonTintAmount,
+    neonStrength: setNeonStrength,
+    neonWidth: setNeonWidth,
+    neonFrequency: setNeonFrequency,
+    neonEdgeFilter: setNeonEdgeFilter,
+    neonAccentColor: setNeonAccentColor,
+  } = neon.setters;
+  const { reset: resetNeon, patch: patchNeon } = neon;
   const [auroraOn, setAuroraOn] = useState(initial.auroraOn);
   const [auroraIntensity, setAuroraIntensity] = useState(initial.auroraIntensity);
   const [auroraAmount, setAuroraAmount] = useState(initial.auroraAmount);
@@ -2614,6 +2638,14 @@ export function Aquafulness() {
     snowIntensity,
     setSnowAmount,
     setSnowIntensity,
+    setRainAmount,
+    setRainIntensity,
+    setOpenDriftMagnitude,
+    setOpenDriftRadius,
+    setFireworksIntensity,
+    setFireworksRate,
+    setConfettiAmount,
+    setConfettiIntensity,
     confettiAmount,
     confettiIntensity,
     waveAmp,
@@ -3025,125 +3057,18 @@ export function Aquafulness() {
   };
   const windSettingsRef = useRef(windSettings);
   windSettingsRef.current = windSettings;
-  const openDriftSettings: OpenDriftSettings = {
-    openDriftOn,
-    openDriftCurve,
-    openDriftRadius,
-    openDriftCycleSpeed,
-    openDriftMagnitude,
-    openDriftDirection,
-  };
-  const openDriftSettingsRef = useRef(openDriftSettings);
-  openDriftSettingsRef.current = openDriftSettings;
-  const rainSettings: RainSettings = {
-    rainOn,
-    rainAmount,
-    rainIntensity,
-    rainDropLength,
-    rainDropSize,
-    rainOpacity,
-    rainColor,
-    rainSplashesOn,
-    rainSoundOn,
-    rainVolume,
-  };
-  const rainSettingsRef = useRef(rainSettings);
-  rainSettingsRef.current = rainSettings;
-  const confettiSettings: ConfettiSettings = {
-    confettiOn,
-    confettiAmount,
-    confettiIntensity,
-    confettiPalette,
-    confettiFlutter,
-  };
-  const confettiSettingsRef = useRef(confettiSettings);
-  confettiSettingsRef.current = confettiSettings;
-  const fireworksSettings: FireworksSettings = {
-    fireworksOn,
-    fireworksIntensity,
-    fireworksRate,
-    fireworksDistance,
-    fireworksLightsOn,
-    fireworksLightStrength,
-    fireworksSoundOn,
-    fireworksVolume,
-  };
-  const fireworksSettingsRef = useRef(fireworksSettings);
-  fireworksSettingsRef.current = fireworksSettings;
-  const neonSettings: NeonSettings = {
-    neonOn,
-    neonMode,
-    neonPrimary,
-    neonSecondary,
-    neonTint,
-    neonTintAmount,
-    neonEdgeFilter,
-    neonStrength,
-    neonWidth,
-    neonFrequency,
-    neonAccentColor,
-  };
-  const neonSettingsRef = useRef(neonSettings);
-  neonSettingsRef.current = neonSettings;
-  const hoodSettings: HoodSettings = {
-    hoodOn,
-    hoodHeight,
-    hoodOpening,
-    hoodColor,
-    hoodMetallic,
-    hoodMotion,
-    hoodLowerOn,
-    hoodLowerHeight,
-    hoodZipperOn,
-    hoodWaterOn,
-    hoodWaterLevel,
-    hoodOpeningWidth,
-    hoodDrop,
-    hoodWeight,
-    hoodWrinkles,
-    hoodDarkness,
-    hoodRoundness,
-    hoodStyle,
-    hoodPuffSize,
-    hoodPuffHeight,
-    hoodCuffOn,
-    hoodCuffHeight,
-    hoodCuffSize,
-    hoodSeparate,
-    hoodWaterTint,
-    hoodDripping,
-    hoodPullBack,
-    hoodNeckBack,
-    hoodLengthOn,
-    hoodLength,
-    hoodPuff3d,
-    hoodLayer1On,
-    hoodFloatThreshold,
-    hoodRotateHead,
-    hoodSuitColor,
-    hoodSuitLeg,
-    hoodClothesBuoyancy,
-    hoodZipperOpen,
-    hoodFloating,
-    hoodTopPart,
-    hoodCollarUp,
-    hoodViewShadow,
-    hoodCuffCustom,
-    hoodCuffColor,
-    hoodCuffMetallic,
-    hoodCuffMaterial,
-    hoodHanging,
-    hoodWaterCalm,
-    hoodCuffTop,
-    hoodZipperFixed,
-    hoodZipperPullOut,
-    hoodReflectLight,
-    hoodPuffThickness,
-    hoodPuffInflate,
-    hoodExtraLayers,
-  };
-  const hoodSettingsRef = useRef(hoodSettings);
-  hoodSettingsRef.current = hoodSettings;
+  const openDriftSettingsRef = useRef(openDrift.values);
+  openDriftSettingsRef.current = openDrift.values;
+  const rainSettingsRef = useRef(rain.values);
+  rainSettingsRef.current = rain.values;
+  const confettiSettingsRef = useRef(confetti.values);
+  confettiSettingsRef.current = confetti.values;
+  const fireworksSettingsRef = useRef(fireworks.values);
+  fireworksSettingsRef.current = fireworks.values;
+  const neonSettingsRef = useRef(neon.values);
+  neonSettingsRef.current = neon.values;
+  const hoodSettingsRef = useRef(hood.values);
+  hoodSettingsRef.current = hood.values;
   // NORRSKEN (apps/aurora): its settings slice, read by the render loop.
   const auroraSettingsRef = useRef<AuroraSettings>({
     auroraOn,
@@ -5439,61 +5364,7 @@ export function Aquafulness() {
     setGogglesLoop(DEFAULTS.gogglesLoop);
     setGogglesIntensity(DEFAULTS.gogglesIntensity);
     setGogglesFpsCap(DEFAULTS.gogglesFpsCap);
-    setHoodOn(DEFAULTS.hoodOn);
-    setHoodHeight(DEFAULTS.hoodHeight);
-    setHoodOpening(DEFAULTS.hoodOpening);
-    setHoodColor(DEFAULTS.hoodColor);
-    setHoodMetallic(DEFAULTS.hoodMetallic);
-    setHoodMotion(DEFAULTS.hoodMotion);
-    setHoodLowerOn(DEFAULTS.hoodLowerOn);
-    setHoodLowerHeight(DEFAULTS.hoodLowerHeight);
-    setHoodZipperOn(DEFAULTS.hoodZipperOn);
-    setHoodWaterOn(DEFAULTS.hoodWaterOn);
-    setHoodWaterLevel(DEFAULTS.hoodWaterLevel);
-    setHoodOpeningWidth(DEFAULTS.hoodOpeningWidth);
-    setHoodDrop(DEFAULTS.hoodDrop);
-    setHoodWeight(DEFAULTS.hoodWeight);
-    setHoodWrinkles(DEFAULTS.hoodWrinkles);
-    setHoodDarkness(DEFAULTS.hoodDarkness);
-    setHoodRoundness(DEFAULTS.hoodRoundness);
-    setHoodStyle(DEFAULTS.hoodStyle);
-    setHoodPuffSize(DEFAULTS.hoodPuffSize);
-    setHoodPuffHeight(DEFAULTS.hoodPuffHeight);
-    setHoodCuffOn(DEFAULTS.hoodCuffOn);
-    setHoodCuffHeight(DEFAULTS.hoodCuffHeight);
-    setHoodCuffSize(DEFAULTS.hoodCuffSize);
-    setHoodSeparate(DEFAULTS.hoodSeparate);
-    setHoodWaterTint(DEFAULTS.hoodWaterTint);
-    setHoodDripping(DEFAULTS.hoodDripping);
-    setHoodPullBack(DEFAULTS.hoodPullBack);
-    setHoodNeckBack(DEFAULTS.hoodNeckBack);
-    setHoodLengthOn(DEFAULTS.hoodLengthOn);
-    setHoodLength(DEFAULTS.hoodLength);
-    setHoodPuff3d(DEFAULTS.hoodPuff3d);
-    setHoodLayer1On(DEFAULTS.hoodLayer1On);
-    setHoodFloatThreshold(DEFAULTS.hoodFloatThreshold);
-    setHoodRotateHead(DEFAULTS.hoodRotateHead);
-    setHoodSuitColor(DEFAULTS.hoodSuitColor);
-    setHoodSuitLeg(DEFAULTS.hoodSuitLeg);
-    setHoodClothesBuoyancy(DEFAULTS.hoodClothesBuoyancy);
-    setHoodZipperOpen(DEFAULTS.hoodZipperOpen);
-    setHoodFloating(DEFAULTS.hoodFloating);
-    setHoodTopPart(DEFAULTS.hoodTopPart);
-    setHoodCollarUp(DEFAULTS.hoodCollarUp);
-    setHoodViewShadow(DEFAULTS.hoodViewShadow);
-    setHoodCuffCustom(DEFAULTS.hoodCuffCustom);
-    setHoodCuffColor(DEFAULTS.hoodCuffColor);
-    setHoodCuffMetallic(DEFAULTS.hoodCuffMetallic);
-    setHoodCuffMaterial(DEFAULTS.hoodCuffMaterial);
-    setHoodHanging(DEFAULTS.hoodHanging);
-    setHoodWaterCalm(DEFAULTS.hoodWaterCalm);
-    setHoodCuffTop(DEFAULTS.hoodCuffTop);
-    setHoodZipperFixed(DEFAULTS.hoodZipperFixed);
-    setHoodZipperPullOut(DEFAULTS.hoodZipperPullOut);
-    setHoodReflectLight(DEFAULTS.hoodReflectLight);
-    setHoodPuffThickness(DEFAULTS.hoodPuffThickness);
-    setHoodPuffInflate(DEFAULTS.hoodPuffInflate);
-    setHoodExtraLayers(DEFAULTS.hoodExtraLayers);
+    resetHood();
     setTargetFps(DEFAULTS.targetFps);
     setResolutionScale(DEFAULTS.resolutionScale);
     setLowGraphicsMode(DEFAULTS.lowGraphicsMode);
@@ -5569,12 +5440,7 @@ export function Aquafulness() {
     setWindSoundOn(DEFAULTS.windSoundOn);
     setWindSoundVolume(DEFAULTS.windSoundVolume);
     setWindAltitudeAudioOn(DEFAULTS.windAltitudeAudioOn);
-    setOpenDriftOn(DEFAULTS.openDriftOn);
-    setOpenDriftCurve(DEFAULTS.openDriftCurve);
-    setOpenDriftRadius(DEFAULTS.openDriftRadius);
-    setOpenDriftCycleSpeed(DEFAULTS.openDriftCycleSpeed);
-    setOpenDriftMagnitude(DEFAULTS.openDriftMagnitude);
-    setOpenDriftDirection(DEFAULTS.openDriftDirection);
+    resetOpendrift();
     setWorldBoundaryOn(DEFAULTS.worldBoundaryOn);
     setWorldBoundarySize(DEFAULTS.worldBoundarySize);
     setWorldBoundaryHeight(DEFAULTS.worldBoundaryHeight);
@@ -5615,40 +5481,10 @@ export function Aquafulness() {
     setEnvSunTintOn(DEFAULTS.envSunTintOn);
     resetSkyLook();
     resetSnow();
-    setRainOn(DEFAULTS.rainOn);
-    setRainAmount(DEFAULTS.rainAmount);
-    setRainIntensity(DEFAULTS.rainIntensity);
-    setRainDropLength(DEFAULTS.rainDropLength);
-    setRainDropSize(DEFAULTS.rainDropSize);
-    setRainOpacity(DEFAULTS.rainOpacity);
-    setRainColor(DEFAULTS.rainColor);
-    setRainSplashesOn(DEFAULTS.rainSplashesOn);
-    setRainSoundOn(DEFAULTS.rainSoundOn);
-    setRainVolume(DEFAULTS.rainVolume);
-    setFireworksOn(DEFAULTS.fireworksOn);
-    setFireworksIntensity(DEFAULTS.fireworksIntensity);
-    setFireworksRate(DEFAULTS.fireworksRate);
-    setFireworksDistance(DEFAULTS.fireworksDistance);
-    setFireworksLightsOn(DEFAULTS.fireworksLightsOn);
-    setFireworksLightStrength(DEFAULTS.fireworksLightStrength);
-    setFireworksSoundOn(DEFAULTS.fireworksSoundOn);
-    setFireworksVolume(DEFAULTS.fireworksVolume);
-    setConfettiOn(DEFAULTS.confettiOn);
-    setConfettiAmount(DEFAULTS.confettiAmount);
-    setConfettiIntensity(DEFAULTS.confettiIntensity);
-    setConfettiPalette(DEFAULTS.confettiPalette);
-    setConfettiFlutter(DEFAULTS.confettiFlutter);
-    setNeonOn(DEFAULTS.neonOn);
-    setNeonMode(DEFAULTS.neonMode);
-    setNeonPrimary(DEFAULTS.neonPrimary);
-    setNeonSecondary(DEFAULTS.neonSecondary);
-    setNeonTint(DEFAULTS.neonTint);
-    setNeonTintAmount(DEFAULTS.neonTintAmount);
-    setNeonEdgeFilter(cloneEdgeFilter(DEFAULTS.neonEdgeFilter));
-    setNeonStrength(DEFAULTS.neonStrength);
-    setNeonWidth(DEFAULTS.neonWidth);
-    setNeonFrequency(DEFAULTS.neonFrequency);
-    setNeonAccentColor(DEFAULTS.neonAccentColor);
+    resetRain();
+    resetFireworks();
+    resetConfetti();
+    resetNeon();
     setAuroraOn(DEFAULTS.auroraOn);
     setAuroraIntensity(DEFAULTS.auroraIntensity);
     setAuroraAmount(DEFAULTS.auroraAmount);
@@ -5816,62 +5652,7 @@ export function Aquafulness() {
     if (patch.gogglesLoop !== undefined) setGogglesLoop(patch.gogglesLoop);
     if (patch.gogglesIntensity !== undefined) setGogglesIntensity(patch.gogglesIntensity);
     if (patch.gogglesFpsCap !== undefined) setGogglesFpsCap(patch.gogglesFpsCap);
-    if (patch.hoodOn !== undefined) setHoodOn(patch.hoodOn);
-    if (patch.hoodHeight !== undefined) setHoodHeight(patch.hoodHeight);
-    if (patch.hoodOpening !== undefined) setHoodOpening(patch.hoodOpening);
-    if (patch.hoodColor !== undefined) setHoodColor(patch.hoodColor);
-    if (patch.hoodMetallic !== undefined) setHoodMetallic(patch.hoodMetallic);
-    if (patch.hoodMotion !== undefined) setHoodMotion(patch.hoodMotion);
-    if (patch.hoodLowerOn !== undefined) setHoodLowerOn(patch.hoodLowerOn);
-    if (patch.hoodLowerHeight !== undefined) setHoodLowerHeight(patch.hoodLowerHeight);
-    if (patch.hoodZipperOn !== undefined) setHoodZipperOn(patch.hoodZipperOn);
-    if (patch.hoodWaterOn !== undefined) setHoodWaterOn(patch.hoodWaterOn);
-    if (patch.hoodWaterLevel !== undefined) setHoodWaterLevel(patch.hoodWaterLevel);
-    if (patch.hoodOpeningWidth !== undefined) setHoodOpeningWidth(patch.hoodOpeningWidth);
-    if (patch.hoodDrop !== undefined) setHoodDrop(patch.hoodDrop);
-    if (patch.hoodWeight !== undefined) setHoodWeight(patch.hoodWeight);
-    if (patch.hoodWrinkles !== undefined) setHoodWrinkles(patch.hoodWrinkles);
-    if (patch.hoodDarkness !== undefined) setHoodDarkness(patch.hoodDarkness);
-    if (patch.hoodRoundness !== undefined) setHoodRoundness(patch.hoodRoundness);
-    if (patch.hoodStyle !== undefined) setHoodStyle(patch.hoodStyle);
-    if (patch.hoodPuffSize !== undefined) setHoodPuffSize(patch.hoodPuffSize);
-    if (patch.hoodPuffHeight !== undefined) setHoodPuffHeight(patch.hoodPuffHeight);
-    if (patch.hoodCuffOn !== undefined) setHoodCuffOn(patch.hoodCuffOn);
-    if (patch.hoodCuffHeight !== undefined) setHoodCuffHeight(patch.hoodCuffHeight);
-    if (patch.hoodCuffSize !== undefined) setHoodCuffSize(patch.hoodCuffSize);
-    if (patch.hoodSeparate !== undefined) setHoodSeparate(patch.hoodSeparate);
-    if (patch.hoodWaterTint !== undefined) setHoodWaterTint(patch.hoodWaterTint);
-    if (patch.hoodDripping !== undefined) setHoodDripping(patch.hoodDripping);
-    if (patch.hoodPullBack !== undefined) setHoodPullBack(patch.hoodPullBack);
-    if (patch.hoodNeckBack !== undefined) setHoodNeckBack(patch.hoodNeckBack);
-    if (patch.hoodLengthOn !== undefined) setHoodLengthOn(patch.hoodLengthOn);
-    if (patch.hoodLength !== undefined) setHoodLength(patch.hoodLength);
-    if (patch.hoodPuff3d !== undefined) setHoodPuff3d(patch.hoodPuff3d);
-    if (patch.hoodLayer1On !== undefined) setHoodLayer1On(patch.hoodLayer1On);
-    if (patch.hoodFloatThreshold !== undefined) setHoodFloatThreshold(patch.hoodFloatThreshold);
-    if (patch.hoodRotateHead !== undefined) setHoodRotateHead(patch.hoodRotateHead);
-    if (patch.hoodSuitColor !== undefined) setHoodSuitColor(patch.hoodSuitColor);
-    if (patch.hoodSuitLeg !== undefined) setHoodSuitLeg(patch.hoodSuitLeg);
-    if (patch.hoodClothesBuoyancy !== undefined) setHoodClothesBuoyancy(patch.hoodClothesBuoyancy);
-    if (patch.hoodZipperOpen !== undefined) setHoodZipperOpen(patch.hoodZipperOpen);
-    if (patch.hoodFloating !== undefined) setHoodFloating(patch.hoodFloating);
-    if (patch.hoodTopPart !== undefined) setHoodTopPart(patch.hoodTopPart);
-    if (patch.hoodCollarUp !== undefined) setHoodCollarUp(patch.hoodCollarUp);
-    if (patch.hoodViewShadow !== undefined) setHoodViewShadow(patch.hoodViewShadow);
-    if (patch.hoodCuffCustom !== undefined) setHoodCuffCustom(patch.hoodCuffCustom);
-    if (patch.hoodCuffColor !== undefined) setHoodCuffColor(patch.hoodCuffColor);
-    if (patch.hoodCuffMetallic !== undefined) setHoodCuffMetallic(patch.hoodCuffMetallic);
-    if (patch.hoodCuffMaterial !== undefined) setHoodCuffMaterial(patch.hoodCuffMaterial);
-    if (patch.hoodHanging !== undefined) setHoodHanging(patch.hoodHanging);
-    if (patch.hoodWaterCalm !== undefined) setHoodWaterCalm(patch.hoodWaterCalm);
-    if (patch.hoodCuffTop !== undefined) setHoodCuffTop(patch.hoodCuffTop);
-    if (patch.hoodZipperFixed !== undefined) setHoodZipperFixed(patch.hoodZipperFixed);
-    if (patch.hoodZipperPullOut !== undefined) setHoodZipperPullOut(patch.hoodZipperPullOut);
-    if (patch.hoodReflectLight !== undefined) setHoodReflectLight(patch.hoodReflectLight);
-    if (patch.hoodPuffThickness !== undefined) setHoodPuffThickness(patch.hoodPuffThickness);
-    if (patch.hoodPuffInflate !== undefined) setHoodPuffInflate(patch.hoodPuffInflate);
-    if (patch.hoodExtraLayers !== undefined)
-      setHoodExtraLayers(sanitizeHoodLayers(patch.hoodExtraLayers));
+    patchHood(patch);
     if (patch.targetFps !== undefined) setTargetFps(patch.targetFps);
     if (patch.resolutionScale !== undefined) setResolutionScale(patch.resolutionScale);
     if (patch.lowGraphicsMode !== undefined) setLowGraphicsMode(patch.lowGraphicsMode);
@@ -5955,12 +5736,7 @@ export function Aquafulness() {
     if (patch.windSoundOn !== undefined) setWindSoundOn(patch.windSoundOn);
     if (patch.windSoundVolume !== undefined) setWindSoundVolume(patch.windSoundVolume);
     if (patch.windAltitudeAudioOn !== undefined) setWindAltitudeAudioOn(patch.windAltitudeAudioOn);
-    if (patch.openDriftOn !== undefined) setOpenDriftOn(patch.openDriftOn);
-    if (patch.openDriftCurve !== undefined) setOpenDriftCurve(patch.openDriftCurve);
-    if (patch.openDriftRadius !== undefined) setOpenDriftRadius(patch.openDriftRadius);
-    if (patch.openDriftCycleSpeed !== undefined) setOpenDriftCycleSpeed(patch.openDriftCycleSpeed);
-    if (patch.openDriftMagnitude !== undefined) setOpenDriftMagnitude(patch.openDriftMagnitude);
-    if (patch.openDriftDirection !== undefined) setOpenDriftDirection(patch.openDriftDirection);
+    patchOpendrift(patch);
     if (patch.worldBoundaryOn !== undefined) setWorldBoundaryOn(patch.worldBoundaryOn);
     if (patch.worldBoundarySize !== undefined) setWorldBoundarySize(patch.worldBoundarySize);
     if (patch.worldBoundaryHeight !== undefined) setWorldBoundaryHeight(patch.worldBoundaryHeight);
@@ -6012,42 +5788,10 @@ export function Aquafulness() {
     if (patch.envSunTintOn !== undefined) setEnvSunTintOn(patch.envSunTintOn);
     if (patch.skyLook !== undefined) setSkyLook(sanitizeSkyLook(patch.skyLook));
     patchSnow(patch);
-    if (patch.rainOn !== undefined) setRainOn(patch.rainOn);
-    if (patch.rainAmount !== undefined) setRainAmount(patch.rainAmount);
-    if (patch.rainIntensity !== undefined) setRainIntensity(patch.rainIntensity);
-    if (patch.rainDropLength !== undefined) setRainDropLength(patch.rainDropLength);
-    if (patch.rainDropSize !== undefined) setRainDropSize(patch.rainDropSize);
-    if (patch.rainOpacity !== undefined) setRainOpacity(patch.rainOpacity);
-    if (patch.rainColor !== undefined) setRainColor(patch.rainColor);
-    if (patch.rainSplashesOn !== undefined) setRainSplashesOn(patch.rainSplashesOn);
-    if (patch.rainSoundOn !== undefined) setRainSoundOn(patch.rainSoundOn);
-    if (patch.rainVolume !== undefined) setRainVolume(patch.rainVolume);
-    if (patch.fireworksOn !== undefined) setFireworksOn(patch.fireworksOn);
-    if (patch.fireworksIntensity !== undefined) setFireworksIntensity(patch.fireworksIntensity);
-    if (patch.fireworksRate !== undefined) setFireworksRate(patch.fireworksRate);
-    if (patch.fireworksDistance !== undefined) setFireworksDistance(patch.fireworksDistance);
-    if (patch.fireworksLightsOn !== undefined) setFireworksLightsOn(patch.fireworksLightsOn);
-    if (patch.fireworksLightStrength !== undefined)
-      setFireworksLightStrength(patch.fireworksLightStrength);
-    if (patch.fireworksSoundOn !== undefined) setFireworksSoundOn(patch.fireworksSoundOn);
-    if (patch.fireworksVolume !== undefined) setFireworksVolume(patch.fireworksVolume);
-    if (patch.confettiOn !== undefined) setConfettiOn(patch.confettiOn);
-    if (patch.confettiAmount !== undefined) setConfettiAmount(patch.confettiAmount);
-    if (patch.confettiIntensity !== undefined) setConfettiIntensity(patch.confettiIntensity);
-    if (patch.confettiPalette !== undefined) setConfettiPalette(patch.confettiPalette);
-    if (patch.confettiFlutter !== undefined) setConfettiFlutter(patch.confettiFlutter);
-    if (patch.neonOn !== undefined) setNeonOn(patch.neonOn);
-    if (patch.neonMode !== undefined) setNeonMode(patch.neonMode);
-    if (patch.neonPrimary !== undefined) setNeonPrimary(patch.neonPrimary);
-    if (patch.neonSecondary !== undefined) setNeonSecondary(patch.neonSecondary);
-    if (patch.neonTint !== undefined) setNeonTint(patch.neonTint);
-    if (patch.neonTintAmount !== undefined) setNeonTintAmount(patch.neonTintAmount);
-    if (patch.neonEdgeFilter !== undefined)
-      setNeonEdgeFilter(sanitizeEdgeFilter(patch.neonEdgeFilter));
-    if (patch.neonStrength !== undefined) setNeonStrength(patch.neonStrength);
-    if (patch.neonWidth !== undefined) setNeonWidth(patch.neonWidth);
-    if (patch.neonFrequency !== undefined) setNeonFrequency(patch.neonFrequency);
-    if (patch.neonAccentColor !== undefined) setNeonAccentColor(patch.neonAccentColor);
+    patchRain(patch);
+    patchFireworks(patch);
+    patchConfetti(patch);
+    patchNeon(patch);
     if (patch.auroraOn !== undefined) setAuroraOn(patch.auroraOn);
     if (patch.auroraIntensity !== undefined) setAuroraIntensity(patch.auroraIntensity);
     if (patch.auroraAmount !== undefined) setAuroraAmount(patch.auroraAmount);
