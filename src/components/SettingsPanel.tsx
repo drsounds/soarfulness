@@ -5,6 +5,7 @@ import {
   type MutableRefObject,
   type SetStateAction,
 } from "react";
+import { useEnabledModes, useRideAppOn, useTornadoAppOn } from "@/lib/cameraModeApps";
 import { AppsPanel } from "@/core/apps/AppsPanel";
 import { appFlags, appRegistry } from "@/core/apps/catalog";
 import {
@@ -55,7 +56,6 @@ import {
   WATER_SOUND_LABEL_KEYS,
   TORUS_RING_TEXTURES,
   TORUS_TEXTURE_LABEL_KEYS,
-  CAMERA_MODES,
   CAMERA_MODE_LABEL_KEYS,
   TORNADO_DIRECTIONS,
   TORNADO_DIRECTION_LABEL_KEYS,
@@ -2181,6 +2181,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
 
   const { t } = useTranslation();
   const onOff = (v: boolean) => (v ? t("common.on") : t("common.off"));
+  const enabledModes = useEnabledModes();
+  const tornadoAppOn = useTornadoAppOn();
+  const rideAppOn = useRideAppOn();
   // EXTREME (src/lib/extremeLimits.ts): while it's off the strength/size
   // dials top out at ~25 % of their extreme max.
   const [extremeLimits, setExtremeLimits] = useExtremeLimits();
@@ -2803,9 +2806,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
           <SettingRow
             label={t("dial.camera.mode")}
             value={t(CAMERA_MODE_LABEL_KEYS[cameraMode])}
-            options={CAMERA_MODES.map((m) => t(CAMERA_MODE_LABEL_KEYS[m]))}
-            selectedIndex={CAMERA_MODES.indexOf(cameraMode)}
-            onSelectIndex={(i) => setCameraMode(CAMERA_MODES[i])}
+            options={enabledModes.map((m) => t(CAMERA_MODE_LABEL_KEYS[m]))}
+            selectedIndex={enabledModes.indexOf(cameraMode)}
+            onSelectIndex={(i) => setCameraMode(enabledModes[i])}
             onDec={() => cycleCameraMode(-1)}
             onInc={() => cycleCameraMode(1)}
           />
@@ -2931,13 +2934,15 @@ export function SettingsPanel(props: SettingsPanelProps) {
         {/* FREAK OUT: the carousel ride, its own toggle like TORNADO —
                     runs on top of every camera mode (with GUNGA both swings
                     combine). */}
-        <SettingRow
-          label={t("dial.camera.freakOutOn")}
-          value={onOff(freakOutOn)}
-          onDec={() => setFreakOutOn(false)}
-          onInc={() => setFreakOutOn(true)}
-        />
-        {freakOutOn && (
+        {rideAppOn && (
+          <SettingRow
+            label={t("dial.camera.freakOutOn")}
+            value={onOff(freakOutOn)}
+            onDec={() => setFreakOutOn(false)}
+            onInc={() => setFreakOutOn(true)}
+          />
+        )}
+        {rideAppOn && freakOutOn && (
           <>
             <SettingRow
               label={t("dial.camera.freakOutSwingAxis")}
@@ -3335,18 +3340,19 @@ export function SettingsPanel(props: SettingsPanelProps) {
                     alike — same settings drive the camera's orbit in every
                     applicable mode; the water whirlpool visual (TORNADO
                     OPENING) only applies while floating or swinging. */}
-        {(cameraMode === "float" ||
-          cameraMode === "noclip" ||
-          cameraMode === "watercraft" ||
-          cameraMode === "swing" ||
-          cameraMode === "bodyflight") && (
-          <SettingRow
-            label={t("dial.camera.tornado")}
-            value={onOff(tornadoOn)}
-            onDec={() => setTornadoOn(false)}
-            onInc={() => setTornadoOn(true)}
-          />
-        )}
+        {tornadoAppOn &&
+          (cameraMode === "float" ||
+            cameraMode === "noclip" ||
+            cameraMode === "watercraft" ||
+            cameraMode === "swing" ||
+            cameraMode === "bodyflight") && (
+            <SettingRow
+              label={t("dial.camera.tornado")}
+              value={onOff(tornadoOn)}
+              onDec={() => setTornadoOn(false)}
+              onInc={() => setTornadoOn(true)}
+            />
+          )}
         {(cameraMode === "float" ||
           cameraMode === "noclip" ||
           cameraMode === "watercraft" ||

@@ -37,6 +37,16 @@ import { cloneEdgeFilter, sanitizeEdgeFilter, type EdgeFilter } from "@/lib/edge
 import auroraApp from "@/apps/aurora/app";
 import { appFlags, appRegistry } from "@/core/apps/catalog";
 import { useAppEnabled } from "@/core/apps/useAppFlags";
+import { onAppLifecycle } from "@/core/apps/lifecycle";
+import {
+  MODE_APP_ID,
+  RIDE_APP_ID,
+  TORNADO_APP_ID,
+  isModeEnabled,
+  useEnabledModes,
+  useRideAppOn,
+  useTornadoAppOn,
+} from "@/lib/cameraModeApps";
 import { AppHost } from "@/core/apps/host";
 import type { FrameContext } from "@/core/apps/types";
 import { AURORA_DEFAULTS, type AuroraSettings } from "@/apps/aurora/settings";
@@ -2576,7 +2586,17 @@ export function Aquafulness() {
     underwaterFogBlend: setUnderwaterFogBlend,
   } = underwaterFog.setters;
   const { reset: resetUnderwaterfog, patch: patchUnderwaterfog } = underwaterFog;
-  const [cameraMode, setCameraMode] = useState<CameraMode>(initial.cameraMode);
+  const [cameraMode, setCameraModeRaw] = useState<CameraMode>(initial.cameraMode);
+  // A mode whose app is switched off (APPS) can't be entered: SIMMARE instead.
+  const setCameraMode = useCallback((v: SetStateAction<CameraMode>) => {
+    setCameraModeRaw((cur) => {
+      const next = typeof v === "function" ? v(cur) : v;
+      return isModeEnabled(next) ? next : "float";
+    });
+  }, []);
+  const enabledCameraModes = useEnabledModes();
+  const tornadoAppOn = useTornadoAppOn();
+  const rideAppOn = useRideAppOn();
   const [noclipSpeed, setNoclipSpeed] = useState(initial.noclipSpeed);
   const [noclipFallRiseSpeed, setNoclipFallRiseSpeed] = useState(initial.noclipFallRiseSpeed);
   const [noclipVertEaseTime, setNoclipVertEaseTime] = useState(initial.noclipVertEaseTime);
@@ -6168,10 +6188,29 @@ export function Aquafulness() {
     pitchRef.current = saved.pitch;
   };
 
-  // Cycle through the three camera movement schemes (float / noclip / swing).
+  // The built-in apps of the camera modes and features (src/apps/swimmer ...
+  // ride): their shutdown leaves the mode / switches the feature off. The host
+  // announces every app's state when the scene is built, so a saved bath with
+  // a disabled mode or feature is corrected right away.
+  useEffect(() => {
+    const offs = (Object.entries(MODE_APP_ID) as [CameraMode, string][]).map(([mode, id]) =>
+      onAppLifecycle(id, (e) => {
+        if (e === "shutdown" && mode !== "float")
+          setCameraModeRaw((m) => (m === mode ? "float" : m));
+      }),
+    );
+    offs.push(
+      onAppLifecycle(TORNADO_APP_ID, (e) => e === "shutdown" && setTornadoOn(false)),
+      onAppLifecycle(RIDE_APP_ID, (e) => e === "shutdown" && setFreakOutOn(false)),
+    );
+    return () => offs.forEach((off) => off());
+  }, []);
+
+  // Cycle through the camera movement schemes that are switched on.
   const cycleCameraMode = (dir: number) => {
-    const idx = CAMERA_MODES.indexOf(cameraMode);
-    setCameraMode(CAMERA_MODES[(idx + dir + CAMERA_MODES.length) % CAMERA_MODES.length]);
+    const idx = enabledCameraModes.indexOf(cameraMode);
+    const n = enabledCameraModes.length;
+    setCameraMode(enabledCameraModes[(idx + dir + n) % n]);
   };
 
   // GUNGA BEHÅLL TEMPO: turning it on remembers the current GUNGA HÖJD as
@@ -13364,23 +13403,25 @@ export function Aquafulness() {
           {(CAMERA_MODE_TAB_ORDER.includes(cameraMode)
             ? CAMERA_MODE_TAB_ORDER
             : [...CAMERA_MODE_TAB_ORDER, cameraMode]
-          ).map((m) => (
-            <HudIconButton
-              key={m}
-              label={
-                intervalSessionOn && m === cameraMode
-                  ? `${t(CAMERA_MODE_LABEL_KEYS[m])} ${t("camera.mode.autoSuffix")}`
-                  : t(CAMERA_MODE_LABEL_KEYS[m])
-              }
-              active={cameraMode === m}
-              disabled={intervalSessionOn}
-              onClick={() => setCameraMode(m)}
-            >
-              <CameraModeIcon mode={m} />
-            </HudIconButton>
-          ))}
+          )
+            .filter((m) => enabledCameraModes.includes(m))
+            .map((m) => (
+              <HudIconButton
+                key={m}
+                label={
+                  intervalSessionOn && m === cameraMode
+                    ? `${t(CAMERA_MODE_LABEL_KEYS[m])} ${t("camera.mode.autoSuffix")}`
+                    : t(CAMERA_MODE_LABEL_KEYS[m])
+                }
+                active={cameraMode === m}
+                disabled={intervalSessionOn}
+                onClick={() => setCameraMode(m)}
+              >
+                <CameraModeIcon mode={m} />
+              </HudIconButton>
+            ))}
           <div className="ui-line-2 my-0.5 h-px w-6 border-t" aria-hidden="true" />
-          {!intervalSessionOn && (
+          {!intervalSessionOn && tornadoAppOn && (
             <HudIconButton
               label={t(
                 cameraMode === "float" || cameraMode === "bodyflight"
@@ -13393,7 +13434,7 @@ export function Aquafulness() {
               <Tornado className="h-5 w-5" strokeWidth={1.6} aria-hidden="true" />
             </HudIconButton>
           )}
-          {!intervalSessionOn && (
+          {!intervalSessionOn && rideAppOn && (
             <HudIconButton
               label={t("dial.camera.freakOut")}
               active={freakOutOn}
@@ -13828,7 +13869,7 @@ export function Aquafulness() {
                   ref={drawerTabRowRef}
                   className="flex max-w-[calc(100vw-5rem)] touch-pan-x flex-nowrap gap-1 overflow-x-auto overscroll-x-contain rounded-2xl border ui-line-1 ui-surface p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>button]:shrink-0"
                 >
-                  {CAMERA_MODES.map((m) => (
+                  {enabledCameraModes.map((m) => (
                     <button
                       key={m}
                       type="button"
@@ -13841,26 +13882,30 @@ export function Aquafulness() {
                       {t(CAMERA_MODE_LABEL_KEYS[m])}
                     </button>
                   ))}
-                  <button
-                    type="button"
-                    onClick={() => setCameraDrawerTab("tornado")}
-                    aria-pressed={cameraDrawerTab === "tornado"}
-                    className={`whitespace-nowrap rounded-full px-3 py-1 text-[9px] font-light tracking-[0.2em] transition active:scale-95 ${
-                      cameraDrawerTab === "tornado" ? "ui-tint-2 ui-ink" : "ui-ink-muted"
-                    }`}
-                  >
-                    {t("dial.camera.tornado")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCameraDrawerTab("freakout")}
-                    aria-pressed={cameraDrawerTab === "freakout"}
-                    className={`whitespace-nowrap rounded-full px-3 py-1 text-[9px] font-light tracking-[0.2em] transition active:scale-95 ${
-                      cameraDrawerTab === "freakout" ? "ui-tint-2 ui-ink" : "ui-ink-muted"
-                    }`}
-                  >
-                    {t("dial.camera.freakOut")}
-                  </button>
+                  {tornadoAppOn && (
+                    <button
+                      type="button"
+                      onClick={() => setCameraDrawerTab("tornado")}
+                      aria-pressed={cameraDrawerTab === "tornado"}
+                      className={`whitespace-nowrap rounded-full px-3 py-1 text-[9px] font-light tracking-[0.2em] transition active:scale-95 ${
+                        cameraDrawerTab === "tornado" ? "ui-tint-2 ui-ink" : "ui-ink-muted"
+                      }`}
+                    >
+                      {t("dial.camera.tornado")}
+                    </button>
+                  )}
+                  {rideAppOn && (
+                    <button
+                      type="button"
+                      onClick={() => setCameraDrawerTab("freakout")}
+                      aria-pressed={cameraDrawerTab === "freakout"}
+                      className={`whitespace-nowrap rounded-full px-3 py-1 text-[9px] font-light tracking-[0.2em] transition active:scale-95 ${
+                        cameraDrawerTab === "freakout" ? "ui-tint-2 ui-ink" : "ui-ink-muted"
+                      }`}
+                    >
+                      {t("dial.camera.freakOut")}
+                    </button>
+                  )}
                   {(["torus", "sky", "level"] as const).map((tab) => (
                     <button
                       key={tab}

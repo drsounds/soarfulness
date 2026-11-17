@@ -30,7 +30,7 @@
       "type": "string"
     },
     "kind": {
-      "enum": ["scene-fx", "screen-fx", "motion", "environment", "bather", "content"]
+      "enum": ["scene-fx", "screen-fx", "motion", "environment", "bather", "content", "camera-mode", "feature"]
     },
     "settingsGroup": {
       "enum": [
@@ -51,10 +51,14 @@
         "interval",
         "graphics",
         "sound",
+        "apps",
         "app"
       ]
     },
     "defaultEnabled": {
+      "type": "boolean"
+    },
+    "builtIn": {
       "type": "boolean"
     },
     "switchable": {

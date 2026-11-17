@@ -25,7 +25,11 @@ export type AppKind =
   /** Things the bather wears or holds (hood). */
   | "bather"
   /** User content placed in the world (decorations). */
-  | "content";
+  | "content"
+  /** A way of moving through the world (swimmer, swing, fly, ...). */
+  | "camera-mode"
+  /** A switchable part of another feature (tornado, ride). */
+  | "feature";
 
 export type AppManifest = {
   /** kebab-case, equal to the folder name under src/apps/. */
@@ -56,6 +60,13 @@ export type AppManifest = {
    * code depends on them (default true).
    */
   switchable?: boolean;
+  /**
+   * A built-in ("virtual") app: its code stays in the core (routes/index.tsx
+   * and friends) and the app only declares it: id, settings, dependencies and
+   * the startup/shutdown events the core listens to (core/apps/lifecycle.ts)
+   * to show or hide its buttons and settings.
+   */
+  builtIn?: boolean;
   /** Off-by-default apps say so; the defaults in settings.ts are the truth. */
   defaultEnabled?: boolean;
 };

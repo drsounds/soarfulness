@@ -313,6 +313,22 @@ per app; a manifest can opt out with `"switchable": false` (day-night and
 decorations, which core code depends on). React code reads the flags with
 `useAppFlags` / `useAppEnabled` (`core/apps/useAppFlags.ts`).
 
+## Built-in (virtual) apps: camera modes and features
+
+Some apps only declare a feature whose code stays in the core. They are marked
+`"builtIn": true` in the manifest and have no settings slice or scene object:
+`swimmer` (SIMMARE, not switchable), `fly`, `swing`, `bodyflight`,
+`watercraft` (kind `camera-mode`) and `tornado`, `ride` (kind `feature`, one
+level below the modes). Their runtime is `BuiltInRuntime`
+(`core/apps/lifecycle.ts`): it only announces `startup` / `shutdown`, and the
+core subscribes with `onAppLifecycle(id, handler)`. `lib/cameraModeApps.ts`
+maps a `CameraMode` to its app and exposes `useEnabledModes()`,
+`useTornadoAppOn()` and `useRideAppOn()`. Switching one off hides its HUD
+button, drawer tab and settings rows; if it is the active mode the bather
+falls back to SIMMARE, and tornado / ride are turned off. Switching it on
+brings the buttons back. Next step: move each mode's and feature's settings
+keys into its app's `settings.ts` (as the other apps do).
+
 ## Migration status
 
 The refactor goes in small, behavior-preserving steps, so open feature work
