@@ -905,6 +905,8 @@ export type SettingsPanelProps = {
   hoodCuffHeight: number;
   setHoodCuffHeight: Dispatch<SetStateAction<number>>;
   hoodCuffSize: number;
+  hoodDripAmount: number;
+  hoodDripGrow: number;
   hoodReal3d: boolean;
   hoodSeparate: boolean;
   hoodWaterTint: number;
@@ -938,6 +940,8 @@ export type SettingsPanelProps = {
   hoodPuffThickness: number;
   hoodPuffInflate: number;
   setHoodCuffSize: Dispatch<SetStateAction<number>>;
+  setHoodDripAmount: Dispatch<SetStateAction<number>>;
+  setHoodDripGrow: Dispatch<SetStateAction<number>>;
   setHoodReal3d: Dispatch<SetStateAction<boolean>>;
   setHoodSeparate: Dispatch<SetStateAction<boolean>>;
   setHoodWaterTint: Dispatch<SetStateAction<number>>;
@@ -1886,6 +1890,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     hoodCuffHeight,
     setHoodCuffHeight,
     hoodCuffSize,
+    hoodDripAmount,
+    hoodDripGrow,
     hoodReal3d,
     hoodSeparate,
     hoodWaterTint,
@@ -1919,6 +1925,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     hoodPuffThickness,
     hoodPuffInflate,
     setHoodCuffSize,
+    setHoodDripAmount,
+    setHoodDripGrow,
     setHoodReal3d,
     setHoodSeparate,
     setHoodWaterTint,
@@ -3960,6 +3968,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
             cuff: hoodCuffOn,
             cuffHeight: hoodCuffHeight,
             cuffSize: hoodCuffSize,
+            dripAmount: hoodDripAmount,
+            dripGrow: hoodDripGrow,
             real3d: hoodReal3d,
             separate: hoodSeparate,
             waterTint: hoodWaterTint,
@@ -4011,6 +4021,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
             if (p.cuff !== undefined) setHoodCuffOn(p.cuff);
             if (p.cuffHeight !== undefined) setHoodCuffHeight(p.cuffHeight);
             if (p.cuffSize !== undefined) setHoodCuffSize(p.cuffSize);
+            if (p.dripAmount !== undefined) setHoodDripAmount(p.dripAmount);
+            if (p.dripGrow !== undefined) setHoodDripGrow(p.dripGrow);
             if (p.real3d !== undefined) setHoodReal3d(p.real3d);
             if (p.separate !== undefined) setHoodSeparate(p.separate);
             if (p.waterTint !== undefined) setHoodWaterTint(p.waterTint);

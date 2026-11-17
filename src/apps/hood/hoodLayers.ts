@@ -95,6 +95,10 @@ export type HoodLayer = {
   waterTint: number;
   /** 0..1: DROPPAR, water dripping from the wet cloth's hem (needs the cloth to have been in water). */
   dripping: number;
+  /** 0..1: DROPPANTAL, how many drops form along the edges. */
+  dripAmount: number;
+  /** 0..1: DROPPTILLVÄXT, how fast the beads grow and let go (slow .. fast). */
+  dripGrow: number;
   /** 0..1: HUVA BAKÅT, the top hood pulled back off the head. */
   pullBack: number;
   /** 0..1: HALS NERÅT, the funnel neck (and the lower part of the hood) pulled down. */
@@ -171,6 +175,8 @@ export const HOOD_LAYER_DEFAULTS: HoodLayer = {
   floating: 0,
   waterTint: 0,
   dripping: 0,
+  dripAmount: 0.7,
+  dripGrow: 0.5,
   pullBack: 0,
   neckBack: 0,
   separate: false,
@@ -208,6 +214,8 @@ const NUMBER_KEYS = [
   "length",
   "waterTint",
   "dripping",
+  "dripAmount",
+  "dripGrow",
   "pullBack",
   "neckBack",
 ] as const;
