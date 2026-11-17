@@ -42,6 +42,9 @@ export type HoodSettings = {
   hoodCuffOn: boolean;
   hoodCuffHeight: number;
   hoodCuffSize: number;
+  hoodLengthOn: boolean;
+  hoodLength: number;
+  hoodPuff3d: boolean;
   hoodLayer1On: boolean;
   hoodFloatThreshold: number;
   hoodLookDown: boolean;
@@ -94,6 +97,9 @@ export const HOOD_DEFAULTS: HoodSettings = {
   hoodCuffOn: false,
   hoodCuffHeight: 0.3,
   hoodCuffSize: 0.5,
+  hoodLengthOn: false,
+  hoodLength: 0.6,
+  hoodPuff3d: false,
   hoodLayer1On: true,
   hoodFloatThreshold: 0.35,
   hoodLookDown: false,

@@ -46,11 +46,7 @@ import { OPEN_DRIFT_DEFAULTS, type OpenDriftSettings } from "@/apps/open-drift/s
 import { WIND_DEFAULTS, type WindSettings } from "@/apps/wind/settings";
 import { DECORATIONS_DEFAULTS } from "@/apps/decorations/settings";
 import { StringLightsRuntime } from "@/apps/string-lights/StringLightsRuntime";
-import {
-  altitudeMix,
-  sanitizeWinds,
-  type WindSource,
-} from "@/apps/wind/wind";
+import { altitudeMix, sanitizeWinds, type WindSource } from "@/apps/wind/wind";
 import { WindRuntime } from "@/apps/wind/WindRuntime";
 import { WindHudPanel, type WindControls } from "@/apps/wind/WindPanel";
 import { UnderwaterFogRuntime } from "@/apps/underwater-fog/UnderwaterFogRuntime";
@@ -2096,6 +2092,9 @@ export function Aquafulness() {
   const [hoodCuffOn, setHoodCuffOn] = useState(initial.hoodCuffOn);
   const [hoodCuffHeight, setHoodCuffHeight] = useState(initial.hoodCuffHeight);
   const [hoodCuffSize, setHoodCuffSize] = useState(initial.hoodCuffSize);
+  const [hoodLengthOn, setHoodLengthOn] = useState(initial.hoodLengthOn);
+  const [hoodLength, setHoodLength] = useState(initial.hoodLength);
+  const [hoodPuff3d, setHoodPuff3d] = useState(initial.hoodPuff3d);
   const [hoodLayer1On, setHoodLayer1On] = useState(initial.hoodLayer1On);
   const [hoodFloatThreshold, setHoodFloatThreshold] = useState(initial.hoodFloatThreshold);
   const [hoodLookDown, setHoodLookDown] = useState(initial.hoodLookDown);
@@ -3103,6 +3102,9 @@ export function Aquafulness() {
     hoodCuffOn,
     hoodCuffHeight,
     hoodCuffSize,
+    hoodLengthOn,
+    hoodLength,
+    hoodPuff3d,
     hoodLayer1On,
     hoodFloatThreshold,
     hoodLookDown,
@@ -3234,6 +3236,9 @@ export function Aquafulness() {
     hoodCuffOn,
     hoodCuffHeight,
     hoodCuffSize,
+    hoodLengthOn,
+    hoodLength,
+    hoodPuff3d,
     hoodLayer1On,
     hoodFloatThreshold,
     hoodLookDown,
@@ -3609,6 +3614,9 @@ export function Aquafulness() {
     hoodCuffOn,
     hoodCuffHeight,
     hoodCuffSize,
+    hoodLengthOn,
+    hoodLength,
+    hoodPuff3d,
     hoodLayer1On,
     hoodFloatThreshold,
     hoodLookDown,
@@ -5432,6 +5440,9 @@ export function Aquafulness() {
     setHoodCuffOn(DEFAULTS.hoodCuffOn);
     setHoodCuffHeight(DEFAULTS.hoodCuffHeight);
     setHoodCuffSize(DEFAULTS.hoodCuffSize);
+    setHoodLengthOn(DEFAULTS.hoodLengthOn);
+    setHoodLength(DEFAULTS.hoodLength);
+    setHoodPuff3d(DEFAULTS.hoodPuff3d);
     setHoodLayer1On(DEFAULTS.hoodLayer1On);
     setHoodFloatThreshold(DEFAULTS.hoodFloatThreshold);
     setHoodLookDown(DEFAULTS.hoodLookDown);
@@ -5806,6 +5817,9 @@ export function Aquafulness() {
     if (patch.hoodCuffOn !== undefined) setHoodCuffOn(patch.hoodCuffOn);
     if (patch.hoodCuffHeight !== undefined) setHoodCuffHeight(patch.hoodCuffHeight);
     if (patch.hoodCuffSize !== undefined) setHoodCuffSize(patch.hoodCuffSize);
+    if (patch.hoodLengthOn !== undefined) setHoodLengthOn(patch.hoodLengthOn);
+    if (patch.hoodLength !== undefined) setHoodLength(patch.hoodLength);
+    if (patch.hoodPuff3d !== undefined) setHoodPuff3d(patch.hoodPuff3d);
     if (patch.hoodLayer1On !== undefined) setHoodLayer1On(patch.hoodLayer1On);
     if (patch.hoodFloatThreshold !== undefined) setHoodFloatThreshold(patch.hoodFloatThreshold);
     if (patch.hoodLookDown !== undefined) setHoodLookDown(patch.hoodLookDown);
@@ -13141,6 +13155,9 @@ export function Aquafulness() {
     hoodCuffHeight,
     setHoodCuffHeight,
     hoodCuffSize,
+    hoodLengthOn,
+    hoodLength,
+    hoodPuff3d,
     hoodLayer1On,
     hoodFloatThreshold,
     hoodLookDown,
@@ -13165,6 +13182,9 @@ export function Aquafulness() {
     hoodPuffThickness,
     hoodPuffInflate,
     setHoodCuffSize,
+    setHoodLengthOn,
+    setHoodLength,
+    setHoodPuff3d,
     setHoodLayer1On,
     setHoodFloatThreshold,
     setHoodLookDown,

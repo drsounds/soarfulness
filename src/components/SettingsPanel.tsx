@@ -907,6 +907,9 @@ export type SettingsPanelProps = {
   hoodCuffHeight: number;
   setHoodCuffHeight: Dispatch<SetStateAction<number>>;
   hoodCuffSize: number;
+  hoodLengthOn: boolean;
+  hoodLength: number;
+  hoodPuff3d: boolean;
   hoodLayer1On: boolean;
   hoodFloatThreshold: number;
   hoodLookDown: boolean;
@@ -931,6 +934,9 @@ export type SettingsPanelProps = {
   hoodPuffThickness: number;
   hoodPuffInflate: number;
   setHoodCuffSize: Dispatch<SetStateAction<number>>;
+  setHoodLengthOn: Dispatch<SetStateAction<boolean>>;
+  setHoodLength: Dispatch<SetStateAction<number>>;
+  setHoodPuff3d: Dispatch<SetStateAction<boolean>>;
   setHoodLayer1On: Dispatch<SetStateAction<boolean>>;
   setHoodFloatThreshold: Dispatch<SetStateAction<number>>;
   setHoodLookDown: Dispatch<SetStateAction<boolean>>;
@@ -2018,6 +2024,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
     hoodCuffHeight,
     setHoodCuffHeight,
     hoodCuffSize,
+    hoodLengthOn,
+    hoodLength,
+    hoodPuff3d,
     hoodLayer1On,
     hoodFloatThreshold,
     hoodLookDown,
@@ -2042,6 +2051,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
     hoodPuffThickness,
     hoodPuffInflate,
     setHoodCuffSize,
+    setHoodLengthOn,
+    setHoodLength,
+    setHoodPuff3d,
     setHoodLayer1On,
     setHoodFloatThreshold,
     setHoodLookDown,
@@ -4283,6 +4295,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
             cuff: hoodCuffOn,
             cuffHeight: hoodCuffHeight,
             cuffSize: hoodCuffSize,
+            lengthOn: hoodLengthOn,
+            length: hoodLength,
+            puff3d: hoodPuff3d,
             on: hoodLayer1On,
             zipperOpen: hoodZipperOpen,
             floating: hoodFloating,
@@ -4325,6 +4340,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
             if (p.cuff !== undefined) setHoodCuffOn(p.cuff);
             if (p.cuffHeight !== undefined) setHoodCuffHeight(p.cuffHeight);
             if (p.cuffSize !== undefined) setHoodCuffSize(p.cuffSize);
+            if (p.lengthOn !== undefined) setHoodLengthOn(p.lengthOn);
+            if (p.length !== undefined) setHoodLength(p.length);
+            if (p.puff3d !== undefined) setHoodPuff3d(p.puff3d);
             if (p.on !== undefined) setHoodLayer1On(p.on);
             if (p.zipperOpen !== undefined) setHoodZipperOpen(p.zipperOpen);
             if (p.floating !== undefined) setHoodFloating(p.floating);

@@ -104,6 +104,16 @@ export type HoodConfig = {
    * styles, less the heavier the cloth).
    */
   floating: number;
+  /** EGEN LÄNGD: end the cloth at `length` (MUDD at the hem) instead of running on down. */
+  lengthOn?: boolean;
+  /**
+   * 0..1: LÄNGD, short collar (0) .. ankle-long dress (1). Longer than the
+   * float suit (FLOAT_SUIT_LENGTH), the lower part wraps around you in the
+   * water like swimming in a dress.
+   */
+  length?: number;
+  /** 3D-PUFFAR: puffs with real depth (bulging over the opening's edge and each other). */
+  puff3d?: boolean;
   /** 0..1: FLYTGRÄNS, the screen height below which the cloth floats. */
   floatThreshold: number;
   /** Radians the head looks down while TITTA NER is on (0 = off / level). */
@@ -171,6 +181,11 @@ const FRAG = /* glsl */ `
   uniform float uFloatInflate;
   uniform float uFloatLine;
   uniform float uLookDown;
+  uniform float uHemY;
+  uniform float uWrap;
+  uniform float uWrapRise;
+  uniform float uWrapSpeed;
+  uniform float uPuff3d;
   uniform vec3 uSuitColor;
   uniform float uLowerHeight;
   uniform float uZipper;
@@ -215,6 +230,10 @@ const FRAG = /* glsl */ `
   // MUDD VID HALSKANT: the rib (0 groove .. 1 crest) and how far down the band.
   float gCuffRib = 0.5;
   float gCuffX = 0.0;
+  // Set by hoodField(): how far the padding bulges here (3D-PUFFAR).
+  float gPuff = 0.0;
+  // Set by hoodField(): 0..1 how deep into the floating dress (LÄNGD) this is.
+  float gWrap = 0.0;
 
   // x: how far into the fabric (0 at the opening's edge, < 0 in the opening),
   // y: fabric height, z: bottom-cut distance (> 0 where the fabric exists).
@@ -224,6 +243,8 @@ const FRAG = /* glsl */ `
     vec2 c = vec2(uSway.x, 0.04 + uSway.y - uDrop * 0.22);
     vec2 q = p - c;
     float ang = atan(q.y, q.x);
+    gPuff = 0.0;
+    gWrap = 0.0;
     // The hem itself ripples a little, slowest at the top of the head.
     float flutter = uMotion * (
       0.012 * sin(ang * 7.0 + uTime * 1.7) +
@@ -318,7 +339,7 @@ const FRAG = /* glsl */ `
       // Profile exponent: 1 at the default thickness, < 1 is fuller.
       float ex = (th < 0.5 ? mix(2.2, 1.0, th * 2.0) : mix(1.0, 0.35, th * 2.0 - 1.0)) * mix(1.0, 0.5, inf);
       float sp = mix(0.07, 0.26, clamp(uPuffSize, 0.0, 1.0)) * (1.0 + 0.12 * inf);
-      float amp = mix(0.0, 0.07, clamp(uPuffHeight, 0.0, 1.0)) * mix(0.7, 1.3, th) * (1.0 + 1.4 * inf);
+      float amp = 0.07 * clamp(uPuffHeight, 0.0, 2.5) * mix(0.7, 1.3, th) * (1.0 + 1.4 * inf);
       float puff;
       if (uStyle < 1.5) {
         float fu = 2.0 * fract(tc / sp) - 1.0;
@@ -337,7 +358,8 @@ const FRAG = /* glsl */ `
         puff = pow(max(0.0, 1.0 - fu * fu), 0.4 * ex) * lump;
         amp *= 1.25;
       }
-      h += amp * puff * smoothstep(HEM, HEM + 0.04, t) - g * 0.015 * gatherMask;
+      gPuff = amp * puff * smoothstep(HEM, HEM + 0.04, t);
+      h += gPuff - g * 0.015 * gatherMask;
     } else if (uStyle > 2.5) {
       // SKALJACKA: a taut, smooth shell: hardly any gathers, a few welded
       // panel seams (around the opening and running back over the head)
@@ -407,6 +429,51 @@ const FRAG = /* glsl */ `
     }
     // With MUN OCH HALS on, the fabric runs all the way down.
     if (uLower > 0.5) cut = 1.0;
+    // EGEN LÄNGD: the cloth ends at its hem (in the body's frame, so it
+    // shows when TITTA NER looks down), with the MUDD along it.
+    if (uHemY > -900.0) {
+      float hv = p.y - uHemY + 0.01 * sin(p.x * 9.0 + uTime * 1.1) * uMotion;
+      cut = min(cut, hv);
+      if (uCuff > 0.5) {
+        // Keep the band the same apparent height however far down it is.
+        float kT = uHemY * uTanHalfFov;
+        float H = mix(0.06, 0.45, clamp(uCuffHeight, 0.0, 1.0)) * (1.0 + kT * kT);
+        float x = clamp(hv / H, 0.0, 1.0);
+        float mask = (1.0 - smoothstep(H * 0.96, H, hv)) * step(-0.02, hv);
+        float freq = mix(240.0, 50.0, clamp(uCuffSize, 0.0, 1.0));
+        float rib = 0.5 + 0.5 * cos(p.x * freq);
+        if (uCuffCustom > 0.5 && uCuffMat > 0.5) rib = 0.5;
+        h += (sin(3.14159 * x) * 0.03 + 0.012 * rib) * mask;
+        if (mask > gCuff) {
+          gCuff = mask;
+          gCuffRib = rib;
+          gCuffX = x;
+        }
+      }
+    }
+    // LÄNGD past the float suit, in the water: the long lower part floats up
+    // and wraps around you like a dress while swimming, billowing higher at
+    // the sides. Light, airy cloth rises and drifts; heavy cloth clings low.
+    if (uWrap > 0.001) {
+      float sx = abs(p.x) / uAspect;
+      float yS = -1.1 + uWrap * (
+        uWrapRise * (0.18 + 0.3 * smoothstep(0.15, 1.0, sx)) +
+        0.07 * sin(p.x * 2.3 + uTime * uWrapSpeed) +
+        0.04 * sin(p.x * 5.7 - uTime * uWrapSpeed * 1.4 + 1.1));
+      float tS = yS - p.y;
+      if (tS > t || tS > cut) {
+        float ws = sin(p.x * 7.0 + sin(p.y * 2.5 + uTime * uWrapSpeed * 0.6) * 2.2 + uTime * uWrapSpeed * 0.4);
+        float hS = sin(3.14159 * clamp(tS / HEM, 0.0, 1.0)) * HEM * 0.6 +
+          0.035 * ws * smoothstep(HEM, HEM + 0.15, tS) + 0.1;
+        float k = smoothstep(-0.02, 0.02, tS - max(t, -1.0));
+        h = mix(h, hS, k);
+        gCuff *= 1.0 - k;
+        gPuff *= 1.0 - k;
+        gWrap = smoothstep(0.0, 0.5, tS) * k;
+        t = max(t, tS);
+        cut = max(cut, tS);
+      }
+    }
     return vec3(t, h, cut);
   }
 
@@ -480,7 +547,22 @@ const FRAG = /* glsl */ `
 
   void main() {
     vec2 p = floatWarp(bodyWarp(hangWarp(vec2(vNdc.x * uAspect, vNdc.y))));
+    // 3D-PUFFAR: a bulging puff stands toward the head, so from the eye it
+    // is seen shifted in toward the opening; it overhangs the edge and the
+    // puffs further out. Find the cloth point that lands on this pixel.
+    if (uPuff3d > 0.5 && ((uStyle > 0.5 && uStyle < 2.5) || uStyle > 3.5)) {
+      vec2 c0 = vec2(uSway.x, 0.04 + uSway.y - uDrop * 0.22);
+      vec2 dir = normalize(p - c0 + vec2(1e-5, 0.0));
+      vec2 s0 = p;
+      for (int i = 0; i < 4; i++) {
+        hoodField(s0);
+        s0 = p + dir * gPuff * 1.8;
+      }
+      p = s0;
+    }
     vec3 f = hoodField(p);
+    float puffHere = gPuff;
+    float wrapHere = gWrap;
     float cuffMask = gCuff;
     float cuffRib = gCuffRib;
     float cuffX = gCuffX;
@@ -497,7 +579,8 @@ const FRAG = /* glsl */ `
     float e = 0.004;
     float hx1 = hoodField(p + vec2(e, 0.0)).y;
     float hy1 = hoodField(p + vec2(0.0, e)).y;
-    vec3 nView = normalize(vec3(-(hx1 - f.y) / e, -(hy1 - f.y) / e, 1.0));
+    float nK = uPuff3d > 0.5 ? 1.7 : 1.0;
+    vec3 nView = normalize(vec3(-(hx1 - f.y) / e * nK, -(hy1 - f.y) / e * nK, 1.0));
 
     // VATTEN I HUVAN: water that has run in between the hood and the face.
     // The fabric sits about HOOD_DIST m from the eye along this pixel's view
@@ -530,6 +613,10 @@ const FRAG = /* glsl */ `
 
     // The hood's inside is in its own shade: darker the deeper into it.
     float ao = mix(1.0, 0.32, smoothstep(HEM, HEM + 0.7, t));
+    // The floating dress is out in the water, not inside the hood.
+    ao = mix(ao, 0.75, wrapHere);
+    // 3D-PUFFAR: deep, dark seams between the puffs.
+    if (uPuff3d > 0.5) ao *= mix(0.45, 1.0, smoothstep(0.0, 0.035, puffHere));
     float hemLight = 1.0 - 0.35 * smoothstep(0.0, HEM, t);
 
     float m = clamp(uMetal, 0.0, 1.0);
@@ -689,6 +776,9 @@ const FRAG = /* glsl */ `
 `;
 
 /** How much air each STIL traps in the water (FLYTANDE lift and puff, and buoyancy). */
+/** LÄNGD where the float suit's leg line sits; longer layers wrap around you in water. */
+export const FLOAT_SUIT_LENGTH = 0.55;
+
 export const HOOD_STYLE_AIR: Record<HoodConfig["style"], number> = {
   classic: 0.35,
   shell: 0.5,
@@ -722,6 +812,11 @@ export class Hood {
     uFloatInflate: { value: number };
     uFloatLine: { value: number };
     uLookDown: { value: number };
+    uHemY: { value: number };
+    uWrap: { value: number };
+    uWrapRise: { value: number };
+    uWrapSpeed: { value: number };
+    uPuff3d: { value: number };
     uSuitColor: { value: THREE.Color };
     uCollarUp: { value: number };
     uLowerHeight: { value: number };
@@ -804,6 +899,11 @@ export class Hood {
       uFloatInflate: { value: 0 },
       uFloatLine: { value: -0.4 },
       uLookDown: { value: 0 },
+      uHemY: { value: -1000 },
+      uWrap: { value: 0 },
+      uWrapRise: { value: 0.5 },
+      uWrapSpeed: { value: 0.8 },
+      uPuff3d: { value: 0 },
       uSuitColor: { value: new THREE.Color(0xe0602a) },
       uCollarUp: { value: 0 },
       uLowerHeight: { value: 0.45 },
@@ -900,7 +1000,8 @@ export class Hood {
               ? 4
               : 0;
     u.uPuffSize.value = THREE.MathUtils.clamp(cfg.puffSize, 0, 1);
-    u.uPuffHeight.value = THREE.MathUtils.clamp(cfg.puffHeight, 0, 1);
+    u.uPuffHeight.value = THREE.MathUtils.clamp(cfg.puffHeight, 0, 2.5);
+    u.uPuff3d.value = cfg.puff3d ? 1 : 0;
     u.uPuffThick.value = THREE.MathUtils.clamp(cfg.puffThickness ?? 0.5, 0, 1);
     u.uReflLight.value = cfg.reflectLight === false ? 0 : 1;
     // UPPBLÅSNING I VATTEN: the hood hangs down around the neck, so it is in
@@ -920,6 +1021,21 @@ export class Hood {
       u.uFloatAmt.value = fl;
       u.uFloatLift.value = air * 0.08 - w * 0.07;
       u.uFloatInflate.value = fl * air * (1 - w * 0.6);
+      // LÄNGD: the hem in the body's frame (0 = a short collar just under
+      // the view .. 1 = ankle-long, straight down), and how much of it
+      // reaches past the float suit to wrap around you in the water.
+      const len = THREE.MathUtils.clamp(cfg.length ?? 1, 0, 1);
+      if (cfg.lengthOn) {
+        const eH = THREE.MathUtils.lerp(-0.25, -1.45, len);
+        u.uHemY.value = Math.tan(eH) / u.uTanHalfFov.value;
+        const past = THREE.MathUtils.smoothstep(len, FLOAT_SUIT_LENGTH, FLOAT_SUIT_LENGTH + 0.3);
+        u.uWrap.value = past * this.soak;
+        u.uWrapRise.value = THREE.MathUtils.clamp(0.45 + air * 0.6 - w * 0.5, 0.05, 1.2);
+        u.uWrapSpeed.value = 0.25 + 0.9 * (1 - w * 0.7);
+      } else {
+        u.uHemY.value = -1000;
+        u.uWrap.value = 0;
+      }
     }
     u.uCuff.value = cfg.cuff ? 1 : 0;
     u.uCuffHeight.value = THREE.MathUtils.clamp(cfg.cuffHeight, 0, 1);

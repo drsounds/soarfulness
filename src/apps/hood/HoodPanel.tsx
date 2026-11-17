@@ -7,6 +7,7 @@ import { limitMax, useExtremeLimits } from "@/lib/extremeLimits";
 import {
   HOOD_CUFF_MATERIALS,
   HOOD_MAX_LAYERS,
+  HOOD_PUFF_HEIGHT_MAX,
   HOOD_PADDED_STYLES,
   HOOD_STYLES,
   hoodLayersFromFile,
@@ -96,7 +97,7 @@ export function HoodPanel({
     setSel(sel + dir);
   };
 
-  const pct = (key: NumKey, label: string) => (
+  const pct = (key: NumKey, label: string, max = 1) => (
     <SettingRow
       key={key}
       label={label}
@@ -105,10 +106,10 @@ export function HoodPanel({
       rawValue={layer[key]}
       onSet={(v) => patch({ [key]: v })}
       min={0}
-      max={1}
+      max={max}
       step={0.05}
       onDec={() => patch({ [key]: Math.max(0, +(layer[key] - 0.05).toFixed(2)) })}
-      onInc={() => patch({ [key]: Math.min(1, +(layer[key] + 0.05).toFixed(2)) })}
+      onInc={() => patch({ [key]: Math.min(max, +(layer[key] + 0.05).toFixed(2)) })}
     />
   );
   const toggle = (key: BoolKey, label: string) => (
@@ -191,6 +192,8 @@ export function HoodPanel({
           {toggle("on", t("dial.camera.hoodLayerOn"))}
           {pct("drop", t("dial.camera.hoodDrop"))}
           {!layer.lowerOn && pct("height", t("dial.camera.hoodHeight"))}
+          {toggle("lengthOn", t("dial.camera.hoodLengthOn"))}
+          {layer.lengthOn && pct("length", t("dial.camera.hoodLength"))}
           {layer.openingWidth <= 0 && pct("opening", t("dial.camera.hoodOpening"))}
           {pct("roundness", t("dial.camera.hoodRoundness"))}
           <SettingRow
@@ -272,7 +275,8 @@ export function HoodPanel({
           {HOOD_PADDED_STYLES.includes(layer.style) && (
             <>
               {pct("puffSize", t("dial.camera.hoodPuffSize"))}
-              {pct("puffHeight", t("dial.camera.hoodPuffHeight"))}
+              {pct("puffHeight", t("dial.camera.hoodPuffHeight"), HOOD_PUFF_HEIGHT_MAX)}
+              {toggle("puff3d", t("dial.camera.hoodPuff3d"))}
               {pct("puffThickness", t("dial.camera.hoodPuffThickness"))}
               {pct("puffInflate", t("dial.camera.hoodPuffInflate"))}
             </>
