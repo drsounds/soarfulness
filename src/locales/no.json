@@ -161,6 +161,7 @@
       "hoodWater": "VANN I HETTEN",
       "hoodWaterLevel": "VANNNIVÅ",
       "hoodLayer": "LAG",
+      "hoodApplyAllLayers": "BRUK PÅ ALLE HETTELAG",
       "hoodLayerOn": "LAGET VISES",
       "hoodReal3d": "ÆKTE 3D-STOFF",
       "hoodSeparate": "HETTE ADSKILT FRA HALS",

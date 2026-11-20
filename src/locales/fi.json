@@ -161,6 +161,7 @@
       "hoodWater": "VETTÄ HUPUSSA",
       "hoodWaterLevel": "VEDENPINTA",
       "hoodLayer": "KERROS",
+      "hoodApplyAllLayers": "KÄYTÄ KAIKKIIN HUPPUKERROKSIIN",
       "hoodLayerOn": "KERROS NÄKYY",
       "hoodReal3d": "OIKEA 3D-KANGAS",
       "hoodSeparate": "HUPPU ERILLÄÄN KAULASTA",

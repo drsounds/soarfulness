@@ -161,6 +161,7 @@
       "hoodWater": "VATTEN I HUVAN",
       "hoodWaterLevel": "VATTENNIVÅ",
       "hoodLayer": "LAGER",
+      "hoodApplyAllLayers": "ANVÄND PÅ ALLA HUVLAGER",
       "hoodLayerOn": "LAGRET SYNS",
       "hoodReal3d": "3D-TYG I SCENEN",
       "hoodSeparate": "HUVA SEPARAT FRÅN HALS",

@@ -27,6 +27,7 @@ export function SettingRow({
   options,
   selectedIndex,
   onSelectIndex,
+  applyToAll,
 }: {
   label: string;
   value: string;
@@ -43,6 +44,7 @@ export function SettingRow({
   options?: string[];
   selectedIndex?: number;
   onSelectIndex?: (i: number) => void;
+  applyToAll?: { label: string; onApply: () => void };
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -124,6 +126,18 @@ export function SettingRow({
             />
           ) : (
             <StepperControl label={label} value={value} onDec={onDec} onInc={onInc} />
+          )}
+          {applyToAll && (
+            <button
+              type="button"
+              onClick={() => {
+                applyToAll.onApply();
+                close();
+              }}
+              className="ui-tint-1 ui-ink ui-press w-full rounded-full border px-4 py-3 text-sm font-medium transition active:scale-[0.99]"
+            >
+              {applyToAll.label}
+            </button>
           )}
         </SettingModal>
       )}

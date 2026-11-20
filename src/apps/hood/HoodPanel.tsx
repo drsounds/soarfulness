@@ -13,6 +13,7 @@ import {
   hoodLayersFromFile,
   hoodLayersToFile,
   loadSavedHoodLayerSets,
+  patchHoodLayers,
   storeSavedHoodLayerSets,
   type HoodLayer,
   type SavedHoodLayerSet,
@@ -79,6 +80,18 @@ export function HoodPanel({
     if (act === 0) setLayer1(p);
     else setExtraLayers((ls) => ls.map((l, i) => (i === act - 1 ? { ...l, ...p } : l)));
   };
+  const patchAllLayers = (p: Partial<HoodLayer>) => {
+    const updated = patchHoodLayers(layers, p);
+    setLayer1(updated[0]);
+    setExtraLayers(updated.slice(1));
+  };
+  const applyToAll = (p: Partial<HoodLayer>) =>
+    layers.length > 1
+      ? {
+          label: t("dial.camera.hoodApplyAllLayers"),
+          onApply: () => patchAllLayers(p),
+        }
+      : undefined;
   const applyLayers = (ls: HoodLayer[]) => {
     setLayer1(ls[0]);
     setExtraLayers(ls.slice(1, HOOD_MAX_LAYERS).map((l) => ({ ...l })));
@@ -97,7 +110,9 @@ export function HoodPanel({
     setSel(sel + dir);
   };
 
-  const pct = (key: NumKey, label: string, max = 1) => (
+  const pct = (key: NumKey, label: string, max = 1) => {
+    const min = key === "weight" ? -1 : 0;
+    return (
     <SettingRow
       key={key}
       label={label}
@@ -105,18 +120,21 @@ export function HoodPanel({
       value={`${Math.round(layer[key] * 100)}%`}
       rawValue={layer[key]}
       onSet={(v) => patch({ [key]: v })}
-      min={0}
+      applyToAll={applyToAll({ [key]: layer[key] })}
+      min={min}
       max={max}
       step={0.05}
-      onDec={() => patch({ [key]: Math.max(0, +(layer[key] - 0.05).toFixed(2)) })}
+      onDec={() => patch({ [key]: Math.max(min, +(layer[key] - 0.05).toFixed(2)) })}
       onInc={() => patch({ [key]: Math.min(max, +(layer[key] + 0.05).toFixed(2)) })}
     />
-  );
+    );
+  };
   const toggle = (key: BoolKey, label: string) => (
     <SettingRow
       key={key}
       label={label}
       value={onOff(layer[key])}
+      applyToAll={applyToAll({ [key]: layer[key] })}
       onDec={() => patch({ [key]: false })}
       onInc={() => patch({ [key]: true })}
     />
@@ -204,6 +222,7 @@ export function HoodPanel({
             }
             rawValue={layer.openingWidth}
             onSet={(v) => patch({ openingWidth: v })}
+            applyToAll={applyToAll({ openingWidth: layer.openingWidth })}
             min={0}
             max={widthMax}
             step={0.05}
@@ -263,6 +282,7 @@ export function HoodPanel({
           <SettingRow
             label={t("dial.camera.hoodStyle")}
             value={t(`dial.camera.hoodStyle_${layer.style}`)}
+            applyToAll={applyToAll({ style: layer.style })}
             onDec={() =>
               patch({
                 style:
@@ -310,6 +330,7 @@ export function HoodPanel({
                   <SettingRow
                     label={t("dial.camera.hoodCuffMaterial")}
                     value={t(`dial.camera.hoodCuffMaterial_${layer.cuffMaterial}`)}
+                    applyToAll={applyToAll({ cuffMaterial: layer.cuffMaterial })}
                     onDec={() =>
                       patch({
                         cuffMaterial:
