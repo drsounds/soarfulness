@@ -7,6 +7,10 @@ import { limitMax, useExtremeLimits } from "@/lib/extremeLimits";
 import {
   HOOD_CUFF_MATERIALS,
   HOOD_MAX_LAYERS,
+  HOOD_MESH_RESOLUTION_MAX,
+  HOOD_MESH_RESOLUTION_MIN,
+  HOOD_MESH_RESOLUTION_STEP,
+  HOOD_MESH_RESOLUTION_VERTICAL_RATIO,
   HOOD_PUFF_HEIGHT_MAX,
   HOOD_PADDED_STYLES,
   HOOD_STYLES,
@@ -14,6 +18,7 @@ import {
   hoodLayersToFile,
   loadSavedHoodLayerSets,
   patchHoodLayers,
+  sanitizeHoodMeshResolution,
   storeSavedHoodLayerSets,
   type HoodLayer,
   type SavedHoodLayerSet,
@@ -76,6 +81,7 @@ export function HoodPanel({
   const sel = Math.min(selRaw, layers.length - 1);
   const act = layers.length - 1 - sel;
   const layer = layers[act];
+  const meshResolution = sanitizeHoodMeshResolution(layer.meshResolution);
   const patch = (p: Partial<HoodLayer>) => {
     if (act === 0) setLayer1(p);
     else setExtraLayers((ls) => ls.map((l, i) => (i === act - 1 ? { ...l, ...p } : l)));
@@ -241,6 +247,35 @@ export function HoodPanel({
           />
           {(!layer.lowerOn || layer.hoodTop) && pct("pullBack", t("dial.camera.hoodPullBack"))}
           {toggle("real3d", t("dial.camera.hoodReal3d"))}
+          {layer.real3d && (
+            <SettingRow
+              label={t("dial.camera.hoodMeshResolution")}
+              mode="number"
+              value={`${meshResolution} × ${Math.round(meshResolution * HOOD_MESH_RESOLUTION_VERTICAL_RATIO)}`}
+              rawValue={meshResolution}
+              onSet={(v) => patch({ meshResolution: sanitizeHoodMeshResolution(v) })}
+              applyToAll={applyToAll({ meshResolution })}
+              min={HOOD_MESH_RESOLUTION_MIN}
+              max={HOOD_MESH_RESOLUTION_MAX}
+              step={HOOD_MESH_RESOLUTION_STEP}
+              onDec={() =>
+                patch({
+                  meshResolution: Math.max(
+                    HOOD_MESH_RESOLUTION_MIN,
+                    meshResolution - HOOD_MESH_RESOLUTION_STEP,
+                  ),
+                })
+              }
+              onInc={() =>
+                patch({
+                  meshResolution: Math.min(
+                    HOOD_MESH_RESOLUTION_MAX,
+                    meshResolution + HOOD_MESH_RESOLUTION_STEP,
+                  ),
+                })
+              }
+            />
+          )}
           {toggle("lowerOn", t("dial.camera.hoodLower"))}
           {layer.lowerOn && (
             <>

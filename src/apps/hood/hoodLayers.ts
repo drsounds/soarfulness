@@ -116,6 +116,8 @@ export type HoodLayer = {
    * dripping, floating and LÄNGD stay with the flat overlay.
    */
   real3d: boolean;
+  /** 3D mesh horizontal subdivisions; vertical subdivisions scale with it. */
+  meshResolution: number;
   lengthOn: boolean;
   /** 0..1: LÄNGD, from a short collar (0) to an ankle-long dress (1); past the float suit it wraps around you in water. */
   length: number;
@@ -130,10 +132,25 @@ export type HoodLayer = {
 };
 
 export const HOOD_MAX_LAYERS = 4;
+export const HOOD_MESH_RESOLUTION_MIN = 192;
+export const HOOD_MESH_RESOLUTION_MAX = 512;
+export const HOOD_MESH_RESOLUTION_STEP = 32;
+export const HOOD_MESH_RESOLUTION_DEFAULT = 384;
+export const HOOD_MESH_RESOLUTION_VERTICAL_RATIO = 3 / 8;
 // ÖPPNINGSBREDD's EXTREME max (12 screen widths); the everyday max is 3.
 /** PUFFHÖJD goes past 100% (up to this) for extra-fat puffs. */
 export const HOOD_PUFF_HEIGHT_MAX = 2.5;
 export const HOOD_OPENING_WIDTH_MAX = 12;
+
+export function sanitizeHoodMeshResolution(value: unknown): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) return HOOD_MESH_RESOLUTION_DEFAULT;
+  const clamped = Math.max(HOOD_MESH_RESOLUTION_MIN, Math.min(HOOD_MESH_RESOLUTION_MAX, value));
+  return (
+    HOOD_MESH_RESOLUTION_MIN +
+    Math.round((clamped - HOOD_MESH_RESOLUTION_MIN) / HOOD_MESH_RESOLUTION_STEP) *
+      HOOD_MESH_RESOLUTION_STEP
+  );
+}
 
 export const HOOD_LAYER_DEFAULTS: HoodLayer = {
   on: true,
@@ -181,6 +198,7 @@ export const HOOD_LAYER_DEFAULTS: HoodLayer = {
   neckBack: 0,
   separate: false,
   real3d: false,
+  meshResolution: HOOD_MESH_RESOLUTION_DEFAULT,
   lengthOn: false,
   length: 0.6,
   puff3d: false,
@@ -225,6 +243,7 @@ const NUMBER_KEYS = [
   "dripGrow",
   "pullBack",
   "neckBack",
+  "meshResolution",
 ] as const;
 const BOOL_KEYS = [
   "on",
@@ -257,11 +276,13 @@ export function sanitizeHoodLayer(raw: unknown): HoodLayer {
     const v = src[k];
     if (typeof v === "number" && Number.isFinite(v)) {
       out[k] =
-        k === "puffHeight"
-          ? Math.max(0, Math.min(HOOD_PUFF_HEIGHT_MAX, v))
-          : k === "weight"
-            ? Math.max(-1, Math.min(1, v))
-            : clamp01(v);
+        k === "meshResolution"
+          ? sanitizeHoodMeshResolution(v)
+          : k === "puffHeight"
+            ? Math.max(0, Math.min(HOOD_PUFF_HEIGHT_MAX, v))
+            : k === "weight"
+              ? Math.max(-1, Math.min(1, v))
+              : clamp01(v);
     }
   }
   for (const k of BOOL_KEYS) {

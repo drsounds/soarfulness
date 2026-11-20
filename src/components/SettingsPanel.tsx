@@ -908,6 +908,7 @@ export type SettingsPanelProps = {
   hoodDripAmount: number;
   hoodDripGrow: number;
   hoodReal3d: boolean;
+  hoodMeshResolution: number;
   hoodSeparate: boolean;
   hoodWaterTint: number;
   hoodDripping: number;
@@ -943,6 +944,7 @@ export type SettingsPanelProps = {
   setHoodDripAmount: Dispatch<SetStateAction<number>>;
   setHoodDripGrow: Dispatch<SetStateAction<number>>;
   setHoodReal3d: Dispatch<SetStateAction<boolean>>;
+  setHoodMeshResolution: Dispatch<SetStateAction<number>>;
   setHoodSeparate: Dispatch<SetStateAction<boolean>>;
   setHoodWaterTint: Dispatch<SetStateAction<number>>;
   setHoodDripping: Dispatch<SetStateAction<number>>;
@@ -1893,6 +1895,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
     hoodDripAmount,
     hoodDripGrow,
     hoodReal3d,
+    hoodMeshResolution,
     hoodSeparate,
     hoodWaterTint,
     hoodDripping,
@@ -1928,6 +1931,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setHoodDripAmount,
     setHoodDripGrow,
     setHoodReal3d,
+    setHoodMeshResolution,
     setHoodSeparate,
     setHoodWaterTint,
     setHoodDripping,
@@ -3971,6 +3975,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
             dripAmount: hoodDripAmount,
             dripGrow: hoodDripGrow,
             real3d: hoodReal3d,
+            meshResolution: hoodMeshResolution,
             separate: hoodSeparate,
             waterTint: hoodWaterTint,
             dripping: hoodDripping,
@@ -4024,6 +4029,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
             if (p.dripAmount !== undefined) setHoodDripAmount(p.dripAmount);
             if (p.dripGrow !== undefined) setHoodDripGrow(p.dripGrow);
             if (p.real3d !== undefined) setHoodReal3d(p.real3d);
+            if (p.meshResolution !== undefined) setHoodMeshResolution(p.meshResolution);
             if (p.separate !== undefined) setHoodSeparate(p.separate);
             if (p.waterTint !== undefined) setHoodWaterTint(p.waterTint);
             if (p.dripping !== undefined) setHoodDripping(p.dripping);

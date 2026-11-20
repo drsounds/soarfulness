@@ -2,7 +2,12 @@
 // (lib/settingsShared.ts `Persisted` is the intersection of every app's
 // slice). The defaults are spread into DEFAULTS in routes/index.tsx.
 
-import type { HoodCuffMaterial, HoodLayer, HoodStyle } from "./hoodLayers";
+import {
+  HOOD_MESH_RESOLUTION_DEFAULT,
+  type HoodCuffMaterial,
+  type HoodLayer,
+  type HoodStyle,
+} from "./hoodLayers";
 
 export type HoodSettings = {
   // HUVA: a hoodie hood around the bather (apps/hood/Hood.ts), off by
@@ -45,6 +50,7 @@ export type HoodSettings = {
   hoodDripAmount: number;
   hoodDripGrow: number;
   hoodReal3d: boolean;
+  hoodMeshResolution: number;
   hoodSeparate: boolean;
   hoodWaterTint: number;
   hoodDripping: number;
@@ -108,6 +114,7 @@ export const HOOD_DEFAULTS: HoodSettings = {
   hoodDripAmount: 0.7,
   hoodDripGrow: 0.5,
   hoodReal3d: false,
+  hoodMeshResolution: HOOD_MESH_RESOLUTION_DEFAULT,
   hoodSeparate: false,
   hoodWaterTint: 0,
   hoodDripping: 0,

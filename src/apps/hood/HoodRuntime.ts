@@ -4,7 +4,11 @@ import { setClothingBuoyancyOffset } from "./buoyancy";
 import { FloatSuit } from "./FloatSuit";
 import { Hood, HOOD_STYLE_AIR, type HoodConfig } from "./Hood";
 import { HoodMesh3D } from "./HoodMesh";
-import { HOOD_MAX_LAYERS, type HoodLayer } from "./hoodLayers";
+import {
+  HOOD_MAX_LAYERS,
+  sanitizeHoodMeshResolution,
+  type HoodLayer,
+} from "./hoodLayers";
 import type { HoodSettings } from "./settings";
 
 /** Layer 1 of the hood, from the flat hood* settings. */
@@ -36,6 +40,7 @@ export function hoodLayerFromSettings(s: Readonly<HoodSettings>): HoodLayer {
     dripAmount: s.hoodDripAmount,
     dripGrow: s.hoodDripGrow,
     real3d: s.hoodReal3d,
+    meshResolution: sanitizeHoodMeshResolution(s.hoodMeshResolution),
     separate: s.hoodSeparate,
     waterTint: s.hoodWaterTint,
     dripping: s.hoodDripping,
@@ -181,7 +186,11 @@ export class HoodRuntime implements AppRuntime<HoodSettings> {
           f.time,
           f.camera,
           cfg,
-          { bodyFrame: s.hoodRotateHead, suitColor: s.hoodSuitColor },
+          {
+            bodyFrame: s.hoodRotateHead,
+            suitColor: s.hoodSuitColor,
+            meshResolution: l.meshResolution,
+          },
           h,
         );
       } else {

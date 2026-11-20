@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import * as THREE from "three";
-import { HoodMesh3D } from "./HoodMesh";
+import { createHoodGridGeometry, HoodMesh3D } from "./HoodMesh";
 
 describe("3D hood mesh", () => {
   test("uses enough subdivisions to preserve fine cloth padding", () => {
@@ -21,5 +21,13 @@ describe("3D hood mesh", () => {
     }
 
     hood.dispose();
+  });
+
+  test("creates the requested supported subdivisions", () => {
+    const geometry = createHoodGridGeometry(192);
+
+    expect(geometry.getAttribute("position").count).toBe(14_089);
+    expect(geometry.index?.count).toBe(82_944);
+    geometry.dispose();
   });
 });
