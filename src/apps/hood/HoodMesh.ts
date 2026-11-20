@@ -1,5 +1,10 @@
 import * as THREE from "three";
 import type { Hood, HoodConfig } from "./Hood";
+import {
+  HOOD_MESH_RESOLUTION_DEFAULT,
+  HOOD_MESH_RESOLUTION_VERTICAL_RATIO,
+  sanitizeHoodMeshResolution,
+} from "./hoodLayers";
 
 // 3D-TYG: a layer rendered as real geometry in the scene instead of the flat
 // full-screen overlay. The collar (MUN OCH HALS) is a ring of cloth around
@@ -23,8 +28,8 @@ import type { Hood, HoodConfig } from "./Hood";
 // rim and hem too. The flat Hood of each layer keeps running to hold the
 // water and float state.
 
-const NU = 192;
-const NV = 72;
+const NU = HOOD_MESH_RESOLUTION_DEFAULT;
+const NV = NU * HOOD_MESH_RESOLUTION_VERTICAL_RATIO;
 /** Where the neck ring and the head dome sit, in the head's frame (m, -z forward). */
 const NECK_RADIUS = 0.19;
 const CENTER_Z = 0.06;
@@ -423,24 +428,25 @@ const FRAG_COLLAR = /* glsl */ `
 
 type Uniforms = Record<string, THREE.IUniform>;
 
-function gridGeometry(): THREE.BufferGeometry {
+function gridGeometry(nu = NU): THREE.BufferGeometry {
+  const nv = Math.round((nu * NV) / NU);
   const g = new THREE.BufferGeometry();
-  const count = (NU + 1) * (NV + 1);
+  const count = (nu + 1) * (nv + 1);
   const pos = new Float32Array(count * 3);
   const uv = new Float32Array(count * 2);
-  for (let j = 0; j <= NV; j++) {
-    for (let i = 0; i <= NU; i++) {
-      const k = j * (NU + 1) + i;
-      uv[k * 2] = i / NU;
-      uv[k * 2 + 1] = j / NV;
+  for (let j = 0; j <= nv; j++) {
+    for (let i = 0; i <= nu; i++) {
+      const k = j * (nu + 1) + i;
+      uv[k * 2] = i / nu;
+      uv[k * 2 + 1] = j / nv;
     }
   }
   const idx: number[] = [];
-  for (let j = 0; j < NV; j++) {
-    for (let i = 0; i < NU; i++) {
-      const a = j * (NU + 1) + i;
+  for (let j = 0; j < nv; j++) {
+    for (let i = 0; i < nu; i++) {
+      const a = j * (nu + 1) + i;
       const b = a + 1;
-      const c = a + (NU + 1);
+      const c = a + (nu + 1);
       const d = c + 1;
       idx.push(a, b, c, b, d, c);
     }
@@ -453,6 +459,10 @@ function gridGeometry(): THREE.BufferGeometry {
 
 let sharedGrid: THREE.BufferGeometry | null = null;
 
+export function createHoodGridGeometry(resolution: number): THREE.BufferGeometry {
+  return gridGeometry(sanitizeHoodMeshResolution(resolution));
+}
+
 /** One layer as real 3D cloth: a collar ring and a hood dome. */
 export class HoodMesh3D {
   private readonly root = new THREE.Group();
@@ -461,6 +471,8 @@ export class HoodMesh3D {
   private readonly collar: THREE.Mesh;
   private readonly hood: THREE.Mesh;
   private readonly sentinel: THREE.Mesh;
+  private grid: THREE.BufferGeometry;
+  private gridResolution = NU;
   private readonly u: Uniforms;
   private colorHex = "";
   private cuffHex = "";
@@ -535,6 +547,7 @@ export class HoodMesh3D {
       uSuitColor: { value: c() },
     };
     sharedGrid ??= gridGeometry();
+    this.grid = sharedGrid;
     const mk = (vs: string, fs: string) =>
       new THREE.ShaderMaterial({
         uniforms: this.u,
@@ -597,7 +610,7 @@ export class HoodMesh3D {
     time: number,
     camera: THREE.PerspectiveCamera,
     cfg: HoodConfig,
-    opts: { bodyFrame: boolean; suitColor: string },
+    opts: { bodyFrame: boolean; suitColor: string; meshResolution: number },
     flat: Hood,
   ): void {
     const u = this.u;
@@ -609,6 +622,15 @@ export class HoodMesh3D {
     this.collar.visible = showCollar;
     this.hood.visible = showHood;
     this.root.visible = showCollar || showHood;
+    const resolution = sanitizeHoodMeshResolution(opts.meshResolution);
+    if (resolution !== this.gridResolution) {
+      if (this.grid !== sharedGrid) this.grid.dispose();
+      this.grid =
+        resolution === NU ? (sharedGrid as THREE.BufferGeometry) : gridGeometry(resolution);
+      this.gridResolution = resolution;
+      this.collar.geometry = this.grid;
+      this.hood.geometry = this.grid;
+    }
     if (!this.root.visible) return;
 
     camera.updateMatrixWorld();
@@ -725,5 +747,6 @@ export class HoodMesh3D {
     (this.hood.material as THREE.Material).dispose();
     (this.sentinel.material as THREE.Material).dispose();
     this.sentinel.geometry.dispose();
+    if (this.grid !== sharedGrid) this.grid.dispose();
   }
 }
