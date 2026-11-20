@@ -23,8 +23,8 @@ import type { Hood, HoodConfig } from "./Hood";
 // rim and hem too. The flat Hood of each layer keeps running to hold the
 // water and float state.
 
-const NU = 192;
-const NV = 72;
+const NU = 384;
+const NV = 144;
 /** Where the neck ring and the head dome sit, in the head's frame (m, -z forward). */
 const NECK_RADIUS = 0.19;
 const CENTER_Z = 0.06;
