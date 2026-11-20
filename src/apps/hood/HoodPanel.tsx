@@ -113,20 +113,20 @@ export function HoodPanel({
   const pct = (key: NumKey, label: string, max = 1) => {
     const min = key === "weight" ? -1 : 0;
     return (
-    <SettingRow
-      key={key}
-      label={label}
-      mode="number"
-      value={`${Math.round(layer[key] * 100)}%`}
-      rawValue={layer[key]}
-      onSet={(v) => patch({ [key]: v })}
-      applyToAll={applyToAll({ [key]: layer[key] })}
-      min={min}
-      max={max}
-      step={0.05}
-      onDec={() => patch({ [key]: Math.max(min, +(layer[key] - 0.05).toFixed(2)) })}
-      onInc={() => patch({ [key]: Math.min(max, +(layer[key] + 0.05).toFixed(2)) })}
-    />
+      <SettingRow
+        key={key}
+        label={label}
+        mode="number"
+        value={`${Math.round(layer[key] * 100)}%`}
+        rawValue={layer[key]}
+        onSet={(v) => patch({ [key]: v })}
+        applyToAll={applyToAll({ [key]: layer[key] })}
+        min={min}
+        max={max}
+        step={0.05}
+        onDec={() => patch({ [key]: Math.max(min, +(layer[key] - 0.05).toFixed(2)) })}
+        onInc={() => patch({ [key]: Math.min(max, +(layer[key] + 0.05).toFixed(2)) })}
+      />
     );
   };
   const toggle = (key: BoolKey, label: string) => (
@@ -267,17 +267,24 @@ export function HoodPanel({
               {pct("waterTint", t("dial.camera.hoodWaterTint"))}
             </>
           )}
-          <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
-            <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
-              {t("dial.camera.hoodColor")}
-            </span>
-            <input
-              type="color"
-              value={layer.color}
-              onChange={(e) => patch({ color: e.target.value })}
-              className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
-            />
-          </label>
+          <div className="flex items-center justify-center gap-1.5">
+            <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
+              <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
+                {t("dial.camera.hoodColor")}
+              </span>
+              <input
+                type="color"
+                value={layer.color}
+                onChange={(e) => patch({ color: e.target.value })}
+                className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
+              />
+            </label>
+            {layers.length > 1 && (
+              <button onClick={() => patchAllLayers({ color: layer.color })} className={btnClass}>
+                {t("dial.camera.hoodApplyAllLayers")}
+              </button>
+            )}
+          </div>
           {pct("darkness", t("dial.camera.hoodDarkness"))}
           <SettingRow
             label={t("dial.camera.hoodStyle")}
@@ -315,17 +322,27 @@ export function HoodPanel({
               {toggle("cuffCustom", t("dial.camera.hoodCuffCustom"))}
               {layer.cuffCustom && (
                 <>
-                  <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
-                    <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
-                      {t("dial.camera.hoodCuffColor")}
-                    </span>
-                    <input
-                      type="color"
-                      value={layer.cuffColor}
-                      onChange={(e) => patch({ cuffColor: e.target.value })}
-                      className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
-                    />
-                  </label>
+                  <div className="flex items-center justify-center gap-1.5">
+                    <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
+                      <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
+                        {t("dial.camera.hoodCuffColor")}
+                      </span>
+                      <input
+                        type="color"
+                        value={layer.cuffColor}
+                        onChange={(e) => patch({ cuffColor: e.target.value })}
+                        className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
+                      />
+                    </label>
+                    {layers.length > 1 && (
+                      <button
+                        onClick={() => patchAllLayers({ cuffColor: layer.cuffColor })}
+                        className={btnClass}
+                      >
+                        {t("dial.camera.hoodApplyAllLayers")}
+                      </button>
+                    )}
+                  </div>
                   {pct("cuffMetallic", t("dial.camera.hoodCuffMetallic"))}
                   <SettingRow
                     label={t("dial.camera.hoodCuffMaterial")}

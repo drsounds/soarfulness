@@ -43,7 +43,7 @@ export type HoodConfig = {
   waterCalm: number;
   /** 0..1: how low the hood hangs over the forehead (HUVHÖJD). */
   drop: number;
-  /** 0..1: cloth weight — more sag and lag behind movement (TYNGD). */
+  /** -1..1: cloth weight — a negative value reverses its response to movement (TYNGD). */
   weight: number;
   /** 0..1: fine wet-cloth wrinkles (VÅTA VECK). */
   wrinkles: number;
@@ -1340,8 +1340,8 @@ export class Hood {
 
     // RÖRELSE + TYNGD: the hood hangs on the head like cloth on a damped
     // spring. Moving up leaves it behind (it slides down), sinking lifts it,
-    // and turning or moving sideways swings it the other way. Heavier cloth
-    // sags more, swings further and settles more slowly.
+    // and turning or moving sideways swings it the other way. Negative weight
+    // reverses that response; heavier cloth swings further and settles more slowly.
     const signedWeight = THREE.MathUtils.clamp(cfg.weight, -1, 1);
     const weight = Math.abs(signedWeight);
     const heavy = 0.5 + weight * 1.5;
