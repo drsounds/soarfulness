@@ -161,6 +161,7 @@
       "hoodWater": "WATER IN HOOD",
       "hoodWaterLevel": "WATER LEVEL",
       "hoodLayer": "LAYER",
+      "hoodApplyAllLayers": "APPLY TO ALL HOOD LAYERS",
       "hoodLayerOn": "LAYER VISIBLE",
       "hoodReal3d": "REAL 3D CLOTH",
       "hoodSeparate": "HOOD SEPARATE FROM NECK",

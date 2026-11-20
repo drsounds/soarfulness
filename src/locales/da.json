@@ -161,6 +161,7 @@
       "hoodWater": "VAND I HÆTTEN",
       "hoodWaterLevel": "VANDSTAND",
       "hoodLayer": "LAG",
+      "hoodApplyAllLayers": "ANVEND PÅ ALLE HÆTTELAG",
       "hoodLayerOn": "LAGET VISES",
       "hoodReal3d": "ÆGTE 3D-STOF",
       "hoodSeparate": "HUE ADSKILT FRA HALS",

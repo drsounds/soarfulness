@@ -44,7 +44,7 @@ export type HoodLayer = {
   waterCalm: number;
   /** HUVHÖJD: how low the hood hangs over the forehead (0 = high, 1 = low). */
   drop: number;
-  /** TYNGD: how heavy the cloth is — sags more, lags further behind moves. */
+  /** TYNGD: cloth heaviness; a negative value reverses its response to movement. */
   weight: number;
   /** VÅTA VECK: fine clinging wrinkles, like wet cloth. */
   wrinkles: number;
@@ -189,6 +189,13 @@ export const HOOD_LAYER_DEFAULTS: HoodLayer = {
   zipperPullOut: true,
 };
 
+export function patchHoodLayers(
+  layers: readonly HoodLayer[],
+  patch: Partial<HoodLayer>,
+): HoodLayer[] {
+  return layers.map((layer) => ({ ...layer, ...patch }));
+}
+
 const NUMBER_KEYS = [
   "height",
   "opening",
@@ -248,8 +255,14 @@ export function sanitizeHoodLayer(raw: unknown): HoodLayer {
   const out: HoodLayer = { ...HOOD_LAYER_DEFAULTS };
   for (const k of NUMBER_KEYS) {
     const v = src[k];
-    if (typeof v === "number" && Number.isFinite(v))
-      out[k] = k === "puffHeight" ? Math.max(0, Math.min(HOOD_PUFF_HEIGHT_MAX, v)) : clamp01(v);
+    if (typeof v === "number" && Number.isFinite(v)) {
+      out[k] =
+        k === "puffHeight"
+          ? Math.max(0, Math.min(HOOD_PUFF_HEIGHT_MAX, v))
+          : k === "weight"
+            ? Math.max(-1, Math.min(1, v))
+            : clamp01(v);
+    }
   }
   for (const k of BOOL_KEYS) {
     if (typeof src[k] === "boolean") out[k] = src[k] as boolean;

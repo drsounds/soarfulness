@@ -24,8 +24,8 @@ export type HoodSettings = {
   // swimming in clothes; hoodWaterLevel (0..1) raises it above the sea outside.
   hoodWaterOn: boolean;
   hoodWaterLevel: number;
-  // HUVHÖJD (hoodDrop), TYNGD (hoodWeight), VÅTA VECK (hoodWrinkles) and
-  // MÖRKHET (hoodDarkness) for layer 1, all 0..1; layers 2+ live in
+  // HUVHÖJD (hoodDrop), VÅTA VECK (hoodWrinkles) and MÖRKHET (hoodDarkness)
+  // for layer 1 are 0..1; TYNGD (hoodWeight) is -1..1. Layers 2+ live in
   // hoodExtraLayers (apps/hood/hoodLayers.ts).
   // ÖPPNINGSBREDD for layer 1, in screen widths; 0 = AUTO (follow ÖPPNING).
   hoodOpeningWidth: number;

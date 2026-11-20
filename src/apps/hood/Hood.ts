@@ -43,7 +43,7 @@ export type HoodConfig = {
   waterCalm: number;
   /** 0..1: how low the hood hangs over the forehead (HUVHÖJD). */
   drop: number;
-  /** 0..1: cloth weight — more sag and lag behind movement (TYNGD). */
+  /** -1..1: cloth weight — a negative value reverses its response to movement (TYNGD). */
   weight: number;
   /** 0..1: fine wet-cloth wrinkles (VÅTA VECK). */
   wrinkles: number;
@@ -1249,9 +1249,10 @@ export class Hood {
       // more air (they puff up and lift); heavy cloth sinks and drags.
       const fl = THREE.MathUtils.clamp(cfg.floating ?? 0, 0, 1) * this.soak;
       const air = HOOD_STYLE_AIR[cfg.style] ?? 0.35;
-      const w = THREE.MathUtils.clamp(cfg.weight, 0, 1);
+      const signedWeight = THREE.MathUtils.clamp(cfg.weight, -1, 1);
+      const w = Math.abs(signedWeight);
       u.uFloatAmt.value = fl;
-      u.uFloatLift.value = air * 0.08 - w * 0.07;
+      u.uFloatLift.value = air * 0.08 - signedWeight * 0.07;
       u.uFloatInflate.value = fl * air * (1 - w * 0.6);
       // DROPPAR: wet cloth keeps dripping for a good while after the head
       // leaves the water (it dries far slower than the puffs sag).
@@ -1339,10 +1340,12 @@ export class Hood {
 
     // RÖRELSE + TYNGD: the hood hangs on the head like cloth on a damped
     // spring. Moving up leaves it behind (it slides down), sinking lifts it,
-    // and turning or moving sideways swings it the other way. Heavier cloth
-    // sags more, swings further and settles more slowly.
-    const weight = THREE.MathUtils.clamp(cfg.weight, 0, 1);
+    // and turning or moving sideways swings it the other way. Negative weight
+    // reverses that response; heavier cloth swings further and settles more slowly.
+    const signedWeight = THREE.MathUtils.clamp(cfg.weight, -1, 1);
+    const weight = Math.abs(signedWeight);
     const heavy = 0.5 + weight * 1.5;
+    const direction = signedWeight < 0 ? -1 : 1;
     const step = Math.min(Math.max(dt, 0), 0.1);
     let pushX = 0;
     let pushY = 0;
@@ -1358,8 +1361,8 @@ export class Hood {
       this.tmpQ.copy(camera.quaternion).invert();
       this.tmpV.applyQuaternion(this.tmpQ);
       const vxLocal = THREE.MathUtils.clamp(this.tmpV.x, -8, 8);
-      pushX = (yawRate * 0.05 - vxLocal * 0.02) * heavy;
-      pushY = (-pitchRate * 0.04 - vyWorld * 0.02) * heavy;
+      pushX = (yawRate * 0.05 - vxLocal * 0.02) * heavy * direction;
+      pushY = (-pitchRate * 0.04 - vyWorld * 0.02) * heavy * direction;
     }
     this.lastQuat.copy(camera.quaternion);
     this.lastPos.copy(camera.position);

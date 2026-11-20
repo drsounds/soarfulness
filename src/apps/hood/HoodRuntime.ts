@@ -211,7 +211,8 @@ export class HoodRuntime implements AppRuntime<HoodSettings> {
       for (const l of layers) {
         if (!l.on) continue;
         const air = HOOD_STYLE_AIR[l.style] ?? 0.35;
-        target -= 0.012 + 0.035 * l.weight - 0.02 * air + (l.waterOn ? 0.01 : 0);
+        const weight = THREE.MathUtils.clamp(l.weight, -1, 1);
+        target -= 0.012 + 0.035 * weight - 0.02 * air + (l.waterOn ? 0.01 : 0);
       }
     }
     this.buoy += (target - this.buoy) * (1 - Math.exp(-Math.max(f.dt, 0) / 1.5));
