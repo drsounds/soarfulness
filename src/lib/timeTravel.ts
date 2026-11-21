@@ -13,14 +13,19 @@ const DEFAULT_LATITUDE_DEG = 59.33;
 const MS_PER_DAY = 86_400_000;
 
 function dayOfYear(date: Date): number {
-  const start = new Date(date.getFullYear(), 0, 1);
-  return Math.floor((date.getTime() - start.getTime()) / MS_PER_DAY) + 1;
+  const start = new Date(0);
+  start.setUTCFullYear(date.getFullYear(), 0, 1);
+  start.setUTCHours(0, 0, 0, 0);
+  const day = new Date(0);
+  day.setUTCFullYear(date.getFullYear(), date.getMonth(), date.getDate());
+  day.setUTCHours(0, 0, 0, 0);
+  return Math.floor((day.getTime() - start.getTime()) / MS_PER_DAY) + 1;
 }
 
 // Sunrise/sunset as local clock hours (0..24) for a given date and latitude,
 // via the standard solar-declination approximation. Ignores the equation of
-// time and longitude/timezone offset — this is for a seasonal *look* (long
-// summer days, long winter nights), not real-world navigation.
+// time and longitude/standard timezone offset, but includes the local DST
+// shift. This is for a seasonal look, not real-world navigation.
 export function sunriseSunsetHours(
   date: Date,
   latitudeDeg: number = DEFAULT_LATITUDE_DEG,
@@ -29,10 +34,19 @@ export function sunriseSunsetHours(
   const declRad = ((23.44 * Math.PI) / 180) * Math.sin((2 * Math.PI * (284 + n)) / 365);
   const latRad = (latitudeDeg * Math.PI) / 180;
   const cosH = -Math.tan(latRad) * Math.tan(declRad);
+  const january = new Date(date);
+  january.setMonth(0, 1);
+  const july = new Date(date);
+  july.setMonth(6, 1);
+  const standardOffset = Math.max(january.getTimezoneOffset(), july.getTimezoneOffset());
+  const noon = 12 + (standardOffset - date.getTimezoneOffset()) / 60;
   if (cosH <= -1) return { sunrise: 0, sunset: 24 }; // midnight sun
-  if (cosH >= 1) return { sunrise: 12, sunset: 12 }; // polar night
+  if (cosH >= 1) return { sunrise: noon, sunset: noon }; // polar night
   const hourAngleHours = (Math.acos(cosH) * (180 / Math.PI)) / 15;
-  return { sunrise: 12 - hourAngleHours, sunset: 12 + hourAngleHours };
+  return {
+    sunrise: Math.max(0, noon - hourAngleHours),
+    sunset: Math.min(24, noon + hourAngleHours),
+  };
 }
 
 // Maps a date's local hour-of-day onto the app's TIMEOFDAY dial (0 = midnight,
@@ -45,7 +59,7 @@ export function northernHemisphereTimeOfDay(
 ): number {
   const { sunrise, sunset } = sunriseSunsetHours(date, latitudeDeg);
   const hour = date.getHours() + date.getMinutes() / 60 + date.getSeconds() / 3600;
-  const noon = 12;
+  const noon = (sunrise + sunset) / 2;
   if (hour <= sunrise) return sunrise <= 0 ? 0.25 : (hour / sunrise) * 0.25;
   if (hour <= noon) {
     return noon <= sunrise ? 0.5 : 0.25 + ((hour - sunrise) / (noon - sunrise)) * 0.25;
@@ -57,12 +71,10 @@ export function northernHemisphereTimeOfDay(
 }
 
 // The simulated "now": real current time, unless a time-travel base was set
-// (baseMs), in which case it's that base plus however much real time has
-// elapsed since it was set (setAtMs) — so the clock keeps ticking forward
-// normally from wherever it was pointed, rather than freezing.
-export function simulatedDate(baseMs: number | null, setAtMs: number | null): Date {
+// (baseMs), in which case elapsed real time since setAtMs is scaled by speed.
+export function simulatedDate(baseMs: number | null, setAtMs: number | null, speed = 1): Date {
   if (baseMs == null || setAtMs == null) return new Date();
-  return new Date(baseMs + (Date.now() - setAtMs));
+  return new Date(baseMs + (Date.now() - setAtMs) * speed);
 }
 
 // Once the simulated clock passes this year, environments switch to their
@@ -76,5 +88,35 @@ export function isFuturisticYear(date: Date, thresholdYear: number = FUTURISTIC_
 // Formats a Date for an <input type="datetime-local"> value, in local time.
 export function toDateTimeLocalValue(date: Date): string {
   const pad = (n: number) => n.toString().padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  return `${date.getFullYear().toString().padStart(4, "0")}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+export function parseDateTimeLocal(value: string): Date | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value);
+  if (!match) return null;
+  const [, y, m, d, h, min] = match.map(Number);
+  const date = new Date(0);
+  date.setFullYear(y, m - 1, d);
+  date.setHours(h, min, 0, 0);
+  return date.getFullYear() === y &&
+    date.getMonth() === m - 1 &&
+    date.getDate() === d &&
+    date.getHours() === h &&
+    date.getMinutes() === min
+    ? date
+    : null;
+}
+
+export function sameLocalDate(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+export function seekLocalMinute(date: Date, minute: number): Date {
+  const result = new Date(date);
+  result.setHours(Math.floor(minute / 60), minute % 60, 0, 0);
+  return result;
 }
