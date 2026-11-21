@@ -5,6 +5,7 @@
 import {
   HOOD_MESH_RESOLUTION_DEFAULT,
   type HoodCuffMaterial,
+  type HoodLayerDetails,
   type HoodLayer,
   type HoodStyle,
 } from "./hoodLayers";
@@ -84,6 +85,7 @@ export type HoodSettings = {
   hoodPuffThickness: number;
   hoodPuffInflate: number;
   hoodExtraLayers: HoodLayer[];
+  hoodLayer1Details: HoodLayerDetails;
 };
 
 export const HOOD_DEFAULTS: HoodSettings = {
@@ -147,6 +149,15 @@ export const HOOD_DEFAULTS: HoodSettings = {
   hoodPuffThickness: 0.5,
   hoodPuffInflate: 0,
   hoodExtraLayers: [] as HoodLayer[],
+  hoodLayer1Details: {
+    openingHeight: 0,
+    fur: false,
+    furColor: "#f4f1e8",
+    furStyle: "short",
+    furPattern: "solid",
+    furSize: 0.5,
+    furWidth: 0.35,
+  },
 };
 
 /** Every key HoodSettings owns, in declaration order (presets, sharing). */

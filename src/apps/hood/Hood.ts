@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { HOOD_OPENING_HEIGHT_MAX } from "./hoodLayers";
 
 // HUVA: a hoodie hood around the bather, seen from inside it.
 //
@@ -23,8 +24,16 @@ export type HoodConfig = {
   height: number;
   /** 0..1: size of the face opening, tight (0) .. wide (1) (ÖPPNING). */
   opening: number;
+  /** Opening height in screen heights; 0 follows ÖPPNING. */
+  openingHeight: number;
   /** Opening width in screen widths (1 = edge to edge, > 1 wider); 0 = follow ÖPPNING (ÖPPNINGSBREDD). */
   openingWidth: number;
+  fur: boolean;
+  furColor: string;
+  furStyle: "short" | "long" | "curly";
+  furPattern: "solid" | "tipped" | "spotted" | "striped";
+  furSize: number;
+  furWidth: number;
   /** Also cover the mouth and neck, closing the hood under the face (MUN OCH HALS). */
   lower: boolean;
   /** 0..1: how high up the view the mouth/neck cover reaches (TÄCKHÖJD). */
@@ -189,6 +198,7 @@ const FRAG = /* glsl */ `
   uniform float uMotion;
   uniform float uHeight;
   uniform float uOpening;
+  uniform float uOpenHeight;
   uniform float uOpenWidth;
   uniform float uLower;
   uniform float uTopOff;
@@ -236,6 +246,12 @@ const FRAG = /* glsl */ `
   uniform vec3 uCuffColor;
   uniform float uCuffMetal;
   uniform float uCuffMat;
+  uniform float uFur;
+  uniform float uFurSize;
+  uniform float uFurWidth;
+  uniform float uFurStyle;
+  uniform float uFurPattern;
+  uniform vec3 uFurColor;
   uniform float uZipFixed;
   uniform float uZipPullOut;
   uniform float uMetal;
@@ -292,7 +308,7 @@ const FRAG = /* glsl */ `
   float rimTopY(float x) {
     vec2 c = vec2(uSway.x, 0.04 + uSway.y - uDrop * 0.22);
     float a0 = uOpenWidth > 0.0 ? uAspect * uOpenWidth : uAspect * mix(0.55, 0.95, uOpening) + 0.06;
-    float b0 = mix(0.6, 0.98, uOpening) * (1.0 - uDrop * 0.3);
+    float b0 = uOpenHeight > 0.0 ? uOpenHeight : mix(0.6, 0.98, uOpening) * (1.0 - uDrop * 0.3);
     float pb = clamp(uHoodBack, 0.0, 1.0);
     float a = a0 * (1.0 + pb * 0.9);
     float b = b0 * (1.0 + pb * 1.1);
@@ -332,7 +348,7 @@ const FRAG = /* glsl */ `
     // half-screen-widths (1 = the screen's edges, above 1 = wider than the
     // screen); 0 (AUTO) follows ÖPPNING.
     float a0 = uOpenWidth > 0.0 ? uAspect * uOpenWidth : uAspect * mix(0.55, 0.95, uOpening) + 0.06;
-    float b0 = mix(0.6, 0.98, uOpening) * (1.0 - uDrop * 0.3);
+    float b0 = uOpenHeight > 0.0 ? uOpenHeight : mix(0.6, 0.98, uOpening) * (1.0 - uDrop * 0.3);
     // HUVA BAKÅT: the top hood is pulled back off the head, so its rim
     // opens wide and slides up and out of view. The funnel neck keeps a0.
     float pb = clamp(uHoodBack, 0.0, 1.0);
@@ -746,10 +762,23 @@ const FRAG = /* glsl */ `
     float cuffX = gCuffX;
     float t = f.x;
     float cut = f.z;
+    float furAngle = atan(p.y - (0.04 + uSway.y - uDrop * 0.22), p.x - uSway.x);
     float aaT = max(fwidth(t), 1e-4) * 1.5;
     float aaC = max(fwidth(cut), 1e-4) * 1.5;
     float inside = smoothstep(0.0, aaT, t) * smoothstep(0.0, aaC, cut);
     if (uDropsOnly > 0.5) inside = 0.0;
+    float furBand = mix(0.008, 0.14, clamp(uFurWidth, 0.0, 1.0));
+    float furLength = uFurStyle < 0.5
+      ? mix(0.006, 0.014, uFurSize)
+      : uFurStyle < 1.5
+        ? mix(0.018, 0.05, uFurSize)
+        : mix(0.012, 0.032, uFurSize);
+    float furFiber = sin(furAngle * mix(150.0, 38.0, uFurSize) + sin(t * 41.0 + furAngle * 3.0) * 1.5);
+    float furFringe = furLength * (0.25 + 0.75 * (0.5 + 0.5 * furFiber));
+    float furMask = uFur * smoothstep(-furFringe - aaT, -furFringe + aaT, t) *
+      (1.0 - smoothstep(furBand - aaT, furBand + aaT, t)) *
+      smoothstep(-0.03, 0.05, cut);
+    if (uDropsOnly > 0.5) furMask = 0.0;
     // Contact shadow the hood throws onto the view just inside the opening.
     float rim = smoothstep(-0.04, 0.0, t) * (1.0 - smoothstep(0.0, aaT, t)) * smoothstep(-0.03, 0.05, cut) * uViewShadow;
     if (uDropsOnly > 0.5) rim = 0.0;
@@ -772,7 +801,7 @@ const FRAG = /* glsl */ `
         drip = d3.a > drip.a ? d3 : drip;
       }
     }
-    if (inside <= 0.0 && rim <= 0.0 && drip.a <= 0.0) discard;
+    if (inside <= 0.0 && rim <= 0.0 && furMask <= 0.0 && drip.a <= 0.0) discard;
 
     // Height-field normal (view space, +z toward the eye).
     float e = 0.004;
@@ -971,8 +1000,20 @@ const FRAG = /* glsl */ `
     // Under water: tint toward the water and dim.
     col = mix(col, col * (uWater * 2.2 + 0.25), uUnderwater * 0.6);
 
-    vec3 outCol = mix(vec3(0.0), col, inside);
-    float alpha = max(inside, rim * 0.25);
+    float furPattern = 1.0;
+    if (uFurPattern > 0.5 && uFurPattern < 1.5) {
+      furPattern = mix(0.72, 1.25, smoothstep(0.35, 0.85, fract(t / max(furBand, 1e-3))));
+    } else if (uFurPattern > 1.5 && uFurPattern < 2.5) {
+      float cells = sin(floor(furAngle * 14.0) * 12.9898 + floor(t * 75.0) * 78.233);
+      furPattern = smoothstep(-0.2, 0.25, cells);
+      furPattern = mix(0.58, 1.3, furPattern);
+    } else if (uFurPattern > 2.5) {
+      furPattern = 0.76 + 0.34 * (0.5 + 0.5 * sin(furAngle * 18.0 + sin(furAngle * 5.0) * 2.0));
+    }
+    float furShade = (0.78 + 0.22 * (0.5 + 0.5 * furFiber)) * furPattern;
+    vec3 furCol = uFurColor * (ambient * ao + uSunCol * diff * ao * 0.65) * furShade;
+    vec3 outCol = mix(mix(vec3(0.0), col, inside), furCol, furMask);
+    float alpha = max(max(inside, furMask), rim * 0.25);
     outCol = mix(outCol, drip.rgb, drip.a * (1.0 - inside * 0.4));
     alpha = max(alpha, drip.a);
     gl_FragColor = vec4(outCol, alpha);
@@ -1007,6 +1048,7 @@ export class Hood {
     uMotion: { value: number };
     uHeight: { value: number };
     uOpening: { value: number };
+    uOpenHeight: { value: number };
     uOpenWidth: { value: number };
     uLower: { value: number };
     uTopOff: { value: number };
@@ -1054,6 +1096,12 @@ export class Hood {
     uCuffColor: { value: THREE.Color };
     uCuffMetal: { value: number };
     uCuffMat: { value: number };
+    uFur: { value: number };
+    uFurSize: { value: number };
+    uFurWidth: { value: number };
+    uFurStyle: { value: number };
+    uFurPattern: { value: number };
+    uFurColor: { value: THREE.Color };
     uZipFixed: { value: number };
     uZipPullOut: { value: number };
     uMetal: { value: number };
@@ -1081,6 +1129,7 @@ export class Hood {
   private hasWater = false;
   private colorHex = "";
   private cuffColorHex = "";
+  private furColorHex = "";
   /** 0..1: how soaked (and so how swollen) the padding is right now. */
   private soak = 0;
   /** 0..1: how wet the cloth is (slowly dries), for DROPPAR. */
@@ -1104,6 +1153,7 @@ export class Hood {
       uMotion: { value: 0.5 },
       uHeight: { value: 0.3 },
       uOpening: { value: 0.5 },
+      uOpenHeight: { value: 0 },
       uOpenWidth: { value: 0 },
       uLower: { value: 0 },
       uTopOff: { value: 0 },
@@ -1151,6 +1201,12 @@ export class Hood {
       uCuffColor: { value: new THREE.Color() },
       uCuffMetal: { value: 0.15 },
       uCuffMat: { value: 0 },
+      uFur: { value: 0 },
+      uFurSize: { value: 0.5 },
+      uFurWidth: { value: 0.35 },
+      uFurStyle: { value: 0 },
+      uFurPattern: { value: 0 },
+      uFurColor: { value: new THREE.Color() },
       uZipFixed: { value: 1 },
       uZipPullOut: { value: 1 },
       uMetal: { value: 0.5 },
@@ -1195,6 +1251,13 @@ export class Hood {
     u.uTanHalfFov.value = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
     u.uHeight.value = THREE.MathUtils.clamp(cfg.height, 0, 1);
     u.uOpening.value = THREE.MathUtils.clamp(cfg.opening, 0, 1);
+    u.uOpenHeight.value = Math.max(
+      0,
+      Math.min(
+        HOOD_OPENING_HEIGHT_MAX,
+        Number.isFinite(cfg.openingHeight) ? cfg.openingHeight : 0,
+      ),
+    );
     u.uOpenWidth.value = Math.max(0, Number.isFinite(cfg.openingWidth) ? cfg.openingWidth : 0);
     u.uLower.value = cfg.lower ? 1 : 0;
     u.uSep.value = cfg.separate ? 1 : 0;
@@ -1283,6 +1346,23 @@ export class Hood {
     u.uCuffCustom.value = cfg.cuffCustom ? 1 : 0;
     u.uCuffMetal.value = THREE.MathUtils.clamp(cfg.cuffMetallic ?? 0.15, 0, 1);
     u.uCuffMat.value = cfg.cuffMaterial === "smooth" ? 1 : cfg.cuffMaterial === "rubber" ? 2 : 0;
+    u.uFur.value = cfg.fur ? 1 : 0;
+    u.uFurSize.value = THREE.MathUtils.clamp(cfg.furSize, 0, 1);
+    u.uFurWidth.value = THREE.MathUtils.clamp(cfg.furWidth, 0, 1);
+    u.uFurStyle.value = cfg.furStyle === "long" ? 1 : cfg.furStyle === "curly" ? 2 : 0;
+    u.uFurPattern.value =
+      cfg.furPattern === "tipped"
+        ? 1
+        : cfg.furPattern === "spotted"
+          ? 2
+          : cfg.furPattern === "striped"
+            ? 3
+            : 0;
+    if (cfg.furColor && cfg.furColor !== this.furColorHex) {
+      this.furColorHex = cfg.furColor;
+      const hex = parseInt(cfg.furColor.replace("#", ""), 16);
+      u.uFurColor.value.setHex(Number.isFinite(hex) ? hex : 0xf4f1e8, THREE.LinearSRGBColorSpace);
+    }
     if (cfg.cuffColor && cfg.cuffColor !== this.cuffColorHex) {
       this.cuffColorHex = cfg.cuffColor;
       const hex = parseInt(cfg.cuffColor.replace("#", ""), 16);

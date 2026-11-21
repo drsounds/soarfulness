@@ -7,6 +7,7 @@ import { HoodMesh3D } from "./HoodMesh";
 import {
   HOOD_MAX_LAYERS,
   sanitizeHoodMeshResolution,
+  sanitizeHoodLayerDetails,
   type HoodLayer,
 } from "./hoodLayers";
 import type { HoodSettings } from "./settings";
@@ -18,6 +19,7 @@ export function hoodLayerFromSettings(s: Readonly<HoodSettings>): HoodLayer {
     height: s.hoodHeight,
     opening: s.hoodOpening,
     openingWidth: s.hoodOpeningWidth,
+    ...sanitizeHoodLayerDetails(s.hoodLayer1Details),
     color: s.hoodColor,
     metallic: s.hoodMetallic,
     motion: s.hoodMotion,
@@ -80,6 +82,7 @@ export function hoodConfigFromLayer(l: HoodLayer, f: FrameContext, g: HoodShared
     suitColor: g.suitColor,
     height: l.height,
     opening: l.opening,
+    openingHeight: l.openingHeight,
     openingWidth: l.openingWidth,
     color: l.color,
     metallic: l.metallic,
@@ -128,6 +131,12 @@ export function hoodConfigFromLayer(l: HoodLayer, f: FrameContext, g: HoodShared
     reflectLight: l.reflectLight,
     puffThickness: l.puffThickness,
     puffInflate: l.puffInflate,
+    fur: l.fur,
+    furColor: l.furColor,
+    furStyle: l.furStyle,
+    furPattern: l.furPattern,
+    furSize: l.furSize,
+    furWidth: l.furWidth,
     eyeAboveWater: f.eyeAboveWater,
     skyColor: f.light.skyColor,
     horizonColor: f.light.horizonColor,

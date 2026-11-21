@@ -78,7 +78,12 @@ import snowApp from "@/apps/snow/app";
 import { RAIN_DEFAULTS } from "@/apps/rain/settings";
 import { FIREWORKS_LIGHTS } from "@/apps/fireworks/Fireworks";
 import fireworksApp from "@/apps/fireworks/app";
-import { sanitizeHoodLayers, type HoodLayer, type HoodStyle } from "@/apps/hood/hoodLayers";
+import {
+  sanitizeHoodLayers,
+  sanitizeHoodLayerDetails,
+  type HoodLayer,
+  type HoodStyle,
+} from "@/apps/hood/hoodLayers";
 import { applyNeonAccent } from "@/apps/neon/neonAccent";
 import { relativeDaylightTint } from "@/apps/day-night/daylightTint";
 import {
@@ -1978,9 +1983,13 @@ export function Aquafulness() {
   const [gogglesLoop, setGogglesLoop] = useState(initial.gogglesLoop);
   const [gogglesIntensity, setGogglesIntensity] = useState(initial.gogglesIntensity);
   const [gogglesFpsCap, setGogglesFpsCap] = useState(initial.gogglesFpsCap);
-  const hood = useAppSettings(HOOD_DEFAULTS, initial, { hoodExtraLayers: sanitizeHoodLayers });
+  const hood = useAppSettings(HOOD_DEFAULTS, initial, {
+    hoodExtraLayers: sanitizeHoodLayers,
+    hoodLayer1Details: sanitizeHoodLayerDetails,
+  });
   const {
     hoodOn,
+    hoodLayer1Details,
     hoodHeight,
     hoodOpening,
     hoodColor,
@@ -2042,6 +2051,7 @@ export function Aquafulness() {
   } = hood.values;
   const {
     hoodOn: setHoodOn,
+    hoodLayer1Details: setHoodLayer1Details,
     hoodHeight: setHoodHeight,
     hoodOpening: setHoodOpening,
     hoodColor: setHoodColor,
@@ -12581,6 +12591,8 @@ export function Aquafulness() {
     setGogglesFpsCap,
     hoodOn,
     setHoodOn,
+    hoodLayer1Details,
+    setHoodLayer1Details,
     hoodHeight,
     setHoodHeight,
     hoodOpening,
