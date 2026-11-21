@@ -560,7 +560,7 @@ export type Persisted = {
   // northernHemisphereTimeOfDay() in src/lib/timeTravel.ts.
   timeSeasonalSync: boolean;
   // Master on/off for the whole DATE & TIME TRAVEL feature: the simulated
-  // clock's once-a-minute tick, the HUD clock readout/button, and the
+  // clock tick, timeline, HUD clock readout/button, and the
   // time-travel dialog it opens. Off entirely hides/disables all of it,
   // regardless of timeTravelBaseMs/timeSeasonalSync.
   clockOn: boolean;

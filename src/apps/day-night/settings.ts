@@ -14,6 +14,9 @@ export type DayNightSettings = {
   // SOLTONING: sunrise/sunset colors the backdrop (environment skybox, its
   // water reflection and the flat backdrop image) warm around the sun.
   envSunTintOn: boolean;
+  dayNightClockSpeed: number;
+  dayNightTimelineColor: string;
+  dayNightLiveColor: string;
 };
 
 export const DAY_NIGHT_DEFAULTS: DayNightSettings = {
@@ -28,6 +31,9 @@ export const DAY_NIGHT_DEFAULTS: DayNightSettings = {
   envDayNightAutoOn: true,
   // SOLTONING: sunrise/sunset tints the backdrop warm toward the sun.
   envSunTintOn: true,
+  dayNightClockSpeed: 1,
+  dayNightTimelineColor: "#ffffff",
+  dayNightLiveColor: "#ef4444",
 };
 
 /** Every key DayNightSettings owns, in declaration order (presets, sharing). */

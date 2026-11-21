@@ -112,7 +112,13 @@ import type { SettingsPanelProps } from "@/components/SettingsPanel";
 import { ShareBathDialog } from "@/components/ShareBathDialog";
 import { GogglesOverlay } from "@/components/GogglesOverlay";
 import { TimeTravelDialog } from "@/components/TimeTravelDialog";
-import { isFuturisticYear, northernHemisphereTimeOfDay, simulatedDate } from "@/lib/timeTravel";
+import { TimeTimeline } from "@/apps/day-night/TimeTimeline";
+import {
+  isFuturisticYear,
+  northernHemisphereTimeOfDay,
+  seekLocalMinute,
+  simulatedDate,
+} from "@/lib/timeTravel";
 import { PadSlider } from "@/components/PadDial";
 import {
   Joystick,
@@ -2357,14 +2363,33 @@ export function Aquafulness() {
   const [waterGlowColor, setWaterGlowColor] = useState(initial.waterGlowColor);
   const [waterGlowStrength, setWaterGlowStrength] = useState(initial.waterGlowStrength);
   const [waterGlowEveningOnly, setWaterGlowEveningOnly] = useState(initial.waterGlowEveningOnly);
-  const dayNight = useAppSettings(DAY_NIGHT_DEFAULTS, initial);
-  const { envDaylightTintOn, envDaylightTintStrength, envDayNightAutoOn, envSunTintOn } =
-    dayNight.values;
+  const dayNight = useAppSettings(DAY_NIGHT_DEFAULTS, initial, {
+    dayNightClockSpeed: (v) =>
+      typeof v === "number" && Number.isFinite(v) ? Math.min(1000, Math.max(0, v)) : 1,
+    dayNightTimelineColor: (v) =>
+      typeof v === "string" && /^#[\da-f]{6}$/i.test(v)
+        ? v
+        : DAY_NIGHT_DEFAULTS.dayNightTimelineColor,
+    dayNightLiveColor: (v) =>
+      typeof v === "string" && /^#[\da-f]{6}$/i.test(v) ? v : DAY_NIGHT_DEFAULTS.dayNightLiveColor,
+  });
+  const {
+    envDaylightTintOn,
+    envDaylightTintStrength,
+    envDayNightAutoOn,
+    envSunTintOn,
+    dayNightClockSpeed,
+    dayNightTimelineColor,
+    dayNightLiveColor,
+  } = dayNight.values;
   const {
     envDaylightTintOn: setEnvDaylightTintOn,
     envDaylightTintStrength: setEnvDaylightTintStrength,
     envDayNightAutoOn: setEnvDayNightAutoOn,
     envSunTintOn: setEnvSunTintOn,
+    dayNightClockSpeed: setDayNightClockSpeed,
+    dayNightTimelineColor: setDayNightTimelineColor,
+    dayNightLiveColor: setDayNightLiveColor,
   } = dayNight.setters;
   const { reset: resetDaynight, patch: patchDaynight } = dayNight;
   const snow = useAppSettings(SNOW_DEFAULTS, initial);
@@ -3064,6 +3089,8 @@ export function Aquafulness() {
   // the animation loop can hide the procedural sky dome for a real equirect one.
   const envTextureRef = useRef<THREE.Texture | null>(null);
   const envActiveRef = useRef(false);
+  const clockSyncRef = useRef(false);
+  clockSyncRef.current = clockOn && timeSeasonalSync && !CLOCK_DISABLED_FOR_PERF_TEST;
   // The time of day the current environment skybox was painted at (its
   // manifest's timeOfDay, noon if it doesn't say) — the reference
   // DYGNSTONING tints relative to.
@@ -3383,6 +3410,9 @@ export function Aquafulness() {
     envDaylightTintStrength,
     envDayNightAutoOn,
     envSunTintOn,
+    dayNightClockSpeed,
+    dayNightTimelineColor,
+    dayNightLiveColor,
     skyLook,
     snowOn,
     snowAmount,
@@ -3770,6 +3800,9 @@ export function Aquafulness() {
     envDaylightTintStrength,
     envDayNightAutoOn,
     envSunTintOn,
+    dayNightClockSpeed,
+    dayNightTimelineColor,
+    dayNightLiveColor,
     skyLook,
     snowOn,
     snowAmount,
@@ -6316,16 +6349,14 @@ export function Aquafulness() {
     selectEnvTime(times[(i + dir + times.length) % times.length].id);
   };
 
-  // DATE & TIME TRAVEL: once a minute, advance the simulated clock (real
+  // DATE & TIME TRAVEL: advance the simulated clock (real
   // time, or a time-traveled date ticking forward from wherever it was
   // pinned — see simulatedDate()), optionally sync TIMEOFDAY to that date's
   // real northern-hemisphere sunrise/sunset, and gate the current
   // environment's era to its futuristic look once the simulated year passes
   // FUTURISTIC_YEAR (only for environments that actually have a "future"
-  // era, and never overriding an era the user picked by hand). A minute
-  // (rather than a second) is plenty for a HH:MM readout and for how slowly
-  // sunrise/sunset actually drifts, and keeps this from re-rendering the
-  // whole component — a real cost given its size — more than once a minute.
+  // era, and never overriding an era the user picked by hand). Tick each
+  // second so the timeline also follows accelerated time.
   //
   // Gated by CLOCK_DISABLED_FOR_PERF_TEST above (a dev-only perf kill
   // switch) and by clockOn (the user-facing setting that turns the whole
@@ -6334,7 +6365,7 @@ export function Aquafulness() {
   useEffect(() => {
     if (CLOCK_DISABLED_FOR_PERF_TEST || !clockOn) return;
     const tick = () => {
-      const date = simulatedDate(timeTravelBaseMs, timeTravelSetAtMs);
+      const date = simulatedDate(timeTravelBaseMs, timeTravelSetAtMs, dayNightClockSpeed);
       setSimNow(date);
 
       if (timeSeasonalSync) {
@@ -6365,9 +6396,18 @@ export function Aquafulness() {
       }
     };
     tick();
-    const id = window.setInterval(tick, 60_000);
+    const id = window.setInterval(tick, 1_000);
     return () => window.clearInterval(id);
-  }, [timeTravelBaseMs, timeTravelSetAtMs, timeSeasonalSync, clockOn, environments, envId, envEra]);
+  }, [
+    timeTravelBaseMs,
+    timeTravelSetAtMs,
+    timeSeasonalSync,
+    dayNightClockSpeed,
+    clockOn,
+    environments,
+    envId,
+    envEra,
+  ]);
 
   // Step through the reflection surfaces, including an "AV" (gradient-only) slot.
   const cycleSurface = (dir: number) => {
@@ -12130,7 +12170,7 @@ export function Aquafulness() {
       // unless DYGNSTONING is on, where TIMEOFDAY stays with the daylight
       // engine and tints the skybox instead, or DYGNSBYTE is following
       // TIMEOFDAY with a day+night pair.
-      if (!night && skyboxTod !== null && !envDaylightTintOnRef.current) {
+      if (!night && skyboxTod !== null && !envDaylightTintOnRef.current && !clockSyncRef.current) {
         setTimeOfDay(skyboxTod);
       }
       setEnvBootSettled(true);
@@ -13090,6 +13130,20 @@ export function Aquafulness() {
         </button>
       )}
 
+      {!CLOCK_DISABLED_FOR_PERF_TEST && clockOn && simNow && (
+        <TimeTimeline
+          date={simNow}
+          liveColor={dayNightLiveColor}
+          recordedColor={dayNightTimelineColor}
+          onOpen={() => setTimeTravelOpen(true)}
+          onSeek={(minute) => {
+            const date = simulatedDate(timeTravelBaseMs, timeTravelSetAtMs, dayNightClockSpeed);
+            setTimeTravelBaseMs(seekLocalMinute(date, minute).getTime());
+            setTimeTravelSetAtMs(Date.now());
+          }}
+        />
+      )}
+
       {/* Only mounted while open, so its hooks don't run on every one of
           this large component's re-renders while the dialog is closed
           (i.e. almost always). */}
@@ -13106,9 +13160,23 @@ export function Aquafulness() {
           onReturnToNow={() => {
             setTimeTravelBaseMs(null);
             setTimeTravelSetAtMs(null);
+            setDayNightClockSpeed(1);
           }}
           timeSeasonalSync={timeSeasonalSync}
           onSeasonalSyncChange={setTimeSeasonalSync}
+          speed={dayNightClockSpeed}
+          onSpeedChange={(speed) => {
+            const now = Date.now();
+            setTimeTravelBaseMs(
+              simulatedDate(timeTravelBaseMs, timeTravelSetAtMs, dayNightClockSpeed).getTime(),
+            );
+            setTimeTravelSetAtMs(now);
+            setDayNightClockSpeed(speed);
+          }}
+          timelineColor={dayNightTimelineColor}
+          onTimelineColorChange={setDayNightTimelineColor}
+          liveColor={dayNightLiveColor}
+          onLiveColorChange={setDayNightLiveColor}
         />
       )}
 
