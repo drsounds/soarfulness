@@ -3,6 +3,7 @@ import type { Hood, HoodConfig } from "./Hood";
 import {
   HOOD_MESH_RESOLUTION_DEFAULT,
   HOOD_MESH_RESOLUTION_VERTICAL_RATIO,
+  HOOD_OPENING_HEIGHT_MAX,
   sanitizeHoodMeshResolution,
 } from "./hoodLayers";
 
@@ -39,6 +40,12 @@ const HOOD_CENTER_Y = 0.0;
 const COMMON = /* glsl */ `
   #define PI 3.14159265
   uniform float uStyle;
+  uniform float uFur;
+  uniform float uFurSize;
+  uniform float uFurWidth;
+  uniform float uFurStyle;
+  uniform float uFurPattern;
+  uniform vec3 uFurColor;
   uniform float uPuffSize;
   uniform float uPuffHeight;
   uniform float uPuffThick;
@@ -308,6 +315,7 @@ const FRAG_COMMON = /* glsl */ `
 const FRAG_HOOD = /* glsl */ `
   ${FRAG_COMMON}
   uniform float uOpening;
+  uniform float uOpenHeight;
   uniform float uOpenWidth;
   uniform float uDrop;
   uniform float uRound;
@@ -324,7 +332,7 @@ const FRAG_HOOD = /* glsl */ `
     vec2 c = vec2(0.0, 0.04 - uDrop * 0.22);
     vec2 q = pP - c;
     float a0 = uOpenWidth > 0.0 ? uAspect * uOpenWidth : uAspect * mix(0.55, 0.95, uOpening) + 0.06;
-    float b0 = mix(0.6, 0.98, uOpening) * (1.0 - uDrop * 0.3);
+    float b0 = uOpenHeight > 0.0 ? uOpenHeight : mix(0.6, 0.98, uOpening) * (1.0 - uDrop * 0.3);
     float pb = clamp(uHoodBack, 0.0, 1.0);
     float a = a0 * (1.0 + pb * 0.9);
     float b = b0 * (1.0 + pb * 1.1);
@@ -337,7 +345,20 @@ const FRAG_HOOD = /* glsl */ `
       r = abs(q.x) / (a * (1.0 + 0.12 * q.y * q.y));
     }
     float t = (r - 1.0) * min(a, b);
-    if (t < 0.0) discard;
+    float furBand = mix(0.008, 0.14, clamp(uFurWidth, 0.0, 1.0));
+    float furAngle = atan(q.y, q.x);
+    float furFrequency = uFurStyle < 0.5 ? 150.0 : uFurStyle < 1.5 ? 48.0 : 78.0;
+    float furFiber = sin(
+      furAngle * mix(furFrequency, furFrequency * 0.25, uFurSize) +
+        sin(t * 41.0 + furAngle * 3.0) * (uFurStyle > 1.5 ? 3.2 : 1.5)
+    );
+    float furLength = uFurStyle < 0.5
+      ? mix(0.006, 0.014, uFurSize)
+      : uFurStyle < 1.5
+        ? mix(0.018, 0.05, uFurSize)
+        : mix(0.012, 0.032, uFurSize);
+    float furFringe = furLength * (0.25 + 0.75 * (0.5 + 0.5 * furFiber));
+    if (t < 0.0 && (uFur < 0.5 || t < -furFringe)) discard;
     float yCut = mix(-1.08, 0.8, uHeight) + 0.22 * exp(-max(t, 0.0) * 7.0);
     if (uCollar < 0.5 && pP.y < yCut) discard;
 
@@ -350,7 +371,25 @@ const FRAG_HOOD = /* glsl */ `
     ao *= 1.0 - 0.3 * (1.0 - smoothstep(0.0, HEM, t));
     float m = clamp(uMetal, 0.0, 1.0);
     if (uStyle > 2.5 && uStyle < 3.5) m = max(m, 0.3);
-    gl_FragColor = vec4(lightCloth(nV, uColor, ao, m), 1.0);
+    vec3 cloth = lightCloth(nV, uColor, ao, m);
+    float furAa = max(fwidth(t), 1e-4);
+    float furMask = uFur * smoothstep(-furFringe - furAa, -furFringe + furAa, t) *
+      (1.0 - smoothstep(furBand - furAa, furBand + furAa, t));
+    float furPattern = 1.0;
+    if (uFurPattern > 0.5 && uFurPattern < 1.5) {
+      furPattern = mix(0.72, 1.25, smoothstep(0.35, 0.85, fract(t / max(furBand, 1e-3))));
+    } else if (uFurPattern > 1.5 && uFurPattern < 2.5) {
+      furPattern = mix(0.58, 1.3, smoothstep(-0.2, 0.25, sin(floor(furAngle * 14.0) * 12.9898 + floor(t * 75.0) * 78.233)));
+    } else if (uFurPattern > 2.5) {
+      furPattern = 0.76 + 0.34 * (0.5 + 0.5 * sin(furAngle * 18.0 + sin(furAngle * 5.0) * 2.0));
+    }
+    vec3 fur = lightCloth(
+      nV,
+      uFurColor * ((0.78 + 0.22 * (0.5 + 0.5 * furFiber)) * furPattern),
+      ao,
+      0.0
+    );
+    gl_FragColor = vec4(mix(cloth, fur, furMask), 1.0);
   }
 `;
 
@@ -476,6 +515,7 @@ export class HoodMesh3D {
   private readonly u: Uniforms;
   private colorHex = "";
   private cuffHex = "";
+  private furHex = "";
   private suitHex = "";
   private readonly q = new THREE.Quaternion();
   private readonly e = new THREE.Euler(0, 0, 0, "YXZ");
@@ -530,7 +570,14 @@ export class HoodMesh3D {
       uUnderwater: { value: 0 },
       uViewToWorld: { value: new THREE.Matrix3() },
       uOpening: { value: 0.5 },
+      uOpenHeight: { value: 0 },
       uOpenWidth: { value: 0 },
+      uFur: { value: 0 },
+      uFurSize: { value: 0.5 },
+      uFurWidth: { value: 0.35 },
+      uFurStyle: { value: 0 },
+      uFurPattern: { value: 0 },
+      uFurColor: { value: c() },
       uDrop: { value: 0 },
       uRound: { value: 0.85 },
       uHoodBack: { value: 0 },
@@ -712,7 +759,26 @@ export class HoodMesh3D {
     u.uUnderwater.value = cfg.underwater;
     (u.uViewToWorld.value as THREE.Matrix3).setFromMatrix4(camera.matrixWorld);
     u.uOpening.value = clamp(cfg.opening, 0, 1);
+    u.uOpenHeight.value = clamp(cfg.openingHeight, 0, HOOD_OPENING_HEIGHT_MAX);
     u.uOpenWidth.value = Math.max(0, Number.isFinite(cfg.openingWidth) ? cfg.openingWidth : 0);
+    u.uFur.value = cfg.fur ? 1 : 0;
+    u.uFurSize.value = clamp(cfg.furSize, 0, 1);
+    u.uFurWidth.value = clamp(cfg.furWidth, 0, 1);
+    u.uFurStyle.value = cfg.furStyle === "long" ? 1 : cfg.furStyle === "curly" ? 2 : 0;
+    u.uFurPattern.value =
+      cfg.furPattern === "tipped"
+        ? 1
+        : cfg.furPattern === "spotted"
+          ? 2
+          : cfg.furPattern === "striped"
+            ? 3
+            : 0;
+    this.setColor(
+      u.uFurColor.value as THREE.Color,
+      "furHex",
+      cfg.furColor,
+      0xf4f1e8,
+    );
     u.uDrop.value = clamp(cfg.drop, 0, 1);
     u.uRound.value = clamp(cfg.roundness, 0, 1);
     u.uHoodBack.value = clamp(cfg.pullBack ?? 0, 0, 1);

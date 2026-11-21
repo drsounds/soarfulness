@@ -42,7 +42,13 @@ import { AuroraPanel } from "@/apps/aurora/AuroraPanel";
 import type { AuroraSettings } from "@/apps/aurora/settings";
 import type { SnowSettings } from "@/apps/snow/settings";
 import type { AppSettingsHandle } from "@/core/apps/useAppSettings";
-import type { HoodCuffMaterial, HoodLayer, HoodStyle } from "@/apps/hood/hoodLayers";
+import {
+  sanitizeHoodLayerDetails,
+  type HoodCuffMaterial,
+  type HoodLayer,
+  type HoodLayerDetails,
+  type HoodStyle,
+} from "@/apps/hood/hoodLayers";
 import { StringLightsPanel } from "@/apps/string-lights/StringLightsPanel";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { hsvToRgb, tintToCss } from "@/lib/waterTint";
@@ -862,6 +868,8 @@ export type SettingsPanelProps = {
   // HUVA (apps/hood/Hood.ts).
   hoodOn: boolean;
   setHoodOn: Dispatch<SetStateAction<boolean>>;
+  hoodLayer1Details: HoodLayerDetails;
+  setHoodLayer1Details: Dispatch<SetStateAction<HoodLayerDetails>>;
   hoodHeight: number;
   setHoodHeight: Dispatch<SetStateAction<number>>;
   hoodOpening: number;
@@ -1849,6 +1857,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setGogglesFpsCap,
     hoodOn,
     setHoodOn,
+    hoodLayer1Details,
+    setHoodLayer1Details,
     hoodHeight,
     setHoodHeight,
     hoodOpening,
@@ -4002,6 +4012,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
             reflectLight: hoodReflectLight,
             puffThickness: hoodPuffThickness,
             puffInflate: hoodPuffInflate,
+            ...sanitizeHoodLayerDetails(hoodLayer1Details),
           }}
           setLayer1={(p) => {
             if (p.height !== undefined) setHoodHeight(p.height);
@@ -4056,6 +4067,17 @@ export function SettingsPanel(props: SettingsPanelProps) {
             if (p.reflectLight !== undefined) setHoodReflectLight(p.reflectLight);
             if (p.puffThickness !== undefined) setHoodPuffThickness(p.puffThickness);
             if (p.puffInflate !== undefined) setHoodPuffInflate(p.puffInflate);
+            if (
+              p.openingHeight !== undefined ||
+              p.fur !== undefined ||
+              p.furColor !== undefined ||
+              p.furStyle !== undefined ||
+              p.furPattern !== undefined ||
+              p.furSize !== undefined ||
+              p.furWidth !== undefined
+            ) {
+              setHoodLayer1Details((details) => sanitizeHoodLayerDetails({ ...details, ...p }));
+            }
           }}
           extraLayers={hoodExtraLayers}
           setExtraLayers={setHoodExtraLayers}

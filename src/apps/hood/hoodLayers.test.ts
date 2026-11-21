@@ -31,4 +31,33 @@ describe("hood layers", () => {
     expect(sanitizeHoodLayer({ meshResolution: 410 }).meshResolution).toBe(416);
     expect(sanitizeHoodLayer({ meshResolution: 900 }).meshResolution).toBe(512);
   });
+
+  test("sanitizes opening height and fur options", () => {
+    expect(sanitizeHoodLayer({}).openingHeight).toBe(0);
+    expect(sanitizeHoodLayer({ openingHeight: 4 }).openingHeight).toBe(3);
+    expect(
+      sanitizeHoodLayer({
+        fur: true,
+        furColor: "#123456",
+        furStyle: "long",
+        furPattern: "spotted",
+        furSize: 1.5,
+        furWidth: -0.5,
+      }),
+    ).toMatchObject({
+      fur: true,
+      furColor: "#123456",
+      furStyle: "long",
+      furPattern: "spotted",
+      furSize: 1,
+      furWidth: 0,
+    });
+    expect(
+      sanitizeHoodLayer({ furColor: "invalid", furStyle: "unknown", furPattern: "unknown" }),
+    ).toMatchObject({
+      furColor: HOOD_LAYER_DEFAULTS.furColor,
+      furStyle: "short",
+      furPattern: "solid",
+    });
+  });
 });
