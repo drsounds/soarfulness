@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { HOOD_OPENING_HEIGHT_MAX } from "./hoodLayers";
 
 // HUVA: a hoodie hood around the bather, seen from inside it.
 //
@@ -21,10 +22,20 @@ import * as THREE from "three";
 export type HoodConfig = {
   /** 0..1: where the hood's sides end, from the bottom of the view up (HÖJD FRÅN BOTTEN). */
   height: number;
+  offsetX: number;
+  offsetY: number;
   /** 0..1: size of the face opening, tight (0) .. wide (1) (ÖPPNING). */
   opening: number;
+  /** Opening height in screen heights; 0 follows ÖPPNING. */
+  openingHeight: number;
   /** Opening width in screen widths (1 = edge to edge, > 1 wider); 0 = follow ÖPPNING (ÖPPNINGSBREDD). */
   openingWidth: number;
+  fur: boolean;
+  furColor: string;
+  furStyle: "short" | "long" | "curly";
+  furPattern: "solid" | "tipped" | "spotted" | "striped";
+  furSize: number;
+  furWidth: number;
   /** Also cover the mouth and neck, closing the hood under the face (MUN OCH HALS). */
   lower: boolean;
   /** 0..1: how high up the view the mouth/neck cover reaches (TÄCKHÖJD). */
@@ -43,7 +54,7 @@ export type HoodConfig = {
   waterCalm: number;
   /** 0..1: how low the hood hangs over the forehead (HUVHÖJD). */
   drop: number;
-  /** 0..1: cloth weight — more sag and lag behind movement (TYNGD). */
+  /** -1..1: cloth weight — a negative value reverses its response to movement (TYNGD). */
   weight: number;
   /** 0..1: fine wet-cloth wrinkles (VÅTA VECK). */
   wrinkles: number;
@@ -179,6 +190,8 @@ const FRAG = /* glsl */ `
   precision highp float;
   varying vec2 vNdc;
   uniform float uAspect;
+  uniform float uOffsetX;
+  uniform float uOffsetY;
   uniform float uTanHalfFov;
   uniform float uTime;
   uniform vec2 uSway;
@@ -189,6 +202,7 @@ const FRAG = /* glsl */ `
   uniform float uMotion;
   uniform float uHeight;
   uniform float uOpening;
+  uniform float uOpenHeight;
   uniform float uOpenWidth;
   uniform float uLower;
   uniform float uTopOff;
@@ -236,6 +250,12 @@ const FRAG = /* glsl */ `
   uniform vec3 uCuffColor;
   uniform float uCuffMetal;
   uniform float uCuffMat;
+  uniform float uFur;
+  uniform float uFurSize;
+  uniform float uFurWidth;
+  uniform float uFurStyle;
+  uniform float uFurPattern;
+  uniform vec3 uFurColor;
   uniform float uZipFixed;
   uniform float uZipPullOut;
   uniform float uMetal;
@@ -292,7 +312,7 @@ const FRAG = /* glsl */ `
   float rimTopY(float x) {
     vec2 c = vec2(uSway.x, 0.04 + uSway.y - uDrop * 0.22);
     float a0 = uOpenWidth > 0.0 ? uAspect * uOpenWidth : uAspect * mix(0.55, 0.95, uOpening) + 0.06;
-    float b0 = mix(0.6, 0.98, uOpening) * (1.0 - uDrop * 0.3);
+    float b0 = uOpenHeight > 0.0 ? uOpenHeight : mix(0.6, 0.98, uOpening) * (1.0 - uDrop * 0.3);
     float pb = clamp(uHoodBack, 0.0, 1.0);
     float a = a0 * (1.0 + pb * 0.9);
     float b = b0 * (1.0 + pb * 1.1);
@@ -332,7 +352,7 @@ const FRAG = /* glsl */ `
     // half-screen-widths (1 = the screen's edges, above 1 = wider than the
     // screen); 0 (AUTO) follows ÖPPNING.
     float a0 = uOpenWidth > 0.0 ? uAspect * uOpenWidth : uAspect * mix(0.55, 0.95, uOpening) + 0.06;
-    float b0 = mix(0.6, 0.98, uOpening) * (1.0 - uDrop * 0.3);
+    float b0 = uOpenHeight > 0.0 ? uOpenHeight : mix(0.6, 0.98, uOpening) * (1.0 - uDrop * 0.3);
     // HUVA BAKÅT: the top hood is pulled back off the head, so its rim
     // opens wide and slides up and out of view. The funnel neck keeps a0.
     float pb = clamp(uHoodBack, 0.0, 1.0);
@@ -723,7 +743,8 @@ const FRAG = /* glsl */ `
   }
 
   void main() {
-    vec2 p = floatWarp(bodyWarp(hangWarp(vec2(vNdc.x * uAspect, vNdc.y))));
+    vec2 p = floatWarp(bodyWarp(hangWarp(vec2(vNdc.x * uAspect, vNdc.y)))) -
+      vec2(uOffsetX * uAspect, uOffsetY);
     vec2 pDrip = p;
     // 3D-PUFFAR: a bulging puff stands toward the head, so from the eye it
     // is seen shifted in toward the opening; it overhangs the edge and the
@@ -746,10 +767,26 @@ const FRAG = /* glsl */ `
     float cuffX = gCuffX;
     float t = f.x;
     float cut = f.z;
+    float furAngle = atan(p.y - (0.04 + uSway.y - uDrop * 0.22), p.x - uSway.x);
     float aaT = max(fwidth(t), 1e-4) * 1.5;
     float aaC = max(fwidth(cut), 1e-4) * 1.5;
     float inside = smoothstep(0.0, aaT, t) * smoothstep(0.0, aaC, cut);
     if (uDropsOnly > 0.5) inside = 0.0;
+    float furBand = mix(0.008, 0.14, clamp(uFurWidth, 0.0, 1.0));
+    float furStrand = fract(sin(floor(furAngle * mix(140.0, 55.0, uFurSize)) * 12.9898) * 43758.5453);
+    float furLength = uFurStyle < 0.5
+      ? mix(0.004, 0.01, uFurSize)
+      : uFurStyle < 1.5
+        ? mix(0.012, 0.03, uFurSize)
+        : mix(0.009, 0.022, uFurSize);
+    float furFiber = sin(
+      furAngle * mix(140.0, 55.0, uFurSize) + sin(t * 41.0 + furAngle * 3.0) * 0.35
+    );
+    float furFringe = furLength * (0.68 + 0.12 * furFiber + 0.1 * furStrand);
+    float furMask = uFur * smoothstep(-furFringe - aaT, -furFringe + aaT, t) *
+      (1.0 - smoothstep(furBand - aaT, furBand + aaT, t)) *
+      smoothstep(-0.03, 0.05, cut);
+    if (uDropsOnly > 0.5) furMask = 0.0;
     // Contact shadow the hood throws onto the view just inside the opening.
     float rim = smoothstep(-0.04, 0.0, t) * (1.0 - smoothstep(0.0, aaT, t)) * smoothstep(-0.03, 0.05, cut) * uViewShadow;
     if (uDropsOnly > 0.5) rim = 0.0;
@@ -772,7 +809,7 @@ const FRAG = /* glsl */ `
         drip = d3.a > drip.a ? d3 : drip;
       }
     }
-    if (inside <= 0.0 && rim <= 0.0 && drip.a <= 0.0) discard;
+    if (inside <= 0.0 && rim <= 0.0 && furMask <= 0.0 && drip.a <= 0.0) discard;
 
     // Height-field normal (view space, +z toward the eye).
     float e = 0.004;
@@ -971,8 +1008,20 @@ const FRAG = /* glsl */ `
     // Under water: tint toward the water and dim.
     col = mix(col, col * (uWater * 2.2 + 0.25), uUnderwater * 0.6);
 
-    vec3 outCol = mix(vec3(0.0), col, inside);
-    float alpha = max(inside, rim * 0.25);
+    float furPattern = 1.0;
+    if (uFurPattern > 0.5 && uFurPattern < 1.5) {
+      furPattern = mix(0.72, 1.25, smoothstep(0.35, 0.85, fract(t / max(furBand, 1e-3))));
+    } else if (uFurPattern > 1.5 && uFurPattern < 2.5) {
+      float cells = sin(floor(furAngle * 14.0) * 12.9898 + floor(t * 75.0) * 78.233);
+      furPattern = smoothstep(-0.2, 0.25, cells);
+      furPattern = mix(0.58, 1.3, furPattern);
+    } else if (uFurPattern > 2.5) {
+      furPattern = 0.76 + 0.34 * (0.5 + 0.5 * sin(furAngle * 18.0 + sin(furAngle * 5.0) * 2.0));
+    }
+    float furShade = (0.78 + 0.22 * (0.5 + 0.5 * furFiber)) * furPattern;
+    vec3 furCol = uFurColor * (ambient * ao + uSunCol * diff * ao * 0.65) * furShade;
+    vec3 outCol = mix(mix(vec3(0.0), col, inside), furCol, furMask);
+    float alpha = max(max(inside, furMask), rim * 0.25);
     outCol = mix(outCol, drip.rgb, drip.a * (1.0 - inside * 0.4));
     alpha = max(alpha, drip.a);
     gl_FragColor = vec4(outCol, alpha);
@@ -997,6 +1046,8 @@ export class Hood {
   private readonly geometry: THREE.PlaneGeometry;
   private readonly uniforms: {
     uAspect: { value: number };
+    uOffsetX: { value: number };
+    uOffsetY: { value: number };
     uTanHalfFov: { value: number };
     uTime: { value: number };
     uSway: { value: THREE.Vector2 };
@@ -1007,6 +1058,7 @@ export class Hood {
     uMotion: { value: number };
     uHeight: { value: number };
     uOpening: { value: number };
+    uOpenHeight: { value: number };
     uOpenWidth: { value: number };
     uLower: { value: number };
     uTopOff: { value: number };
@@ -1054,6 +1106,12 @@ export class Hood {
     uCuffColor: { value: THREE.Color };
     uCuffMetal: { value: number };
     uCuffMat: { value: number };
+    uFur: { value: number };
+    uFurSize: { value: number };
+    uFurWidth: { value: number };
+    uFurStyle: { value: number };
+    uFurPattern: { value: number };
+    uFurColor: { value: THREE.Color };
     uZipFixed: { value: number };
     uZipPullOut: { value: number };
     uMetal: { value: number };
@@ -1081,6 +1139,7 @@ export class Hood {
   private hasWater = false;
   private colorHex = "";
   private cuffColorHex = "";
+  private furColorHex = "";
   /** 0..1: how soaked (and so how swollen) the padding is right now. */
   private soak = 0;
   /** 0..1: how wet the cloth is (slowly dries), for DROPPAR. */
@@ -1094,6 +1153,8 @@ export class Hood {
   constructor(scene: THREE.Scene, order = 0) {
     this.uniforms = {
       uAspect: { value: 1 },
+      uOffsetX: { value: 0 },
+      uOffsetY: { value: 0 },
       uTanHalfFov: { value: 1 },
       uTime: { value: 0 },
       uSway: { value: new THREE.Vector2() },
@@ -1104,6 +1165,7 @@ export class Hood {
       uMotion: { value: 0.5 },
       uHeight: { value: 0.3 },
       uOpening: { value: 0.5 },
+      uOpenHeight: { value: 0 },
       uOpenWidth: { value: 0 },
       uLower: { value: 0 },
       uTopOff: { value: 0 },
@@ -1151,6 +1213,12 @@ export class Hood {
       uCuffColor: { value: new THREE.Color() },
       uCuffMetal: { value: 0.15 },
       uCuffMat: { value: 0 },
+      uFur: { value: 0 },
+      uFurSize: { value: 0.5 },
+      uFurWidth: { value: 0.35 },
+      uFurStyle: { value: 0 },
+      uFurPattern: { value: 0 },
+      uFurColor: { value: new THREE.Color() },
       uZipFixed: { value: 1 },
       uZipPullOut: { value: 1 },
       uMetal: { value: 0.5 },
@@ -1192,9 +1260,18 @@ export class Hood {
     this.mesh.visible = true;
     u.uTime.value = time;
     u.uAspect.value = camera.aspect;
+    u.uOffsetX.value = THREE.MathUtils.clamp(cfg.offsetX ?? 0, -1, 1);
+    u.uOffsetY.value = THREE.MathUtils.clamp(cfg.offsetY ?? 0, -1, 1);
     u.uTanHalfFov.value = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
     u.uHeight.value = THREE.MathUtils.clamp(cfg.height, 0, 1);
     u.uOpening.value = THREE.MathUtils.clamp(cfg.opening, 0, 1);
+    u.uOpenHeight.value = Math.max(
+      0,
+      Math.min(
+        HOOD_OPENING_HEIGHT_MAX,
+        Number.isFinite(cfg.openingHeight) ? cfg.openingHeight : 0,
+      ),
+    );
     u.uOpenWidth.value = Math.max(0, Number.isFinite(cfg.openingWidth) ? cfg.openingWidth : 0);
     u.uLower.value = cfg.lower ? 1 : 0;
     u.uSep.value = cfg.separate ? 1 : 0;
@@ -1249,9 +1326,10 @@ export class Hood {
       // more air (they puff up and lift); heavy cloth sinks and drags.
       const fl = THREE.MathUtils.clamp(cfg.floating ?? 0, 0, 1) * this.soak;
       const air = HOOD_STYLE_AIR[cfg.style] ?? 0.35;
-      const w = THREE.MathUtils.clamp(cfg.weight, 0, 1);
+      const signedWeight = THREE.MathUtils.clamp(cfg.weight, -1, 1);
+      const w = Math.abs(signedWeight);
       u.uFloatAmt.value = fl;
-      u.uFloatLift.value = air * 0.08 - w * 0.07;
+      u.uFloatLift.value = air * 0.08 - signedWeight * 0.07;
       u.uFloatInflate.value = fl * air * (1 - w * 0.6);
       // DROPPAR: wet cloth keeps dripping for a good while after the head
       // leaves the water (it dries far slower than the puffs sag).
@@ -1282,6 +1360,23 @@ export class Hood {
     u.uCuffCustom.value = cfg.cuffCustom ? 1 : 0;
     u.uCuffMetal.value = THREE.MathUtils.clamp(cfg.cuffMetallic ?? 0.15, 0, 1);
     u.uCuffMat.value = cfg.cuffMaterial === "smooth" ? 1 : cfg.cuffMaterial === "rubber" ? 2 : 0;
+    u.uFur.value = cfg.fur ? 1 : 0;
+    u.uFurSize.value = THREE.MathUtils.clamp(cfg.furSize, 0, 1);
+    u.uFurWidth.value = THREE.MathUtils.clamp(cfg.furWidth, 0, 1);
+    u.uFurStyle.value = cfg.furStyle === "long" ? 1 : cfg.furStyle === "curly" ? 2 : 0;
+    u.uFurPattern.value =
+      cfg.furPattern === "tipped"
+        ? 1
+        : cfg.furPattern === "spotted"
+          ? 2
+          : cfg.furPattern === "striped"
+            ? 3
+            : 0;
+    if (cfg.furColor && cfg.furColor !== this.furColorHex) {
+      this.furColorHex = cfg.furColor;
+      const hex = parseInt(cfg.furColor.replace("#", ""), 16);
+      u.uFurColor.value.setHex(Number.isFinite(hex) ? hex : 0xf4f1e8, THREE.LinearSRGBColorSpace);
+    }
     if (cfg.cuffColor && cfg.cuffColor !== this.cuffColorHex) {
       this.cuffColorHex = cfg.cuffColor;
       const hex = parseInt(cfg.cuffColor.replace("#", ""), 16);
@@ -1339,10 +1434,12 @@ export class Hood {
 
     // RÖRELSE + TYNGD: the hood hangs on the head like cloth on a damped
     // spring. Moving up leaves it behind (it slides down), sinking lifts it,
-    // and turning or moving sideways swings it the other way. Heavier cloth
-    // sags more, swings further and settles more slowly.
-    const weight = THREE.MathUtils.clamp(cfg.weight, 0, 1);
+    // and turning or moving sideways swings it the other way. Negative weight
+    // reverses that response; heavier cloth swings further and settles more slowly.
+    const signedWeight = THREE.MathUtils.clamp(cfg.weight, -1, 1);
+    const weight = Math.abs(signedWeight);
     const heavy = 0.5 + weight * 1.5;
+    const direction = signedWeight < 0 ? -1 : 1;
     const step = Math.min(Math.max(dt, 0), 0.1);
     let pushX = 0;
     let pushY = 0;
@@ -1358,8 +1455,8 @@ export class Hood {
       this.tmpQ.copy(camera.quaternion).invert();
       this.tmpV.applyQuaternion(this.tmpQ);
       const vxLocal = THREE.MathUtils.clamp(this.tmpV.x, -8, 8);
-      pushX = (yawRate * 0.05 - vxLocal * 0.02) * heavy;
-      pushY = (-pitchRate * 0.04 - vyWorld * 0.02) * heavy;
+      pushX = (yawRate * 0.05 - vxLocal * 0.02) * heavy * direction;
+      pushY = (-pitchRate * 0.04 - vyWorld * 0.02) * heavy * direction;
     }
     this.lastQuat.copy(camera.quaternion);
     this.lastPos.copy(camera.position);

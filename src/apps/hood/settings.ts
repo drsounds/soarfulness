@@ -2,7 +2,13 @@
 // (lib/settingsShared.ts `Persisted` is the intersection of every app's
 // slice). The defaults are spread into DEFAULTS in routes/index.tsx.
 
-import type { HoodCuffMaterial, HoodLayer, HoodStyle } from "./hoodLayers";
+import {
+  HOOD_MESH_RESOLUTION_DEFAULT,
+  type HoodCuffMaterial,
+  type HoodLayerDetails,
+  type HoodLayer,
+  type HoodStyle,
+} from "./hoodLayers";
 
 export type HoodSettings = {
   // HUVA: a hoodie hood around the bather (apps/hood/Hood.ts), off by
@@ -24,8 +30,8 @@ export type HoodSettings = {
   // swimming in clothes; hoodWaterLevel (0..1) raises it above the sea outside.
   hoodWaterOn: boolean;
   hoodWaterLevel: number;
-  // HUVHÖJD (hoodDrop), TYNGD (hoodWeight), VÅTA VECK (hoodWrinkles) and
-  // MÖRKHET (hoodDarkness) for layer 1, all 0..1; layers 2+ live in
+  // HUVHÖJD (hoodDrop), VÅTA VECK (hoodWrinkles) and MÖRKHET (hoodDarkness)
+  // for layer 1 are 0..1; TYNGD (hoodWeight) is -1..1. Layers 2+ live in
   // hoodExtraLayers (apps/hood/hoodLayers.ts).
   // ÖPPNINGSBREDD for layer 1, in screen widths; 0 = AUTO (follow ÖPPNING).
   hoodOpeningWidth: number;
@@ -45,6 +51,7 @@ export type HoodSettings = {
   hoodDripAmount: number;
   hoodDripGrow: number;
   hoodReal3d: boolean;
+  hoodMeshResolution: number;
   hoodSeparate: boolean;
   hoodWaterTint: number;
   hoodDripping: number;
@@ -78,6 +85,7 @@ export type HoodSettings = {
   hoodPuffThickness: number;
   hoodPuffInflate: number;
   hoodExtraLayers: HoodLayer[];
+  hoodLayer1Details: HoodLayerDetails;
 };
 
 export const HOOD_DEFAULTS: HoodSettings = {
@@ -108,6 +116,7 @@ export const HOOD_DEFAULTS: HoodSettings = {
   hoodDripAmount: 0.7,
   hoodDripGrow: 0.5,
   hoodReal3d: false,
+  hoodMeshResolution: HOOD_MESH_RESOLUTION_DEFAULT,
   hoodSeparate: false,
   hoodWaterTint: 0,
   hoodDripping: 0,
@@ -140,6 +149,17 @@ export const HOOD_DEFAULTS: HoodSettings = {
   hoodPuffThickness: 0.5,
   hoodPuffInflate: 0,
   hoodExtraLayers: [] as HoodLayer[],
+  hoodLayer1Details: {
+    openingHeight: 0,
+    offsetX: 0,
+    offsetY: 0,
+    fur: false,
+    furColor: "#f4f1e8",
+    furStyle: "short",
+    furPattern: "solid",
+    furSize: 0.5,
+    furWidth: 0.35,
+  },
 };
 
 /** Every key HoodSettings owns, in declaration order (presets, sharing). */

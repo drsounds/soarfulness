@@ -43,6 +43,7 @@ import { BODYFLIGHT_DEFAULTS } from "@/apps/bodyflight/settings";
 import { SWING_DEFAULTS } from "@/apps/swing/settings";
 import { TORNADO_DEFAULTS } from "@/apps/tornado/settings";
 import { RIDE_DEFAULTS } from "@/apps/ride/settings";
+import { rideSwingAngles } from "@/apps/ride/swing";
 import { onAppLifecycle } from "@/core/apps/lifecycle";
 import {
   MODE_APP_ID,
@@ -78,7 +79,12 @@ import snowApp from "@/apps/snow/app";
 import { RAIN_DEFAULTS } from "@/apps/rain/settings";
 import { FIREWORKS_LIGHTS } from "@/apps/fireworks/Fireworks";
 import fireworksApp from "@/apps/fireworks/app";
-import { sanitizeHoodLayers, type HoodLayer, type HoodStyle } from "@/apps/hood/hoodLayers";
+import {
+  sanitizeHoodLayers,
+  sanitizeHoodLayerDetails,
+  type HoodLayer,
+  type HoodStyle,
+} from "@/apps/hood/hoodLayers";
 import { applyNeonAccent } from "@/apps/neon/neonAccent";
 import { relativeDaylightTint } from "@/apps/day-night/daylightTint";
 import {
@@ -112,7 +118,13 @@ import type { SettingsPanelProps } from "@/components/SettingsPanel";
 import { ShareBathDialog } from "@/components/ShareBathDialog";
 import { GogglesOverlay } from "@/components/GogglesOverlay";
 import { TimeTravelDialog } from "@/components/TimeTravelDialog";
-import { isFuturisticYear, northernHemisphereTimeOfDay, simulatedDate } from "@/lib/timeTravel";
+import { TimeTimeline } from "@/apps/day-night/TimeTimeline";
+import {
+  isFuturisticYear,
+  northernHemisphereTimeOfDay,
+  seekLocalMinute,
+  simulatedDate,
+} from "@/lib/timeTravel";
 import { PadSlider } from "@/components/PadDial";
 import {
   Joystick,
@@ -581,9 +593,11 @@ const _foAxisSwing = new THREE.Vector3();
 const _swingHookPos = new THREE.Vector3();
 const _cordEnd = new THREE.Vector3();
 const _foAxisRing = new THREE.Vector3();
+const _foAxisSwing2 = new THREE.Vector3();
 const _foSeat = new THREE.Vector3();
 const _foArm = new THREE.Vector3();
 const _foQSwing = new THREE.Quaternion();
+const _foQSwing2 = new THREE.Quaternion();
 const _foQRing = new THREE.Quaternion();
 // The gondola's rotation relative to the arm (see FreakOutRig.gondola).
 const _foQGondola = new THREE.Quaternion();
@@ -594,6 +608,8 @@ function freakOutPose(
   yaw: number,
   swingAxisDeg: number,
   swingAngle: number,
+  swingAxisDeg2: number,
+  swingAngle2: number,
   armLen: number,
   ringRadius: number,
   ringAxis: FreakOutAxis,
@@ -612,6 +628,12 @@ function freakOutPose(
     0,
     rightZ * Math.cos(a) + fwdZ * Math.sin(a),
   );
+  const a2 = THREE.MathUtils.degToRad(swingAxisDeg2);
+  _foAxisSwing2.set(
+    rightX * Math.cos(a2) + fwdX * Math.sin(a2),
+    0,
+    rightZ * Math.cos(a2) + fwdZ * Math.sin(a2),
+  );
   if (ringAxis === "x") _foAxisRing.set(rightX, 0, rightZ);
   else if (ringAxis === "z") _foAxisRing.set(fwdX, 0, fwdZ);
   else _foAxisRing.set(0, 1, 0);
@@ -621,6 +643,8 @@ function freakOutPose(
   if (ringAxis === "z") _foSeat.set(rightX * side, 0, rightZ * side);
   else _foSeat.set(fwdX * side, 0, fwdZ * side);
   _foQSwing.setFromAxisAngle(_foAxisSwing, swingAngle);
+  _foQSwing2.setFromAxisAngle(_foAxisSwing2, swingAngle2);
+  _foQSwing.multiply(_foQSwing2);
   _foQRing.setFromAxisAngle(_foAxisRing, ringAngle);
   _foArm.set(0, -armLen, 0);
   if (ringTilts) {
@@ -1972,9 +1996,13 @@ export function Aquafulness() {
   const [gogglesLoop, setGogglesLoop] = useState(initial.gogglesLoop);
   const [gogglesIntensity, setGogglesIntensity] = useState(initial.gogglesIntensity);
   const [gogglesFpsCap, setGogglesFpsCap] = useState(initial.gogglesFpsCap);
-  const hood = useAppSettings(HOOD_DEFAULTS, initial, { hoodExtraLayers: sanitizeHoodLayers });
+  const hood = useAppSettings(HOOD_DEFAULTS, initial, {
+    hoodExtraLayers: sanitizeHoodLayers,
+    hoodLayer1Details: sanitizeHoodLayerDetails,
+  });
   const {
     hoodOn,
+    hoodLayer1Details,
     hoodHeight,
     hoodOpening,
     hoodColor,
@@ -2000,6 +2028,7 @@ export function Aquafulness() {
     hoodDripAmount,
     hoodDripGrow,
     hoodReal3d,
+    hoodMeshResolution,
     hoodSeparate,
     hoodWaterTint,
     hoodDripping,
@@ -2035,6 +2064,7 @@ export function Aquafulness() {
   } = hood.values;
   const {
     hoodOn: setHoodOn,
+    hoodLayer1Details: setHoodLayer1Details,
     hoodHeight: setHoodHeight,
     hoodOpening: setHoodOpening,
     hoodColor: setHoodColor,
@@ -2060,6 +2090,7 @@ export function Aquafulness() {
     hoodDripAmount: setHoodDripAmount,
     hoodDripGrow: setHoodDripGrow,
     hoodReal3d: setHoodReal3d,
+    hoodMeshResolution: setHoodMeshResolution,
     hoodSeparate: setHoodSeparate,
     hoodWaterTint: setHoodWaterTint,
     hoodDripping: setHoodDripping,
@@ -2355,14 +2386,33 @@ export function Aquafulness() {
   const [waterGlowColor, setWaterGlowColor] = useState(initial.waterGlowColor);
   const [waterGlowStrength, setWaterGlowStrength] = useState(initial.waterGlowStrength);
   const [waterGlowEveningOnly, setWaterGlowEveningOnly] = useState(initial.waterGlowEveningOnly);
-  const dayNight = useAppSettings(DAY_NIGHT_DEFAULTS, initial);
-  const { envDaylightTintOn, envDaylightTintStrength, envDayNightAutoOn, envSunTintOn } =
-    dayNight.values;
+  const dayNight = useAppSettings(DAY_NIGHT_DEFAULTS, initial, {
+    dayNightClockSpeed: (v) =>
+      typeof v === "number" && Number.isFinite(v) ? Math.min(1000, Math.max(0, v)) : 1,
+    dayNightTimelineColor: (v) =>
+      typeof v === "string" && /^#[\da-f]{6}$/i.test(v)
+        ? v
+        : DAY_NIGHT_DEFAULTS.dayNightTimelineColor,
+    dayNightLiveColor: (v) =>
+      typeof v === "string" && /^#[\da-f]{6}$/i.test(v) ? v : DAY_NIGHT_DEFAULTS.dayNightLiveColor,
+  });
+  const {
+    envDaylightTintOn,
+    envDaylightTintStrength,
+    envDayNightAutoOn,
+    envSunTintOn,
+    dayNightClockSpeed,
+    dayNightTimelineColor,
+    dayNightLiveColor,
+  } = dayNight.values;
   const {
     envDaylightTintOn: setEnvDaylightTintOn,
     envDaylightTintStrength: setEnvDaylightTintStrength,
     envDayNightAutoOn: setEnvDayNightAutoOn,
     envSunTintOn: setEnvSunTintOn,
+    dayNightClockSpeed: setDayNightClockSpeed,
+    dayNightTimelineColor: setDayNightTimelineColor,
+    dayNightLiveColor: setDayNightLiveColor,
   } = dayNight.setters;
   const { reset: resetDaynight, patch: patchDaynight } = dayNight;
   const snow = useAppSettings(SNOW_DEFAULTS, initial);
@@ -2573,6 +2623,8 @@ export function Aquafulness() {
   const [freakOutOn, setFreakOutOn] = useState(initial.freakOutOn);
   const [freakOutSwingAxis, setFreakOutSwingAxis] = useState(initial.freakOutSwingAxis);
   const [freakOutSwingAngle, setFreakOutSwingAngle] = useState(initial.freakOutSwingAngle);
+  const [freakOutSwingAxis2, setFreakOutSwingAxis2] = useState(initial.freakOutSwingAxis2);
+  const [freakOutSwingAngle2, setFreakOutSwingAngle2] = useState(initial.freakOutSwingAngle2);
   const [freakOutSwingSpeed, setFreakOutSwingSpeed] = useState(initial.freakOutSwingSpeed);
   const [freakOutSwingLength, setFreakOutSwingLength] = useState(initial.freakOutSwingLength);
   const [freakOutRingRadius, setFreakOutRingRadius] = useState(initial.freakOutRingRadius);
@@ -3062,6 +3114,8 @@ export function Aquafulness() {
   // the animation loop can hide the procedural sky dome for a real equirect one.
   const envTextureRef = useRef<THREE.Texture | null>(null);
   const envActiveRef = useRef(false);
+  const clockSyncRef = useRef(false);
+  clockSyncRef.current = clockOn && timeSeasonalSync && !CLOCK_DISABLED_FOR_PERF_TEST;
   // The time of day the current environment skybox was painted at (its
   // manifest's timeOfDay, noon if it doesn't say) — the reference
   // DYGNSTONING tints relative to.
@@ -3202,6 +3256,7 @@ export function Aquafulness() {
     gogglesIntensity,
     gogglesFpsCap,
     hoodOn,
+    hoodLayer1Details,
     hoodHeight,
     hoodOpening,
     hoodColor,
@@ -3227,6 +3282,7 @@ export function Aquafulness() {
     hoodDripAmount,
     hoodDripGrow,
     hoodReal3d,
+    hoodMeshResolution,
     hoodSeparate,
     hoodWaterTint,
     hoodDripping,
@@ -3380,6 +3436,9 @@ export function Aquafulness() {
     envDaylightTintStrength,
     envDayNightAutoOn,
     envSunTintOn,
+    dayNightClockSpeed,
+    dayNightTimelineColor,
+    dayNightLiveColor,
     skyLook,
     snowOn,
     snowAmount,
@@ -3465,6 +3524,8 @@ export function Aquafulness() {
     freakOutOn,
     freakOutSwingAxis,
     freakOutSwingAngle,
+    freakOutSwingAxis2,
+    freakOutSwingAngle2,
     freakOutSwingSpeed,
     freakOutSwingLength,
     freakOutRingRadius,
@@ -3588,6 +3649,7 @@ export function Aquafulness() {
     gogglesIntensity,
     gogglesFpsCap,
     hoodOn,
+    hoodLayer1Details,
     hoodHeight,
     hoodOpening,
     hoodColor,
@@ -3613,6 +3675,7 @@ export function Aquafulness() {
     hoodDripAmount,
     hoodDripGrow,
     hoodReal3d,
+    hoodMeshResolution,
     hoodSeparate,
     hoodWaterTint,
     hoodDripping,
@@ -3766,6 +3829,9 @@ export function Aquafulness() {
     envDaylightTintStrength,
     envDayNightAutoOn,
     envSunTintOn,
+    dayNightClockSpeed,
+    dayNightTimelineColor,
+    dayNightLiveColor,
     skyLook,
     snowOn,
     snowAmount,
@@ -3851,6 +3917,8 @@ export function Aquafulness() {
     freakOutOn,
     freakOutSwingAxis,
     freakOutSwingAngle,
+    freakOutSwingAxis2,
+    freakOutSwingAngle2,
     freakOutSwingSpeed,
     freakOutSwingLength,
     freakOutRingRadius,
@@ -4022,6 +4090,8 @@ export function Aquafulness() {
   const freakOutOnRef = useRef(freakOutOn);
   const freakOutSwingAxisRef = useRef(freakOutSwingAxis);
   const freakOutSwingAngleRef = useRef(freakOutSwingAngle);
+  const freakOutSwingAxis2Ref = useRef(freakOutSwingAxis2);
+  const freakOutSwingAngle2Ref = useRef(freakOutSwingAngle2);
   const freakOutSwingSpeedRef = useRef(freakOutSwingSpeed);
   const freakOutSwingLengthRef = useRef(freakOutSwingLength);
   const freakOutRingRadiusRef = useRef(freakOutRingRadius);
@@ -4953,6 +5023,12 @@ export function Aquafulness() {
     freakOutSwingAngleRef.current = freakOutSwingAngle;
   }, [freakOutSwingAngle]);
   useEffect(() => {
+    freakOutSwingAxis2Ref.current = freakOutSwingAxis2;
+  }, [freakOutSwingAxis2]);
+  useEffect(() => {
+    freakOutSwingAngle2Ref.current = freakOutSwingAngle2;
+  }, [freakOutSwingAngle2]);
+  useEffect(() => {
     freakOutSwingSpeedRef.current = freakOutSwingSpeed;
   }, [freakOutSwingSpeed]);
   useEffect(() => {
@@ -5467,6 +5543,8 @@ export function Aquafulness() {
     setFreakOutOn(DEFAULTS.freakOutOn);
     setFreakOutSwingAxis(DEFAULTS.freakOutSwingAxis);
     setFreakOutSwingAngle(DEFAULTS.freakOutSwingAngle);
+    setFreakOutSwingAxis2(DEFAULTS.freakOutSwingAxis2);
+    setFreakOutSwingAngle2(DEFAULTS.freakOutSwingAngle2);
     setFreakOutSwingSpeed(DEFAULTS.freakOutSwingSpeed);
     setFreakOutSwingLength(DEFAULTS.freakOutSwingLength);
     setFreakOutRingRadius(DEFAULTS.freakOutRingRadius);
@@ -5731,6 +5809,8 @@ export function Aquafulness() {
     if (patch.freakOutOn !== undefined) setFreakOutOn(patch.freakOutOn);
     if (patch.freakOutSwingAxis !== undefined) setFreakOutSwingAxis(patch.freakOutSwingAxis);
     if (patch.freakOutSwingAngle !== undefined) setFreakOutSwingAngle(patch.freakOutSwingAngle);
+    if (patch.freakOutSwingAxis2 !== undefined) setFreakOutSwingAxis2(patch.freakOutSwingAxis2);
+    if (patch.freakOutSwingAngle2 !== undefined) setFreakOutSwingAngle2(patch.freakOutSwingAngle2);
     if (patch.freakOutSwingSpeed !== undefined) setFreakOutSwingSpeed(patch.freakOutSwingSpeed);
     if (patch.freakOutSwingLength !== undefined) setFreakOutSwingLength(patch.freakOutSwingLength);
     if (patch.freakOutRingRadius !== undefined) setFreakOutRingRadius(patch.freakOutRingRadius);
@@ -6312,16 +6392,14 @@ export function Aquafulness() {
     selectEnvTime(times[(i + dir + times.length) % times.length].id);
   };
 
-  // DATE & TIME TRAVEL: once a minute, advance the simulated clock (real
+  // DATE & TIME TRAVEL: advance the simulated clock (real
   // time, or a time-traveled date ticking forward from wherever it was
   // pinned — see simulatedDate()), optionally sync TIMEOFDAY to that date's
   // real northern-hemisphere sunrise/sunset, and gate the current
   // environment's era to its futuristic look once the simulated year passes
   // FUTURISTIC_YEAR (only for environments that actually have a "future"
-  // era, and never overriding an era the user picked by hand). A minute
-  // (rather than a second) is plenty for a HH:MM readout and for how slowly
-  // sunrise/sunset actually drifts, and keeps this from re-rendering the
-  // whole component — a real cost given its size — more than once a minute.
+  // era, and never overriding an era the user picked by hand). Tick each
+  // second so the timeline also follows accelerated time.
   //
   // Gated by CLOCK_DISABLED_FOR_PERF_TEST above (a dev-only perf kill
   // switch) and by clockOn (the user-facing setting that turns the whole
@@ -6330,7 +6408,7 @@ export function Aquafulness() {
   useEffect(() => {
     if (CLOCK_DISABLED_FOR_PERF_TEST || !clockOn) return;
     const tick = () => {
-      const date = simulatedDate(timeTravelBaseMs, timeTravelSetAtMs);
+      const date = simulatedDate(timeTravelBaseMs, timeTravelSetAtMs, dayNightClockSpeed);
       setSimNow(date);
 
       if (timeSeasonalSync) {
@@ -6361,9 +6439,18 @@ export function Aquafulness() {
       }
     };
     tick();
-    const id = window.setInterval(tick, 60_000);
+    const id = window.setInterval(tick, 1_000);
     return () => window.clearInterval(id);
-  }, [timeTravelBaseMs, timeTravelSetAtMs, timeSeasonalSync, clockOn, environments, envId, envEra]);
+  }, [
+    timeTravelBaseMs,
+    timeTravelSetAtMs,
+    timeSeasonalSync,
+    dayNightClockSpeed,
+    clockOn,
+    environments,
+    envId,
+    envEra,
+  ]);
 
   // Step through the reflection surfaces, including an "AV" (gradient-only) slot.
   const cycleSurface = (dir: number) => {
@@ -11011,16 +11098,24 @@ export function Aquafulness() {
         } else if (foBlend > 0.0005) {
           freakOutSwingPhaseRef.current +=
             0.6 * Math.max(0, Math.min(5, freakOutSwingSpeedRef.current)) * physDt;
-          const foSwingAngle =
-            THREE.MathUtils.degToRad(freakOutSwingAngleRef.current) *
-            Math.sin(freakOutSwingPhaseRef.current);
+          const { first: foSwingAngle, second: foSwingAngle2 } = rideSwingAngles(
+            freakOutSwingPhaseRef.current,
+            freakOutSwingAngleRef.current,
+            freakOutSwingAngle2Ref.current,
+          );
           freakOutRotBlendRef.current +=
             ((freakOutRotationOnRef.current ? 1 : 0) - freakOutRotBlendRef.current) *
             (1 - Math.exp(-physDt / 0.4));
           // How much the arm is really swinging (0 with next to no swing
           // angle or speed), which ties the ring's spin to the swing below.
           const foSwingSync =
-            Math.min(1, Math.abs(freakOutSwingAngleRef.current) / 25) *
+            Math.min(
+              1,
+              Math.max(
+                Math.abs(freakOutSwingAngleRef.current),
+                Math.abs(freakOutSwingAngle2Ref.current),
+              ) / 25,
+            ) *
             Math.min(1, Math.max(0, freakOutSwingSpeedRef.current) / 0.1);
           let foDir = freakOutRotationDirectionRef.current === "ccw" ? -1 : 1;
           if (freakOutRotationOscillateRef.current) {
@@ -11095,6 +11190,8 @@ export function Aquafulness() {
             freakOutYawRef.current,
             freakOutSwingAxisRef.current,
             foSwingAngle,
+            freakOutSwingAxis2Ref.current,
+            foSwingAngle2,
             Math.max(0, freakOutSwingLengthRef.current),
             Math.max(0, freakOutRingRadiusRef.current),
             freakOutRotationAxisRef.current,
@@ -12126,7 +12223,7 @@ export function Aquafulness() {
       // unless DYGNSTONING is on, where TIMEOFDAY stays with the daylight
       // engine and tints the skybox instead, or DYGNSBYTE is following
       // TIMEOFDAY with a day+night pair.
-      if (!night && skyboxTod !== null && !envDaylightTintOnRef.current) {
+      if (!night && skyboxTod !== null && !envDaylightTintOnRef.current && !clockSyncRef.current) {
         setTimeOfDay(skyboxTod);
       }
       setEnvBootSettled(true);
@@ -12403,6 +12500,10 @@ export function Aquafulness() {
     setFreakOutSwingAxis,
     freakOutSwingAngle,
     setFreakOutSwingAngle,
+    freakOutSwingAxis2,
+    setFreakOutSwingAxis2,
+    freakOutSwingAngle2,
+    setFreakOutSwingAngle2,
     freakOutSwingSpeed,
     setFreakOutSwingSpeed,
     freakOutSwingLength,
@@ -12537,6 +12638,8 @@ export function Aquafulness() {
     setGogglesFpsCap,
     hoodOn,
     setHoodOn,
+    hoodLayer1Details,
+    setHoodLayer1Details,
     hoodHeight,
     setHoodHeight,
     hoodOpening,
@@ -12583,6 +12686,7 @@ export function Aquafulness() {
     hoodDripAmount,
     hoodDripGrow,
     hoodReal3d,
+    hoodMeshResolution,
     hoodSeparate,
     hoodWaterTint,
     hoodDripping,
@@ -12618,6 +12722,7 @@ export function Aquafulness() {
     setHoodDripAmount,
     setHoodDripGrow,
     setHoodReal3d,
+    setHoodMeshResolution,
     setHoodSeparate,
     setHoodWaterTint,
     setHoodDripping,
@@ -13084,6 +13189,20 @@ export function Aquafulness() {
         </button>
       )}
 
+      {!CLOCK_DISABLED_FOR_PERF_TEST && clockOn && simNow && (
+        <TimeTimeline
+          date={simNow}
+          liveColor={dayNightLiveColor}
+          recordedColor={dayNightTimelineColor}
+          onOpen={() => setTimeTravelOpen(true)}
+          onSeek={(minute) => {
+            const date = simulatedDate(timeTravelBaseMs, timeTravelSetAtMs, dayNightClockSpeed);
+            setTimeTravelBaseMs(seekLocalMinute(date, minute).getTime());
+            setTimeTravelSetAtMs(Date.now());
+          }}
+        />
+      )}
+
       {/* Only mounted while open, so its hooks don't run on every one of
           this large component's re-renders while the dialog is closed
           (i.e. almost always). */}
@@ -13100,9 +13219,23 @@ export function Aquafulness() {
           onReturnToNow={() => {
             setTimeTravelBaseMs(null);
             setTimeTravelSetAtMs(null);
+            setDayNightClockSpeed(1);
           }}
           timeSeasonalSync={timeSeasonalSync}
           onSeasonalSyncChange={setTimeSeasonalSync}
+          speed={dayNightClockSpeed}
+          onSpeedChange={(speed) => {
+            const now = Date.now();
+            setTimeTravelBaseMs(
+              simulatedDate(timeTravelBaseMs, timeTravelSetAtMs, dayNightClockSpeed).getTime(),
+            );
+            setTimeTravelSetAtMs(now);
+            setDayNightClockSpeed(speed);
+          }}
+          timelineColor={dayNightTimelineColor}
+          onTimelineColorChange={setDayNightTimelineColor}
+          liveColor={dayNightLiveColor}
+          onLiveColorChange={setDayNightLiveColor}
         />
       )}
 
@@ -13738,6 +13871,24 @@ export function Aquafulness() {
                 step={1}
                 format={(v) => `${v.toFixed(0)}°`}
                 onChange={setFreakOutSwingAxis}
+              />
+              <PadSlider
+                label={t("dial.camera.freakOutOverlaySwingAngle2")}
+                value={freakOutSwingAngle2}
+                min={0}
+                max={180}
+                step={1}
+                format={(v) => `${v.toFixed(0)}°`}
+                onChange={setFreakOutSwingAngle2}
+              />
+              <PadSlider
+                label={t("dial.camera.freakOutOverlaySwingAxis2")}
+                value={freakOutSwingAxis2}
+                min={0}
+                max={180}
+                step={1}
+                format={(v) => `${v.toFixed(0)}°`}
+                onChange={setFreakOutSwingAxis2}
               />
               <PadSlider
                 label={t("dial.camera.freakOutOverlayRotationSpeed")}

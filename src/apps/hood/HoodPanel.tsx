@@ -6,13 +6,22 @@ import { pickJsonFile, readJsonFile } from "@/lib/presets";
 import { limitMax, useExtremeLimits } from "@/lib/extremeLimits";
 import {
   HOOD_CUFF_MATERIALS,
+  HOOD_FUR_PATTERNS,
+  HOOD_FUR_STYLES,
   HOOD_MAX_LAYERS,
+  HOOD_OPENING_HEIGHT_MAX,
+  HOOD_MESH_RESOLUTION_MAX,
+  HOOD_MESH_RESOLUTION_MIN,
+  HOOD_MESH_RESOLUTION_STEP,
+  HOOD_MESH_RESOLUTION_VERTICAL_RATIO,
   HOOD_PUFF_HEIGHT_MAX,
   HOOD_PADDED_STYLES,
   HOOD_STYLES,
   hoodLayersFromFile,
   hoodLayersToFile,
   loadSavedHoodLayerSets,
+  patchHoodLayers,
+  sanitizeHoodMeshResolution,
   storeSavedHoodLayerSets,
   type HoodLayer,
   type SavedHoodLayerSet,
@@ -67,6 +76,7 @@ export function HoodPanel({
   const [savedSel, setSavedSel] = useState("");
   const [extremeLimits] = useExtremeLimits();
   const widthMax = limitMax("hoodOpeningWidth", extremeLimits);
+  const heightMax = HOOD_OPENING_HEIGHT_MAX;
 
   // Layers are stored outermost first (layer 1 = the flat settings, drawn
   // first, so later layers draw over it, closer to the face) but listed
@@ -75,10 +85,23 @@ export function HoodPanel({
   const sel = Math.min(selRaw, layers.length - 1);
   const act = layers.length - 1 - sel;
   const layer = layers[act];
+  const meshResolution = sanitizeHoodMeshResolution(layer.meshResolution);
   const patch = (p: Partial<HoodLayer>) => {
     if (act === 0) setLayer1(p);
     else setExtraLayers((ls) => ls.map((l, i) => (i === act - 1 ? { ...l, ...p } : l)));
   };
+  const patchAllLayers = (p: Partial<HoodLayer>) => {
+    const updated = patchHoodLayers(layers, p);
+    setLayer1(updated[0]);
+    setExtraLayers(updated.slice(1));
+  };
+  const applyToAll = (p: Partial<HoodLayer>) =>
+    layers.length > 1
+      ? {
+          label: t("dial.camera.hoodApplyAllLayers"),
+          onApply: () => patchAllLayers(p),
+        }
+      : undefined;
   const applyLayers = (ls: HoodLayer[]) => {
     setLayer1(ls[0]);
     setExtraLayers(ls.slice(1, HOOD_MAX_LAYERS).map((l) => ({ ...l })));
@@ -97,19 +120,39 @@ export function HoodPanel({
     setSel(sel + dir);
   };
 
-  const pct = (key: NumKey, label: string, max = 1) => (
+  const pct = (key: NumKey, label: string, max = 1) => {
+    const min = key === "weight" ? -1 : 0;
+    return (
+      <SettingRow
+        key={key}
+        label={label}
+        mode="number"
+        value={`${Math.round(layer[key] * 100)}%`}
+        rawValue={layer[key]}
+        onSet={(v) => patch({ [key]: v })}
+        applyToAll={applyToAll({ [key]: layer[key] })}
+        min={min}
+        max={max}
+        step={0.05}
+        onDec={() => patch({ [key]: Math.max(min, +(layer[key] - 0.05).toFixed(2)) })}
+        onInc={() => patch({ [key]: Math.min(max, +(layer[key] + 0.05).toFixed(2)) })}
+      />
+    );
+  };
+  const offset = (key: "offsetX" | "offsetY", label: string) => (
     <SettingRow
       key={key}
       label={label}
       mode="number"
       value={`${Math.round(layer[key] * 100)}%`}
       rawValue={layer[key]}
-      onSet={(v) => patch({ [key]: v })}
-      min={0}
-      max={max}
+      onSet={(v) => patch({ [key]: Math.max(-1, Math.min(1, v)) })}
+      applyToAll={applyToAll({ [key]: layer[key] })}
+      min={-1}
+      max={1}
       step={0.05}
-      onDec={() => patch({ [key]: Math.max(0, +(layer[key] - 0.05).toFixed(2)) })}
-      onInc={() => patch({ [key]: Math.min(max, +(layer[key] + 0.05).toFixed(2)) })}
+      onDec={() => patch({ [key]: Math.max(-1, +(layer[key] - 0.05).toFixed(2)) })}
+      onInc={() => patch({ [key]: Math.min(1, +(layer[key] + 0.05).toFixed(2)) })}
     />
   );
   const toggle = (key: BoolKey, label: string) => (
@@ -117,6 +160,7 @@ export function HoodPanel({
       key={key}
       label={label}
       value={onOff(layer[key])}
+      applyToAll={applyToAll({ [key]: layer[key] })}
       onDec={() => patch({ [key]: false })}
       onInc={() => patch({ [key]: true })}
     />
@@ -190,11 +234,14 @@ export function HoodPanel({
             </button>
           </div>
           {toggle("on", t("dial.camera.hoodLayerOn"))}
+          {offset("offsetX", t("dial.camera.hoodOffsetX"))}
+          {offset("offsetY", t("dial.camera.hoodOffsetY"))}
           {pct("drop", t("dial.camera.hoodDrop"))}
           {(!layer.lowerOn || layer.separate) && pct("height", t("dial.camera.hoodHeight"))}
           {toggle("lengthOn", t("dial.camera.hoodLengthOn"))}
           {layer.lengthOn && pct("length", t("dial.camera.hoodLength"))}
-          {layer.openingWidth <= 0 && pct("opening", t("dial.camera.hoodOpening"))}
+          {(layer.openingWidth <= 0 || layer.openingHeight <= 0) &&
+            pct("opening", t("dial.camera.hoodOpening"))}
           {pct("roundness", t("dial.camera.hoodRoundness"))}
           <SettingRow
             label={t("dial.camera.hoodOpeningWidth")}
@@ -204,6 +251,7 @@ export function HoodPanel({
             }
             rawValue={layer.openingWidth}
             onSet={(v) => patch({ openingWidth: v })}
+            applyToAll={applyToAll({ openingWidth: layer.openingWidth })}
             min={0}
             max={widthMax}
             step={0.05}
@@ -220,8 +268,63 @@ export function HoodPanel({
               })
             }
           />
+          <SettingRow
+            label={t("dial.camera.hoodOpeningHeight")}
+            mode="number"
+            value={
+              layer.openingHeight > 0
+                ? `${Math.round(layer.openingHeight * 100)}%`
+                : t("common.auto")
+            }
+            rawValue={layer.openingHeight}
+            onSet={(v) => patch({ openingHeight: v })}
+            applyToAll={applyToAll({ openingHeight: layer.openingHeight })}
+            min={0}
+            max={heightMax}
+            step={0.05}
+            onDec={() =>
+              patch({ openingHeight: Math.max(0, +(layer.openingHeight - 0.05).toFixed(2)) })
+            }
+            onInc={() =>
+              patch({
+                openingHeight:
+                  layer.openingHeight <= 0
+                    ? +(0.6 + layer.opening * 0.38).toFixed(2)
+                    : Math.min(heightMax, +(layer.openingHeight + 0.05).toFixed(2)),
+              })
+            }
+          />
           {(!layer.lowerOn || layer.hoodTop) && pct("pullBack", t("dial.camera.hoodPullBack"))}
           {toggle("real3d", t("dial.camera.hoodReal3d"))}
+          {layer.real3d && (
+            <SettingRow
+              label={t("dial.camera.hoodMeshResolution")}
+              mode="number"
+              value={`${meshResolution} × ${Math.round(meshResolution * HOOD_MESH_RESOLUTION_VERTICAL_RATIO)}`}
+              rawValue={meshResolution}
+              onSet={(v) => patch({ meshResolution: sanitizeHoodMeshResolution(v) })}
+              applyToAll={applyToAll({ meshResolution })}
+              min={HOOD_MESH_RESOLUTION_MIN}
+              max={HOOD_MESH_RESOLUTION_MAX}
+              step={HOOD_MESH_RESOLUTION_STEP}
+              onDec={() =>
+                patch({
+                  meshResolution: Math.max(
+                    HOOD_MESH_RESOLUTION_MIN,
+                    meshResolution - HOOD_MESH_RESOLUTION_STEP,
+                  ),
+                })
+              }
+              onInc={() =>
+                patch({
+                  meshResolution: Math.min(
+                    HOOD_MESH_RESOLUTION_MAX,
+                    meshResolution + HOOD_MESH_RESOLUTION_STEP,
+                  ),
+                })
+              }
+            />
+          )}
           {toggle("lowerOn", t("dial.camera.hoodLower"))}
           {layer.lowerOn && (
             <>
@@ -248,21 +351,29 @@ export function HoodPanel({
               {pct("waterTint", t("dial.camera.hoodWaterTint"))}
             </>
           )}
-          <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
-            <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
-              {t("dial.camera.hoodColor")}
-            </span>
-            <input
-              type="color"
-              value={layer.color}
-              onChange={(e) => patch({ color: e.target.value })}
-              className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
-            />
-          </label>
+          <div className="flex items-center justify-center gap-1.5">
+            <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
+              <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
+                {t("dial.camera.hoodColor")}
+              </span>
+              <input
+                type="color"
+                value={layer.color}
+                onChange={(e) => patch({ color: e.target.value })}
+                className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
+              />
+            </label>
+            {layers.length > 1 && (
+              <button onClick={() => patchAllLayers({ color: layer.color })} className={btnClass}>
+                {t("dial.camera.hoodApplyAllLayers")}
+              </button>
+            )}
+          </div>
           {pct("darkness", t("dial.camera.hoodDarkness"))}
           <SettingRow
             label={t("dial.camera.hoodStyle")}
             value={t(`dial.camera.hoodStyle_${layer.style}`)}
+            applyToAll={applyToAll({ style: layer.style })}
             onDec={() =>
               patch({
                 style:
@@ -295,21 +406,32 @@ export function HoodPanel({
               {toggle("cuffCustom", t("dial.camera.hoodCuffCustom"))}
               {layer.cuffCustom && (
                 <>
-                  <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
-                    <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
-                      {t("dial.camera.hoodCuffColor")}
-                    </span>
-                    <input
-                      type="color"
-                      value={layer.cuffColor}
-                      onChange={(e) => patch({ cuffColor: e.target.value })}
-                      className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
-                    />
-                  </label>
+                  <div className="flex items-center justify-center gap-1.5">
+                    <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
+                      <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
+                        {t("dial.camera.hoodCuffColor")}
+                      </span>
+                      <input
+                        type="color"
+                        value={layer.cuffColor}
+                        onChange={(e) => patch({ cuffColor: e.target.value })}
+                        className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
+                      />
+                    </label>
+                    {layers.length > 1 && (
+                      <button
+                        onClick={() => patchAllLayers({ cuffColor: layer.cuffColor })}
+                        className={btnClass}
+                      >
+                        {t("dial.camera.hoodApplyAllLayers")}
+                      </button>
+                    )}
+                  </div>
                   {pct("cuffMetallic", t("dial.camera.hoodCuffMetallic"))}
                   <SettingRow
                     label={t("dial.camera.hoodCuffMaterial")}
                     value={t(`dial.camera.hoodCuffMaterial_${layer.cuffMaterial}`)}
+                    applyToAll={applyToAll({ cuffMaterial: layer.cuffMaterial })}
                     onDec={() =>
                       patch({
                         cuffMaterial:
@@ -333,6 +455,81 @@ export function HoodPanel({
                   />
                 </>
               )}
+            </>
+          )}
+          {toggle("fur", t("dial.camera.hoodFur"))}
+          {layer.fur && (
+            <>
+              <div className="flex items-center justify-center gap-1.5">
+                <label className="flex items-center gap-2 rounded-full border ui-line-1 ui-surface py-1 pl-3 pr-1 backdrop-blur-md">
+                  <span className="text-[9px] font-light tracking-[0.28em] ui-ink-muted">
+                    {t("dial.camera.hoodFurColor")}
+                  </span>
+                  <input
+                    type="color"
+                    value={layer.furColor}
+                    onChange={(e) => patch({ furColor: e.target.value })}
+                    className="h-7 w-9 cursor-pointer rounded-full border ui-line-2 bg-transparent p-0"
+                  />
+                </label>
+                {layers.length > 1 && (
+                  <button
+                    onClick={() => patchAllLayers({ furColor: layer.furColor })}
+                    className={btnClass}
+                  >
+                    {t("dial.camera.hoodApplyAllLayers")}
+                  </button>
+                )}
+              </div>
+              <SettingRow
+                label={t("dial.camera.hoodFurStyle")}
+                value={t(`dial.camera.hoodFurStyle_${layer.furStyle}`)}
+                applyToAll={applyToAll({ furStyle: layer.furStyle })}
+                onDec={() =>
+                  patch({
+                    furStyle:
+                      HOOD_FUR_STYLES[
+                        (HOOD_FUR_STYLES.indexOf(layer.furStyle) - 1 + HOOD_FUR_STYLES.length) %
+                          HOOD_FUR_STYLES.length
+                      ],
+                  })
+                }
+                onInc={() =>
+                  patch({
+                    furStyle:
+                      HOOD_FUR_STYLES[
+                        (HOOD_FUR_STYLES.indexOf(layer.furStyle) + 1) % HOOD_FUR_STYLES.length
+                      ],
+                  })
+                }
+              />
+              <SettingRow
+                label={t("dial.camera.hoodFurPattern")}
+                value={t(`dial.camera.hoodFurPattern_${layer.furPattern}`)}
+                applyToAll={applyToAll({ furPattern: layer.furPattern })}
+                onDec={() =>
+                  patch({
+                    furPattern:
+                      HOOD_FUR_PATTERNS[
+                        (HOOD_FUR_PATTERNS.indexOf(layer.furPattern) -
+                          1 +
+                          HOOD_FUR_PATTERNS.length) %
+                          HOOD_FUR_PATTERNS.length
+                      ],
+                  })
+                }
+                onInc={() =>
+                  patch({
+                    furPattern:
+                      HOOD_FUR_PATTERNS[
+                        (HOOD_FUR_PATTERNS.indexOf(layer.furPattern) + 1) %
+                          HOOD_FUR_PATTERNS.length
+                      ],
+                  })
+                }
+              />
+              {pct("furSize", t("dial.camera.hoodFurSize"))}
+              {pct("furWidth", t("dial.camera.hoodFurWidth"))}
             </>
           )}
           {pct("metallic", t("dial.camera.hoodMetallic"))}

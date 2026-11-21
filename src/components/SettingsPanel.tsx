@@ -42,7 +42,13 @@ import { AuroraPanel } from "@/apps/aurora/AuroraPanel";
 import type { AuroraSettings } from "@/apps/aurora/settings";
 import type { SnowSettings } from "@/apps/snow/settings";
 import type { AppSettingsHandle } from "@/core/apps/useAppSettings";
-import type { HoodCuffMaterial, HoodLayer, HoodStyle } from "@/apps/hood/hoodLayers";
+import {
+  sanitizeHoodLayerDetails,
+  type HoodCuffMaterial,
+  type HoodLayer,
+  type HoodLayerDetails,
+  type HoodStyle,
+} from "@/apps/hood/hoodLayers";
 import { StringLightsPanel } from "@/apps/string-lights/StringLightsPanel";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { hsvToRgb, tintToCss } from "@/lib/waterTint";
@@ -706,6 +712,10 @@ export type SettingsPanelProps = {
   setFreakOutSwingAxis: Dispatch<SetStateAction<number>>;
   freakOutSwingAngle: number;
   setFreakOutSwingAngle: Dispatch<SetStateAction<number>>;
+  freakOutSwingAxis2: number;
+  setFreakOutSwingAxis2: Dispatch<SetStateAction<number>>;
+  freakOutSwingAngle2: number;
+  setFreakOutSwingAngle2: Dispatch<SetStateAction<number>>;
   freakOutSwingSpeed: number;
   setFreakOutSwingSpeed: Dispatch<SetStateAction<number>>;
   freakOutSwingLength: number;
@@ -862,6 +872,8 @@ export type SettingsPanelProps = {
   // HUVA (apps/hood/Hood.ts).
   hoodOn: boolean;
   setHoodOn: Dispatch<SetStateAction<boolean>>;
+  hoodLayer1Details: HoodLayerDetails;
+  setHoodLayer1Details: Dispatch<SetStateAction<HoodLayerDetails>>;
   hoodHeight: number;
   setHoodHeight: Dispatch<SetStateAction<number>>;
   hoodOpening: number;
@@ -908,6 +920,7 @@ export type SettingsPanelProps = {
   hoodDripAmount: number;
   hoodDripGrow: number;
   hoodReal3d: boolean;
+  hoodMeshResolution: number;
   hoodSeparate: boolean;
   hoodWaterTint: number;
   hoodDripping: number;
@@ -943,6 +956,7 @@ export type SettingsPanelProps = {
   setHoodDripAmount: Dispatch<SetStateAction<number>>;
   setHoodDripGrow: Dispatch<SetStateAction<number>>;
   setHoodReal3d: Dispatch<SetStateAction<boolean>>;
+  setHoodMeshResolution: Dispatch<SetStateAction<number>>;
   setHoodSeparate: Dispatch<SetStateAction<boolean>>;
   setHoodWaterTint: Dispatch<SetStateAction<number>>;
   setHoodDripping: Dispatch<SetStateAction<number>>;
@@ -1713,6 +1727,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setFreakOutSwingAxis,
     freakOutSwingAngle,
     setFreakOutSwingAngle,
+    freakOutSwingAxis2,
+    setFreakOutSwingAxis2,
+    freakOutSwingAngle2,
+    setFreakOutSwingAngle2,
     freakOutSwingSpeed,
     setFreakOutSwingSpeed,
     freakOutSwingLength,
@@ -1847,6 +1865,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setGogglesFpsCap,
     hoodOn,
     setHoodOn,
+    hoodLayer1Details,
+    setHoodLayer1Details,
     hoodHeight,
     setHoodHeight,
     hoodOpening,
@@ -1893,6 +1913,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
     hoodDripAmount,
     hoodDripGrow,
     hoodReal3d,
+    hoodMeshResolution,
     hoodSeparate,
     hoodWaterTint,
     hoodDripping,
@@ -1928,6 +1949,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setHoodDripAmount,
     setHoodDripGrow,
     setHoodReal3d,
+    setHoodMeshResolution,
     setHoodSeparate,
     setHoodWaterTint,
     setHoodDripping,
@@ -2981,6 +3003,30 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setFreakOutSwingAngle((v) => Math.min(180, +(v + 5).toFixed(0)))}
             />
             <SettingRow
+              label={t("dial.camera.freakOutSwingAxis2")}
+              mode="number"
+              value={`${freakOutSwingAxis2.toFixed(0)}°`}
+              rawValue={freakOutSwingAxis2}
+              onSet={(v) => setFreakOutSwingAxis2(v)}
+              min={0}
+              max={180}
+              step={5}
+              onDec={() => setFreakOutSwingAxis2((v) => Math.max(0, +(v - 5).toFixed(0)))}
+              onInc={() => setFreakOutSwingAxis2((v) => Math.min(180, +(v + 5).toFixed(0)))}
+            />
+            <SettingRow
+              label={t("dial.camera.freakOutSwingAngle2")}
+              mode="number"
+              value={`${freakOutSwingAngle2.toFixed(0)}°`}
+              rawValue={freakOutSwingAngle2}
+              onSet={(v) => setFreakOutSwingAngle2(v)}
+              min={0}
+              max={180}
+              step={5}
+              onDec={() => setFreakOutSwingAngle2((v) => Math.max(0, +(v - 5).toFixed(0)))}
+              onInc={() => setFreakOutSwingAngle2((v) => Math.min(180, +(v + 5).toFixed(0)))}
+            />
+            <SettingRow
               label={t("dial.camera.freakOutSwingSpeed")}
               mode="number"
               value={`${freakOutSwingSpeed.toFixed(2)}x`}
@@ -3971,6 +4017,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
             dripAmount: hoodDripAmount,
             dripGrow: hoodDripGrow,
             real3d: hoodReal3d,
+            meshResolution: hoodMeshResolution,
             separate: hoodSeparate,
             waterTint: hoodWaterTint,
             dripping: hoodDripping,
@@ -3997,6 +4044,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
             reflectLight: hoodReflectLight,
             puffThickness: hoodPuffThickness,
             puffInflate: hoodPuffInflate,
+            ...sanitizeHoodLayerDetails(hoodLayer1Details),
           }}
           setLayer1={(p) => {
             if (p.height !== undefined) setHoodHeight(p.height);
@@ -4024,6 +4072,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
             if (p.dripAmount !== undefined) setHoodDripAmount(p.dripAmount);
             if (p.dripGrow !== undefined) setHoodDripGrow(p.dripGrow);
             if (p.real3d !== undefined) setHoodReal3d(p.real3d);
+            if (p.meshResolution !== undefined) setHoodMeshResolution(p.meshResolution);
             if (p.separate !== undefined) setHoodSeparate(p.separate);
             if (p.waterTint !== undefined) setHoodWaterTint(p.waterTint);
             if (p.dripping !== undefined) setHoodDripping(p.dripping);
@@ -4050,6 +4099,19 @@ export function SettingsPanel(props: SettingsPanelProps) {
             if (p.reflectLight !== undefined) setHoodReflectLight(p.reflectLight);
             if (p.puffThickness !== undefined) setHoodPuffThickness(p.puffThickness);
             if (p.puffInflate !== undefined) setHoodPuffInflate(p.puffInflate);
+            if (
+              p.openingHeight !== undefined ||
+              p.offsetX !== undefined ||
+              p.offsetY !== undefined ||
+              p.fur !== undefined ||
+              p.furColor !== undefined ||
+              p.furStyle !== undefined ||
+              p.furPattern !== undefined ||
+              p.furSize !== undefined ||
+              p.furWidth !== undefined
+            ) {
+              setHoodLayer1Details((details) => sanitizeHoodLayerDetails({ ...details, ...p }));
+            }
           }}
           extraLayers={hoodExtraLayers}
           setExtraLayers={setHoodExtraLayers}

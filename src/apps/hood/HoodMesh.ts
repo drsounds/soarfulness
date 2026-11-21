@@ -1,5 +1,11 @@
 import * as THREE from "three";
 import type { Hood, HoodConfig } from "./Hood";
+import {
+  HOOD_MESH_RESOLUTION_DEFAULT,
+  HOOD_MESH_RESOLUTION_VERTICAL_RATIO,
+  HOOD_OPENING_HEIGHT_MAX,
+  sanitizeHoodMeshResolution,
+} from "./hoodLayers";
 
 // 3D-TYG: a layer rendered as real geometry in the scene instead of the flat
 // full-screen overlay. The collar (MUN OCH HALS) is a ring of cloth around
@@ -23,8 +29,8 @@ import type { Hood, HoodConfig } from "./Hood";
 // rim and hem too. The flat Hood of each layer keeps running to hold the
 // water and float state.
 
-const NU = 192;
-const NV = 72;
+const NU = HOOD_MESH_RESOLUTION_DEFAULT;
+const NV = NU * HOOD_MESH_RESOLUTION_VERTICAL_RATIO;
 /** Where the neck ring and the head dome sit, in the head's frame (m, -z forward). */
 const NECK_RADIUS = 0.19;
 const CENTER_Z = 0.06;
@@ -34,6 +40,12 @@ const HOOD_CENTER_Y = 0.0;
 const COMMON = /* glsl */ `
   #define PI 3.14159265
   uniform float uStyle;
+  uniform float uFur;
+  uniform float uFurSize;
+  uniform float uFurWidth;
+  uniform float uFurStyle;
+  uniform float uFurPattern;
+  uniform vec3 uFurColor;
   uniform float uPuffSize;
   uniform float uPuffHeight;
   uniform float uPuffThick;
@@ -303,6 +315,7 @@ const FRAG_COMMON = /* glsl */ `
 const FRAG_HOOD = /* glsl */ `
   ${FRAG_COMMON}
   uniform float uOpening;
+  uniform float uOpenHeight;
   uniform float uOpenWidth;
   uniform float uDrop;
   uniform float uRound;
@@ -319,7 +332,7 @@ const FRAG_HOOD = /* glsl */ `
     vec2 c = vec2(0.0, 0.04 - uDrop * 0.22);
     vec2 q = pP - c;
     float a0 = uOpenWidth > 0.0 ? uAspect * uOpenWidth : uAspect * mix(0.55, 0.95, uOpening) + 0.06;
-    float b0 = mix(0.6, 0.98, uOpening) * (1.0 - uDrop * 0.3);
+    float b0 = uOpenHeight > 0.0 ? uOpenHeight : mix(0.6, 0.98, uOpening) * (1.0 - uDrop * 0.3);
     float pb = clamp(uHoodBack, 0.0, 1.0);
     float a = a0 * (1.0 + pb * 0.9);
     float b = b0 * (1.0 + pb * 1.1);
@@ -332,7 +345,18 @@ const FRAG_HOOD = /* glsl */ `
       r = abs(q.x) / (a * (1.0 + 0.12 * q.y * q.y));
     }
     float t = (r - 1.0) * min(a, b);
-    if (t < 0.0) discard;
+    float furBand = mix(0.008, 0.14, clamp(uFurWidth, 0.0, 1.0));
+    float furAngle = atan(q.y, q.x);
+    float furFrequency = mix(140.0, 55.0, uFurSize);
+    float furStrand = fract(sin(floor(furAngle * furFrequency) * 12.9898) * 43758.5453);
+    float furFiber = sin(furAngle * furFrequency + sin(t * 41.0 + furAngle * 3.0) * 0.35);
+    float furLength = uFurStyle < 0.5
+      ? mix(0.004, 0.01, uFurSize)
+      : uFurStyle < 1.5
+        ? mix(0.012, 0.03, uFurSize)
+        : mix(0.009, 0.022, uFurSize);
+    float furFringe = furLength * (0.68 + 0.12 * furFiber + 0.1 * furStrand);
+    if (t < 0.0 && (uFur < 0.5 || t < -furFringe)) discard;
     float yCut = mix(-1.08, 0.8, uHeight) + 0.22 * exp(-max(t, 0.0) * 7.0);
     if (uCollar < 0.5 && pP.y < yCut) discard;
 
@@ -345,7 +369,25 @@ const FRAG_HOOD = /* glsl */ `
     ao *= 1.0 - 0.3 * (1.0 - smoothstep(0.0, HEM, t));
     float m = clamp(uMetal, 0.0, 1.0);
     if (uStyle > 2.5 && uStyle < 3.5) m = max(m, 0.3);
-    gl_FragColor = vec4(lightCloth(nV, uColor, ao, m), 1.0);
+    vec3 cloth = lightCloth(nV, uColor, ao, m);
+    float furAa = max(fwidth(t), 1e-4);
+    float furMask = uFur * smoothstep(-furFringe - furAa, -furFringe + furAa, t) *
+      (1.0 - smoothstep(furBand - furAa, furBand + furAa, t));
+    float furPattern = 1.0;
+    if (uFurPattern > 0.5 && uFurPattern < 1.5) {
+      furPattern = mix(0.72, 1.25, smoothstep(0.35, 0.85, fract(t / max(furBand, 1e-3))));
+    } else if (uFurPattern > 1.5 && uFurPattern < 2.5) {
+      furPattern = mix(0.58, 1.3, smoothstep(-0.2, 0.25, sin(floor(furAngle * 14.0) * 12.9898 + floor(t * 75.0) * 78.233)));
+    } else if (uFurPattern > 2.5) {
+      furPattern = 0.76 + 0.34 * (0.5 + 0.5 * sin(furAngle * 18.0 + sin(furAngle * 5.0) * 2.0));
+    }
+    vec3 fur = lightCloth(
+      nV,
+      uFurColor * ((0.78 + 0.22 * (0.5 + 0.5 * furFiber)) * furPattern),
+      ao,
+      0.0
+    );
+    gl_FragColor = vec4(mix(cloth, fur, furMask), 1.0);
   }
 `;
 
@@ -423,24 +465,25 @@ const FRAG_COLLAR = /* glsl */ `
 
 type Uniforms = Record<string, THREE.IUniform>;
 
-function gridGeometry(): THREE.BufferGeometry {
+function gridGeometry(nu = NU): THREE.BufferGeometry {
+  const nv = Math.round((nu * NV) / NU);
   const g = new THREE.BufferGeometry();
-  const count = (NU + 1) * (NV + 1);
+  const count = (nu + 1) * (nv + 1);
   const pos = new Float32Array(count * 3);
   const uv = new Float32Array(count * 2);
-  for (let j = 0; j <= NV; j++) {
-    for (let i = 0; i <= NU; i++) {
-      const k = j * (NU + 1) + i;
-      uv[k * 2] = i / NU;
-      uv[k * 2 + 1] = j / NV;
+  for (let j = 0; j <= nv; j++) {
+    for (let i = 0; i <= nu; i++) {
+      const k = j * (nu + 1) + i;
+      uv[k * 2] = i / nu;
+      uv[k * 2 + 1] = j / nv;
     }
   }
   const idx: number[] = [];
-  for (let j = 0; j < NV; j++) {
-    for (let i = 0; i < NU; i++) {
-      const a = j * (NU + 1) + i;
+  for (let j = 0; j < nv; j++) {
+    for (let i = 0; i < nu; i++) {
+      const a = j * (nu + 1) + i;
       const b = a + 1;
-      const c = a + (NU + 1);
+      const c = a + (nu + 1);
       const d = c + 1;
       idx.push(a, b, c, b, d, c);
     }
@@ -453,6 +496,10 @@ function gridGeometry(): THREE.BufferGeometry {
 
 let sharedGrid: THREE.BufferGeometry | null = null;
 
+export function createHoodGridGeometry(resolution: number): THREE.BufferGeometry {
+  return gridGeometry(sanitizeHoodMeshResolution(resolution));
+}
+
 /** One layer as real 3D cloth: a collar ring and a hood dome. */
 export class HoodMesh3D {
   private readonly root = new THREE.Group();
@@ -461,13 +508,17 @@ export class HoodMesh3D {
   private readonly collar: THREE.Mesh;
   private readonly hood: THREE.Mesh;
   private readonly sentinel: THREE.Mesh;
+  private grid: THREE.BufferGeometry;
+  private gridResolution = NU;
   private readonly u: Uniforms;
   private colorHex = "";
   private cuffHex = "";
+  private furHex = "";
   private suitHex = "";
   private readonly q = new THREE.Quaternion();
   private readonly e = new THREE.Euler(0, 0, 0, "YXZ");
   private readonly pos = new THREE.Vector3();
+  private readonly offset = new THREE.Vector3();
   private readonly sc = new THREE.Vector3();
 
   constructor(
@@ -518,7 +569,14 @@ export class HoodMesh3D {
       uUnderwater: { value: 0 },
       uViewToWorld: { value: new THREE.Matrix3() },
       uOpening: { value: 0.5 },
+      uOpenHeight: { value: 0 },
       uOpenWidth: { value: 0 },
+      uFur: { value: 0 },
+      uFurSize: { value: 0.5 },
+      uFurWidth: { value: 0.35 },
+      uFurStyle: { value: 0 },
+      uFurPattern: { value: 0 },
+      uFurColor: { value: c() },
       uDrop: { value: 0 },
       uRound: { value: 0.85 },
       uHoodBack: { value: 0 },
@@ -535,6 +593,7 @@ export class HoodMesh3D {
       uSuitColor: { value: c() },
     };
     sharedGrid ??= gridGeometry();
+    this.grid = sharedGrid;
     const mk = (vs: string, fs: string) =>
       new THREE.ShaderMaterial({
         uniforms: this.u,
@@ -583,7 +642,7 @@ export class HoodMesh3D {
 
   private setColor(
     c: THREE.Color,
-    key: "colorHex" | "cuffHex" | "suitHex",
+    key: "colorHex" | "cuffHex" | "furHex" | "suitHex",
     hexStr: string,
     fallback: number,
   ) {
@@ -597,7 +656,7 @@ export class HoodMesh3D {
     time: number,
     camera: THREE.PerspectiveCamera,
     cfg: HoodConfig,
-    opts: { bodyFrame: boolean; suitColor: string },
+    opts: { bodyFrame: boolean; suitColor: string; meshResolution: number },
     flat: Hood,
   ): void {
     const u = this.u;
@@ -609,6 +668,15 @@ export class HoodMesh3D {
     this.collar.visible = showCollar;
     this.hood.visible = showHood;
     this.root.visible = showCollar || showHood;
+    const resolution = sanitizeHoodMeshResolution(opts.meshResolution);
+    if (resolution !== this.gridResolution) {
+      if (this.grid !== sharedGrid) this.grid.dispose();
+      this.grid =
+        resolution === NU ? (sharedGrid as THREE.BufferGeometry) : gridGeometry(resolution);
+      this.gridResolution = resolution;
+      this.collar.geometry = this.grid;
+      this.hood.geometry = this.grid;
+    }
     if (!this.root.visible) return;
 
     camera.updateMatrixWorld();
@@ -617,6 +685,11 @@ export class HoodMesh3D {
     // picture identical while moving it clear of the near plane.
     const S = Math.max(1, camera.near * 10);
     this.root.position.copy(this.pos);
+    this.offset
+      .set(clamp(cfg.offsetX ?? 0, -1, 1) * camera.aspect, clamp(cfg.offsetY ?? 0, -1, 1), 0)
+      .multiplyScalar(Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) * HOOD_RADIUS * S)
+      .applyQuaternion(this.q);
+    this.root.position.add(this.offset);
     this.root.scale.setScalar(S);
     this.root.quaternion.identity();
     this.headGroup.quaternion.copy(this.q);
@@ -690,7 +763,26 @@ export class HoodMesh3D {
     u.uUnderwater.value = cfg.underwater;
     (u.uViewToWorld.value as THREE.Matrix3).setFromMatrix4(camera.matrixWorld);
     u.uOpening.value = clamp(cfg.opening, 0, 1);
+    u.uOpenHeight.value = clamp(cfg.openingHeight, 0, HOOD_OPENING_HEIGHT_MAX);
     u.uOpenWidth.value = Math.max(0, Number.isFinite(cfg.openingWidth) ? cfg.openingWidth : 0);
+    u.uFur.value = cfg.fur ? 1 : 0;
+    u.uFurSize.value = clamp(cfg.furSize, 0, 1);
+    u.uFurWidth.value = clamp(cfg.furWidth, 0, 1);
+    u.uFurStyle.value = cfg.furStyle === "long" ? 1 : cfg.furStyle === "curly" ? 2 : 0;
+    u.uFurPattern.value =
+      cfg.furPattern === "tipped"
+        ? 1
+        : cfg.furPattern === "spotted"
+          ? 2
+          : cfg.furPattern === "striped"
+            ? 3
+            : 0;
+    this.setColor(
+      u.uFurColor.value as THREE.Color,
+      "furHex",
+      cfg.furColor,
+      0xf4f1e8,
+    );
     u.uDrop.value = clamp(cfg.drop, 0, 1);
     u.uRound.value = clamp(cfg.roundness, 0, 1);
     u.uHoodBack.value = clamp(cfg.pullBack ?? 0, 0, 1);
@@ -725,5 +817,6 @@ export class HoodMesh3D {
     (this.hood.material as THREE.Material).dispose();
     (this.sentinel.material as THREE.Material).dispose();
     this.sentinel.geometry.dispose();
+    if (this.grid !== sharedGrid) this.grid.dispose();
   }
 }

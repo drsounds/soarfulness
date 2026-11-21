@@ -4,7 +4,12 @@ import { setClothingBuoyancyOffset } from "./buoyancy";
 import { FloatSuit } from "./FloatSuit";
 import { Hood, HOOD_STYLE_AIR, type HoodConfig } from "./Hood";
 import { HoodMesh3D } from "./HoodMesh";
-import { HOOD_MAX_LAYERS, type HoodLayer } from "./hoodLayers";
+import {
+  HOOD_MAX_LAYERS,
+  sanitizeHoodMeshResolution,
+  sanitizeHoodLayerDetails,
+  type HoodLayer,
+} from "./hoodLayers";
 import type { HoodSettings } from "./settings";
 
 /** Layer 1 of the hood, from the flat hood* settings. */
@@ -14,6 +19,7 @@ export function hoodLayerFromSettings(s: Readonly<HoodSettings>): HoodLayer {
     height: s.hoodHeight,
     opening: s.hoodOpening,
     openingWidth: s.hoodOpeningWidth,
+    ...sanitizeHoodLayerDetails(s.hoodLayer1Details),
     color: s.hoodColor,
     metallic: s.hoodMetallic,
     motion: s.hoodMotion,
@@ -36,6 +42,7 @@ export function hoodLayerFromSettings(s: Readonly<HoodSettings>): HoodLayer {
     dripAmount: s.hoodDripAmount,
     dripGrow: s.hoodDripGrow,
     real3d: s.hoodReal3d,
+    meshResolution: sanitizeHoodMeshResolution(s.hoodMeshResolution),
     separate: s.hoodSeparate,
     waterTint: s.hoodWaterTint,
     dripping: s.hoodDripping,
@@ -74,7 +81,10 @@ export function hoodConfigFromLayer(l: HoodLayer, f: FrameContext, g: HoodShared
     floatThreshold: g.floatThreshold,
     suitColor: g.suitColor,
     height: l.height,
+    offsetX: l.offsetX,
+    offsetY: l.offsetY,
     opening: l.opening,
+    openingHeight: l.openingHeight,
     openingWidth: l.openingWidth,
     color: l.color,
     metallic: l.metallic,
@@ -123,6 +133,12 @@ export function hoodConfigFromLayer(l: HoodLayer, f: FrameContext, g: HoodShared
     reflectLight: l.reflectLight,
     puffThickness: l.puffThickness,
     puffInflate: l.puffInflate,
+    fur: l.fur,
+    furColor: l.furColor,
+    furStyle: l.furStyle,
+    furPattern: l.furPattern,
+    furSize: l.furSize,
+    furWidth: l.furWidth,
     eyeAboveWater: f.eyeAboveWater,
     skyColor: f.light.skyColor,
     horizonColor: f.light.horizonColor,
@@ -181,7 +197,11 @@ export class HoodRuntime implements AppRuntime<HoodSettings> {
           f.time,
           f.camera,
           cfg,
-          { bodyFrame: s.hoodRotateHead, suitColor: s.hoodSuitColor },
+          {
+            bodyFrame: s.hoodRotateHead,
+            suitColor: s.hoodSuitColor,
+            meshResolution: l.meshResolution,
+          },
           h,
         );
       } else {
@@ -211,7 +231,8 @@ export class HoodRuntime implements AppRuntime<HoodSettings> {
       for (const l of layers) {
         if (!l.on) continue;
         const air = HOOD_STYLE_AIR[l.style] ?? 0.35;
-        target -= 0.012 + 0.035 * l.weight - 0.02 * air + (l.waterOn ? 0.01 : 0);
+        const weight = THREE.MathUtils.clamp(l.weight, -1, 1);
+        target -= 0.012 + 0.035 * weight - 0.02 * air + (l.waterOn ? 0.01 : 0);
       }
     }
     this.buoy += (target - this.buoy) * (1 - Math.exp(-Math.max(f.dt, 0) / 1.5));

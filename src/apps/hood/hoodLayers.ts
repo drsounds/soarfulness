@@ -14,18 +14,35 @@ export const HOOD_STYLES: HoodStyle[] = ["classic", "puffy", "quilted", "shell",
 /** The styles with padding (PUFFSTORLEK, PUFFHÖJD, PUFFTJOCKLEK, UPPBLÅSNING). */
 export const HOOD_PADDED_STYLES: HoodStyle[] = ["puffy", "quilted", "down"];
 
+export type HoodFurStyle = "short" | "long" | "curly";
+export const HOOD_FUR_STYLES: HoodFurStyle[] = ["short", "long", "curly"];
+export type HoodFurPattern = "solid" | "tipped" | "spotted" | "striped";
+export const HOOD_FUR_PATTERNS: HoodFurPattern[] = ["solid", "tipped", "spotted", "striped"];
+
 export type HoodLayer = {
   /** Only used for layers 2+; layer 1 follows the HUVA master toggle. */
   on: boolean;
   /** HÖJD FRÅN BOTTEN: where the sides end, from the bottom of the view up. */
   height: number;
+  /** Horizontal and vertical screen offsets, as fractions of the view. */
+  offsetX: number;
+  offsetY: number;
   /** ÖPPNING: face opening, tight..wide. */
   opening: number;
+  /** ÖPPNINGSHÖJD: vertical opening size in screen heights; 0 follows ÖPPNING. */
+  openingHeight: number;
   /**
    * ÖPPNINGSBREDD: opening width in screen widths (1 = edge to edge, up to
    * HOOD_OPENING_WIDTH_MAX); 0 = AUTO, follow ÖPPNING.
    */
   openingWidth: number;
+  /** FUR. */
+  fur: boolean;
+  furColor: string;
+  furStyle: HoodFurStyle;
+  furPattern: HoodFurPattern;
+  furSize: number;
+  furWidth: number;
   /** HUVFÄRG. */
   color: string;
   /** METALLGLANS: matte..wet metallic sheen. */
@@ -44,7 +61,7 @@ export type HoodLayer = {
   waterCalm: number;
   /** HUVHÖJD: how low the hood hangs over the forehead (0 = high, 1 = low). */
   drop: number;
-  /** TYNGD: how heavy the cloth is — sags more, lags further behind moves. */
+  /** TYNGD: cloth heaviness; a negative value reverses its response to movement. */
   weight: number;
   /** VÅTA VECK: fine clinging wrinkles, like wet cloth. */
   wrinkles: number;
@@ -116,6 +133,8 @@ export type HoodLayer = {
    * dripping, floating and LÄNGD stay with the flat overlay.
    */
   real3d: boolean;
+  /** 3D mesh horizontal subdivisions; vertical subdivisions scale with it. */
+  meshResolution: number;
   lengthOn: boolean;
   /** 0..1: LÄNGD, from a short collar (0) to an ankle-long dress (1); past the float suit it wraps around you in water. */
   length: number;
@@ -130,16 +149,41 @@ export type HoodLayer = {
 };
 
 export const HOOD_MAX_LAYERS = 4;
+export const HOOD_MESH_RESOLUTION_MIN = 192;
+export const HOOD_MESH_RESOLUTION_MAX = 512;
+export const HOOD_MESH_RESOLUTION_STEP = 32;
+export const HOOD_MESH_RESOLUTION_DEFAULT = 384;
+export const HOOD_MESH_RESOLUTION_VERTICAL_RATIO = 3 / 8;
 // ÖPPNINGSBREDD's EXTREME max (12 screen widths); the everyday max is 3.
 /** PUFFHÖJD goes past 100% (up to this) for extra-fat puffs. */
 export const HOOD_PUFF_HEIGHT_MAX = 2.5;
 export const HOOD_OPENING_WIDTH_MAX = 12;
+export const HOOD_OPENING_HEIGHT_MAX = 3;
+
+export function sanitizeHoodMeshResolution(value: unknown): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) return HOOD_MESH_RESOLUTION_DEFAULT;
+  const clamped = Math.max(HOOD_MESH_RESOLUTION_MIN, Math.min(HOOD_MESH_RESOLUTION_MAX, value));
+  return (
+    HOOD_MESH_RESOLUTION_MIN +
+    Math.round((clamped - HOOD_MESH_RESOLUTION_MIN) / HOOD_MESH_RESOLUTION_STEP) *
+      HOOD_MESH_RESOLUTION_STEP
+  );
+}
 
 export const HOOD_LAYER_DEFAULTS: HoodLayer = {
   on: true,
   height: 0.3,
+  offsetX: 0,
+  offsetY: 0,
   opening: 0.5,
+  openingHeight: 0,
   openingWidth: 0,
+  fur: false,
+  furColor: "#f4f1e8",
+  furStyle: "short",
+  furPattern: "solid",
+  furSize: 0.5,
+  furWidth: 0.35,
   color: "#2b3a55",
   metallic: 0.5,
   motion: 0.5,
@@ -181,6 +225,7 @@ export const HOOD_LAYER_DEFAULTS: HoodLayer = {
   neckBack: 0,
   separate: false,
   real3d: false,
+  meshResolution: HOOD_MESH_RESOLUTION_DEFAULT,
   lengthOn: false,
   length: 0.6,
   puff3d: false,
@@ -189,9 +234,17 @@ export const HOOD_LAYER_DEFAULTS: HoodLayer = {
   zipperPullOut: true,
 };
 
+export function patchHoodLayers(
+  layers: readonly HoodLayer[],
+  patch: Partial<HoodLayer>,
+): HoodLayer[] {
+  return layers.map((layer) => ({ ...layer, ...patch }));
+}
+
 const NUMBER_KEYS = [
   "height",
   "opening",
+  "openingHeight",
   "metallic",
   "motion",
   "lowerHeight",
@@ -218,6 +271,11 @@ const NUMBER_KEYS = [
   "dripGrow",
   "pullBack",
   "neckBack",
+  "meshResolution",
+  "furSize",
+  "furWidth",
+  "offsetX",
+  "offsetY",
 ] as const;
 const BOOL_KEYS = [
   "on",
@@ -234,6 +292,7 @@ const BOOL_KEYS = [
   "viewShadow",
   "zipperFixed",
   "zipperPullOut",
+  "fur",
   "lengthOn",
   "puff3d",
   "separate",
@@ -248,8 +307,18 @@ export function sanitizeHoodLayer(raw: unknown): HoodLayer {
   const out: HoodLayer = { ...HOOD_LAYER_DEFAULTS };
   for (const k of NUMBER_KEYS) {
     const v = src[k];
-    if (typeof v === "number" && Number.isFinite(v))
-      out[k] = k === "puffHeight" ? Math.max(0, Math.min(HOOD_PUFF_HEIGHT_MAX, v)) : clamp01(v);
+    if (typeof v === "number" && Number.isFinite(v)) {
+      out[k] =
+        k === "meshResolution"
+          ? sanitizeHoodMeshResolution(v)
+          : k === "offsetX" || k === "offsetY"
+            ? Math.max(-1, Math.min(1, v))
+            : k === "puffHeight"
+              ? Math.max(0, Math.min(HOOD_PUFF_HEIGHT_MAX, v))
+              : k === "weight"
+                ? Math.max(-1, Math.min(1, v))
+                : clamp01(v);
+    }
   }
   for (const k of BOOL_KEYS) {
     if (typeof src[k] === "boolean") out[k] = src[k] as boolean;
@@ -258,12 +327,49 @@ export function sanitizeHoodLayer(raw: unknown): HoodLayer {
   const w = src.openingWidth;
   if (typeof w === "number" && Number.isFinite(w))
     out.openingWidth = Math.max(0, Math.min(HOOD_OPENING_WIDTH_MAX, w));
+  const h = src.openingHeight;
+  if (typeof h === "number" && Number.isFinite(h))
+    out.openingHeight = Math.max(0, Math.min(HOOD_OPENING_HEIGHT_MAX, h));
   if (typeof src.color === "string" && /^#[0-9a-fA-F]{6}$/.test(src.color)) out.color = src.color;
+  if (typeof src.furColor === "string" && /^#[0-9a-fA-F]{6}$/.test(src.furColor))
+    out.furColor = src.furColor;
   if (typeof src.cuffColor === "string" && /^#[0-9a-fA-F]{6}$/.test(src.cuffColor))
     out.cuffColor = src.cuffColor;
   if (HOOD_CUFF_MATERIALS.includes(src.cuffMaterial as HoodCuffMaterial))
     out.cuffMaterial = src.cuffMaterial as HoodCuffMaterial;
+  if (HOOD_FUR_STYLES.includes(src.furStyle as HoodFurStyle))
+    out.furStyle = src.furStyle as HoodFurStyle;
+  if (HOOD_FUR_PATTERNS.includes(src.furPattern as HoodFurPattern))
+    out.furPattern = src.furPattern as HoodFurPattern;
   return out;
+}
+
+export type HoodLayerDetails = Pick<
+  HoodLayer,
+  | "openingHeight"
+  | "offsetX"
+  | "offsetY"
+  | "fur"
+  | "furColor"
+  | "furStyle"
+  | "furPattern"
+  | "furSize"
+  | "furWidth"
+>;
+
+export function sanitizeHoodLayerDetails(raw: unknown): HoodLayerDetails {
+  const layer = sanitizeHoodLayer(raw);
+  return {
+    openingHeight: layer.openingHeight,
+    offsetX: layer.offsetX,
+    offsetY: layer.offsetY,
+    fur: layer.fur,
+    furColor: layer.furColor,
+    furStyle: layer.furStyle,
+    furPattern: layer.furPattern,
+    furSize: layer.furSize,
+    furWidth: layer.furWidth,
+  };
 }
 
 export function sanitizeHoodLayers(raw: unknown): HoodLayer[] {
