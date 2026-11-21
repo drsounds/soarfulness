@@ -24,6 +24,9 @@ export type HoodLayer = {
   on: boolean;
   /** HÖJD FRÅN BOTTEN: where the sides end, from the bottom of the view up. */
   height: number;
+  /** Horizontal and vertical screen offsets, as fractions of the view. */
+  offsetX: number;
+  offsetY: number;
   /** ÖPPNING: face opening, tight..wide. */
   opening: number;
   /** ÖPPNINGSHÖJD: vertical opening size in screen heights; 0 follows ÖPPNING. */
@@ -170,6 +173,8 @@ export function sanitizeHoodMeshResolution(value: unknown): number {
 export const HOOD_LAYER_DEFAULTS: HoodLayer = {
   on: true,
   height: 0.3,
+  offsetX: 0,
+  offsetY: 0,
   opening: 0.5,
   openingHeight: 0,
   openingWidth: 0,
@@ -269,6 +274,8 @@ const NUMBER_KEYS = [
   "meshResolution",
   "furSize",
   "furWidth",
+  "offsetX",
+  "offsetY",
 ] as const;
 const BOOL_KEYS = [
   "on",
@@ -304,11 +311,13 @@ export function sanitizeHoodLayer(raw: unknown): HoodLayer {
       out[k] =
         k === "meshResolution"
           ? sanitizeHoodMeshResolution(v)
-          : k === "puffHeight"
-            ? Math.max(0, Math.min(HOOD_PUFF_HEIGHT_MAX, v))
-            : k === "weight"
-              ? Math.max(-1, Math.min(1, v))
-              : clamp01(v);
+          : k === "offsetX" || k === "offsetY"
+            ? Math.max(-1, Math.min(1, v))
+            : k === "puffHeight"
+              ? Math.max(0, Math.min(HOOD_PUFF_HEIGHT_MAX, v))
+              : k === "weight"
+                ? Math.max(-1, Math.min(1, v))
+                : clamp01(v);
     }
   }
   for (const k of BOOL_KEYS) {
@@ -337,13 +346,23 @@ export function sanitizeHoodLayer(raw: unknown): HoodLayer {
 
 export type HoodLayerDetails = Pick<
   HoodLayer,
-  "openingHeight" | "fur" | "furColor" | "furStyle" | "furPattern" | "furSize" | "furWidth"
+  | "openingHeight"
+  | "offsetX"
+  | "offsetY"
+  | "fur"
+  | "furColor"
+  | "furStyle"
+  | "furPattern"
+  | "furSize"
+  | "furWidth"
 >;
 
 export function sanitizeHoodLayerDetails(raw: unknown): HoodLayerDetails {
   const layer = sanitizeHoodLayer(raw);
   return {
     openingHeight: layer.openingHeight,
+    offsetX: layer.offsetX,
+    offsetY: layer.offsetY,
     fur: layer.fur,
     furColor: layer.furColor,
     furStyle: layer.furStyle,

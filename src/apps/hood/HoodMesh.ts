@@ -347,17 +347,15 @@ const FRAG_HOOD = /* glsl */ `
     float t = (r - 1.0) * min(a, b);
     float furBand = mix(0.008, 0.14, clamp(uFurWidth, 0.0, 1.0));
     float furAngle = atan(q.y, q.x);
-    float furFrequency = uFurStyle < 0.5 ? 150.0 : uFurStyle < 1.5 ? 48.0 : 78.0;
-    float furFiber = sin(
-      furAngle * mix(furFrequency, furFrequency * 0.25, uFurSize) +
-        sin(t * 41.0 + furAngle * 3.0) * (uFurStyle > 1.5 ? 3.2 : 1.5)
-    );
+    float furFrequency = mix(140.0, 55.0, uFurSize);
+    float furStrand = fract(sin(floor(furAngle * furFrequency) * 12.9898) * 43758.5453);
+    float furFiber = sin(furAngle * furFrequency + sin(t * 41.0 + furAngle * 3.0) * 0.35);
     float furLength = uFurStyle < 0.5
-      ? mix(0.006, 0.014, uFurSize)
+      ? mix(0.004, 0.01, uFurSize)
       : uFurStyle < 1.5
-        ? mix(0.018, 0.05, uFurSize)
-        : mix(0.012, 0.032, uFurSize);
-    float furFringe = furLength * (0.25 + 0.75 * (0.5 + 0.5 * furFiber));
+        ? mix(0.012, 0.03, uFurSize)
+        : mix(0.009, 0.022, uFurSize);
+    float furFringe = furLength * (0.68 + 0.12 * furFiber + 0.1 * furStrand);
     if (t < 0.0 && (uFur < 0.5 || t < -furFringe)) discard;
     float yCut = mix(-1.08, 0.8, uHeight) + 0.22 * exp(-max(t, 0.0) * 7.0);
     if (uCollar < 0.5 && pP.y < yCut) discard;
@@ -520,6 +518,7 @@ export class HoodMesh3D {
   private readonly q = new THREE.Quaternion();
   private readonly e = new THREE.Euler(0, 0, 0, "YXZ");
   private readonly pos = new THREE.Vector3();
+  private readonly offset = new THREE.Vector3();
   private readonly sc = new THREE.Vector3();
 
   constructor(
@@ -643,7 +642,7 @@ export class HoodMesh3D {
 
   private setColor(
     c: THREE.Color,
-    key: "colorHex" | "cuffHex" | "suitHex",
+    key: "colorHex" | "cuffHex" | "furHex" | "suitHex",
     hexStr: string,
     fallback: number,
   ) {
@@ -686,6 +685,11 @@ export class HoodMesh3D {
     // picture identical while moving it clear of the near plane.
     const S = Math.max(1, camera.near * 10);
     this.root.position.copy(this.pos);
+    this.offset
+      .set(clamp(cfg.offsetX ?? 0, -1, 1) * camera.aspect, clamp(cfg.offsetY ?? 0, -1, 1), 0)
+      .multiplyScalar(Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) * HOOD_RADIUS * S)
+      .applyQuaternion(this.q);
+    this.root.position.add(this.offset);
     this.root.scale.setScalar(S);
     this.root.quaternion.identity();
     this.headGroup.quaternion.copy(this.q);

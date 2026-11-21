@@ -151,6 +151,8 @@ export const HOOD_DEFAULTS: HoodSettings = {
   hoodExtraLayers: [] as HoodLayer[],
   hoodLayer1Details: {
     openingHeight: 0,
+    offsetX: 0,
+    offsetY: 0,
     fur: false,
     furColor: "#f4f1e8",
     furStyle: "short",

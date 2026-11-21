@@ -712,6 +712,10 @@ export type SettingsPanelProps = {
   setFreakOutSwingAxis: Dispatch<SetStateAction<number>>;
   freakOutSwingAngle: number;
   setFreakOutSwingAngle: Dispatch<SetStateAction<number>>;
+  freakOutSwingAxis2: number;
+  setFreakOutSwingAxis2: Dispatch<SetStateAction<number>>;
+  freakOutSwingAngle2: number;
+  setFreakOutSwingAngle2: Dispatch<SetStateAction<number>>;
   freakOutSwingSpeed: number;
   setFreakOutSwingSpeed: Dispatch<SetStateAction<number>>;
   freakOutSwingLength: number;
@@ -1723,6 +1727,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setFreakOutSwingAxis,
     freakOutSwingAngle,
     setFreakOutSwingAngle,
+    freakOutSwingAxis2,
+    setFreakOutSwingAxis2,
+    freakOutSwingAngle2,
+    setFreakOutSwingAngle2,
     freakOutSwingSpeed,
     setFreakOutSwingSpeed,
     freakOutSwingLength,
@@ -2995,6 +3003,30 @@ export function SettingsPanel(props: SettingsPanelProps) {
               onInc={() => setFreakOutSwingAngle((v) => Math.min(180, +(v + 5).toFixed(0)))}
             />
             <SettingRow
+              label={t("dial.camera.freakOutSwingAxis2")}
+              mode="number"
+              value={`${freakOutSwingAxis2.toFixed(0)}°`}
+              rawValue={freakOutSwingAxis2}
+              onSet={(v) => setFreakOutSwingAxis2(v)}
+              min={0}
+              max={180}
+              step={5}
+              onDec={() => setFreakOutSwingAxis2((v) => Math.max(0, +(v - 5).toFixed(0)))}
+              onInc={() => setFreakOutSwingAxis2((v) => Math.min(180, +(v + 5).toFixed(0)))}
+            />
+            <SettingRow
+              label={t("dial.camera.freakOutSwingAngle2")}
+              mode="number"
+              value={`${freakOutSwingAngle2.toFixed(0)}°`}
+              rawValue={freakOutSwingAngle2}
+              onSet={(v) => setFreakOutSwingAngle2(v)}
+              min={0}
+              max={180}
+              step={5}
+              onDec={() => setFreakOutSwingAngle2((v) => Math.max(0, +(v - 5).toFixed(0)))}
+              onInc={() => setFreakOutSwingAngle2((v) => Math.min(180, +(v + 5).toFixed(0)))}
+            />
+            <SettingRow
               label={t("dial.camera.freakOutSwingSpeed")}
               mode="number"
               value={`${freakOutSwingSpeed.toFixed(2)}x`}
@@ -4069,6 +4101,8 @@ export function SettingsPanel(props: SettingsPanelProps) {
             if (p.puffInflate !== undefined) setHoodPuffInflate(p.puffInflate);
             if (
               p.openingHeight !== undefined ||
+              p.offsetX !== undefined ||
+              p.offsetY !== undefined ||
               p.fur !== undefined ||
               p.furColor !== undefined ||
               p.furStyle !== undefined ||

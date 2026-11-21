@@ -707,6 +707,8 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "freakOutOn",
     "freakOutSwingAxis",
     "freakOutSwingAngle",
+    "freakOutSwingAxis2",
+    "freakOutSwingAngle2",
     "freakOutSwingSpeed",
     "freakOutSwingLength",
     "freakOutRingRadius",
