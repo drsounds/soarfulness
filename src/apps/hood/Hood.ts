@@ -22,6 +22,8 @@ import { HOOD_OPENING_HEIGHT_MAX } from "./hoodLayers";
 export type HoodConfig = {
   /** 0..1: where the hood's sides end, from the bottom of the view up (HÖJD FRÅN BOTTEN). */
   height: number;
+  offsetX: number;
+  offsetY: number;
   /** 0..1: size of the face opening, tight (0) .. wide (1) (ÖPPNING). */
   opening: number;
   /** Opening height in screen heights; 0 follows ÖPPNING. */
@@ -188,6 +190,8 @@ const FRAG = /* glsl */ `
   precision highp float;
   varying vec2 vNdc;
   uniform float uAspect;
+  uniform float uOffsetX;
+  uniform float uOffsetY;
   uniform float uTanHalfFov;
   uniform float uTime;
   uniform vec2 uSway;
@@ -739,7 +743,8 @@ const FRAG = /* glsl */ `
   }
 
   void main() {
-    vec2 p = floatWarp(bodyWarp(hangWarp(vec2(vNdc.x * uAspect, vNdc.y))));
+    vec2 p = floatWarp(bodyWarp(hangWarp(vec2(vNdc.x * uAspect, vNdc.y)))) -
+      vec2(uOffsetX * uAspect, uOffsetY);
     vec2 pDrip = p;
     // 3D-PUFFAR: a bulging puff stands toward the head, so from the eye it
     // is seen shifted in toward the opening; it overhangs the edge and the
@@ -768,13 +773,16 @@ const FRAG = /* glsl */ `
     float inside = smoothstep(0.0, aaT, t) * smoothstep(0.0, aaC, cut);
     if (uDropsOnly > 0.5) inside = 0.0;
     float furBand = mix(0.008, 0.14, clamp(uFurWidth, 0.0, 1.0));
+    float furStrand = fract(sin(floor(furAngle * mix(140.0, 55.0, uFurSize)) * 12.9898) * 43758.5453);
     float furLength = uFurStyle < 0.5
-      ? mix(0.006, 0.014, uFurSize)
+      ? mix(0.004, 0.01, uFurSize)
       : uFurStyle < 1.5
-        ? mix(0.018, 0.05, uFurSize)
-        : mix(0.012, 0.032, uFurSize);
-    float furFiber = sin(furAngle * mix(150.0, 38.0, uFurSize) + sin(t * 41.0 + furAngle * 3.0) * 1.5);
-    float furFringe = furLength * (0.25 + 0.75 * (0.5 + 0.5 * furFiber));
+        ? mix(0.012, 0.03, uFurSize)
+        : mix(0.009, 0.022, uFurSize);
+    float furFiber = sin(
+      furAngle * mix(140.0, 55.0, uFurSize) + sin(t * 41.0 + furAngle * 3.0) * 0.35
+    );
+    float furFringe = furLength * (0.68 + 0.12 * furFiber + 0.1 * furStrand);
     float furMask = uFur * smoothstep(-furFringe - aaT, -furFringe + aaT, t) *
       (1.0 - smoothstep(furBand - aaT, furBand + aaT, t)) *
       smoothstep(-0.03, 0.05, cut);
@@ -1038,6 +1046,8 @@ export class Hood {
   private readonly geometry: THREE.PlaneGeometry;
   private readonly uniforms: {
     uAspect: { value: number };
+    uOffsetX: { value: number };
+    uOffsetY: { value: number };
     uTanHalfFov: { value: number };
     uTime: { value: number };
     uSway: { value: THREE.Vector2 };
@@ -1143,6 +1153,8 @@ export class Hood {
   constructor(scene: THREE.Scene, order = 0) {
     this.uniforms = {
       uAspect: { value: 1 },
+      uOffsetX: { value: 0 },
+      uOffsetY: { value: 0 },
       uTanHalfFov: { value: 1 },
       uTime: { value: 0 },
       uSway: { value: new THREE.Vector2() },
@@ -1248,6 +1260,8 @@ export class Hood {
     this.mesh.visible = true;
     u.uTime.value = time;
     u.uAspect.value = camera.aspect;
+    u.uOffsetX.value = THREE.MathUtils.clamp(cfg.offsetX ?? 0, -1, 1);
+    u.uOffsetY.value = THREE.MathUtils.clamp(cfg.offsetY ?? 0, -1, 1);
     u.uTanHalfFov.value = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
     u.uHeight.value = THREE.MathUtils.clamp(cfg.height, 0, 1);
     u.uOpening.value = THREE.MathUtils.clamp(cfg.opening, 0, 1);

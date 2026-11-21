@@ -81,6 +81,8 @@ export function hoodConfigFromLayer(l: HoodLayer, f: FrameContext, g: HoodShared
     floatThreshold: g.floatThreshold,
     suitColor: g.suitColor,
     height: l.height,
+    offsetX: l.offsetX,
+    offsetY: l.offsetY,
     opening: l.opening,
     openingHeight: l.openingHeight,
     openingWidth: l.openingWidth,

@@ -4,6 +4,7 @@ import {
   HOOD_MESH_RESOLUTION_DEFAULT,
   patchHoodLayers,
   sanitizeHoodLayer,
+  sanitizeHoodLayerDetails,
 } from "./hoodLayers";
 
 describe("hood layers", () => {
@@ -18,9 +19,10 @@ describe("hood layers", () => {
       { ...HOOD_LAYER_DEFAULTS, weight: -0.5 },
       { ...HOOD_LAYER_DEFAULTS, weight: 0.8, color: "#123456" },
     ];
-    const patched = patchHoodLayers(layers, { weight: -0.25 });
+    const patched = patchHoodLayers(layers, { weight: -0.25, offsetX: 0.3 });
 
     expect(patched.map((layer) => layer.weight)).toEqual([-0.25, -0.25]);
+    expect(patched.map((layer) => layer.offsetX)).toEqual([0.3, 0.3]);
     expect(patched[1].color).toBe("#123456");
     expect(layers.map((layer) => layer.weight)).toEqual([-0.5, 0.8]);
   });
@@ -58,6 +60,21 @@ describe("hood layers", () => {
       furColor: HOOD_LAYER_DEFAULTS.furColor,
       furStyle: "short",
       furPattern: "solid",
+    });
+  });
+
+  test("sanitizes hood offsets and preserves them in layer details", () => {
+    expect(sanitizeHoodLayer({ offsetX: -2, offsetY: 0.4 })).toMatchObject({
+      offsetX: -1,
+      offsetY: 0.4,
+    });
+    expect(
+      sanitizeHoodLayerDetails({ offsetX: 0.25, offsetY: -0.5, fur: true, furStyle: "long" }),
+    ).toMatchObject({
+      offsetX: 0.25,
+      offsetY: -0.5,
+      fur: true,
+      furStyle: "long",
     });
   });
 });

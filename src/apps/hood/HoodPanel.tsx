@@ -139,6 +139,22 @@ export function HoodPanel({
       />
     );
   };
+  const offset = (key: "offsetX" | "offsetY", label: string) => (
+    <SettingRow
+      key={key}
+      label={label}
+      mode="number"
+      value={`${Math.round(layer[key] * 100)}%`}
+      rawValue={layer[key]}
+      onSet={(v) => patch({ [key]: Math.max(-1, Math.min(1, v)) })}
+      applyToAll={applyToAll({ [key]: layer[key] })}
+      min={-1}
+      max={1}
+      step={0.05}
+      onDec={() => patch({ [key]: Math.max(-1, +(layer[key] - 0.05).toFixed(2)) })}
+      onInc={() => patch({ [key]: Math.min(1, +(layer[key] + 0.05).toFixed(2)) })}
+    />
+  );
   const toggle = (key: BoolKey, label: string) => (
     <SettingRow
       key={key}
@@ -218,6 +234,8 @@ export function HoodPanel({
             </button>
           </div>
           {toggle("on", t("dial.camera.hoodLayerOn"))}
+          {offset("offsetX", t("dial.camera.hoodOffsetX"))}
+          {offset("offsetY", t("dial.camera.hoodOffsetY"))}
           {pct("drop", t("dial.camera.hoodDrop"))}
           {(!layer.lowerOn || layer.separate) && pct("height", t("dial.camera.hoodHeight"))}
           {toggle("lengthOn", t("dial.camera.hoodLengthOn"))}

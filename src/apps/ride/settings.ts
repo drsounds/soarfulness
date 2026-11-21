@@ -11,7 +11,9 @@ export type RideSettings = {
   // of a ring of sofas hanging freakOutSwingLength meters below a pivot,
   // swinging up to ±freakOutSwingAngle degrees about a horizontal axis whose
   // bearing is freakOutSwingAxis (0° = sideways axis, so the arm swings
-  // forward/back; 90° = forward axis, so it swings side to side). With
+  // forward/back; 90° = forward axis, so it swings side to side). A second,
+  // independently angled swing plane can be enabled with freakOutSwingAngle2;
+  // it is a quarter-cycle out of phase to swing in four directions. With
   // freakOutRotationOn the ring itself also spins about freakOutRotationAxis
   // at freakOutRotationSpeed, and with freakOutRotationOscillate that spin
   // smoothly reverses back and forth at freakOutRotationOscillateSpeed. The
@@ -20,6 +22,9 @@ export type RideSettings = {
   freakOutOn: boolean;
   freakOutSwingAxis: number;
   freakOutSwingAngle: number;
+  /** Bearing and maximum angle of the quarter-cycle-offset second swing plane. */
+  freakOutSwingAxis2: number;
+  freakOutSwingAngle2: number;
   freakOutSwingSpeed: number;
   freakOutSwingLength: number;
   freakOutRingRadius: number;
@@ -94,6 +99,8 @@ export const RIDE_DEFAULTS: RideSettings = {
   freakOutOn: false,
   freakOutSwingAxis: 114,
   freakOutSwingAngle: 125,
+  freakOutSwingAxis2: 24,
+  freakOutSwingAngle2: 0,
   freakOutSwingSpeed: 1.25,
   freakOutSwingLength: 800,
   freakOutRingRadius: 3.28,

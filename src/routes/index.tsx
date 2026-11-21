@@ -43,6 +43,7 @@ import { BODYFLIGHT_DEFAULTS } from "@/apps/bodyflight/settings";
 import { SWING_DEFAULTS } from "@/apps/swing/settings";
 import { TORNADO_DEFAULTS } from "@/apps/tornado/settings";
 import { RIDE_DEFAULTS } from "@/apps/ride/settings";
+import { rideSwingAngles } from "@/apps/ride/swing";
 import { onAppLifecycle } from "@/core/apps/lifecycle";
 import {
   MODE_APP_ID,
@@ -592,9 +593,11 @@ const _foAxisSwing = new THREE.Vector3();
 const _swingHookPos = new THREE.Vector3();
 const _cordEnd = new THREE.Vector3();
 const _foAxisRing = new THREE.Vector3();
+const _foAxisSwing2 = new THREE.Vector3();
 const _foSeat = new THREE.Vector3();
 const _foArm = new THREE.Vector3();
 const _foQSwing = new THREE.Quaternion();
+const _foQSwing2 = new THREE.Quaternion();
 const _foQRing = new THREE.Quaternion();
 // The gondola's rotation relative to the arm (see FreakOutRig.gondola).
 const _foQGondola = new THREE.Quaternion();
@@ -605,6 +608,8 @@ function freakOutPose(
   yaw: number,
   swingAxisDeg: number,
   swingAngle: number,
+  swingAxisDeg2: number,
+  swingAngle2: number,
   armLen: number,
   ringRadius: number,
   ringAxis: FreakOutAxis,
@@ -623,6 +628,12 @@ function freakOutPose(
     0,
     rightZ * Math.cos(a) + fwdZ * Math.sin(a),
   );
+  const a2 = THREE.MathUtils.degToRad(swingAxisDeg2);
+  _foAxisSwing2.set(
+    rightX * Math.cos(a2) + fwdX * Math.sin(a2),
+    0,
+    rightZ * Math.cos(a2) + fwdZ * Math.sin(a2),
+  );
   if (ringAxis === "x") _foAxisRing.set(rightX, 0, rightZ);
   else if (ringAxis === "z") _foAxisRing.set(fwdX, 0, fwdZ);
   else _foAxisRing.set(0, 1, 0);
@@ -632,6 +643,8 @@ function freakOutPose(
   if (ringAxis === "z") _foSeat.set(rightX * side, 0, rightZ * side);
   else _foSeat.set(fwdX * side, 0, fwdZ * side);
   _foQSwing.setFromAxisAngle(_foAxisSwing, swingAngle);
+  _foQSwing2.setFromAxisAngle(_foAxisSwing2, swingAngle2);
+  _foQSwing.multiply(_foQSwing2);
   _foQRing.setFromAxisAngle(_foAxisRing, ringAngle);
   _foArm.set(0, -armLen, 0);
   if (ringTilts) {
@@ -2610,6 +2623,8 @@ export function Aquafulness() {
   const [freakOutOn, setFreakOutOn] = useState(initial.freakOutOn);
   const [freakOutSwingAxis, setFreakOutSwingAxis] = useState(initial.freakOutSwingAxis);
   const [freakOutSwingAngle, setFreakOutSwingAngle] = useState(initial.freakOutSwingAngle);
+  const [freakOutSwingAxis2, setFreakOutSwingAxis2] = useState(initial.freakOutSwingAxis2);
+  const [freakOutSwingAngle2, setFreakOutSwingAngle2] = useState(initial.freakOutSwingAngle2);
   const [freakOutSwingSpeed, setFreakOutSwingSpeed] = useState(initial.freakOutSwingSpeed);
   const [freakOutSwingLength, setFreakOutSwingLength] = useState(initial.freakOutSwingLength);
   const [freakOutRingRadius, setFreakOutRingRadius] = useState(initial.freakOutRingRadius);
@@ -3241,6 +3256,7 @@ export function Aquafulness() {
     gogglesIntensity,
     gogglesFpsCap,
     hoodOn,
+    hoodLayer1Details,
     hoodHeight,
     hoodOpening,
     hoodColor,
@@ -3508,6 +3524,8 @@ export function Aquafulness() {
     freakOutOn,
     freakOutSwingAxis,
     freakOutSwingAngle,
+    freakOutSwingAxis2,
+    freakOutSwingAngle2,
     freakOutSwingSpeed,
     freakOutSwingLength,
     freakOutRingRadius,
@@ -3631,6 +3649,7 @@ export function Aquafulness() {
     gogglesIntensity,
     gogglesFpsCap,
     hoodOn,
+    hoodLayer1Details,
     hoodHeight,
     hoodOpening,
     hoodColor,
@@ -3898,6 +3917,8 @@ export function Aquafulness() {
     freakOutOn,
     freakOutSwingAxis,
     freakOutSwingAngle,
+    freakOutSwingAxis2,
+    freakOutSwingAngle2,
     freakOutSwingSpeed,
     freakOutSwingLength,
     freakOutRingRadius,
@@ -4069,6 +4090,8 @@ export function Aquafulness() {
   const freakOutOnRef = useRef(freakOutOn);
   const freakOutSwingAxisRef = useRef(freakOutSwingAxis);
   const freakOutSwingAngleRef = useRef(freakOutSwingAngle);
+  const freakOutSwingAxis2Ref = useRef(freakOutSwingAxis2);
+  const freakOutSwingAngle2Ref = useRef(freakOutSwingAngle2);
   const freakOutSwingSpeedRef = useRef(freakOutSwingSpeed);
   const freakOutSwingLengthRef = useRef(freakOutSwingLength);
   const freakOutRingRadiusRef = useRef(freakOutRingRadius);
@@ -5000,6 +5023,12 @@ export function Aquafulness() {
     freakOutSwingAngleRef.current = freakOutSwingAngle;
   }, [freakOutSwingAngle]);
   useEffect(() => {
+    freakOutSwingAxis2Ref.current = freakOutSwingAxis2;
+  }, [freakOutSwingAxis2]);
+  useEffect(() => {
+    freakOutSwingAngle2Ref.current = freakOutSwingAngle2;
+  }, [freakOutSwingAngle2]);
+  useEffect(() => {
     freakOutSwingSpeedRef.current = freakOutSwingSpeed;
   }, [freakOutSwingSpeed]);
   useEffect(() => {
@@ -5514,6 +5543,8 @@ export function Aquafulness() {
     setFreakOutOn(DEFAULTS.freakOutOn);
     setFreakOutSwingAxis(DEFAULTS.freakOutSwingAxis);
     setFreakOutSwingAngle(DEFAULTS.freakOutSwingAngle);
+    setFreakOutSwingAxis2(DEFAULTS.freakOutSwingAxis2);
+    setFreakOutSwingAngle2(DEFAULTS.freakOutSwingAngle2);
     setFreakOutSwingSpeed(DEFAULTS.freakOutSwingSpeed);
     setFreakOutSwingLength(DEFAULTS.freakOutSwingLength);
     setFreakOutRingRadius(DEFAULTS.freakOutRingRadius);
@@ -5778,6 +5809,8 @@ export function Aquafulness() {
     if (patch.freakOutOn !== undefined) setFreakOutOn(patch.freakOutOn);
     if (patch.freakOutSwingAxis !== undefined) setFreakOutSwingAxis(patch.freakOutSwingAxis);
     if (patch.freakOutSwingAngle !== undefined) setFreakOutSwingAngle(patch.freakOutSwingAngle);
+    if (patch.freakOutSwingAxis2 !== undefined) setFreakOutSwingAxis2(patch.freakOutSwingAxis2);
+    if (patch.freakOutSwingAngle2 !== undefined) setFreakOutSwingAngle2(patch.freakOutSwingAngle2);
     if (patch.freakOutSwingSpeed !== undefined) setFreakOutSwingSpeed(patch.freakOutSwingSpeed);
     if (patch.freakOutSwingLength !== undefined) setFreakOutSwingLength(patch.freakOutSwingLength);
     if (patch.freakOutRingRadius !== undefined) setFreakOutRingRadius(patch.freakOutRingRadius);
@@ -11065,16 +11098,24 @@ export function Aquafulness() {
         } else if (foBlend > 0.0005) {
           freakOutSwingPhaseRef.current +=
             0.6 * Math.max(0, Math.min(5, freakOutSwingSpeedRef.current)) * physDt;
-          const foSwingAngle =
-            THREE.MathUtils.degToRad(freakOutSwingAngleRef.current) *
-            Math.sin(freakOutSwingPhaseRef.current);
+          const { first: foSwingAngle, second: foSwingAngle2 } = rideSwingAngles(
+            freakOutSwingPhaseRef.current,
+            freakOutSwingAngleRef.current,
+            freakOutSwingAngle2Ref.current,
+          );
           freakOutRotBlendRef.current +=
             ((freakOutRotationOnRef.current ? 1 : 0) - freakOutRotBlendRef.current) *
             (1 - Math.exp(-physDt / 0.4));
           // How much the arm is really swinging (0 with next to no swing
           // angle or speed), which ties the ring's spin to the swing below.
           const foSwingSync =
-            Math.min(1, Math.abs(freakOutSwingAngleRef.current) / 25) *
+            Math.min(
+              1,
+              Math.max(
+                Math.abs(freakOutSwingAngleRef.current),
+                Math.abs(freakOutSwingAngle2Ref.current),
+              ) / 25,
+            ) *
             Math.min(1, Math.max(0, freakOutSwingSpeedRef.current) / 0.1);
           let foDir = freakOutRotationDirectionRef.current === "ccw" ? -1 : 1;
           if (freakOutRotationOscillateRef.current) {
@@ -11149,6 +11190,8 @@ export function Aquafulness() {
             freakOutYawRef.current,
             freakOutSwingAxisRef.current,
             foSwingAngle,
+            freakOutSwingAxis2Ref.current,
+            foSwingAngle2,
             Math.max(0, freakOutSwingLengthRef.current),
             Math.max(0, freakOutRingRadiusRef.current),
             freakOutRotationAxisRef.current,
@@ -12457,6 +12500,10 @@ export function Aquafulness() {
     setFreakOutSwingAxis,
     freakOutSwingAngle,
     setFreakOutSwingAngle,
+    freakOutSwingAxis2,
+    setFreakOutSwingAxis2,
+    freakOutSwingAngle2,
+    setFreakOutSwingAngle2,
     freakOutSwingSpeed,
     setFreakOutSwingSpeed,
     freakOutSwingLength,
@@ -13824,6 +13871,24 @@ export function Aquafulness() {
                 step={1}
                 format={(v) => `${v.toFixed(0)}°`}
                 onChange={setFreakOutSwingAxis}
+              />
+              <PadSlider
+                label={t("dial.camera.freakOutOverlaySwingAngle2")}
+                value={freakOutSwingAngle2}
+                min={0}
+                max={180}
+                step={1}
+                format={(v) => `${v.toFixed(0)}°`}
+                onChange={setFreakOutSwingAngle2}
+              />
+              <PadSlider
+                label={t("dial.camera.freakOutOverlaySwingAxis2")}
+                value={freakOutSwingAxis2}
+                min={0}
+                max={180}
+                step={1}
+                format={(v) => `${v.toFixed(0)}°`}
+                onChange={setFreakOutSwingAxis2}
               />
               <PadSlider
                 label={t("dial.camera.freakOutOverlayRotationSpeed")}
