@@ -681,6 +681,16 @@ export type SettingsPanelProps = {
   setSwingIntensity: Dispatch<SetStateAction<number>>;
   swingSpeed: number;
   setSwingSpeed: Dispatch<SetStateAction<number>>;
+  swingForwardAngle: number;
+  setSwingForwardAngle: Dispatch<SetStateAction<number>>;
+  swingBackwardAngle: number;
+  setSwingBackwardAngle: Dispatch<SetStateAction<number>>;
+  swingLeftAngle: number;
+  setSwingLeftAngle: Dispatch<SetStateAction<number>>;
+  swingRightAngle: number;
+  setSwingRightAngle: Dispatch<SetStateAction<number>>;
+  swingCameraTilt: boolean;
+  setSwingCameraTilt: Dispatch<SetStateAction<boolean>>;
   swingXFactor: number;
   setSwingXFactor: Dispatch<SetStateAction<number>>;
   // Vertical excursion of the swing (formerly "swingYAmplitude").
@@ -1700,6 +1710,16 @@ export function SettingsPanel(props: SettingsPanelProps) {
     setSwingIntensity,
     swingSpeed,
     setSwingSpeed,
+    swingForwardAngle,
+    setSwingForwardAngle,
+    swingBackwardAngle,
+    setSwingBackwardAngle,
+    swingLeftAngle,
+    setSwingLeftAngle,
+    swingRightAngle,
+    setSwingRightAngle,
+    swingCameraTilt,
+    setSwingCameraTilt,
     swingXFactor,
     setSwingXFactor,
     swingHeight,
@@ -3672,6 +3692,60 @@ export function SettingsPanel(props: SettingsPanelProps) {
               step={0.1}
               onDec={() => setSwingSpeed((v) => Math.max(0.1, +(v - 0.1).toFixed(2)))}
               onInc={() => setSwingSpeed((v) => Math.min(mx("swingSpeed"), +(v + 0.1).toFixed(2)))}
+            />
+            <SettingRow
+              label={t("dial.camera.swingForwardAngle")}
+              mode="number"
+              value={`${swingForwardAngle.toFixed(0)}°`}
+              rawValue={swingForwardAngle}
+              onSet={(v) => setSwingForwardAngle(v)}
+              min={0}
+              max={180}
+              step={1}
+              onDec={() => setSwingForwardAngle((v) => Math.max(0, v - 1))}
+              onInc={() => setSwingForwardAngle((v) => Math.min(180, v + 1))}
+            />
+            <SettingRow
+              label={t("dial.camera.swingBackwardAngle")}
+              mode="number"
+              value={`${swingBackwardAngle.toFixed(0)}°`}
+              rawValue={swingBackwardAngle}
+              onSet={(v) => setSwingBackwardAngle(v)}
+              min={0}
+              max={180}
+              step={1}
+              onDec={() => setSwingBackwardAngle((v) => Math.max(0, v - 1))}
+              onInc={() => setSwingBackwardAngle((v) => Math.min(180, v + 1))}
+            />
+            <SettingRow
+              label={t("dial.camera.swingLeftAngle")}
+              mode="number"
+              value={`${swingLeftAngle.toFixed(0)}°`}
+              rawValue={swingLeftAngle}
+              onSet={(v) => setSwingLeftAngle(v)}
+              min={0}
+              max={180}
+              step={1}
+              onDec={() => setSwingLeftAngle((v) => Math.max(0, v - 1))}
+              onInc={() => setSwingLeftAngle((v) => Math.min(180, v + 1))}
+            />
+            <SettingRow
+              label={t("dial.camera.swingRightAngle")}
+              mode="number"
+              value={`${swingRightAngle.toFixed(0)}°`}
+              rawValue={swingRightAngle}
+              onSet={(v) => setSwingRightAngle(v)}
+              min={0}
+              max={180}
+              step={1}
+              onDec={() => setSwingRightAngle((v) => Math.max(0, v - 1))}
+              onInc={() => setSwingRightAngle((v) => Math.min(180, v + 1))}
+            />
+            <SettingRow
+              label={t("dial.camera.swingCameraTilt")}
+              value={onOff(swingCameraTilt)}
+              onDec={() => setSwingCameraTilt(false)}
+              onInc={() => setSwingCameraTilt(true)}
             />
             <SettingRow
               label={t("dial.camera.swingXFactor")}

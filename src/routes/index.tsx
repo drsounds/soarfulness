@@ -41,6 +41,7 @@ import { SWIMMER_DEFAULTS } from "@/apps/swimmer/settings";
 import { FLY_DEFAULTS } from "@/apps/fly/settings";
 import { BODYFLIGHT_DEFAULTS } from "@/apps/bodyflight/settings";
 import { SWING_DEFAULTS } from "@/apps/swing/settings";
+import { swingPendulumAngles } from "@/apps/swing/pendulum";
 import { TORNADO_DEFAULTS } from "@/apps/tornado/settings";
 import { RIDE_DEFAULTS } from "@/apps/ride/settings";
 import { rideSwingAngles } from "@/apps/ride/swing";
@@ -591,6 +592,14 @@ function swingYWaveformValue(
 // spin carries it around a circle of that radius.
 const _foAxisSwing = new THREE.Vector3();
 const _swingHookPos = new THREE.Vector3();
+const _swingRightAxis = new THREE.Vector3();
+const _swingBackAxis = new THREE.Vector3();
+const _swingArm = new THREE.Vector3();
+const _swingForwardQuat = new THREE.Quaternion();
+const _swingSideQuat = new THREE.Quaternion();
+const _swingQuat = new THREE.Quaternion();
+const _swingCameraQuat = new THREE.Quaternion();
+const _swingIdentity = new THREE.Quaternion();
 const _cordEnd = new THREE.Vector3();
 const _foAxisRing = new THREE.Vector3();
 const _foAxisSwing2 = new THREE.Vector3();
@@ -616,6 +625,7 @@ function freakOutPose(
   ringAngle: number,
   viewFollowsRing: boolean,
   ringTilts: boolean,
+  viewFollowsSwing = true,
   facesCenter = false,
 ): void {
   const rightX = Math.cos(yaw),
@@ -665,10 +675,11 @@ function freakOutPose(
     // root→gondola hierarchy still lands on a level, spinning ring.
     _foQGondola.copy(_foQSwing).invert().multiply(_foQRing);
   }
-  // The view always tilts with the arm's swing (so the felt pivot is at the
-  // top of the arm, straight above the seat), and only turns with the
-  // ring's spin when viewFollowsRing is on.
-  outQuat.copy(_foQSwing);
+  // The view can tilt with the arm's swing (so the felt pivot is at the top
+  // of the arm, straight above the seat), and only turns with the ring's
+  // spin when viewFollowsRing is on.
+  outQuat.identity();
+  if (viewFollowsSwing) outQuat.copy(_foQSwing);
   if (viewFollowsRing) outQuat.multiply(_foQRing);
 }
 const _foOffset = new THREE.Vector3();
@@ -2596,8 +2607,12 @@ export function Aquafulness() {
   const [swingPositionY, setSwingPositionY] = useState(initial.swingPositionY);
   const [swingIntensity, setSwingIntensity] = useState(initial.swingIntensity);
   const [swingSpeed, setSwingSpeed] = useState(initial.swingSpeed);
-  // Horizontal (side-to-side) swing multiplier — defaults to 0 so the
-  // pendulum bobs vertically in place until explicitly dialed up.
+  const [swingForwardAngle, setSwingForwardAngle] = useState(initial.swingForwardAngle);
+  const [swingBackwardAngle, setSwingBackwardAngle] = useState(initial.swingBackwardAngle);
+  const [swingLeftAngle, setSwingLeftAngle] = useState(initial.swingLeftAngle);
+  const [swingRightAngle, setSwingRightAngle] = useState(initial.swingRightAngle);
+  const [swingCameraTilt, setSwingCameraTilt] = useState(initial.swingCameraTilt);
+  // Additional horizontal sway layered over the directional pendulum angles.
   const [swingXFactor, setSwingXFactor] = useState(initial.swingXFactor);
   // Vertical swing excursion in meters (GUNGA HÖJD) — independent of GUNGA
   // POSITION Y (the resting altitude), so the pendulum can swing tens of
@@ -2876,6 +2891,7 @@ export function Aquafulness() {
   } = torusRings.setters;
   const { reset: resetTorusrings, patch: patchTorusrings } = torusRings;
   const [rotStick, setRotStick] = useState({ x: 0, y: 0 });
+  const [lookSpinStick, setLookSpinStick] = useState({ x: 0, y: 0 });
   const [driftStick, setDriftStick] = useState({ x: 0, y: 0 });
   const [waveDirStick, setWaveDirStick] = useState({ x: 0, y: 0 });
   const [swayStick, setSwayStick] = useState({ x: 0, y: 0 });
@@ -3513,6 +3529,11 @@ export function Aquafulness() {
     swingPositionY,
     swingIntensity,
     swingSpeed,
+    swingForwardAngle,
+    swingBackwardAngle,
+    swingLeftAngle,
+    swingRightAngle,
+    swingCameraTilt,
     swingXFactor,
     swingHeight,
     swingPreset,
@@ -3906,6 +3927,11 @@ export function Aquafulness() {
     swingPositionY,
     swingIntensity,
     swingSpeed,
+    swingForwardAngle,
+    swingBackwardAngle,
+    swingLeftAngle,
+    swingRightAngle,
+    swingCameraTilt,
     swingXFactor,
     swingHeight,
     swingPreset,
@@ -4062,6 +4088,11 @@ export function Aquafulness() {
   const swingPositionYRef = useRef(swingPositionY);
   const swingIntensityRef = useRef(swingIntensity);
   const swingSpeedRef = useRef(swingSpeed);
+  const swingForwardAngleRef = useRef(swingForwardAngle);
+  const swingBackwardAngleRef = useRef(swingBackwardAngle);
+  const swingLeftAngleRef = useRef(swingLeftAngle);
+  const swingRightAngleRef = useRef(swingRightAngle);
+  const swingCameraTiltRef = useRef(swingCameraTilt);
   // Accumulated pendulum phase (radians): integrated from omega each frame
   // instead of t * omega, so changing GUNGA HASTIGHET/INTENSITET mid-swing
   // never makes the pendulum jump.
@@ -4208,6 +4239,7 @@ export function Aquafulness() {
   const wakeLockRef = useRef(wakeLock);
   const audioSpatialRef = useRef(audioSpatial);
   const rotStickRef = useRef({ x: 0, y: 0 });
+  const lookSpinStickRef = useRef({ x: 0, y: 0 });
   // The real, fixed-in-world direction STRÖM/SVAJ represent, set relative to
   // the look angle at the moment the pad is touched (see padToWorldXZ). The
   // pad's on-screen knob is re-derived from this every frame (worldXZToPad)
@@ -4461,6 +4493,9 @@ export function Aquafulness() {
   useEffect(() => {
     rotStickRef.current = rotStick;
   }, [rotStick]);
+  useEffect(() => {
+    lookSpinStickRef.current = lookSpinStick;
+  }, [lookSpinStick]);
   useEffect(() => {
     waterColorRef.current = waterColorIdx;
   }, [waterColorIdx]);
@@ -4989,6 +5024,21 @@ export function Aquafulness() {
   useEffect(() => {
     swingSpeedRef.current = swingSpeed;
   }, [swingSpeed]);
+  useEffect(() => {
+    swingForwardAngleRef.current = swingForwardAngle;
+  }, [swingForwardAngle]);
+  useEffect(() => {
+    swingBackwardAngleRef.current = swingBackwardAngle;
+  }, [swingBackwardAngle]);
+  useEffect(() => {
+    swingLeftAngleRef.current = swingLeftAngle;
+  }, [swingLeftAngle]);
+  useEffect(() => {
+    swingRightAngleRef.current = swingRightAngle;
+  }, [swingRightAngle]);
+  useEffect(() => {
+    swingCameraTiltRef.current = swingCameraTilt;
+  }, [swingCameraTilt]);
   useEffect(() => {
     swingXFactorRef.current = swingXFactor;
   }, [swingXFactor]);
@@ -5533,6 +5583,11 @@ export function Aquafulness() {
     setSwingPositionY(DEFAULTS.swingPositionY);
     setSwingIntensity(DEFAULTS.swingIntensity);
     setSwingSpeed(DEFAULTS.swingSpeed);
+    setSwingForwardAngle(DEFAULTS.swingForwardAngle);
+    setSwingBackwardAngle(DEFAULTS.swingBackwardAngle);
+    setSwingLeftAngle(DEFAULTS.swingLeftAngle);
+    setSwingRightAngle(DEFAULTS.swingRightAngle);
+    setSwingCameraTilt(DEFAULTS.swingCameraTilt);
     setSwingXFactor(DEFAULTS.swingXFactor);
     setSwingHeight(DEFAULTS.swingHeight);
     setSwingYWaveform(DEFAULTS.swingYWaveform);
@@ -5798,6 +5853,11 @@ export function Aquafulness() {
     if (patch.swingPositionY !== undefined) setSwingPositionY(patch.swingPositionY);
     if (patch.swingIntensity !== undefined) setSwingIntensity(patch.swingIntensity);
     if (patch.swingSpeed !== undefined) setSwingSpeed(patch.swingSpeed);
+    if (patch.swingForwardAngle !== undefined) setSwingForwardAngle(patch.swingForwardAngle);
+    if (patch.swingBackwardAngle !== undefined) setSwingBackwardAngle(patch.swingBackwardAngle);
+    if (patch.swingLeftAngle !== undefined) setSwingLeftAngle(patch.swingLeftAngle);
+    if (patch.swingRightAngle !== undefined) setSwingRightAngle(patch.swingRightAngle);
+    if (patch.swingCameraTilt !== undefined) setSwingCameraTilt(patch.swingCameraTilt);
     if (patch.swingXFactor !== undefined) setSwingXFactor(patch.swingXFactor);
     if (patch.swingHeight !== undefined) setSwingHeight(patch.swingHeight);
     if (patch.swingPreset !== undefined) setSwingPreset(patch.swingPreset);
@@ -9740,6 +9800,7 @@ export function Aquafulness() {
       };
       const driftSpeed = currentSpeedFor(driftWorldRef.current);
       let camX: number, camZ: number;
+      let swingCameraBlend = 1;
       // TORNADO CLOUD: whichever of GUNGA's or NAV/HÖJD's own tornado spin
       // (if any) is active this frame stashes its live center/radius/angle
       // here so the shared funnel-cloud mesh (see tornadoCloudMeshRef setup
@@ -10114,8 +10175,24 @@ export function Aquafulness() {
         const dirX = rightX * (swingXFactorRef.current + swingPadNow.x) - sinY * swingPadNow.y;
         const dirZ = rightZ * (swingXFactorRef.current + swingPadNow.x) - cosY * swingPadNow.y;
         const sinTheta = Math.sin(theta);
-        const pendOffX = sinTheta * armLen * dirX;
-        const pendOffZ = sinTheta * armLen * dirZ;
+        let pendOffX = sinTheta * armLen * dirX;
+        let pendOffZ = sinTheta * armLen * dirZ;
+        const swingAngles = swingPendulumAngles(
+          swingPhaseNow,
+          swingForwardAngleRef.current,
+          swingBackwardAngleRef.current,
+          swingLeftAngleRef.current,
+          swingRightAngleRef.current,
+          swingIntensityNow,
+        );
+        _swingRightAxis.set(rightX, 0, rightZ);
+        _swingBackAxis.set(sinY, 0, cosY);
+        _swingForwardQuat.setFromAxisAngle(_swingRightAxis, swingAngles.forward);
+        _swingSideQuat.setFromAxisAngle(_swingBackAxis, swingAngles.right);
+        _swingQuat.copy(_swingSideQuat).multiply(_swingForwardQuat);
+        _swingArm.set(0, -armLen, 0).applyQuaternion(_swingQuat);
+        pendOffX += _swingArm.x;
+        pendOffZ += _swingArm.z;
         // Manual radial control: NAV and STRÖM move the whole anchor here
         // (see above), so only the TO CENTER dial pulls the orbit in/out
         // while TORNADO is on — see updateTornadoLiveRadius above.
@@ -10163,6 +10240,7 @@ export function Aquafulness() {
             blend = lin * lin * (3 - 2 * lin); // smoothstep
           }
         }
+        swingCameraBlend = blend;
         camX = posRef.current.x + (activeBlend ? rawOffX * blend : rawOffX);
         camZ = posRef.current.z + (activeBlend ? rawOffZ * blend : rawOffZ);
         camYRef.current = activeBlend
@@ -11198,6 +11276,7 @@ export function Aquafulness() {
             freakOutRingAngleRef.current + freakOutSeatAngleRef.current,
             !freakOutViewFixedHeadingRef.current,
             !freakOutRingLevelRef.current,
+            swingCameraTiltRef.current,
             freakOutSeatsOnRef.current,
           );
           if (foBlend < 0.9995) {
@@ -11287,6 +11366,8 @@ export function Aquafulness() {
       const rotSpeed = 1.6; // rad/s at full deflection
       yawRef.current -= rotStickRef.current.x * rotSpeed * dt;
       pitchRef.current += rotStickRef.current.y * rotSpeed * dt;
+      yawRef.current -= lookSpinStickRef.current.x * rotSpeed * dt;
+      pitchRef.current += lookSpinStickRef.current.y * rotSpeed * dt;
       // Noclip allows a steeper look-up/down range since it drives full 3D
       // flight direction (see the forward vector above); other modes keep
       // the original, more conservative range.
@@ -11303,6 +11384,10 @@ export function Aquafulness() {
         bodyflightRollRef.current +=
           (rollTarget - bodyflightRollRef.current) * (1 - Math.exp(-dt / 0.3));
         if (Math.abs(bodyflightRollRef.current) > 1e-4) camera.rotateZ(bodyflightRollRef.current);
+      }
+      if (camMode === "swing" && swingCameraTiltRef.current) {
+        _swingCameraQuat.slerpQuaternions(_swingIdentity, _swingQuat, swingCameraBlend);
+        camera.quaternion.premultiply(_swingCameraQuat);
       }
       if (freakOutViewActive) camera.quaternion.premultiply(_foQuat);
 
@@ -12473,6 +12558,16 @@ export function Aquafulness() {
     setSwingIntensity,
     swingSpeed,
     setSwingSpeed,
+    swingForwardAngle,
+    setSwingForwardAngle,
+    swingBackwardAngle,
+    setSwingBackwardAngle,
+    swingLeftAngle,
+    setSwingLeftAngle,
+    swingRightAngle,
+    setSwingRightAngle,
+    swingCameraTilt,
+    setSwingCameraTilt,
     swingXFactor,
     setSwingXFactor,
     swingHeight,
@@ -13832,6 +13927,13 @@ export function Aquafulness() {
             label={t("hud.joystick.look")}
             size="sm"
           />
+          <JoystickPad
+            onChange={setLookSpinStick}
+            value={lookSpinStick}
+            label={t("hud.joystick.lookSpin")}
+            size="sm"
+            sticky
+          />
         </div>
 
         {/* RIDE OVERLAY: while the ride is on, its most-used dials sit on
@@ -14142,6 +14244,55 @@ export function Aquafulness() {
                         onChange={setSwingSpeed}
                       />
                       <PadSlider
+                        label={t("dial.camera.swingForwardAngle")}
+                        value={swingForwardAngle}
+                        min={0}
+                        max={180}
+                        step={1}
+                        format={(v) => `${v.toFixed(0)}°`}
+                        onChange={setSwingForwardAngle}
+                      />
+                      <PadSlider
+                        label={t("dial.camera.swingBackwardAngle")}
+                        value={swingBackwardAngle}
+                        min={0}
+                        max={180}
+                        step={1}
+                        format={(v) => `${v.toFixed(0)}°`}
+                        onChange={setSwingBackwardAngle}
+                      />
+                      <PadSlider
+                        label={t("dial.camera.swingLeftAngle")}
+                        value={swingLeftAngle}
+                        min={0}
+                        max={180}
+                        step={1}
+                        format={(v) => `${v.toFixed(0)}°`}
+                        onChange={setSwingLeftAngle}
+                      />
+                      <PadSlider
+                        label={t("dial.camera.swingRightAngle")}
+                        value={swingRightAngle}
+                        min={0}
+                        max={180}
+                        step={1}
+                        format={(v) => `${v.toFixed(0)}°`}
+                        onChange={setSwingRightAngle}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setSwingCameraTilt((v) => !v)}
+                        aria-pressed={swingCameraTilt}
+                        className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                          swingCameraTilt
+                            ? "ui-line-3 ui-tint-2 ui-ink"
+                            : "ui-line-2 ui-surface ui-ink-muted"
+                        }`}
+                      >
+                        {t("dial.camera.swingCameraTilt")}:{" "}
+                        {t(swingCameraTilt ? "common.on" : "common.off")}
+                      </button>
+                      <PadSlider
                         label={t("dial.camera.swingPositionY")}
                         value={swingPositionY}
                         min={0}
@@ -14434,6 +14585,19 @@ export function Aquafulness() {
                     axes live in the full settings panel. */}
                   {cameraDrawerTab === "freakout" && (
                     <>
+                      <button
+                        type="button"
+                        onClick={() => setSwingCameraTilt((v) => !v)}
+                        aria-pressed={swingCameraTilt}
+                        className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                          swingCameraTilt
+                            ? "ui-line-3 ui-tint-2 ui-ink"
+                            : "ui-line-2 ui-surface ui-ink-muted"
+                        }`}
+                      >
+                        {t("dial.camera.swingCameraTilt")}:{" "}
+                        {t(swingCameraTilt ? "common.on" : "common.off")}
+                      </button>
                       <button
                         type="button"
                         onClick={() => setFreakOutOn((v) => !v)}
