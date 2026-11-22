@@ -59,6 +59,10 @@ const COMMON = /* glsl */ `
   uniform float uRh;
   uniform float uBottom;
   uniform float uTime;
+  uniform vec2 uSway;
+  uniform float uHang;
+  uniform float uHangHeavy;
+  uniform float uTwist;
   uniform float uFloatAmt;
   uniform float uFloatLift;
   uniform float uFloatInflate;
@@ -110,6 +114,22 @@ const COMMON = /* glsl */ `
       amp *= 1.25;
     }
     return amp * p;
+  }
+
+  vec3 hangWarp(vec3 P, float k) {
+    if (uHang < 0.5) return P;
+    float depth = max(-P.z, 0.05);
+    vec2 p = P.xy / (depth * uTanHalf);
+    float f = mix(0.2, 1.0 + 0.8 * clamp(uHangHeavy, 0.0, 1.0), k);
+    vec2 q = p - uSway * (f - 1.0);
+    vec2 anchor = vec2(uSway.x * 0.2, 1.05);
+    float a = uTwist * k;
+    float cs = cos(a);
+    float sn = sin(a);
+    vec2 d = q - anchor;
+    vec2 warped = anchor + vec2(cs * d.x + sn * d.y, -sn * d.x + cs * d.y);
+    P.xy += (warped - p) * depth * uTanHalf;
+    return P;
   }
 
   // The collar's top edge (m, head frame) at angle th around the neck
@@ -165,7 +185,10 @@ const VERT_COLLAR = /* glsl */ `
       p += (sin(PI * x) * 0.010 + 0.004) * (1.0 - step(1.0, x));
     }
     R -= p;
-    return vec3(R * sin(th) + dx, y, ${CENTER_Z.toFixed(3)} - R * cos(th));
+    return hangWarp(
+      vec3(R * sin(th) + dx, y, ${CENTER_Z.toFixed(3)} - R * cos(th)),
+      1.0 - g.y
+    );
   }
 
   void main() {
@@ -217,7 +240,9 @@ const VERT_HOOD = /* glsl */ `
     float cu = atan(D.y, D.x) * uRh * sin(thF);
     float p = puffProfile(vec2(cu, thF * uRh));
     vec3 fo = floatOff(P);
-    return P - D * (p - fo.z) + vec3(fo.x, fo.y, 0.0);
+    P = P - D * (p - fo.z) + vec3(fo.x, fo.y, 0.0);
+    float hang = pow(1.0 - smoothstep(-uRh, uRh, P.y), 1.5);
+    return hangWarp(P, hang);
   }
 
   void main() {
@@ -542,6 +567,10 @@ export class HoodMesh3D {
       uR: { value: NECK_RADIUS },
       uRh: { value: HOOD_RADIUS },
       uBottom: { value: -0.7 },
+      uSway: { value: new THREE.Vector2() },
+      uHang: { value: 1 },
+      uHangHeavy: { value: 0.4 },
+      uTwist: { value: 0 },
       uFloatAmt: { value: 0 },
       uFloatLift: { value: 0 },
       uFloatInflate: { value: 0 },
@@ -720,6 +749,10 @@ export class HoodMesh3D {
     ]) {
       u[key].value = flat.uniformValue(key);
     }
+    flat.copySwayTo(u.uSway.value as THREE.Vector2);
+    u.uHang.value = flat.uniformValue("uHang");
+    u.uHangHeavy.value = flat.uniformValue("uHangHeavy");
+    u.uTwist.value = flat.uniformValue("uTwist");
     u.uWaterIn.value = cfg.waterInside ? 1 : 0;
     u.uWaterTint.value = clamp(cfg.waterTint ?? 0, 0, 1);
     u.uMotion.value = clamp(cfg.motion, 0, 1);
