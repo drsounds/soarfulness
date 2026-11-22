@@ -155,16 +155,22 @@ export function HoodPanel({
       onInc={() => patch({ [key]: Math.min(1, +(layer[key] + 0.05).toFixed(2)) })}
     />
   );
-  const toggle = (key: BoolKey, label: string) => (
-    <SettingRow
-      key={key}
-      label={label}
-      value={onOff(layer[key])}
-      applyToAll={applyToAll({ [key]: layer[key] })}
-      onDec={() => patch({ [key]: false })}
-      onInc={() => patch({ [key]: true })}
-    />
-  );
+  const toggle = (key: BoolKey, label: string) => {
+    const setToggle = (value: boolean) => {
+      if (key === "real3d") patchAllLayers({ real3d: value });
+      else patch({ [key]: value });
+    };
+    return (
+      <SettingRow
+        key={key}
+        label={label}
+        value={onOff(layer[key])}
+        applyToAll={applyToAll({ [key]: layer[key] })}
+        onDec={() => setToggle(false)}
+        onInc={() => setToggle(true)}
+      />
+    );
+  };
 
   const btnClass =
     "rounded-full border ui-line-1 ui-tint-1 px-2.5 py-0.5 text-[9px] font-light tracking-wider ui-ink-muted transition active:scale-95 ui-press disabled:opacity-30";

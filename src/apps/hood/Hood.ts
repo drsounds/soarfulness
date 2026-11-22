@@ -1255,6 +1255,10 @@ export class Hood {
     return typeof v === "number" ? v : 0;
   }
 
+  copySwayTo(target: THREE.Vector2): void {
+    target.copy(this.uniforms.uSway.value);
+  }
+
   update(time: number, dt: number, camera: THREE.PerspectiveCamera, cfg: HoodConfig): void {
     const u = this.uniforms;
     this.mesh.visible = true;

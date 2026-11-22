@@ -18,6 +18,10 @@ describe("3D hood mesh", () => {
     for (const mesh of clothMeshes) {
       expect(mesh.geometry.getAttribute("position").count).toBe(55_825);
       expect(mesh.geometry.index?.count).toBe(331_776);
+      const material = mesh.material as THREE.ShaderMaterial;
+      expect(material.uniforms.uSway).toBeDefined();
+      expect(material.uniforms.uTwist).toBeDefined();
+      expect(material.vertexShader).toContain("hangWarp");
     }
 
     hood.dispose();
