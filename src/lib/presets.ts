@@ -49,11 +49,18 @@ export function extractPresetData(raw: unknown): Record<string, unknown> | null 
 // File API preset feature. See src/lib/deviceFiles.ts for why this isn't a
 // plain blob download inside the Android app.
 export function downloadJsonFile(filename: string, obj: unknown): Promise<boolean> {
-  const blob = new Blob([JSON.stringify(obj, null, 2)], { type: "application/json" });
-  return saveFileToDevice(filename, blob).catch((err) => {
+  try {
+    const json = JSON.stringify(obj);
+    if (json === undefined) throw new TypeError("Value is not JSON serializable");
+    const blob = new Blob([json], { type: "application/json" });
+    return saveFileToDevice(filename, blob).catch((err) => {
+      console.error("Saving file failed", err);
+      return false;
+    });
+  } catch (err) {
     console.error("Saving file failed", err);
-    return false;
-  });
+    return Promise.resolve(false);
+  }
 }
 
 // Opens the device's file picker and hands the chosen file to `onFile` — the
