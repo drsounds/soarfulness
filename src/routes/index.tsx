@@ -138,6 +138,7 @@ import {
 import { CameraModeIcon, HudIconButton } from "@/components/HudControls";
 import { FerrisWheel, LifeBuoy, Tornado, Wind } from "lucide-react";
 import { hsvToRgb } from "@/lib/waterTint";
+import { lookSpinDeltas } from "@/lib/lookSpin";
 import AmbientAudio, { resolveNativeAudioSource } from "@/lib/ambientAudio";
 import {
   padToWorldXZ,
@@ -11394,8 +11395,9 @@ export function Aquafulness() {
       const rotSpeed = 1.6; // rad/s at full deflection
       yawRef.current -= rotStickRef.current.x * rotSpeed * dt;
       pitchRef.current += rotStickRef.current.y * rotSpeed * dt;
-      yawRef.current -= lookSpinStickRef.current.x * rotSpeed * dt;
-      pitchRef.current += lookSpinStickRef.current.y * rotSpeed * dt;
+      const lookSpin = lookSpinDeltas(lookSpinStickRef.current, rotSpeed, dt);
+      yawRef.current += lookSpin.yaw;
+      pitchRef.current += lookSpin.pitch;
       // Noclip allows a steeper look-up/down range since it drives full 3D
       // flight direction (see the forward vector above); other modes keep
       // the original, more conservative range.
