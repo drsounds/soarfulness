@@ -231,6 +231,7 @@ export function HoodPanel({
                 type="button"
                 role="tab"
                 aria-selected={i === sel}
+                tabIndex={i === sel ? 0 : -1}
                 aria-label={`${t("dial.camera.hoodLayer")} ${i + 1}`}
                 onClick={() => setSel(i)}
                 className={`ui-press min-w-8 rounded-full border px-3 py-1 text-[10px] font-medium transition ${

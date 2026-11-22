@@ -11866,7 +11866,7 @@ export function Aquafulness() {
 
       // SKY PUFFS: individual puffy clouds that fade in and out around the camera.
       skyPuffsFx.update(
-        { dt, camX, camZ, lowEnd },
+        { dt, camX, camZ, lowEnd, insideIndoors },
         apps.isOn("sky-puffs")
           ? skyPuffsSettingsRef.current
           : { ...skyPuffsSettingsRef.current, skyPuffsOn: false },

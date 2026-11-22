@@ -43,6 +43,7 @@ export type SkyPuffsInputs = {
   camZ: number;
   /** Low-end devices skip the puffs. */
   lowEnd: boolean;
+  insideIndoors: boolean;
 };
 
 /**
@@ -150,7 +151,7 @@ export class SkyPuffsRuntime implements AppRuntime<SkyPuffsSettings> {
    */
   update(i: SkyPuffsInputs, s: Readonly<SkyPuffsSettings>) {
     const activeCount =
-      s.skyPuffsOn && !i.lowEnd
+      s.skyPuffsOn && !i.lowEnd && !i.insideIndoors
         ? Math.min(this.meshes.length, Math.max(0, Math.round(s.skyPuffsCount)))
         : 0;
     const puffSize = Math.max(1, s.skyPuffsSize);

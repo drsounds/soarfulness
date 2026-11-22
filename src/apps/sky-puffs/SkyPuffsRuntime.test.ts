@@ -3,7 +3,13 @@ import * as THREE from "three";
 import { SkyPuffsRuntime } from "./SkyPuffsRuntime";
 import { SKY_PUFFS_DEFAULTS } from "./settings";
 
-const frame = (dt: number, lowEnd = false) => ({ dt, camX: 10, camZ: -20, lowEnd });
+const frame = (dt: number, lowEnd = false, insideIndoors = false) => ({
+  dt,
+  camX: 10,
+  camZ: -20,
+  lowEnd,
+  insideIndoors,
+});
 
 describe("SkyPuffsRuntime", () => {
   test("adds its pool to the scene and removes it on dispose", () => {
@@ -45,6 +51,16 @@ describe("SkyPuffsRuntime", () => {
     const dist = Math.hypot(dx, dz);
     expect(dist).toBeGreaterThanOrEqual(700 - 1e-6);
     expect(dist).toBeLessThanOrEqual(2500 + 1e-6);
+    rt.dispose();
+  });
+
+  test("hides all puffs inside an indoor boundary", () => {
+    const scene = new THREE.Scene();
+    const rt = new SkyPuffsRuntime({ scene });
+    const on = { ...SKY_PUFFS_DEFAULTS, skyPuffsOn: true, skyPuffsCount: 5 };
+    for (let i = 0; i < 10; i++) rt.update(frame(0.5), on);
+    rt.update(frame(0.5, false, true), on);
+    expect(scene.children.some((c) => c.visible)).toBe(false);
     rt.dispose();
   });
 });
