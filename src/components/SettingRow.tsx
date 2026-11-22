@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { matchesQuery, useSettingsQuery } from "@/components/settingsNav";
 
@@ -101,46 +102,49 @@ export function SettingRow({
           </span>
         </span>
       </button>
-      {open && (
-        <SettingModal label={label} onClose={close}>
-          {isSelect ? (
-            <OptionList
-              options={options}
-              selectedIndex={selectedIndex}
-              onSelect={(i) => {
-                onSelectIndex(i);
-                close();
-              }}
-            />
-          ) : isNumber ? (
-            <NumberControl
-              label={label}
-              value={value}
-              rawValue={rawValue}
-              min={min}
-              max={max}
-              step={step ?? Math.max((max - min) / 100, 0.01)}
-              onSet={onSet}
-              onDec={onDec}
-              onInc={onInc}
-            />
-          ) : (
-            <StepperControl label={label} value={value} onDec={onDec} onInc={onInc} />
-          )}
-          {applyToAll && (
-            <button
-              type="button"
-              onClick={() => {
-                applyToAll.onApply();
-                close();
-              }}
-              className="ui-tint-1 ui-ink ui-press w-full rounded-full border px-4 py-3 text-sm font-medium transition active:scale-[0.99]"
-            >
-              {applyToAll.label}
-            </button>
-          )}
-        </SettingModal>
-      )}
+      {open &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <SettingModal label={label} onClose={close}>
+            {isSelect ? (
+              <OptionList
+                options={options}
+                selectedIndex={selectedIndex}
+                onSelect={(i) => {
+                  onSelectIndex(i);
+                  close();
+                }}
+              />
+            ) : isNumber ? (
+              <NumberControl
+                label={label}
+                value={value}
+                rawValue={rawValue}
+                min={min}
+                max={max}
+                step={step ?? Math.max((max - min) / 100, 0.01)}
+                onSet={onSet}
+                onDec={onDec}
+                onInc={onInc}
+              />
+            ) : (
+              <StepperControl label={label} value={value} onDec={onDec} onInc={onInc} />
+            )}
+            {applyToAll && (
+              <button
+                type="button"
+                onClick={() => {
+                  applyToAll.onApply();
+                  close();
+                }}
+                className="ui-tint-1 ui-ink ui-press w-full rounded-full border px-4 py-3 text-sm font-medium transition active:scale-[0.99]"
+              >
+                {applyToAll.label}
+              </button>
+            )}
+          </SettingModal>,
+          document.body,
+        )}
     </>
   );
 }

@@ -1,4 +1,4 @@
-import { useState, type Dispatch, type SetStateAction } from "react";
+import { useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { useTranslation } from "react-i18next";
 import { SettingRow } from "@/components/SettingRow";
 import { saveFileToDevice } from "@/lib/deviceFiles";
@@ -70,6 +70,8 @@ export function HoodPanel({
   const { t } = useTranslation();
   const onOff = (v: boolean) => (v ? t("common.on") : t("common.off"));
   const [selRaw, setSel] = useState(0);
+  const layerTabs = useRef<(HTMLButtonElement | null)[]>([]);
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
   const [savedSets, setSavedSets] = useState<SavedHoodLayerSet[]>(() =>
     typeof window === "undefined" ? [] : loadSavedHoodLayerSets(),
   );
@@ -186,22 +188,63 @@ export function HoodPanel({
       />
       {hoodOn && (
         <>
-          <SettingRow
-            label={t("dial.camera.hoodLayer")}
-            value={`${sel + 1} / ${layers.length}${
-              layers.length > 1
-                ? ` · ${
-                    sel === 0
-                      ? t("dial.camera.hoodLayerInnermost")
-                      : sel === layers.length - 1
-                        ? t("dial.camera.hoodLayerOutermost")
-                        : ""
-                  }`
-                : ""
-            }`.replace(/ · $/, "")}
-            onDec={() => setSel((sel - 1 + layers.length) % layers.length)}
-            onInc={() => setSel((sel + 1) % layers.length)}
-          />
+          <div
+            role="tablist"
+            aria-label={t("dial.camera.hoodLayer")}
+            className="mb-2 flex w-full items-center justify-center gap-1 overflow-x-auto py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            onKeyDown={(event) => {
+              const next =
+                event.key === "ArrowRight"
+                  ? Math.min(layers.length - 1, sel + 1)
+                  : event.key === "ArrowLeft"
+                    ? Math.max(0, sel - 1)
+                    : sel;
+              if (next !== sel) {
+                event.preventDefault();
+                setSel(next);
+                layerTabs.current[next]?.focus();
+              }
+            }}
+            onTouchStart={(event) => {
+              const touch = event.touches[0];
+              touchStart.current = touch ? { x: touch.clientX, y: touch.clientY } : null;
+            }}
+            onTouchEnd={(event) => {
+              const start = touchStart.current;
+              const touch = event.changedTouches[0];
+              touchStart.current = null;
+              if (!start || !touch) return;
+              const dx = touch.clientX - start.x;
+              const dy = touch.clientY - start.y;
+              if (Math.abs(dx) < 40 || Math.abs(dx) <= Math.abs(dy)) return;
+              setSel((current) =>
+                Math.max(0, Math.min(layers.length - 1, current + (dx < 0 ? 1 : -1))),
+              );
+            }}
+          >
+            {layers.map((_, i) => (
+              <button
+                key={i}
+                ref={(el) => {
+                  layerTabs.current[i] = el;
+                }}
+                type="button"
+                role="tab"
+                aria-selected={i === sel}
+                tabIndex={i === sel ? 0 : -1}
+                aria-label={`${t("dial.camera.hoodLayer")} ${i + 1}`}
+                onClick={() => setSel(i)}
+                className={`ui-press min-w-8 rounded-full border px-3 py-1 text-[10px] font-medium transition ${
+                  i === sel ? "ui-tint-2 ui-ink" : "ui-tint-1 ui-ink-muted"
+                }`}
+              >
+                {i + 1}
+              </button>
+            ))}
+            <span className="ui-ink-faint ml-1 text-[9px] tabular-nums">
+              {sel + 1} / {layers.length}
+            </span>
+          </div>
           <div className="mb-2 flex w-full flex-wrap items-center justify-center gap-1.5">
             <button
               disabled={layers.length >= HOOD_MAX_LAYERS}

@@ -86,6 +86,7 @@ import {
   type HoodLayer,
   type HoodStyle,
 } from "@/apps/hood/hoodLayers";
+import { collectIndoorAreas, isInsideIndoorArea } from "@/lib/indoorAreas";
 import { applyNeonAccent } from "@/apps/neon/neonAccent";
 import { relativeDaylightTint } from "@/apps/day-night/daylightTint";
 import {
@@ -1552,6 +1553,7 @@ const DEFAULTS: Persisted = {
   depthSineInterval: 1,
   depthSinePeak: 1,
   depthSineWaveform: "sine",
+  waterLevelOffset: 0,
   depthDriftSpeed: 0,
   depthDriftSineOn: false,
   depthDriftSineAmp: 20,
@@ -2998,6 +3000,7 @@ export function Aquafulness() {
   // in and out without tearing down the whole renderer.
   const sceneRef = useRef<THREE.Scene | null>(null);
   const modelRef = useRef<THREE.Object3D | null>(null);
+  const indoorAreasRef = useRef<THREE.Box3[]>([]);
   // The recentered water/cloud planes, so the YTA (surface area) setting can
   // rescale them live without tearing down the renderer.
   const oceanRef = useRef<THREE.Mesh | null>(null);
@@ -3363,6 +3366,7 @@ export function Aquafulness() {
     depthSineInterval,
     depthSinePeak,
     depthSineWaveform,
+    waterLevelOffset: depthDriftRef.current,
     depthDriftSpeed,
     depthDriftSineOn,
     depthDriftSineAmp,
@@ -4404,7 +4408,23 @@ export function Aquafulness() {
   // and depthDriftRef accumulates that velocity into an unbounded offset —
   // added on top of the bounded DEPTH SINE oscillation in levelY below.
   const depthDriftVelRef = useRef(0);
-  const depthDriftRef = useRef(0);
+  const depthDriftRef = useRef(initial.waterLevelOffset);
+  useEffect(() => {
+    const saveWaterLevel = () => {
+      try {
+        const saved = window.localStorage.getItem(STORAGE_KEY);
+        const settings = saved ? JSON.parse(saved) : {};
+        window.localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({ ...settings, waterLevelOffset: depthDriftRef.current }),
+        );
+      } catch {
+        /* quota or privacy mode — ignore */
+      }
+    };
+    window.addEventListener("pagehide", saveWaterLevel);
+    return () => window.removeEventListener("pagehide", saveWaterLevel);
+  }, []);
   const hideWaterRef = useRef(hideWater);
   const midCloudsOnRef = useRef(midCloudsOn);
   const midCloudsHeightRef = useRef(midCloudsHeight);
@@ -5502,7 +5522,7 @@ export function Aquafulness() {
     setDepthDriftSineAmp(DEFAULTS.depthDriftSineAmp);
     setDepthDriftSineSpeed(DEFAULTS.depthDriftSineSpeed);
     setDepthDriftSinePhase(DEFAULTS.depthDriftSinePhase);
-    depthDriftRef.current = 0;
+    depthDriftRef.current = DEFAULTS.waterLevelOffset;
     depthDriftVelRef.current = 0;
     depthDriftSineAccRef.current = 0;
     setHideWater(DEFAULTS.hideWater);
@@ -5747,6 +5767,10 @@ export function Aquafulness() {
     if (patch.depthSineInterval !== undefined) setDepthSineInterval(patch.depthSineInterval);
     if (patch.depthSinePeak !== undefined) setDepthSinePeak(patch.depthSinePeak);
     if (patch.depthSineWaveform !== undefined) setDepthSineWaveform(patch.depthSineWaveform);
+    if (patch.waterLevelOffset !== undefined) {
+      depthDriftRef.current = patch.waterLevelOffset;
+      depthDriftVelRef.current = 0;
+    }
     if (patch.depthDriftSpeed !== undefined) {
       // Re-centre DRIFT SINUS on the loaded value.
       depthDriftSineBaseRef.current = patch.depthDriftSpeed;
@@ -9247,7 +9271,11 @@ export function Aquafulness() {
       // VIND (apps/wind): update the live wind first; VÅGRIKTNING steers the
       // waves toward where it blows.
       // An app switched off in APPS behaves as if every dial were off.
-      const windS = apps.isOn("wind") ? windSettingsRef.current : windOff(windSettingsRef.current);
+      const indoorsNow = isInsideIndoorArea(camera.position, indoorAreasRef.current);
+      const windS =
+        apps.isOn("wind") && !indoorsNow
+          ? windSettingsRef.current
+          : windOff(windSettingsRef.current);
       wind.update(dt, windS);
       uniforms.uDir.value = wind.waveDirection(dt, waveDirRef.current, uniforms.uDir.value, windS);
 
@@ -9706,7 +9734,7 @@ export function Aquafulness() {
 
       // Mellan-moln (drivande lager mellan botten och yta). LOW GRAPHICS
       // MODE forces this whole live-noise layer off.
-      const midCloudsActive = midCloudsOnRef.current && !lowEnd;
+      const midCloudsActive = midCloudsOnRef.current && !lowEnd && !indoorsNow;
       if (midCloudsActive) {
         const frac = Math.max(0.05, Math.min(0.95, midCloudsHeightRef.current));
         // frac=0 → precis över botten, frac=1 → nära ytan.
@@ -10438,7 +10466,7 @@ export function Aquafulness() {
       {
         const d = wind.current(
           physDt,
-          camMode !== "swing",
+          camMode !== "swing" && !indoorsNow,
           apps.isOn("wind") ? windSettingsRef.current : windOff(windSettingsRef.current),
         );
         if (d.dx !== 0 || d.dz !== 0) {
@@ -11118,7 +11146,7 @@ export function Aquafulness() {
           const k = Math.min(n, Math.max(1, Math.round(freakOutCameraSeatRef.current)));
           return ((k - 1) / n) * Math.PI * 2;
         };
-        const foTarget = freakOutOnRef.current ? 1 : 0;
+        const foTarget = freakOutOnRef.current && apps.isOn("ride") ? 1 : 0;
         if (foTarget > 0 && freakOutRampRef.current <= 0) {
           freakOutYawRef.current = yawRef.current;
           freakOutSwingPhaseRef.current = 0;
@@ -11611,7 +11639,7 @@ export function Aquafulness() {
         dt,
         camera,
         depth,
-        fireworksAudioOnRef.current,
+        fireworksAudioOnRef.current && !indoorsNow,
         apps.isOn("wind") ? windSettingsRef.current : windOff(windSettingsRef.current),
       );
 
@@ -11754,6 +11782,7 @@ export function Aquafulness() {
       // What every app runtime gets to know about this frame (see
       // FrameContext in core/apps/types.ts).
       const decorationRoot = deco.getRoot();
+      const insideIndoors = isInsideIndoorArea(camera.position, indoorAreasRef.current);
       const appFrame: FrameContext = {
         time: now / 1000,
         dt,
@@ -11761,6 +11790,7 @@ export function Aquafulness() {
         night: nightBackdropMix(todRef.current),
         underwater: uniforms.uUnderwater.value,
         waterLevel: ocean.position.y,
+        insideIndoors,
         eyeAboveWater: camY - surfaceY,
         model: modelRef.current,
         sceneId: stringLightsSceneRef.current,
@@ -11798,7 +11828,7 @@ export function Aquafulness() {
       // MOLN TONING: ease opacity toward on/off instead of popping visible.
       // Not gated on backdrop/skybox: the cloud deck is its own transparent
       // mesh and should draw over them (only the sky dome is replaced).
-      const skyCloudsTargetOn = skyCloudsOnRef.current && !lowEnd;
+      const skyCloudsTargetOn = skyCloudsOnRef.current && !lowEnd && !insideIndoors;
       skyCloudFadeRef.current +=
         ((skyCloudsTargetOn ? 1 : 0) - skyCloudFadeRef.current) *
         Math.min(1, dt * cloudFadeSpeedRef.current);
@@ -11826,6 +11856,7 @@ export function Aquafulness() {
           turbidity: floorUniforms.uTurbidity.value,
           underwater: uniforms.uUnderwater.value,
           fogColor: uniforms.uWaterDeep.value,
+          insideIndoors,
         },
         apps.isOn("clouds-3d")
           ? clouds3dSettingsRef.current
@@ -11835,7 +11866,7 @@ export function Aquafulness() {
 
       // SKY PUFFS: individual puffy clouds that fade in and out around the camera.
       skyPuffsFx.update(
-        { dt, camX, camZ, lowEnd },
+        { dt, camX, camZ, lowEnd, insideIndoors },
         apps.isOn("sky-puffs")
           ? skyPuffsSettingsRef.current
           : { ...skyPuffsSettingsRef.current, skyPuffsOn: false },
@@ -12023,6 +12054,7 @@ export function Aquafulness() {
         disposeObject(modelRef.current);
         modelRef.current = null;
       }
+      indoorAreasRef.current = [];
       modelBobRef.current = null;
       scene.background = null;
       if (envTextureRef.current) {
@@ -12107,6 +12139,7 @@ export function Aquafulness() {
       disposeObject(modelRef.current);
       modelRef.current = null;
     }
+    indoorAreasRef.current = [];
     modelBobRef.current = null;
     setSceneHooks([]);
 
@@ -12161,6 +12194,7 @@ export function Aquafulness() {
           const model = gltf.scene;
           applyNodeVisibility(gltf);
           applyManifest(model, manifest);
+          indoorAreasRef.current = collectIndoorAreas(model);
           // SKUGGOR: every mesh in the scene casts and receives the sun's
           // shadow — whether any shadow is drawn at all is decided per
           // frame by the light (see shadowsActive in animate()).
@@ -13284,7 +13318,7 @@ export function Aquafulness() {
         </button>
       )}
 
-      {!CLOCK_DISABLED_FOR_PERF_TEST && clockOn && simNow && (
+      {!CLOCK_DISABLED_FOR_PERF_TEST && clockOn && uiVisible && simNow && (
         <TimeTimeline
           date={simNow}
           liveColor={dayNightLiveColor}
@@ -14296,7 +14330,7 @@ export function Aquafulness() {
                         label={t("dial.camera.swingPositionY")}
                         value={swingPositionY}
                         min={0}
-                        max={100000}
+                        max={20000}
                         step={100}
                         curve={2}
                         format={(v) => `${v.toFixed(0)}m`}
@@ -14306,7 +14340,7 @@ export function Aquafulness() {
                         label={t("dial.camera.swingHeight")}
                         value={swingHeight}
                         min={0}
-                        max={mx("swingHeight")}
+                        max={mx("swingHeight") * 0.2}
                         step={100}
                         curve={2}
                         format={(v) => `${v.toFixed(0)}m`}
