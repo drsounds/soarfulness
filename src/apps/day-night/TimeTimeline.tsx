@@ -22,7 +22,7 @@ export function TimeTimeline({
 
   return (
     <div
-      className="absolute bottom-0 left-0 right-0 z-30 px-4 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+      className="absolute bottom-0 left-0 right-0 z-30 max-w-full overflow-hidden px-4 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
       onPointerDown={(event) => event.stopPropagation()}
     >
       <div className="mx-auto max-w-3xl rounded-lg bg-black/60 px-3 py-2 text-white">

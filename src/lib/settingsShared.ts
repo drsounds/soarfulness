@@ -474,6 +474,9 @@ export type Persisted = {
   depthSinePeak: number;
   // Which curve depthMod uses — see DepthSineWaveform above.
   depthSineWaveform: DepthSineWaveform;
+  // Accumulated offset from NIVÅ DRIFT, saved with the rest of the water
+  // settings so a state restore brings back the actual water level.
+  waterLevelOffset: number;
   // Unbounded water-level drift (m/s, signed) layered on top of the bounded
   // DEPTH SINE oscillation above — much like noclip's FRITT FALL/OMVÄND
   // STIGNING, but for the water level instead of the camera: positive keeps
@@ -831,6 +834,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "depthSineInterval",
     "depthSinePeak",
     "depthSineWaveform",
+    "waterLevelOffset",
     "depthDriftSpeed",
     "depthDriftSineOn",
     "depthDriftSineAmp",

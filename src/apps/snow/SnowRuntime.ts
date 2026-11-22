@@ -13,6 +13,7 @@ import type { SnowSettings } from "./settings";
 export class SnowRuntime implements AppRuntime<SnowSettings> {
   readonly snowfall: Snowfall;
   readonly cover = new SnowCover();
+  private insideIndoors = false;
 
   constructor(ctx: SceneAppContext) {
     this.snowfall = new Snowfall(ctx.scene);
@@ -20,13 +21,14 @@ export class SnowRuntime implements AppRuntime<SnowSettings> {
 
   /** SNÖTÄCKE settles over a few seconds; `night` is 0 (day) .. 1 (night). */
   updateCover(dt: number, night: number, s: Readonly<SnowSettings>) {
-    this.cover.update(dt, s.snowCoverOn ? s.snowCoverStrength : 0);
+    this.cover.update(dt, s.snowCoverOn && !this.insideIndoors ? s.snowCoverStrength : 0);
     this.cover.setDaylight(1 - night);
   }
 
   frame(f: FrameContext, s: Readonly<SnowSettings>) {
+    this.insideIndoors = f.insideIndoors;
     // Flakes follow the camera.
-    if (s.snowOn) {
+    if (s.snowOn && !f.insideIndoors) {
       this.snowfall.setPixelRatio(f.pixelRatio);
       this.snowfall.update(f.time, f.dt, f.camera.position, {
         amount: s.snowAmount * (f.lowEnd ? 0.5 : 1),

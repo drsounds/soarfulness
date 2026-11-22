@@ -2251,7 +2251,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
   // the bar above the tabs (save/load, scenery, share, restore, reset) is the
   // "state" group now; language and about moved to "app".
   const sectionTitle = (text: string) => (
-    <div className="pt-4 pb-1 text-[10px] font-light tracking-[0.28em] ui-ink-muted">{text}</div>
+    <div className="mt-4 border-b ui-line-1 px-1 pb-2 pt-3 text-[10px] font-semibold tracking-[0.22em] ui-ink-muted">
+      {text}
+    </div>
   );
   const pillClass =
     "rounded-full border ui-line-2 ui-tint-1 px-3 py-1 text-[9px] font-light tracking-wider ui-ink transition active:scale-95 ui-press";
@@ -3662,10 +3664,10 @@ export function SettingsPanel(props: SettingsPanelProps) {
               rawValue={swingPositionY}
               onSet={(v) => setSwingPositionY(v)}
               min={0}
-              max={100000}
+              max={20000}
               step={100}
               onDec={() => setSwingPositionY((v) => Math.max(0, +(v - 100).toFixed(0)))}
-              onInc={() => setSwingPositionY((v) => Math.min(100000, +(v + 100).toFixed(0)))}
+              onInc={() => setSwingPositionY((v) => Math.min(20000, +(v + 100).toFixed(0)))}
             />
             <SettingRow
               label={t("dial.camera.swingIntensity")}
@@ -3766,11 +3768,11 @@ export function SettingsPanel(props: SettingsPanelProps) {
               rawValue={swingHeight}
               onSet={(v) => setSwingHeight(v)}
               min={0}
-              max={mx("swingHeight")}
+              max={mx("swingHeight") * 0.2}
               step={100}
               onDec={() => setSwingHeight((v) => Math.max(0, +(v - 100).toFixed(0)))}
               onInc={() =>
-                setSwingHeight((v) => Math.min(mx("swingHeight"), +(v + 100).toFixed(0)))
+                setSwingHeight((v) => Math.min(mx("swingHeight") * 0.2, +(v + 100).toFixed(0)))
               }
             />
             <SettingRow

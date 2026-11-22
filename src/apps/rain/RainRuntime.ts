@@ -15,7 +15,7 @@ export class RainRuntime implements AppRuntime<RainSettings> {
   }
 
   frame(f: FrameContext, s: Readonly<RainSettings>) {
-    if (!s.rainOn) {
+    if (!s.rainOn || f.insideIndoors) {
       this.rainfall.hide();
       return;
     }
