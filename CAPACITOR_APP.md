@@ -259,6 +259,19 @@ document pickers instead (no storage permission needed), and
 everywhere else. Every export/import in the app (presets, states, the
 "export everything" file, the watercraft `.glb`) goes through it.
 
+## Moving with the Roaming app
+
+`RoamingMotionPlugin.java` receives the motion broadcasts
+(`se.spacify.app.roaming.event.MOTION`) of the
+[Roaming](https://github.com/drsounds/roaming-android-app) step and motion
+app and forwards them to the web app's ROAMING app (`src/apps/roaming/`),
+which swims the bather forward when you walk or run. The receiver is
+registered at runtime only while ROAMING is switched on and the app is
+visible; no permission is needed. A live update can bring the web side to
+an older APK without the plugin; there `Capacitor.isPluginAvailable` is
+false and the setting only shows that it needs the newer app. See
+`website/docs/features/roaming.md`.
+
 ## Play Store signing
 
 **This app needs its own upload keystore, separate from `native/`'s.**

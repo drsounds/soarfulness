@@ -21,9 +21,13 @@ import type { RetroSettings } from "@/apps/retro/settings";
 import type { DayNightSettings } from "@/apps/day-night/settings";
 import type { UnderwaterFogSettings } from "@/apps/underwater-fog/settings";
 import type { OpenDriftSettings } from "@/apps/open-drift/settings";
+import type { RoamingSettings } from "@/apps/roaming/settings";
+import type { GamepadSettings } from "@/apps/gamepad/settings";
 import type { WindSettings } from "@/apps/wind/settings";
 import type { DecorationsSettings } from "@/apps/decorations/settings";
 import { OPEN_DRIFT_SETTING_KEYS } from "@/apps/open-drift/settings";
+import { ROAMING_SETTING_KEYS } from "@/apps/roaming/settings";
+import { GAMEPAD_SETTING_KEYS } from "@/apps/gamepad/settings";
 import { HOOD_SETTING_KEYS } from "@/apps/hood/settings";
 import { RETRO_SETTING_KEYS } from "@/apps/retro/settings";
 import { WIND_SETTING_KEYS } from "@/apps/wind/settings";
@@ -474,6 +478,9 @@ export type Persisted = {
   depthSinePeak: number;
   // Which curve depthMod uses — see DepthSineWaveform above.
   depthSineWaveform: DepthSineWaveform;
+  // Accumulated offset from NIVÅ DRIFT, saved with the rest of the water
+  // settings so a state restore brings back the actual water level.
+  waterLevelOffset: number;
   // Unbounded water-level drift (m/s, signed) layered on top of the bounded
   // DEPTH SINE oscillation above — much like noclip's FRITT FALL/OMVÄND
   // STIGNING, but for the water level instead of the camera: positive keeps
@@ -633,6 +640,8 @@ export type Persisted = {
   DayNightSettings &
   UnderwaterFogSettings &
   OpenDriftSettings &
+  RoamingSettings &
+  GamepadSettings &
   WindSettings &
   SwimmerSettings &
   FlySettings &
@@ -666,6 +675,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "surgeRotationMode",
     "surgeRotationSpeed",
     ...OPEN_DRIFT_SETTING_KEYS,
+    ...ROAMING_SETTING_KEYS,
     "buoyAmp",
     "bobSpeed",
     "regularWaves",
@@ -697,6 +707,11 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "swingPositionY",
     "swingIntensity",
     "swingSpeed",
+    "swingForwardAngle",
+    "swingBackwardAngle",
+    "swingLeftAngle",
+    "swingRightAngle",
+    "swingCameraTilt",
     "swingXFactor",
     "swingHeight",
     "swingYWaveform",
@@ -826,6 +841,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "depthSineInterval",
     "depthSinePeak",
     "depthSineWaveform",
+    "waterLevelOffset",
     "depthDriftSpeed",
     "depthDriftSineOn",
     "depthDriftSineAmp",

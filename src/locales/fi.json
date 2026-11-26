@@ -267,6 +267,11 @@
       "swingKeepSpeed": "KEINU PIDÄ NOPEUS",
       "swingIntensity": "KEINUN INTENSITEETTI",
       "swingSpeed": "KEINUN NOPEUS",
+      "swingForwardAngle": "KEINUN KULMA ETEEN",
+      "swingBackwardAngle": "KEINUN KULMA TAAKSE",
+      "swingLeftAngle": "KEINUN KULMA VASEMMALLE",
+      "swingRightAngle": "KEINUN KULMA OIKEALLE",
+      "swingCameraTilt": "KAMERA KALLISTUU KEINUN MUKANA",
       "swingPositionY": "KEINUN Y-SIJAINTI",
       "swingStart": "KEINU ALOITUS",
       "swingXFactor": "KEINU X",
@@ -623,6 +628,98 @@
         "slosh": "LOISKUVA"
       },
       "wavePeriod": "AALLON JAKSO"
+    },
+    "roaming": {
+      "on": "ROAMING (LIIKU KEHOLLASI)",
+      "strength": "ROAMING-NOPEUS",
+      "accel": "KIIHDYTYSAIKA",
+      "glide": "LIUKUAIKA",
+      "sideways": "KALLISTU SIVULLE",
+      "unavailable": "Toimii Android-sovelluksessa: asenna Roaming, aloita seuranta ja kävele tai juokse uidaksesi.",
+      "waiting": "Odotetaan liikettä Roamingilta… aloita seuranta Roaming-sovelluksessa.",
+      "last": "Roaming: {{type}} {{intensity}} %",
+      "type": {
+        "idle": "paikallaan",
+        "step": "askel",
+        "walking": "kävelee",
+        "running": "juoksee",
+        "jumping": "hyppää",
+        "squatting": "kyykyssä",
+        "leaning": "kallistuu",
+        "arms_raised": "kädet ylhäällä"
+      },
+      "debugWindow": "VIANETSINTÄIKKUNA",
+      "debugHint": "Näyttää jokaisen Roamingilta tulevan tapahtuman ja miten se liikuttaa sinua.",
+      "debug": {
+        "title": "ROAMING VIANETSINTÄ",
+        "plugin": "liitännäinen",
+        "listening": "vastaanotin",
+        "app": "sovellus",
+        "yes": "kyllä",
+        "no": "ei",
+        "held": "tila pitää paikallaan",
+        "top": "maks",
+        "target": "tavoite",
+        "velocity": "nopeus",
+        "since": "{{s}} s viime tapahtumasta",
+        "noScene": "Näkymä ei ole vielä käynnissä",
+        "test": "testi:",
+        "clear": "TYHJENNÄ",
+        "empty": "Ei tapahtumia vielä. Aloita seuranta Roamingissa tai paina testinappia."
+      }
+    },
+    "gamepad": {
+      "on": "PELIOHJAIN",
+      "unavailable": "Tämä selain ei tue peliohjaimia.",
+      "waiting": "Liitä ohjain ja paina mitä tahansa sen painiketta.",
+      "nonStandard": "tuntematon asettelu, tarkista määritys",
+      "deadZone": "TATIN KUOLLUT ALUE",
+      "moveSensitivity": "LIIKKEEN HERKKYYS",
+      "lookSensitivity": "KATSEEN HERKKYYS",
+      "invertLookY": "KÄÄNNÄ YLÖS/ALAS",
+      "boost": "BOOSTINOPEUS",
+      "mapping": "PAINIKEMÄÄRITYS",
+      "resetMapping": "PALAUTA OLETUKSET",
+      "mappingHint": "Napauta LIITÄ ja paina sitten haluamaasi painiketta tai työnnä tattia. Yksi painike ohjaa vain yhtä toimintoa. Esc peruuttaa.",
+      "bind": "+ LIITÄ",
+      "pressNow": "Paina painiketta…",
+      "cancel": "PERUUTA",
+      "unbound": "ei painiketta",
+      "remove": "Poista {{input}}",
+      "debugWindow": "VIANETSINTÄIKKUNA",
+      "debugHint": "Näyttää ohjaimen painikkeet ja tatit ja mitä ne tekevät.",
+      "group": {
+        "move": "LIIKE",
+        "look": "KATSE",
+        "height": "YLÖS / ALAS",
+        "buttons": "PAINIKKEET"
+      },
+      "action": {
+        "moveForward": "Eteen",
+        "moveBack": "Taakse",
+        "moveLeft": "Vasemmalle",
+        "moveRight": "Oikealle",
+        "lookUp": "Katso ylös",
+        "lookDown": "Katso alas",
+        "lookLeft": "Käänny vasemmalle",
+        "lookRight": "Käänny oikealle",
+        "rise": "Nouse",
+        "sink": "Vajoa",
+        "boost": "Boosti (pidä pohjassa)",
+        "nextMode": "Seuraava kameratila",
+        "prevMode": "Edellinen kameratila",
+        "recenterLook": "Suorista katse",
+        "toggleSettings": "Avaa / sulje asetukset"
+      },
+      "debug": {
+        "title": "PELIOHJAIN VIANETSINTÄ",
+        "app": "sovellus",
+        "scene": "näkymä",
+        "pads": "ohjaimet",
+        "capturing": "liitetään…",
+        "yes": "kyllä",
+        "no": "ei"
+      }
     }
   },
   "docsPhilosophy": {
@@ -958,6 +1055,7 @@
       "jump": "HYPPY",
       "levelDrift": "TASON AJAUTUMA",
       "look": "LOOK",
+      "lookSpin": "KATSEEN PYÖRITYS",
       "tornadoCenter": "KESKELLE",
       "nav": "NAV",
       "noclipDriftXZ": "AJAUTUS XZ",
@@ -1288,6 +1386,14 @@
       "weather": {
         "desc": "Revontulet, vedenalainen sumu, tuuli ja lumi",
         "label": "Sää"
+      },
+      "roaming": {
+        "desc": "Liiku kehollasi: Roaming-sovelluksen liike, vianetsintäikkuna",
+        "label": "Roaming"
+      },
+      "gamepad": {
+        "desc": "Peliohjain: painikemääritys, kuollut alue, herkkyys, vianetsintäikkuna",
+        "label": "Peliohjain"
       }
     },
     "languageTitle": "Kieli",

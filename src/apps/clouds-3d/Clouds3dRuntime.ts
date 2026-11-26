@@ -33,6 +33,7 @@ export type Clouds3dInputs = {
   underwater: number;
   /** Deep-water color the puffs fog into. */
   fogColor: THREE.Color;
+  insideIndoors: boolean;
 };
 
 /**
@@ -92,9 +93,9 @@ export class Clouds3dRuntime implements AppRuntime<Clouds3dSettings> {
 
   update(i: Clouds3dInputs, s: Readonly<Clouds3dSettings>) {
     const targets = [
-      i.bottomDeckOn && s.bottomClouds3d,
-      i.midDeckOn && s.midClouds3d,
-      i.skyDeckOn && s.skyClouds3d,
+      i.bottomDeckOn && s.bottomClouds3d && !i.insideIndoors,
+      i.midDeckOn && s.midClouds3d && !i.insideIndoors,
+      i.skyDeckOn && s.skyClouds3d && !i.insideIndoors,
     ];
     const fadeStep = Math.min(1, i.dt * i.fadeSpeed);
     this.sunDir.copy(i.sunDir);

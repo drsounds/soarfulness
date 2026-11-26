@@ -27,6 +27,15 @@ describe("hood layers", () => {
     expect(layers.map((layer) => layer.weight)).toEqual([-0.5, 0.8]);
   });
 
+  test("patches 3D cloth onto every layer", () => {
+    const layers = [{ ...HOOD_LAYER_DEFAULTS }, { ...HOOD_LAYER_DEFAULTS, real3d: false }];
+
+    expect(patchHoodLayers(layers, { real3d: true }).map((layer) => layer.real3d)).toEqual([
+      true,
+      true,
+    ]);
+  });
+
   test("sanitizes mesh resolution to the supported subdivision steps", () => {
     expect(sanitizeHoodLayer({}).meshResolution).toBe(HOOD_MESH_RESOLUTION_DEFAULT);
     expect(sanitizeHoodLayer({ meshResolution: 190 }).meshResolution).toBe(192);

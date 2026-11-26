@@ -41,6 +41,7 @@ import { SWIMMER_DEFAULTS } from "@/apps/swimmer/settings";
 import { FLY_DEFAULTS } from "@/apps/fly/settings";
 import { BODYFLIGHT_DEFAULTS } from "@/apps/bodyflight/settings";
 import { SWING_DEFAULTS } from "@/apps/swing/settings";
+import { swingPendulumAngles } from "@/apps/swing/pendulum";
 import { TORNADO_DEFAULTS } from "@/apps/tornado/settings";
 import { RIDE_DEFAULTS } from "@/apps/ride/settings";
 import { rideSwingAngles } from "@/apps/ride/swing";
@@ -68,6 +69,8 @@ import { RETRO_DEFAULTS } from "@/apps/retro/settings";
 import { DAY_NIGHT_DEFAULTS } from "@/apps/day-night/settings";
 import { UNDERWATER_FOG_DEFAULTS } from "@/apps/underwater-fog/settings";
 import { OPEN_DRIFT_DEFAULTS } from "@/apps/open-drift/settings";
+import { ROAMING_DEFAULTS } from "@/apps/roaming/settings";
+import { GAMEPAD_DEFAULTS } from "@/apps/gamepad/settings";
 import { WIND_DEFAULTS, windOff, type WindSettings } from "@/apps/wind/settings";
 import { DECORATIONS_DEFAULTS } from "@/apps/decorations/settings";
 import { altitudeMix, sanitizeWinds, type WindSource } from "@/apps/wind/wind";
@@ -75,6 +78,11 @@ import windApp from "@/apps/wind/app";
 import { WindHudPanel, type WindControls } from "@/apps/wind/WindPanel";
 import underwaterFogApp from "@/apps/underwater-fog/app";
 import openDriftApp from "@/apps/open-drift/app";
+import roamingApp from "@/apps/roaming/app";
+import { RoamingDebugWindow } from "@/apps/roaming/RoamingDebugWindow";
+import gamepadApp from "@/apps/gamepad/app";
+import { GamepadDebugWindow } from "@/apps/gamepad/GamepadDebugWindow";
+import type { GamepadAction } from "@/apps/gamepad/bindings";
 import snowApp from "@/apps/snow/app";
 import { RAIN_DEFAULTS } from "@/apps/rain/settings";
 import { FIREWORKS_LIGHTS } from "@/apps/fireworks/Fireworks";
@@ -85,6 +93,7 @@ import {
   type HoodLayer,
   type HoodStyle,
 } from "@/apps/hood/hoodLayers";
+import { collectIndoorAreas, isInsideIndoorArea } from "@/lib/indoorAreas";
 import { applyNeonAccent } from "@/apps/neon/neonAccent";
 import { relativeDaylightTint } from "@/apps/day-night/daylightTint";
 import {
@@ -136,6 +145,7 @@ import {
 import { CameraModeIcon, HudIconButton } from "@/components/HudControls";
 import { FerrisWheel, LifeBuoy, Tornado, Wind } from "lucide-react";
 import { hsvToRgb } from "@/lib/waterTint";
+import { lookSpinDeltas } from "@/lib/lookSpin";
 import AmbientAudio, { resolveNativeAudioSource } from "@/lib/ambientAudio";
 import {
   padToWorldXZ,
@@ -591,6 +601,14 @@ function swingYWaveformValue(
 // spin carries it around a circle of that radius.
 const _foAxisSwing = new THREE.Vector3();
 const _swingHookPos = new THREE.Vector3();
+const _swingRightAxis = new THREE.Vector3();
+const _swingBackAxis = new THREE.Vector3();
+const _swingArm = new THREE.Vector3();
+const _swingForwardQuat = new THREE.Quaternion();
+const _swingSideQuat = new THREE.Quaternion();
+const _swingQuat = new THREE.Quaternion();
+const _swingCameraQuat = new THREE.Quaternion();
+const _swingIdentity = new THREE.Quaternion();
 const _cordEnd = new THREE.Vector3();
 const _foAxisRing = new THREE.Vector3();
 const _foAxisSwing2 = new THREE.Vector3();
@@ -616,6 +634,7 @@ function freakOutPose(
   ringAngle: number,
   viewFollowsRing: boolean,
   ringTilts: boolean,
+  viewFollowsSwing = true,
   facesCenter = false,
 ): void {
   const rightX = Math.cos(yaw),
@@ -665,10 +684,11 @@ function freakOutPose(
     // root→gondola hierarchy still lands on a level, spinning ring.
     _foQGondola.copy(_foQSwing).invert().multiply(_foQRing);
   }
-  // The view always tilts with the arm's swing (so the felt pivot is at the
-  // top of the arm, straight above the seat), and only turns with the
-  // ring's spin when viewFollowsRing is on.
-  outQuat.copy(_foQSwing);
+  // The view can tilt with the arm's swing (so the felt pivot is at the top
+  // of the arm, straight above the seat), and only turns with the ring's
+  // spin when viewFollowsRing is on.
+  outQuat.identity();
+  if (viewFollowsSwing) outQuat.copy(_foQSwing);
   if (viewFollowsRing) outQuat.multiply(_foQRing);
 }
 const _foOffset = new THREE.Vector3();
@@ -1541,6 +1561,7 @@ const DEFAULTS: Persisted = {
   depthSineInterval: 1,
   depthSinePeak: 1,
   depthSineWaveform: "sine",
+  waterLevelOffset: 0,
   depthDriftSpeed: 0,
   depthDriftSineOn: false,
   depthDriftSineAmp: 20,
@@ -1573,6 +1594,8 @@ const DEFAULTS: Persisted = {
   surgeRotationSpeed: 2,
   ...WIND_DEFAULTS,
   ...OPEN_DRIFT_DEFAULTS,
+  ...ROAMING_DEFAULTS,
+  ...GAMEPAD_DEFAULTS,
   // On by default, generous enough (20km horizontally, 3km up/down) that
   // normal float-mode swimming near origin never brushes it — mainly meant
   // to be discovered by flying far in NOCLIP. worldBoundaryYExtend on means
@@ -2273,6 +2296,10 @@ export function Aquafulness() {
     openDriftDirection: setOpenDriftDirection,
   } = openDrift.setters;
   const { reset: resetOpendrift, patch: patchOpendrift } = openDrift;
+  // ROAMING (apps/roaming): move with the Roaming app's motion broadcasts.
+  const roaming = useAppSettings(ROAMING_DEFAULTS, initial);
+  // GAMEPAD (apps/gamepad): game controller → HUD sticks + a few buttons.
+  const gamepad = useAppSettings(GAMEPAD_DEFAULTS, initial);
   const [worldBoundaryOn, setWorldBoundaryOn] = useState(initial.worldBoundaryOn);
   const [worldBoundarySize, setWorldBoundarySize] = useState(initial.worldBoundarySize);
   const [worldBoundaryHeight, setWorldBoundaryHeight] = useState(initial.worldBoundaryHeight);
@@ -2540,6 +2567,8 @@ export function Aquafulness() {
   const { reset: resetAurora, patch: patchAurora } = aurora;
   const underwaterFog = useAppSettings(UNDERWATER_FOG_DEFAULTS, initial);
   const underwaterFogAppOn = useAppEnabled(appFlags, "underwater-fog");
+  const roamingAppOn = useAppEnabled(appFlags, "roaming");
+  const gamepadAppOn = useAppEnabled(appFlags, "gamepad");
   const {
     underwaterFogOn,
     underwaterFogColor,
@@ -2596,8 +2625,12 @@ export function Aquafulness() {
   const [swingPositionY, setSwingPositionY] = useState(initial.swingPositionY);
   const [swingIntensity, setSwingIntensity] = useState(initial.swingIntensity);
   const [swingSpeed, setSwingSpeed] = useState(initial.swingSpeed);
-  // Horizontal (side-to-side) swing multiplier — defaults to 0 so the
-  // pendulum bobs vertically in place until explicitly dialed up.
+  const [swingForwardAngle, setSwingForwardAngle] = useState(initial.swingForwardAngle);
+  const [swingBackwardAngle, setSwingBackwardAngle] = useState(initial.swingBackwardAngle);
+  const [swingLeftAngle, setSwingLeftAngle] = useState(initial.swingLeftAngle);
+  const [swingRightAngle, setSwingRightAngle] = useState(initial.swingRightAngle);
+  const [swingCameraTilt, setSwingCameraTilt] = useState(initial.swingCameraTilt);
+  // Additional horizontal sway layered over the directional pendulum angles.
   const [swingXFactor, setSwingXFactor] = useState(initial.swingXFactor);
   // Vertical swing excursion in meters (GUNGA HÖJD) — independent of GUNGA
   // POSITION Y (the resting altitude), so the pendulum can swing tens of
@@ -2876,6 +2909,7 @@ export function Aquafulness() {
   } = torusRings.setters;
   const { reset: resetTorusrings, patch: patchTorusrings } = torusRings;
   const [rotStick, setRotStick] = useState({ x: 0, y: 0 });
+  const [lookSpinStick, setLookSpinStick] = useState({ x: 0, y: 0 });
   const [driftStick, setDriftStick] = useState({ x: 0, y: 0 });
   const [waveDirStick, setWaveDirStick] = useState({ x: 0, y: 0 });
   const [swayStick, setSwayStick] = useState({ x: 0, y: 0 });
@@ -2982,6 +3016,7 @@ export function Aquafulness() {
   // in and out without tearing down the whole renderer.
   const sceneRef = useRef<THREE.Scene | null>(null);
   const modelRef = useRef<THREE.Object3D | null>(null);
+  const indoorAreasRef = useRef<THREE.Box3[]>([]);
   // The recentered water/cloud planes, so the YTA (surface area) setting can
   // rescale them live without tearing down the renderer.
   const oceanRef = useRef<THREE.Mesh | null>(null);
@@ -3190,6 +3225,10 @@ export function Aquafulness() {
   windSettingsRef.current = windSettings;
   const openDriftSettingsRef = useRef(openDrift.values);
   openDriftSettingsRef.current = openDrift.values;
+  const roamingSettingsRef = useRef(roaming.values);
+  roamingSettingsRef.current = roaming.values;
+  const gamepadSettingsRef = useRef(gamepad.values);
+  gamepadSettingsRef.current = gamepad.values;
   const rainSettingsRef = useRef(rain.values);
   rainSettingsRef.current = rain.values;
   const confettiSettingsRef = useRef(confetti.values);
@@ -3212,6 +3251,8 @@ export function Aquafulness() {
   // export feature (see exportSettingsFile/savePresetAs) so there's only one
   // place that enumerates every field.
   const buildPersistedSnapshot = (): Persisted => ({
+    ...roaming.values,
+    ...gamepad.values,
     waveAmp,
     decorations: deco.decorations,
     timeOfDay,
@@ -3347,6 +3388,7 @@ export function Aquafulness() {
     depthSineInterval,
     depthSinePeak,
     depthSineWaveform,
+    waterLevelOffset: depthDriftRef.current,
     depthDriftSpeed,
     depthDriftSineOn,
     depthDriftSineAmp,
@@ -3513,6 +3555,11 @@ export function Aquafulness() {
     swingPositionY,
     swingIntensity,
     swingSpeed,
+    swingForwardAngle,
+    swingBackwardAngle,
+    swingLeftAngle,
+    swingRightAngle,
+    swingCameraTilt,
     swingXFactor,
     swingHeight,
     swingPreset,
@@ -3605,6 +3652,8 @@ export function Aquafulness() {
       /* quota or privacy mode — ignore */
     }
   }, [
+    roaming.values,
+    gamepad.values,
     waveAmp,
     deco.decorations,
     timeOfDay,
@@ -3906,6 +3955,11 @@ export function Aquafulness() {
     swingPositionY,
     swingIntensity,
     swingSpeed,
+    swingForwardAngle,
+    swingBackwardAngle,
+    swingLeftAngle,
+    swingRightAngle,
+    swingCameraTilt,
     swingXFactor,
     swingHeight,
     swingPreset,
@@ -4062,6 +4116,11 @@ export function Aquafulness() {
   const swingPositionYRef = useRef(swingPositionY);
   const swingIntensityRef = useRef(swingIntensity);
   const swingSpeedRef = useRef(swingSpeed);
+  const swingForwardAngleRef = useRef(swingForwardAngle);
+  const swingBackwardAngleRef = useRef(swingBackwardAngle);
+  const swingLeftAngleRef = useRef(swingLeftAngle);
+  const swingRightAngleRef = useRef(swingRightAngle);
+  const swingCameraTiltRef = useRef(swingCameraTilt);
   // Accumulated pendulum phase (radians): integrated from omega each frame
   // instead of t * omega, so changing GUNGA HASTIGHET/INTENSITET mid-swing
   // never makes the pendulum jump.
@@ -4208,6 +4267,7 @@ export function Aquafulness() {
   const wakeLockRef = useRef(wakeLock);
   const audioSpatialRef = useRef(audioSpatial);
   const rotStickRef = useRef({ x: 0, y: 0 });
+  const lookSpinStickRef = useRef({ x: 0, y: 0 });
   // The real, fixed-in-world direction STRÖM/SVAJ represent, set relative to
   // the look angle at the moment the pad is touched (see padToWorldXZ). The
   // pad's on-screen knob is re-derived from this every frame (worldXZToPad)
@@ -4372,7 +4432,23 @@ export function Aquafulness() {
   // and depthDriftRef accumulates that velocity into an unbounded offset —
   // added on top of the bounded DEPTH SINE oscillation in levelY below.
   const depthDriftVelRef = useRef(0);
-  const depthDriftRef = useRef(0);
+  const depthDriftRef = useRef(initial.waterLevelOffset);
+  useEffect(() => {
+    const saveWaterLevel = () => {
+      try {
+        const saved = window.localStorage.getItem(STORAGE_KEY);
+        const settings = saved ? JSON.parse(saved) : {};
+        window.localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({ ...settings, waterLevelOffset: depthDriftRef.current }),
+        );
+      } catch {
+        /* quota or privacy mode — ignore */
+      }
+    };
+    window.addEventListener("pagehide", saveWaterLevel);
+    return () => window.removeEventListener("pagehide", saveWaterLevel);
+  }, []);
   const hideWaterRef = useRef(hideWater);
   const midCloudsOnRef = useRef(midCloudsOn);
   const midCloudsHeightRef = useRef(midCloudsHeight);
@@ -4461,6 +4537,14 @@ export function Aquafulness() {
   useEffect(() => {
     rotStickRef.current = rotStick;
   }, [rotStick]);
+  useEffect(() => {
+    lookSpinStickRef.current = lookSpinStick;
+  }, [lookSpinStick]);
+  // GAMEPAD: the on-screen sticks' own values, so the render loop can add a
+  // connected pad's sticks on top of them (stickRef = HUD + pad) without the
+  // pad's share ever leaking back into the HUD state.
+  const hudSticksRef = useRef({ stick, rotStick, vertStick });
+  hudSticksRef.current = { stick, rotStick, vertStick };
   useEffect(() => {
     waterColorRef.current = waterColorIdx;
   }, [waterColorIdx]);
@@ -4990,6 +5074,21 @@ export function Aquafulness() {
     swingSpeedRef.current = swingSpeed;
   }, [swingSpeed]);
   useEffect(() => {
+    swingForwardAngleRef.current = swingForwardAngle;
+  }, [swingForwardAngle]);
+  useEffect(() => {
+    swingBackwardAngleRef.current = swingBackwardAngle;
+  }, [swingBackwardAngle]);
+  useEffect(() => {
+    swingLeftAngleRef.current = swingLeftAngle;
+  }, [swingLeftAngle]);
+  useEffect(() => {
+    swingRightAngleRef.current = swingRightAngle;
+  }, [swingRightAngle]);
+  useEffect(() => {
+    swingCameraTiltRef.current = swingCameraTilt;
+  }, [swingCameraTilt]);
+  useEffect(() => {
     swingXFactorRef.current = swingXFactor;
   }, [swingXFactor]);
   useEffect(() => {
@@ -5452,7 +5551,7 @@ export function Aquafulness() {
     setDepthDriftSineAmp(DEFAULTS.depthDriftSineAmp);
     setDepthDriftSineSpeed(DEFAULTS.depthDriftSineSpeed);
     setDepthDriftSinePhase(DEFAULTS.depthDriftSinePhase);
-    depthDriftRef.current = 0;
+    depthDriftRef.current = DEFAULTS.waterLevelOffset;
     depthDriftVelRef.current = 0;
     depthDriftSineAccRef.current = 0;
     setHideWater(DEFAULTS.hideWater);
@@ -5484,6 +5583,8 @@ export function Aquafulness() {
     setWindSoundVolume(DEFAULTS.windSoundVolume);
     setWindAltitudeAudioOn(DEFAULTS.windAltitudeAudioOn);
     resetOpendrift();
+    roaming.reset();
+    gamepad.reset();
     setWorldBoundaryOn(DEFAULTS.worldBoundaryOn);
     setWorldBoundarySize(DEFAULTS.worldBoundarySize);
     setWorldBoundaryHeight(DEFAULTS.worldBoundaryHeight);
@@ -5533,6 +5634,11 @@ export function Aquafulness() {
     setSwingPositionY(DEFAULTS.swingPositionY);
     setSwingIntensity(DEFAULTS.swingIntensity);
     setSwingSpeed(DEFAULTS.swingSpeed);
+    setSwingForwardAngle(DEFAULTS.swingForwardAngle);
+    setSwingBackwardAngle(DEFAULTS.swingBackwardAngle);
+    setSwingLeftAngle(DEFAULTS.swingLeftAngle);
+    setSwingRightAngle(DEFAULTS.swingRightAngle);
+    setSwingCameraTilt(DEFAULTS.swingCameraTilt);
     setSwingXFactor(DEFAULTS.swingXFactor);
     setSwingHeight(DEFAULTS.swingHeight);
     setSwingYWaveform(DEFAULTS.swingYWaveform);
@@ -5692,6 +5798,10 @@ export function Aquafulness() {
     if (patch.depthSineInterval !== undefined) setDepthSineInterval(patch.depthSineInterval);
     if (patch.depthSinePeak !== undefined) setDepthSinePeak(patch.depthSinePeak);
     if (patch.depthSineWaveform !== undefined) setDepthSineWaveform(patch.depthSineWaveform);
+    if (patch.waterLevelOffset !== undefined) {
+      depthDriftRef.current = patch.waterLevelOffset;
+      depthDriftVelRef.current = 0;
+    }
     if (patch.depthDriftSpeed !== undefined) {
       // Re-centre DRIFT SINUS on the loaded value.
       depthDriftSineBaseRef.current = patch.depthDriftSpeed;
@@ -5738,6 +5848,8 @@ export function Aquafulness() {
     if (patch.windSoundVolume !== undefined) setWindSoundVolume(patch.windSoundVolume);
     if (patch.windAltitudeAudioOn !== undefined) setWindAltitudeAudioOn(patch.windAltitudeAudioOn);
     patchOpendrift(patch);
+    roaming.patch(patch);
+    gamepad.patch(patch);
     if (patch.worldBoundaryOn !== undefined) setWorldBoundaryOn(patch.worldBoundaryOn);
     if (patch.worldBoundarySize !== undefined) setWorldBoundarySize(patch.worldBoundarySize);
     if (patch.worldBoundaryHeight !== undefined) setWorldBoundaryHeight(patch.worldBoundaryHeight);
@@ -5798,6 +5910,11 @@ export function Aquafulness() {
     if (patch.swingPositionY !== undefined) setSwingPositionY(patch.swingPositionY);
     if (patch.swingIntensity !== undefined) setSwingIntensity(patch.swingIntensity);
     if (patch.swingSpeed !== undefined) setSwingSpeed(patch.swingSpeed);
+    if (patch.swingForwardAngle !== undefined) setSwingForwardAngle(patch.swingForwardAngle);
+    if (patch.swingBackwardAngle !== undefined) setSwingBackwardAngle(patch.swingBackwardAngle);
+    if (patch.swingLeftAngle !== undefined) setSwingLeftAngle(patch.swingLeftAngle);
+    if (patch.swingRightAngle !== undefined) setSwingRightAngle(patch.swingRightAngle);
+    if (patch.swingCameraTilt !== undefined) setSwingCameraTilt(patch.swingCameraTilt);
     if (patch.swingXFactor !== undefined) setSwingXFactor(patch.swingXFactor);
     if (patch.swingHeight !== undefined) setSwingHeight(patch.swingHeight);
     if (patch.swingPreset !== undefined) setSwingPreset(patch.swingPreset);
@@ -6235,6 +6352,17 @@ export function Aquafulness() {
     const n = enabledCameraModes.length;
     if (n === 0) return;
     setCameraMode(enabledCameraModes[(idx + dir + n) % n]);
+  };
+
+  // GAMEPAD button actions that change React state, called from the render
+  // loop on the frame a button goes down (apps/gamepad/GamepadMapper.ts).
+  // Rebuilt every render so they see the current mode list.
+  const gamepadActionsRef = useRef<(a: GamepadAction) => void>(() => {});
+  gamepadActionsRef.current = (a: GamepadAction) => {
+    if (a === "toggleSettings") setSettingsOpen((v) => !v);
+    // The camera mode buttons are disabled while an interval session drives the mode.
+    else if (a === "nextMode" && !intervalSessionOn) cycleCameraMode(1);
+    else if (a === "prevMode" && !intervalSessionOn) cycleCameraMode(-1);
   };
 
   // GUNGA BEHÅLL TEMPO: turning it on remembers the current GUNGA HÖJD as
@@ -8894,6 +9022,9 @@ export function Aquafulness() {
     const aurora = apps.runtime(auroraApp);
     const wind = apps.runtime(windApp);
     const openDrift = apps.runtime(openDriftApp);
+    const roamingRt = apps.runtime(roamingApp);
+    const gamepadRt = apps.runtime(gamepadApp);
+    let gamepadWasConnected = false;
     const underwaterFog = apps.runtime(underwaterFogApp);
     const neon = apps.runtime(neonApp);
     const snow = apps.runtime(snowApp);
@@ -9154,6 +9285,30 @@ export function Aquafulness() {
       // but leaves the LOOK stick's yaw/pitch (which still uses dt directly)
       // free, so the view can still be reoriented while editing.
       const physDt = editModeRef.current ? 0 : dt;
+
+      // GAMEPAD (apps/gamepad): a connected pad adds its sticks to the HUD's
+      // own NAV / LOOK / HÖJD values (left stick + D-pad = NAV, right stick =
+      // LOOK, triggers = HÖJD), so every mode that reads those sticks below
+      // just works. Button actions fire once per press. With no pad (or the
+      // app off) nothing here touches the sticks.
+      {
+        const pad = gamepadRt.poll(gamepadSettingsRef.current, apps.isOn("gamepad"));
+        if (pad.connected || gamepadWasConnected) {
+          const hud = hudSticksRef.current;
+          stickRef.current = { x: hud.stick.x + pad.move.x, y: hud.stick.y + pad.move.y };
+          rotStickRef.current = { x: hud.rotStick.x + pad.look.x, y: hud.rotStick.y + pad.look.y };
+          vertStickRef.current = {
+            x: hud.vertStick.x,
+            y: Math.max(-1, Math.min(1, hud.vertStick.y + pad.rise)),
+          };
+        }
+        gamepadWasConnected = pad.connected;
+        for (const a of pad.pressed) {
+          if (a === "recenterLook") pitchRef.current = 0;
+          else gamepadActionsRef.current(a);
+        }
+      }
+
       waveT += physDt * speedRef.current;
       const t = waveT;
       dyingWaveT += physDt * dyingSpeedRef.current;
@@ -9187,7 +9342,11 @@ export function Aquafulness() {
       // VIND (apps/wind): update the live wind first; VÅGRIKTNING steers the
       // waves toward where it blows.
       // An app switched off in APPS behaves as if every dial were off.
-      const windS = apps.isOn("wind") ? windSettingsRef.current : windOff(windSettingsRef.current);
+      const indoorsNow = isInsideIndoorArea(camera.position, indoorAreasRef.current);
+      const windS =
+        apps.isOn("wind") && !indoorsNow
+          ? windSettingsRef.current
+          : windOff(windSettingsRef.current);
       wind.update(dt, windS);
       uniforms.uDir.value = wind.waveDirection(dt, waveDirRef.current, uniforms.uDir.value, windS);
 
@@ -9646,7 +9805,7 @@ export function Aquafulness() {
 
       // Mellan-moln (drivande lager mellan botten och yta). LOW GRAPHICS
       // MODE forces this whole live-noise layer off.
-      const midCloudsActive = midCloudsOnRef.current && !lowEnd;
+      const midCloudsActive = midCloudsOnRef.current && !lowEnd && !indoorsNow;
       if (midCloudsActive) {
         const frac = Math.max(0.05, Math.min(0.95, midCloudsHeightRef.current));
         // frac=0 → precis över botten, frac=1 → nära ytan.
@@ -9740,6 +9899,7 @@ export function Aquafulness() {
       };
       const driftSpeed = currentSpeedFor(driftWorldRef.current);
       let camX: number, camZ: number;
+      let swingCameraBlend = 1;
       // TORNADO CLOUD: whichever of GUNGA's or NAV/HÖJD's own tornado spin
       // (if any) is active this frame stashes its live center/radius/angle
       // here so the shared funnel-cloud mesh (see tornadoCloudMeshRef setup
@@ -10114,8 +10274,24 @@ export function Aquafulness() {
         const dirX = rightX * (swingXFactorRef.current + swingPadNow.x) - sinY * swingPadNow.y;
         const dirZ = rightZ * (swingXFactorRef.current + swingPadNow.x) - cosY * swingPadNow.y;
         const sinTheta = Math.sin(theta);
-        const pendOffX = sinTheta * armLen * dirX;
-        const pendOffZ = sinTheta * armLen * dirZ;
+        let pendOffX = sinTheta * armLen * dirX;
+        let pendOffZ = sinTheta * armLen * dirZ;
+        const swingAngles = swingPendulumAngles(
+          swingPhaseNow,
+          swingForwardAngleRef.current,
+          swingBackwardAngleRef.current,
+          swingLeftAngleRef.current,
+          swingRightAngleRef.current,
+          swingIntensityNow,
+        );
+        _swingRightAxis.set(rightX, 0, rightZ);
+        _swingBackAxis.set(sinY, 0, cosY);
+        _swingForwardQuat.setFromAxisAngle(_swingRightAxis, swingAngles.forward);
+        _swingSideQuat.setFromAxisAngle(_swingBackAxis, swingAngles.right);
+        _swingQuat.copy(_swingSideQuat).multiply(_swingForwardQuat);
+        _swingArm.set(0, -armLen, 0).applyQuaternion(_swingQuat);
+        pendOffX += _swingArm.x;
+        pendOffZ += _swingArm.z;
         // Manual radial control: NAV and STRÖM move the whole anchor here
         // (see above), so only the TO CENTER dial pulls the orbit in/out
         // while TORNADO is on — see updateTornadoLiveRadius above.
@@ -10163,6 +10339,7 @@ export function Aquafulness() {
             blend = lin * lin * (3 - 2 * lin); // smoothstep
           }
         }
+        swingCameraBlend = blend;
         camX = posRef.current.x + (activeBlend ? rawOffX * blend : rawOffX);
         camZ = posRef.current.z + (activeBlend ? rawOffZ * blend : rawOffZ);
         camYRef.current = activeBlend
@@ -10353,6 +10530,29 @@ export function Aquafulness() {
         }
       }
 
+      // ROAMING: the Roaming Android app's motion broadcasts (walk, run, lean)
+      // push the player camera-relative like the NAV stick, at up to NAV
+      // speed × STYRKA, accelerating toward the motion's intensity and
+      // gliding to a stop when it eases off (apps/roaming/RoamingMotion.ts).
+      // Moves posRef and the camera together, like HAVSDRIFT above.
+      {
+        const d = roamingRt.step(
+          physDt,
+          !(camMode === "swing" && swingCordActiveRef.current),
+          limitMax("navSpeed", extremeNow),
+          yawRef.current,
+          apps.isOn("roaming")
+            ? roamingSettingsRef.current
+            : { ...roamingSettingsRef.current, roamingOn: false },
+        );
+        if (d.dx !== 0 || d.dz !== 0) {
+          posRef.current.x += d.dx;
+          posRef.current.z += d.dz;
+          camX += d.dx;
+          camZ += d.dz;
+        }
+      }
+
       // VIND STRÖM: a wind-driven surface current (~3.5 % of the wind
       // speed, downwind) carrying posRef and the camera together, so it
       // never turns the view. GUNGA's pendulum owns camX/camZ, so it's
@@ -10360,7 +10560,7 @@ export function Aquafulness() {
       {
         const d = wind.current(
           physDt,
-          camMode !== "swing",
+          camMode !== "swing" && !indoorsNow,
           apps.isOn("wind") ? windSettingsRef.current : windOff(windSettingsRef.current),
         );
         if (d.dx !== 0 || d.dz !== 0) {
@@ -11040,7 +11240,7 @@ export function Aquafulness() {
           const k = Math.min(n, Math.max(1, Math.round(freakOutCameraSeatRef.current)));
           return ((k - 1) / n) * Math.PI * 2;
         };
-        const foTarget = freakOutOnRef.current ? 1 : 0;
+        const foTarget = freakOutOnRef.current && apps.isOn("ride") ? 1 : 0;
         if (foTarget > 0 && freakOutRampRef.current <= 0) {
           freakOutYawRef.current = yawRef.current;
           freakOutSwingPhaseRef.current = 0;
@@ -11115,8 +11315,7 @@ export function Aquafulness() {
                 Math.abs(freakOutSwingAngleRef.current),
                 Math.abs(freakOutSwingAngle2Ref.current),
               ) / 25,
-            ) *
-            Math.min(1, Math.max(0, freakOutSwingSpeedRef.current) / 0.1);
+            ) * Math.min(1, Math.max(0, freakOutSwingSpeedRef.current) / 0.1);
           let foDir = freakOutRotationDirectionRef.current === "ccw" ? -1 : 1;
           if (freakOutRotationOscillateRef.current) {
             freakOutOscPhaseRef.current +=
@@ -11198,6 +11397,7 @@ export function Aquafulness() {
             freakOutRingAngleRef.current + freakOutSeatAngleRef.current,
             !freakOutViewFixedHeadingRef.current,
             !freakOutRingLevelRef.current,
+            swingCameraTiltRef.current,
             freakOutSeatsOnRef.current,
           );
           if (foBlend < 0.9995) {
@@ -11287,6 +11487,9 @@ export function Aquafulness() {
       const rotSpeed = 1.6; // rad/s at full deflection
       yawRef.current -= rotStickRef.current.x * rotSpeed * dt;
       pitchRef.current += rotStickRef.current.y * rotSpeed * dt;
+      const lookSpin = lookSpinDeltas(lookSpinStickRef.current, rotSpeed, dt);
+      yawRef.current += lookSpin.yaw;
+      pitchRef.current += lookSpin.pitch;
       // Noclip allows a steeper look-up/down range since it drives full 3D
       // flight direction (see the forward vector above); other modes keep
       // the original, more conservative range.
@@ -11303,6 +11506,10 @@ export function Aquafulness() {
         bodyflightRollRef.current +=
           (rollTarget - bodyflightRollRef.current) * (1 - Math.exp(-dt / 0.3));
         if (Math.abs(bodyflightRollRef.current) > 1e-4) camera.rotateZ(bodyflightRollRef.current);
+      }
+      if (camMode === "swing" && swingCameraTiltRef.current) {
+        _swingCameraQuat.slerpQuaternions(_swingIdentity, _swingQuat, swingCameraBlend);
+        camera.quaternion.premultiply(_swingCameraQuat);
       }
       if (freakOutViewActive) camera.quaternion.premultiply(_foQuat);
 
@@ -11526,7 +11733,7 @@ export function Aquafulness() {
         dt,
         camera,
         depth,
-        fireworksAudioOnRef.current,
+        fireworksAudioOnRef.current && !indoorsNow,
         apps.isOn("wind") ? windSettingsRef.current : windOff(windSettingsRef.current),
       );
 
@@ -11669,6 +11876,7 @@ export function Aquafulness() {
       // What every app runtime gets to know about this frame (see
       // FrameContext in core/apps/types.ts).
       const decorationRoot = deco.getRoot();
+      const insideIndoors = isInsideIndoorArea(camera.position, indoorAreasRef.current);
       const appFrame: FrameContext = {
         time: now / 1000,
         dt,
@@ -11676,6 +11884,7 @@ export function Aquafulness() {
         night: nightBackdropMix(todRef.current),
         underwater: uniforms.uUnderwater.value,
         waterLevel: ocean.position.y,
+        insideIndoors,
         eyeAboveWater: camY - surfaceY,
         model: modelRef.current,
         sceneId: stringLightsSceneRef.current,
@@ -11713,7 +11922,7 @@ export function Aquafulness() {
       // MOLN TONING: ease opacity toward on/off instead of popping visible.
       // Not gated on backdrop/skybox: the cloud deck is its own transparent
       // mesh and should draw over them (only the sky dome is replaced).
-      const skyCloudsTargetOn = skyCloudsOnRef.current && !lowEnd;
+      const skyCloudsTargetOn = skyCloudsOnRef.current && !lowEnd && !insideIndoors;
       skyCloudFadeRef.current +=
         ((skyCloudsTargetOn ? 1 : 0) - skyCloudFadeRef.current) *
         Math.min(1, dt * cloudFadeSpeedRef.current);
@@ -11741,6 +11950,7 @@ export function Aquafulness() {
           turbidity: floorUniforms.uTurbidity.value,
           underwater: uniforms.uUnderwater.value,
           fogColor: uniforms.uWaterDeep.value,
+          insideIndoors,
         },
         apps.isOn("clouds-3d")
           ? clouds3dSettingsRef.current
@@ -11750,7 +11960,7 @@ export function Aquafulness() {
 
       // SKY PUFFS: individual puffy clouds that fade in and out around the camera.
       skyPuffsFx.update(
-        { dt, camX, camZ, lowEnd },
+        { dt, camX, camZ, lowEnd, insideIndoors },
         apps.isOn("sky-puffs")
           ? skyPuffsSettingsRef.current
           : { ...skyPuffsSettingsRef.current, skyPuffsOn: false },
@@ -11938,6 +12148,7 @@ export function Aquafulness() {
         disposeObject(modelRef.current);
         modelRef.current = null;
       }
+      indoorAreasRef.current = [];
       modelBobRef.current = null;
       scene.background = null;
       if (envTextureRef.current) {
@@ -12022,6 +12233,7 @@ export function Aquafulness() {
       disposeObject(modelRef.current);
       modelRef.current = null;
     }
+    indoorAreasRef.current = [];
     modelBobRef.current = null;
     setSceneHooks([]);
 
@@ -12076,6 +12288,7 @@ export function Aquafulness() {
           const model = gltf.scene;
           applyNodeVisibility(gltf);
           applyManifest(model, manifest);
+          indoorAreasRef.current = collectIndoorAreas(model);
           // SKUGGOR: every mesh in the scene casts and receives the sun's
           // shadow — whether any shadow is drawn at all is decided per
           // frame by the light (see shadowsActive in animate()).
@@ -12412,6 +12625,8 @@ export function Aquafulness() {
     surgeRotationSpeed,
     setSurgeRotationSpeed,
     openDrift,
+    roaming,
+    gamepad,
     buoyAmp,
     setBuoyAmp,
     bobSpeed,
@@ -12473,6 +12688,16 @@ export function Aquafulness() {
     setSwingIntensity,
     swingSpeed,
     setSwingSpeed,
+    swingForwardAngle,
+    setSwingForwardAngle,
+    swingBackwardAngle,
+    setSwingBackwardAngle,
+    swingLeftAngle,
+    setSwingLeftAngle,
+    swingRightAngle,
+    setSwingRightAngle,
+    swingCameraTilt,
+    setSwingCameraTilt,
     swingXFactor,
     setSwingXFactor,
     swingHeight,
@@ -13127,6 +13352,21 @@ export function Aquafulness() {
         />
       )}
 
+      {/* GAMEPAD → DEBUG WINDOW: the pads' raw buttons/sticks and what they drive. */}
+      {gamepad.values.gamepadDebug && gamepadAppOn && (
+        <GamepadDebugWindow
+          appEnabled={gamepadAppOn}
+          onClose={() => gamepad.setters.gamepadDebug(false)}
+        />
+      )}
+      {/* ROAMING → DEBUG WINDOW: every incoming Roaming event + live motion state. */}
+      {roaming.values.roamingDebug && roamingAppOn && (
+        <RoamingDebugWindow
+          appEnabled={roamingAppOn}
+          sideways={roaming.values.roamingSideways}
+          onClose={() => roaming.setters.roamingDebug(false)}
+        />
+      )}
       {/* Optional "swimming goggles" effect — water droplets on the lens,
           plus optional blur (see KAMERA settings tab). Sits directly above
           the 3D canvas and below every HUD element, so it reads as being on
@@ -13189,7 +13429,7 @@ export function Aquafulness() {
         </button>
       )}
 
-      {!CLOCK_DISABLED_FOR_PERF_TEST && clockOn && simNow && (
+      {!CLOCK_DISABLED_FOR_PERF_TEST && clockOn && uiVisible && simNow && (
         <TimeTimeline
           date={simNow}
           liveColor={dayNightLiveColor}
@@ -13832,6 +14072,13 @@ export function Aquafulness() {
             label={t("hud.joystick.look")}
             size="sm"
           />
+          <JoystickPad
+            onChange={setLookSpinStick}
+            value={lookSpinStick}
+            label={t("hud.joystick.lookSpin")}
+            size="sm"
+            sticky
+          />
         </div>
 
         {/* RIDE OVERLAY: while the ride is on, its most-used dials sit on
@@ -14142,10 +14389,59 @@ export function Aquafulness() {
                         onChange={setSwingSpeed}
                       />
                       <PadSlider
+                        label={t("dial.camera.swingForwardAngle")}
+                        value={swingForwardAngle}
+                        min={0}
+                        max={180}
+                        step={1}
+                        format={(v) => `${v.toFixed(0)}°`}
+                        onChange={setSwingForwardAngle}
+                      />
+                      <PadSlider
+                        label={t("dial.camera.swingBackwardAngle")}
+                        value={swingBackwardAngle}
+                        min={0}
+                        max={180}
+                        step={1}
+                        format={(v) => `${v.toFixed(0)}°`}
+                        onChange={setSwingBackwardAngle}
+                      />
+                      <PadSlider
+                        label={t("dial.camera.swingLeftAngle")}
+                        value={swingLeftAngle}
+                        min={0}
+                        max={180}
+                        step={1}
+                        format={(v) => `${v.toFixed(0)}°`}
+                        onChange={setSwingLeftAngle}
+                      />
+                      <PadSlider
+                        label={t("dial.camera.swingRightAngle")}
+                        value={swingRightAngle}
+                        min={0}
+                        max={180}
+                        step={1}
+                        format={(v) => `${v.toFixed(0)}°`}
+                        onChange={setSwingRightAngle}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setSwingCameraTilt((v) => !v)}
+                        aria-pressed={swingCameraTilt}
+                        className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                          swingCameraTilt
+                            ? "ui-line-3 ui-tint-2 ui-ink"
+                            : "ui-line-2 ui-surface ui-ink-muted"
+                        }`}
+                      >
+                        {t("dial.camera.swingCameraTilt")}:{" "}
+                        {t(swingCameraTilt ? "common.on" : "common.off")}
+                      </button>
+                      <PadSlider
                         label={t("dial.camera.swingPositionY")}
                         value={swingPositionY}
                         min={0}
-                        max={100000}
+                        max={20000}
                         step={100}
                         curve={2}
                         format={(v) => `${v.toFixed(0)}m`}
@@ -14155,7 +14451,7 @@ export function Aquafulness() {
                         label={t("dial.camera.swingHeight")}
                         value={swingHeight}
                         min={0}
-                        max={mx("swingHeight")}
+                        max={mx("swingHeight") * 0.2}
                         step={100}
                         curve={2}
                         format={(v) => `${v.toFixed(0)}m`}
@@ -14434,6 +14730,19 @@ export function Aquafulness() {
                     axes live in the full settings panel. */}
                   {cameraDrawerTab === "freakout" && (
                     <>
+                      <button
+                        type="button"
+                        onClick={() => setSwingCameraTilt((v) => !v)}
+                        aria-pressed={swingCameraTilt}
+                        className={`rounded-full border px-4 py-1.5 text-[10px] font-light tracking-[0.2em] transition active:scale-95 ${
+                          swingCameraTilt
+                            ? "ui-line-3 ui-tint-2 ui-ink"
+                            : "ui-line-2 ui-surface ui-ink-muted"
+                        }`}
+                      >
+                        {t("dial.camera.swingCameraTilt")}:{" "}
+                        {t(swingCameraTilt ? "common.on" : "common.off")}
+                      </button>
                       <button
                         type="button"
                         onClick={() => setFreakOutOn((v) => !v)}

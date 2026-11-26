@@ -8,6 +8,15 @@ export type SwingSettings = {
   swingPositionY: number;
   swingIntensity: number;
   swingSpeed: number;
+  swingForwardAngle: number;
+  swingBackwardAngle: number;
+  swingLeftAngle: number;
+  swingRightAngle: number;
+  // When enabled, the view tilts with GUNGA and the RIDE pendulum in every
+  // camera mode; position and ride motion are unchanged when it is off.
+  swingCameraTilt: boolean;
+  // Legacy additional horizontal sway, layered over the directional
+  // forward/back and left/right pendulum angles.
   swingXFactor: number;
   swingHeight: number;
   swingPreset: SwingPreset;
@@ -36,6 +45,11 @@ export const SWING_DEFAULTS: SwingSettings = {
   // INTENSITET, so it can cross the water surface faster without also
   // widening the arc.
   swingSpeed: 0.22,
+  swingForwardAngle: 40,
+  swingBackwardAngle: 40,
+  swingLeftAngle: 0,
+  swingRightAngle: 0,
+  swingCameraTilt: true,
   swingXFactor: 0,
   swingHeight: 336.4,
   swingPreset: "water",

@@ -116,6 +116,8 @@ export type FrameContext = {
   underwater: number;
   /** World Y of the water plane. */
   waterLevel: number;
+  /** True while the camera is inside a scene's "-indoors" boundary. */
+  insideIndoors: boolean;
   /** Camera height above the wave surface right under it (m, negative below). */
   eyeAboveWater: number;
   /** The loaded .glb scene and its id, if any. */

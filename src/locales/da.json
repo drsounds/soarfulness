@@ -267,6 +267,11 @@
       "swingKeepSpeed": "GYNGE BEHOLD TEMPO",
       "swingIntensity": "GYNGE INTENSITET",
       "swingSpeed": "GYNGE HASTIGHED",
+      "swingForwardAngle": "GYNGEVINKEL FREMAD",
+      "swingBackwardAngle": "GYNGEVINKEL BAGUD",
+      "swingLeftAngle": "GYNGEVINKEL VENSTRE",
+      "swingRightAngle": "GYNGEVINKEL HØJRE",
+      "swingCameraTilt": "KAMERAET VIPPES MED GYNGNINGEN",
       "swingPositionY": "GYNGE POSITION Y",
       "swingStart": "GYNGE START",
       "swingXFactor": "GYNGE X",
@@ -623,6 +628,98 @@
         "slosh": "SKVULPENDE"
       },
       "wavePeriod": "BØLGEPERIODE"
+    },
+    "roaming": {
+      "on": "ROAMING (BEVÆG DIG MED KROPPEN)",
+      "strength": "ROAMING-FART",
+      "accel": "ACCELERATIONSTID",
+      "glide": "GLIDETID",
+      "sideways": "LÆN DIG FOR SIDELÆNS",
+      "unavailable": "Virker i Android-appen: installer Roaming, start sporingen og gå eller løb for at svømme.",
+      "waiting": "Venter på bevægelse fra Roaming… start sporingen i Roaming-appen.",
+      "last": "Roaming: {{type}} {{intensity}} %",
+      "type": {
+        "idle": "stille",
+        "step": "skridt",
+        "walking": "går",
+        "running": "løber",
+        "jumping": "hopper",
+        "squatting": "sidder på hug",
+        "leaning": "læner",
+        "arms_raised": "armene oppe"
+      },
+      "debugWindow": "FEJLSØGNINGSVINDUE",
+      "debugHint": "Viser hver hændelse der kommer fra Roaming, og hvordan den flytter dig.",
+      "debug": {
+        "title": "ROAMING FEJLSØGNING",
+        "plugin": "plugin",
+        "listening": "modtager",
+        "app": "app",
+        "yes": "ja",
+        "no": "nej",
+        "held": "holdes af tilstand",
+        "top": "maks",
+        "target": "mål",
+        "velocity": "fart",
+        "since": "{{s}} s siden sidste hændelse",
+        "noScene": "Scenen kører ikke endnu",
+        "test": "test:",
+        "clear": "RYD",
+        "empty": "Ingen hændelser endnu. Start sporingen i Roaming, eller tryk på en testknap."
+      }
+    },
+    "gamepad": {
+      "on": "GAMEPAD",
+      "unavailable": "Denne browser understøtter ikke gamepads.",
+      "waiting": "Tilslut en controller og tryk på en vilkårlig knap.",
+      "nonStandard": "ukendt layout, tjek tildelingen",
+      "deadZone": "DØDZONE FOR STIKS",
+      "moveSensitivity": "BEVÆGELSESFØLSOMHED",
+      "lookSensitivity": "KIGGEFØLSOMHED",
+      "invertLookY": "VEND OP/NED",
+      "boost": "BOOSTFART",
+      "mapping": "KNAPTILDELING",
+      "resetMapping": "NULSTIL TIL STANDARD",
+      "mappingHint": "Tryk på TILDEL, og tryk så på knappen eller skub stikket, du vil bruge. En knap styrer kun én ting. Esc annullerer.",
+      "bind": "+ TILDEL",
+      "pressNow": "Tryk på en knap…",
+      "cancel": "ANNULLER",
+      "unbound": "ingen knap",
+      "remove": "Fjern {{input}}",
+      "debugWindow": "FEJLFINDINGSVINDUE",
+      "debugHint": "Viser controllerens knapper og stiks og hvad de gør.",
+      "group": {
+        "move": "BEVÆGELSE",
+        "look": "KIG",
+        "height": "OP / NED",
+        "buttons": "KNAPPER"
+      },
+      "action": {
+        "moveForward": "Frem",
+        "moveBack": "Tilbage",
+        "moveLeft": "Venstre",
+        "moveRight": "Højre",
+        "lookUp": "Kig op",
+        "lookDown": "Kig ned",
+        "lookLeft": "Drej til venstre",
+        "lookRight": "Drej til højre",
+        "rise": "Stig",
+        "sink": "Synk",
+        "boost": "Boost (hold)",
+        "nextMode": "Næste kameratilstand",
+        "prevMode": "Forrige kameratilstand",
+        "recenterLook": "Ret blikket ud",
+        "toggleSettings": "Åbn / luk indstillinger"
+      },
+      "debug": {
+        "title": "GAMEPAD FEJLFINDING",
+        "app": "app",
+        "scene": "scene",
+        "pads": "controllere",
+        "capturing": "tildeler…",
+        "yes": "ja",
+        "no": "nej"
+      }
     }
   },
   "docsPhilosophy": {
@@ -958,6 +1055,7 @@
       "jump": "HOP",
       "levelDrift": "NIVEAU DRIFT",
       "look": "LOOK",
+      "lookSpin": "LOOK-SPIN",
       "tornadoCenter": "TIL MIDTEN",
       "nav": "NAV",
       "noclipDriftXZ": "DRIV XZ",
@@ -1288,6 +1386,14 @@
       "weather": {
         "desc": "Nordlys, undervandståge, vind og sne",
         "label": "Vejr"
+      },
+      "roaming": {
+        "desc": "Bevæg dig med kroppen: bevægelse fra Roaming-appen, fejlsøgningsvindue",
+        "label": "Roaming"
+      },
+      "gamepad": {
+        "desc": "Controller: knaptildeling, dødzone, følsomhed, fejlfindingsvindue",
+        "label": "Gamepad"
       }
     },
     "languageTitle": "Sprog",

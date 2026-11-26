@@ -40,6 +40,8 @@ PR numbers are in `drsounds/soarfulness` (soar) and
 | [Fireworks](../features/fireworks.md) | FYRVERKERI | `fireworks*` | `src/apps/fireworks/Fireworks.ts` | ✅ #28 | 🟡 #237 |
 | [Northern lights](../features/aurora.md) | NORRSKEN | `aurora*` | `src/apps/aurora/Aurora.ts` | ✅ #29, #30 | ✅ #238; 🟡 #239 |
 | [Open-water drift](../features/open-drift.md) | HAVSDRIFT | `openDrift*` | `src/apps/open-drift/OpenDrift.ts` | ✅ #31 | 🟡 #240 |
+| [Move with your body](../features/roaming.md) | ROAMING | `roaming*` | `src/apps/roaming/RoamingMotion.ts` | ✅ #110 | ✅ #254 |
+| [Gamepad](../features/gamepad.md) | GAMEPAD | `gamepad*` | `src/apps/gamepad/GamepadMapper.ts` | 🟡 | 🟡 |
 | [Hood](../features/bather-hood-and-goggles.md) | HUVA | `hood*`, `hoodExtraLayers` | `src/apps/hood/Hood.ts`, `src/apps/hood/hoodLayers.ts`, `HoodPanel.tsx` | ✅ #32, #34–#42, #45 | 🟡 #241 |
 | [Underwater fog](../features/underwater-fog.md) | UNDERVATTENDIS | `underwaterFog*` | `src/apps/underwater-fog/underwaterFog.ts` | ✅ #33 | 🟡 #242 |
 | [Wind](../features/wind.md) | VIND, VINDLJUD, HÖJDLJUD | `winds`, `wind*` | `src/apps/wind/wind.ts`, `src/apps/wind/WindAudio.ts`, `WindPanel.tsx` | ✅ #43 | 🟡 #243 |

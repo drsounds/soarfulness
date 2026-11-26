@@ -267,6 +267,11 @@
       "swingKeepSpeed": "GUNGA BEHÅLL TEMPO",
       "swingIntensity": "GUNGA INTENSITET",
       "swingSpeed": "GUNGA HASTIGHET",
+      "swingForwardAngle": "GUNGA FRAMÅTVINKEL",
+      "swingBackwardAngle": "GUNGA BAKÅTVINKEL",
+      "swingLeftAngle": "GUNGA VÄNSTER VINKEL",
+      "swingRightAngle": "GUNGA HÖGER VINKEL",
+      "swingCameraTilt": "KAMERAN LUTAR MED GUNGAN",
       "swingPositionY": "GUNGA POSITION Y",
       "swingStart": "GUNGA START",
       "swingXFactor": "GUNGA X",
@@ -623,6 +628,98 @@
         "slosh": "SKVALPANDE"
       },
       "wavePeriod": "VÅGPERIOD"
+    },
+    "roaming": {
+      "on": "ROAMING (RÖR DIG MED KROPPEN)",
+      "strength": "ROAMING-FART",
+      "accel": "ACCELERATIONSTID",
+      "glide": "GLIDTID",
+      "sideways": "LUTA FÖR SIDLED",
+      "unavailable": "Fungerar i Android-appen: installera Roaming, starta spårningen och gå eller spring för att simma.",
+      "waiting": "Väntar på rörelse från Roaming… starta spårningen i Roaming-appen.",
+      "last": "Roaming: {{type}} {{intensity}} %",
+      "type": {
+        "idle": "stilla",
+        "step": "steg",
+        "walking": "går",
+        "running": "springer",
+        "jumping": "hoppar",
+        "squatting": "sitter på huk",
+        "leaning": "lutar",
+        "arms_raised": "armar uppe"
+      },
+      "debugWindow": "FELSÖKNINGSFÖNSTER",
+      "debugHint": "Visar varje händelse som kommer från Roaming och hur den flyttar dig.",
+      "debug": {
+        "title": "ROAMING FELSÖKNING",
+        "plugin": "plugin",
+        "listening": "mottagare",
+        "app": "app",
+        "yes": "ja",
+        "no": "nej",
+        "held": "hålls av läget",
+        "top": "max",
+        "target": "mål",
+        "velocity": "fart",
+        "since": "{{s}} s sedan senaste händelse",
+        "noScene": "Scenen körs inte än",
+        "test": "test:",
+        "clear": "RENSA",
+        "empty": "Inga händelser än. Starta spårningen i Roaming eller tryck på en testknapp."
+      }
+    },
+    "gamepad": {
+      "on": "HANDKONTROLL",
+      "unavailable": "Den här webbläsaren har inget stöd för handkontroller.",
+      "waiting": "Anslut en handkontroll och tryck på valfri knapp.",
+      "nonStandard": "okänd layout, kontrollera mappningen",
+      "deadZone": "DÖDZON FÖR SPAKAR",
+      "moveSensitivity": "RÖRELSEKÄNSLIGHET",
+      "lookSensitivity": "TITTKÄNSLIGHET",
+      "invertLookY": "INVERTERA UPP/NER",
+      "boost": "BOOSTFART",
+      "mapping": "KNAPPMAPPNING",
+      "resetMapping": "ÅTERSTÄLL STANDARD",
+      "mappingHint": "Tryck på KOPPLA och tryck sedan på knappen eller för spaken du vill använda. En knapp styr bara en sak. Esc avbryter.",
+      "bind": "+ KOPPLA",
+      "pressNow": "Tryck på en knapp…",
+      "cancel": "AVBRYT",
+      "unbound": "ingen knapp",
+      "remove": "Ta bort {{input}}",
+      "debugWindow": "FELSÖKNINGSFÖNSTER",
+      "debugHint": "Visar handkontrollens knappar och spakar och vad de gör.",
+      "group": {
+        "move": "RÖRELSE",
+        "look": "TITTA",
+        "height": "UPP / NER",
+        "buttons": "KNAPPAR"
+      },
+      "action": {
+        "moveForward": "Framåt",
+        "moveBack": "Bakåt",
+        "moveLeft": "Vänster",
+        "moveRight": "Höger",
+        "lookUp": "Titta upp",
+        "lookDown": "Titta ner",
+        "lookLeft": "Vrid vänster",
+        "lookRight": "Vrid höger",
+        "rise": "Stig",
+        "sink": "Sjunk",
+        "boost": "Boost (håll in)",
+        "nextMode": "Nästa kameraläge",
+        "prevMode": "Föregående kameraläge",
+        "recenterLook": "Räta upp blicken",
+        "toggleSettings": "Öppna / stäng inställningar"
+      },
+      "debug": {
+        "title": "HANDKONTROLL FELSÖKNING",
+        "app": "app",
+        "scene": "scen",
+        "pads": "kontroller",
+        "capturing": "kopplar…",
+        "yes": "ja",
+        "no": "nej"
+      }
     }
   },
   "docsPhilosophy": {
@@ -958,6 +1055,7 @@
       "jump": "HOPP",
       "levelDrift": "NIVÅ DRIFT",
       "look": "SYNVINKEL",
+      "lookSpin": "SYNVINKELSSNURR",
       "tornadoCenter": "TILL MITTEN",
       "nav": "NAV",
       "noclipDriftXZ": "DRIVA XZ",
@@ -1288,6 +1386,14 @@
       "weather": {
         "desc": "Norrsken, undervattensdimma, vind och snö",
         "label": "Väder"
+      },
+      "roaming": {
+        "desc": "Rör dig med kroppen: rörelse från Roaming-appen, felsökningsfönster",
+        "label": "Roaming"
+      },
+      "gamepad": {
+        "desc": "Handkontroll: knappmappning, dödzon, känslighet, felsökningsfönster",
+        "label": "Handkontroll"
       }
     },
     "languageTitle": "Språk",

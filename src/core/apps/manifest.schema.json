@@ -53,6 +53,8 @@
         "camera",
         "bather",
         "interval",
+        "roaming",
+        "gamepad",
         "graphics",
         "sound",
         "apps",
