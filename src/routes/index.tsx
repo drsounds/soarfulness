@@ -80,6 +80,7 @@ import underwaterFogApp from "@/apps/underwater-fog/app";
 import openDriftApp from "@/apps/open-drift/app";
 import roamingApp from "@/apps/roaming/app";
 import { RoamingDebugWindow } from "@/apps/roaming/RoamingDebugWindow";
+import type { RoamingPressAction } from "@/apps/roaming/gestures";
 import gamepadApp from "@/apps/gamepad/app";
 import { GamepadDebugWindow } from "@/apps/gamepad/GamepadDebugWindow";
 import type { GamepadAction } from "@/apps/gamepad/bindings";
@@ -6365,6 +6366,53 @@ export function Aquafulness() {
     else if (a === "prevMode" && !intervalSessionOn) cycleCameraMode(-1);
   };
 
+  // ROAMING gesture actions (apps/roaming/gestures.ts): the camera gestures
+  // and any other motion mapped to a one-shot action raise / lower the waves,
+  // turn them, or change the sway. Called from the render loop; rebuilt every
+  // render so the step sizes and limits are current.
+  const roamingActionsRef = useRef<(a: RoamingPressAction) => void>(() => {});
+  roamingActionsRef.current = (a: RoamingPressAction) => {
+    const r = roaming.values;
+    const wrap = (deg: number) => ((deg % 360) + 360) % 360;
+    const swayBearing = () => worldXZBearing(swayWorldRef.current.x, swayWorldRef.current.z);
+    switch (a) {
+      case "waveHeightUp":
+        setWaveAmp((v) => Math.min(mx("waveAmp"), +(v + r.roamingWaveAmpStep).toFixed(2)));
+        break;
+      case "waveHeightDown":
+        setWaveAmp((v) => Math.max(0, +(v - r.roamingWaveAmpStep).toFixed(2)));
+        break;
+      case "waveDirLeft":
+        setWaveDir((v) => wrap(v - r.roamingWaveDirStep));
+        break;
+      case "waveDirRight":
+        setWaveDir((v) => wrap(v + r.roamingWaveDirStep));
+        break;
+      case "swayMore":
+        setSwayAmp((v) => Math.min(mx("swayAmp"), +(v + r.roamingSwayStep).toFixed(2)));
+        break;
+      case "swayLess":
+        setSwayAmp((v) => Math.max(0, +(v - r.roamingSwayStep).toFixed(2)));
+        break;
+      case "swayDirLeft":
+        setStickBearing(
+          swayWorldRef,
+          swayDisplayRef,
+          setSwayStick,
+          wrap(swayBearing() - r.roamingSwayDirStep),
+        );
+        break;
+      case "swayDirRight":
+        setStickBearing(
+          swayWorldRef,
+          swayDisplayRef,
+          setSwayStick,
+          wrap(swayBearing() + r.roamingSwayDirStep),
+        );
+        break;
+    }
+  };
+
   // GUNGA BEHÅLL TEMPO: turning it on remembers the current GUNGA HÖJD as
   // the reference the swing's tempo is held at — see swingOmegaNow below.
   const setSwingKeepSpeedOn = (on: boolean) => {
@@ -10551,6 +10599,8 @@ export function Aquafulness() {
           camX += d.dx;
           camZ += d.dz;
         }
+        // Gestures mapped to wave / sway actions (apps/roaming/gestures.ts).
+        for (const a of roamingRt.takeActions()) roamingActionsRef.current(a);
       }
 
       // VIND STRÖM: a wind-driven surface current (~3.5 % of the wind
@@ -13363,7 +13413,7 @@ export function Aquafulness() {
       {roaming.values.roamingDebug && roamingAppOn && (
         <RoamingDebugWindow
           appEnabled={roamingAppOn}
-          sideways={roaming.values.roamingSideways}
+          settings={roaming.values}
           onClose={() => roaming.setters.roamingDebug(false)}
         />
       )}

@@ -47,6 +47,7 @@ const TYPES: readonly RoamingMotionType[] = [
   "squatting",
   "leaning",
   "arms_raised",
+  "raising",
 ];
 const DIRECTIONS: readonly RoamingDirection[] = [
   "none",

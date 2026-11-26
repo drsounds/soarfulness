@@ -635,6 +635,59 @@
       "accel": "ACCELERATIONSTID",
       "glide": "GLIDTID",
       "sideways": "LUTA FÖR SIDLED",
+      "walkSpeed": "GÅNGFART",
+      "runSpeed": "LÖPFART",
+      "leanSpeed": "SIDLEDSFART",
+      "speedHint": "Andel av ROAMING-FART vid full intensitet, per gångart.",
+      "repeat": "GESTUPPREPNING",
+      "once": "en gång",
+      "waveAmpStep": "VÅGSTEG PER GEST",
+      "waveDirStep": "VÅGVRIDNING PER GEST",
+      "swayStep": "SVAJSTEG PER GEST",
+      "swayDirStep": "SVAJVRIDNING PER GEST",
+      "mapping": "GESTMAPPNING",
+      "resetMapping": "ÅTERSTÄLL STANDARD",
+      "mappingHint": "Välj vad varje rörelse från Roaming gör. Våg- och svajåtgärder sker när gesten börjar och upprepas medan du håller den. Raden för rörelsen Roaming ser just nu är markerad.",
+      "gestureGroup": {
+        "walk": "GÅ OCH LUTA",
+        "body": "KROPP",
+        "raise": "KAMERAGESTER (HÖJ)"
+      },
+      "gesture": {
+        "step": "Enstaka steg",
+        "walking": "Gå",
+        "running": "Spring",
+        "leaning_left": "Luta vänster",
+        "leaning_right": "Luta höger",
+        "jumping": "Hopp",
+        "squatting": "Huksittning",
+        "arms_raised": "Båda armarna upp",
+        "raising_up": "Höj upp (en arm upp)",
+        "raising_down": "Höj ner (händerna ner)",
+        "raising_left": "Höj vänster (vänster arm ut)",
+        "raising_right": "Höj höger (höger arm ut)"
+      },
+      "actionGroup": {
+        "move": "RÖRELSE",
+        "waves": "VÅGOR",
+        "sway": "SVAJ"
+      },
+      "action": {
+        "none": "Ingenting",
+        "move": "Rör dig (följ rörelsen)",
+        "moveForward": "Framåt",
+        "moveBack": "Bakåt",
+        "moveLeft": "Vänster",
+        "moveRight": "Höger",
+        "waveHeightUp": "Högre vågor",
+        "waveHeightDown": "Lägre vågor",
+        "waveDirLeft": "Vrid vågor vänster",
+        "waveDirRight": "Vrid vågor höger",
+        "swayMore": "Mer svaj",
+        "swayLess": "Mindre svaj",
+        "swayDirLeft": "Vrid svaj vänster",
+        "swayDirRight": "Vrid svaj höger"
+      },
       "unavailable": "Fungerar i Android-appen: installera Roaming, starta spårningen och gå eller spring för att simma.",
       "waiting": "Väntar på rörelse från Roaming… starta spårningen i Roaming-appen.",
       "last": "Roaming: {{type}} {{intensity}} %",
@@ -646,7 +699,8 @@
         "jumping": "hoppar",
         "squatting": "sitter på huk",
         "leaning": "lutar",
-        "arms_raised": "armar uppe"
+        "arms_raised": "armar uppe",
+        "raising": "armgest"
       },
       "debugWindow": "FELSÖKNINGSFÖNSTER",
       "debugHint": "Visar varje händelse som kommer från Roaming och hur den flyttar dig.",
@@ -665,7 +719,9 @@
         "noScene": "Scenen körs inte än",
         "test": "test:",
         "clear": "RENSA",
-        "empty": "Inga händelser än. Starta spårningen i Roaming eller tryck på en testknapp."
+        "empty": "Inga händelser än. Starta spårningen i Roaming eller tryck på en testknapp.",
+        "holding": "håller",
+        "fired": "utfört"
       }
     },
     "gamepad": {
@@ -1388,7 +1444,7 @@
         "label": "Väder"
       },
       "roaming": {
-        "desc": "Rör dig med kroppen: rörelse från Roaming-appen, felsökningsfönster",
+        "desc": "Rör dig med kroppen: rörelse från Roaming-appen, farter, gestmappning, felsökningsfönster",
         "label": "Roaming"
       },
       "gamepad": {

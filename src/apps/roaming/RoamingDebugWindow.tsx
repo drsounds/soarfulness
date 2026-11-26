@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   clearRoamingLog,
@@ -9,8 +9,10 @@ import {
   sendRoamingTestEvent,
   type RawRoamingMotion,
 } from "./roamingBridge";
-import { targetFor } from "./RoamingMotion";
-import { currentRoamingRuntime } from "./RoamingRuntime";
+import { decodeGestureMap } from "./gestures";
+import { routeEvent } from "./RoamingGestures";
+import { currentRoamingRuntime, type RoamingFired } from "./RoamingRuntime";
+import type { RoamingSettings } from "./settings";
 
 // ROAMING debug window: a small floating panel that lists every motion event
 // the web app receives (raw extras, how it was parsed, the target it set) and
@@ -29,12 +31,35 @@ type Live = {
   on: boolean;
   allowed: boolean;
   maxSpeed: number;
+  /** Gesture held with a one-shot action (repeating), if any. */
+  holding: string | null;
+  fired: RoamingFired[];
 };
 
 const TESTS: { label: string; raw: RawRoamingMotion }[] = [
   { label: "WALK", raw: { motion_type: "walking", direction: "forward", intensity: 0.5 } },
   { label: "RUN", raw: { motion_type: "running", direction: "forward", intensity: 0.9 } },
   { label: "LEAN ←", raw: { motion_type: "leaning", direction: "left", intensity: 0.8 } },
+  {
+    label: "RAISE ↑",
+    raw: { motion_type: "raising", direction: "up", intensity: 0.8, source: "camera" },
+  },
+  {
+    label: "RAISE ↓",
+    raw: { motion_type: "raising", direction: "down", intensity: 0.8, source: "camera" },
+  },
+  {
+    label: "RAISE ←",
+    raw: { motion_type: "raising", direction: "left", intensity: 0.8, source: "camera" },
+  },
+  {
+    label: "RAISE →",
+    raw: { motion_type: "raising", direction: "right", intensity: 0.8, source: "camera" },
+  },
+  {
+    label: "ARMS ↑",
+    raw: { motion_type: "arms_raised", direction: "up", intensity: 0.8, source: "camera" },
+  },
   { label: "IDLE", raw: { motion_type: "idle", direction: "none", intensity: 0 } },
 ];
 
@@ -71,6 +96,8 @@ function useLive(): Live | null {
         on: s.on,
         allowed: s.allowed,
         maxSpeed: s.maxSpeed,
+        holding: rt.gestures.holding,
+        fired: rt.fired.slice(0, 5),
       });
     };
     tick();
@@ -82,13 +109,22 @@ function useLive(): Live | null {
 
 export function RoamingDebugWindow({
   appEnabled,
-  sideways,
+  settings,
   onClose,
 }: {
   appEnabled: boolean;
-  sideways: boolean;
+  settings: Readonly<RoamingSettings>;
   onClose: () => void;
 }) {
+  const map = useMemo(
+    () => decodeGestureMap(settings.roamingGestureMap),
+    [settings.roamingGestureMap],
+  );
+  const speeds = {
+    walk: settings.roamingWalkSpeed,
+    running: settings.roamingRunSpeed,
+    lean: settings.roamingLeanSpeed,
+  };
   const { t } = useTranslation();
   const [collapsed, setCollapsed] = useState(false);
   const { entries, status } = useRoamingLog();
@@ -143,6 +179,16 @@ export function RoamingDebugWindow({
                     s: live.sinceEvent >= 99 ? "—" : live.sinceEvent.toFixed(1),
                   })}
                 </div>
+                <div>
+                  {t("dial.roaming.debug.holding")}: {live.holding ?? "—"}
+                  {live.fired.length > 0 && (
+                    <span className="ui-ink-muted">
+                      {" "}
+                      · {t("dial.roaming.debug.fired")}:{" "}
+                      {live.fired.map((f) => `${time(f.at).slice(3, 8)} ${f.action}`).join(", ")}
+                    </span>
+                  )}
+                </div>
               </>
             ) : (
               <div className="ui-ink-muted">{t("dial.roaming.debug.noScene")}</div>
@@ -169,7 +215,8 @@ export function RoamingDebugWindow({
               <li className="py-1 ui-ink-muted">{t("dial.roaming.debug.empty")}</li>
             )}
             {entries.map((e) => {
-              const tg = targetFor(e.parsed, sideways);
+              const r = routeEvent(e.parsed, map, settings.roamingSideways, speeds);
+              const tg = r.target;
               return (
                 <li key={e.seq} className="border-b border-white/5 py-0.5 last:border-0">
                   <span className="ui-ink-muted">{time(e.at)}</span>{" "}
@@ -186,7 +233,8 @@ export function RoamingDebugWindow({
                   )}
                   <span className="ui-ink-muted">
                     {" "}
-                    → ↑{f2(tg.z)} →{f2(tg.x)}
+                    → {r.gesture ?? "—"} ⇒ <b>{r.action}</b>
+                    {(tg.x !== 0 || tg.z !== 0) && ` ↑${f2(tg.z)} →${f2(tg.x)}`}
                   </span>
                 </li>
               );
