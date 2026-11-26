@@ -831,10 +831,65 @@
         "acted": "suoritettu {{ms}} ms sanojen asetuttua",
         "finalAfter": "lopullinen tulos {{ms}} ms myöhemmin",
         "endToFinal": "puheen loppu → lopullinen {{ms}} ms",
-        "match": "vertailu {{ms}} ms"
+        "match": "vertailu {{ms}} ms",
+        "llmPending": "laitteen tekoäly miettii…",
+        "llm": "Tekoäly: {{status}}, {{ms}} ms",
+        "llmCalls": "työkalut: {{calls}}",
+        "llmRefused": "hylätty: {{list}}",
+        "llmFellBack": "käytettiin sääntöjä",
+        "llmStatus": {
+          "ok": "valmis",
+          "none": "mikään ei sopinut",
+          "timeout": "liian hidas",
+          "error": "virhe",
+          "unavailable": "ei valmis",
+          "pending": "miettii"
+        }
       },
       "downloadModel": "LATAA PUHEMALLI: {{lang}}",
-      "privacy": "Yksityinen: puhe tunnistetaan vain tällä laitteella. Ääntä tai tekstiä ei lähetetä minnekään."
+      "privacy": "Yksityinen: puhe tunnistetaan vain tällä laitteella. Ääntä tai tekstiä ei lähetetä minnekään.",
+      "thinking": "miettii…",
+      "llm": {
+        "interpreter": "TULKINTA",
+        "interpreters": {
+          "rules": "SÄÄNNÖT",
+          "hybrid": "SÄÄNNÖT + LAITTEEN TEKOÄLY",
+          "llm": "LAITTEEN TEKOÄLY ENSIN"
+        },
+        "interpreterHints": {
+          "rules": "Lauseita verrataan komentolistaan. Välitön, ei mitään ladattavaa.",
+          "hybrid": "Tutut lauseet toimivat heti kuten ennenkin; lauseet, joita säännöt eivät ymmärrä, menevät laitteella toimivalle pienelle tekoälymallille.",
+          "llm": "Jokainen lause menee ensin laitteen tekoälymallille; säännöt ottavat ohjat, kun se ei ole valmis, on liian hidas tai ei löydä mitään. Hitaampi kuin säännöt."
+        },
+        "model": "TEKOÄLYMALLI",
+        "modelOption": "{{name}} (~{{mb}} Mt)",
+        "status": {
+          "voiceOff": "Kytke ÄÄNIOHJAUS päälle ladataksesi mallin.",
+          "off": "Ei ladattu.",
+          "unsupported": "Laitteessa ei ole WebGPU:ta, joten tekoäly ei toimi täällä. Sääntöjä käytetään.",
+          "checking": "Etsitään mallia laitteelta…",
+          "absent": "Mallia ei vielä ole laitteella. Lataa se kerran käyttääksesi tekoälyä; siihen asti käytetään sääntöjä.",
+          "downloading": "Ladataan mallia… {{pct}} %",
+          "loading": "Avataan mallia… {{pct}} %",
+          "ready": "Valmis. Tekoäly toimii laitteella.",
+          "error": "Mallia ei voitu ladata: {{error}}",
+          "downloadingNative": "Android lataa Gemini Nanoa… {{done}}",
+          "native": {
+            "unsupported": "Puhelimessa ei ole Gemini Nanoa (Androidin laitteen tekoäly). Valitse WebGPU-malli tai käytä sääntöjä.",
+            "absent": "Gemini Nano on saatavilla puhelimeen, mutta sitä ei ole vielä ladattu. Android lataa sen kerran; siihen asti käytetään sääntöjä.",
+            "ready": "Valmis. Gemini Nano toimii puhelimessa."
+          }
+        },
+        "download": "LATAA MALLI (~{{mb}} Mt, VAATII ~{{gpu}} Mt GRAFIIKKAMUISTIA)",
+        "remove": "POISTA MALLI LAITTEELTA",
+        "timeout": "TEKOÄLYN AIKARAJA",
+        "timeoutHint": "Jos tekoälyllä ei ole vastausta siihen mennessä, käytetään sääntöjen vastausta.",
+        "privacy": "Yksityinen: tekoälymalli toimii laitteella, itse sovelluksessa. Puheesi, asetukset ja vastaukset eivät koskaan poistu laitteelta; sen verkkoyhteys on suljettu sen työskennellessä. Vain mallitiedosto ladataan, kerran.",
+        "modelAuto": "AUTO ({{name}})",
+        "geminiNano": "GEMINI NANO (ANDROID)",
+        "downloadNative": "LATAA GEMINI NANO",
+        "privacyNative": "Yksityinen: Gemini Nano toimii puhelimessa, Androidin omassa AICoressa. Googlen mukaan syöte, käsittely ja vastaus pysyvät laitteella, eikä sovellus lähetä mitään minnekään. Android lataa ja päivittää mallin itse."
+      }
     }
   },
   "docsPhilosophy": {

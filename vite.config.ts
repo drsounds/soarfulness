@@ -48,7 +48,14 @@ export default defineConfig({
         // precache limit (index-*.js was 2.12 MB after the GLB decorations
         // landed), which fails the whole build. Raise it so the app shell
         // stays precached for offline use.
-        injectManifest: { maximumFileSizeToCacheInBytes: 8 * 1024 * 1024 },
+        // The VOICE on-device LLM worker (apps/voice/llm/llmWorker.ts, ~6 MB
+        // of WebLLM) is left out of the precache, so installing the app does
+        // not download it for everyone: src/sw.ts's "worker" route caches it
+        // the first time the LLM interpreter is switched on.
+        injectManifest: {
+          maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
+          globIgnores: ["**/node_modules/**/*", "**/llmWorker-*.js"],
+        },
         manifest: {
           name: "Aquafulness",
           short_name: "Aquafulness",

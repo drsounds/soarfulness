@@ -27,7 +27,11 @@ export function VoiceTranscript() {
   if (state.interim) text = state.interim;
   else if (showLast) {
     text = last.match?.heard ?? last.alternatives[0];
-    detail = last.match ? last.match.outcome.label : t("dial.voice.notUnderstood");
+    detail = last.match
+      ? last.match.outcome.label
+      : last.llm?.status === "pending"
+        ? t("dial.voice.thinking")
+        : t("dial.voice.notUnderstood");
   } else if (state.asleep && listening) text = t("dial.voice.status.asleep");
   else if (["denied", "error", "unsupported", "nolocal", "download"].includes(state.status))
     text = t(`dial.voice.status.${state.status}`, {
@@ -39,7 +43,7 @@ export function VoiceTranscript() {
     ? "bg-white/40"
     : state.asleep
       ? "bg-amber-300"
-      : state.interim
+      : state.interim || state.thinking > 0
         ? "bg-emerald-300 animate-pulse"
         : "bg-emerald-300/70";
 
@@ -54,7 +58,15 @@ export function VoiceTranscript() {
           <span className="min-w-0 truncate">
             <span className={state.interim ? "italic opacity-80" : ""}>“{text}”</span>
             {detail && (
-              <span className={last?.match ? "ml-2 text-emerald-200" : "ml-2 text-amber-200"}>
+              <span
+                className={
+                  last?.match
+                    ? "ml-2 text-emerald-200"
+                    : last?.llm?.status === "pending"
+                      ? "ml-2 animate-pulse text-sky-200"
+                      : "ml-2 text-amber-200"
+                }
+              >
                 {last?.match ? "✓ " : ""}
                 {detail}
               </span>

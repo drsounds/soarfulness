@@ -1,5 +1,6 @@
 ext {
-    minSdkVersion = 24
+    // 26 (Android 8.0): the ML Kit GenAI Prompt API (Gemini Nano, OnDeviceLlmPlugin) requires it.
+    minSdkVersion = 26
     compileSdkVersion = 36
     targetSdkVersion = 36
     androidxActivityVersion = '1.11.0'
@@ -13,4 +14,6 @@ ext {
     androidxJunitVersion = '1.3.0'
     androidxEspressoCoreVersion = '3.7.0'
     cordovaAndroidVersion = '14.0.1'
+    mlkitGenaiPromptVersion = '1.0.0-beta5'
+    guavaVersion = '33.4.8-android'
 }

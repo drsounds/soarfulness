@@ -1,5 +1,6 @@
 import i18n from "@/lib/i18n";
 import type { AppRuntime, FrameContext } from "@/core/apps/types";
+import { onDeviceLlm } from "./llm/onDeviceLlm";
 import { createSpeechEngine, type EngineStatus, type SpeechEngine } from "./speechEngines";
 import type { VoiceLang, VoiceSettings } from "./settings";
 import { voiceBus } from "./voiceBus";
@@ -32,6 +33,12 @@ export class VoiceRuntime implements AppRuntime<VoiceSettings> {
   frame(_frame: FrameContext, settings: Readonly<VoiceSettings>): void {
     voiceBus.setEarlyMs(settings.voiceEarlyMs);
     this.sync(settings.voiceOn, speechLang(settings.voiceLang));
+    // The on-device LLM (VOICE → INTERPRETER) is loaded only while voice
+    // listens with it; otherwise its worker and GPU memory are released.
+    onDeviceLlm.sync(
+      settings.voiceOn && settings.voiceInterpreter !== "rules",
+      settings.voiceLlmModel,
+    );
   }
 
   /** Start, restart in another language, or stop the recognizer. */
@@ -82,9 +89,11 @@ export class VoiceRuntime implements AppRuntime<VoiceSettings> {
 
   shutdown(): void {
     this.stop();
+    onDeviceLlm.shutdown();
   }
 
   dispose(): void {
     this.stop();
+    onDeviceLlm.shutdown();
   }
 }

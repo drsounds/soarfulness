@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { SettingRow } from "@/components/SettingRow";
 import { Findable } from "@/components/settingsNav";
 import type { AppSettingsHandle } from "@/core/apps/useAppSettings";
+import { LlmPanel } from "./llm/LlmPanel";
 import { VOICE_LANGS, type VoiceSettings } from "./settings";
 import { installSpeechModel, speechSupported } from "./speechEngines";
 import { voiceBus, useVoiceState, type VoiceState } from "./voiceBus";
@@ -137,6 +138,7 @@ export function VoicePanel({ voice }: { voice: AppSettingsHandle<VoiceSettings> 
         onDec={() => s.voiceStepScale((v) => step(v, -0.25, 0.25, 10))}
         onInc={() => s.voiceStepScale((v) => step(v, 0.25, 0.25, 10))}
       />
+      <LlmPanel voice={voice} />
       <SettingRow
         label={t("dial.voice.transcript")}
         value={onOff(voiceTranscriptOn)}

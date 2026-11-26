@@ -66,4 +66,8 @@ export const VOICE_EXCLUDED_KEYS = new Set<string>([
   "gamepadBindings",
   "timeTravelBaseMs",
   "timeTravelSetAtMs",
+  // The interpreter is not changed by what it interprets.
+  "voiceInterpreter",
+  "voiceLlmModel",
+  "voiceLlmTimeoutMs",
 ]);

@@ -831,10 +831,65 @@
         "acted": "kjørte {{ms}} ms etter at ordene stoppet",
         "finalAfter": "sluttresultat {{ms}} ms etter",
         "endToFinal": "tale slutt → sluttresultat {{ms}} ms",
-        "match": "matching {{ms}} ms"
+        "match": "matching {{ms}} ms",
+        "llmPending": "AI på enheten tenker…",
+        "llm": "AI: {{status}} på {{ms}} ms",
+        "llmCalls": "verktøy: {{calls}}",
+        "llmRefused": "avvist: {{list}}",
+        "llmFellBack": "reglene ble brukt",
+        "llmStatus": {
+          "ok": "ferdig",
+          "none": "ingenting passet",
+          "timeout": "for treg",
+          "error": "feil",
+          "unavailable": "ikke klar",
+          "pending": "tenker"
+        }
       },
       "downloadModel": "LAST NED TALEMODELL FOR {{lang}}",
-      "privacy": "Privat: talen gjenkjennes kun på denne enheten. Ingen lyd eller tekst sendes noe sted."
+      "privacy": "Privat: talen gjenkjennes kun på denne enheten. Ingen lyd eller tekst sendes noe sted.",
+      "thinking": "tenker…",
+      "llm": {
+        "interpreter": "TOLKNING",
+        "interpreters": {
+          "rules": "REGLER",
+          "hybrid": "REGLER + AI PÅ ENHETEN",
+          "llm": "AI PÅ ENHETEN FØRST"
+        },
+        "interpreterHints": {
+          "rules": "Fraser sammenlignes med kommandolisten. Umiddelbart, ingenting å laste ned.",
+          "hybrid": "Kjente fraser kjøres umiddelbart som før; fraser reglene ikke forstår går til en liten AI-modell som kjører på enheten.",
+          "llm": "Hver frase går først til AI-modellen på enheten; reglene tar over når den ikke er klar, er for treg eller ikke finner noe. Tregere enn reglene."
+        },
+        "model": "AI-MODELL",
+        "modelOption": "{{name}} (~{{mb}} MB)",
+        "status": {
+          "voiceOff": "Slå på STEMMESTYRING for å laste modellen.",
+          "off": "Ikke lastet.",
+          "unsupported": "Enheten har ikke WebGPU, så AI-en kan ikke kjøre her. Reglene brukes.",
+          "checking": "Ser etter modellen på enheten…",
+          "absent": "Modellen er ikke på enheten ennå. Last den ned én gang for å bruke AI-en; til da brukes reglene.",
+          "downloading": "Laster ned modellen… {{pct}} %",
+          "loading": "Laster modellen… {{pct}} %",
+          "ready": "Klar. AI-en kjører på enheten.",
+          "error": "Modellen kunne ikke lastes: {{error}}",
+          "downloadingNative": "Android laster ned Gemini Nano… {{done}}",
+          "native": {
+            "unsupported": "Telefonen har ikke Gemini Nano (Androids AI på enheten). Velg en WebGPU-modell i stedet, eller bruk reglene.",
+            "absent": "Gemini Nano finnes for telefonen, men er ikke lastet ned ennå. Android laster den ned én gang; til da brukes reglene.",
+            "ready": "Klar. Gemini Nano kjører på telefonen."
+          }
+        },
+        "download": "LAST NED MODELL (~{{mb}} MB, TRENGER ~{{gpu}} MB GRAFIKKMINNE)",
+        "remove": "SLETT MODELLEN FRA ENHETEN",
+        "timeout": "AI-TIDSGRENSE",
+        "timeoutHint": "Har AI-en ikke svart innen da, brukes reglenes svar.",
+        "privacy": "Privat: AI-modellen kjører på enheten, i appen selv. Det du sier, innstillingene og svarene forlater aldri enheten; nettverket er stengt mens den arbeider. Bare modellfilen lastes ned, én gang.",
+        "modelAuto": "AUTO ({{name}})",
+        "geminiNano": "GEMINI NANO (ANDROID)",
+        "downloadNative": "LAST NED GEMINI NANO",
+        "privacyNative": "Privat: Gemini Nano kjører på telefonen, i Androids egen AICore. Google oppgir at inndata, behandling og svar blir på enheten, og appen sender ingenting noe sted. Android laster ned og oppdaterer modellen selv."
+      }
     }
   },
   "docsPhilosophy": {

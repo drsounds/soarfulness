@@ -831,10 +831,65 @@
         "acted": "körde {{ms}} ms efter att orden stannat",
         "finalAfter": "slutresultat {{ms}} ms efter",
         "endToFinal": "talslut → slutresultat {{ms}} ms",
-        "match": "matchning {{ms}} ms"
+        "match": "matchning {{ms}} ms",
+        "llmPending": "AI på enheten tänker…",
+        "llm": "AI: {{status}} på {{ms}} ms",
+        "llmCalls": "verktyg: {{calls}}",
+        "llmRefused": "nekat: {{list}}",
+        "llmFellBack": "reglerna användes",
+        "llmStatus": {
+          "ok": "klar",
+          "none": "inget passade",
+          "timeout": "för långsam",
+          "error": "fel",
+          "unavailable": "inte redo",
+          "pending": "tänker"
+        }
       },
       "downloadModel": "LADDA NER TALMODELL FÖR {{lang}}",
-      "privacy": "Privat: talet känns igen på enheten. Inget ljud eller text skickas någonstans."
+      "privacy": "Privat: talet känns igen på enheten. Inget ljud eller text skickas någonstans.",
+      "thinking": "tänker…",
+      "llm": {
+        "interpreter": "TOLKNING",
+        "interpreters": {
+          "rules": "REGLER",
+          "hybrid": "REGLER + AI PÅ ENHETEN",
+          "llm": "AI PÅ ENHETEN FÖRST"
+        },
+        "interpreterHints": {
+          "rules": "Fraser jämförs med kommandolistan. Direkt, inget att ladda ner.",
+          "hybrid": "Kända fraser körs direkt som förut; fraser reglerna inte förstår går till en liten AI-modell som körs på enheten.",
+          "llm": "Varje fras går först till AI-modellen på enheten; reglerna tar över när den inte är redo, är för långsam eller inte hittar något. Långsammare än reglerna."
+        },
+        "model": "AI-MODELL",
+        "modelOption": "{{name}} (~{{mb}} MB)",
+        "status": {
+          "voiceOff": "Slå på RÖSTSTYRNING för att ladda modellen.",
+          "off": "Inte laddad.",
+          "unsupported": "Enheten saknar WebGPU, så AI:n kan inte köras här. Reglerna används.",
+          "checking": "Letar efter modellen på enheten…",
+          "absent": "Modellen finns inte på enheten än. Ladda ner den en gång för att använda AI:n; tills dess används reglerna.",
+          "downloading": "Laddar ner modellen… {{pct}} %",
+          "loading": "Laddar modellen… {{pct}} %",
+          "ready": "Klar. AI:n körs på enheten.",
+          "error": "Modellen kunde inte laddas: {{error}}",
+          "downloadingNative": "Android laddar ner Gemini Nano… {{done}}",
+          "native": {
+            "unsupported": "Telefonen har inte Gemini Nano (Androids AI på enheten). Välj en WebGPU-modell i stället, eller använd reglerna.",
+            "absent": "Gemini Nano finns för telefonen men är inte nedladdad än. Android laddar ner den en gång; tills dess används reglerna.",
+            "ready": "Klar. Gemini Nano körs på telefonen."
+          }
+        },
+        "download": "LADDA NER MODELL (~{{mb}} MB, KRÄVER ~{{gpu}} MB GRAFIKMINNE)",
+        "remove": "TA BORT MODELLEN FRÅN ENHETEN",
+        "timeout": "AI-TIDSGRÄNS",
+        "timeoutHint": "Har AI:n inget svar till dess används reglernas svar.",
+        "privacy": "Privat: AI-modellen körs på enheten, i appen själv. Det du säger, inställningarna och svaren lämnar aldrig enheten; dess nätverk är stängt medan den arbetar. Bara modellfilen laddas ner, en gång.",
+        "modelAuto": "AUTO ({{name}})",
+        "geminiNano": "GEMINI NANO (ANDROID)",
+        "downloadNative": "LADDA NER GEMINI NANO",
+        "privacyNative": "Privat: Gemini Nano körs på telefonen, i Androids egen AICore. Google uppger att indata, bearbetning och svar stannar på enheten, och appen skickar inget någonstans. Android laddar ner och uppdaterar modellen själv."
+      }
     }
   },
   "docsPhilosophy": {

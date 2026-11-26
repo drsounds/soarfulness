@@ -87,7 +87,9 @@ import { GamepadDebugWindow } from "@/apps/gamepad/GamepadDebugWindow";
 import type { GamepadAction } from "@/apps/gamepad/bindings";
 import { VoiceDebugWindow } from "@/apps/voice/VoiceDebugWindow";
 import { VoiceTranscript } from "@/apps/voice/VoiceTranscript";
-import { SettingResolver, createVoiceRegistry } from "@/apps/voice/commands";
+import { SettingResolver, createVoiceRegistry, type VoiceContext } from "@/apps/voice/commands";
+import { LlmInterpreter } from "@/apps/voice/llm/LlmInterpreter";
+import { onDeviceLlm } from "@/apps/voice/llm/onDeviceLlm";
 import { SETTING_CATALOG } from "@/apps/voice/settingCatalog.generated";
 import { buildSettingTargets } from "@/apps/voice/settingTargets";
 import { voiceBus } from "@/apps/voice/voiceBus";
@@ -13389,21 +13391,33 @@ export function Aquafulness() {
         break;
     }
   };
+  // VOICE → INTERPRETER: the on-device LLM, acting through the app's
+  // internal tools (apps/voice/llm/VoiceToolbox.ts), as an option next to
+  // the rules above. It never runs while the interpreter is "rules".
+  const voiceLlm = useMemo(() => new LlmInterpreter(onDeviceLlm), []);
   useEffect(() => {
+    const voiceContext = (): VoiceContext => {
+      const snapshot = buildPersistedSnapshot() as unknown as Record<string, unknown>;
+      return {
+        get: (k) => snapshot[k],
+        settings: voiceSettingsResolver,
+        stepScale: voice.values.voiceStepScale,
+      };
+    };
+    const llmOn = voiceAppOn && voice.values.voiceInterpreter !== "rules";
     voiceBus.setHandler({
       match: (alternatives) => {
         if (!voiceAppOn) return null;
-        const snapshot = buildPersistedSnapshot() as unknown as Record<string, unknown>;
-        return voiceRegistry.match(
-          alternatives,
-          {
-            get: (k) => snapshot[k],
-            settings: voiceSettingsResolver,
-            stepScale: voice.values.voiceStepScale,
-          },
-          { threshold: voice.values.voiceMatchThreshold, asleep: voiceBus.get().asleep },
-        );
+        return voiceRegistry.match(alternatives, voiceContext(), {
+          threshold: voice.values.voiceMatchThreshold,
+          asleep: voiceBus.get().asleep,
+        });
       },
+      interpret: llmOn
+        ? (text) => voiceLlm.interpret(text, voiceContext(), voice.values.voiceLlmTimeoutMs)
+        : undefined,
+      llmFirst: voice.values.voiceInterpreter === "llm",
+      llmReady: () => onDeviceLlm.isReady(),
       run: (match) => {
         if (match.outcome.patch) applySettingsPatch(match.outcome.patch as Partial<Persisted>);
         for (const a of match.outcome.actions ?? []) runVoiceAction(a);

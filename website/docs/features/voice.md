@@ -17,7 +17,8 @@ microphone the first time it starts listening.
 Voice control **never sends audio or text to a server**. Speech is
 recognized by a model on the device, and the command matching
 (`commands.ts`, `VoiceCommandRegistry.ts`) is plain local code with no AI
-service behind it. Where no on-device recognizer exists, voice control
+service behind it. The optional AI interpreter (below) is a small model that
+also runs on the device, with its network closed while it works. Where no on-device recognizer exists, voice control
 says so and does not listen; it never falls back to a cloud recognizer.
 
 | Where | Engine | File |
@@ -117,6 +118,106 @@ recognizer ─▶ voiceBus.submit(alternatives) ─▶ host handler (routes/inde
 - **`voiceBus.ts`**: shared state (status, interim text, log) for the
   transcript, the panel and the debug window.
 
+## On-device AI interpreter (optional)
+
+**SETTINGS → VOICE → INTERPRETER** chooses who turns a phrase into commands:
+
+| Choice | What happens |
+| --- | --- |
+| **RULES** (default) | The phrase matcher above. Instant, nothing to download. |
+| **RULES + ON-DEVICE AI** | The rules first, exactly as before (including ACT EARLY on partial results). Whole phrases the rules don't understand ("the sea is too rough", "I'm cold, stop the snow") go to a small language model running on the device. |
+| **ON-DEVICE AI FIRST** | Every whole phrase goes to the model; the rules run when it is not ready, too slow (AI TIME LIMIT) or finds nothing. Partial results are not acted on, so this is slower than the rules. |
+
+### Privacy: nothing leaves the device
+
+The model runs **in the app itself**, in a web worker, on the GPU through
+WebGPU ([WebLLM](https://github.com/mlc-ai/web-llm)). There is no cloud or
+server option of any kind.
+
+- The phrase, the settings the model is shown and its answer exist only in
+  the page's memory. There is no chat history.
+- The worker's `fetch` is closed while the model answers, and `WebSocket`,
+  `XMLHttpRequest`, `EventSource` and `sendBeacon` are removed from it
+  (`llm/networkGuard.ts`). Only while a model is **downloaded, loaded or
+  removed** are GET requests to the model hosts (Hugging Face for the
+  weights, GitHub for the compiled WebGPU kernels) let through. Those carry
+  no voice data.
+- The model is downloaded **only when you press DOWNLOAD MODEL**, once, into
+  the browser's cache storage. DELETE MODEL removes it. With the
+  interpreter on RULES, or voice off, the worker is not even started.
+
+| Model | Download | GPU memory |
+| --- | --- | --- |
+| Qwen 2.5 0.5B (default) | ~280 MB | ~0.95 GB |
+| Llama 3.2 1B | ~700 MB | ~0.9 GB |
+| Qwen 2.5 1.5B | ~870 MB | ~1.6 GB |
+
+Without WebGPU (Firefox, older browsers, possibly the Android WebView) the
+panel says so and the rules are used.
+
+### Gemini Nano on Android
+
+In the Android app the model can instead be **Gemini Nano**, Android's own
+on-device model, bridged by the native `OnDeviceLlm` plugin
+(`android/.../OnDeviceLlmPlugin.java`, ML Kit GenAI Prompt API on AICore,
+`com.google.mlkit:genai-prompt`, beta). **AI MODEL → AUTO** (the default)
+uses it whenever the app runs on Android with the plugin, and the smallest
+WebGPU model elsewhere; it can also be picked by hand (only listed in the
+Android app).
+
+- Google documents that the GenAI APIs run entirely on the device (input,
+  inference and output are processed locally). The plugin itself makes no
+  network calls. Android (AICore) installs and updates the model; DOWNLOAD
+  GEMINI NANO asks it to, and there is no DELETE (the model is shared by
+  apps).
+- Phones: Gemini Nano is on recent flagships (Pixel 9 and later, Galaxy S25
+  and later, many recent Xiaomi, OPPO, vivo, OnePlus, Honor, Motorola...).
+  Elsewhere `checkStatus()` says UNAVAILABLE and the panel suggests a WebGPU
+  model or the rules. Not on phones with an unlocked bootloader.
+- The Java API has no JSON-schema constraint, so the answer is only asked
+  for as JSON (`NativeLlm.flattenMessages`), read with the tolerant
+  `parseReply()`, and validated by the toolbox like any other answer.
+- AICore only answers while the app is in the foreground and has a per-app
+  quota (`BUSY`); such errors fall back to the rules.
+- The app's `minSdkVersion` is 26 (Android 8.0) because the library needs it.
+
+### The internal tools (MCP-style)
+
+The model never changes anything itself. It answers with tool calls, and
+`llm/VoiceToolbox.ts` (the app's in-process MCP server: `listTools()` =
+`tools/list`, `callTool()` = `tools/call`, JSON Schema inputs, `isError`
+results) checks them against the same settings registry the rules use and
+turns them into the same `{ label, patch, actions }` outcome:
+
+| Tool | Does |
+| --- | --- |
+| `run_command(command)` | any fixed command by id: `mode.fly`, `swing.higher`, `fly.soarFaster`, `ui.openSettings`, `voice.sleep`... |
+| `set_setting(key, value)` | number (clamped to the slider), true/false, a list option, or min / max / default |
+| `adjust_setting(key, direction, steps?, amount?)` | up / down by slider steps or an amount; on/off and lists too |
+| `toggle_setting(key)`, `reset_setting(key)` | |
+| `point_direction(target, compass? / bearing? / relative?)` | sway or waves |
+| `turn_direction(target, side)` | ± 45° |
+| `list_settings(query)`, `get_setting(key)` | read only, never offered to the model as actions |
+
+Schemas come from the settings rows (ranges, steps, option lists). Unknown
+keys, wrong value kinds and the interpreter's own settings (`voiceOn`,
+`voiceInterpreter`, `voiceLlmModel`, `voiceLlmTimeoutMs`) are refused.
+
+Per phrase the model gets one short system message (the tools, the command
+ids, and the dozen settings whose names come closest to what was heard,
+with their ranges and values, `llm/prompt.ts`) and the phrase. Its answer
+is constrained by a JSON schema (WebLLM compiles it to a grammar) whose
+setting keys are only those candidates, so it can't name anything that
+doesn't exist.
+
+### Latency
+
+Phrases are answered one at a time, each with its own deadline from when it
+was heard (**AI TIME LIMIT**, default 2.5 s). A phrase still waiting or
+generating at its deadline is interrupted and the rules' answer is used.
+The debug window shows, per phrase, the AI's status and time, the tool
+calls it made, anything refused, and whether the rules took over.
+
 ## Settings
 
 | Key | UI | Default |
@@ -127,6 +228,9 @@ recognizer ─▶ voiceBus.submit(alternatives) ─▶ host handler (routes/inde
 | `voiceStepScale` | STEP SIZE for increase / decrease | × 1 |
 | `voiceTranscriptOn` | SHOW WHAT WAS HEARD: the caption at the bottom | on |
 | `voiceDebug` | DEBUG WINDOW: every phrase, its match and score, a box to type commands, every command and setting name | off |
+| `voiceInterpreter` | INTERPRETER: `rules`, `hybrid` (rules + on-device AI), `llm` (on-device AI first) | `rules` |
+| `voiceLlmModel` | AI MODEL: `auto`, `gemini-nano` (Android), or a WebGPU model | `auto` |
+| `voiceLlmTimeoutMs` | AI TIME LIMIT, 500–10000 ms | 2500 |
 
 Like the gamepad settings they belong to the device: they are not in
 presets and survive opening a bath link.
@@ -140,7 +244,10 @@ window.dispatchEvent(new CustomEvent("voice:text", { detail: "swing higher" }))
 ```
 
 `bun test src/apps/voice` covers matching, numbers, directions and the
-generic setting commands. The Android plugin has not been run on a device
+generic setting commands, and (`llm/llm.test.ts`) the tools, the prompt,
+the interpreter's timeouts and queue, the voiceBus hand-over in both LLM
+modes, the model lifecycle and the network guard, with a fake model. A real
+model has not been run in these tests. The Android plugin has not been run on a device
 yet.
 
 ## Adding to it

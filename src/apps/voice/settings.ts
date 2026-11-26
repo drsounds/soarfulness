@@ -17,6 +17,34 @@ export const VOICE_LANGS: VoiceLang[] = [
   "fi-FI",
 ];
 
+/**
+ * Who turns what was heard into commands:
+ * - "rules": the phrase matcher (commands.ts), instant, the default;
+ * - "hybrid": the rules first, and a small on-device LLM for phrases they
+ *   don't understand ("it's too cold, make it snow less");
+ * - "llm": the on-device LLM for every phrase, the rules when it is not
+ *   ready, too slow or finds nothing.
+ * The LLM runs in the browser (WebGPU): nothing it reads or writes leaves
+ * the device (see llm/LocalLlm.ts).
+ */
+export type VoiceInterpreter = "rules" | "hybrid" | "llm";
+export const VOICE_INTERPRETERS: VoiceInterpreter[] = ["rules", "hybrid", "llm"];
+
+/** Models that run in the page with WebGPU (llm/models.ts, llm/LocalLlm.ts). */
+export type WebLlmModel = "qwen2.5-0.5b" | "llama-3.2-1b" | "qwen2.5-1.5b";
+export const WEB_LLM_MODELS: WebLlmModel[] = ["qwen2.5-0.5b", "llama-3.2-1b", "qwen2.5-1.5b"];
+
+/**
+ * On-device models the LLM interpreter can use:
+ * - "auto": Gemini Nano in the Android app when the phone has it, otherwise
+ *   the smallest WebGPU model;
+ * - "gemini-nano": Android's own on-device Gemini Nano (ML Kit GenAI Prompt
+ *   API on AICore), through the native OnDeviceLlm plugin (llm/NativeLlm.ts);
+ * - a WebGPU model, downloaded into the app.
+ */
+export type VoiceLlmModel = "auto" | "gemini-nano" | WebLlmModel;
+export const VOICE_LLM_MODELS: VoiceLlmModel[] = ["auto", "gemini-nano", ...WEB_LLM_MODELS];
+
 export type VoiceSettings = {
   /**
    * Listen for commands. Off by default, so the microphone is never opened
@@ -38,6 +66,12 @@ export type VoiceSettings = {
   voiceTranscriptOn: boolean;
   /** Show the floating window with every phrase, its score and a test box. */
   voiceDebug: boolean;
+  /** Rules (default), rules then on-device LLM, or on-device LLM first. */
+  voiceInterpreter: VoiceInterpreter;
+  /** Which on-device model; downloaded only when asked for (VOICE → DOWNLOAD MODEL). */
+  voiceLlmModel: VoiceLlmModel;
+  /** Give up on the LLM after this long (ms) and use the rules' answer. */
+  voiceLlmTimeoutMs: number;
 };
 
 export const VOICE_DEFAULTS: VoiceSettings = {
@@ -49,6 +83,10 @@ export const VOICE_DEFAULTS: VoiceSettings = {
   voiceStepScale: 1,
   voiceTranscriptOn: true,
   voiceDebug: false,
+  voiceInterpreter: "rules",
+  // Gemini Nano where Android has it, else the smallest WebGPU model.
+  voiceLlmModel: "auto",
+  voiceLlmTimeoutMs: 2500,
 };
 
 /** Every key VoiceSettings owns, in declaration order (presets, sharing). */
