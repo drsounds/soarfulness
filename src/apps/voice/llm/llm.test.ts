@@ -6,7 +6,9 @@ import { buildSettingTargets } from "../settingTargets";
 import { voiceBus } from "../voiceBus";
 import type { VoiceMatch } from "../VoiceCommandRegistry";
 import { LlmInterpreter, type LlmEngine } from "./LlmInterpreter";
+import { LlmSwitch, resolveLlmModel } from "./LlmSwitch";
 import { LocalLlm, type WorkerLike } from "./LocalLlm";
+import { flattenMessages, NativeLlm, type OnDeviceLlmPlugin } from "./NativeLlm";
 import { isModelHost } from "./models";
 import { closeOtherChannels, guardFetch } from "./networkGuard";
 import { buildMessages, buildRequest, candidateSettings, parseReply, replySchema } from "./prompt";
@@ -573,5 +575,119 @@ describe("LocalLlm lifecycle", () => {
     noGpu.sync(true, "qwen2.5-0.5b");
     await sleep(5);
     expect(noGpu.get().status).toBe("unsupported");
+  });
+});
+
+class FakeNative implements OnDeviceLlmPlugin {
+  native: "unavailable" | "downloadable" | "downloading" | "available" = "downloadable";
+  prompts: string[] = [];
+  cancelled = 0;
+  private listener: ((e: { phase: string; bytes?: number }) => void) | null = null;
+  async status() {
+    return { status: this.native };
+  }
+  async download() {
+    this.listener?.({ phase: "progress", bytes: 120e6 });
+    this.native = "available";
+  }
+  async generate(opts: { prompt: string; temperature: number }) {
+    this.prompts.push(opts.prompt);
+    return { text: 'Here: {"calls":[{"tool":"run_command","args":{"command":"mode.fly"}}]}' };
+  }
+  async cancel() {
+    this.cancelled++;
+  }
+  async addListener(_e: "download", l: (e: { phase: string; bytes?: number }) => void) {
+    this.listener = l;
+    return { remove: async () => undefined };
+  }
+}
+
+describe("Gemini Nano on Android (NativeLlm)", () => {
+  test("status mapping, download through AICore, generate, cancel; no delete", async () => {
+    const plugin = new FakeNative();
+    const llm = new NativeLlm(plugin as unknown as OnDeviceLlmPlugin);
+    llm.sync(true);
+    await sleep(5);
+    expect(llm.get().status).toBe("absent");
+    expect(llm.get().canRemove).toBe(false);
+    await expect(llm.complete([], null)).rejects.toThrow("not ready");
+    await llm.download();
+    expect(llm.get().status).toBe("ready");
+    const out = await llm.complete(
+      [
+        { role: "system", content: "SYSTEM" },
+        { role: "user", content: "take off" },
+      ],
+      null,
+    );
+    expect(parseReply(out)).toEqual([{ tool: "run_command", args: { command: "mode.fly" } }]);
+    expect(plugin.prompts[0]).toStartWith("SYSTEM");
+    expect(plugin.prompts[0]).toContain('"take off"');
+    llm.interrupt();
+    await sleep(1);
+    expect(plugin.cancelled).toBe(1);
+    llm.sync(false);
+    expect(llm.get().status).toBe("off");
+  });
+
+  test("a phone without Gemini Nano is unsupported; an installed one is ready at once", async () => {
+    const none = new FakeNative();
+    none.native = "unavailable";
+    const a = new NativeLlm(none as unknown as OnDeviceLlmPlugin);
+    a.sync(true);
+    await sleep(5);
+    expect(a.get().status).toBe("unsupported");
+    const has = new FakeNative();
+    has.native = "available";
+    const b = new NativeLlm(has as unknown as OnDeviceLlmPlugin);
+    b.sync(true);
+    await sleep(5);
+    expect(b.get().status).toBe("ready");
+  });
+
+  test("flattenMessages puts the instructions first and the phrase last", () => {
+    const p = flattenMessages([
+      { role: "system", content: "rules" },
+      { role: "user", content: "swing" },
+    ]);
+    expect(p.indexOf("rules")).toBeLessThan(p.indexOf('"swing"'));
+  });
+});
+
+describe("LlmSwitch: which on-device model", () => {
+  test("auto = Gemini Nano in the Android app, the smallest WebGPU model elsewhere", () => {
+    expect(resolveLlmModel("auto", true)).toBe("gemini-nano");
+    expect(resolveLlmModel("auto", false)).toBe("qwen2.5-0.5b");
+    expect(resolveLlmModel("qwen2.5-1.5b", true)).toBe("qwen2.5-1.5b");
+  });
+
+  test("only the chosen backend starts; Gemini Nano outside Android is unsupported", async () => {
+    const w = new FakeWorker();
+    const web = new LocalLlm(
+      () => w,
+      async () => true,
+    );
+    const plugin = new FakeNative();
+    plugin.native = "available";
+    const native = new NativeLlm(plugin as unknown as OnDeviceLlmPlugin);
+    let onAndroid = true;
+    const sw = new LlmSwitch(web, native, () => onAndroid);
+    sw.sync(true, "auto");
+    await sleep(5);
+    expect(sw.get().model).toBe("gemini-nano");
+    expect(sw.isReady()).toBe(true);
+    expect(w.sent).toEqual([]);
+    sw.sync(true, "qwen2.5-0.5b");
+    await sleep(10);
+    expect(native.get().status).toBe("off");
+    expect(sw.get().model).toBe("qwen2.5-0.5b");
+    onAndroid = false;
+    sw.sync(true, "gemini-nano");
+    expect(sw.get().status).toBe("unsupported");
+    expect(sw.isReady()).toBe(false);
+    sw.sync(false, "auto");
+    expect(sw.get().status).toBe("off");
+    expect(web.get().status).toBe("off");
   });
 });

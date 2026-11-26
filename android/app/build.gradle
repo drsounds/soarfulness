@@ -68,6 +68,11 @@ dependencies {
     // foregroundServiceType-aware overload; androidxCoreVersion is 1.17.0.
     implementation "androidx.core:core:$androidxCoreVersion"
     implementation project(':capacitor-android')
+    // VOICE → AI MODEL "Gemini Nano" (OnDeviceLlmPlugin): Android's on-device Gemini Nano through
+    // the ML Kit GenAI Prompt API (AICore). Beta. Needs minSdk 26 (variables.gradle). Guava for
+    // ListenableFuture, which the API's Java futures return.
+    implementation "com.google.mlkit:genai-prompt:$mlkitGenaiPromptVersion"
+    implementation "com.google.guava:guava:$guavaVersion"
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"

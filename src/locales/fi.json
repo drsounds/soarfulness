@@ -872,13 +872,23 @@
           "downloading": "Ladataan mallia… {{pct}} %",
           "loading": "Avataan mallia… {{pct}} %",
           "ready": "Valmis. Tekoäly toimii laitteella.",
-          "error": "Mallia ei voitu ladata: {{error}}"
+          "error": "Mallia ei voitu ladata: {{error}}",
+          "downloadingNative": "Android lataa Gemini Nanoa… {{done}}",
+          "native": {
+            "unsupported": "Puhelimessa ei ole Gemini Nanoa (Androidin laitteen tekoäly). Valitse WebGPU-malli tai käytä sääntöjä.",
+            "absent": "Gemini Nano on saatavilla puhelimeen, mutta sitä ei ole vielä ladattu. Android lataa sen kerran; siihen asti käytetään sääntöjä.",
+            "ready": "Valmis. Gemini Nano toimii puhelimessa."
+          }
         },
         "download": "LATAA MALLI (~{{mb}} Mt, VAATII ~{{gpu}} Mt GRAFIIKKAMUISTIA)",
         "remove": "POISTA MALLI LAITTEELTA",
         "timeout": "TEKOÄLYN AIKARAJA",
         "timeoutHint": "Jos tekoälyllä ei ole vastausta siihen mennessä, käytetään sääntöjen vastausta.",
-        "privacy": "Yksityinen: tekoälymalli toimii laitteella, itse sovelluksessa. Puheesi, asetukset ja vastaukset eivät koskaan poistu laitteelta; sen verkkoyhteys on suljettu sen työskennellessä. Vain mallitiedosto ladataan, kerran."
+        "privacy": "Yksityinen: tekoälymalli toimii laitteella, itse sovelluksessa. Puheesi, asetukset ja vastaukset eivät koskaan poistu laitteelta; sen verkkoyhteys on suljettu sen työskennellessä. Vain mallitiedosto ladataan, kerran.",
+        "modelAuto": "AUTO ({{name}})",
+        "geminiNano": "GEMINI NANO (ANDROID)",
+        "downloadNative": "LATAA GEMINI NANO",
+        "privacyNative": "Yksityinen: Gemini Nano toimii puhelimessa, Androidin omassa AICoressa. Googlen mukaan syöte, käsittely ja vastaus pysyvät laitteella, eikä sovellus lähetä mitään minnekään. Android lataa ja päivittää mallin itse."
       }
     }
   },

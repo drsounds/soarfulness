@@ -872,13 +872,23 @@
           "downloading": "Laddar ner modellen… {{pct}} %",
           "loading": "Laddar modellen… {{pct}} %",
           "ready": "Klar. AI:n körs på enheten.",
-          "error": "Modellen kunde inte laddas: {{error}}"
+          "error": "Modellen kunde inte laddas: {{error}}",
+          "downloadingNative": "Android laddar ner Gemini Nano… {{done}}",
+          "native": {
+            "unsupported": "Telefonen har inte Gemini Nano (Androids AI på enheten). Välj en WebGPU-modell i stället, eller använd reglerna.",
+            "absent": "Gemini Nano finns för telefonen men är inte nedladdad än. Android laddar ner den en gång; tills dess används reglerna.",
+            "ready": "Klar. Gemini Nano körs på telefonen."
+          }
         },
         "download": "LADDA NER MODELL (~{{mb}} MB, KRÄVER ~{{gpu}} MB GRAFIKMINNE)",
         "remove": "TA BORT MODELLEN FRÅN ENHETEN",
         "timeout": "AI-TIDSGRÄNS",
         "timeoutHint": "Har AI:n inget svar till dess används reglernas svar.",
-        "privacy": "Privat: AI-modellen körs på enheten, i appen själv. Det du säger, inställningarna och svaren lämnar aldrig enheten; dess nätverk är stängt medan den arbetar. Bara modellfilen laddas ner, en gång."
+        "privacy": "Privat: AI-modellen körs på enheten, i appen själv. Det du säger, inställningarna och svaren lämnar aldrig enheten; dess nätverk är stängt medan den arbetar. Bara modellfilen laddas ner, en gång.",
+        "modelAuto": "AUTO ({{name}})",
+        "geminiNano": "GEMINI NANO (ANDROID)",
+        "downloadNative": "LADDA NER GEMINI NANO",
+        "privacyNative": "Privat: Gemini Nano körs på telefonen, i Androids egen AICore. Google uppger att indata, bearbetning och svar stannar på enheten, och appen skickar inget någonstans. Android laddar ner och uppdaterar modellen själv."
       }
     }
   },

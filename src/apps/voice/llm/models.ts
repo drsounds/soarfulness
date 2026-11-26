@@ -1,4 +1,4 @@
-import type { VoiceLlmModel } from "../settings";
+import type { WebLlmModel } from "../settings";
 
 // VOICE → LLM: the on-device models the interpreter can run, as WebLLM
 // (MLC) prebuilt model ids. All are 4-bit and run on the GPU through
@@ -9,7 +9,7 @@ import type { VoiceLlmModel } from "../settings";
 // memory it needs.
 
 export type LlmModelInfo = {
-  id: VoiceLlmModel;
+  id: WebLlmModel;
   /** WebLLM prebuilt model id. */
   webllmId: string;
   label: string;
@@ -17,7 +17,7 @@ export type LlmModelInfo = {
   gpuMb: number;
 };
 
-export const LLM_MODELS: Record<VoiceLlmModel, LlmModelInfo> = {
+export const LLM_MODELS: Record<WebLlmModel, LlmModelInfo> = {
   "qwen2.5-0.5b": {
     id: "qwen2.5-0.5b",
     webllmId: "Qwen2.5-0.5B-Instruct-q4f16_1-MLC",

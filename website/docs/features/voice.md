@@ -155,6 +155,32 @@ server option of any kind.
 Without WebGPU (Firefox, older browsers, possibly the Android WebView) the
 panel says so and the rules are used.
 
+### Gemini Nano on Android
+
+In the Android app the model can instead be **Gemini Nano**, Android's own
+on-device model, bridged by the native `OnDeviceLlm` plugin
+(`android/.../OnDeviceLlmPlugin.java`, ML Kit GenAI Prompt API on AICore,
+`com.google.mlkit:genai-prompt`, beta). **AI MODEL → AUTO** (the default)
+uses it whenever the app runs on Android with the plugin, and the smallest
+WebGPU model elsewhere; it can also be picked by hand (only listed in the
+Android app).
+
+- Google documents that the GenAI APIs run entirely on the device (input,
+  inference and output are processed locally). The plugin itself makes no
+  network calls. Android (AICore) installs and updates the model; DOWNLOAD
+  GEMINI NANO asks it to, and there is no DELETE (the model is shared by
+  apps).
+- Phones: Gemini Nano is on recent flagships (Pixel 9 and later, Galaxy S25
+  and later, many recent Xiaomi, OPPO, vivo, OnePlus, Honor, Motorola...).
+  Elsewhere `checkStatus()` says UNAVAILABLE and the panel suggests a WebGPU
+  model or the rules. Not on phones with an unlocked bootloader.
+- The Java API has no JSON-schema constraint, so the answer is only asked
+  for as JSON (`NativeLlm.flattenMessages`), read with the tolerant
+  `parseReply()`, and validated by the toolbox like any other answer.
+- AICore only answers while the app is in the foreground and has a per-app
+  quota (`BUSY`); such errors fall back to the rules.
+- The app's `minSdkVersion` is 26 (Android 8.0) because the library needs it.
+
 ### The internal tools (MCP-style)
 
 The model never changes anything itself. It answers with tool calls, and
@@ -203,7 +229,7 @@ calls it made, anything refused, and whether the rules took over.
 | `voiceTranscriptOn` | SHOW WHAT WAS HEARD: the caption at the bottom | on |
 | `voiceDebug` | DEBUG WINDOW: every phrase, its match and score, a box to type commands, every command and setting name | off |
 | `voiceInterpreter` | INTERPRETER: `rules`, `hybrid` (rules + on-device AI), `llm` (on-device AI first) | `rules` |
-| `voiceLlmModel` | AI MODEL | `qwen2.5-0.5b` |
+| `voiceLlmModel` | AI MODEL: `auto`, `gemini-nano` (Android), or a WebGPU model | `auto` |
 | `voiceLlmTimeoutMs` | AI TIME LIMIT, 500–10000 ms | 2500 |
 
 Like the gamepad settings they belong to the device: they are not in

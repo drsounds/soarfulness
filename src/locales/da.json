@@ -872,13 +872,23 @@
           "downloading": "Downloader modellen… {{pct}} %",
           "loading": "Indlæser modellen… {{pct}} %",
           "ready": "Klar. AI'en kører på enheden.",
-          "error": "Modellen kunne ikke indlæses: {{error}}"
+          "error": "Modellen kunne ikke indlæses: {{error}}",
+          "downloadingNative": "Android downloader Gemini Nano… {{done}}",
+          "native": {
+            "unsupported": "Telefonen har ikke Gemini Nano (Androids AI på enheden). Vælg en WebGPU-model i stedet, eller brug reglerne.",
+            "absent": "Gemini Nano findes til telefonen, men er ikke downloadet endnu. Android downloader den én gang; indtil da bruges reglerne.",
+            "ready": "Klar. Gemini Nano kører på telefonen."
+          }
         },
         "download": "DOWNLOAD MODEL (~{{mb}} MB, KRÆVER ~{{gpu}} MB GRAFIKHUKOMMELSE)",
         "remove": "SLET MODELLEN FRA ENHEDEN",
         "timeout": "AI-TIDSGRÆNSE",
         "timeoutHint": "Har AI'en ikke svaret inden da, bruges reglernes svar.",
-        "privacy": "Privat: AI-modellen kører på enheden, i selve appen. Det du siger, indstillingerne og svarene forlader aldrig enheden; netværket er lukket, mens den arbejder. Kun modelfilen downloades, én gang."
+        "privacy": "Privat: AI-modellen kører på enheden, i selve appen. Det du siger, indstillingerne og svarene forlader aldrig enheden; netværket er lukket, mens den arbejder. Kun modelfilen downloades, én gang.",
+        "modelAuto": "AUTO ({{name}})",
+        "geminiNano": "GEMINI NANO (ANDROID)",
+        "downloadNative": "DOWNLOAD GEMINI NANO",
+        "privacyNative": "Privat: Gemini Nano kører på telefonen, i Androids egen AICore. Google oplyser, at input, behandling og svar bliver på enheden, og appen sender intet nogen steder hen. Android downloader og opdaterer selv modellen."
       }
     }
   },

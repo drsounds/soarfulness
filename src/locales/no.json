@@ -872,13 +872,23 @@
           "downloading": "Laster ned modellen… {{pct}} %",
           "loading": "Laster modellen… {{pct}} %",
           "ready": "Klar. AI-en kjører på enheten.",
-          "error": "Modellen kunne ikke lastes: {{error}}"
+          "error": "Modellen kunne ikke lastes: {{error}}",
+          "downloadingNative": "Android laster ned Gemini Nano… {{done}}",
+          "native": {
+            "unsupported": "Telefonen har ikke Gemini Nano (Androids AI på enheten). Velg en WebGPU-modell i stedet, eller bruk reglene.",
+            "absent": "Gemini Nano finnes for telefonen, men er ikke lastet ned ennå. Android laster den ned én gang; til da brukes reglene.",
+            "ready": "Klar. Gemini Nano kjører på telefonen."
+          }
         },
         "download": "LAST NED MODELL (~{{mb}} MB, TRENGER ~{{gpu}} MB GRAFIKKMINNE)",
         "remove": "SLETT MODELLEN FRA ENHETEN",
         "timeout": "AI-TIDSGRENSE",
         "timeoutHint": "Har AI-en ikke svart innen da, brukes reglenes svar.",
-        "privacy": "Privat: AI-modellen kjører på enheten, i appen selv. Det du sier, innstillingene og svarene forlater aldri enheten; nettverket er stengt mens den arbeider. Bare modellfilen lastes ned, én gang."
+        "privacy": "Privat: AI-modellen kjører på enheten, i appen selv. Det du sier, innstillingene og svarene forlater aldri enheten; nettverket er stengt mens den arbeider. Bare modellfilen lastes ned, én gang.",
+        "modelAuto": "AUTO ({{name}})",
+        "geminiNano": "GEMINI NANO (ANDROID)",
+        "downloadNative": "LAST NED GEMINI NANO",
+        "privacyNative": "Privat: Gemini Nano kjører på telefonen, i Androids egen AICore. Google oppgir at inndata, behandling og svar blir på enheten, og appen sender ingenting noe sted. Android laster ned og oppdaterer modellen selv."
       }
     }
   },

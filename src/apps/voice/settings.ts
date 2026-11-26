@@ -30,9 +30,20 @@ export const VOICE_LANGS: VoiceLang[] = [
 export type VoiceInterpreter = "rules" | "hybrid" | "llm";
 export const VOICE_INTERPRETERS: VoiceInterpreter[] = ["rules", "hybrid", "llm"];
 
-/** On-device models the LLM interpreter can use (llm/models.ts). */
-export type VoiceLlmModel = "qwen2.5-0.5b" | "llama-3.2-1b" | "qwen2.5-1.5b";
-export const VOICE_LLM_MODELS: VoiceLlmModel[] = ["qwen2.5-0.5b", "llama-3.2-1b", "qwen2.5-1.5b"];
+/** Models that run in the page with WebGPU (llm/models.ts, llm/LocalLlm.ts). */
+export type WebLlmModel = "qwen2.5-0.5b" | "llama-3.2-1b" | "qwen2.5-1.5b";
+export const WEB_LLM_MODELS: WebLlmModel[] = ["qwen2.5-0.5b", "llama-3.2-1b", "qwen2.5-1.5b"];
+
+/**
+ * On-device models the LLM interpreter can use:
+ * - "auto": Gemini Nano in the Android app when the phone has it, otherwise
+ *   the smallest WebGPU model;
+ * - "gemini-nano": Android's own on-device Gemini Nano (ML Kit GenAI Prompt
+ *   API on AICore), through the native OnDeviceLlm plugin (llm/NativeLlm.ts);
+ * - a WebGPU model, downloaded into the app.
+ */
+export type VoiceLlmModel = "auto" | "gemini-nano" | WebLlmModel;
+export const VOICE_LLM_MODELS: VoiceLlmModel[] = ["auto", "gemini-nano", ...WEB_LLM_MODELS];
 
 export type VoiceSettings = {
   /**
@@ -73,8 +84,8 @@ export const VOICE_DEFAULTS: VoiceSettings = {
   voiceTranscriptOn: true,
   voiceDebug: false,
   voiceInterpreter: "rules",
-  // The smallest: ~0.3 GB download, ~1 GB of GPU memory, fast enough on phones.
-  voiceLlmModel: "qwen2.5-0.5b",
+  // Gemini Nano where Android has it, else the smallest WebGPU model.
+  voiceLlmModel: "auto",
   voiceLlmTimeoutMs: 2500,
 };
 

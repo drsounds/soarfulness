@@ -872,13 +872,23 @@
           "downloading": "Downloading the model… {{pct}}%",
           "loading": "Loading the model… {{pct}}%",
           "ready": "Ready. The AI runs on this device.",
-          "error": "The model could not be loaded: {{error}}"
+          "error": "The model could not be loaded: {{error}}",
+          "downloadingNative": "Android is downloading Gemini Nano… {{done}}",
+          "native": {
+            "unsupported": "This phone has no Gemini Nano (Android's on-device AI). Pick a WebGPU model instead, or use the rules.",
+            "absent": "Gemini Nano is available for this phone but not downloaded yet. Android downloads it once; until then the rules are used.",
+            "ready": "Ready. Gemini Nano runs on this phone."
+          }
         },
         "download": "DOWNLOAD MODEL (~{{mb}} MB, NEEDS ~{{gpu}} MB GPU MEMORY)",
         "remove": "DELETE MODEL FROM THIS DEVICE",
         "timeout": "AI TIME LIMIT",
         "timeoutHint": "If the AI has no answer by then, the rules' answer is used instead.",
-        "privacy": "Private: the AI model runs on this device, in the app itself. What you say, the settings and its answers never leave the device; its network is closed while it works. Only the model file is downloaded, once."
+        "privacy": "Private: the AI model runs on this device, in the app itself. What you say, the settings and its answers never leave the device; its network is closed while it works. Only the model file is downloaded, once.",
+        "modelAuto": "AUTO ({{name}})",
+        "geminiNano": "GEMINI NANO (ANDROID)",
+        "downloadNative": "DOWNLOAD GEMINI NANO",
+        "privacyNative": "Private: Gemini Nano runs on this phone, in Android's own AICore. Google states that input, processing and output stay on the device, and the app sends nothing anywhere. Android downloads and updates the model itself."
       }
     }
   },

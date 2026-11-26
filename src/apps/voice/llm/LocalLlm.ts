@@ -1,5 +1,4 @@
-import { useSyncExternalStore } from "react";
-import type { VoiceLlmModel } from "../settings";
+import type { WebLlmModel } from "../settings";
 import type { LlmEngine } from "./LlmInterpreter";
 import { LLM_MODELS } from "./models";
 import type { ChatMessage } from "./prompt";
@@ -34,7 +33,10 @@ export type LocalLlmStatus =
 
 export type LocalLlmState = {
   status: LocalLlmStatus;
-  model: VoiceLlmModel | null;
+  /** The model in use (a WebLlmModel here, "gemini-nano" in NativeLlm). */
+  model: string | null;
+  /** DELETE MODEL is possible (WebGPU models; Android manages Gemini Nano itself). */
+  canRemove?: boolean;
   progress: number;
   /** WebLLM's progress text while downloading / loading. */
   detail: string;
@@ -74,6 +76,7 @@ export class LocalLlm implements LlmEngine {
     progress: 0,
     detail: "",
     error: null,
+    canRemove: true,
   };
   private readonly listeners = new Set<() => void>();
   private worker: WorkerLike | null = null;
@@ -108,7 +111,7 @@ export class LocalLlm implements LlmEngine {
    * interpreter. Starts the worker and loads a model already in the cache;
    * a model that isn't there waits for download().
    */
-  sync(on: boolean, model: VoiceLlmModel): void {
+  sync(on: boolean, model: WebLlmModel): void {
     if (!on) {
       if (this.state.status !== "off") this.shutdown();
       return;
@@ -119,7 +122,7 @@ export class LocalLlm implements LlmEngine {
     void this.check(model, this.generation);
   }
 
-  private async check(model: VoiceLlmModel, gen: number): Promise<void> {
+  private async check(model: WebLlmModel, gen: number): Promise<void> {
     if (!(await this.gpuAvailable())) {
       if (gen === this.generation) this.emit({ status: "unsupported" });
       return;
@@ -140,7 +143,7 @@ export class LocalLlm implements LlmEngine {
     }
   }
 
-  private async load(model: VoiceLlmModel, gen: number, status: "loading" | "downloading") {
+  private async load(model: WebLlmModel, gen: number, status: "loading" | "downloading") {
     this.emit({ status, progress: 0, detail: "", error: null });
     await this.call({ type: "load", modelId: LLM_MODELS[model].webllmId });
     if (gen === this.generation) this.emit({ status: "ready", progress: 1, detail: "" });
@@ -148,7 +151,7 @@ export class LocalLlm implements LlmEngine {
 
   /** VOICE → DOWNLOAD MODEL: fetch the weights once, then load them. */
   async download(): Promise<void> {
-    const model = this.state.model;
+    const model = this.state.model as WebLlmModel | null;
     if (!model || this.state.status === "downloading" || this.state.status === "ready") return;
     const gen = ++this.generation;
     try {
@@ -160,7 +163,7 @@ export class LocalLlm implements LlmEngine {
 
   /** VOICE → DELETE MODEL: frees the storage; the rules take over. */
   async remove(): Promise<void> {
-    const model = this.state.model;
+    const model = this.state.model as WebLlmModel | null;
     if (!model) return;
     const gen = ++this.generation;
     try {
@@ -226,10 +229,3 @@ export class LocalLlm implements LlmEngine {
 }
 
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
-
-/** The app's one on-device model. */
-export const localLlm = new LocalLlm();
-
-export function useLocalLlmState(): LocalLlmState {
-  return useSyncExternalStore(localLlm.subscribe, localLlm.get, localLlm.get);
-}

@@ -89,7 +89,7 @@ import { VoiceDebugWindow } from "@/apps/voice/VoiceDebugWindow";
 import { VoiceTranscript } from "@/apps/voice/VoiceTranscript";
 import { SettingResolver, createVoiceRegistry, type VoiceContext } from "@/apps/voice/commands";
 import { LlmInterpreter } from "@/apps/voice/llm/LlmInterpreter";
-import { localLlm } from "@/apps/voice/llm/LocalLlm";
+import { onDeviceLlm } from "@/apps/voice/llm/onDeviceLlm";
 import { SETTING_CATALOG } from "@/apps/voice/settingCatalog.generated";
 import { buildSettingTargets } from "@/apps/voice/settingTargets";
 import { voiceBus } from "@/apps/voice/voiceBus";
@@ -13394,7 +13394,7 @@ export function Aquafulness() {
   // VOICE → INTERPRETER: the on-device LLM, acting through the app's
   // internal tools (apps/voice/llm/VoiceToolbox.ts), as an option next to
   // the rules above. It never runs while the interpreter is "rules".
-  const voiceLlm = useMemo(() => new LlmInterpreter(localLlm), []);
+  const voiceLlm = useMemo(() => new LlmInterpreter(onDeviceLlm), []);
   useEffect(() => {
     const voiceContext = (): VoiceContext => {
       const snapshot = buildPersistedSnapshot() as unknown as Record<string, unknown>;
@@ -13417,7 +13417,7 @@ export function Aquafulness() {
         ? (text) => voiceLlm.interpret(text, voiceContext(), voice.values.voiceLlmTimeoutMs)
         : undefined,
       llmFirst: voice.values.voiceInterpreter === "llm",
-      llmReady: () => localLlm.isReady(),
+      llmReady: () => onDeviceLlm.isReady(),
       run: (match) => {
         if (match.outcome.patch) applySettingsPatch(match.outcome.patch as Partial<Persisted>);
         for (const a of match.outcome.actions ?? []) runVoiceAction(a);
