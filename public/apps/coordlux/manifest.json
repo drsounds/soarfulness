@@ -1,3 +1,6 @@
 {
-  "scenes": [{ "id": "Coordlux", "name": "Coordlux" }]
+  "scenes": [
+    { "id": "Coordlux", "name": "Coordlux" },
+    { "id": "Roadlux", "name": "Roadlux" }
+  ]
 }
