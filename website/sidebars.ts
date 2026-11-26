@@ -41,6 +41,7 @@ const sidebars: SidebarsConfig = {
         "features/movement-modes",
         "features/waves-and-water",
         "features/open-drift",
+        "features/roaming",
         "features/wind",
         "features/snow",
         "features/rain",

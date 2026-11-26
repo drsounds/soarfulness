@@ -20,6 +20,7 @@ map.
 | AppLinks | `lib/appLinks.ts` | Launch URL, `appUrlOpen` events for Android App Links (bath links open in the app), the share sheet |
 | DeviceFiles | `lib/deviceFiles.ts` | Android "save as" / "open" pickers. `openFile` accepts `maxBytes` and rejects with `TOO_LARGE`. Files cross the bridge as base64. |
 | LiveUpdate | `lib/liveUpdate.ts` | Downloads newer web bundles from the deployed site and switches on next launch |
+| RoamingMotion | `apps/roaming/roamingBridge.ts` | Receives the Roaming app's `se.spacify.app.roaming.event.MOTION` broadcasts while ROAMING is on and the app is visible, and forwards them as `motion` events. See [Move with your body](../features/roaming.md) |
 | AmbientAudio | `lib/ambientAudio.ts` | Plays the water track with Android `MediaPlayer` so it survives audio-focus loss |
 
 - There is no iOS project.

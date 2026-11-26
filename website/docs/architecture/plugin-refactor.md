@@ -56,6 +56,7 @@ Swedish, like `NORRSKEN`) goes in the manifest's `name`.
 | `hood` | HUVA | bather | bather | | `Hood.ts`, `hoodLayers.ts`, `HoodPanel.tsx` |
 | `neon` | NEON | scene-fx | effects | | `NeonEdges.ts`, `neonAccent.ts` (edge filter: `lib/edgeSelect.ts`) |
 | `open-drift` | HAVSDRIFT | motion | drift | | `OpenDrift.ts` |
+| `roaming` | ROAMING | motion | drift | | `RoamingMotion.ts`, `roamingBridge.ts`, `RoamingPanel.tsx` |
 | `retro` | RETRO | screen-fx | graphics | | `retroShader.ts` |
 | `rain` | REGN | scene-fx | weather | day-night, wind | `Rainfall.ts`, `RainAudio.ts` |
 | `sky-puffs` | MOLNPUFFAR | scene-fx | clouds | | `SkyPuffsRuntime.ts` |
@@ -248,6 +249,7 @@ Runtimes so far:
 | `underwater-fog` | `UnderwaterFogRuntime` | `setElement()` with the overlay DOM element |
 | `wind` | `WindRuntime` | `update()`, `waveDirection()`, `current()`, `sound()`, `swayOffset`, `steersWaves` |
 | `open-drift` | `OpenDriftRuntime` | `step()` in the physics step |
+| `roaming` | `RoamingRuntime` | `step()` in the physics step, after open-drift; listens to the native plugin while on |
 
 `frame()` covers apps that only draw. Wind and open drift feed the host's
 physics (wave heading, sway, player position), so their runtimes expose
@@ -356,7 +358,7 @@ implements or inherits with `"archetype"` in its manifest:
 | `time` | aspect | day-night |
 | `celebration` | aspect | confetti, fireworks |
 | `water` | aspect | underwater-fog |
-| `camera` | aspect | tornado, open-drift |
+| `camera` | aspect | tornado, open-drift, roaming |
 
 For now these are declarations only: no code reads them except the registry
 test, which checks that every app declares a known archetype and that every
