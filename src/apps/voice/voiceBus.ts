@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import type { VoiceMatch } from "./VoiceCommandRegistry";
+import { isNewEffect, type VoiceTiming } from "./utterance";
 
 // VOICE: the shared state between the recognizer (VoiceRuntime), the host's
 // command handler (routes/index.tsx) and the UI (transcript, panel, debug
@@ -29,6 +30,8 @@ export type VoiceLogEntry = {
   alternatives: string[];
   source: "speech" | "typed";
   match: VoiceMatch | null;
+  /** Speech only: when it was heard, acted on and finished (utterance.ts). */
+  timing?: VoiceTiming;
 };
 
 export type VoiceState = {
@@ -50,8 +53,29 @@ export type VoiceVocabulary = {
   settings: { key: string; label: string; kind: string; names: string[] }[];
 };
 
-/** Runs a heard phrase: returns the match it acted on (or null). */
-export type VoiceHandler = (alternatives: string[]) => VoiceMatch | null;
+/**
+ * The host's side: match() finds the command for a phrase without doing
+ * anything (it runs on partial results too), run() does what it says.
+ */
+export type VoiceHandler = {
+  match(alternatives: string[]): VoiceMatch | null;
+  run(match: VoiceMatch): void;
+};
+
+/** Default VOICE → ACT EARLY: how long partial words must stay the same. */
+export const DEFAULT_EARLY_MS = 400;
+
+/** The phrase being heard right now (see utterance.ts). */
+type Utterance = {
+  spokeAt: number;
+  quietAt: number;
+  endAt: number | null;
+  text: string;
+  fired: VoiceMatch[];
+  /** Log entry of the last early run, which the final result then updates. */
+  entryId: number | null;
+  timer: ReturnType<typeof setTimeout> | null;
+};
 
 const MAX_LOG = 60;
 let state: VoiceState = {
@@ -66,11 +90,88 @@ let state: VoiceState = {
 let nextId = 1;
 let handler: VoiceHandler | null = null;
 let vocabulary: VoiceVocabulary = { commands: [], settings: [] };
+let earlyMs = DEFAULT_EARLY_MS;
+let utt: Utterance | null = null;
 const listeners = new Set<() => void>();
 
 function emit(patch: Partial<VoiceState>) {
   state = { ...state, ...patch };
   listeners.forEach((l) => l());
+}
+
+function newUtterance(now: number): Utterance {
+  return {
+    spokeAt: now,
+    quietAt: now,
+    endAt: null,
+    text: "",
+    fired: [],
+    entryId: null,
+    timer: null,
+  };
+}
+
+function dropUtterance() {
+  if (utt?.timer) clearTimeout(utt.timer);
+  utt = null;
+}
+
+/** handler.match, timed, never throwing. */
+function matchTimed(alts: string[]): { match: VoiceMatch | null; ms: number } {
+  const t0 = performance.now();
+  let match: VoiceMatch | null = null;
+  try {
+    match = handler ? handler.match(alts) : null;
+  } catch (e) {
+    console.warn("[voice] matching failed", e);
+  }
+  return { match, ms: performance.now() - t0 };
+}
+
+function runSafe(match: VoiceMatch): boolean {
+  try {
+    handler?.run(match);
+    return true;
+  } catch (e) {
+    console.warn("[voice] command failed", e);
+    return false;
+  }
+}
+
+function addEntry(entry: Omit<VoiceLogEntry, "id">): number {
+  const id = nextId++;
+  emit({ interim: "", log: [{ id, ...entry }, ...state.log].slice(0, MAX_LOG) });
+  return id;
+}
+
+function updateEntry(id: number, patch: (e: VoiceLogEntry) => VoiceLogEntry) {
+  emit({ interim: "", log: state.log.map((e) => (e.id === id ? patch(e) : e)) });
+}
+
+/** The partial words have not changed for earlyMs: act on them now. */
+function actEarly(u: Utterance) {
+  u.timer = null;
+  if (u !== utt || !u.text) return;
+  const { match, ms } = matchTimed([u.text]);
+  if (!match || !isNewEffect(match, u.fired)) return;
+  if (!runSafe(match)) return;
+  u.fired.push(match);
+  const now = Date.now();
+  u.entryId = addEntry({
+    at: now,
+    alternatives: [u.text],
+    source: "speech",
+    match,
+    timing: {
+      spokeAt: u.spokeAt,
+      quietAt: u.quietAt,
+      endAt: u.endAt,
+      firedAt: now,
+      finalAt: null,
+      early: true,
+      matchMs: ms,
+    },
+  });
 }
 
 export const voiceBus = {
@@ -97,6 +198,86 @@ export const voiceBus = {
   setInterim(interim: string) {
     if (interim !== state.interim) emit({ interim });
   },
+  /** VOICE → ACT EARLY in ms; 0 waits for the recognizer's final result. */
+  setEarlyMs(ms: number) {
+    earlyMs = Math.max(0, ms);
+  },
+  earlyMs: (): number => earlyMs,
+  /** The recognizer's partial result: the words heard so far in this phrase. */
+  partial(text: string, now = Date.now()) {
+    const words = text.trim();
+    if (!words) {
+      this.setInterim("");
+      return;
+    }
+    if (!utt) utt = newUtterance(now);
+    // Recognizers repeat the same partial: only a change restarts the wait.
+    if (words === utt.text) return;
+    utt.text = words;
+    utt.quietAt = now;
+    this.setInterim(text);
+    if (utt.timer) clearTimeout(utt.timer);
+    utt.timer = null;
+    if (earlyMs > 0) {
+      const u = utt;
+      u.timer = setTimeout(() => actEarly(u), earlyMs);
+    }
+  },
+  /** The recognizer heard speech begin / end (Android, Web Speech). */
+  speech(phase: "begin" | "end", now = Date.now()) {
+    if (phase === "begin") {
+      if (!utt) utt = newUtterance(now);
+    } else if (utt) {
+      utt.endAt = now;
+    }
+  },
+  /** A new recognizer session: whatever was half heard is gone. */
+  newSession() {
+    dropUtterance();
+  },
+  /**
+   * The recognizer's final result for the phrase. Runs it unless an early
+   * run of this phrase already did the same (utterance.ts).
+   */
+  final(alternatives: string[], now = Date.now()): VoiceMatch | null {
+    const u = utt ?? newUtterance(now);
+    if (u.timer) clearTimeout(u.timer);
+    utt = null;
+    const alts = alternatives.map((a) => a.trim()).filter(Boolean);
+    if (alts.length === 0) {
+      this.setInterim("");
+      return null;
+    }
+    if (!u.text) u.quietAt = now;
+    const { match, ms } = matchTimed(alts);
+    const isNew = !!match && isNewEffect(match, u.fired);
+    if (u.entryId !== null && !isNew) {
+      // Already done early: just note the final words and when they came.
+      updateEntry(u.entryId, (e) => ({
+        ...e,
+        alternatives: alts,
+        timing: e.timing ? { ...e.timing, finalAt: now, endAt: u.endAt } : e.timing,
+      }));
+      return null;
+    }
+    const ran = isNew && match ? runSafe(match) : false;
+    addEntry({
+      at: now,
+      alternatives: alts,
+      source: "speech",
+      match: isNew ? match : null,
+      timing: {
+        spokeAt: u.spokeAt,
+        quietAt: u.quietAt,
+        endAt: u.endAt,
+        firedAt: ran ? now : null,
+        finalAt: now,
+        early: false,
+        matchMs: ms,
+      },
+    });
+    return isNew ? match : null;
+  },
   /** The host's command handler (set on every render, so it sees fresh state). */
   setHandler(h: VoiceHandler | null) {
     handler = h;
@@ -105,25 +286,15 @@ export const voiceBus = {
     vocabulary = v;
   },
   vocabulary: (): VoiceVocabulary => vocabulary,
-  /** A final phrase from the recognizer, or one typed in the debug window. */
-  submit(alternatives: string[], source: VoiceLogEntry["source"] = "speech"): VoiceMatch | null {
+  /** A whole phrase typed in the debug window (or fed in by a test): runs it. */
+  submit(alternatives: string[], source: VoiceLogEntry["source"] = "typed"): VoiceMatch | null {
+    if (source === "speech") return this.final(alternatives);
     const alts = alternatives.map((a) => a.trim()).filter(Boolean);
     if (alts.length === 0) return null;
-    let match: VoiceMatch | null = null;
-    try {
-      match = handler ? handler(alts) : null;
-    } catch (e) {
-      console.warn("[voice] command failed", e);
-    }
-    const entry: VoiceLogEntry = {
-      id: nextId++,
-      at: Date.now(),
-      alternatives: alts,
-      source,
-      match,
-    };
-    emit({ interim: "", log: [entry, ...state.log].slice(0, MAX_LOG) });
-    return match;
+    const { match } = matchTimed(alts);
+    const ran = match ? runSafe(match) : false;
+    addEntry({ at: Date.now(), alternatives: alts, source, match: ran ? match : null });
+    return ran ? match : null;
   },
   clearLog() {
     emit({ log: [] });

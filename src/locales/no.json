@@ -784,6 +784,9 @@
       "langAuto": "AUTO ({{lang}})",
       "threshold": "MATCHKRAV",
       "thresholdHint": "Hvor nær en kommando det som ble hørt må være. Senk hvis kommandoer går tapt, øk hvis ting skjer av seg selv.",
+      "early": "HANDLE TIDLIG",
+      "earlyOff": "AV (VENT)",
+      "earlyHint": "Kjører en kommando når ordene som høres har vært uendret så lenge, i stedet for å vente på at gjenkjenningen avslutter frasen (den venter på stillhet). Lavere er raskere; øk hvis kommandoer kjøres før du er ferdig. AV venter på sluttresultatet.",
       "step": "STEGSTØRRELSE",
       "transcript": "VIS HVA SOM BLE HØRT",
       "debug": "FEILSØKINGSVINDU",
@@ -821,7 +824,14 @@
         "settings": "INNSTILLINGER ({{count}})",
         "clear": "TØM",
         "filter": "Filtrer…",
-        "empty": "Ingenting hørt ennå. Si noe, eller skriv en kommando over."
+        "empty": "Ingenting hørt ennå. Si noe, eller skriv en kommando over.",
+        "latency": "Reaksjon: {{ms}} ms (median av {{count}})",
+        "early": "tidlig",
+        "final": "endelig",
+        "acted": "kjørte {{ms}} ms etter at ordene stoppet",
+        "finalAfter": "sluttresultat {{ms}} ms etter",
+        "endToFinal": "tale slutt → sluttresultat {{ms}} ms",
+        "match": "matching {{ms}} ms"
       },
       "downloadModel": "LAST NED TALEMODELL FOR {{lang}}",
       "privacy": "Privat: talen gjenkjennes kun på denne enheten. Ingen lyd eller tekst sendes noe sted."

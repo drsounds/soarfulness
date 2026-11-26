@@ -784,6 +784,9 @@
       "langAuto": "AUTO ({{lang}})",
       "threshold": "MATCH STRICTNESS",
       "thresholdHint": "How close what was heard must be to a command. Lower it if commands are missed, raise it if things happen by themselves.",
+      "early": "ACT EARLY",
+      "earlyOff": "OFF (WAIT)",
+      "earlyHint": "Runs a command once the words heard have stayed the same this long, instead of waiting for the recognizer to finish the phrase (which waits for silence). Lower is faster; raise it if commands run before you finish. OFF waits for the final result.",
       "step": "STEP SIZE",
       "transcript": "SHOW WHAT WAS HEARD",
       "debug": "DEBUG WINDOW",
@@ -821,7 +824,14 @@
         "settings": "SETTINGS ({{count}})",
         "clear": "CLEAR",
         "filter": "Filter…",
-        "empty": "Nothing heard yet. Say something, or type a command above."
+        "empty": "Nothing heard yet. Say something, or type a command above.",
+        "latency": "Reaction: {{ms}} ms (median of {{count}})",
+        "early": "early",
+        "final": "final",
+        "acted": "acted {{ms}} ms after the words settled",
+        "finalAfter": "final result {{ms}} ms after",
+        "endToFinal": "end of speech → final {{ms}} ms",
+        "match": "match {{ms}} ms"
       },
       "downloadModel": "DOWNLOAD {{lang}} SPEECH MODEL",
       "privacy": "Private: speech is recognized on this device only. No audio or text is sent anywhere."

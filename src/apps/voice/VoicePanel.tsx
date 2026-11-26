@@ -41,8 +41,15 @@ export function VoicePanel({ voice }: { voice: AppSettingsHandle<VoiceSettings> 
   const { t } = useTranslation();
   const state = useVoiceState();
   const onOff = (v: boolean) => (v ? t("common.on") : t("common.off"));
-  const { voiceOn, voiceLang, voiceMatchThreshold, voiceStepScale, voiceTranscriptOn, voiceDebug } =
-    voice.values;
+  const {
+    voiceOn,
+    voiceLang,
+    voiceMatchThreshold,
+    voiceEarlyMs,
+    voiceStepScale,
+    voiceTranscriptOn,
+    voiceDebug,
+  } = voice.values;
   const s = voice.setters;
   const hint =
     "max-w-[16rem] self-center text-center text-[10px] font-light leading-snug ui-ink-faint";
@@ -105,6 +112,19 @@ export function VoicePanel({ voice }: { voice: AppSettingsHandle<VoiceSettings> 
         onInc={() => s.voiceMatchThreshold((v) => step(v, 0.02, 0.5, 0.98))}
       />
       <p className={hint}>{t("dial.voice.thresholdHint")}</p>
+      <SettingRow
+        label={t("dial.voice.early")}
+        mode="number"
+        value={voiceEarlyMs > 0 ? `${voiceEarlyMs} ms` : t("dial.voice.earlyOff")}
+        rawValue={voiceEarlyMs}
+        onSet={(v) => s.voiceEarlyMs(Math.round(Math.min(1500, Math.max(0, v))))}
+        min={0}
+        max={1500}
+        step={50}
+        onDec={() => s.voiceEarlyMs((v) => step(v, -50, 0, 1500))}
+        onInc={() => s.voiceEarlyMs((v) => step(v, 50, 0, 1500))}
+      />
+      <p className={hint}>{t("dial.voice.earlyHint")}</p>
       <SettingRow
         label={t("dial.voice.step")}
         mode="number"

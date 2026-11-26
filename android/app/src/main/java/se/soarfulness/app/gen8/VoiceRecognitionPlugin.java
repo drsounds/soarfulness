@@ -35,7 +35,14 @@ import java.util.ArrayList;
  * foreground (paused in onPause, resumed in onResume). Events to the WebView:
  *   "partial" {text}            what is being heard right now
  *   "result"  {alternatives}    a finished phrase, most likely first
+ *   "speech"  {phase}           "begin" / "end": the recognizer heard speech start / stop
  *   "status"  {status, error?}  starting / listening / denied / error / off
+ *
+ * LATENCY: the recognizer only finishes a phrase after a stretch of silence, so the web app acts on
+ * "partial" as soon as the words settle (VOICE → ACT EARLY) and "result" only confirms. Here: the
+ * silence lengths are shortened (start option silenceMs; recognizers may ignore them), the next
+ * session starts at once after each phrase, and a session that ends in ERROR_NO_MATCH after
+ * partials still reports its last partial as a result instead of dropping it.
  *
  * Every SpeechRecognizer call has to happen on the main thread.
  */
@@ -51,7 +58,10 @@ public class VoiceRecognitionPlugin extends Plugin {
     private boolean foreground = true;
     private boolean sessionOpen = false;
     private String lang = "en-US";
+    private int silenceMs = 600;
     private int errorsInARow = 0;
+    /** The last partial of the current session, reported if the session ends without results. */
+    private String lastPartial = "";
 
     @PluginMethod
     public void isAvailable(PluginCall call) {
@@ -98,12 +108,20 @@ public class VoiceRecognitionPlugin extends Plugin {
         intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5);
         intent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
         intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getContext().getPackageName());
+        // Finish a phrase after a short silence (Android's default is much longer). Hints only.
+        intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, (long) silenceMs);
+        intent.putExtra(
+            RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS,
+            (long) Math.max(200, silenceMs * 2 / 3)
+        );
         return intent;
     }
 
     @PluginMethod
     public void start(PluginCall call) {
         lang = call.getString("lang", "en-US");
+        Integer silence = call.getInt("silenceMs");
+        if (silence != null) silenceMs = Math.max(200, Math.min(5000, silence));
         wanted = true;
         errorsInARow = 0;
         if (getPermissionState("microphone") != PermissionState.GRANTED) {
@@ -177,6 +195,7 @@ public class VoiceRecognitionPlugin extends Plugin {
         }
         Intent intent = recognizerIntent(lang);
         sessionOpen = true;
+        lastPartial = "";
         try {
             recognizer.startListening(intent);
         } catch (RuntimeException e) {
@@ -188,6 +207,23 @@ public class VoiceRecognitionPlugin extends Plugin {
 
     private void restartLater(long delayMs) {
         main.postDelayed(this::restartNow, delayMs);
+    }
+
+    /** Next session as soon as this callback returns (not from inside it). */
+    private void restartNowOnMain() {
+        main.post(this::restartNow);
+    }
+
+    private void result(ArrayList<String> alternatives) {
+        JSObject data = new JSObject();
+        data.put("alternatives", new JSArray(alternatives));
+        notifyListeners("result", data);
+    }
+
+    private void speech(String phase) {
+        JSObject data = new JSObject();
+        data.put("phase", phase);
+        notifyListeners("speech", data);
     }
 
     private void destroyRecognizer() {
@@ -219,7 +255,9 @@ public class VoiceRecognitionPlugin extends Plugin {
         }
 
         @Override
-        public void onBeginningOfSpeech() {}
+        public void onBeginningOfSpeech() {
+            speech("begin");
+        }
 
         @Override
         public void onRmsChanged(float rmsdB) {}
@@ -228,7 +266,9 @@ public class VoiceRecognitionPlugin extends Plugin {
         public void onBufferReceived(byte[] buffer) {}
 
         @Override
-        public void onEndOfSpeech() {}
+        public void onEndOfSpeech() {
+            speech("end");
+        }
 
         @Override
         public void onError(int error) {
@@ -250,8 +290,14 @@ public class VoiceRecognitionPlugin extends Plugin {
                     return;
                 case SpeechRecognizer.ERROR_NO_MATCH:
                 case SpeechRecognizer.ERROR_SPEECH_TIMEOUT:
-                    // Silence: just listen again.
-                    restartLater(50);
+                    // Silence, or words it gave up on: report what was heard, listen again.
+                    if (!lastPartial.isEmpty()) {
+                        ArrayList<String> heard = new ArrayList<>();
+                        heard.add(lastPartial);
+                        lastPartial = "";
+                        result(heard);
+                    }
+                    restartNowOnMain();
                     return;
                 case SpeechRecognizer.ERROR_RECOGNIZER_BUSY:
                 case SpeechRecognizer.ERROR_CLIENT:
@@ -269,20 +315,25 @@ public class VoiceRecognitionPlugin extends Plugin {
         public void onResults(Bundle results) {
             sessionOpen = false;
             ArrayList<String> list = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-            if (list != null && !list.isEmpty()) {
-                JSObject data = new JSObject();
-                data.put("alternatives", new JSArray(list));
-                notifyListeners("result", data);
+            if ((list == null || list.isEmpty()) && !lastPartial.isEmpty()) {
+                list = new ArrayList<>();
+                list.add(lastPartial);
             }
-            restartLater(50);
+            lastPartial = "";
+            if (list != null && !list.isEmpty()) result(list);
+            // Listen again at once: words said before the next session starts are lost.
+            restartNowOnMain();
         }
 
         @Override
         public void onPartialResults(Bundle partial) {
             ArrayList<String> list = partial.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
             if (list == null || list.isEmpty()) return;
+            String text = list.get(0);
+            if (text == null || text.trim().isEmpty()) return;
+            lastPartial = text;
             JSObject data = new JSObject();
-            data.put("text", list.get(0));
+            data.put("text", text);
             notifyListeners("partial", data);
         }
 

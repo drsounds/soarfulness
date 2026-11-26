@@ -54,6 +54,7 @@ export const SETTING_ALIASES: Record<string, string[]> = {
   voiceTranscriptOn: ["transcript", "subtitles", "voice transcript"],
   voiceStepScale: ["voice step", "step size"],
   voiceMatchThreshold: ["voice threshold", "match threshold"],
+  voiceEarlyMs: ["act early", "voice delay", "early action"],
 };
 
 /** Settings voice never touches (structured values, or would cut itself off). */

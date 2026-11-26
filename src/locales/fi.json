@@ -784,6 +784,9 @@
       "langAuto": "AUTO ({{lang}})",
       "threshold": "TUNNISTUKSEN TARKKUUS",
       "thresholdHint": "Kuinka lähellä komentoa kuullun on oltava. Laske, jos komentoja jää huomaamatta, nosta, jos asioita tapahtuu itsestään.",
+      "early": "TOIMI AIKAISIN",
+      "earlyOff": "POIS (ODOTA)",
+      "earlyHint": "Suorittaa komennon, kun kuullut sanat ovat pysyneet samoina näin kauan, eikä odota tunnistimen lopettavan lausetta (se odottaa hiljaisuutta). Pienempi on nopeampi; nosta, jos komentoja suoritetaan ennen kuin lopetat. POIS odottaa lopullista tulosta.",
       "step": "ASKELKOKO",
       "transcript": "NÄYTÄ MITÄ KUULTIIN",
       "debug": "VIANETSINTÄIKKUNA",
@@ -821,7 +824,14 @@
         "settings": "ASETUKSET ({{count}})",
         "clear": "TYHJENNÄ",
         "filter": "Suodata…",
-        "empty": "Mitään ei ole vielä kuultu. Sano jotain tai kirjoita komento yllä."
+        "empty": "Mitään ei ole vielä kuultu. Sano jotain tai kirjoita komento yllä.",
+        "latency": "Reaktio: {{ms}} ms (mediaani {{count}})",
+        "early": "aikaisin",
+        "final": "lopullinen",
+        "acted": "suoritettu {{ms}} ms sanojen asetuttua",
+        "finalAfter": "lopullinen tulos {{ms}} ms myöhemmin",
+        "endToFinal": "puheen loppu → lopullinen {{ms}} ms",
+        "match": "vertailu {{ms}} ms"
       },
       "downloadModel": "LATAA PUHEMALLI: {{lang}}",
       "privacy": "Yksityinen: puhe tunnistetaan vain tällä laitteella. Ääntä tai tekstiä ei lähetetä minnekään."

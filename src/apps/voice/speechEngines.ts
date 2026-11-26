@@ -18,13 +18,28 @@ import { Capacitor, registerPlugin, type PluginListenerHandle } from "@capacitor
 // installSpeechModel() asks the browser / Android for it.
 
 export type EngineStatus =
-  "starting" | "listening" | "denied" | "error" | "off" | "nolocal" | "download";
+  | "starting"
+  | "listening"
+  | "denied"
+  | "error"
+  | "off"
+  | "nolocal"
+  | "download";
 
 export type EngineCallbacks = {
   onInterim(text: string): void;
   onFinal(alternatives: string[]): void;
   onStatus(status: EngineStatus, error?: string): void;
+  /** The recognizer noticed speech begin or end (for the latency readout). */
+  onSpeech?(phase: "begin" | "end"): void;
 };
+
+/**
+ * Silence (ms) after which the Android recognizer may call a phrase done.
+ * Android's own default is far longer. Some recognizers ignore it; VOICE →
+ * ACT EARLY does not depend on it.
+ */
+export const ANDROID_SILENCE_MS = 600;
 
 export interface SpeechEngine {
   readonly name: "android" | "web-speech";
@@ -34,22 +49,22 @@ export interface SpeechEngine {
 
 // ------------------------------------------------------------- android ----
 
+/** The plugin's events and what each carries. */
+type VoiceRecognitionEvents = {
+  partial: { text?: string };
+  result: { alternatives?: string[] };
+  speech: { phase?: string };
+  status: { status?: string; error?: string };
+};
+
 interface VoiceRecognitionPlugin {
   isAvailable(): Promise<{ available: boolean; onDevice: boolean }>;
-  start(options: { lang: string }): Promise<void>;
+  start(options: { lang: string; silenceMs?: number }): Promise<void>;
   stop(): Promise<void>;
   downloadModel(options: { lang: string }): Promise<void>;
-  addListener(
-    eventName: "partial",
-    listener: (e: { text?: string }) => void,
-  ): Promise<PluginListenerHandle>;
-  addListener(
-    eventName: "result",
-    listener: (e: { alternatives?: string[] }) => void,
-  ): Promise<PluginListenerHandle>;
-  addListener(
-    eventName: "status",
-    listener: (e: { status?: string; error?: string }) => void,
+  addListener<E extends keyof VoiceRecognitionEvents>(
+    eventName: E,
+    listener: (e: VoiceRecognitionEvents[E]) => void,
   ): Promise<PluginListenerHandle>;
 }
 
@@ -81,12 +96,15 @@ class AndroidEngine implements SpeechEngine {
     this.handles = [
       VoiceRecognitionNative.addListener("partial", (e) => this.cb.onInterim(e.text ?? "")),
       VoiceRecognitionNative.addListener("result", (e) => this.cb.onFinal(e.alternatives ?? [])),
+      VoiceRecognitionNative.addListener("speech", (e) => {
+        if (e.phase === "begin" || e.phase === "end") this.cb.onSpeech?.(e.phase);
+      }),
       VoiceRecognitionNative.addListener("status", (e) => {
         const s = ENGINE_STATUSES.find((x) => x === e.status);
         if (s) this.cb.onStatus(s, e.error);
       }),
     ];
-    VoiceRecognitionNative.start({ lang }).catch((err: unknown) =>
+    VoiceRecognitionNative.start({ lang, silenceMs: ANDROID_SILENCE_MS }).catch((err: unknown) =>
       this.cb.onStatus("error", String((err as Error)?.message ?? err)),
     );
   }
@@ -118,6 +136,8 @@ type Recognition = {
   onerror: ((e: { error: string; message?: string }) => void) | null;
   onend: (() => void) | null;
   onstart: (() => void) | null;
+  onspeechstart?: (() => void) | null;
+  onspeechend?: (() => void) | null;
   start(): void;
   abort(): void;
 };
@@ -224,6 +244,8 @@ class WebSpeechEngine implements SpeechEngine {
       this.startedAt = Date.now();
       this.cb.onStatus("listening");
     };
+    rec.onspeechstart = () => this.cb.onSpeech?.("begin");
+    rec.onspeechend = () => this.cb.onSpeech?.("end");
     rec.onresult = (e) => {
       let interim = "";
       for (let i = e.resultIndex; i < e.results.length; i++) {
@@ -255,7 +277,8 @@ class WebSpeechEngine implements SpeechEngine {
       // Browsers end continuous recognition now and then (silence, a minute
       // passed): start again, slower when it keeps ending right away.
       this.quickEnds = Date.now() - this.startedAt < 1500 ? this.quickEnds + 1 : 0;
-      const delay = Math.min(5000, 150 * Math.pow(2, this.quickEnds));
+      // The first restart is immediate: words said in the gap are lost.
+      const delay = this.quickEnds === 0 ? 0 : Math.min(5000, 150 * Math.pow(2, this.quickEnds));
       this.restartTimer = window.setTimeout(() => {
         this.restartTimer = null;
         if (this.wanted) this.open();
