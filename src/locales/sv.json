@@ -628,6 +628,26 @@
         "slosh": "SKVALPANDE"
       },
       "wavePeriod": "VÅGPERIOD"
+    },
+    "roaming": {
+      "on": "ROAMING (RÖR DIG MED KROPPEN)",
+      "strength": "ROAMING-FART",
+      "accel": "ACCELERATIONSTID",
+      "glide": "GLIDTID",
+      "sideways": "LUTA FÖR SIDLED",
+      "unavailable": "Fungerar i Android-appen: installera Roaming, starta spårningen och gå eller spring för att simma.",
+      "waiting": "Väntar på rörelse från Roaming… starta spårningen i Roaming-appen.",
+      "last": "Roaming: {{type}} {{intensity}} %",
+      "type": {
+        "idle": "stilla",
+        "step": "steg",
+        "walking": "går",
+        "running": "springer",
+        "jumping": "hoppar",
+        "squatting": "sitter på huk",
+        "leaning": "lutar",
+        "arms_raised": "armar uppe"
+      }
     }
   },
   "docsPhilosophy": {

@@ -76,6 +76,7 @@ locales; **ids stay `freakOut*`**.
 | `surgeAmp`, `surgeSpeed`, `surgeRotationMode/Speed` | SVALL | Slow back-and-forth current; its direction (`surgeWorldRef` / `surgeDir`) can rotate |
 | `syncWaveWithSway` | | Couples waves and sway |
 | `openDrift*` | HAVSDRIFT | See [Open-water drift](open-drift.md) |
+| `roaming*` | ROAMING | Android app: walk/run with the Roaming app to swim. See [Move with your body](roaming.md) |
 | `windCurrentOn` | VIND → STRÖM | See [Wind](wind.md) |
 
 ## Water level: depth sine and level drift

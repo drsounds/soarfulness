@@ -28,6 +28,8 @@ import { RetroPanel } from "@/apps/retro/RetroPanel";
 import type { RetroSettings } from "@/apps/retro/settings";
 import { OpenDriftPanel } from "@/apps/open-drift/OpenDriftPanel";
 import type { OpenDriftSettings } from "@/apps/open-drift/settings";
+import { RoamingPanel } from "@/apps/roaming/RoamingPanel";
+import type { RoamingSettings } from "@/apps/roaming/settings";
 import { NeonPanel } from "@/apps/neon/NeonPanel";
 import type { NeonSettings } from "@/apps/neon/settings";
 import { FireworksPanel } from "@/apps/fireworks/FireworksPanel";
@@ -504,6 +506,7 @@ export type SettingsPanelProps = {
   snow: AppSettingsHandle<SnowSettings>;
   retro: AppSettingsHandle<RetroSettings>;
   openDrift: AppSettingsHandle<OpenDriftSettings>;
+  roaming: AppSettingsHandle<RoamingSettings>;
   neon: AppSettingsHandle<NeonSettings>;
   fireworks: AppSettingsHandle<FireworksSettings>;
   confetti: AppSettingsHandle<ConfettiSettings>;
@@ -2642,6 +2645,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
           onInc={() => setSurgeRotationSpeed((v) => Math.min(30, +(v + 0.5).toFixed(2)))}
         />
         <OpenDriftPanel openDrift={props.openDrift} />
+        <RoamingPanel roaming={props.roaming} />
       </G>
       <G id="waves">
         <SettingRow

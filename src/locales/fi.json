@@ -628,6 +628,26 @@
         "slosh": "LOISKUVA"
       },
       "wavePeriod": "AALLON JAKSO"
+    },
+    "roaming": {
+      "on": "ROAMING (LIIKU KEHOLLASI)",
+      "strength": "ROAMING-NOPEUS",
+      "accel": "KIIHDYTYSAIKA",
+      "glide": "LIUKUAIKA",
+      "sideways": "KALLISTU SIVULLE",
+      "unavailable": "Toimii Android-sovelluksessa: asenna Roaming, aloita seuranta ja kävele tai juokse uidaksesi.",
+      "waiting": "Odotetaan liikettä Roamingilta… aloita seuranta Roaming-sovelluksessa.",
+      "last": "Roaming: {{type}} {{intensity}} %",
+      "type": {
+        "idle": "paikallaan",
+        "step": "askel",
+        "walking": "kävelee",
+        "running": "juoksee",
+        "jumping": "hyppää",
+        "squatting": "kyykyssä",
+        "leaning": "kallistuu",
+        "arms_raised": "kädet ylhäällä"
+      }
     }
   },
   "docsPhilosophy": {

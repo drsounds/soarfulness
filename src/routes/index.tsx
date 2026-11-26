@@ -69,6 +69,7 @@ import { RETRO_DEFAULTS } from "@/apps/retro/settings";
 import { DAY_NIGHT_DEFAULTS } from "@/apps/day-night/settings";
 import { UNDERWATER_FOG_DEFAULTS } from "@/apps/underwater-fog/settings";
 import { OPEN_DRIFT_DEFAULTS } from "@/apps/open-drift/settings";
+import { ROAMING_DEFAULTS } from "@/apps/roaming/settings";
 import { WIND_DEFAULTS, windOff, type WindSettings } from "@/apps/wind/settings";
 import { DECORATIONS_DEFAULTS } from "@/apps/decorations/settings";
 import { altitudeMix, sanitizeWinds, type WindSource } from "@/apps/wind/wind";
@@ -76,6 +77,7 @@ import windApp from "@/apps/wind/app";
 import { WindHudPanel, type WindControls } from "@/apps/wind/WindPanel";
 import underwaterFogApp from "@/apps/underwater-fog/app";
 import openDriftApp from "@/apps/open-drift/app";
+import roamingApp from "@/apps/roaming/app";
 import snowApp from "@/apps/snow/app";
 import { RAIN_DEFAULTS } from "@/apps/rain/settings";
 import { FIREWORKS_LIGHTS } from "@/apps/fireworks/Fireworks";
@@ -1587,6 +1589,7 @@ const DEFAULTS: Persisted = {
   surgeRotationSpeed: 2,
   ...WIND_DEFAULTS,
   ...OPEN_DRIFT_DEFAULTS,
+  ...ROAMING_DEFAULTS,
   // On by default, generous enough (20km horizontally, 3km up/down) that
   // normal float-mode swimming near origin never brushes it — mainly meant
   // to be discovered by flying far in NOCLIP. worldBoundaryYExtend on means
@@ -2287,6 +2290,8 @@ export function Aquafulness() {
     openDriftDirection: setOpenDriftDirection,
   } = openDrift.setters;
   const { reset: resetOpendrift, patch: patchOpendrift } = openDrift;
+  // ROAMING (apps/roaming): move with the Roaming app's motion broadcasts.
+  const roaming = useAppSettings(ROAMING_DEFAULTS, initial);
   const [worldBoundaryOn, setWorldBoundaryOn] = useState(initial.worldBoundaryOn);
   const [worldBoundarySize, setWorldBoundarySize] = useState(initial.worldBoundarySize);
   const [worldBoundaryHeight, setWorldBoundaryHeight] = useState(initial.worldBoundaryHeight);
@@ -3210,6 +3215,8 @@ export function Aquafulness() {
   windSettingsRef.current = windSettings;
   const openDriftSettingsRef = useRef(openDrift.values);
   openDriftSettingsRef.current = openDrift.values;
+  const roamingSettingsRef = useRef(roaming.values);
+  roamingSettingsRef.current = roaming.values;
   const rainSettingsRef = useRef(rain.values);
   rainSettingsRef.current = rain.values;
   const confettiSettingsRef = useRef(confetti.values);
@@ -3232,6 +3239,7 @@ export function Aquafulness() {
   // export feature (see exportSettingsFile/savePresetAs) so there's only one
   // place that enumerates every field.
   const buildPersistedSnapshot = (): Persisted => ({
+    ...roaming.values,
     waveAmp,
     decorations: deco.decorations,
     timeOfDay,
@@ -3631,6 +3639,7 @@ export function Aquafulness() {
       /* quota or privacy mode — ignore */
     }
   }, [
+    roaming.values,
     waveAmp,
     deco.decorations,
     timeOfDay,
@@ -5555,6 +5564,7 @@ export function Aquafulness() {
     setWindSoundVolume(DEFAULTS.windSoundVolume);
     setWindAltitudeAudioOn(DEFAULTS.windAltitudeAudioOn);
     resetOpendrift();
+    roaming.reset();
     setWorldBoundaryOn(DEFAULTS.worldBoundaryOn);
     setWorldBoundarySize(DEFAULTS.worldBoundarySize);
     setWorldBoundaryHeight(DEFAULTS.worldBoundaryHeight);
@@ -5818,6 +5828,7 @@ export function Aquafulness() {
     if (patch.windSoundVolume !== undefined) setWindSoundVolume(patch.windSoundVolume);
     if (patch.windAltitudeAudioOn !== undefined) setWindAltitudeAudioOn(patch.windAltitudeAudioOn);
     patchOpendrift(patch);
+    roaming.patch(patch);
     if (patch.worldBoundaryOn !== undefined) setWorldBoundaryOn(patch.worldBoundaryOn);
     if (patch.worldBoundarySize !== undefined) setWorldBoundarySize(patch.worldBoundarySize);
     if (patch.worldBoundaryHeight !== undefined) setWorldBoundaryHeight(patch.worldBoundaryHeight);
@@ -8979,6 +8990,7 @@ export function Aquafulness() {
     const aurora = apps.runtime(auroraApp);
     const wind = apps.runtime(windApp);
     const openDrift = apps.runtime(openDriftApp);
+    const roamingRt = apps.runtime(roamingApp);
     const underwaterFog = apps.runtime(underwaterFogApp);
     const neon = apps.runtime(neonApp);
     const snow = apps.runtime(snowApp);
@@ -10460,6 +10472,29 @@ export function Aquafulness() {
         }
       }
 
+      // ROAMING: the Roaming Android app's motion broadcasts (walk, run, lean)
+      // push the player camera-relative like the NAV stick, at up to NAV
+      // speed × STYRKA, accelerating toward the motion's intensity and
+      // gliding to a stop when it eases off (apps/roaming/RoamingMotion.ts).
+      // Moves posRef and the camera together, like HAVSDRIFT above.
+      {
+        const d = roamingRt.step(
+          physDt,
+          !(camMode === "swing" && swingCordActiveRef.current),
+          limitMax("navSpeed", extremeNow),
+          yawRef.current,
+          apps.isOn("roaming")
+            ? roamingSettingsRef.current
+            : { ...roamingSettingsRef.current, roamingOn: false },
+        );
+        if (d.dx !== 0 || d.dz !== 0) {
+          posRef.current.x += d.dx;
+          posRef.current.z += d.dz;
+          camX += d.dx;
+          camZ += d.dz;
+        }
+      }
+
       // VIND STRÖM: a wind-driven surface current (~3.5 % of the wind
       // speed, downwind) carrying posRef and the camera together, so it
       // never turns the view. GUNGA's pendulum owns camX/camZ, so it's
@@ -11222,8 +11257,7 @@ export function Aquafulness() {
                 Math.abs(freakOutSwingAngleRef.current),
                 Math.abs(freakOutSwingAngle2Ref.current),
               ) / 25,
-            ) *
-            Math.min(1, Math.max(0, freakOutSwingSpeedRef.current) / 0.1);
+            ) * Math.min(1, Math.max(0, freakOutSwingSpeedRef.current) / 0.1);
           let foDir = freakOutRotationDirectionRef.current === "ccw" ? -1 : 1;
           if (freakOutRotationOscillateRef.current) {
             freakOutOscPhaseRef.current +=
@@ -12533,6 +12567,7 @@ export function Aquafulness() {
     surgeRotationSpeed,
     setSurgeRotationSpeed,
     openDrift,
+    roaming,
     buoyAmp,
     setBuoyAmp,
     bobSpeed,

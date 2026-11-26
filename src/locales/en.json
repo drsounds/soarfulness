@@ -628,6 +628,26 @@
         "slosh": "SURGING"
       },
       "wavePeriod": "WAVE PERIOD"
+    },
+    "roaming": {
+      "on": "ROAMING (MOVE WITH YOUR BODY)",
+      "strength": "ROAMING SPEED",
+      "accel": "SPEED-UP TIME",
+      "glide": "GLIDE TIME",
+      "sideways": "LEAN TO SIDESTEP",
+      "unavailable": "Works in the Android app: install Roaming, start tracking and walk or run to swim.",
+      "waiting": "Waiting for motion from Roaming… start tracking in the Roaming app.",
+      "last": "Roaming: {{type}} {{intensity}} %",
+      "type": {
+        "idle": "still",
+        "step": "step",
+        "walking": "walking",
+        "running": "running",
+        "jumping": "jumping",
+        "squatting": "squatting",
+        "leaning": "leaning",
+        "arms_raised": "arms raised"
+      }
     }
   },
   "docsPhilosophy": {

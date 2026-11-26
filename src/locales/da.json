@@ -628,6 +628,26 @@
         "slosh": "SKVULPENDE"
       },
       "wavePeriod": "BØLGEPERIODE"
+    },
+    "roaming": {
+      "on": "ROAMING (BEVÆG DIG MED KROPPEN)",
+      "strength": "ROAMING-FART",
+      "accel": "ACCELERATIONSTID",
+      "glide": "GLIDETID",
+      "sideways": "LÆN DIG FOR SIDELÆNS",
+      "unavailable": "Virker i Android-appen: installer Roaming, start sporingen og gå eller løb for at svømme.",
+      "waiting": "Venter på bevægelse fra Roaming… start sporingen i Roaming-appen.",
+      "last": "Roaming: {{type}} {{intensity}} %",
+      "type": {
+        "idle": "stille",
+        "step": "skridt",
+        "walking": "går",
+        "running": "løber",
+        "jumping": "hopper",
+        "squatting": "sidder på hug",
+        "leaning": "læner",
+        "arms_raised": "armene oppe"
+      }
     }
   },
   "docsPhilosophy": {
