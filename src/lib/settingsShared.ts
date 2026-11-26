@@ -26,7 +26,7 @@ import type { GamepadSettings } from "@/apps/gamepad/settings";
 import type { WindSettings } from "@/apps/wind/settings";
 import type { DecorationsSettings } from "@/apps/decorations/settings";
 import { OPEN_DRIFT_SETTING_KEYS } from "@/apps/open-drift/settings";
-import { ROAMING_SETTING_KEYS } from "@/apps/roaming/settings";
+import { ROAMING_PRESET_KEYS } from "@/apps/roaming/settings";
 import { GAMEPAD_SETTING_KEYS } from "@/apps/gamepad/settings";
 import { HOOD_SETTING_KEYS } from "@/apps/hood/settings";
 import { RETRO_SETTING_KEYS } from "@/apps/retro/settings";
@@ -675,7 +675,7 @@ export const PRESET_TAB_FIELDS: Record<SettingsTab, (keyof Persisted)[]> = {
     "surgeRotationMode",
     "surgeRotationSpeed",
     ...OPEN_DRIFT_SETTING_KEYS,
-    ...ROAMING_SETTING_KEYS,
+    ...ROAMING_PRESET_KEYS,
     "buoyAmp",
     "bobSpeed",
     "regularWaves",

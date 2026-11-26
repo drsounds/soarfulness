@@ -635,6 +635,59 @@
       "accel": "SPEED-UP TIME",
       "glide": "GLIDE TIME",
       "sideways": "LEAN TO SIDESTEP",
+      "walkSpeed": "WALK SPEED",
+      "runSpeed": "RUN SPEED",
+      "leanSpeed": "SIDESTEP SPEED",
+      "speedHint": "Share of ROAMING SPEED at full intensity, per gait.",
+      "repeat": "GESTURE REPEAT",
+      "once": "once",
+      "waveAmpStep": "WAVE STEP PER GESTURE",
+      "waveDirStep": "WAVE TURN PER GESTURE",
+      "swayStep": "SWAY STEP PER GESTURE",
+      "swayDirStep": "SWAY TURN PER GESTURE",
+      "mapping": "GESTURE MAPPING",
+      "resetMapping": "RESET TO DEFAULTS",
+      "mappingHint": "Pick what each Roaming motion does. Wave and sway actions fire when the gesture starts and repeat while you hold it. The row of the motion Roaming sees right now is marked.",
+      "gestureGroup": {
+        "walk": "WALK AND LEAN",
+        "body": "BODY",
+        "raise": "CAMERA GESTURES (RAISE)"
+      },
+      "gesture": {
+        "step": "Single step",
+        "walking": "Walking",
+        "running": "Running",
+        "leaning_left": "Lean left",
+        "leaning_right": "Lean right",
+        "jumping": "Jump",
+        "squatting": "Squat",
+        "arms_raised": "Both arms up",
+        "raising_up": "Raise up (one arm up)",
+        "raising_down": "Raise down (hands down)",
+        "raising_left": "Raise left (left arm out)",
+        "raising_right": "Raise right (right arm out)"
+      },
+      "actionGroup": {
+        "move": "MOVE",
+        "waves": "WAVES",
+        "sway": "SWAY"
+      },
+      "action": {
+        "none": "Nothing",
+        "move": "Move (follow the motion)",
+        "moveForward": "Move forward",
+        "moveBack": "Move back",
+        "moveLeft": "Move left",
+        "moveRight": "Move right",
+        "waveHeightUp": "Wave height up",
+        "waveHeightDown": "Wave height down",
+        "waveDirLeft": "Turn waves left",
+        "waveDirRight": "Turn waves right",
+        "swayMore": "More sway",
+        "swayLess": "Less sway",
+        "swayDirLeft": "Turn sway left",
+        "swayDirRight": "Turn sway right"
+      },
       "unavailable": "Works in the Android app: install Roaming, start tracking and walk or run to swim.",
       "waiting": "Waiting for motion from Roaming… start tracking in the Roaming app.",
       "last": "Roaming: {{type}} {{intensity}} %",
@@ -646,7 +699,8 @@
         "jumping": "jumping",
         "squatting": "squatting",
         "leaning": "leaning",
-        "arms_raised": "arms raised"
+        "arms_raised": "arms raised",
+        "raising": "arm gesture"
       },
       "debugWindow": "DEBUG WINDOW",
       "debugHint": "Shows every event that arrives from Roaming and how it moves you.",
@@ -665,7 +719,9 @@
         "noScene": "Scene not running yet",
         "test": "test:",
         "clear": "CLEAR",
-        "empty": "No events yet. Start tracking in Roaming, or tap a test button."
+        "empty": "No events yet. Start tracking in Roaming, or tap a test button.",
+        "holding": "holding",
+        "fired": "fired"
       }
     },
     "gamepad": {
@@ -1388,7 +1444,7 @@
         "label": "Weather"
       },
       "roaming": {
-        "desc": "Move with your body: Roaming app motion, debug window",
+        "desc": "Move with your body: Roaming app motion, speeds, gesture mapping, debug window",
         "label": "Roaming"
       },
       "gamepad": {

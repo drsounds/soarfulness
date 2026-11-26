@@ -27,7 +27,9 @@ export type RoamingMotionType =
   | "jumping"
   | "squatting"
   | "leaning"
-  | "arms_raised";
+  | "arms_raised"
+  /** Camera gesture: one arm up / out left / out right, or both hands down. */
+  | "raising";
 
 export type RoamingDirection = "none" | "forward" | "backward" | "left" | "right" | "up" | "down";
 
@@ -39,6 +41,18 @@ export type RoamingMotionEvent = {
   intensity: number;
   /** "step_sensor" | "camera" (informational). */
   source?: string;
+};
+
+/**
+ * Speed per gait, as a share of top speed at full intensity (ROAMING →
+ * WALK / RUN / SIDESTEP SPEED).
+ */
+export type RoamingSpeeds = {
+  /** step and walking */
+  walk: number;
+  running: number;
+  /** leaning sideways */
+  lean: number;
 };
 
 export type RoamingParams = {
@@ -54,8 +68,13 @@ export type RoamingParams = {
 
 /** Seconds without any event before the target drops to zero. */
 export const STALE_AFTER = 2.5;
-/** Leaning is a gentler input than walking: share of top speed sideways. */
+/** Leaning is a gentler input than walking: default share of top speed sideways. */
 export const LEAN_SHARE = 0.5;
+
+export const DEFAULT_ROAMING_SPEEDS: RoamingSpeeds = { walk: 1, running: 1, lean: LEAN_SHARE };
+
+const clamp01 = (v: number) => Math.min(1, Math.max(0, Number.isFinite(v) ? v : 0));
+const nonNeg = (v: number) => (Number.isFinite(v) ? Math.max(0, v) : 0);
 
 const MOVING: ReadonlySet<RoamingMotionType> = new Set(["step", "walking", "running"]);
 
@@ -63,9 +82,14 @@ const MOVING: ReadonlySet<RoamingMotionType> = new Set(["step", "walking", "runn
  * Target velocity, body frame (x = right, z = forward), as a share of top
  * speed, for one event.
  */
-export function targetFor(e: RoamingMotionEvent, sideways: boolean): { x: number; z: number } {
-  const i = Math.min(1, Math.max(0, Number.isFinite(e.intensity) ? e.intensity : 0));
+export function targetFor(
+  e: RoamingMotionEvent,
+  sideways: boolean,
+  speeds: RoamingSpeeds = DEFAULT_ROAMING_SPEEDS,
+): { x: number; z: number } {
+  const intensity = clamp01(e.intensity);
   if (MOVING.has(e.motionType)) {
+    const i = intensity * nonNeg(e.motionType === "running" ? speeds.running : speeds.walk);
     switch (e.direction) {
       case "backward":
         return { x: 0, z: -i };
@@ -79,11 +103,29 @@ export function targetFor(e: RoamingMotionEvent, sideways: boolean): { x: number
     }
   }
   if (e.motionType === "leaning" && sideways) {
-    if (e.direction === "left") return { x: -i * LEAN_SHARE, z: 0 };
-    if (e.direction === "right") return { x: i * LEAN_SHARE, z: 0 };
+    const i = intensity * nonNeg(speeds.lean);
+    if (e.direction === "left") return { x: -i, z: 0 };
+    if (e.direction === "right") return { x: i, z: 0 };
   }
-  // idle, jumping, squatting, arms_raised: no travel of their own.
+  // idle, jumping, squatting, arms_raised, raising: no travel of their own.
   return { x: 0, z: 0 };
+}
+
+/**
+ * Target for a motion that the gesture map sends to a fixed direction
+ * (moveForward / moveBack / moveLeft / moveRight): that way, at the motion's
+ * intensity times the walk speed (the run speed while running).
+ */
+export function targetToward(
+  e: RoamingMotionEvent,
+  dir: "forward" | "back" | "left" | "right",
+  speeds: RoamingSpeeds = DEFAULT_ROAMING_SPEEDS,
+): { x: number; z: number } {
+  const i =
+    clamp01(e.intensity) * nonNeg(e.motionType === "running" ? speeds.running : speeds.walk);
+  if (dir === "forward") return { x: 0, z: i };
+  if (dir === "back") return { x: 0, z: -i };
+  return { x: dir === "left" ? -i : i, z: 0 };
 }
 
 export class RoamingMotion {
@@ -104,9 +146,12 @@ export class RoamingMotion {
     return Math.hypot(this.vel.x, this.vel.z);
   }
 
-  /** Feed one broadcast. */
-  push(e: RoamingMotionEvent, sideways: boolean) {
-    const t = targetFor(e, sideways);
+  /**
+   * Feed one broadcast. `target` overrides the default (targetFor), for a
+   * motion the gesture map sends somewhere else.
+   */
+  push(e: RoamingMotionEvent, sideways: boolean, target?: { x: number; z: number }) {
+    const t = target ?? targetFor(e, sideways);
     this.target.x = t.x;
     this.target.z = t.z;
     this.last = e;

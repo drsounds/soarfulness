@@ -635,6 +635,59 @@
       "accel": "KIIHDYTYSAIKA",
       "glide": "LIUKUAIKA",
       "sideways": "KALLISTU SIVULLE",
+      "walkSpeed": "KÄVELYNOPEUS",
+      "runSpeed": "JUOKSUNOPEUS",
+      "leanSpeed": "SIVUSUUNNAN NOPEUS",
+      "speedHint": "Osuus ROAMING-NOPEUDESTA täydellä voimakkuudella, askellajeittain.",
+      "repeat": "ELEEN TOISTO",
+      "once": "kerran",
+      "waveAmpStep": "AALTOASKEL PER ELE",
+      "waveDirStep": "AALLON KÄÄNTÖ PER ELE",
+      "swayStep": "HUOJUNTA-ASKEL PER ELE",
+      "swayDirStep": "HUOJUNNAN KÄÄNTÖ PER ELE",
+      "mapping": "ELEIDEN MÄÄRITYS",
+      "resetMapping": "PALAUTA OLETUKSET",
+      "mappingHint": "Valitse, mitä kukin Roamingin liike tekee. Aalto- ja huojuntatoiminnot tapahtuvat eleen alkaessa ja toistuvat, kun pidät sitä. Roamingin juuri nyt näkemän liikkeen rivi on merkitty.",
+      "gestureGroup": {
+        "walk": "KÄVELY JA NOJAUS",
+        "body": "KEHO",
+        "raise": "KAMERAELEET (NOSTO)"
+      },
+      "gesture": {
+        "step": "Yksittäinen askel",
+        "walking": "Kävely",
+        "running": "Juoksu",
+        "leaning_left": "Nojaa vasemmalle",
+        "leaning_right": "Nojaa oikealle",
+        "jumping": "Hyppy",
+        "squatting": "Kyykky",
+        "arms_raised": "Molemmat kädet ylös",
+        "raising_up": "Nosto ylös (yksi käsi ylös)",
+        "raising_down": "Nosto alas (kädet alas)",
+        "raising_left": "Nosto vasemmalle (vasen käsi sivulle)",
+        "raising_right": "Nosto oikealle (oikea käsi sivulle)"
+      },
+      "actionGroup": {
+        "move": "LIIKE",
+        "waves": "AALLOT",
+        "sway": "HUOJUNTA"
+      },
+      "action": {
+        "none": "Ei mitään",
+        "move": "Liiku (seuraa liikettä)",
+        "moveForward": "Eteenpäin",
+        "moveBack": "Taaksepäin",
+        "moveLeft": "Vasemmalle",
+        "moveRight": "Oikealle",
+        "waveHeightUp": "Korkeammat aallot",
+        "waveHeightDown": "Matalammat aallot",
+        "waveDirLeft": "Käännä aaltoja vasemmalle",
+        "waveDirRight": "Käännä aaltoja oikealle",
+        "swayMore": "Enemmän huojuntaa",
+        "swayLess": "Vähemmän huojuntaa",
+        "swayDirLeft": "Käännä huojuntaa vasemmalle",
+        "swayDirRight": "Käännä huojuntaa oikealle"
+      },
       "unavailable": "Toimii Android-sovelluksessa: asenna Roaming, aloita seuranta ja kävele tai juokse uidaksesi.",
       "waiting": "Odotetaan liikettä Roamingilta… aloita seuranta Roaming-sovelluksessa.",
       "last": "Roaming: {{type}} {{intensity}} %",
@@ -646,7 +699,8 @@
         "jumping": "hyppää",
         "squatting": "kyykyssä",
         "leaning": "kallistuu",
-        "arms_raised": "kädet ylhäällä"
+        "arms_raised": "kädet ylhäällä",
+        "raising": "käsiele"
       },
       "debugWindow": "VIANETSINTÄIKKUNA",
       "debugHint": "Näyttää jokaisen Roamingilta tulevan tapahtuman ja miten se liikuttaa sinua.",
@@ -665,7 +719,9 @@
         "noScene": "Näkymä ei ole vielä käynnissä",
         "test": "testi:",
         "clear": "TYHJENNÄ",
-        "empty": "Ei tapahtumia vielä. Aloita seuranta Roamingissa tai paina testinappia."
+        "empty": "Ei tapahtumia vielä. Aloita seuranta Roamingissa tai paina testinappia.",
+        "holding": "pidetään",
+        "fired": "tehty"
       }
     },
     "gamepad": {
@@ -1388,7 +1444,7 @@
         "label": "Sää"
       },
       "roaming": {
-        "desc": "Liiku kehollasi: Roaming-sovelluksen liike, vianetsintäikkuna",
+        "desc": "Liiku kehollasi: Roaming-sovelluksen liike, nopeudet, eleiden määritys, vianetsintäikkuna",
         "label": "Roaming"
       },
       "gamepad": {

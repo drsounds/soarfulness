@@ -635,6 +635,59 @@
       "accel": "ACCELERATIONSTID",
       "glide": "GLIDETID",
       "sideways": "LÆN DIG FOR SIDELÆNS",
+      "walkSpeed": "GANGFART",
+      "runSpeed": "LØBEFART",
+      "leanSpeed": "SIDELÆNS FART",
+      "speedHint": "Andel af ROAMING-FART ved fuld intensitet, per gangart.",
+      "repeat": "GENTAG GESTUS",
+      "once": "én gang",
+      "waveAmpStep": "BØLGETRIN PER GESTUS",
+      "waveDirStep": "BØLGEDREJNING PER GESTUS",
+      "swayStep": "SVAJTRIN PER GESTUS",
+      "swayDirStep": "SVAJDREJNING PER GESTUS",
+      "mapping": "GESTUSKORTLÆGNING",
+      "resetMapping": "NULSTIL TIL STANDARD",
+      "mappingHint": "Vælg hvad hver bevægelse fra Roaming gør. Bølge- og svajhandlinger sker når gestussen starter og gentages mens du holder den. Rækken for bevægelsen Roaming ser lige nu er markeret.",
+      "gestureGroup": {
+        "walk": "GÅ OG LÆN",
+        "body": "KROP",
+        "raise": "KAMERAGESTUS (LØFT)"
+      },
+      "gesture": {
+        "step": "Enkelt skridt",
+        "walking": "Gang",
+        "running": "Løb",
+        "leaning_left": "Læn til venstre",
+        "leaning_right": "Læn til højre",
+        "jumping": "Hop",
+        "squatting": "Squat",
+        "arms_raised": "Begge arme op",
+        "raising_up": "Løft op (én arm op)",
+        "raising_down": "Løft ned (hænderne ned)",
+        "raising_left": "Løft venstre (venstre arm ud)",
+        "raising_right": "Løft højre (højre arm ud)"
+      },
+      "actionGroup": {
+        "move": "BEVÆGELSE",
+        "waves": "BØLGER",
+        "sway": "SVAJ"
+      },
+      "action": {
+        "none": "Ingenting",
+        "move": "Bevæg dig (følg bevægelsen)",
+        "moveForward": "Fremad",
+        "moveBack": "Bagud",
+        "moveLeft": "Venstre",
+        "moveRight": "Højre",
+        "waveHeightUp": "Højere bølger",
+        "waveHeightDown": "Lavere bølger",
+        "waveDirLeft": "Drej bølger til venstre",
+        "waveDirRight": "Drej bølger til højre",
+        "swayMore": "Mere svaj",
+        "swayLess": "Mindre svaj",
+        "swayDirLeft": "Drej svaj til venstre",
+        "swayDirRight": "Drej svaj til højre"
+      },
       "unavailable": "Virker i Android-appen: installer Roaming, start sporingen og gå eller løb for at svømme.",
       "waiting": "Venter på bevægelse fra Roaming… start sporingen i Roaming-appen.",
       "last": "Roaming: {{type}} {{intensity}} %",
@@ -646,7 +699,8 @@
         "jumping": "hopper",
         "squatting": "sidder på hug",
         "leaning": "læner",
-        "arms_raised": "armene oppe"
+        "arms_raised": "armene oppe",
+        "raising": "armbevægelse"
       },
       "debugWindow": "FEJLSØGNINGSVINDUE",
       "debugHint": "Viser hver hændelse der kommer fra Roaming, og hvordan den flytter dig.",
@@ -665,7 +719,9 @@
         "noScene": "Scenen kører ikke endnu",
         "test": "test:",
         "clear": "RYD",
-        "empty": "Ingen hændelser endnu. Start sporingen i Roaming, eller tryk på en testknap."
+        "empty": "Ingen hændelser endnu. Start sporingen i Roaming, eller tryk på en testknap.",
+        "holding": "holder",
+        "fired": "udført"
       }
     },
     "gamepad": {
@@ -1388,7 +1444,7 @@
         "label": "Vejr"
       },
       "roaming": {
-        "desc": "Bevæg dig med kroppen: bevægelse fra Roaming-appen, fejlsøgningsvindue",
+        "desc": "Bevæg dig med kroppen: bevægelse fra Roaming-appen, farter, gestuskortlægning, fejlfindingsvindue",
         "label": "Roaming"
       },
       "gamepad": {
