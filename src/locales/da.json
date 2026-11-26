@@ -776,6 +776,51 @@
         "yes": "ja",
         "no": "nej"
       }
+    },
+    "voice": {
+      "on": "STEMMESTYRING (LYT)",
+      "offHint": "Lytter ikke. Slå til for at styre appen med stemmen.",
+      "lang": "TALESPROG",
+      "langAuto": "AUTO ({{lang}})",
+      "threshold": "MATCHKRAV",
+      "thresholdHint": "Hvor tæt på en kommando det hørte skal være. Sænk hvis kommandoer misses, hæv hvis ting sker af sig selv.",
+      "step": "TRINSTØRRELSE",
+      "transcript": "VIS HVAD DER BLEV HØRT",
+      "debug": "FEJLFINDINGSVINDUE",
+      "debugHint": "Alt hvad der er hørt, hvad det ramte, en boks til at skrive kommandoer, og alle kommandoer og indstillingsnavne.",
+      "examples": "TING AT SIGE",
+      "examplesHint": "Tilstande og bevægelser, plus alle indstillinger ved navn (engelsk eller svensk): “set <setting> to <value>”, “increase <setting>”, “<setting> on/off”. Sig “stop listening” for pause og “wake up” for at fortsætte.",
+      "notUnderstood": "ikke forstået",
+      "listeningShort": "Lytter…",
+      "status": {
+        "off": "Lytter ikke.",
+        "starting": "Starter mikrofonen…",
+        "listening": "Lytter ({{lang}}).",
+        "asleep": "Pause. Sig “wake up” for at fortsætte.",
+        "unsupported": "Talegenkendelse findes ikke i denne browser. Prøv Chrome, Edge eller Safari, eller Android-appen.",
+        "denied": "Mikrofonen blev afvist. Tillad den i browserens eller appens indstillinger.",
+        "error": "Fejl i talegenkendelsen: {{error}}"
+      },
+      "langs": {
+        "en-US": "ENGELSK (USA)",
+        "en-GB": "ENGELSK (UK)",
+        "sv-SE": "SVENSK",
+        "nb-NO": "NORSK",
+        "da-DK": "DANSK",
+        "fi-FI": "FINSK"
+      },
+      "debugWindow": {
+        "title": "STEMME FEJLFINDING",
+        "appOff": "Appen STEMME er slået fra.",
+        "typePlaceholder": "Skriv en kommando, f.eks. swing higher",
+        "run": "KØR",
+        "log": "HØRT",
+        "commands": "KOMMANDOER",
+        "settings": "INDSTILLINGER ({{count}})",
+        "clear": "RYD",
+        "filter": "Filtrér…",
+        "empty": "Intet hørt endnu. Sig noget, eller skriv en kommando ovenfor."
+      }
     }
   },
   "docsPhilosophy": {
@@ -1450,6 +1495,10 @@
       "gamepad": {
         "desc": "Controller: knaptildeling, dødzone, følsomhed, fejlfindingsvindue",
         "label": "Gamepad"
+      },
+      "voice": {
+        "label": "Stemme",
+        "desc": "Styr appen med stemmen: tilstande, bevægelser og alle indstillinger ved navn"
       }
     },
     "languageTitle": "Sprog",

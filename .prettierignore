@@ -8,3 +8,4 @@ bun.lock
 routeTree.gen.ts
 website/.docusaurus
 website/build
+*.generated.ts

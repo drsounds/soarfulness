@@ -11,7 +11,7 @@ in Swedish, default), **files**, **how it works**, **status per repo** and
 
 | Family | Pages |
 | --- | --- |
-| Moving the bather | [Movement modes](movement-modes.md) (SIMMARE, FLYG, GUNGA, FARKOST, BODYFLIGHT, TORNADO, RIDE, level drift), [Open-water drift](open-drift.md), [Move with your body (Roaming)](roaming.md), [Gamepad](gamepad.md) |
+| Moving the bather | [Movement modes](movement-modes.md) (SIMMARE, FLYG, GUNGA, FARKOST, BODYFLIGHT, TORNADO, RIDE, level drift), [Open-water drift](open-drift.md), [Move with your body (Roaming)](roaming.md), [Gamepad](gamepad.md), [Voice control](voice.md) |
 | The sea | [Waves and water](waves-and-water.md) (presets, realistic/raytraced water, foam, glow, water plane, cloud surface) |
 | Weather | [Wind](wind.md), [Snow](snow.md), [Rain](rain.md), [Northern lights](aurora.md), [Underwater fog](underwater-fog.md) |
 | Events | [Confetti](confetti.md), [Fireworks](fireworks.md) |

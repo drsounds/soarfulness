@@ -776,6 +776,51 @@
         "yes": "ja",
         "no": "nej"
       }
+    },
+    "voice": {
+      "on": "RÖSTSTYRNING (LYSSNA)",
+      "offHint": "Lyssnar inte. Slå på för att styra appen med rösten.",
+      "lang": "TALSPRÅK",
+      "langAuto": "AUTO ({{lang}})",
+      "threshold": "MATCHNINGSKRAV",
+      "thresholdHint": "Hur nära ett kommando det som hördes måste vara. Sänk om kommandon missas, höj om saker händer av sig själva.",
+      "step": "STEGSTORLEK",
+      "transcript": "VISA VAD SOM HÖRDES",
+      "debug": "FELSÖKNINGSFÖNSTER",
+      "debugHint": "Allt som hörts, vad det matchade, en ruta för att skriva kommandon och alla kommandon och inställningsnamn.",
+      "examples": "SAKER ATT SÄGA",
+      "examplesHint": "Lägen och rörelser, plus alla inställningar med namn: ”sätt <inställning> till <värde>”, ”öka <inställning>”, ”<inställning> på/av”, ”återställ <inställning>”. Engelska fungerar också. Säg ”sluta lyssna” för paus och ”vakna” för att fortsätta.",
+      "notUnderstood": "förstod inte",
+      "listeningShort": "Lyssnar…",
+      "status": {
+        "off": "Lyssnar inte.",
+        "starting": "Startar mikrofonen…",
+        "listening": "Lyssnar ({{lang}}).",
+        "asleep": "Pausad. Säg ”vakna” för att fortsätta.",
+        "unsupported": "Taligenkänning finns inte i den här webbläsaren. Prova Chrome, Edge eller Safari, eller Android-appen.",
+        "denied": "Mikrofonen nekades. Tillåt den i webbläsarens eller appens inställningar.",
+        "error": "Fel i taligenkänningen: {{error}}"
+      },
+      "langs": {
+        "en-US": "ENGELSKA (USA)",
+        "en-GB": "ENGELSKA (UK)",
+        "sv-SE": "SVENSKA",
+        "nb-NO": "NORSKA",
+        "da-DK": "DANSKA",
+        "fi-FI": "FINSKA"
+      },
+      "debugWindow": {
+        "title": "RÖST FELSÖKNING",
+        "appOff": "Appen RÖST är av.",
+        "typePlaceholder": "Skriv ett kommando, t.ex. gunga högre",
+        "run": "KÖR",
+        "log": "HÖRT",
+        "commands": "KOMMANDON",
+        "settings": "INSTÄLLNINGAR ({{count}})",
+        "clear": "RENSA",
+        "filter": "Filtrera…",
+        "empty": "Inget hört än. Säg något, eller skriv ett kommando ovan."
+      }
     }
   },
   "docsPhilosophy": {
@@ -1450,6 +1495,10 @@
       "gamepad": {
         "desc": "Handkontroll: knappmappning, dödzon, känslighet, felsökningsfönster",
         "label": "Handkontroll"
+      },
+      "voice": {
+        "label": "Röst",
+        "desc": "Styr appen med rösten: lägen, rörelser och alla inställningar med namn"
       }
     },
     "languageTitle": "Språk",

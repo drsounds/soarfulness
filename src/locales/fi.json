@@ -776,6 +776,51 @@
         "yes": "kyllä",
         "no": "ei"
       }
+    },
+    "voice": {
+      "on": "ÄÄNIOHJAUS (KUUNTELE)",
+      "offHint": "Ei kuuntele. Kytke päälle ohjataksesi sovellusta puheella.",
+      "lang": "PUHEEN KIELI",
+      "langAuto": "AUTO ({{lang}})",
+      "threshold": "TUNNISTUKSEN TARKKUUS",
+      "thresholdHint": "Kuinka lähellä komentoa kuullun on oltava. Laske, jos komentoja jää huomaamatta, nosta, jos asioita tapahtuu itsestään.",
+      "step": "ASKELKOKO",
+      "transcript": "NÄYTÄ MITÄ KUULTIIN",
+      "debug": "VIANETSINTÄIKKUNA",
+      "debugHint": "Kaikki kuullut lauseet, mihin ne osuivat, kenttä komentojen kirjoittamiseen sekä kaikki komennot ja asetusten nimet.",
+      "examples": "SANOTTAVAA",
+      "examplesHint": "Tilat ja liikkeet sekä mikä tahansa asetus nimellä (englanniksi tai ruotsiksi): “set <setting> to <value>”, “increase <setting>”, “<setting> on/off”. Sano “stop listening” tauottaaksesi ja “wake up” jatkaaksesi.",
+      "notUnderstood": "ei ymmärretty",
+      "listeningShort": "Kuunnellaan…",
+      "status": {
+        "off": "Ei kuuntele.",
+        "starting": "Käynnistetään mikrofonia…",
+        "listening": "Kuunnellaan ({{lang}}).",
+        "asleep": "Tauolla. Sano “wake up” jatkaaksesi.",
+        "unsupported": "Puheentunnistus ei ole käytettävissä tässä selaimessa. Kokeile Chromea, Edgeä tai Safaria tai Android-sovellusta.",
+        "denied": "Mikrofonin käyttö estettiin. Salli se selaimen tai sovelluksen asetuksista.",
+        "error": "Puheentunnistuksen virhe: {{error}}"
+      },
+      "langs": {
+        "en-US": "ENGLANTI (USA)",
+        "en-GB": "ENGLANTI (UK)",
+        "sv-SE": "RUOTSI",
+        "nb-NO": "NORJA",
+        "da-DK": "TANSKA",
+        "fi-FI": "SUOMI"
+      },
+      "debugWindow": {
+        "title": "ÄÄNI VIANETSINTÄ",
+        "appOff": "ÄÄNI-sovellus on pois päältä.",
+        "typePlaceholder": "Kirjoita komento, esim. swing higher",
+        "run": "SUORITA",
+        "log": "KUULTU",
+        "commands": "KOMENNOT",
+        "settings": "ASETUKSET ({{count}})",
+        "clear": "TYHJENNÄ",
+        "filter": "Suodata…",
+        "empty": "Mitään ei ole vielä kuultu. Sano jotain tai kirjoita komento yllä."
+      }
     }
   },
   "docsPhilosophy": {
@@ -1450,6 +1495,10 @@
       "gamepad": {
         "desc": "Peliohjain: painikemääritys, kuollut alue, herkkyys, vianetsintäikkuna",
         "label": "Peliohjain"
+      },
+      "voice": {
+        "label": "Ääni",
+        "desc": "Ohjaa sovellusta puheella: tilat, liikkeet ja kaikki asetukset nimellä"
       }
     },
     "languageTitle": "Kieli",
