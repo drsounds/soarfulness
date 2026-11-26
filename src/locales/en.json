@@ -667,6 +667,59 @@
         "clear": "CLEAR",
         "empty": "No events yet. Start tracking in Roaming, or tap a test button."
       }
+    },
+    "gamepad": {
+      "on": "GAMEPAD",
+      "unavailable": "This browser has no gamepad support.",
+      "waiting": "Connect a controller and press any button on it.",
+      "nonStandard": "unknown layout, check the mapping",
+      "deadZone": "STICK DEAD ZONE",
+      "moveSensitivity": "MOVE SENSITIVITY",
+      "lookSensitivity": "LOOK SENSITIVITY",
+      "invertLookY": "INVERT LOOK UP/DOWN",
+      "boost": "BOOST SPEED",
+      "mapping": "BUTTON MAPPING",
+      "resetMapping": "RESET TO DEFAULTS",
+      "mappingHint": "Tap BIND, then press the button or push the stick you want. An input can only drive one action. Esc cancels.",
+      "bind": "+ BIND",
+      "pressNow": "Press a button…",
+      "cancel": "CANCEL",
+      "unbound": "not bound",
+      "remove": "Remove {{input}}",
+      "debugWindow": "DEBUG WINDOW",
+      "debugHint": "Shows the controller's raw buttons and sticks and what they do.",
+      "group": {
+        "move": "MOVE",
+        "look": "LOOK",
+        "height": "UP / DOWN",
+        "buttons": "BUTTONS"
+      },
+      "action": {
+        "moveForward": "Forward",
+        "moveBack": "Back",
+        "moveLeft": "Left",
+        "moveRight": "Right",
+        "lookUp": "Look up",
+        "lookDown": "Look down",
+        "lookLeft": "Turn left",
+        "lookRight": "Turn right",
+        "rise": "Rise",
+        "sink": "Sink",
+        "boost": "Boost (hold)",
+        "nextMode": "Next camera mode",
+        "prevMode": "Previous camera mode",
+        "recenterLook": "Level the view",
+        "toggleSettings": "Open / close settings"
+      },
+      "debug": {
+        "title": "GAMEPAD DEBUG",
+        "app": "app",
+        "scene": "scene",
+        "pads": "pads",
+        "capturing": "binding…",
+        "yes": "yes",
+        "no": "no"
+      }
     }
   },
   "docsPhilosophy": {
@@ -1337,6 +1390,10 @@
       "roaming": {
         "desc": "Move with your body: Roaming app motion, debug window",
         "label": "Roaming"
+      },
+      "gamepad": {
+        "desc": "Game controller: button mapping, dead zone, sensitivity, debug window",
+        "label": "Gamepad"
       }
     },
     "languageTitle": "Language",

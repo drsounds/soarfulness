@@ -10,6 +10,7 @@ import {
 } from "@/routes/index";
 import { InvalidBathLink } from "@/components/InvalidBathLink";
 import { mergeLinkedDecorations } from "@/apps/decorations/decorations";
+import { GAMEPAD_SETTING_KEYS } from "@/apps/gamepad/settings";
 
 // The actual immersive experience behind a "bathing" link — as opposed to
 // `/bathing/$payload` (bathing.$payload.index.tsx), which only shows a
@@ -45,8 +46,15 @@ function BatheRoute() {
         // DEKORATIONER: the link's scenes are laid over the visitor's own
         // decoration layouts instead of wiping them (src/apps/decorations/decorations.ts).
         let stored: unknown;
+        // GAMEPAD: the controller mapping belongs to this device, not to the
+        // bath, so links never carry it (not in PRESET_ALL_FIELDS) and the
+        // visitor's own gamepad* settings survive the seed.
+        const deviceLocal: Record<string, unknown> = {};
         try {
-          stored = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "{}")?.decorations;
+          const prev = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "{}");
+          stored = prev?.decorations;
+          for (const k of GAMEPAD_SETTING_KEYS)
+            if (prev?.[k] !== undefined) deviceLocal[k] = prev[k];
         } catch {
           stored = undefined;
         }
@@ -54,6 +62,7 @@ function BatheRoute() {
           STORAGE_KEY,
           JSON.stringify({
             ...payload.s,
+            ...deviceLocal,
             decorations: mergeLinkedDecorations(stored, payload.s.decorations),
           }),
         );

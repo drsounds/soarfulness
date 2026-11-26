@@ -57,6 +57,7 @@ Swedish, like `NORRSKEN`) goes in the manifest's `name`.
 | `neon` | NEON | scene-fx | effects | | `NeonEdges.ts`, `neonAccent.ts` (edge filter: `lib/edgeSelect.ts`) |
 | `open-drift` | HAVSDRIFT | motion | drift | | `OpenDrift.ts` |
 | `roaming` | ROAMING | motion | roaming | | `RoamingMotion.ts`, `roamingBridge.ts`, `RoamingPanel.tsx`, `RoamingDebugWindow.tsx` |
+| `gamepad` | GAMEPAD | feature | gamepad | | `bindings.ts`, `GamepadMapper.ts`, `gamepadInput.ts`, `GamepadPanel.tsx`, `GamepadDebugWindow.tsx` |
 | `retro` | RETRO | screen-fx | graphics | | `retroShader.ts` |
 | `rain` | REGN | scene-fx | weather | day-night, wind | `Rainfall.ts`, `RainAudio.ts` |
 | `sky-puffs` | MOLNPUFFAR | scene-fx | clouds | | `SkyPuffsRuntime.ts` |
@@ -250,6 +251,7 @@ Runtimes so far:
 | `wind` | `WindRuntime` | `update()`, `waveDirection()`, `current()`, `sound()`, `swayOffset`, `steersWaves` |
 | `open-drift` | `OpenDriftRuntime` | `step()` in the physics step |
 | `roaming` | `RoamingRuntime` | `step()` in the physics step, after open-drift; listens to the native plugin while on |
+| `gamepad` | `GamepadRuntime` | `poll()` at the top of the frame; the host adds its NAV / LOOK / rise to the HUD sticks and runs its button actions |
 
 `frame()` covers apps that only draw. Wind and open drift feed the host's
 physics (wave heading, sway, player position), so their runtimes expose
@@ -358,7 +360,7 @@ implements or inherits with `"archetype"` in its manifest:
 | `time` | aspect | day-night |
 | `celebration` | aspect | confetti, fireworks |
 | `water` | aspect | underwater-fog |
-| `camera` | aspect | tornado, open-drift, roaming |
+| `camera` | aspect | tornado, open-drift, roaming, gamepad |
 
 For now these are declarations only: no code reads them except the registry
 test, which checks that every app declares a known archetype and that every

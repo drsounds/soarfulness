@@ -667,6 +667,59 @@
         "clear": "RENSA",
         "empty": "Inga händelser än. Starta spårningen i Roaming eller tryck på en testknapp."
       }
+    },
+    "gamepad": {
+      "on": "HANDKONTROLL",
+      "unavailable": "Den här webbläsaren har inget stöd för handkontroller.",
+      "waiting": "Anslut en handkontroll och tryck på valfri knapp.",
+      "nonStandard": "okänd layout, kontrollera mappningen",
+      "deadZone": "DÖDZON FÖR SPAKAR",
+      "moveSensitivity": "RÖRELSEKÄNSLIGHET",
+      "lookSensitivity": "TITTKÄNSLIGHET",
+      "invertLookY": "INVERTERA UPP/NER",
+      "boost": "BOOSTFART",
+      "mapping": "KNAPPMAPPNING",
+      "resetMapping": "ÅTERSTÄLL STANDARD",
+      "mappingHint": "Tryck på KOPPLA och tryck sedan på knappen eller för spaken du vill använda. En knapp styr bara en sak. Esc avbryter.",
+      "bind": "+ KOPPLA",
+      "pressNow": "Tryck på en knapp…",
+      "cancel": "AVBRYT",
+      "unbound": "ingen knapp",
+      "remove": "Ta bort {{input}}",
+      "debugWindow": "FELSÖKNINGSFÖNSTER",
+      "debugHint": "Visar handkontrollens knappar och spakar och vad de gör.",
+      "group": {
+        "move": "RÖRELSE",
+        "look": "TITTA",
+        "height": "UPP / NER",
+        "buttons": "KNAPPAR"
+      },
+      "action": {
+        "moveForward": "Framåt",
+        "moveBack": "Bakåt",
+        "moveLeft": "Vänster",
+        "moveRight": "Höger",
+        "lookUp": "Titta upp",
+        "lookDown": "Titta ner",
+        "lookLeft": "Vrid vänster",
+        "lookRight": "Vrid höger",
+        "rise": "Stig",
+        "sink": "Sjunk",
+        "boost": "Boost (håll in)",
+        "nextMode": "Nästa kameraläge",
+        "prevMode": "Föregående kameraläge",
+        "recenterLook": "Räta upp blicken",
+        "toggleSettings": "Öppna / stäng inställningar"
+      },
+      "debug": {
+        "title": "HANDKONTROLL FELSÖKNING",
+        "app": "app",
+        "scene": "scen",
+        "pads": "kontroller",
+        "capturing": "kopplar…",
+        "yes": "ja",
+        "no": "nej"
+      }
     }
   },
   "docsPhilosophy": {
@@ -1337,6 +1390,10 @@
       "roaming": {
         "desc": "Rör dig med kroppen: rörelse från Roaming-appen, felsökningsfönster",
         "label": "Roaming"
+      },
+      "gamepad": {
+        "desc": "Handkontroll: knappmappning, dödzon, känslighet, felsökningsfönster",
+        "label": "Handkontroll"
       }
     },
     "languageTitle": "Språk",

@@ -1,0 +1,13 @@
+{
+  "$schema": "../../core/apps/manifest.schema.json",
+  "id": "gamepad",
+  "name": "GAMEPAD",
+  "title": "Gamepad",
+  "version": "1.0.0",
+  "description": "Play with a game controller (Xbox, PlayStation, Switch Pro or any pad the browser sees): sticks move and look, triggers rise and sink, buttons boost, switch camera mode and open settings. Every action can be rebound by pressing the button you want. Inert until a pad is connected.",
+  "kind": "feature",
+  "archetype": "camera",
+  "settingsGroup": "gamepad",
+  "defaultEnabled": true,
+  "dependencies": {}
+}

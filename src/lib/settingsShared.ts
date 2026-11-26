@@ -22,10 +22,12 @@ import type { DayNightSettings } from "@/apps/day-night/settings";
 import type { UnderwaterFogSettings } from "@/apps/underwater-fog/settings";
 import type { OpenDriftSettings } from "@/apps/open-drift/settings";
 import type { RoamingSettings } from "@/apps/roaming/settings";
+import type { GamepadSettings } from "@/apps/gamepad/settings";
 import type { WindSettings } from "@/apps/wind/settings";
 import type { DecorationsSettings } from "@/apps/decorations/settings";
 import { OPEN_DRIFT_SETTING_KEYS } from "@/apps/open-drift/settings";
 import { ROAMING_SETTING_KEYS } from "@/apps/roaming/settings";
+import { GAMEPAD_SETTING_KEYS } from "@/apps/gamepad/settings";
 import { HOOD_SETTING_KEYS } from "@/apps/hood/settings";
 import { RETRO_SETTING_KEYS } from "@/apps/retro/settings";
 import { WIND_SETTING_KEYS } from "@/apps/wind/settings";
@@ -639,6 +641,7 @@ export type Persisted = {
   UnderwaterFogSettings &
   OpenDriftSettings &
   RoamingSettings &
+  GamepadSettings &
   WindSettings &
   SwimmerSettings &
   FlySettings &

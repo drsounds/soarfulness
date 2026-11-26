@@ -31,6 +31,8 @@ import { OpenDriftPanel } from "@/apps/open-drift/OpenDriftPanel";
 import type { OpenDriftSettings } from "@/apps/open-drift/settings";
 import { RoamingPanel } from "@/apps/roaming/RoamingPanel";
 import type { RoamingSettings } from "@/apps/roaming/settings";
+import { GamepadPanel } from "@/apps/gamepad/GamepadPanel";
+import type { GamepadSettings } from "@/apps/gamepad/settings";
 import { NeonPanel } from "@/apps/neon/NeonPanel";
 import type { NeonSettings } from "@/apps/neon/settings";
 import { FireworksPanel } from "@/apps/fireworks/FireworksPanel";
@@ -508,6 +510,7 @@ export type SettingsPanelProps = {
   retro: AppSettingsHandle<RetroSettings>;
   openDrift: AppSettingsHandle<OpenDriftSettings>;
   roaming: AppSettingsHandle<RoamingSettings>;
+  gamepad: AppSettingsHandle<GamepadSettings>;
   neon: AppSettingsHandle<NeonSettings>;
   fireworks: AppSettingsHandle<FireworksSettings>;
   confetti: AppSettingsHandle<ConfettiSettings>;
@@ -1593,6 +1596,7 @@ function ShareBathLink({
 
 export function SettingsPanel(props: SettingsPanelProps) {
   const roamingAppOn = useAppEnabled(appFlags, "roaming");
+  const gamepadAppOn = useAppEnabled(appFlags, "gamepad");
   const {
     restoreCameraPosition,
     resetToDefaults,
@@ -5439,6 +5443,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
       <G id="roaming">
         <RoamingPanel roaming={props.roaming} />
       </G>
+      <G id="gamepad">
+        <GamepadPanel gamepad={props.gamepad} />
+      </G>
       <G id="apps">
         <AppsPanel flags={appFlags} registry={appRegistry} />
       </G>
@@ -5448,7 +5455,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
     </>
   );
 
-  // ROAMING's page only shows while the app is switched on under APPS.
-  const groups = roamingAppOn ? SETTINGS_GROUPS : SETTINGS_GROUPS.filter((g) => g.id !== "roaming");
+  // ROAMING's and GAMEPAD's pages only show while the app is switched on under APPS.
+  const groups = SETTINGS_GROUPS.filter(
+    (g) => (g.id !== "roaming" || roamingAppOn) && (g.id !== "gamepad" || gamepadAppOn),
+  );
   return <SettingsNavigator groups={groups} body={body} />;
 }

@@ -667,6 +667,59 @@
         "clear": "TYHJENNÄ",
         "empty": "Ei tapahtumia vielä. Aloita seuranta Roamingissa tai paina testinappia."
       }
+    },
+    "gamepad": {
+      "on": "PELIOHJAIN",
+      "unavailable": "Tämä selain ei tue peliohjaimia.",
+      "waiting": "Liitä ohjain ja paina mitä tahansa sen painiketta.",
+      "nonStandard": "tuntematon asettelu, tarkista määritys",
+      "deadZone": "TATIN KUOLLUT ALUE",
+      "moveSensitivity": "LIIKKEEN HERKKYYS",
+      "lookSensitivity": "KATSEEN HERKKYYS",
+      "invertLookY": "KÄÄNNÄ YLÖS/ALAS",
+      "boost": "BOOSTINOPEUS",
+      "mapping": "PAINIKEMÄÄRITYS",
+      "resetMapping": "PALAUTA OLETUKSET",
+      "mappingHint": "Napauta LIITÄ ja paina sitten haluamaasi painiketta tai työnnä tattia. Yksi painike ohjaa vain yhtä toimintoa. Esc peruuttaa.",
+      "bind": "+ LIITÄ",
+      "pressNow": "Paina painiketta…",
+      "cancel": "PERUUTA",
+      "unbound": "ei painiketta",
+      "remove": "Poista {{input}}",
+      "debugWindow": "VIANETSINTÄIKKUNA",
+      "debugHint": "Näyttää ohjaimen painikkeet ja tatit ja mitä ne tekevät.",
+      "group": {
+        "move": "LIIKE",
+        "look": "KATSE",
+        "height": "YLÖS / ALAS",
+        "buttons": "PAINIKKEET"
+      },
+      "action": {
+        "moveForward": "Eteen",
+        "moveBack": "Taakse",
+        "moveLeft": "Vasemmalle",
+        "moveRight": "Oikealle",
+        "lookUp": "Katso ylös",
+        "lookDown": "Katso alas",
+        "lookLeft": "Käänny vasemmalle",
+        "lookRight": "Käänny oikealle",
+        "rise": "Nouse",
+        "sink": "Vajoa",
+        "boost": "Boosti (pidä pohjassa)",
+        "nextMode": "Seuraava kameratila",
+        "prevMode": "Edellinen kameratila",
+        "recenterLook": "Suorista katse",
+        "toggleSettings": "Avaa / sulje asetukset"
+      },
+      "debug": {
+        "title": "PELIOHJAIN VIANETSINTÄ",
+        "app": "sovellus",
+        "scene": "näkymä",
+        "pads": "ohjaimet",
+        "capturing": "liitetään…",
+        "yes": "kyllä",
+        "no": "ei"
+      }
     }
   },
   "docsPhilosophy": {
@@ -1337,6 +1390,10 @@
       "roaming": {
         "desc": "Liiku kehollasi: Roaming-sovelluksen liike, vianetsintäikkuna",
         "label": "Roaming"
+      },
+      "gamepad": {
+        "desc": "Peliohjain: painikemääritys, kuollut alue, herkkyys, vianetsintäikkuna",
+        "label": "Peliohjain"
       }
     },
     "languageTitle": "Kieli",
