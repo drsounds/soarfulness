@@ -30,6 +30,7 @@ export class VoiceRuntime implements AppRuntime<VoiceSettings> {
   private restartToken = 0;
 
   frame(_frame: FrameContext, settings: Readonly<VoiceSettings>): void {
+    voiceBus.setEarlyMs(settings.voiceEarlyMs);
     this.sync(settings.voiceOn, speechLang(settings.voiceLang));
   }
 
@@ -44,14 +45,21 @@ export class VoiceRuntime implements AppRuntime<VoiceSettings> {
     this.stop();
     this.listeningLang = lang;
     this.engine = createSpeechEngine({
-      onInterim: (text) => voiceBus.setInterim(text),
-      onFinal: (alts) => voiceBus.submit(alts, "speech"),
-      onStatus: (status: EngineStatus, error?: string) =>
+      // Partials go to voiceBus too: it acts on them once they settle
+      // (VOICE → ACT EARLY) instead of waiting for the final result.
+      onInterim: (text) => voiceBus.partial(text),
+      onFinal: (alts) => voiceBus.final(alts),
+      onSpeech: (phase) => voiceBus.speech(phase),
+      onStatus: (status: EngineStatus, error?: string) => {
+        // Android starts a new session after every phrase ("listening"):
+        // a phrase still waiting to settle is kept, so it can run early.
+        if (status !== "listening" && status !== "starting") voiceBus.newSession();
         voiceBus.setStatus(status, {
           engine: this.engine?.name ?? null,
           lang,
           error: error ?? null,
-        }),
+        });
+      },
     });
     if (!this.engine) {
       voiceBus.setStatus("unsupported", { engine: null, lang, error: null });
@@ -66,6 +74,7 @@ export class VoiceRuntime implements AppRuntime<VoiceSettings> {
     this.engine = null;
     if (this.listeningLang !== null) voiceBus.setStatus("off", { error: null });
     this.listeningLang = null;
+    voiceBus.newSession();
     voiceBus.setInterim("");
   }
 

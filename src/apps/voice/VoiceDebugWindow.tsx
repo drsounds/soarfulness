@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { normalize } from "./textMatch";
+import { latencySummary, reactionMs, type VoiceTiming } from "./utterance";
 import { voiceBus, useVoiceState } from "./voiceBus";
 import { voiceStatusText } from "./VoicePanel";
 
@@ -8,6 +9,35 @@ import { voiceStatusText } from "./VoicePanel";
 // alternatives) with the command it matched and its score, a box to type a
 // phrase as if it was said, and every command and setting name voice knows.
 // Opened with VOICE → DEBUG WINDOW or by saying "what can I say".
+//
+// Each spoken phrase also shows how long it took: ⚡ ran early on a partial
+// result (VOICE → ACT EARLY) or ✓ on the final one, the time from the words
+// settling to the command running, and when the recognizer's final result
+// came. The header shows the median of the last ten.
+
+function timingText(
+  t: (k: string, o?: Record<string, unknown>) => string,
+  timing: VoiceTiming,
+): string {
+  const parts: string[] = [];
+  const r = reactionMs(timing);
+  parts.push(
+    timing.early ? `⚡ ${t("dial.voice.debugWindow.early")}` : t("dial.voice.debugWindow.final"),
+  );
+  if (r !== null) parts.push(t("dial.voice.debugWindow.acted", { ms: Math.round(r) }));
+  if (timing.early && timing.finalAt !== null && timing.firedAt !== null)
+    parts.push(
+      t("dial.voice.debugWindow.finalAfter", { ms: Math.round(timing.finalAt - timing.firedAt) }),
+    );
+  if (timing.endAt !== null && timing.finalAt !== null)
+    parts.push(
+      t("dial.voice.debugWindow.endToFinal", {
+        ms: Math.max(0, Math.round(timing.finalAt - timing.endAt)),
+      }),
+    );
+  parts.push(t("dial.voice.debugWindow.match", { ms: timing.matchMs.toFixed(1) }));
+  return parts.join(" · ");
+}
 
 export function VoiceDebugWindow({
   appEnabled,
@@ -27,6 +57,7 @@ export function VoiceDebugWindow({
   useEffect(() => setMounted(true), []);
   const vocab = voiceBus.vocabulary();
   if (!mounted) return null;
+  const latency = latencySummary(state.log.map((e) => e.timing));
 
   const btn =
     "rounded-full border px-2 py-0.5 text-[9px] tracking-wider ui-line-2 ui-press active:scale-95";
@@ -62,6 +93,14 @@ export function VoiceDebugWindow({
               {appEnabled ? voiceStatusText(t, state) : t("dial.voice.debugWindow.appOff")}
               {state.engine && ` · ${state.engine}`}
             </div>
+            {latency && (
+              <div className="ui-ink-muted">
+                {t("dial.voice.debugWindow.latency", {
+                  ms: Math.round(latency.medianMs),
+                  count: latency.count,
+                })}
+              </div>
+            )}
             {state.interim && <div className="italic ui-ink-muted">… {state.interim}</div>}
             <form
               className="flex gap-1"
@@ -138,6 +177,7 @@ export function VoiceDebugWindow({
                           .join(" · ")}
                       </div>
                     )}
+                    {e.timing && <div className="ui-ink-faint">{timingText(t, e.timing)}</div>}
                     {e.match ? (
                       <div className="text-emerald-300">
                         ✓ {e.match.outcome.label}{" "}

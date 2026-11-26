@@ -13390,22 +13390,24 @@ export function Aquafulness() {
     }
   };
   useEffect(() => {
-    voiceBus.setHandler((alternatives) => {
-      if (!voiceAppOn) return null;
-      const snapshot = buildPersistedSnapshot() as unknown as Record<string, unknown>;
-      const match = voiceRegistry.match(
-        alternatives,
-        {
-          get: (k) => snapshot[k],
-          settings: voiceSettingsResolver,
-          stepScale: voice.values.voiceStepScale,
-        },
-        { threshold: voice.values.voiceMatchThreshold, asleep: voiceBus.get().asleep },
-      );
-      if (!match) return null;
-      if (match.outcome.patch) applySettingsPatch(match.outcome.patch as Partial<Persisted>);
-      for (const a of match.outcome.actions ?? []) runVoiceAction(a);
-      return match;
+    voiceBus.setHandler({
+      match: (alternatives) => {
+        if (!voiceAppOn) return null;
+        const snapshot = buildPersistedSnapshot() as unknown as Record<string, unknown>;
+        return voiceRegistry.match(
+          alternatives,
+          {
+            get: (k) => snapshot[k],
+            settings: voiceSettingsResolver,
+            stepScale: voice.values.voiceStepScale,
+          },
+          { threshold: voice.values.voiceMatchThreshold, asleep: voiceBus.get().asleep },
+        );
+      },
+      run: (match) => {
+        if (match.outcome.patch) applySettingsPatch(match.outcome.patch as Partial<Persisted>);
+        for (const a of match.outcome.actions ?? []) runVoiceAction(a);
+      },
     });
   });
   useEffect(() => () => voiceBus.setHandler(null), []);

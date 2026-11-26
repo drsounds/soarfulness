@@ -285,6 +285,7 @@ export const SETTING_CATALOG: CatalogEntry[] = [
   { key: "underwaterFogSubmergedOnly", label: "dial.env.underwaterFogSubmergedOnly", bool: true },
   { key: "underwaterFogWaterOpacity", label: "dial.env.underwaterFogWaterOpacity", min: 0, max: 1, step: 0.05 },
   { key: "voiceDebug", label: "dial.voice.debug", bool: true },
+  { key: "voiceEarlyMs", label: "dial.voice.early", min: 0, max: 1500, step: 50, int: true },
   { key: "voiceMatchThreshold", label: "dial.voice.threshold", min: 0.5, max: 0.98, step: 0.01 },
   { key: "voiceOn", label: "dial.voice.on", bool: true },
   { key: "voiceStepScale", label: "dial.voice.step", min: 0.25, max: 10, step: 0.25 },

@@ -784,6 +784,9 @@
       "langAuto": "AUTO ({{lang}})",
       "threshold": "MATCHKRAV",
       "thresholdHint": "Hvor tæt på en kommando det hørte skal være. Sænk hvis kommandoer misses, hæv hvis ting sker af sig selv.",
+      "early": "HANDL TIDLIGT",
+      "earlyOff": "FRA (VENT)",
+      "earlyHint": "Kører en kommando, når de hørte ord har været uændrede så længe, i stedet for at vente på at genkendelsen afslutter sætningen (den venter på stilhed). Lavere er hurtigere; hæv den, hvis kommandoer kører før du er færdig. FRA venter på slutresultatet.",
       "step": "TRINSTØRRELSE",
       "transcript": "VIS HVAD DER BLEV HØRT",
       "debug": "FEJLFINDINGSVINDUE",
@@ -821,7 +824,14 @@
         "settings": "INDSTILLINGER ({{count}})",
         "clear": "RYD",
         "filter": "Filtrér…",
-        "empty": "Intet hørt endnu. Sig noget, eller skriv en kommando ovenfor."
+        "empty": "Intet hørt endnu. Sig noget, eller skriv en kommando ovenfor.",
+        "latency": "Reaktion: {{ms}} ms (median af {{count}})",
+        "early": "tidligt",
+        "final": "endeligt",
+        "acted": "kørte {{ms}} ms efter ordene stod stille",
+        "finalAfter": "slutresultat {{ms}} ms efter",
+        "endToFinal": "tale slut → slutresultat {{ms}} ms",
+        "match": "matchning {{ms}} ms"
       },
       "downloadModel": "HENT TALEMODEL FOR {{lang}}",
       "privacy": "Privat: talen genkendes kun på denne enhed. Ingen lyd eller tekst sendes nogen steder hen."

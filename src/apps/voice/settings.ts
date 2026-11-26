@@ -26,6 +26,12 @@ export type VoiceSettings = {
   voiceLang: VoiceLang;
   /** How close (0.5–1) what was heard must be to a command; 1 = exact words only. */
   voiceMatchThreshold: number;
+  /**
+   * Act on what is being heard once its words have stayed the same this
+   * long (ms), instead of waiting for the recognizer to finish the phrase,
+   * which waits for a stretch of silence. 0 = wait for the final result.
+   */
+  voiceEarlyMs: number;
   /** Multiplier on the step of "increase / decrease <setting>" (the slider's own step = 1). */
   voiceStepScale: number;
   /** Show the last heard phrase and what it did, at the bottom of the screen. */
@@ -39,6 +45,7 @@ export const VOICE_DEFAULTS: VoiceSettings = {
   // English: the language most likely to have an on-device model.
   voiceLang: "en-US",
   voiceMatchThreshold: 0.72,
+  voiceEarlyMs: 400,
   voiceStepScale: 1,
   voiceTranscriptOn: true,
   voiceDebug: false,

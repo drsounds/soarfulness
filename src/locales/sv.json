@@ -784,6 +784,9 @@
       "langAuto": "AUTO ({{lang}})",
       "threshold": "MATCHNINGSKRAV",
       "thresholdHint": "Hur nära ett kommando det som hördes måste vara. Sänk om kommandon missas, höj om saker händer av sig själva.",
+      "early": "AGERA TIDIGT",
+      "earlyOff": "AV (VÄNTA)",
+      "earlyHint": "Kör ett kommando när de hörda orden har varit oförändrade så här länge, i stället för att vänta på att igenkänningen avslutar frasen (den väntar på tystnad). Lägre är snabbare; höj om kommandon körs innan du pratat klart. AV väntar på slutresultatet.",
       "step": "STEGSTORLEK",
       "transcript": "VISA VAD SOM HÖRDES",
       "debug": "FELSÖKNINGSFÖNSTER",
@@ -821,7 +824,14 @@
         "settings": "INSTÄLLNINGAR ({{count}})",
         "clear": "RENSA",
         "filter": "Filtrera…",
-        "empty": "Inget hört än. Säg något, eller skriv ett kommando ovan."
+        "empty": "Inget hört än. Säg något, eller skriv ett kommando ovan.",
+        "latency": "Reaktion: {{ms}} ms (median av {{count}})",
+        "early": "tidigt",
+        "final": "slutligt",
+        "acted": "körde {{ms}} ms efter att orden stannat",
+        "finalAfter": "slutresultat {{ms}} ms efter",
+        "endToFinal": "talslut → slutresultat {{ms}} ms",
+        "match": "matchning {{ms}} ms"
       },
       "downloadModel": "LADDA NER TALMODELL FÖR {{lang}}",
       "privacy": "Privat: talet känns igen på enheten. Inget ljud eller text skickas någonstans."

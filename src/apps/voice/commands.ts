@@ -487,6 +487,7 @@ export function voiceCommands(): VoiceCommand<VoiceContext>[] {
         "svaj {direction}",
       ],
       resolve: resolveDirection("sway", "SWAY"),
+      absolute: true,
     },
     {
       id: "sway.turn",
@@ -512,6 +513,7 @@ export function voiceCommands(): VoiceCommand<VoiceContext>[] {
         "vagriktning {direction}",
       ],
       resolve: resolveDirection("waves", "WAVES"),
+      absolute: true,
     },
     {
       id: "waves.turn",
@@ -575,6 +577,7 @@ export function voiceCommands(): VoiceCommand<VoiceContext>[] {
         "{setting} till {value}",
       ],
       resolve: resolveSet,
+      absolute: true,
     },
     {
       id: "setting.increase",
@@ -673,6 +676,7 @@ export function voiceCommands(): VoiceCommand<VoiceContext>[] {
         "{setting} pa",
       ],
       resolve: resolveBool(true),
+      absolute: true,
     },
     {
       id: "setting.off",
@@ -694,6 +698,7 @@ export function voiceCommands(): VoiceCommand<VoiceContext>[] {
         "{setting} av",
       ],
       resolve: resolveBool(false),
+      absolute: true,
     },
     {
       id: "setting.toggle",
@@ -709,6 +714,7 @@ export function voiceCommands(): VoiceCommand<VoiceContext>[] {
         "aterstall {setting}",
       ],
       resolve: resolveReset,
+      absolute: true,
     },
   ];
 }

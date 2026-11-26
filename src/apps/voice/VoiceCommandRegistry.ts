@@ -31,6 +31,13 @@ export type VoiceCommand<C> = {
   resolve(slots: Slots, ctx: C): VoiceResolution | null;
   /** Still heard while voice control sleeps ("wake up"). */
   whileAsleep?: boolean;
+  /**
+   * Running it twice with the same words does nothing more ("set X to 5",
+   * "change sway to north"), so a corrected value may run again within one
+   * phrase. Relative commands ("increase X", "swing higher") leave it unset:
+   * they run at most once per phrase (see utterance.ts).
+   */
+  absolute?: boolean;
 };
 
 export type VoiceMatch = {
@@ -39,6 +46,8 @@ export type VoiceMatch = {
   heard: string;
   score: number;
   outcome: VoiceOutcome;
+  /** The command is absolute (see VoiceCommand.absolute). */
+  absolute?: boolean;
 };
 
 type Part = { lit: string[] } | { slot: string };
@@ -177,6 +186,7 @@ export class VoiceCommandRegistry<C> {
               heard: text,
               score,
               outcome: res.outcome,
+              absolute: c.command.absolute,
             };
           }
         }
