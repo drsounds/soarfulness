@@ -831,10 +831,55 @@
         "acted": "acted {{ms}} ms after the words settled",
         "finalAfter": "final result {{ms}} ms after",
         "endToFinal": "end of speech → final {{ms}} ms",
-        "match": "match {{ms}} ms"
+        "match": "match {{ms}} ms",
+        "llmPending": "on-device AI thinking…",
+        "llm": "AI: {{status}} in {{ms}} ms",
+        "llmCalls": "tools: {{calls}}",
+        "llmRefused": "refused: {{list}}",
+        "llmFellBack": "rules used instead",
+        "llmStatus": {
+          "ok": "done",
+          "none": "nothing fitted",
+          "timeout": "too slow",
+          "error": "error",
+          "unavailable": "not ready",
+          "pending": "thinking"
+        }
       },
       "downloadModel": "DOWNLOAD {{lang}} SPEECH MODEL",
-      "privacy": "Private: speech is recognized on this device only. No audio or text is sent anywhere."
+      "privacy": "Private: speech is recognized on this device only. No audio or text is sent anywhere.",
+      "thinking": "thinking…",
+      "llm": {
+        "interpreter": "INTERPRETER",
+        "interpreters": {
+          "rules": "RULES",
+          "hybrid": "RULES + ON-DEVICE AI",
+          "llm": "ON-DEVICE AI FIRST"
+        },
+        "interpreterHints": {
+          "rules": "Phrases are matched against the command list. Instant, nothing to download.",
+          "hybrid": "Known phrases run instantly as before; phrases the rules don't understand go to a small AI model running on this device.",
+          "llm": "Every phrase goes to the on-device AI model first; the rules take over when it is not ready, too slow or finds nothing. Slower than the rules."
+        },
+        "model": "AI MODEL",
+        "modelOption": "{{name}} (~{{mb}} MB)",
+        "status": {
+          "voiceOff": "Switch on VOICE CONTROL to load the model.",
+          "off": "Not loaded.",
+          "unsupported": "This device has no WebGPU, so the on-device AI can't run here. The rules are used.",
+          "checking": "Looking for the model on this device…",
+          "absent": "The model is not on this device yet. Download it once to use the AI; until then the rules are used.",
+          "downloading": "Downloading the model… {{pct}}%",
+          "loading": "Loading the model… {{pct}}%",
+          "ready": "Ready. The AI runs on this device.",
+          "error": "The model could not be loaded: {{error}}"
+        },
+        "download": "DOWNLOAD MODEL (~{{mb}} MB, NEEDS ~{{gpu}} MB GPU MEMORY)",
+        "remove": "DELETE MODEL FROM THIS DEVICE",
+        "timeout": "AI TIME LIMIT",
+        "timeoutHint": "If the AI has no answer by then, the rules' answer is used instead.",
+        "privacy": "Private: the AI model runs on this device, in the app itself. What you say, the settings and its answers never leave the device; its network is closed while it works. Only the model file is downloaded, once."
+      }
     }
   },
   "docsPhilosophy": {

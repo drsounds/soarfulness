@@ -178,6 +178,21 @@ export function VoiceDebugWindow({
                       </div>
                     )}
                     {e.timing && <div className="ui-ink-faint">{timingText(t, e.timing)}</div>}
+                    {e.llm && (
+                      <div className="text-sky-300">
+                        {e.llm.status === "pending"
+                          ? t("dial.voice.debugWindow.llmPending")
+                          : t("dial.voice.debugWindow.llm", {
+                              status: t(`dial.voice.debugWindow.llmStatus.${e.llm.status}`),
+                              ms: Math.round(e.llm.ms ?? 0),
+                            })}
+                        {!!e.llm.calls?.length &&
+                          ` · ${t("dial.voice.debugWindow.llmCalls", { calls: e.llm.calls.join(", ") })}`}
+                        {!!e.llm.refused?.length &&
+                          ` · ${t("dial.voice.debugWindow.llmRefused", { list: e.llm.refused.join("; ") })}`}
+                        {e.llm.fellBack && ` · ${t("dial.voice.debugWindow.llmFellBack")}`}
+                      </div>
+                    )}
                     {e.match ? (
                       <div className="text-emerald-300">
                         ✓ {e.match.outcome.label}{" "}
@@ -186,7 +201,7 @@ export function VoiceDebugWindow({
                           {Math.round(e.match.score * 100)}%]
                         </span>
                       </div>
-                    ) : (
+                    ) : e.llm?.status === "pending" ? null : (
                       <div className="text-amber-300">? {t("dial.voice.notUnderstood")}</div>
                     )}
                   </div>

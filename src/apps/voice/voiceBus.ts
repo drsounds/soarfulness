@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import type { VoiceMatch } from "./VoiceCommandRegistry";
+import type { LlmResult, LlmStatus } from "./llm/LlmInterpreter";
 import { isNewEffect, type VoiceTiming } from "./utterance";
 
 // VOICE: the shared state between the recognizer (VoiceRuntime), the host's
@@ -32,6 +33,18 @@ export type VoiceLogEntry = {
   match: VoiceMatch | null;
   /** Speech only: when it was heard, acted on and finished (utterance.ts). */
   timing?: VoiceTiming;
+  /** The phrase went to the on-device LLM (VOICE → INTERPRETER). */
+  llm?: VoiceLlmNote;
+};
+
+export type VoiceLlmNote = {
+  status: LlmStatus | "pending";
+  ms?: number;
+  /** The tool calls it asked for, e.g. adjust_setting(waveAmp, up). */
+  calls?: string[];
+  refused?: string[];
+  /** The rules ran instead (LLM unavailable, too slow or found nothing). */
+  fellBack?: boolean;
 };
 
 export type VoiceState = {
@@ -44,6 +57,8 @@ export type VoiceState = {
   interim: string;
   /** "stop listening": only "wake up" is acted on until then. */
   asleep: boolean;
+  /** Phrases the on-device LLM is working on. */
+  thinking: number;
   log: VoiceLogEntry[];
 };
 
@@ -60,6 +75,20 @@ export type VoiceVocabulary = {
 export type VoiceHandler = {
   match(alternatives: string[]): VoiceMatch | null;
   run(match: VoiceMatch): void;
+  /**
+   * The on-device LLM interpreter (VOICE → INTERPRETER), when it is on. It
+   * only ever sees whole phrases (final results and typed ones), never
+   * partials.
+   */
+  interpret?(text: string): Promise<LlmResult>;
+  /**
+   * "llm": every phrase goes to the LLM first and the rules only run when it
+   * has nothing (no early runs on partials). Otherwise ("hybrid") the rules
+   * go first, as without an LLM, and the LLM gets the phrases they miss.
+   */
+  llmFirst?: boolean;
+  /** The model is loaded; until then phrases are handled as with "rules". */
+  llmReady?(): boolean;
 };
 
 /** Default VOICE → ACT EARLY: how long partial words must stay the same. */
@@ -85,6 +114,7 @@ let state: VoiceState = {
   error: null,
   interim: "",
   asleep: false,
+  thinking: 0,
   log: [],
 };
 let nextId = 1;
@@ -148,10 +178,81 @@ function updateEntry(id: number, patch: (e: VoiceLogEntry) => VoiceLogEntry) {
   emit({ interim: "", log: state.log.map((e) => (e.id === id ? patch(e) : e)) });
 }
 
+/** The handler's LLM, when phrases should go to it now. */
+function llmOf(h: VoiceHandler | null): VoiceHandler["interpret"] | null {
+  if (!h?.interpret || state.asleep || h.llmReady?.() === false) return null;
+  return h.interpret.bind(h);
+}
+
+function callsText(r: LlmResult): string[] {
+  return r.calls.map((c) => `${c.tool}(${Object.values(c.args).map(String).join(", ")})`);
+}
+
+/**
+ * Hands a whole phrase to the on-device LLM and logs it as pending; runs
+ * what it answers. With `rulesAfter`, the rules' match runs when the LLM
+ * has nothing (not ready, too slow, nothing fits).
+ */
+function askLlm(
+  interpret: NonNullable<VoiceHandler["interpret"]>,
+  alts: string[],
+  source: VoiceLogEntry["source"],
+  timing: VoiceTiming | undefined,
+  rulesAfter: boolean,
+): void {
+  const id = addEntry({
+    at: Date.now(),
+    alternatives: alts,
+    source,
+    match: null,
+    timing,
+    llm: { status: "pending" },
+  });
+  emit({ thinking: state.thinking + 1 });
+  const done = (res: LlmResult | null, error?: string) => {
+    let match = res?.match ?? null;
+    let fellBack = false;
+    let matchMs = 0;
+    if (!match && rulesAfter) {
+      const r = matchTimed(alts);
+      match = r.match;
+      matchMs = r.ms;
+      fellBack = !!match;
+    }
+    const ran = match ? runSafe(match) : false;
+    const now = Date.now();
+    updateEntry(id, (e) => ({
+      ...e,
+      // The transcript shows the answer for a few seconds from now.
+      at: now,
+      match: ran ? match : null,
+      timing: e.timing
+        ? { ...e.timing, firedAt: ran ? now : null, matchMs: e.timing.matchMs + matchMs }
+        : e.timing,
+      llm: res
+        ? {
+            status: res.status,
+            ms: res.ms,
+            calls: callsText(res),
+            refused: res.refused,
+            fellBack,
+          }
+        : { status: "error", fellBack, refused: error ? [error] : [] },
+    }));
+    emit({ thinking: Math.max(0, state.thinking - 1) });
+  };
+  interpret(alts[0]).then(
+    (res) => done(res),
+    (e: unknown) => done(null, String(e)),
+  );
+}
+
 /** The partial words have not changed for earlyMs: act on them now. */
 function actEarly(u: Utterance) {
   u.timer = null;
   if (u !== utt || !u.text) return;
+  // LLM first: partials are not acted on, the whole phrase goes to the LLM.
+  if (handler?.llmFirst && llmOf(handler)) return;
   const { match, ms } = matchTimed([u.text]);
   if (!match || !isNewEffect(match, u.fired)) return;
   if (!runSafe(match)) return;
@@ -249,7 +350,26 @@ export const voiceBus = {
       return null;
     }
     if (!u.text) u.quietAt = now;
+    const llm = llmOf(handler);
+    const pendingTiming = (matchMs: number): VoiceTiming => ({
+      spokeAt: u.spokeAt,
+      quietAt: u.quietAt,
+      endAt: u.endAt,
+      firedAt: null,
+      finalAt: now,
+      early: false,
+      matchMs,
+    });
+    if (llm && handler?.llmFirst) {
+      askLlm(llm, alts, "speech", pendingTiming(0), true);
+      return null;
+    }
     const { match, ms } = matchTimed(alts);
+    if (llm && !match && u.fired.length === 0) {
+      // The rules don't know this phrase: ask the LLM.
+      askLlm(llm, alts, "speech", pendingTiming(ms), false);
+      return null;
+    }
     const isNew = !!match && isNewEffect(match, u.fired);
     if (u.entryId !== null && !isNew) {
       // Already done early: just note the final words and when they came.
@@ -291,7 +411,16 @@ export const voiceBus = {
     if (source === "speech") return this.final(alternatives);
     const alts = alternatives.map((a) => a.trim()).filter(Boolean);
     if (alts.length === 0) return null;
+    const llm = llmOf(handler);
+    if (llm && handler?.llmFirst) {
+      askLlm(llm, alts, source, undefined, true);
+      return null;
+    }
     const { match } = matchTimed(alts);
+    if (llm && !match) {
+      askLlm(llm, alts, source, undefined, false);
+      return null;
+    }
     const ran = match ? runSafe(match) : false;
     addEntry({ at: Date.now(), alternatives: alts, source, match: ran ? match : null });
     return ran ? match : null;

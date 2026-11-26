@@ -60,7 +60,8 @@ export class SettingResolver {
 export const fmt = (v: unknown): string =>
   typeof v === "number" ? String(+v.toFixed(Math.abs(v) >= 100 ? 0 : 2)) : String(v);
 
-const clamp = (t: SettingTarget, v: number): number => {
+/** A value clamped to the setting's slider range (rounded for whole-number settings). */
+export const clamp = (t: SettingTarget, v: number): number => {
   let out = v;
   if (t.min !== undefined) out = Math.max(t.min, out);
   if (t.max !== undefined) out = Math.min(t.max, out);
@@ -85,7 +86,7 @@ export const stepTo = (t: SettingTarget, cur: number, next: number): number => {
   return +out.toFixed(6);
 };
 
-function setTo(t: SettingTarget, value: unknown, score: number): VoiceResolution {
+export function setTo(t: SettingTarget, value: unknown, score: number): VoiceResolution {
   return {
     score,
     outcome: { label: `${t.label} → ${fmt(value)}`, patch: { [t.key]: value } },
@@ -717,6 +718,11 @@ export function voiceCommands(): VoiceCommand<VoiceContext>[] {
       absolute: true,
     },
   ];
+}
+
+/** Commands without {slots} ("swing higher", "fly", "help"): the LLM tools' run_command list. */
+export function fixedVoiceCommands(): VoiceCommand<VoiceContext>[] {
+  return voiceCommands().filter((c) => c.phrases.every((p) => !p.includes("{")));
 }
 
 export function createVoiceRegistry(): VoiceCommandRegistry<VoiceContext> {
