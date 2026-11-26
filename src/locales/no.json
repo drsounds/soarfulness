@@ -667,6 +667,59 @@
         "clear": "TØM",
         "empty": "Ingen hendelser ennå. Start sporingen i Roaming eller trykk på en testknapp."
       }
+    },
+    "gamepad": {
+      "on": "GAMEPAD",
+      "unavailable": "Denne nettleseren støtter ikke spillkontroller.",
+      "waiting": "Koble til en kontroller og trykk på en hvilken som helst knapp.",
+      "nonStandard": "ukjent oppsett, sjekk tilordningen",
+      "deadZone": "DØDSONE FOR SPAKER",
+      "moveSensitivity": "BEVEGELSESFØLSOMHET",
+      "lookSensitivity": "SEFØLSOMHET",
+      "invertLookY": "SNU OPP/NED",
+      "boost": "BOOSTFART",
+      "mapping": "KNAPPTILORDNING",
+      "resetMapping": "TILBAKESTILL",
+      "mappingHint": "Trykk på KOBLE, og trykk så på knappen eller skyv spaken du vil bruke. En knapp styrer bare én ting. Esc avbryter.",
+      "bind": "+ KOBLE",
+      "pressNow": "Trykk på en knapp…",
+      "cancel": "AVBRYT",
+      "unbound": "ingen knapp",
+      "remove": "Fjern {{input}}",
+      "debugWindow": "FEILSØKINGSVINDU",
+      "debugHint": "Viser kontrollerens knapper og spaker og hva de gjør.",
+      "group": {
+        "move": "BEVEGELSE",
+        "look": "SE",
+        "height": "OPP / NED",
+        "buttons": "KNAPPER"
+      },
+      "action": {
+        "moveForward": "Fremover",
+        "moveBack": "Bakover",
+        "moveLeft": "Venstre",
+        "moveRight": "Høyre",
+        "lookUp": "Se opp",
+        "lookDown": "Se ned",
+        "lookLeft": "Snu til venstre",
+        "lookRight": "Snu til høyre",
+        "rise": "Stig",
+        "sink": "Synk",
+        "boost": "Boost (hold inne)",
+        "nextMode": "Neste kameramodus",
+        "prevMode": "Forrige kameramodus",
+        "recenterLook": "Rett opp blikket",
+        "toggleSettings": "Åpne / lukk innstillinger"
+      },
+      "debug": {
+        "title": "GAMEPAD FEILSØKING",
+        "app": "app",
+        "scene": "scene",
+        "pads": "kontrollere",
+        "capturing": "kobler…",
+        "yes": "ja",
+        "no": "nei"
+      }
     }
   },
   "docsPhilosophy": {
@@ -1337,6 +1390,10 @@
       "roaming": {
         "desc": "Beveg deg med kroppen: bevegelse fra Roaming-appen, feilsøkingsvindu",
         "label": "Roaming"
+      },
+      "gamepad": {
+        "desc": "Spillkontroller: knapptilordning, dødsone, følsomhet, feilsøkingsvindu",
+        "label": "Gamepad"
       }
     },
     "languageTitle": "Språk",

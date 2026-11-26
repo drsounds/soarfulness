@@ -70,6 +70,7 @@ import { DAY_NIGHT_DEFAULTS } from "@/apps/day-night/settings";
 import { UNDERWATER_FOG_DEFAULTS } from "@/apps/underwater-fog/settings";
 import { OPEN_DRIFT_DEFAULTS } from "@/apps/open-drift/settings";
 import { ROAMING_DEFAULTS } from "@/apps/roaming/settings";
+import { GAMEPAD_DEFAULTS } from "@/apps/gamepad/settings";
 import { WIND_DEFAULTS, windOff, type WindSettings } from "@/apps/wind/settings";
 import { DECORATIONS_DEFAULTS } from "@/apps/decorations/settings";
 import { altitudeMix, sanitizeWinds, type WindSource } from "@/apps/wind/wind";
@@ -79,6 +80,9 @@ import underwaterFogApp from "@/apps/underwater-fog/app";
 import openDriftApp from "@/apps/open-drift/app";
 import roamingApp from "@/apps/roaming/app";
 import { RoamingDebugWindow } from "@/apps/roaming/RoamingDebugWindow";
+import gamepadApp from "@/apps/gamepad/app";
+import { GamepadDebugWindow } from "@/apps/gamepad/GamepadDebugWindow";
+import type { GamepadAction } from "@/apps/gamepad/bindings";
 import snowApp from "@/apps/snow/app";
 import { RAIN_DEFAULTS } from "@/apps/rain/settings";
 import { FIREWORKS_LIGHTS } from "@/apps/fireworks/Fireworks";
@@ -1591,6 +1595,7 @@ const DEFAULTS: Persisted = {
   ...WIND_DEFAULTS,
   ...OPEN_DRIFT_DEFAULTS,
   ...ROAMING_DEFAULTS,
+  ...GAMEPAD_DEFAULTS,
   // On by default, generous enough (20km horizontally, 3km up/down) that
   // normal float-mode swimming near origin never brushes it — mainly meant
   // to be discovered by flying far in NOCLIP. worldBoundaryYExtend on means
@@ -2293,6 +2298,8 @@ export function Aquafulness() {
   const { reset: resetOpendrift, patch: patchOpendrift } = openDrift;
   // ROAMING (apps/roaming): move with the Roaming app's motion broadcasts.
   const roaming = useAppSettings(ROAMING_DEFAULTS, initial);
+  // GAMEPAD (apps/gamepad): game controller → HUD sticks + a few buttons.
+  const gamepad = useAppSettings(GAMEPAD_DEFAULTS, initial);
   const [worldBoundaryOn, setWorldBoundaryOn] = useState(initial.worldBoundaryOn);
   const [worldBoundarySize, setWorldBoundarySize] = useState(initial.worldBoundarySize);
   const [worldBoundaryHeight, setWorldBoundaryHeight] = useState(initial.worldBoundaryHeight);
@@ -2561,6 +2568,7 @@ export function Aquafulness() {
   const underwaterFog = useAppSettings(UNDERWATER_FOG_DEFAULTS, initial);
   const underwaterFogAppOn = useAppEnabled(appFlags, "underwater-fog");
   const roamingAppOn = useAppEnabled(appFlags, "roaming");
+  const gamepadAppOn = useAppEnabled(appFlags, "gamepad");
   const {
     underwaterFogOn,
     underwaterFogColor,
@@ -3219,6 +3227,8 @@ export function Aquafulness() {
   openDriftSettingsRef.current = openDrift.values;
   const roamingSettingsRef = useRef(roaming.values);
   roamingSettingsRef.current = roaming.values;
+  const gamepadSettingsRef = useRef(gamepad.values);
+  gamepadSettingsRef.current = gamepad.values;
   const rainSettingsRef = useRef(rain.values);
   rainSettingsRef.current = rain.values;
   const confettiSettingsRef = useRef(confetti.values);
@@ -3242,6 +3252,7 @@ export function Aquafulness() {
   // place that enumerates every field.
   const buildPersistedSnapshot = (): Persisted => ({
     ...roaming.values,
+    ...gamepad.values,
     waveAmp,
     decorations: deco.decorations,
     timeOfDay,
@@ -3642,6 +3653,7 @@ export function Aquafulness() {
     }
   }, [
     roaming.values,
+    gamepad.values,
     waveAmp,
     deco.decorations,
     timeOfDay,
@@ -4528,6 +4540,11 @@ export function Aquafulness() {
   useEffect(() => {
     lookSpinStickRef.current = lookSpinStick;
   }, [lookSpinStick]);
+  // GAMEPAD: the on-screen sticks' own values, so the render loop can add a
+  // connected pad's sticks on top of them (stickRef = HUD + pad) without the
+  // pad's share ever leaking back into the HUD state.
+  const hudSticksRef = useRef({ stick, rotStick, vertStick });
+  hudSticksRef.current = { stick, rotStick, vertStick };
   useEffect(() => {
     waterColorRef.current = waterColorIdx;
   }, [waterColorIdx]);
@@ -5567,6 +5584,7 @@ export function Aquafulness() {
     setWindAltitudeAudioOn(DEFAULTS.windAltitudeAudioOn);
     resetOpendrift();
     roaming.reset();
+    gamepad.reset();
     setWorldBoundaryOn(DEFAULTS.worldBoundaryOn);
     setWorldBoundarySize(DEFAULTS.worldBoundarySize);
     setWorldBoundaryHeight(DEFAULTS.worldBoundaryHeight);
@@ -5831,6 +5849,7 @@ export function Aquafulness() {
     if (patch.windAltitudeAudioOn !== undefined) setWindAltitudeAudioOn(patch.windAltitudeAudioOn);
     patchOpendrift(patch);
     roaming.patch(patch);
+    gamepad.patch(patch);
     if (patch.worldBoundaryOn !== undefined) setWorldBoundaryOn(patch.worldBoundaryOn);
     if (patch.worldBoundarySize !== undefined) setWorldBoundarySize(patch.worldBoundarySize);
     if (patch.worldBoundaryHeight !== undefined) setWorldBoundaryHeight(patch.worldBoundaryHeight);
@@ -6333,6 +6352,17 @@ export function Aquafulness() {
     const n = enabledCameraModes.length;
     if (n === 0) return;
     setCameraMode(enabledCameraModes[(idx + dir + n) % n]);
+  };
+
+  // GAMEPAD button actions that change React state, called from the render
+  // loop on the frame a button goes down (apps/gamepad/GamepadMapper.ts).
+  // Rebuilt every render so they see the current mode list.
+  const gamepadActionsRef = useRef<(a: GamepadAction) => void>(() => {});
+  gamepadActionsRef.current = (a: GamepadAction) => {
+    if (a === "toggleSettings") setSettingsOpen((v) => !v);
+    // The camera mode buttons are disabled while an interval session drives the mode.
+    else if (a === "nextMode" && !intervalSessionOn) cycleCameraMode(1);
+    else if (a === "prevMode" && !intervalSessionOn) cycleCameraMode(-1);
   };
 
   // GUNGA BEHÅLL TEMPO: turning it on remembers the current GUNGA HÖJD as
@@ -8993,6 +9023,8 @@ export function Aquafulness() {
     const wind = apps.runtime(windApp);
     const openDrift = apps.runtime(openDriftApp);
     const roamingRt = apps.runtime(roamingApp);
+    const gamepadRt = apps.runtime(gamepadApp);
+    let gamepadWasConnected = false;
     const underwaterFog = apps.runtime(underwaterFogApp);
     const neon = apps.runtime(neonApp);
     const snow = apps.runtime(snowApp);
@@ -9253,6 +9285,30 @@ export function Aquafulness() {
       // but leaves the LOOK stick's yaw/pitch (which still uses dt directly)
       // free, so the view can still be reoriented while editing.
       const physDt = editModeRef.current ? 0 : dt;
+
+      // GAMEPAD (apps/gamepad): a connected pad adds its sticks to the HUD's
+      // own NAV / LOOK / HÖJD values (left stick + D-pad = NAV, right stick =
+      // LOOK, triggers = HÖJD), so every mode that reads those sticks below
+      // just works. Button actions fire once per press. With no pad (or the
+      // app off) nothing here touches the sticks.
+      {
+        const pad = gamepadRt.poll(gamepadSettingsRef.current, apps.isOn("gamepad"));
+        if (pad.connected || gamepadWasConnected) {
+          const hud = hudSticksRef.current;
+          stickRef.current = { x: hud.stick.x + pad.move.x, y: hud.stick.y + pad.move.y };
+          rotStickRef.current = { x: hud.rotStick.x + pad.look.x, y: hud.rotStick.y + pad.look.y };
+          vertStickRef.current = {
+            x: hud.vertStick.x,
+            y: Math.max(-1, Math.min(1, hud.vertStick.y + pad.rise)),
+          };
+        }
+        gamepadWasConnected = pad.connected;
+        for (const a of pad.pressed) {
+          if (a === "recenterLook") pitchRef.current = 0;
+          else gamepadActionsRef.current(a);
+        }
+      }
+
       waveT += physDt * speedRef.current;
       const t = waveT;
       dyingWaveT += physDt * dyingSpeedRef.current;
@@ -12570,6 +12626,7 @@ export function Aquafulness() {
     setSurgeRotationSpeed,
     openDrift,
     roaming,
+    gamepad,
     buoyAmp,
     setBuoyAmp,
     bobSpeed,
@@ -13295,10 +13352,13 @@ export function Aquafulness() {
         />
       )}
 
-      {/* Optional "swimming goggles" effect — water droplets on the lens,
-          plus optional blur (see KAMERA settings tab). Sits directly above
-          the 3D canvas and below every HUD element, so it reads as being on
-          the camera rather than smearing the on-screen controls. */}
+      {/* GAMEPAD → DEBUG WINDOW: the pads' raw buttons/sticks and what they drive. */}
+      {gamepad.values.gamepadDebug && gamepadAppOn && (
+        <GamepadDebugWindow
+          appEnabled={gamepadAppOn}
+          onClose={() => gamepad.setters.gamepadDebug(false)}
+        />
+      )}
       {/* ROAMING → DEBUG WINDOW: every incoming Roaming event + live motion state. */}
       {roaming.values.roamingDebug && roamingAppOn && (
         <RoamingDebugWindow
@@ -13307,6 +13367,10 @@ export function Aquafulness() {
           onClose={() => roaming.setters.roamingDebug(false)}
         />
       )}
+      {/* Optional "swimming goggles" effect — water droplets on the lens,
+          plus optional blur (see KAMERA settings tab). Sits directly above
+          the 3D canvas and below every HUD element, so it reads as being on
+          the camera rather than smearing the on-screen controls. */}
       {gogglesOn && (
         <GogglesOverlay
           blur={gogglesBlur}

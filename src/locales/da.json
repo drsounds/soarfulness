@@ -667,6 +667,59 @@
         "clear": "RYD",
         "empty": "Ingen hændelser endnu. Start sporingen i Roaming, eller tryk på en testknap."
       }
+    },
+    "gamepad": {
+      "on": "GAMEPAD",
+      "unavailable": "Denne browser understøtter ikke gamepads.",
+      "waiting": "Tilslut en controller og tryk på en vilkårlig knap.",
+      "nonStandard": "ukendt layout, tjek tildelingen",
+      "deadZone": "DØDZONE FOR STIKS",
+      "moveSensitivity": "BEVÆGELSESFØLSOMHED",
+      "lookSensitivity": "KIGGEFØLSOMHED",
+      "invertLookY": "VEND OP/NED",
+      "boost": "BOOSTFART",
+      "mapping": "KNAPTILDELING",
+      "resetMapping": "NULSTIL TIL STANDARD",
+      "mappingHint": "Tryk på TILDEL, og tryk så på knappen eller skub stikket, du vil bruge. En knap styrer kun én ting. Esc annullerer.",
+      "bind": "+ TILDEL",
+      "pressNow": "Tryk på en knap…",
+      "cancel": "ANNULLER",
+      "unbound": "ingen knap",
+      "remove": "Fjern {{input}}",
+      "debugWindow": "FEJLFINDINGSVINDUE",
+      "debugHint": "Viser controllerens knapper og stiks og hvad de gør.",
+      "group": {
+        "move": "BEVÆGELSE",
+        "look": "KIG",
+        "height": "OP / NED",
+        "buttons": "KNAPPER"
+      },
+      "action": {
+        "moveForward": "Frem",
+        "moveBack": "Tilbage",
+        "moveLeft": "Venstre",
+        "moveRight": "Højre",
+        "lookUp": "Kig op",
+        "lookDown": "Kig ned",
+        "lookLeft": "Drej til venstre",
+        "lookRight": "Drej til højre",
+        "rise": "Stig",
+        "sink": "Synk",
+        "boost": "Boost (hold)",
+        "nextMode": "Næste kameratilstand",
+        "prevMode": "Forrige kameratilstand",
+        "recenterLook": "Ret blikket ud",
+        "toggleSettings": "Åbn / luk indstillinger"
+      },
+      "debug": {
+        "title": "GAMEPAD FEJLFINDING",
+        "app": "app",
+        "scene": "scene",
+        "pads": "controllere",
+        "capturing": "tildeler…",
+        "yes": "ja",
+        "no": "nej"
+      }
     }
   },
   "docsPhilosophy": {
@@ -1337,6 +1390,10 @@
       "roaming": {
         "desc": "Bevæg dig med kroppen: bevægelse fra Roaming-appen, fejlsøgningsvindue",
         "label": "Roaming"
+      },
+      "gamepad": {
+        "desc": "Controller: knaptildeling, dødzone, følsomhed, fejlfindingsvindue",
+        "label": "Gamepad"
       }
     },
     "languageTitle": "Sprog",

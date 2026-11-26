@@ -20,6 +20,7 @@ import {
   Compass,
   Droplets,
   Footprints,
+  Gamepad2,
   GalleryHorizontal,
   Glasses,
   Layers,
@@ -76,6 +77,7 @@ export type SettingsGroupId =
   | "bather"
   | "interval"
   | "roaming"
+  | "gamepad"
   | "graphics"
   | "sound"
   | "apps"
@@ -108,6 +110,7 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
   { id: "bather", category: "bather", icon: Glasses },
   { id: "interval", category: "bather", icon: Timer },
   { id: "roaming", category: "bather", icon: Footprints },
+  { id: "gamepad", category: "bather", icon: Gamepad2 },
   { id: "graphics", category: "system", icon: Monitor },
   { id: "sound", category: "system", icon: Volume2 },
   { id: "apps", category: "system", icon: Blocks },
