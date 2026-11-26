@@ -776,6 +776,55 @@
         "yes": "kyllä",
         "no": "ei"
       }
+    },
+    "voice": {
+      "on": "ÄÄNIOHJAUS (KUUNTELE)",
+      "offHint": "Ei kuuntele. Kytke päälle ohjataksesi sovellusta puheella.",
+      "lang": "PUHEEN KIELI",
+      "langAuto": "AUTO ({{lang}})",
+      "threshold": "TUNNISTUKSEN TARKKUUS",
+      "thresholdHint": "Kuinka lähellä komentoa kuullun on oltava. Laske, jos komentoja jää huomaamatta, nosta, jos asioita tapahtuu itsestään.",
+      "step": "ASKELKOKO",
+      "transcript": "NÄYTÄ MITÄ KUULTIIN",
+      "debug": "VIANETSINTÄIKKUNA",
+      "debugHint": "Kaikki kuullut lauseet, mihin ne osuivat, kenttä komentojen kirjoittamiseen sekä kaikki komennot ja asetusten nimet.",
+      "examples": "SANOTTAVAA",
+      "examplesHint": "Tilat ja liikkeet sekä mikä tahansa asetus nimellä (englanniksi tai ruotsiksi): “set <setting> to <value>”, “increase <setting>”, “<setting> on/off”. Sano “stop listening” tauottaaksesi ja “wake up” jatkaaksesi.",
+      "notUnderstood": "ei ymmärretty",
+      "listeningShort": "Kuunnellaan…",
+      "status": {
+        "off": "Ei kuuntele.",
+        "starting": "Käynnistetään mikrofonia…",
+        "listening": "Kuunnellaan ({{lang}}).",
+        "asleep": "Tauolla. Sano “wake up” jatkaaksesi.",
+        "unsupported": "Laitteella ei ole puheentunnistusta. Ääniohjaus ei koskaan käytä pilvipalveluja, joten se tarvitsee Chromen laitteella toimivan puheentunnistuksen tai Android-sovelluksen (Android 12+).",
+        "denied": "Mikrofonin käyttö estettiin. Salli se selaimen tai sovelluksen asetuksista.",
+        "error": "Puheentunnistuksen virhe: {{error}}",
+        "nolocal": "Laitteella ei ole puhemallia kielelle {{lang}}. Ääniohjaus ei koskaan lähetä ääntä pilveen, joten se ei kuuntele. Kokeile ENGLANTI (USA).",
+        "download": "Kielen {{lang}} puhemalli on ladattava kerran."
+      },
+      "langs": {
+        "en-US": "ENGLANTI (USA)",
+        "en-GB": "ENGLANTI (UK)",
+        "sv-SE": "RUOTSI",
+        "nb-NO": "NORJA",
+        "da-DK": "TANSKA",
+        "fi-FI": "SUOMI"
+      },
+      "debugWindow": {
+        "title": "ÄÄNI VIANETSINTÄ",
+        "appOff": "ÄÄNI-sovellus on pois päältä.",
+        "typePlaceholder": "Kirjoita komento, esim. swing higher",
+        "run": "SUORITA",
+        "log": "KUULTU",
+        "commands": "KOMENNOT",
+        "settings": "ASETUKSET ({{count}})",
+        "clear": "TYHJENNÄ",
+        "filter": "Suodata…",
+        "empty": "Mitään ei ole vielä kuultu. Sano jotain tai kirjoita komento yllä."
+      },
+      "downloadModel": "LATAA PUHEMALLI: {{lang}}",
+      "privacy": "Yksityinen: puhe tunnistetaan vain tällä laitteella. Ääntä tai tekstiä ei lähetetä minnekään."
     }
   },
   "docsPhilosophy": {
@@ -1450,6 +1499,10 @@
       "gamepad": {
         "desc": "Peliohjain: painikemääritys, kuollut alue, herkkyys, vianetsintäikkuna",
         "label": "Peliohjain"
+      },
+      "voice": {
+        "label": "Ääni",
+        "desc": "Ohjaa sovellusta puheella: tilat, liikkeet ja kaikki asetukset nimellä"
       }
     },
     "languageTitle": "Kieli",

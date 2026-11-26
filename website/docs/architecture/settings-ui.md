@@ -31,7 +31,7 @@ Since soarfulness #46 (aqua-wave-dream #245, open) the panel is split into
 | top | `state` (save, load, sceneries, share, restore, reset) |
 | scene | `time`, `place`, `weather`, `clouds`, `events`, `effects` |
 | sea | `waves`, `drift`, `water`, `bottom` |
-| bather | `mode`, `camera`, `bather`, `interval`, `roaming`, `gamepad` (each only while its app is on) |
+| bather | `mode`, `camera`, `bather`, `interval`, `roaming`, `gamepad`, `voice` (each only while its app is on) |
 | system | `graphics`, `sound`, `app` |
 
 The English and Swedish names and one-line descriptions are in the locales

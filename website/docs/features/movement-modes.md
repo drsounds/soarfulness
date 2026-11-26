@@ -78,6 +78,7 @@ locales; **ids stay `freakOut*`**.
 | `openDrift*` | HAVSDRIFT | See [Open-water drift](open-drift.md) |
 | `roaming*` | ROAMING | Android app: walk/run with the Roaming app to swim. See [Move with your body](roaming.md) |
 | `gamepad*` | GAMEPAD | A game controller drives NAV, LOOK and HÖJD, steps the camera mode and opens settings; every action is rebindable. See [Gamepad](gamepad.md) |
+| `voice*` | VOICE | Voice commands: "swing", "fly", "soar faster", "change sway to north", "increase wave height", "start ride" and any setting by name. See [Voice control](voice.md) |
 | `windCurrentOn` | VIND → STRÖM | See [Wind](wind.md) |
 
 ## Water level: depth sine and level drift

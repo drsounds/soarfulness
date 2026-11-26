@@ -58,6 +58,7 @@ Swedish, like `NORRSKEN`) goes in the manifest's `name`.
 | `open-drift` | HAVSDRIFT | motion | drift | | `OpenDrift.ts` |
 | `roaming` | ROAMING | motion | roaming | | `RoamingMotion.ts`, `roamingBridge.ts`, `RoamingPanel.tsx`, `RoamingDebugWindow.tsx` |
 | `gamepad` | GAMEPAD | feature | gamepad | | `bindings.ts`, `GamepadMapper.ts`, `gamepadInput.ts`, `GamepadPanel.tsx`, `GamepadDebugWindow.tsx` |
+| `voice` | VOICE | feature | voice | | `commands.ts`, `VoiceCommandRegistry.ts`, `settingTargets.ts`, `speechEngines.ts`, `VoiceRuntime.ts`, `VoicePanel.tsx` |
 | `retro` | RETRO | screen-fx | graphics | | `retroShader.ts` |
 | `rain` | REGN | scene-fx | weather | day-night, wind | `Rainfall.ts`, `RainAudio.ts` |
 | `sky-puffs` | MOLNPUFFAR | scene-fx | clouds | | `SkyPuffsRuntime.ts` |

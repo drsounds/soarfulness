@@ -776,6 +776,55 @@
         "yes": "yes",
         "no": "no"
       }
+    },
+    "voice": {
+      "on": "VOICE CONTROL (LISTEN)",
+      "offHint": "Not listening. Switch on to control the app by talking to it.",
+      "lang": "SPEECH LANGUAGE",
+      "langAuto": "AUTO ({{lang}})",
+      "threshold": "MATCH STRICTNESS",
+      "thresholdHint": "How close what was heard must be to a command. Lower it if commands are missed, raise it if things happen by themselves.",
+      "step": "STEP SIZE",
+      "transcript": "SHOW WHAT WAS HEARD",
+      "debug": "DEBUG WINDOW",
+      "debugHint": "Every phrase heard, what it matched, a box to type commands, and every command and setting name.",
+      "examples": "THINGS TO SAY",
+      "examplesHint": "Modes and moves, plus any setting by its name: “set <setting> to <value>”, “increase <setting>”, “<setting> on/off”, “reset <setting>”. Say “stop listening” to pause and “wake up” to resume.",
+      "notUnderstood": "not understood",
+      "listeningShort": "Listening…",
+      "status": {
+        "off": "Not listening.",
+        "starting": "Starting the microphone…",
+        "listening": "Listening ({{lang}}).",
+        "asleep": "Paused. Say “wake up” to resume.",
+        "unsupported": "No on-device speech recognition here. Voice control never uses cloud services, so it needs Chrome with on-device speech, or the Android app on Android 12+.",
+        "denied": "Microphone access was denied. Allow it in the browser or app settings.",
+        "error": "Speech recognition error: {{error}}",
+        "nolocal": "No on-device speech model for {{lang}} on this device. Voice control never sends audio to the cloud, so it won't listen. Try ENGLISH (US).",
+        "download": "The on-device speech model for {{lang}} needs to be downloaded once."
+      },
+      "langs": {
+        "en-US": "ENGLISH (US)",
+        "en-GB": "ENGLISH (UK)",
+        "sv-SE": "SWEDISH",
+        "nb-NO": "NORWEGIAN",
+        "da-DK": "DANISH",
+        "fi-FI": "FINNISH"
+      },
+      "debugWindow": {
+        "title": "VOICE DEBUG",
+        "appOff": "The VOICE app is off.",
+        "typePlaceholder": "Type a command, e.g. swing higher",
+        "run": "RUN",
+        "log": "HEARD",
+        "commands": "COMMANDS",
+        "settings": "SETTINGS ({{count}})",
+        "clear": "CLEAR",
+        "filter": "Filter…",
+        "empty": "Nothing heard yet. Say something, or type a command above."
+      },
+      "downloadModel": "DOWNLOAD {{lang}} SPEECH MODEL",
+      "privacy": "Private: speech is recognized on this device only. No audio or text is sent anywhere."
     }
   },
   "docsPhilosophy": {
@@ -1450,6 +1499,10 @@
       "gamepad": {
         "desc": "Game controller: button mapping, dead zone, sensitivity, debug window",
         "label": "Gamepad"
+      },
+      "voice": {
+        "label": "Voice",
+        "desc": "Control the app by talking: modes, moves and every setting by name"
       }
     },
     "languageTitle": "Language",

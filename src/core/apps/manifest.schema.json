@@ -55,6 +55,7 @@
         "interval",
         "roaming",
         "gamepad",
+        "voice",
         "graphics",
         "sound",
         "apps",

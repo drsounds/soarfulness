@@ -71,6 +71,7 @@ import { UNDERWATER_FOG_DEFAULTS } from "@/apps/underwater-fog/settings";
 import { OPEN_DRIFT_DEFAULTS } from "@/apps/open-drift/settings";
 import { ROAMING_DEFAULTS } from "@/apps/roaming/settings";
 import { GAMEPAD_DEFAULTS } from "@/apps/gamepad/settings";
+import { VOICE_DEFAULTS } from "@/apps/voice/settings";
 import { WIND_DEFAULTS, windOff, type WindSettings } from "@/apps/wind/settings";
 import { DECORATIONS_DEFAULTS } from "@/apps/decorations/settings";
 import { altitudeMix, sanitizeWinds, type WindSource } from "@/apps/wind/wind";
@@ -84,6 +85,13 @@ import type { RoamingPressAction } from "@/apps/roaming/gestures";
 import gamepadApp from "@/apps/gamepad/app";
 import { GamepadDebugWindow } from "@/apps/gamepad/GamepadDebugWindow";
 import type { GamepadAction } from "@/apps/gamepad/bindings";
+import { VoiceDebugWindow } from "@/apps/voice/VoiceDebugWindow";
+import { VoiceTranscript } from "@/apps/voice/VoiceTranscript";
+import { SettingResolver, createVoiceRegistry } from "@/apps/voice/commands";
+import { SETTING_CATALOG } from "@/apps/voice/settingCatalog.generated";
+import { buildSettingTargets } from "@/apps/voice/settingTargets";
+import { voiceBus } from "@/apps/voice/voiceBus";
+import type { VoiceAction } from "@/apps/voice/voiceActions";
 import snowApp from "@/apps/snow/app";
 import { RAIN_DEFAULTS } from "@/apps/rain/settings";
 import { FIREWORKS_LIGHTS } from "@/apps/fireworks/Fireworks";
@@ -1597,6 +1605,7 @@ const DEFAULTS: Persisted = {
   ...OPEN_DRIFT_DEFAULTS,
   ...ROAMING_DEFAULTS,
   ...GAMEPAD_DEFAULTS,
+  ...VOICE_DEFAULTS,
   // On by default, generous enough (20km horizontally, 3km up/down) that
   // normal float-mode swimming near origin never brushes it — mainly meant
   // to be discovered by flying far in NOCLIP. worldBoundaryYExtend on means
@@ -1945,7 +1954,7 @@ const CHROMATIC_ABERRATION_SHADER = {
 // after seeding its localStorage-backed settings/camera pose from a decoded
 // shared "bathing" link.
 export function Aquafulness() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const online = useOnlineStatus();
   const mountRef = useRef<HTMLDivElement>(null);
   // True only on the very first start: nothing has been saved yet, so the
@@ -2301,6 +2310,8 @@ export function Aquafulness() {
   const roaming = useAppSettings(ROAMING_DEFAULTS, initial);
   // GAMEPAD (apps/gamepad): game controller → HUD sticks + a few buttons.
   const gamepad = useAppSettings(GAMEPAD_DEFAULTS, initial);
+  // VOICE (apps/voice): voice commands for modes, moves and every setting.
+  const voice = useAppSettings(VOICE_DEFAULTS, initial);
   const [worldBoundaryOn, setWorldBoundaryOn] = useState(initial.worldBoundaryOn);
   const [worldBoundarySize, setWorldBoundarySize] = useState(initial.worldBoundarySize);
   const [worldBoundaryHeight, setWorldBoundaryHeight] = useState(initial.worldBoundaryHeight);
@@ -2570,6 +2581,7 @@ export function Aquafulness() {
   const underwaterFogAppOn = useAppEnabled(appFlags, "underwater-fog");
   const roamingAppOn = useAppEnabled(appFlags, "roaming");
   const gamepadAppOn = useAppEnabled(appFlags, "gamepad");
+  const voiceAppOn = useAppEnabled(appFlags, "voice");
   const {
     underwaterFogOn,
     underwaterFogColor,
@@ -3230,6 +3242,8 @@ export function Aquafulness() {
   roamingSettingsRef.current = roaming.values;
   const gamepadSettingsRef = useRef(gamepad.values);
   gamepadSettingsRef.current = gamepad.values;
+  const voiceSettingsRef = useRef(voice.values);
+  voiceSettingsRef.current = voice.values;
   const rainSettingsRef = useRef(rain.values);
   rainSettingsRef.current = rain.values;
   const confettiSettingsRef = useRef(confetti.values);
@@ -3254,6 +3268,7 @@ export function Aquafulness() {
   const buildPersistedSnapshot = (): Persisted => ({
     ...roaming.values,
     ...gamepad.values,
+    ...voice.values,
     waveAmp,
     decorations: deco.decorations,
     timeOfDay,
@@ -3655,6 +3670,7 @@ export function Aquafulness() {
   }, [
     roaming.values,
     gamepad.values,
+    voice.values,
     waveAmp,
     deco.decorations,
     timeOfDay,
@@ -5586,6 +5602,7 @@ export function Aquafulness() {
     resetOpendrift();
     roaming.reset();
     gamepad.reset();
+    voice.reset();
     setWorldBoundaryOn(DEFAULTS.worldBoundaryOn);
     setWorldBoundarySize(DEFAULTS.worldBoundarySize);
     setWorldBoundaryHeight(DEFAULTS.worldBoundaryHeight);
@@ -5851,6 +5868,7 @@ export function Aquafulness() {
     patchOpendrift(patch);
     roaming.patch(patch);
     gamepad.patch(patch);
+    voice.patch(patch);
     if (patch.worldBoundaryOn !== undefined) setWorldBoundaryOn(patch.worldBoundaryOn);
     if (patch.worldBoundarySize !== undefined) setWorldBoundarySize(patch.worldBoundarySize);
     if (patch.worldBoundaryHeight !== undefined) setWorldBoundaryHeight(patch.worldBoundaryHeight);
@@ -9094,6 +9112,7 @@ export function Aquafulness() {
       fireworks: fireworksSettingsRef,
       confetti: confettiSettingsRef,
       hood: hoodSettingsRef,
+      voice: voiceSettingsRef,
     };
     const appSettings = (id: string) => appSettingsRefs[id]?.current;
 
@@ -12677,6 +12696,7 @@ export function Aquafulness() {
     openDrift,
     roaming,
     gamepad,
+    voice,
     buoyAmp,
     setBuoyAmp,
     bobSpeed,
@@ -13293,6 +13313,103 @@ export function Aquafulness() {
     setNoclipReverseRiseOn(m === "rise");
   };
 
+  // VOICE (apps/voice): every persisted setting as a voice target (labels in
+  // the app's language and English, ranges from the settings rows), the
+  // command list, and the handler the recognizer's phrases go through. The
+  // handler is replaced after every render so it sees the current state.
+  const voiceRegistry = useMemo(() => createVoiceRegistry(), []);
+  const voiceSettingsResolver = useMemo(() => {
+    const en = i18n.getFixedT("en");
+    return new SettingResolver(
+      buildSettingTargets({
+        defaults: DEFAULTS as unknown as Record<string, unknown>,
+        catalog: SETTING_CATALOG,
+        labels: (k) => [t(k), en(k)].filter((l) => l && l !== k),
+        extreme: extremeLimits,
+      }),
+    );
+  }, [t, i18n, extremeLimits]);
+  useEffect(() => {
+    voiceBus.setVocabulary({
+      commands: voiceRegistry.commands.map((c) => ({ id: c.id, phrases: c.phrases })),
+      settings: voiceSettingsResolver.targets.map((s) => ({
+        key: s.key,
+        label: s.label,
+        kind: s.kind,
+        names: s.names.map((n) => n.join(" ")),
+      })),
+    });
+  }, [voiceRegistry, voiceSettingsResolver]);
+  const runVoiceAction = (a: VoiceAction) => {
+    const wrap = (deg: number) => ((deg % 360) + 360) % 360;
+    switch (a.type) {
+      case "mode":
+        if (!intervalSessionOn) setCameraMode(a.mode);
+        break;
+      case "whirlpool":
+        // The water whirlpool opens while swinging with TORNADO on.
+        if (a.on && !intervalSessionOn) setCameraMode("swing");
+        setTornadoOn(a.on);
+        break;
+      case "vertical":
+        if (a.dir !== "stop" && cameraMode !== "noclip" && !intervalSessionOn)
+          setCameraMode("noclip");
+        setNoclipVerticalMode(a.dir === "up" ? "rise" : a.dir === "down" ? "fall" : "still");
+        break;
+      case "direction": {
+        const current =
+          a.target === "sway"
+            ? worldXZBearing(swayWorldRef.current.x, swayWorldRef.current.z)
+            : waveDir;
+        // The camera's forward as a world bearing (see worldXZToPad).
+        const yaw = yawRef.current;
+        const viewBearing = worldXZBearing(-Math.sin(yaw), -Math.cos(yaw));
+        const deg = wrap(
+          a.bearing !== undefined
+            ? a.bearing
+            : a.view !== undefined
+              ? viewBearing + a.view
+              : current + (a.turn ?? 0),
+        );
+        if (a.target === "sway") setStickBearing(swayWorldRef, swayDisplayRef, setSwayStick, deg);
+        else setWaveDir(deg);
+        break;
+      }
+      case "settings":
+        setSettingsOpen(a.open);
+        break;
+      case "cycleMode":
+        if (!intervalSessionOn) cycleCameraMode(a.dir);
+        break;
+      case "listen":
+        voiceBus.setAsleep(!a.awake);
+        break;
+      case "help":
+        voice.setters.voiceDebug(a.open);
+        break;
+    }
+  };
+  useEffect(() => {
+    voiceBus.setHandler((alternatives) => {
+      if (!voiceAppOn) return null;
+      const snapshot = buildPersistedSnapshot() as unknown as Record<string, unknown>;
+      const match = voiceRegistry.match(
+        alternatives,
+        {
+          get: (k) => snapshot[k],
+          settings: voiceSettingsResolver,
+          stepScale: voice.values.voiceStepScale,
+        },
+        { threshold: voice.values.voiceMatchThreshold, asleep: voiceBus.get().asleep },
+      );
+      if (!match) return null;
+      if (match.outcome.patch) applySettingsPatch(match.outcome.patch as Partial<Persisted>);
+      for (const a of match.outcome.actions ?? []) runVoiceAction(a);
+      return match;
+    });
+  });
+  useEffect(() => () => voiceBus.setHandler(null), []);
+
   // STRÖM/HÖJD/SVAJ/VÅGRIKT — every on-screen joystick except NAV and LOOK —
   // also rendered inside the "Fjärrkontroll" app in the bathOS phone (see
   // VirtualPhone.tsx), in addition to STRÖM/SVAJ/VÅGRIKT's own spot on the
@@ -13409,6 +13526,12 @@ export function Aquafulness() {
           onClose={() => gamepad.setters.gamepadDebug(false)}
         />
       )}
+      {/* VOICE → DEBUG WINDOW: every phrase heard, what it matched, a test box. */}
+      {voice.values.voiceDebug && voiceAppOn && (
+        <VoiceDebugWindow appEnabled={voiceAppOn} onClose={() => voice.setters.voiceDebug(false)} />
+      )}
+      {/* VOICE → SHOW WHAT WAS HEARD: the caption with the last phrase. */}
+      {voiceAppOn && voice.values.voiceOn && voice.values.voiceTranscriptOn && <VoiceTranscript />}
       {/* ROAMING → DEBUG WINDOW: every incoming Roaming event + live motion state. */}
       {roaming.values.roamingDebug && roamingAppOn && (
         <RoamingDebugWindow

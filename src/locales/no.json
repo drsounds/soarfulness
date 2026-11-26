@@ -776,6 +776,55 @@
         "yes": "ja",
         "no": "nei"
       }
+    },
+    "voice": {
+      "on": "STEMMESTYRING (LYTT)",
+      "offHint": "Lytter ikke. Slå på for å styre appen med stemmen.",
+      "lang": "TALESPRÅK",
+      "langAuto": "AUTO ({{lang}})",
+      "threshold": "MATCHKRAV",
+      "thresholdHint": "Hvor nær en kommando det som ble hørt må være. Senk hvis kommandoer går tapt, øk hvis ting skjer av seg selv.",
+      "step": "STEGSTØRRELSE",
+      "transcript": "VIS HVA SOM BLE HØRT",
+      "debug": "FEILSØKINGSVINDU",
+      "debugHint": "Alt som er hørt, hva det traff, en boks for å skrive kommandoer, og alle kommandoer og innstillingsnavn.",
+      "examples": "TING Å SI",
+      "examplesHint": "Moduser og bevegelser, pluss alle innstillinger ved navn (engelsk eller svensk): “set <setting> to <value>”, “increase <setting>”, “<setting> on/off”. Si “stop listening” for pause og “wake up” for å fortsette.",
+      "notUnderstood": "ikke forstått",
+      "listeningShort": "Lytter…",
+      "status": {
+        "off": "Lytter ikke.",
+        "starting": "Starter mikrofonen…",
+        "listening": "Lytter ({{lang}}).",
+        "asleep": "Pause. Si “wake up” for å fortsette.",
+        "unsupported": "Ingen talegjenkjenning på enheten her. Stemmestyring bruker aldri skytjenester, så den trenger Chrome med talegjenkjenning på enheten, eller Android-appen på Android 12+.",
+        "denied": "Mikrofonen ble nektet. Tillat den i nettleserens eller appens innstillinger.",
+        "error": "Feil i talegjenkjenningen: {{error}}",
+        "nolocal": "Ingen talemodell på enheten for {{lang}}. Stemmestyring sender aldri lyd til skyen, så den lytter ikke. Prøv ENGELSK (USA).",
+        "download": "Talemodellen for {{lang}} må lastes ned én gang."
+      },
+      "langs": {
+        "en-US": "ENGELSK (USA)",
+        "en-GB": "ENGELSK (UK)",
+        "sv-SE": "SVENSK",
+        "nb-NO": "NORSK",
+        "da-DK": "DANSK",
+        "fi-FI": "FINSK"
+      },
+      "debugWindow": {
+        "title": "STEMME FEILSØKING",
+        "appOff": "Appen STEMME er av.",
+        "typePlaceholder": "Skriv en kommando, f.eks. swing higher",
+        "run": "KJØR",
+        "log": "HØRT",
+        "commands": "KOMMANDOER",
+        "settings": "INNSTILLINGER ({{count}})",
+        "clear": "TØM",
+        "filter": "Filtrer…",
+        "empty": "Ingenting hørt ennå. Si noe, eller skriv en kommando over."
+      },
+      "downloadModel": "LAST NED TALEMODELL FOR {{lang}}",
+      "privacy": "Privat: talen gjenkjennes kun på denne enheten. Ingen lyd eller tekst sendes noe sted."
     }
   },
   "docsPhilosophy": {
@@ -1450,6 +1499,10 @@
       "gamepad": {
         "desc": "Spillkontroller: knapptilordning, dødsone, følsomhet, feilsøkingsvindu",
         "label": "Gamepad"
+      },
+      "voice": {
+        "label": "Stemme",
+        "desc": "Styr appen med stemmen: moduser, bevegelser og alle innstillinger ved navn"
       }
     },
     "languageTitle": "Språk",

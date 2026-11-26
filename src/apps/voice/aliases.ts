@@ -1,0 +1,68 @@
+// VOICE: extra spoken names for settings, on top of the settings row's own
+// label (in the app's language and in English) and the key split into words
+// ("swayAmp" → "sway amp"). Add a line here when a setting is hard to say by
+// its label. English and Swedish; accents don't matter (they are folded).
+
+export const SETTING_ALIASES: Record<string, string[]> = {
+  waveAmp: ["wave height", "waves", "wave size", "wave", "vaghojd", "vagor", "vag"],
+  waveSpeed: ["wave speed", "wave tempo", "vagtempo", "vaghastighet"],
+  waveDir: ["wave direction", "vagriktning"],
+  waveFreq: ["wave frequency"],
+  swayAmp: ["sway", "sway amount", "sway strength", "svaj"],
+  swaySpeed: ["sway speed", "sway tempo", "svajtempo"],
+  swayBias: ["sway drift"],
+  surgeAmp: ["surge", "swell", "svall"],
+  surgeSpeed: ["surge speed", "swell speed", "svalltempo"],
+  swingIntensity: ["swing amount", "swing intensity", "swing size", "gungintensitet"],
+  swingSpeed: ["swing speed", "swing tempo", "gunghastighet", "gungtempo"],
+  swingHeight: ["swing height", "gunghojd"],
+  noclipSpeed: ["fly speed", "flight speed", "flying speed", "flyghastighet"],
+  noclipFallRiseSpeed: [
+    "soar speed",
+    "sink speed",
+    "rise speed",
+    "climb speed",
+    "fall speed",
+    "stighastighet",
+  ],
+  freakOutOn: ["ride", "the ride", "carousel", "karusell", "attraktion"],
+  freakOutRotationSpeed: ["ride speed", "ride rotation speed", "spin speed"],
+  freakOutSwingSpeed: ["ride swing speed"],
+  tornadoOn: ["tornado", "whirlpool", "virvel", "malstrom"],
+  tornadoSpeed: ["tornado speed", "whirlpool speed", "virvelhastighet"],
+  tornadoRadius: ["tornado radius", "whirlpool radius", "whirlpool size"],
+  auroraOn: ["northern lights", "aurora", "norrsken"],
+  snowOn: ["snow", "sno", "snowfall"],
+  rainOn: ["rain", "regn"],
+  fireworksOn: ["fireworks", "fyrverkeri"],
+  confettiOn: ["confetti", "konfetti"],
+  hoodOn: ["hood", "huva"],
+  neonOn: ["neon"],
+  retroOn: ["retro", "nineties mode"],
+  gogglesOn: ["goggles", "swimming goggles", "simglasogon"],
+  clockOn: ["clock", "klocka"],
+  camFov: ["field of view", "fov", "zoom"],
+  timeOfDay: ["time of day", "time", "tid", "klockslag"],
+  openDriftOn: ["open water drift", "drift", "havsdrift"],
+  underwaterFogOn: ["underwater haze", "underwater fog", "fog", "dimma"],
+  shadowsOn: ["shadows", "skuggor"],
+  extremeLimits: ["extreme", "extreme mode"],
+  lowGraphicsMode: ["low graphics", "low quality"],
+  intervalSessionOn: ["interval session", "intervals", "interval training"],
+  worldBoundaryOn: ["world boundary", "boundary"],
+  voiceLang: ["voice language", "speech language", "language", "sprak"],
+  voiceTranscriptOn: ["transcript", "subtitles", "voice transcript"],
+  voiceStepScale: ["voice step", "step size"],
+  voiceMatchThreshold: ["voice threshold", "match threshold"],
+};
+
+/** Settings voice never touches (structured values, or would cut itself off). */
+export const VOICE_EXCLUDED_KEYS = new Set<string>([
+  "voiceOn",
+  "cameraMode",
+  "decorations",
+  "winds",
+  "gamepadBindings",
+  "timeTravelBaseMs",
+  "timeTravelSetAtMs",
+]);
