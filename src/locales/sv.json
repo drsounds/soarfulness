@@ -797,9 +797,11 @@
         "starting": "Startar mikrofonen…",
         "listening": "Lyssnar ({{lang}}).",
         "asleep": "Pausad. Säg ”vakna” för att fortsätta.",
-        "unsupported": "Taligenkänning finns inte i den här webbläsaren. Prova Chrome, Edge eller Safari, eller Android-appen.",
+        "unsupported": "Ingen taligenkänning på enheten här. Röststyrning använder aldrig molntjänster, så den behöver Chrome med taligenkänning på enheten eller Android-appen på Android 12+.",
         "denied": "Mikrofonen nekades. Tillåt den i webbläsarens eller appens inställningar.",
-        "error": "Fel i taligenkänningen: {{error}}"
+        "error": "Fel i taligenkänningen: {{error}}",
+        "nolocal": "Ingen talmodell på enheten för {{lang}}. Röststyrning skickar aldrig ljud till molnet, så den lyssnar inte. Prova ENGELSKA (USA).",
+        "download": "Talmodellen för {{lang}} på enheten behöver laddas ner en gång."
       },
       "langs": {
         "en-US": "ENGELSKA (USA)",
@@ -820,7 +822,9 @@
         "clear": "RENSA",
         "filter": "Filtrera…",
         "empty": "Inget hört än. Säg något, eller skriv ett kommando ovan."
-      }
+      },
+      "downloadModel": "LADDA NER TALMODELL FÖR {{lang}}",
+      "privacy": "Privat: talet känns igen på enheten. Inget ljud eller text skickas någonstans."
     }
   },
   "docsPhilosophy": {

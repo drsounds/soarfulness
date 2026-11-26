@@ -29,7 +29,7 @@ export function VoiceTranscript() {
     text = last.match?.heard ?? last.alternatives[0];
     detail = last.match ? last.match.outcome.label : t("dial.voice.notUnderstood");
   } else if (state.asleep && listening) text = t("dial.voice.status.asleep");
-  else if (state.status === "denied" || state.status === "error" || state.status === "unsupported")
+  else if (["denied", "error", "unsupported", "nolocal", "download"].includes(state.status))
     text = t(`dial.voice.status.${state.status}`, {
       lang: state.lang ?? "",
       error: state.error ?? "",

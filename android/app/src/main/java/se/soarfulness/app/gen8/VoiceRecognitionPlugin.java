@@ -2,6 +2,7 @@ package se.soarfulness.app.gen8;
 
 import android.Manifest;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -22,6 +23,12 @@ import java.util.ArrayList;
 /**
  * VOICE (src/apps/voice): continuous speech recognition for voice commands, with Android's own
  * SpeechRecognizer (the WebView has no Web Speech API).
+ *
+ * PRIVACY RULE: on the device only. It uses SpeechRecognizer.createOnDeviceSpeechRecognizer
+ * (Android 12+), which never sends audio to a server. Where that does not exist (older Android, no
+ * on-device service) it reports status "nolocal" and does not listen: it never falls back to the
+ * default recognizer, which may be online. A missing language pack is reported as "download";
+ * downloadModel() asks Android to fetch it (Android 13+).
  *
  * SpeechRecognizer hears one phrase per session, so the plugin starts a new session after every
  * result or timeout while the web app wants it (start()/stop()) and the activity is in the
@@ -49,8 +56,49 @@ public class VoiceRecognitionPlugin extends Plugin {
     @PluginMethod
     public void isAvailable(PluginCall call) {
         JSObject ret = new JSObject();
-        ret.put("available", SpeechRecognizer.isRecognitionAvailable(getContext()));
+        boolean onDevice = onDeviceAvailable();
+        ret.put("available", onDevice);
+        ret.put("onDevice", onDevice);
         call.resolve(ret);
+    }
+
+    /** Asks Android to download the on-device model for a language (Android 13+). */
+    @PluginMethod
+    public void downloadModel(PluginCall call) {
+        String l = call.getString("lang", lang);
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || !onDeviceAvailable()) {
+            call.reject("on-device model download needs Android 13 or newer");
+            return;
+        }
+        main.post(() -> {
+            try {
+                SpeechRecognizer r = SpeechRecognizer.createOnDeviceSpeechRecognizer(getContext());
+                r.triggerModelDownload(recognizerIntent(l));
+                r.destroy();
+                call.resolve();
+            } catch (RuntimeException e) {
+                call.reject(e.getMessage());
+            }
+        });
+    }
+
+    private boolean onDeviceAvailable() {
+        return (
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            SpeechRecognizer.isOnDeviceRecognitionAvailable(getContext())
+        );
+    }
+
+    private Intent recognizerIntent(String language) {
+        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, language);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, language);
+        intent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
+        intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5);
+        intent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
+        intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getContext().getPackageName());
+        return intent;
     }
 
     @PluginMethod
@@ -112,23 +160,22 @@ public class VoiceRecognitionPlugin extends Plugin {
 
     private void restartNow() {
         if (!wanted || !foreground) return;
-        if (!SpeechRecognizer.isRecognitionAvailable(getContext())) {
-            status("error", "no speech recognition service on this device");
+        if (
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
+            !SpeechRecognizer.isOnDeviceRecognitionAvailable(getContext())
+        ) {
+            // Never fall back to the default (possibly online) recognizer.
+            wanted = false;
+            status("nolocal", lang);
             return;
         }
         if (recognizer == null) {
-            recognizer = SpeechRecognizer.createSpeechRecognizer(getContext());
+            recognizer = SpeechRecognizer.createOnDeviceSpeechRecognizer(getContext());
             recognizer.setRecognitionListener(listener);
         } else if (sessionOpen) {
             recognizer.cancel();
         }
-        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, lang);
-        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, lang);
-        intent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
-        intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5);
-        intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getContext().getPackageName());
+        Intent intent = recognizerIntent(lang);
         sessionOpen = true;
         try {
             recognizer.startListening(intent);
@@ -191,6 +238,15 @@ public class VoiceRecognitionPlugin extends Plugin {
                 case SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS:
                     wanted = false;
                     status("denied", "insufficient permissions");
+                    return;
+                case SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE:
+                    // The language pack is not on the device yet.
+                    wanted = false;
+                    status("download", lang);
+                    return;
+                case SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED:
+                    wanted = false;
+                    status("nolocal", lang);
                     return;
                 case SpeechRecognizer.ERROR_NO_MATCH:
                 case SpeechRecognizer.ERROR_SPEECH_TIMEOUT:

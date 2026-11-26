@@ -1,18 +1,24 @@
 import { Capacitor, registerPlugin, type PluginListenerHandle } from "@capacitor/core";
 
-// VOICE: the two ways to hear the user, behind one interface.
+// VOICE: the two ways to hear the user, behind one interface. PRIVACY RULE:
+// audio never leaves the device. Both engines only ever run a recognizer
+// that works on the device; when there is none they refuse to listen
+// ("nolocal") instead of falling back to a cloud service.
 //
-// - "android": android/.../VoiceRecognitionPlugin.java, Android's own
-//   SpeechRecognizer, restarted after every phrase so it listens
-//   continuously. Used inside the Android app, where the WebView has no Web
-//   Speech API.
-// - "web-speech": the browser's SpeechRecognition (Chrome, Edge, Safari),
-//   continuous with interim results, restarted when the browser ends it.
+// - "android": android/.../VoiceRecognitionPlugin.java, Android's on-device
+//   SpeechRecognizer (SpeechRecognizer.createOnDeviceSpeechRecognizer,
+//   Android 12+), restarted after every phrase so it listens continuously.
+//   Used inside the Android app, where the WebView has no Web Speech API.
+// - "web-speech": the browser's SpeechRecognition with `processLocally =
+//   true` (Chrome's on-device Web Speech). Plain Web Speech (no
+//   processLocally) sends audio to a server, so a browser without the
+//   on-device API is treated as having no recognizer.
 //
-// Both report interim text, final phrases (with alternatives, most likely
-// first) and their status.
+// The on-device language pack may need a download first ("download"):
+// installSpeechModel() asks the browser / Android for it.
 
-export type EngineStatus = "starting" | "listening" | "denied" | "error" | "off";
+export type EngineStatus =
+  "starting" | "listening" | "denied" | "error" | "off" | "nolocal" | "download";
 
 export type EngineCallbacks = {
   onInterim(text: string): void;
@@ -29,9 +35,10 @@ export interface SpeechEngine {
 // ------------------------------------------------------------- android ----
 
 interface VoiceRecognitionPlugin {
-  isAvailable(): Promise<{ available: boolean }>;
+  isAvailable(): Promise<{ available: boolean; onDevice: boolean }>;
   start(options: { lang: string }): Promise<void>;
   stop(): Promise<void>;
+  downloadModel(options: { lang: string }): Promise<void>;
   addListener(
     eventName: "partial",
     listener: (e: { text?: string }) => void,
@@ -52,6 +59,16 @@ export function nativeVoiceAvailable(): boolean {
   return Capacitor.isNativePlatform() && Capacitor.isPluginAvailable("VoiceRecognition");
 }
 
+const ENGINE_STATUSES: readonly EngineStatus[] = [
+  "starting",
+  "listening",
+  "denied",
+  "error",
+  "off",
+  "nolocal",
+  "download",
+];
+
 class AndroidEngine implements SpeechEngine {
   readonly name = "android" as const;
   private handles: Promise<PluginListenerHandle>[] = [];
@@ -65,9 +82,8 @@ class AndroidEngine implements SpeechEngine {
       VoiceRecognitionNative.addListener("partial", (e) => this.cb.onInterim(e.text ?? "")),
       VoiceRecognitionNative.addListener("result", (e) => this.cb.onFinal(e.alternatives ?? [])),
       VoiceRecognitionNative.addListener("status", (e) => {
-        const s = e.status;
-        if (s === "listening" || s === "denied" || s === "error" || s === "off" || s === "starting")
-          this.cb.onStatus(s, e.error);
+        const s = ENGINE_STATUSES.find((x) => x === e.status);
+        if (s) this.cb.onStatus(s, e.error);
       }),
     ];
     VoiceRecognitionNative.start({ lang }).catch((err: unknown) =>
@@ -97,6 +113,7 @@ type Recognition = {
   continuous: boolean;
   interimResults: boolean;
   maxAlternatives: number;
+  processLocally?: boolean;
   onresult: ((e: SpeechResultEvent) => void) | null;
   onerror: ((e: { error: string; message?: string }) => void) | null;
   onend: (() => void) | null;
@@ -104,7 +121,15 @@ type Recognition = {
   start(): void;
   abort(): void;
 };
-type RecognitionCtor = new () => Recognition;
+type LocalOptions = { langs: string[]; processLocally: true };
+type Availability = "unavailable" | "downloadable" | "downloading" | "available";
+type RecognitionCtor = {
+  new (): Recognition;
+  /** On-device Web Speech (Chrome): is a local model there for these languages? */
+  available?(options: LocalOptions): Promise<Availability>;
+  /** Downloads the local model (needs a user gesture). */
+  install?(options: LocalOptions): Promise<boolean>;
+};
 
 function recognitionCtor(): RecognitionCtor | null {
   if (typeof window === "undefined") return null;
@@ -115,8 +140,10 @@ function recognitionCtor(): RecognitionCtor | null {
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 }
 
-export function webSpeechAvailable(): boolean {
-  return recognitionCtor() !== null;
+/** True when the browser can recognize speech on the device (not just via a server). */
+export function webSpeechOnDeviceAvailable(): boolean {
+  const C = recognitionCtor();
+  return !!C && typeof C.available === "function";
 }
 
 class WebSpeechEngine implements SpeechEngine {
@@ -127,6 +154,7 @@ class WebSpeechEngine implements SpeechEngine {
   private restartTimer: number | null = null;
   private startedAt = 0;
   private quickEnds = 0;
+  private generation = 0;
 
   constructor(private readonly cb: EngineCallbacks) {}
 
@@ -136,11 +164,26 @@ class WebSpeechEngine implements SpeechEngine {
     this.lang = lang;
     this.quickEnds = 0;
     this.cb.onStatus("starting");
-    this.open();
+    const gen = ++this.generation;
+    const C = recognitionCtor();
+    if (!C || typeof C.available !== "function") {
+      this.wanted = false;
+      this.cb.onStatus("nolocal");
+      return;
+    }
+    C.available({ langs: [lang], processLocally: true })
+      .then((a) => {
+        if (gen !== this.generation || !this.wanted) return;
+        if (a === "available") this.open();
+        else if (a === "downloadable" || a === "downloading") this.cb.onStatus("download", a);
+        else this.cb.onStatus("nolocal", lang);
+      })
+      .catch((err: unknown) => this.cb.onStatus("nolocal", String((err as Error)?.message ?? err)));
   }
 
   stop() {
     this.wanted = false;
+    this.generation++;
     if (this.restartTimer !== null) window.clearTimeout(this.restartTimer);
     this.restartTimer = null;
     if (this.rec) {
@@ -154,17 +197,25 @@ class WebSpeechEngine implements SpeechEngine {
       } catch {
         /* already stopped */
       }
-      this.cb.onStatus("off");
     }
+    this.cb.onStatus("off");
   }
 
   private open() {
     const Ctor = recognitionCtor();
     if (!Ctor) {
-      this.cb.onStatus("error", "unsupported");
+      this.cb.onStatus("nolocal");
       return;
     }
     const rec = new Ctor();
+    // On the device only. A browser that ignores this property would send
+    // audio to a server, so refuse to listen when it doesn't stick.
+    rec.processLocally = true;
+    if (rec.processLocally !== true) {
+      this.wanted = false;
+      this.cb.onStatus("nolocal");
+      return;
+    }
     rec.lang = this.lang;
     rec.continuous = true;
     rec.interimResults = true;
@@ -191,6 +242,9 @@ class WebSpeechEngine implements SpeechEngine {
       if (e.error === "not-allowed" || e.error === "service-not-allowed") {
         this.wanted = false;
         this.cb.onStatus("denied", e.error);
+      } else if (e.error === "language-not-supported") {
+        this.wanted = false;
+        this.cb.onStatus("nolocal", this.lang);
       } else if (e.error !== "no-speech" && e.error !== "aborted") {
         this.cb.onStatus("error", e.error);
       }
@@ -216,13 +270,29 @@ class WebSpeechEngine implements SpeechEngine {
   }
 }
 
-/** The engine for this platform, or null when there is none. */
+/** The engine for this platform, or null when there is no on-device one. */
 export function createSpeechEngine(cb: EngineCallbacks): SpeechEngine | null {
   if (nativeVoiceAvailable()) return new AndroidEngine(cb);
-  if (webSpeechAvailable()) return new WebSpeechEngine(cb);
+  if (webSpeechOnDeviceAvailable()) return new WebSpeechEngine(cb);
   return null;
 }
 
+/** True when this platform may have an on-device recognizer. */
 export function speechSupported(): boolean {
-  return nativeVoiceAvailable() || webSpeechAvailable();
+  return nativeVoiceAvailable() || webSpeechOnDeviceAvailable();
+}
+
+/**
+ * Downloads the on-device language pack for `lang` (call from a click: the
+ * browser needs a user gesture). Resolves true when the download started or
+ * finished.
+ */
+export async function installSpeechModel(lang: string): Promise<boolean> {
+  if (nativeVoiceAvailable()) {
+    await VoiceRecognitionNative.downloadModel({ lang });
+    return true;
+  }
+  const C = recognitionCtor();
+  if (!C || typeof C.install !== "function") return false;
+  return C.install({ langs: [lang], processLocally: true });
 }

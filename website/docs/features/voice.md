@@ -12,13 +12,25 @@ Voice group sits in the bather category, and disappears when the app is
 switched off under APPS). The browser or the Android app asks for the
 microphone the first time it starts listening.
 
-## Engines
+## Privacy: on the device only
+
+Voice control **never sends audio or text to a server**. Speech is
+recognized by a model on the device, and the command matching
+(`commands.ts`, `VoiceCommandRegistry.ts`) is plain local code with no AI
+service behind it. Where no on-device recognizer exists, voice control
+says so and does not listen; it never falls back to a cloud recognizer.
 
 | Where | Engine | File |
 | --- | --- | --- |
-| Android app | Android's `SpeechRecognizer`, restarted after every phrase so it never stops listening | `android/.../VoiceRecognitionPlugin.java` |
-| Chrome, Edge, Safari | Web Speech API (`SpeechRecognition`), continuous with interim results, restarted when the browser ends it | `speechEngines.ts` |
-| Firefox and others | none: the panel says speech recognition is not available | |
+| Android app (Android 12+) | Android's on-device recognizer, `SpeechRecognizer.createOnDeviceSpeechRecognizer`, restarted after every phrase so it never stops listening | `android/.../VoiceRecognitionPlugin.java` |
+| Chrome (desktop, with on-device speech) | Web Speech API with `processLocally = true`, checked first with `SpeechRecognition.available({ langs, processLocally: true })` | `speechEngines.ts` |
+| Older Android, Safari, Firefox, Chrome without on-device speech | none: the panel says there is no on-device recognition. Plain Web Speech is not used because it sends audio to a server | |
+
+The on-device language pack may have to be downloaded once: the panel then
+shows **DOWNLOAD … SPEECH MODEL** (`SpeechRecognition.install()` in Chrome,
+`SpeechRecognizer.triggerModelDownload()` on Android 13+). English is the
+default language because it is the one most likely to have an on-device
+model; the phrases are English and Swedish either way.
 
 The Android WebView has no Web Speech API, so the app uses its own
 Capacitor plugin (`VoiceRecognition`, registered by hand in
@@ -27,9 +39,6 @@ Capacitor plugin (`VoiceRecognition`, registered by hand in
 It stops listening while the activity is paused. Many devices play a short
 system sound each time a recognition session starts; that is Android's, not
 the app's.
-
-Chrome's Web Speech recognition sends audio to Google's servers; Android's
-recognizer may work on the device or online depending on the phone.
 
 ## What you can say
 
@@ -113,7 +122,7 @@ recognizer ─▶ voiceBus.submit(alternatives) ─▶ host handler (routes/inde
 | Key | UI | Default |
 | --- | --- | --- |
 | `voiceOn` | VOICE CONTROL (LISTEN) | off |
-| `voiceLang` | SPEECH LANGUAGE: auto (follows the app language) or a fixed one | auto |
+| `voiceLang` | SPEECH LANGUAGE: a fixed one, or auto (follows the app language) | English (US) |
 | `voiceMatchThreshold` | MATCH STRICTNESS, 50–98 % | 72 % |
 | `voiceStepScale` | STEP SIZE for increase / decrease | × 1 |
 | `voiceTranscriptOn` | SHOW WHAT WAS HEARD: the caption at the bottom | on |

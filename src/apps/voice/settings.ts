@@ -36,7 +36,8 @@ export type VoiceSettings = {
 
 export const VOICE_DEFAULTS: VoiceSettings = {
   voiceOn: false,
-  voiceLang: "auto",
+  // English: the language most likely to have an on-device model.
+  voiceLang: "en-US",
   voiceMatchThreshold: 0.72,
   voiceStepScale: 1,
   voiceTranscriptOn: true,

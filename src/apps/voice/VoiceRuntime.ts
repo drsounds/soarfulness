@@ -27,6 +27,7 @@ export function speechLang(lang: VoiceLang, appLanguage = i18n.language): string
 export class VoiceRuntime implements AppRuntime<VoiceSettings> {
   private engine: SpeechEngine | null = null;
   private listeningLang: string | null = null;
+  private restartToken = 0;
 
   frame(_frame: FrameContext, settings: Readonly<VoiceSettings>): void {
     this.sync(settings.voiceOn, speechLang(settings.voiceLang));
@@ -38,7 +39,8 @@ export class VoiceRuntime implements AppRuntime<VoiceSettings> {
       this.stop();
       return;
     }
-    if (this.listeningLang === lang) return;
+    if (this.listeningLang === lang && this.restartToken === voiceBus.restartToken) return;
+    this.restartToken = voiceBus.restartToken;
     this.stop();
     this.listeningLang = lang;
     this.engine = createSpeechEngine({

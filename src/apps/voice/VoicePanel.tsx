@@ -3,8 +3,8 @@ import { SettingRow } from "@/components/SettingRow";
 import { Findable } from "@/components/settingsNav";
 import type { AppSettingsHandle } from "@/core/apps/useAppSettings";
 import { VOICE_LANGS, type VoiceSettings } from "./settings";
-import { speechSupported } from "./speechEngines";
-import { useVoiceState, type VoiceState } from "./voiceBus";
+import { installSpeechModel, speechSupported } from "./speechEngines";
+import { voiceBus, useVoiceState, type VoiceState } from "./voiceBus";
 import { speechLang } from "./VoiceRuntime";
 
 // VOICE dials. Reads and writes the app's settings handle
@@ -60,6 +60,25 @@ export function VoicePanel({ voice }: { voice: AppSettingsHandle<VoiceSettings> 
         onInc={() => s.voiceOn(true)}
       />
       <p className={hint}>{voiceOn ? voiceStatusText(t, state) : t("dial.voice.offHint")}</p>
+      {voiceOn && state.status === "download" && state.lang && (
+        <button
+          type="button"
+          className="self-center rounded-full border px-3 py-1 text-[10px] tracking-wider ui-line-2 ui-press active:scale-95"
+          onClick={() => {
+            const lang = state.lang!;
+            voiceBus.setStatus("starting", { lang, error: null });
+            installSpeechModel(lang)
+              .then((ok) => {
+                if (ok) voiceBus.requestRestart();
+                else voiceBus.setStatus("nolocal", { lang, error: null });
+              })
+              .catch((e: unknown) => voiceBus.setStatus("error", { lang, error: String(e) }));
+          }}
+        >
+          {t("dial.voice.downloadModel", { lang: state.lang })}
+        </button>
+      )}
+      <p className={hint}>{t("dial.voice.privacy")}</p>
       <SettingRow
         label={t("dial.voice.lang")}
         value={langLabel(voiceLang)}

@@ -797,9 +797,11 @@
         "starting": "Starting the microphone…",
         "listening": "Listening ({{lang}}).",
         "asleep": "Paused. Say “wake up” to resume.",
-        "unsupported": "Speech recognition is not available in this browser. Try Chrome, Edge or Safari, or the Android app.",
+        "unsupported": "No on-device speech recognition here. Voice control never uses cloud services, so it needs Chrome with on-device speech, or the Android app on Android 12+.",
         "denied": "Microphone access was denied. Allow it in the browser or app settings.",
-        "error": "Speech recognition error: {{error}}"
+        "error": "Speech recognition error: {{error}}",
+        "nolocal": "No on-device speech model for {{lang}} on this device. Voice control never sends audio to the cloud, so it won't listen. Try ENGLISH (US).",
+        "download": "The on-device speech model for {{lang}} needs to be downloaded once."
       },
       "langs": {
         "en-US": "ENGLISH (US)",
@@ -820,7 +822,9 @@
         "clear": "CLEAR",
         "filter": "Filter…",
         "empty": "Nothing heard yet. Say something, or type a command above."
-      }
+      },
+      "downloadModel": "DOWNLOAD {{lang}} SPEECH MODEL",
+      "privacy": "Private: speech is recognized on this device only. No audio or text is sent anywhere."
     }
   },
   "docsPhilosophy": {

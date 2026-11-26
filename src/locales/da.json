@@ -797,9 +797,11 @@
         "starting": "Starter mikrofonen…",
         "listening": "Lytter ({{lang}}).",
         "asleep": "Pause. Sig “wake up” for at fortsætte.",
-        "unsupported": "Talegenkendelse findes ikke i denne browser. Prøv Chrome, Edge eller Safari, eller Android-appen.",
+        "unsupported": "Ingen talegenkendelse på enheden her. Stemmestyring bruger aldrig skytjenester, så den kræver Chrome med talegenkendelse på enheden eller Android-appen på Android 12+.",
         "denied": "Mikrofonen blev afvist. Tillad den i browserens eller appens indstillinger.",
-        "error": "Fejl i talegenkendelsen: {{error}}"
+        "error": "Fejl i talegenkendelsen: {{error}}",
+        "nolocal": "Ingen talemodel på enheden for {{lang}}. Stemmestyring sender aldrig lyd til skyen, så den lytter ikke. Prøv ENGELSK (USA).",
+        "download": "Talemodellen for {{lang}} skal hentes én gang."
       },
       "langs": {
         "en-US": "ENGELSK (USA)",
@@ -820,7 +822,9 @@
         "clear": "RYD",
         "filter": "Filtrér…",
         "empty": "Intet hørt endnu. Sig noget, eller skriv en kommando ovenfor."
-      }
+      },
+      "downloadModel": "HENT TALEMODEL FOR {{lang}}",
+      "privacy": "Privat: talen genkendes kun på denne enhed. Ingen lyd eller tekst sendes nogen steder hen."
     }
   },
   "docsPhilosophy": {

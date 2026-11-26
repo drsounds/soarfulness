@@ -10,7 +10,17 @@ import type { VoiceMatch } from "./VoiceCommandRegistry";
 
 export const VOICE_DOM_EVENT = "voice:text";
 
-export type VoiceStatus = "off" | "starting" | "listening" | "unsupported" | "denied" | "error";
+export type VoiceStatus =
+  | "off"
+  | "starting"
+  | "listening"
+  | "unsupported"
+  | "denied"
+  | "error"
+  /** No on-device recognizer for this language: voice refuses to use a cloud one. */
+  | "nolocal"
+  /** An on-device language pack exists but has to be downloaded first. */
+  | "download";
 
 export type VoiceLogEntry = {
   id: number;
@@ -77,6 +87,12 @@ export const voiceBus = {
   },
   setAsleep(asleep: boolean) {
     if (asleep !== state.asleep) emit({ asleep });
+  },
+  /** Bumped to make the runtime start the recognizer again (after a model download). */
+  restartToken: 0,
+  requestRestart() {
+    this.restartToken++;
+    emit({});
   },
   setInterim(interim: string) {
     if (interim !== state.interim) emit({ interim });
