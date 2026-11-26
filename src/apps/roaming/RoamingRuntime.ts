@@ -3,6 +3,28 @@ import { onRoamingMotion } from "./roamingBridge";
 import { RoamingMotion } from "./RoamingMotion";
 import type { RoamingSettings } from "./settings";
 
+/** What the last physics step did, for the debug window. */
+export type RoamingStepInfo = {
+  /** ROAMING switched on and the app enabled. */
+  on: boolean;
+  /** False while another mode holds the player (GUNGA with the cord). */
+  allowed: boolean;
+  /** Top speed used, m/s. */
+  maxSpeed: number;
+  /** World-space push of the last step, m. */
+  dx: number;
+  dz: number;
+};
+
+const live = new Set<RoamingRuntime>();
+
+/** The live runtime (or null before the scene starts), read by the debug window. */
+export function currentRoamingRuntime(): RoamingRuntime | null {
+  let last: RoamingRuntime | null = null;
+  for (const rt of live) last = rt;
+  return last;
+}
+
 /**
  * ROAMING inside the physics step: listens to Roaming's broadcasts while
  * switched on and returns the world-space push (m) for this step. The motion
@@ -13,6 +35,11 @@ export class RoamingRuntime implements AppRuntime<RoamingSettings> {
   readonly motion = new RoamingMotion();
   private unsubscribe: (() => void) | null = null;
   private sideways = true;
+  lastStep: RoamingStepInfo = { on: false, allowed: true, maxSpeed: 0, dx: 0, dz: 0 };
+
+  constructor() {
+    live.add(this);
+  }
 
   private listen(on: boolean) {
     if (on && !this.unsubscribe) {
@@ -40,9 +67,11 @@ export class RoamingRuntime implements AppRuntime<RoamingSettings> {
     this.sideways = s.roamingSideways;
     this.listen(s.roamingOn);
     const on = s.roamingOn && allowed;
+    const maxSpeed = navSpeed * Math.max(0, s.roamingStrength);
+    this.lastStep = { on: s.roamingOn, allowed, maxSpeed, dx: 0, dz: 0 };
     const d = this.motion.step(physDt, {
       on,
-      maxSpeed: navSpeed * Math.max(0, s.roamingStrength),
+      maxSpeed,
       accel: s.roamingAccel,
       glide: s.roamingGlide,
       sideways: s.roamingSideways,
@@ -53,10 +82,13 @@ export class RoamingRuntime implements AppRuntime<RoamingSettings> {
       fwdZ = -Math.cos(yaw);
     const rightX = Math.cos(yaw),
       rightZ = -Math.sin(yaw);
-    return {
+    const world = {
       dx: d.dx * rightX + d.dz * fwdX,
       dz: d.dx * rightZ + d.dz * fwdZ,
     };
+    this.lastStep.dx = world.dx;
+    this.lastStep.dz = world.dz;
+    return world;
   }
 
   shutdown() {
@@ -66,5 +98,6 @@ export class RoamingRuntime implements AppRuntime<RoamingSettings> {
   dispose() {
     this.listen(false);
     this.motion.reset();
+    live.delete(this);
   }
 }

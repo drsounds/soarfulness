@@ -19,16 +19,43 @@ to sidestep.
 | `roamingAccel` | ACCELERATIONSTID: time constant when speeding up (s) | 0.8 |
 | `roamingGlide` | GLIDTID: time constant when slowing down (s) | 2.5 |
 | `roamingSideways` | LUTA FÖR SIDLED: leaning / left-right moves sideways | on |
+| `roamingDebug` | FELSÖKNINGSFÖNSTER: the floating debug window | off |
 
-The settings are in the `drift` group, right after HAVSDRIFT. While ROAMING
+The app has its own settings page, **Roaming** (footprints icon, in the
+bather section). It is listed only while the app is switched on under
+APPS, where it can be turned off entirely like any other app. While ROAMING
 is on, a line under the switch shows the last motion received, or says that
 it only works in the Android app.
+
+## Debug window
+
+DEBUG WINDOW (`roamingDebug`) opens a floating panel at the top left
+(`RoamingDebugWindow.tsx`) to trace whether broadcasts arrive and how they
+are handled:
+
+- **Status:** whether the native plugin exists (Android app only), whether
+  its receiver is registered, whether the app is on, whether ROAMING is on
+  (or held by a mode such as GUNGA with the cord), and the top speed.
+- **Live motion:** the target and current velocity (forward ↑ / right →,
+  m/s, body frame) and the seconds since the last event, updated 10 times a
+  second.
+- **Event log:** the last 60 events, newest first, with time (ms), source
+  (`step_sensor`, `camera`, or `TEST`), the raw `motion_type`, `direction`
+  and `intensity`, and the target it sets (share of top speed). Unknown
+  values are flagged ⚠ with what they fell back to.
+- **Test buttons** (WALK, RUN, LEAN ←, IDLE) feed fake events through the
+  same path, and CLEAR empties the log.
+
+While the window is open it keeps the receiver registered even with ROAMING
+off, so you can see events arrive before letting them move you. The log and
+status live in `roamingBridge.ts` (`roamingLog()`, `roamingStatus()`,
+`onRoamingLog()`); the runtime's last step is `RoamingRuntime.lastStep`.
 
 ## Using it
 
 1. Install Roaming on the same phone, pick its inputs (step sensor, camera)
    and tap **Start tracking**.
-2. In Aquafulness, open settings → drift and switch ROAMING on.
+2. In Aquafulness, open settings → Roaming and switch ROAMING on.
 3. Walk or run in place. Stop and you glide to a halt.
 
 ## How the motion becomes speed
@@ -58,9 +85,9 @@ target fresh. With no event for 2.5 s (tracking stopped, a missed
 broadcast) the target falls to zero as if `idle` had arrived.
 
 **Files:** `src/apps/roaming/RoamingMotion.ts` (the physics, unit tested in
-`RoamingMotion.test.ts`), `roamingBridge.ts` (Capacitor plugin wrapper and
-event parsing), `RoamingRuntime.ts` (`step()` in the physics step, right
-after HAVSDRIFT; moves `posRef` and the camera together), `RoamingPanel.tsx`.
+`RoamingMotion.test.ts`), `roamingBridge.ts` (Capacitor plugin wrapper, event
+parsing and the debug log), `RoamingRuntime.ts` (`step()` in the physics step, right
+after HAVSDRIFT; moves `posRef` and the camera together), `RoamingPanel.tsx`, `RoamingDebugWindow.tsx`.
 Native side: `android/.../RoamingMotionPlugin.java`.
 
 ## Native plugin

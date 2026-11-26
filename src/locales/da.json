@@ -647,6 +647,25 @@
         "squatting": "sidder på hug",
         "leaning": "læner",
         "arms_raised": "armene oppe"
+      },
+      "debugWindow": "FEJLSØGNINGSVINDUE",
+      "debugHint": "Viser hver hændelse der kommer fra Roaming, og hvordan den flytter dig.",
+      "debug": {
+        "title": "ROAMING FEJLSØGNING",
+        "plugin": "plugin",
+        "listening": "modtager",
+        "app": "app",
+        "yes": "ja",
+        "no": "nej",
+        "held": "holdes af tilstand",
+        "top": "maks",
+        "target": "mål",
+        "velocity": "fart",
+        "since": "{{s}} s siden sidste hændelse",
+        "noScene": "Scenen kører ikke endnu",
+        "test": "test:",
+        "clear": "RYD",
+        "empty": "Ingen hændelser endnu. Start sporingen i Roaming, eller tryk på en testknap."
       }
     }
   },
@@ -1314,6 +1333,10 @@
       "weather": {
         "desc": "Nordlys, undervandståge, vind og sne",
         "label": "Vejr"
+      },
+      "roaming": {
+        "desc": "Bevæg dig med kroppen: bevægelse fra Roaming-appen, fejlsøgningsvindue",
+        "label": "Roaming"
       }
     },
     "languageTitle": "Sprog",

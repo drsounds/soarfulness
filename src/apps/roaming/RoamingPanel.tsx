@@ -15,7 +15,7 @@ const step = (v: number, d: number, min: number, max: number) =>
 export function RoamingPanel({ roaming }: { roaming: AppSettingsHandle<RoamingSettings> }) {
   const { t } = useTranslation();
   const onOff = (v: boolean) => (v ? t("common.on") : t("common.off"));
-  const { roamingOn, roamingStrength, roamingAccel, roamingGlide, roamingSideways } =
+  const { roamingOn, roamingStrength, roamingAccel, roamingGlide, roamingSideways, roamingDebug } =
     roaming.values;
   const {
     roamingOn: setRoamingOn,
@@ -23,6 +23,7 @@ export function RoamingPanel({ roaming }: { roaming: AppSettingsHandle<RoamingSe
     roamingAccel: setRoamingAccel,
     roamingGlide: setRoamingGlide,
     roamingSideways: setRoamingSideways,
+    roamingDebug: setRoamingDebug,
   } = roaming.setters;
   const available = roamingAvailable();
   const [last, setLast] = useState<RoamingMotionEvent | null>(() => lastRoamingMotion());
@@ -95,6 +96,15 @@ export function RoamingPanel({ roaming }: { roaming: AppSettingsHandle<RoamingSe
           />
         </>
       )}
+      <SettingRow
+        label={t("dial.roaming.debugWindow")}
+        value={onOff(roamingDebug)}
+        onDec={() => setRoamingDebug(false)}
+        onInc={() => setRoamingDebug(true)}
+      />
+      <p className="max-w-[16rem] self-center pb-1 text-center text-[10px] font-light leading-snug ui-ink-faint">
+        {t("dial.roaming.debugHint")}
+      </p>
     </>
   );
 }

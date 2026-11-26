@@ -647,6 +647,25 @@
         "squatting": "squatting",
         "leaning": "leaning",
         "arms_raised": "arms raised"
+      },
+      "debugWindow": "DEBUG WINDOW",
+      "debugHint": "Shows every event that arrives from Roaming and how it moves you.",
+      "debug": {
+        "title": "ROAMING DEBUG",
+        "plugin": "plugin",
+        "listening": "receiver",
+        "app": "app",
+        "yes": "yes",
+        "no": "no",
+        "held": "held by mode",
+        "top": "top",
+        "target": "target",
+        "velocity": "speed",
+        "since": "{{s}} s since last event",
+        "noScene": "Scene not running yet",
+        "test": "test:",
+        "clear": "CLEAR",
+        "empty": "No events yet. Start tracking in Roaming, or tap a test button."
       }
     }
   },
@@ -1314,6 +1333,10 @@
       "weather": {
         "desc": "Northern lights, underwater fog, wind and snow",
         "label": "Weather"
+      },
+      "roaming": {
+        "desc": "Move with your body: Roaming app motion, debug window",
+        "label": "Roaming"
       }
     },
     "languageTitle": "Language",

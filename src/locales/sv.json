@@ -647,6 +647,25 @@
         "squatting": "sitter på huk",
         "leaning": "lutar",
         "arms_raised": "armar uppe"
+      },
+      "debugWindow": "FELSÖKNINGSFÖNSTER",
+      "debugHint": "Visar varje händelse som kommer från Roaming och hur den flyttar dig.",
+      "debug": {
+        "title": "ROAMING FELSÖKNING",
+        "plugin": "plugin",
+        "listening": "mottagare",
+        "app": "app",
+        "yes": "ja",
+        "no": "nej",
+        "held": "hålls av läget",
+        "top": "max",
+        "target": "mål",
+        "velocity": "fart",
+        "since": "{{s}} s sedan senaste händelse",
+        "noScene": "Scenen körs inte än",
+        "test": "test:",
+        "clear": "RENSA",
+        "empty": "Inga händelser än. Starta spårningen i Roaming eller tryck på en testknapp."
       }
     }
   },
@@ -1314,6 +1333,10 @@
       "weather": {
         "desc": "Norrsken, undervattensdimma, vind och snö",
         "label": "Väder"
+      },
+      "roaming": {
+        "desc": "Rör dig med kroppen: rörelse från Roaming-appen, felsökningsfönster",
+        "label": "Roaming"
       }
     },
     "languageTitle": "Språk",
