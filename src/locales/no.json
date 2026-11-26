@@ -647,6 +647,25 @@
         "squatting": "sitter på huk",
         "leaning": "lener",
         "arms_raised": "armene oppe"
+      },
+      "debugWindow": "FEILSØKINGSVINDU",
+      "debugHint": "Viser hver hendelse som kommer fra Roaming og hvordan den flytter deg.",
+      "debug": {
+        "title": "ROAMING FEILSØKING",
+        "plugin": "plugin",
+        "listening": "mottaker",
+        "app": "app",
+        "yes": "ja",
+        "no": "nei",
+        "held": "holdes av modus",
+        "top": "maks",
+        "target": "mål",
+        "velocity": "fart",
+        "since": "{{s}} s siden siste hendelse",
+        "noScene": "Scenen kjører ikke ennå",
+        "test": "test:",
+        "clear": "TØM",
+        "empty": "Ingen hendelser ennå. Start sporingen i Roaming eller trykk på en testknapp."
       }
     }
   },
@@ -1314,6 +1333,10 @@
       "weather": {
         "desc": "Nordlys, undervannståke, vind og snø",
         "label": "Vær"
+      },
+      "roaming": {
+        "desc": "Beveg deg med kroppen: bevegelse fra Roaming-appen, feilsøkingsvindu",
+        "label": "Roaming"
       }
     },
     "languageTitle": "Språk",

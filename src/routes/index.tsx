@@ -78,6 +78,7 @@ import { WindHudPanel, type WindControls } from "@/apps/wind/WindPanel";
 import underwaterFogApp from "@/apps/underwater-fog/app";
 import openDriftApp from "@/apps/open-drift/app";
 import roamingApp from "@/apps/roaming/app";
+import { RoamingDebugWindow } from "@/apps/roaming/RoamingDebugWindow";
 import snowApp from "@/apps/snow/app";
 import { RAIN_DEFAULTS } from "@/apps/rain/settings";
 import { FIREWORKS_LIGHTS } from "@/apps/fireworks/Fireworks";
@@ -2559,6 +2560,7 @@ export function Aquafulness() {
   const { reset: resetAurora, patch: patchAurora } = aurora;
   const underwaterFog = useAppSettings(UNDERWATER_FOG_DEFAULTS, initial);
   const underwaterFogAppOn = useAppEnabled(appFlags, "underwater-fog");
+  const roamingAppOn = useAppEnabled(appFlags, "roaming");
   const {
     underwaterFogOn,
     underwaterFogColor,
@@ -13297,6 +13299,14 @@ export function Aquafulness() {
           plus optional blur (see KAMERA settings tab). Sits directly above
           the 3D canvas and below every HUD element, so it reads as being on
           the camera rather than smearing the on-screen controls. */}
+      {/* ROAMING → DEBUG WINDOW: every incoming Roaming event + live motion state. */}
+      {roaming.values.roamingDebug && roamingAppOn && (
+        <RoamingDebugWindow
+          appEnabled={roamingAppOn}
+          sideways={roaming.values.roamingSideways}
+          onClose={() => roaming.setters.roamingDebug(false)}
+        />
+      )}
       {gogglesOn && (
         <GogglesOverlay
           blur={gogglesBlur}

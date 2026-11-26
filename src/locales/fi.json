@@ -647,6 +647,25 @@
         "squatting": "kyykyssä",
         "leaning": "kallistuu",
         "arms_raised": "kädet ylhäällä"
+      },
+      "debugWindow": "VIANETSINTÄIKKUNA",
+      "debugHint": "Näyttää jokaisen Roamingilta tulevan tapahtuman ja miten se liikuttaa sinua.",
+      "debug": {
+        "title": "ROAMING VIANETSINTÄ",
+        "plugin": "liitännäinen",
+        "listening": "vastaanotin",
+        "app": "sovellus",
+        "yes": "kyllä",
+        "no": "ei",
+        "held": "tila pitää paikallaan",
+        "top": "maks",
+        "target": "tavoite",
+        "velocity": "nopeus",
+        "since": "{{s}} s viime tapahtumasta",
+        "noScene": "Näkymä ei ole vielä käynnissä",
+        "test": "testi:",
+        "clear": "TYHJENNÄ",
+        "empty": "Ei tapahtumia vielä. Aloita seuranta Roamingissa tai paina testinappia."
       }
     }
   },
@@ -1314,6 +1333,10 @@
       "weather": {
         "desc": "Revontulet, vedenalainen sumu, tuuli ja lumi",
         "label": "Sää"
+      },
+      "roaming": {
+        "desc": "Liiku kehollasi: Roaming-sovelluksen liike, vianetsintäikkuna",
+        "label": "Roaming"
       }
     },
     "languageTitle": "Kieli",

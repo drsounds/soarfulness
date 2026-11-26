@@ -7,6 +7,7 @@ import {
 } from "react";
 import { useEnabledModes, useRideAppOn, useTornadoAppOn } from "@/lib/cameraModeApps";
 import { AppsPanel } from "@/core/apps/AppsPanel";
+import { useAppEnabled } from "@/core/apps/useAppFlags";
 import { appFlags, appRegistry } from "@/core/apps/catalog";
 import {
   isSpacifyAvailable,
@@ -1591,6 +1592,7 @@ function ShareBathLink({
 }
 
 export function SettingsPanel(props: SettingsPanelProps) {
+  const roamingAppOn = useAppEnabled(appFlags, "roaming");
   const {
     restoreCameraPosition,
     resetToDefaults,
@@ -2645,7 +2647,6 @@ export function SettingsPanel(props: SettingsPanelProps) {
           onInc={() => setSurgeRotationSpeed((v) => Math.min(30, +(v + 0.5).toFixed(2)))}
         />
         <OpenDriftPanel openDrift={props.openDrift} />
-        <RoamingPanel roaming={props.roaming} />
       </G>
       <G id="waves">
         <SettingRow
@@ -5435,6 +5436,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
           onInc={() => setAudioSpatial(true)}
         />
       </G>
+      <G id="roaming">
+        <RoamingPanel roaming={props.roaming} />
+      </G>
       <G id="apps">
         <AppsPanel flags={appFlags} registry={appRegistry} />
       </G>
@@ -5444,5 +5448,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
     </>
   );
 
-  return <SettingsNavigator groups={SETTINGS_GROUPS} body={body} />;
+  // ROAMING's page only shows while the app is switched on under APPS.
+  const groups = roamingAppOn ? SETTINGS_GROUPS : SETTINGS_GROUPS.filter((g) => g.id !== "roaming");
+  return <SettingsNavigator groups={groups} body={body} />;
 }

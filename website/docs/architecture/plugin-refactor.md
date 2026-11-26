@@ -56,7 +56,7 @@ Swedish, like `NORRSKEN`) goes in the manifest's `name`.
 | `hood` | HUVA | bather | bather | | `Hood.ts`, `hoodLayers.ts`, `HoodPanel.tsx` |
 | `neon` | NEON | scene-fx | effects | | `NeonEdges.ts`, `neonAccent.ts` (edge filter: `lib/edgeSelect.ts`) |
 | `open-drift` | HAVSDRIFT | motion | drift | | `OpenDrift.ts` |
-| `roaming` | ROAMING | motion | drift | | `RoamingMotion.ts`, `roamingBridge.ts`, `RoamingPanel.tsx` |
+| `roaming` | ROAMING | motion | roaming | | `RoamingMotion.ts`, `roamingBridge.ts`, `RoamingPanel.tsx`, `RoamingDebugWindow.tsx` |
 | `retro` | RETRO | screen-fx | graphics | | `retroShader.ts` |
 | `rain` | REGN | scene-fx | weather | day-night, wind | `Rainfall.ts`, `RainAudio.ts` |
 | `sky-puffs` | MOLNPUFFAR | scene-fx | clouds | | `SkyPuffsRuntime.ts` |

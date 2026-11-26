@@ -15,6 +15,8 @@ export type RoamingSettings = {
   roamingGlide: number;
   /** Let leaning / left-right motion move the bather sideways. */
   roamingSideways: boolean;
+  /** Show the floating debug window with every incoming event. */
+  roamingDebug: boolean;
 };
 
 export const ROAMING_DEFAULTS: RoamingSettings = {
@@ -23,6 +25,7 @@ export const ROAMING_DEFAULTS: RoamingSettings = {
   roamingAccel: 0.8,
   roamingGlide: 2.5,
   roamingSideways: true,
+  roamingDebug: false,
 };
 
 /** Every key RoamingSettings owns, in declaration order (presets, sharing). */
