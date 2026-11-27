@@ -13,6 +13,7 @@ public class MainActivity extends BridgeActivity {
         // it has to be registered by hand, and (per Capacitor's own convention)
         // before super.onCreate() so it's available as soon as the bridge is.
         registerPlugin(AmbientAudioPlugin.class);
+        registerPlugin(BatheNotificationPlugin.class);
         registerPlugin(LiveUpdatePlugin.class);
         registerPlugin(AppLinksPlugin.class);
         registerPlugin(DeviceFilesPlugin.class);
