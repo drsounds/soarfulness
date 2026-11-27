@@ -890,6 +890,24 @@
         "downloadNative": "DOWNLOAD GEMINI NANO",
         "privacyNative": "Privat: Gemini Nano kører på telefonen, i Androids egen AICore. Google oplyser, at input, behandling og svar bliver på enheden, og appen sender intet nogen steder hen. Android downloader og opdaterer selv modellen."
       }
+    },
+    "pip": {
+      "on": "BILLEDE-I-BILLEDE",
+      "auto": "NÅR DU FORLADER APPEN",
+      "aspect": "VINDUETS FORM",
+      "aspectScreen": "som skærmen",
+      "fps": "BILLEDHASTIGHED I BILLEDE-I-BILLEDE",
+      "fpsNoCap": "ingen grænse",
+      "showNow": "VIS I BILLEDE-I-BILLEDE NU",
+      "close": "LUK BILLEDE-I-BILLEDE",
+      "failed": "Billede-i-billede åbnede ikke. Det kan være slået fra for appen i systemindstillingerne.",
+      "how": {
+        "native": "Tryk på Hjem eller stryg op, så fortsætter badet i et lille svævende vindue, som en video.",
+        "nativeOff": "Billede-i-billede er slået fra for appen (Android-indstillinger › Apps › Billede-i-billede), eller enheden har det ikke.",
+        "document": "Åbner badet i et svævende vindue over andre vinduer. Chrome kan også gøre det selv, når du skifter fane, mens der spilles lyd.",
+        "video": "Denne browser kan kun vise 3D-visningen som en svævende video uden baggrundsfotoet. Brug VIS I BILLEDE-I-BILLEDE NU.",
+        "none": "Denne browser kan ikke vise badet i billede-i-billede."
+      }
     }
   },
   "docsPhilosophy": {
@@ -1568,6 +1586,10 @@
       "voice": {
         "label": "Stemme",
         "desc": "Styr appen med stemmen: tilstande, bevægelser og alle indstillinger ved navn"
+      },
+      "pip": {
+        "label": "Billede-i-billede",
+        "desc": "Lad badet svæve i et lille vindue, når du forlader appen"
       }
     },
     "languageTitle": "Sprog",
@@ -1934,5 +1956,9 @@
     "sunDiscGlow": "SOLENS GLØD",
     "sceneSunLight": "SOLLYS PÅ SCENEN",
     "sceneSkyLight": "HIMMELLYS PÅ SCENEN"
+  },
+  "pip": {
+    "placeholder": "VISES I BILLEDE-I-BILLEDE",
+    "back": "TILBAGE HERTIL"
   }
 }

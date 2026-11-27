@@ -890,6 +890,24 @@
         "downloadNative": "LATAA GEMINI NANO",
         "privacyNative": "Yksityinen: Gemini Nano toimii puhelimessa, Androidin omassa AICoressa. Googlen mukaan syöte, käsittely ja vastaus pysyvät laitteella, eikä sovellus lähetä mitään minnekään. Android lataa ja päivittää mallin itse."
       }
+    },
+    "pip": {
+      "on": "KUVA KUVASSA",
+      "auto": "KUN POISTUT SOVELLUKSESTA",
+      "aspect": "IKKUNAN MUOTO",
+      "aspectScreen": "kuten näyttö",
+      "fps": "KUVANOPEUS KUVA KUVASSA -TILASSA",
+      "fpsNoCap": "ei rajaa",
+      "showNow": "NÄYTÄ KUVA KUVASSA NYT",
+      "close": "SULJE KUVA KUVASSA",
+      "failed": "Kuva kuvassa ei auennut. Se voi olla poissa käytöstä tältä sovellukselta järjestelmäasetuksissa.",
+      "how": {
+        "native": "Paina Koti tai pyyhkäise ylös, niin kylpy jatkuu pienessä kelluvassa ikkunassa, kuin video.",
+        "nativeOff": "Kuva kuvassa on poissa käytöstä tältä sovellukselta (Android-asetukset › Sovellukset › Kuva kuvassa), tai laitteessa ei ole sitä.",
+        "document": "Avaa kylvyn kelluvaan ikkunaan muiden ikkunoiden päälle. Chrome voi tehdä sen myös itse, kun vaihdat välilehteä äänen soidessa.",
+        "video": "Tämä selain voi näyttää vain 3D-näkymän kelluvana videona ilman taustakuvaa. Käytä NÄYTÄ KUVA KUVASSA NYT.",
+        "none": "Tämä selain ei voi näyttää kylpyä kuva kuvassa -tilassa."
+      }
     }
   },
   "docsPhilosophy": {
@@ -1568,6 +1586,10 @@
       "voice": {
         "label": "Ääni",
         "desc": "Ohjaa sovellusta puheella: tilat, liikkeet ja kaikki asetukset nimellä"
+      },
+      "pip": {
+        "label": "Kuva kuvassa",
+        "desc": "Pidä kylpy kelluvassa pikkuikkunassa, kun poistut sovelluksesta"
       }
     },
     "languageTitle": "Kieli",
@@ -1934,5 +1956,9 @@
     "sunDiscGlow": "AURINGON HEHKU",
     "sceneSunLight": "AURINGONVALO KOHTAUKSESSA",
     "sceneSkyLight": "TAIVAANVALO KOHTAUKSESSA"
+  },
+  "pip": {
+    "placeholder": "NÄYTETÄÄN KUVA KUVASSA",
+    "back": "TAKAISIN TÄNNE"
   }
 }

@@ -890,6 +890,24 @@
         "downloadNative": "LAST NED GEMINI NANO",
         "privacyNative": "Privat: Gemini Nano kjører på telefonen, i Androids egen AICore. Google oppgir at inndata, behandling og svar blir på enheten, og appen sender ingenting noe sted. Android laster ned og oppdaterer modellen selv."
       }
+    },
+    "pip": {
+      "on": "BILDE-I-BILDE",
+      "auto": "NÅR DU FORLATER APPEN",
+      "aspect": "VINDUSFORM",
+      "aspectScreen": "som skjermen",
+      "fps": "BILDEFREKVENS I BILDE-I-BILDE",
+      "fpsNoCap": "ingen grense",
+      "showNow": "VIS I BILDE-I-BILDE NÅ",
+      "close": "LUKK BILDE-I-BILDE",
+      "failed": "Bilde-i-bilde åpnet seg ikke. Det kan være slått av for appen i systeminnstillingene.",
+      "how": {
+        "native": "Trykk Hjem eller sveip opp, så fortsetter badet i et lite svevende vindu, som en video.",
+        "nativeOff": "Bilde-i-bilde er slått av for appen (Android-innstillinger › Apper › Bilde-i-bilde), eller enheten har det ikke.",
+        "document": "Åpner badet i et svevende vindu over andre vinduer. Chrome kan også gjøre det selv når du bytter fane mens lyd spilles.",
+        "video": "Denne nettleseren kan bare vise 3D-visningen som en svevende video, uten bakgrunnsbildet. Bruk VIS I BILDE-I-BILDE NÅ.",
+        "none": "Denne nettleseren kan ikke vise badet i bilde-i-bilde."
+      }
     }
   },
   "docsPhilosophy": {
@@ -1568,6 +1586,10 @@
       "voice": {
         "label": "Stemme",
         "desc": "Styr appen med stemmen: moduser, bevegelser og alle innstillinger ved navn"
+      },
+      "pip": {
+        "label": "Bilde-i-bilde",
+        "desc": "La badet sveve i et lite vindu når du forlater appen"
       }
     },
     "languageTitle": "Språk",
@@ -1934,5 +1956,9 @@
     "sunDiscGlow": "SOLENS GLØD",
     "sceneSunLight": "SOLLYS PÅ SCENEN",
     "sceneSkyLight": "HIMMELLYS PÅ SCENEN"
+  },
+  "pip": {
+    "placeholder": "VISES I BILDE-I-BILDE",
+    "back": "TILBAKE HIT"
   }
 }

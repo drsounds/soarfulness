@@ -23,6 +23,7 @@ import type { UnderwaterFogSettings } from "@/apps/underwater-fog/settings";
 import type { OpenDriftSettings } from "@/apps/open-drift/settings";
 import type { RoamingSettings } from "@/apps/roaming/settings";
 import type { GamepadSettings } from "@/apps/gamepad/settings";
+import type { PipSettings } from "@/apps/pip/settings";
 import type { VoiceSettings } from "@/apps/voice/settings";
 import type { WindSettings } from "@/apps/wind/settings";
 import type { DecorationsSettings } from "@/apps/decorations/settings";
@@ -643,6 +644,7 @@ export type Persisted = {
   OpenDriftSettings &
   RoamingSettings &
   GamepadSettings &
+  PipSettings &
   VoiceSettings &
   WindSettings &
   SwimmerSettings &

@@ -272,6 +272,15 @@ an older APK without the plugin; there `Capacitor.isPluginAvailable` is
 false and the setting only shows that it needs the newer app. See
 `website/docs/features/roaming.md`.
 
+## Picture-in-Picture on Home
+
+`PictureInPicturePlugin.java` lets the app shrink into Android's
+Picture-in-Picture window when you press Home, like a video (the PIP app,
+`src/apps/pip/`). The activity declares `supportsPictureInPicture`; Android
+12+ enters by itself from the PiP params (`setAutoEnterEnabled`), Android 8
+to 11 from `MainActivity.onUserLeaveHint`. The page hides its HUD while in
+PiP. See `website/docs/features/picture-in-picture.md`.
+
 ## Play Store signing
 
 **This app needs its own upload keystore, separate from `native/`'s.**

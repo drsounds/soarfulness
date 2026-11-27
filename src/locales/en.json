@@ -890,6 +890,24 @@
         "downloadNative": "DOWNLOAD GEMINI NANO",
         "privacyNative": "Private: Gemini Nano runs on this phone, in Android's own AICore. Google states that input, processing and output stay on the device, and the app sends nothing anywhere. Android downloads and updates the model itself."
       }
+    },
+    "pip": {
+      "on": "PICTURE-IN-PICTURE",
+      "auto": "WHEN LEAVING THE APP",
+      "aspect": "WINDOW SHAPE",
+      "aspectScreen": "like the screen",
+      "fps": "FRAME RATE IN PIP",
+      "fpsNoCap": "no cap",
+      "showNow": "SHOW IN PIP NOW",
+      "close": "CLOSE PIP",
+      "failed": "Picture-in-Picture didn't open. It may be switched off for this app in the system settings.",
+      "how": {
+        "native": "Press Home or swipe up and the bath keeps going in a small floating window, like a video.",
+        "nativeOff": "Picture-in-Picture is switched off for this app (Android settings › Apps › Picture-in-picture), or this device doesn't have it.",
+        "document": "Opens the bath in a floating window above other windows. Chrome can also do it by itself when you switch tab while sound is playing.",
+        "video": "This browser can only show the 3D view as a floating video, without the backdrop photo. Use SHOW IN PIP NOW.",
+        "none": "This browser can't show the bath in Picture-in-Picture."
+      }
     }
   },
   "docsPhilosophy": {
@@ -1568,6 +1586,10 @@
       "voice": {
         "label": "Voice",
         "desc": "Control the app by talking: modes, moves and every setting by name"
+      },
+      "pip": {
+        "label": "Picture-in-Picture",
+        "desc": "Keep the bath floating in a small window when you leave the app"
       }
     },
     "languageTitle": "Language",
@@ -1939,5 +1961,9 @@
     "sunDiscGlow": "SUN GLOW",
     "sceneSunLight": "SUNLIGHT ON SCENE",
     "sceneSkyLight": "SKYLIGHT ON SCENE"
+  },
+  "pip": {
+    "placeholder": "SHOWING IN PICTURE-IN-PICTURE",
+    "back": "BACK HERE"
   }
 }

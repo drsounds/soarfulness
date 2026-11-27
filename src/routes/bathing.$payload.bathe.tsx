@@ -12,6 +12,7 @@ import { InvalidBathLink } from "@/components/InvalidBathLink";
 import { mergeLinkedDecorations } from "@/apps/decorations/decorations";
 import { GAMEPAD_SETTING_KEYS } from "@/apps/gamepad/settings";
 import { VOICE_SETTING_KEYS } from "@/apps/voice/settings";
+import { PIP_DEVICE_KEYS } from "@/apps/pip/settings";
 import { ROAMING_DEVICE_KEYS } from "@/apps/roaming/settings";
 
 // The actual immersive experience behind a "bathing" link — as opposed to
@@ -51,12 +52,17 @@ function BatheRoute() {
         // GAMEPAD: the controller mapping belongs to this device, not to the
         // bath, so links never carry it (not in PRESET_ALL_FIELDS) and the
         // visitor's own gamepad* settings survive the seed. Same for the
-        // ROAMING gesture map and the VOICE settings.
+        // ROAMING gesture map, the VOICE settings and PIP.
         const deviceLocal: Record<string, unknown> = {};
         try {
           const prev = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "{}");
           stored = prev?.decorations;
-          for (const k of [...GAMEPAD_SETTING_KEYS, ...ROAMING_DEVICE_KEYS, ...VOICE_SETTING_KEYS])
+          for (const k of [
+            ...GAMEPAD_SETTING_KEYS,
+            ...ROAMING_DEVICE_KEYS,
+            ...VOICE_SETTING_KEYS,
+            ...PIP_DEVICE_KEYS,
+          ])
             if (prev?.[k] !== undefined) deviceLocal[k] = prev[k];
         } catch {
           stored = undefined;

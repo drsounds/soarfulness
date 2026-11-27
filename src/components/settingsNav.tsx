@@ -21,6 +21,7 @@ import {
   Droplets,
   Footprints,
   Gamepad2,
+  PictureInPicture2,
   Mic,
   GalleryHorizontal,
   Glasses,
@@ -82,6 +83,7 @@ export type SettingsGroupId =
   | "voice"
   | "graphics"
   | "sound"
+  | "pip"
   | "apps"
   | "app";
 
@@ -116,6 +118,7 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
   { id: "voice", category: "bather", icon: Mic },
   { id: "graphics", category: "system", icon: Monitor },
   { id: "sound", category: "system", icon: Volume2 },
+  { id: "pip", category: "system", icon: PictureInPicture2 },
   { id: "apps", category: "system", icon: Blocks },
   { id: "app", category: "system", icon: Settings2 },
 ];

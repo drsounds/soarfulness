@@ -43,6 +43,7 @@ const sidebars: SidebarsConfig = {
         "features/open-drift",
         "features/roaming",
         "features/gamepad",
+        "features/picture-in-picture",
         "features/wind",
         "features/snow",
         "features/rain",

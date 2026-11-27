@@ -58,6 +58,7 @@
         "voice",
         "graphics",
         "sound",
+        "pip",
         "apps",
         "app"
       ]
