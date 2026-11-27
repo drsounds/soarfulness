@@ -106,6 +106,16 @@ into the same APK (see `appCatalog.ts`). Any future source shape it can't
 resolve falls back to the original Web Audio graph, same as on the
 browser/PWA build.
 
+## Active bathing notification
+
+On Android, the immersive `/bathe` route starts `BatheNotificationService`
+through `BatheNotificationPlugin`. Its ongoing notification opens the app
+when tapped; **Stop bathing** removes the notification and closes the app
+task. Leaving the route stops the service. Android 13+ asks for notification
+permission when the route is first opened. Android 14+ declares the service
+as `specialUse` for this user-visible session, and the launcher adaptive icon
+uses the app logo with contrasting colors in light and dark mode.
+
 ## Building the offline web bundle
 
 **The web build's output is not committed to git** — ~120 MB landing in

@@ -1,5 +1,5 @@
 import { createFileRoute, useLoaderData } from "@tanstack/react-router";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import {
   Aquafulness,
   STORAGE_KEY,
@@ -14,6 +14,7 @@ import { GAMEPAD_SETTING_KEYS } from "@/apps/gamepad/settings";
 import { VOICE_SETTING_KEYS } from "@/apps/voice/settings";
 import { PIP_DEVICE_KEYS } from "@/apps/pip/settings";
 import { ROAMING_DEVICE_KEYS } from "@/apps/roaming/settings";
+import { startBatheNotification, stopBatheNotification } from "@/lib/batheNotification";
 
 // The actual immersive experience behind a "bathing" link — as opposed to
 // `/bathing/$payload` (bathing.$payload.index.tsx), which only shows a
@@ -26,6 +27,15 @@ export const Route = createFileRoute("/bathing/$payload/bathe")({
 function BatheRoute() {
   const { payload } = useLoaderData({ from: "/bathing/$payload" });
   const { payload: encoded } = Route.useParams();
+  const hasPayload = Boolean(payload);
+  useEffect(() => {
+    if (!hasPayload) return;
+    void startBatheNotification().catch(() => {});
+    return () => {
+      void stopBatheNotification().catch(() => {});
+    };
+  }, [encoded, hasPayload]);
+
   // Seeds the same localStorage keys the "/" route's own Aquafulness
   // component reads once at mount (see routes/index.tsx's loadSettings/
   // loadCameraPose), so by the time it renders below it boots straight into

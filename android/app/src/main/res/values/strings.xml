@@ -7,4 +7,7 @@
     <string name="ambient_audio_notification_channel">Ambient audio</string>
     <string name="ambient_audio_notification_text">Ambient sound is playing</string>
     <string name="ambient_audio_notification_stop">Stop</string>
+    <string name="bathing_notification_channel">Bathing session</string>
+    <string name="bathing_notification_text">Your bathing session is active</string>
+    <string name="bathing_notification_stop">Stop bathing</string>
 </resources>
