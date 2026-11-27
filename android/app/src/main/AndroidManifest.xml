@@ -51,8 +51,12 @@
              except the notification's own Stop action. -->
         <service
             android:name=".AmbientAudioService"
-            android:foregroundServiceType="mediaPlayback"
-            android:exported="false" />
+            android:foregroundServiceType="specialUse"
+            android:exported="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Playing the user's ambient ocean sound while the app is in the background" />
+        </service>
         <service
             android:name=".BatheNotificationService"
             android:foregroundServiceType="specialUse"
@@ -72,12 +76,11 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- AmbientAudioService's foreground notification: FOREGROUND_SERVICE is
          needed for any foreground service since API 28;
-         FOREGROUND_SERVICE_MEDIA_PLAYBACK specifically since API 34 (this
-         app's targetSdkVersion) for the "mediaPlayback" type declared above;
+         FOREGROUND_SERVICE_SPECIAL_USE specifically since API 34 (this
+         app's targetSdkVersion) for the "specialUse" type declared above;
          POST_NOTIFICATIONS since API 33, or the notification (though not
          playback itself) silently doesn't show. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <!-- VOICE (src/apps/voice, VoiceRecognitionPlugin): the microphone for

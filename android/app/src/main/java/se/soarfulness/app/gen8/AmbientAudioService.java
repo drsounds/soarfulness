@@ -319,12 +319,10 @@ public class AmbientAudioService extends Service {
             .addAction(0, getString(R.string.ambient_audio_notification_stop), stopPendingIntent)
             .build();
 
-        ServiceCompat.startForeground(
-            this,
-            NOTIFICATION_ID,
-            notification,
-            ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
-        );
+        int serviceType = Build.VERSION.SDK_INT >= 34
+            ? ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+            : 0;
+        ServiceCompat.startForeground(this, NOTIFICATION_ID, notification, serviceType);
     }
 
     private static float clamp01(float v) {

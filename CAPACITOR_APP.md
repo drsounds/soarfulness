@@ -87,8 +87,8 @@ visible, always-current "yes, it's really still playing" signal, both for
 the user's convenience and to make future audio bugs easier to diagnose
 without adb/logcat — if the notification's gone, the service died; if
 it's there but silent, the bug is in MediaPlayer/Equalizer, not process
-lifecycle. Needs `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_MEDIA_PLAYBACK`
-(Android 14+, matching this app's `foregroundServiceType="mediaPlayback"`)
+lifecycle. Needs `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_SPECIAL_USE`
+(Android 14+, matching this app's `foregroundServiceType="specialUse"`)
 and `POST_NOTIFICATIONS` (Android 13+, or the notification silently
 doesn't show — playback itself is unaffected either way) permissions,
 declared in `AndroidManifest.xml`.
