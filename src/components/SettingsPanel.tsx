@@ -33,6 +33,8 @@ import { RoamingPanel } from "@/apps/roaming/RoamingPanel";
 import type { RoamingSettings } from "@/apps/roaming/settings";
 import { GamepadPanel } from "@/apps/gamepad/GamepadPanel";
 import type { GamepadSettings } from "@/apps/gamepad/settings";
+import { PipPanel } from "@/apps/pip/PipPanel";
+import type { PipSettings } from "@/apps/pip/settings";
 import { VoicePanel } from "@/apps/voice/VoicePanel";
 import type { VoiceSettings } from "@/apps/voice/settings";
 import { NeonPanel } from "@/apps/neon/NeonPanel";
@@ -513,6 +515,7 @@ export type SettingsPanelProps = {
   openDrift: AppSettingsHandle<OpenDriftSettings>;
   roaming: AppSettingsHandle<RoamingSettings>;
   gamepad: AppSettingsHandle<GamepadSettings>;
+  pip: AppSettingsHandle<PipSettings>;
   voice: AppSettingsHandle<VoiceSettings>;
   neon: AppSettingsHandle<NeonSettings>;
   fireworks: AppSettingsHandle<FireworksSettings>;
@@ -1600,6 +1603,7 @@ function ShareBathLink({
 export function SettingsPanel(props: SettingsPanelProps) {
   const roamingAppOn = useAppEnabled(appFlags, "roaming");
   const gamepadAppOn = useAppEnabled(appFlags, "gamepad");
+  const pipAppOn = useAppEnabled(appFlags, "pip");
   const voiceAppOn = useAppEnabled(appFlags, "voice");
   const {
     restoreCameraPosition,
@@ -5453,6 +5457,9 @@ export function SettingsPanel(props: SettingsPanelProps) {
       <G id="voice">
         <VoicePanel voice={props.voice} />
       </G>
+      <G id="pip">
+        <PipPanel pip={props.pip} />
+      </G>
       <G id="apps">
         <AppsPanel flags={appFlags} registry={appRegistry} />
       </G>
@@ -5462,12 +5469,13 @@ export function SettingsPanel(props: SettingsPanelProps) {
     </>
   );
 
-  // ROAMING's, GAMEPAD's and VOICE's pages only show while the app is switched on under APPS.
+  // ROAMING's, GAMEPAD's, VOICE's and PIP's pages only show while the app is switched on under APPS.
   const groups = SETTINGS_GROUPS.filter(
     (g) =>
       (g.id !== "roaming" || roamingAppOn) &&
       (g.id !== "gamepad" || gamepadAppOn) &&
-      (g.id !== "voice" || voiceAppOn),
+      (g.id !== "voice" || voiceAppOn) &&
+      (g.id !== "pip" || pipAppOn),
   );
   return <SettingsNavigator groups={groups} body={body} />;
 }

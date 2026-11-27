@@ -783,3 +783,14 @@ button:not(:disabled):active,
 .sp-results:has([data-sall]) .sp-empty {
   display: none;
 }
+
+/* PIP (src/apps/pip): while the bath shows in a Picture-in-Picture window
+   (Android's activity PiP, or Chrome's Document PiP window), only the scene
+   layers marked data-pip-scene stay: every HUD button, dialog and overlay is
+   hidden, like a video's controls. */
+html[data-pip-active] main[data-pip-root] > :not([data-pip-scene]):not(style) {
+  display: none !important;
+}
+html[data-pip-active] body > :not(main[data-pip-root]):not(:has(main[data-pip-root])) {
+  display: none !important;
+}

@@ -1,0 +1,13 @@
+{
+  "$schema": "../../core/apps/manifest.schema.json",
+  "id": "pip",
+  "name": "PIP",
+  "title": "Picture-in-Picture",
+  "version": "1.0.0",
+  "description": "Keeps the bath running in a small floating window when you leave the app, like a video: on Android it shrinks into Picture-in-Picture when you press Home, in desktop Chrome it opens a Document Picture-in-Picture window, elsewhere it streams the 3D view into a video Picture-in-Picture. The buttons and settings are hidden in the small window.",
+  "kind": "feature",
+  "archetype": "camera",
+  "settingsGroup": "pip",
+  "defaultEnabled": true,
+  "dependencies": {}
+}

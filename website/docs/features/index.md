@@ -17,7 +17,7 @@ in Swedish, default), **files**, **how it works**, **status per repo** and
 | Events | [Confetti](confetti.md), [Fireworks](fireworks.md) |
 | Sky and place | [Time and backdrops](time-and-backdrops.md), [Clouds](clouds.md), [Scenes and decorations](scenes-and-decorations.md), [String lights](string-lights.md) |
 | Look | [Lighting and effects](lighting-and-effects.md) (better light, shadows, neon, neon accent, retro, torus rings), [Bather: hood and goggles](bather-hood-and-goggles.md), [UI theme](ui-theme.md) |
-| System | [Limits and typed values](limits-and-typed-values.md), [Defaults](defaults.md), [Phone, TV and sessions](phone-tv-and-sessions.md) |
+| System | [Limits and typed values](limits-and-typed-values.md), [Defaults](defaults.md), [Phone, TV and sessions](phone-tv-and-sessions.md), [Picture-in-Picture](picture-in-picture.md) |
 
 A feature shipped in soarfulness is usually *built* for aqua-wave-dream too,
 but may still be an open PR there. Always check the target repo's `main`.

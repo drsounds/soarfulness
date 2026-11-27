@@ -167,6 +167,8 @@ export const SETTING_CATALOG: CatalogEntry[] = [
   { key: "openDriftMagnitude", label: "dial.wave.openDriftMagnitude", min: 0, step: 0.05, maxLimit: "openDriftMagnitude" },
   { key: "openDriftOn", label: "dial.wave.openDrift", bool: true },
   { key: "openDriftRadius", label: "dial.wave.openDriftRadius", min: 1, step: 1, maxLimit: "openDriftRadius" },
+  { key: "pipAuto", label: "dial.pip.auto", bool: true },
+  { key: "pipOn", label: "dial.pip.on", bool: true },
   { key: "rainAmount", label: "dial.env.rainAmount", min: 0, step: 500, maxLimit: "rainAmount", int: true },
   { key: "rainColor", label: "dial.env.rainColor", options: "RAIN_COLORS" },
   { key: "rainDropLength", label: "dial.env.rainDropLength", min: 0.1, max: 4, step: 0.1 },

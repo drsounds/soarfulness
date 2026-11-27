@@ -71,6 +71,9 @@ import { UNDERWATER_FOG_DEFAULTS } from "@/apps/underwater-fog/settings";
 import { OPEN_DRIFT_DEFAULTS } from "@/apps/open-drift/settings";
 import { ROAMING_DEFAULTS } from "@/apps/roaming/settings";
 import { GAMEPAD_DEFAULTS } from "@/apps/gamepad/settings";
+import { PIP_DEFAULTS } from "@/apps/pip/settings";
+import { usePictureInPicture } from "@/apps/pip/usePictureInPicture";
+import { cancelSceneFrame, requestSceneFrame, sceneFpsCap } from "@/apps/pip/pipFrames";
 import { VOICE_DEFAULTS } from "@/apps/voice/settings";
 import { WIND_DEFAULTS, windOff, type WindSettings } from "@/apps/wind/settings";
 import { DECORATIONS_DEFAULTS } from "@/apps/decorations/settings";
@@ -1608,6 +1611,7 @@ const DEFAULTS: Persisted = {
   ...ROAMING_DEFAULTS,
   ...GAMEPAD_DEFAULTS,
   ...VOICE_DEFAULTS,
+  ...PIP_DEFAULTS,
   // On by default, generous enough (20km horizontally, 3km up/down) that
   // normal float-mode swimming near origin never brushes it — mainly meant
   // to be discovered by flying far in NOCLIP. worldBoundaryYExtend on means
@@ -2314,6 +2318,8 @@ export function Aquafulness() {
   const gamepad = useAppSettings(GAMEPAD_DEFAULTS, initial);
   // VOICE (apps/voice): voice commands for modes, moves and every setting.
   const voice = useAppSettings(VOICE_DEFAULTS, initial);
+  // PIP (apps/pip): the bath in a floating Picture-in-Picture window.
+  const pip = useAppSettings(PIP_DEFAULTS, initial);
   const [worldBoundaryOn, setWorldBoundaryOn] = useState(initial.worldBoundaryOn);
   const [worldBoundarySize, setWorldBoundarySize] = useState(initial.worldBoundarySize);
   const [worldBoundaryHeight, setWorldBoundaryHeight] = useState(initial.worldBoundaryHeight);
@@ -2584,6 +2590,11 @@ export function Aquafulness() {
   const roamingAppOn = useAppEnabled(appFlags, "roaming");
   const gamepadAppOn = useAppEnabled(appFlags, "gamepad");
   const voiceAppOn = useAppEnabled(appFlags, "voice");
+  const pipAppOn = useAppEnabled(appFlags, "pip");
+  const pipActive = usePictureInPicture(pip.values, pipAppOn, {
+    message: t("pip.placeholder"),
+    back: t("pip.back"),
+  });
   const {
     underwaterFogOn,
     underwaterFogColor,
@@ -3271,6 +3282,7 @@ export function Aquafulness() {
     ...roaming.values,
     ...gamepad.values,
     ...voice.values,
+    ...pip.values,
     waveAmp,
     decorations: deco.decorations,
     timeOfDay,
@@ -3673,6 +3685,7 @@ export function Aquafulness() {
     roaming.values,
     gamepad.values,
     voice.values,
+    pip.values,
     waveAmp,
     deco.decorations,
     timeOfDay,
@@ -5605,6 +5618,7 @@ export function Aquafulness() {
     roaming.reset();
     gamepad.reset();
     voice.reset();
+    pip.reset();
     setWorldBoundaryOn(DEFAULTS.worldBoundaryOn);
     setWorldBoundarySize(DEFAULTS.worldBoundarySize);
     setWorldBoundaryHeight(DEFAULTS.worldBoundaryHeight);
@@ -5871,6 +5885,7 @@ export function Aquafulness() {
     roaming.patch(patch);
     gamepad.patch(patch);
     voice.patch(patch);
+    pip.patch(patch);
     if (patch.worldBoundaryOn !== undefined) setWorldBoundaryOn(patch.worldBoundaryOn);
     if (patch.worldBoundarySize !== undefined) setWorldBoundarySize(patch.worldBoundarySize);
     if (patch.worldBoundaryHeight !== undefined) setWorldBoundaryHeight(patch.worldBoundaryHeight);
@@ -12112,7 +12127,10 @@ export function Aquafulness() {
       // every Nth tick (N from rafIntervalMsEstimate above) rather than
       // whenever enough wall-clock time has passed — see that estimate's
       // comment for why the wall-clock version reads as juddery.
-      const fpsCap = gogglesOnRef.current ? gogglesFpsCapRef.current : targetFpsRef.current;
+      // PIP: the floating window gets its own (lower) cap, apps/pip/pipFrames.ts.
+      const fpsCap = sceneFpsCap(
+        gogglesOnRef.current ? gogglesFpsCapRef.current : targetFpsRef.current,
+      );
       renderTickCount++;
       const ticksPerRender =
         fpsCap <= 0 ? 1 : Math.max(1, Math.round(1000 / fpsCap / rafIntervalMsEstimate));
@@ -12169,13 +12187,14 @@ export function Aquafulness() {
           renderer.render(scene, camera);
         }
       }
-      raf = requestAnimationFrame(animate);
+      // From the window the scene shows in (a Document PiP window has its own frames).
+      raf = requestSceneFrame(animate);
       clock.getDelta();
     };
     animate();
 
     return () => {
-      cancelAnimationFrame(raf);
+      cancelSceneFrame(raf);
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("pagehide", saveCameraPoseNow);
       saveCameraPoseNow();
@@ -12699,6 +12718,7 @@ export function Aquafulness() {
     roaming,
     gamepad,
     voice,
+    pip,
     buoyAmp,
     setBuoyAmp,
     bobSpeed,
@@ -13480,12 +13500,17 @@ export function Aquafulness() {
   };
 
   return (
-    <main className="relative h-dvh w-screen overflow-hidden bg-black">
+    <main
+      data-pip-root=""
+      data-pip={pipActive ?? undefined}
+      className="relative h-dvh w-screen overflow-hidden bg-black"
+    >
       {!envId && BACKDROPS[backdropIdx]?.url && (
         <img
           src={BACKDROPS[backdropIdx].url!}
           alt=""
           aria-hidden="true"
+          data-pip-scene=""
           className="pointer-events-none absolute inset-0 h-full w-full object-cover"
         />
       )}
@@ -13495,11 +13520,17 @@ export function Aquafulness() {
         <div
           ref={backdropSunTintRef}
           aria-hidden="true"
+          data-pip-scene=""
           className="pointer-events-none absolute inset-0 mix-blend-multiply"
           style={{ opacity: 0 }}
         />
       )}
-      <div ref={mountRef} className="absolute inset-0 touch-none" />
+      <div
+        ref={mountRef}
+        data-pip-scene=""
+        data-pip-canvas=""
+        className="absolute inset-0 touch-none"
+      />
 
       {/* Boot overlay — covers the gap between mounting the WebGL canvas and
           the initial scene/skybox/surface (picked up from saved settings)
@@ -13531,6 +13562,7 @@ export function Aquafulness() {
         <div
           ref={underwaterFogElRef}
           aria-hidden="true"
+          data-pip-scene=""
           className="pointer-events-none absolute inset-0"
         />
       )}
