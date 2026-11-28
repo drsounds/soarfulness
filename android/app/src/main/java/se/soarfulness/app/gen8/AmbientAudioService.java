@@ -21,6 +21,7 @@ import android.os.Build;
 import android.os.IBinder;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.ServiceCompat;
+import androidx.core.content.ContextCompat;
 import java.io.File;
 import java.io.IOException;
 
@@ -313,6 +314,7 @@ public class AmbientAudioService extends Service {
             .setContentTitle(getString(R.string.app_name))
             .setContentText(getString(R.string.ambient_audio_notification_text))
             .setSmallIcon(R.drawable.ic_stat_notification)
+            .setColor(ContextCompat.getColor(this, R.color.ic_launcher_foreground_tint))
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
