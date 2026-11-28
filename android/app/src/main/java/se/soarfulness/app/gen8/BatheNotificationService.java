@@ -72,7 +72,7 @@ public class BatheNotificationService extends Service {
         Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(getString(R.string.app_name))
             .setContentText(getString(R.string.bathing_notification_text))
-            .setSmallIcon(R.drawable.ic_launcher_adaptive_foreground)
+            .setSmallIcon(R.drawable.ic_stat_notification)
             .setLargeIcon(adaptiveIconBitmap())
             .setContentIntent(openPendingIntent)
             .setOngoing(true)
