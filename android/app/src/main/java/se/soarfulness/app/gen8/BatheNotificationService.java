@@ -14,6 +14,7 @@ import android.os.Build;
 import android.os.IBinder;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.ServiceCompat;
+import androidx.core.content.ContextCompat;
 
 public class BatheNotificationService extends Service {
 
@@ -73,6 +74,7 @@ public class BatheNotificationService extends Service {
             .setContentTitle(getString(R.string.app_name))
             .setContentText(getString(R.string.bathing_notification_text))
             .setSmallIcon(R.drawable.ic_stat_notification)
+            .setColor(ContextCompat.getColor(this, R.color.ic_launcher_foreground_tint))
             .setLargeIcon(adaptiveIconBitmap())
             .setContentIntent(openPendingIntent)
             .setOngoing(true)
